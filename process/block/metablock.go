@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -38,6 +39,8 @@ type metaProcessor struct {
 	requestedShardHdrsHashes    map[string]bool
 	allNeededShardHdrsFound     bool
 	mutRequestedShardHdrsHashes sync.RWMutex
+
+	shardsHeadersNonce *sync.Map
 
 	nextKValidity uint32
 
@@ -97,6 +100,7 @@ func NewMetaProcessor(
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandler:        requestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
+		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 	}
 
 	err = base.setLastNotarizedHeadersSlice(startHeaders)
@@ -119,6 +123,8 @@ func NewMetaProcessor(
 
 	mp.nextKValidity = process.ShardBlockFinality
 	mp.allNeededShardHdrsFound = true
+
+	mp.shardsHeadersNonce = &sync.Map{}
 
 	return &mp, nil
 }
@@ -462,6 +468,8 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
+		mp.updateShardHeadersNonce(shardData.ShardId, header.Nonce)
+
 		tempHeaderPool[string(shardData.HeaderHash)] = header
 
 		buff, err = mp.marshalizer.Marshal(header)
@@ -477,6 +485,8 @@ func (mp *metaProcessor) CommitBlock(
 		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
 		log.LogIfError(errNotCritical)
 	}
+
+	mp.saveMetricCrossCheckBlockHeight()
 
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
@@ -528,6 +538,47 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockSizeThrottler.Succeed(header.Round)
 
 	return nil
+}
+
+func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
+	valueStoredI, ok := mp.shardsHeadersNonce.Load(key)
+	if !ok {
+		mp.shardsHeadersNonce.Store(key, value)
+		return
+	}
+
+	valueStored, ok := valueStoredI.(uint64)
+	if !ok {
+		mp.shardsHeadersNonce.Store(key, value)
+		return
+	}
+
+	if valueStored < value {
+		mp.shardsHeadersNonce.Store(key, value)
+	}
+}
+
+func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
+	crossCheckBlockHeight := ""
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		valueStoredI, ok := mp.shardsHeadersNonce.Load(i)
+		if !ok {
+			continue
+		}
+
+		valueStored, ok := valueStoredI.(uint64)
+		if !ok {
+			continue
+		}
+
+		if i > 0 {
+			crossCheckBlockHeight += ", "
+		}
+
+		crossCheckBlockHeight += fmt.Sprintf("%d: %d", i, valueStored)
+	}
+
+	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
 }
 
 func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error {

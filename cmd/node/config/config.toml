@@ -26,6 +26,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 1
+        MaxOpenFiles = 10
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
@@ -36,6 +37,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 6
+        MaxOpenFiles = 10
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
@@ -46,6 +48,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 1
+        MaxOpenFiles = 10
 
 [ShardDataStorage]
     [ShardDataStorage.Cache]
@@ -56,6 +59,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 30
+        MaxOpenFiles = 10
 
 [PeerDataStorage]
     [PeerDataStorage.Cache]
@@ -66,6 +70,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 30
+        MaxOpenFiles = 10
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
@@ -76,6 +81,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 1
+        MaxOpenFiles = 10
 
 [TxStorage]
     [TxStorage.Cache]
@@ -86,6 +92,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
         MaxBatchSize = 45000
+        MaxOpenFiles = 10
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
@@ -96,6 +103,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
         MaxBatchSize = 45000
+        MaxOpenFiles = 10
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
@@ -106,6 +114,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 1
+        MaxOpenFiles = 10
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
@@ -116,6 +125,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
         MaxBatchSize = 1
+        MaxOpenFiles = 10
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
@@ -126,6 +136,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
         MaxBatchSize = 45000
+        MaxOpenFiles = 10
 
 [BadBlocksCache]
     Size = 1000

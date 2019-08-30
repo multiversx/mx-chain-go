@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -643,7 +642,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		processComponents,
 	)
 	if err != nil {
-		log.Info("Error creating status polling: ", err)
+		return err
 	}
 
 	updateMachineStatisticsDurationSec := 1
@@ -790,26 +789,9 @@ func startMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval in
 		return err
 	}
 
-	//TODO delete this dummy function when metrics will not have dummy values
-	err = dummyDataInNewMetrics(appStatusPollingHandler)
-	if err != nil {
-		return err
-	}
-
 	appStatusPollingHandler.Poll()
 
 	return nil
-}
-
-//TODO delete this dummy function when metrics will not have dummy values
-func dummyDataInNewMetrics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
-	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, rand.Uint64())
-		appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, rand.Uint64())
-		appStatusHandler.SetStringValue(core.MetricConsensusState, "dummy")
-		appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "dummy")
-		appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "dummy")
-	})
 }
 
 func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
@@ -823,6 +805,7 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
 		appStatusHandler.SetUInt64Value(core.MetricTotalMem, memStats.TotalMemory())
+		appStatusHandler.SetUInt64Value(core.MetricMemoryUsedByNode, memStats.UsedMemory())
 	})
 }
 
@@ -1082,7 +1065,7 @@ func createNode(
 		err = nd.ApplyOptions(
 			node.WithInitialNodesBalances(state.InBalanceForShard),
 			node.WithDataPool(data.Datapool),
-			node.WithActiveMetachain(nodesConfig.MetaChainActive))
+		)
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}

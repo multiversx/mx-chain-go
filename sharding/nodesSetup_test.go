@@ -8,85 +8,97 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createNodesSetupOneShardOneNode() *sharding.NodesSetup {
+func createNodesSetupOneShardOneNodeWithOneMeta() *sharding.NodesSetup {
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 1
-	ns.InitialNodes = make([]*sharding.InitialNode, 1)
+	ns.MetaChainConsensusGroupSize = 1
+	ns.MetaChainMinNodes = 1
+	ns.InitialNodes = make([]*sharding.InitialNode, 2)
 	ns.InitialNodes[0] = &sharding.InitialNode{}
 	ns.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
-
-	err := ns.ProcessConfig()
-	if err != nil {
-		return nil
-	}
-
-	if ns.MetaChainActive {
-		ns.ProcessMetaChainAssigment()
-	}
-
-	ns.ProcessShardAssignment()
-	ns.CreateInitialNodesPubKeys()
-
-	return ns
-}
-
-func createNodesSetupTwoShardTwoNodes() *sharding.NodesSetup {
-	ns := &sharding.NodesSetup{}
-	ns.ConsensusGroupSize = 1
-	ns.MinNodesPerShard = 2
-	ns.InitialNodes = make([]*sharding.InitialNode, 4)
-	ns.InitialNodes[0] = &sharding.InitialNode{}
 	ns.InitialNodes[1] = &sharding.InitialNode{}
-	ns.InitialNodes[2] = &sharding.InitialNode{}
-	ns.InitialNodes[3] = &sharding.InitialNode{}
-
-	ns.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 	ns.InitialNodes[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
-	ns.InitialNodes[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
-	ns.InitialNodes[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
 
 	err := ns.ProcessConfig()
 	if err != nil {
 		return nil
 	}
 
-	if ns.MetaChainActive {
-		ns.ProcessMetaChainAssigment()
-	}
-
+	ns.ProcessMetaChainAssigment()
 	ns.ProcessShardAssignment()
 	ns.CreateInitialNodesPubKeys()
 
 	return ns
 }
 
-func createNodesSetupTwoShard5Nodes() *sharding.NodesSetup {
+func createNodesSetupTwoShardTwoNodesWithOneMeta() *sharding.NodesSetup {
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
+	ns.MetaChainConsensusGroupSize = 1
+	ns.MetaChainMinNodes = 1
 	ns.InitialNodes = make([]*sharding.InitialNode, 5)
-	ns.InitialNodes[0] = &sharding.InitialNode{}
-	ns.InitialNodes[1] = &sharding.InitialNode{}
-	ns.InitialNodes[2] = &sharding.InitialNode{}
-	ns.InitialNodes[3] = &sharding.InitialNode{}
-	ns.InitialNodes[4] = &sharding.InitialNode{}
-
-	ns.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
-	ns.InitialNodes[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
-	ns.InitialNodes[2].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417"
-	ns.InitialNodes[3].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416"
-	ns.InitialNodes[4].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7411"
+	ns.InitialNodes[0] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417",
+	}
+	ns.InitialNodes[1] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419",
+	}
+	ns.InitialNodes[2] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418",
+	}
+	ns.InitialNodes[3] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417",
+	}
+	ns.InitialNodes[4] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416",
+	}
 
 	err := ns.ProcessConfig()
 	if err != nil {
 		return nil
 	}
 
-	if ns.MetaChainActive {
-		ns.ProcessMetaChainAssigment()
+	ns.ProcessMetaChainAssigment()
+	ns.ProcessShardAssignment()
+	ns.CreateInitialNodesPubKeys()
+
+	return ns
+}
+
+func createNodesSetupTwoShard5NodesWithMeta() *sharding.NodesSetup {
+	ns := &sharding.NodesSetup{}
+	ns.ConsensusGroupSize = 1
+	ns.MinNodesPerShard = 2
+	ns.MetaChainMinNodes = 1
+	ns.MetaChainConsensusGroupSize = 1
+	ns.InitialNodes = make([]*sharding.InitialNode, 6)
+	ns.InitialNodes[0] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7410",
+	}
+	ns.InitialNodes[1] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419",
+	}
+	ns.InitialNodes[2] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418",
+	}
+	ns.InitialNodes[3] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417",
+	}
+	ns.InitialNodes[4] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7416",
+	}
+	ns.InitialNodes[5] = &sharding.InitialNode{
+		PubKey: "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7411",
 	}
 
+	err := ns.ProcessConfig()
+	if err != nil {
+		return nil
+	}
+
+	ns.ProcessMetaChainAssigment()
 	ns.ProcessShardAssignment()
 	ns.CreateInitialNodesPubKeys()
 
@@ -97,7 +109,6 @@ func createNodesSetupTwoShard6NodesMeta() *sharding.NodesSetup {
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
-	ns.MetaChainActive = true
 	ns.MetaChainMinNodes = 2
 	ns.MetaChainConsensusGroupSize = 2
 	ns.InitialNodes = make([]*sharding.InitialNode, 6)
@@ -120,10 +131,7 @@ func createNodesSetupTwoShard6NodesMeta() *sharding.NodesSetup {
 		return nil
 	}
 
-	if ns.MetaChainActive {
-		ns.ProcessMetaChainAssigment()
-	}
-
+	ns.ProcessMetaChainAssigment()
 	ns.ProcessShardAssignment()
 	ns.CreateInitialNodesPubKeys()
 
@@ -208,7 +216,6 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testi
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 0,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             true,
 	}
 
 	ns.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -249,7 +256,6 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNod
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             true,
 	}
 
 	ns.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -290,7 +296,6 @@ func TestNodesSetup_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             true,
 	}
 
 	ns.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -327,9 +332,9 @@ func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardSho
 
 func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
 	ns := sharding.NodesSetup{
-		ConsensusGroupSize:          1,
-		MinNodesPerShard:            1,
-		MetaChainActive:             true,
+		ConsensusGroupSize: 1,
+		MinNodesPerShard:   1,
+
 		MetaChainConsensusGroupSize: 2,
 		MetaChainMinNodes:           3,
 	}
@@ -359,7 +364,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
-	ns := createNodesSetupOneShardOneNode()
+	ns := createNodesSetupOneShardOneNodeWithOneMeta()
 	inPK, err := ns.InitialNodesPubKeysForShard(1)
 
 	assert.NotNil(t, ns)
@@ -368,22 +373,12 @@ func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
-	ns := createNodesSetupTwoShardTwoNodes()
+	ns := createNodesSetupTwoShardTwoNodesWithOneMeta()
 	inPK, err := ns.InitialNodesPubKeysForShard(1)
 
 	assert.NotNil(t, ns)
 	assert.Equal(t, len(inPK), 2)
 	assert.Nil(t, err)
-}
-
-func TestNodesSetup_InitialNodesPubKeysForShardWrongMeta(t *testing.T) {
-	ns := createNodesSetupTwoShardTwoNodes()
-	metaId := sharding.MetachainShardId
-	inPK, err := ns.InitialNodesPubKeysForShard(metaId)
-
-	assert.NotNil(t, ns)
-	assert.Nil(t, inPK)
-	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
@@ -406,7 +401,7 @@ func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
 }
 
 func TestNodesSetup_PublicKeyGood(t *testing.T) {
-	ns := createNodesSetupTwoShard5Nodes()
+	ns := createNodesSetupTwoShard5NodesWithMeta()
 	publicKey, err := hex.DecodeString("5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417")
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)
