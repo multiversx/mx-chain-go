@@ -381,7 +381,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		return err
 	}
 
-	if len(sortedHdrs) == 0 {
+	isLastNotarizedCloseToOurRound := maxRound-prevHdr.GetRound() <= process.MaxHeaderRequestsAllowed
+	if len(sortedHdrs) == 0 && isLastNotarizedCloseToOurRound {
 		return process.ErrNoSortedHdrsForShard
 	}
 
@@ -405,6 +406,14 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 			for j := prevHdr.GetNonce() + 1; j < currHdr.GetNonce(); j++ {
 				missingNonces = append(missingNonces, j)
 			}
+		}
+	}
+
+	// ask for headers, if there is none in the pool and know it should be
+	if len(sortedHdrs) == 0 {
+		startNonce := prevHdr.GetNonce() + 1
+		for nonce := startNonce; nonce < startNonce+process.MaxHeaderRequestsAllowed; nonce++ {
+			missingNonces = append(missingNonces, nonce)
 		}
 	}
 
