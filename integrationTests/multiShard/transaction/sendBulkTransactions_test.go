@@ -95,7 +95,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 
 	// generate intra shard txs in shard 1
 	for len(txs) < totalNumOfTxs {
-		// generate a tx from a random account from shard 0 to other random account from shard 0
+		// generate a tx from a random account from shard 1 to other random account from shard 1
 		randomSenderId := getRandomIndex(accountsByShard[1])
 		sender := accountsByShard[1][randomSenderId]
 
