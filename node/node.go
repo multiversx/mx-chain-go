@@ -98,7 +98,6 @@ type Node struct {
 	consensusType  string
 
 	isRunning                bool
-	isMetachainActive        bool
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
@@ -122,7 +121,6 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
 		ctx:                      context.Background(),
-		isMetachainActive:        true,
 		currentSendingGoRoutines: 0,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 	}
