@@ -612,7 +612,8 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error, i
 	// The below section of code fixed a situation when all peers would have replaced in their headerNonceHash pool a
 	// good/used header in their blockchain construction, with a wrong/unused header on which they didn't construct,
 	// but which came after a late broadcast from a valid proposer.
-	if err == process.ErrBlockHashDoesNotMatch {
+	if err != process.ErrTimeIsOut && isProcessingError &&
+		boot.forkDetector.GetHighestFinalBlockNonce() < hdr.Nonce-1 {
 		prevHdr, errNotCritical := boot.getHeaderWithHashRequestingIfMissing(hdr.GetPrevHash())
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
