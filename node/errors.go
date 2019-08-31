@@ -120,3 +120,6 @@ var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generati
 
 // ErrNilStatusHandler is returned when the status handler is nil
 var ErrNilStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNoTxToProcess signals that no transaction were sent for processing
+var ErrNoTxToProcess = errors.New("no transaction to process")

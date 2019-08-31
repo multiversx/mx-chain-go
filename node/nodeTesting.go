@@ -341,7 +341,10 @@ func (n *Node) generateAndSignTxBuffArray(
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
 func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string) (*transaction.Transaction, error) {
 	if n.addrConverter == nil || n.accounts == nil {
-		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
+		return nil, ErrNilAddressConverter
+	}
+	if n.accounts == nil {
+		return nil, ErrNilAccountsAdapter
 	}
 	if n.txSignPrivKey == nil {
 		return nil, errors.New("initialize PrivateKey first")

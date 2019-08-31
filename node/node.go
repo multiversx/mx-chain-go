@@ -581,6 +581,10 @@ func (n *Node) SendTransaction(
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	transactionsByShards := make(map[uint32][][]byte, 0)
 
+	if txs == nil || len(txs) == 0 {
+		return 0, ErrNoTxToProcess
+	}
+
 	for _, tx := range txs {
 		senderBytes, err := n.addrConverter.CreateAddressFromPublicKeyBytes(tx.SndAddr)
 		if err != nil {
@@ -648,8 +652,12 @@ func (n *Node) CreateTransaction(
 	challenge string,
 ) (*transaction.Transaction, error) {
 
-	if n.addrConverter == nil || n.accounts == nil {
-		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
+	if n.addrConverter == nil {
+		return nil, ErrNilAddressConverter
+	}
+
+	if n.accounts == nil {
+		return nil, ErrNilAccountsAdapter
 	}
 
 	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)

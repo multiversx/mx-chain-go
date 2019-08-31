@@ -112,12 +112,9 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 
 	// wait for txs to be sent
 	time.Sleep(1 * time.Second)
+
 	// check if all txs were sent
-	if len(accountsByShard[0]) > 1 {
-		assert.Equal(t, uint64(totalNumOfTxs), sentTxs)
-	} else {
-		assert.Equal(t, uint64(numOfCrossShardTxsToSend), sentTxs)
-	}
+	assert.Equal(t, uint64(totalNumOfTxs), sentTxs)
 
 	mutGeneratedTxHashes.Lock()
 	// check if all nodes in shard 0 got cross shard txs in pool

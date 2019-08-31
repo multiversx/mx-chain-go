@@ -562,6 +562,179 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := ""
+	sender := ""
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := "-"
+	signature := "-"
+	challenge := "-"
+
+	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+
+	assert.Nil(t, tx)
+	assert.Equal(t, node.ErrNilAddressConverter, err)
+}
+
+func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressConverter(&mock.AddressConverterStub{
+			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
+				return state.NewAddress([]byte(hexAddress)), nil
+			},
+		}),
+		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := ""
+	sender := ""
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := "-"
+	signature := "-"
+	challenge := "-"
+
+	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+
+	assert.Nil(t, tx)
+	assert.Equal(t, node.ErrNilAccountsAdapter, err)
+}
+
+func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressConverter(&mock.AddressConverterStub{
+			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
+				return state.NewAddress([]byte(hexAddress)), nil
+			},
+		}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := "-"
+	signature := "-"
+	challenge := "af4e5"
+
+	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+
+	assert.Nil(t, tx)
+	assert.NotNil(t, err)
+}
+
+func TestCreateTransaction_InvalidChallengeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressConverter(&mock.AddressConverterStub{
+			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
+				return state.NewAddress([]byte(hexAddress)), nil
+			},
+		}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := "-"
+	signature := "617eff4f"
+	challenge := "-"
+
+	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+
+	assert.Nil(t, tx)
+	assert.NotNil(t, err)
+}
+
+func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressConverter(&mock.AddressConverterStub{
+			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
+				return state.NewAddress([]byte(hexAddress)), nil
+			},
+		}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := "-"
+	signature := "617eff4f"
+	challenge := "aff64e"
+
+	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+
+	assert.NotNil(t, tx)
+	assert.Nil(t, err)
+	assert.Equal(t, nonce, tx.Nonce)
+	assert.Equal(t, value, tx.Value)
+	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
+}
+
+func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mes := &mock.MessengerStub{}
+	marshalizer := &mock.MarshalizerFake{}
+	hasher := &mock.HasherFake{}
+	adrConverter := mock.NewAddressConverterFake(32, "0x")
+	n, _ := node.NewNode(
+		node.WithMarshalizer(marshalizer),
+		node.WithAddressConverter(adrConverter),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithMessenger(mes),
+		node.WithHasher(hasher),
+	)
+	txs := make([]*transaction.Transaction, 0)
+
+	numOfTxsProcessed, err := n.SendBulkTransactions(txs)
+	assert.Equal(t, uint64(0), numOfTxsProcessed)
+	assert.Equal(t, node.ErrNoTxToProcess, err)
+}
+
 func TestSendTransaction_ShouldWork(t *testing.T) {
 	txSent := false
 	mes := &mock.MessengerStub{
