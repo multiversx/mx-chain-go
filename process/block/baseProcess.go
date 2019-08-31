@@ -409,8 +409,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		}
 	}
 
-	// ask for headers, if there is none in the pool and know it should be
-	if len(sortedHdrs) == 0 {
+	// ask for headers, if there most probably should be
+	if len(missingNonces) == 0 && !isLastNotarizedCloseToOurRound {
 		startNonce := prevHdr.GetNonce() + 1
 		for nonce := startNonce; nonce < startNonce+process.MaxHeaderRequestsAllowed; nonce++ {
 			missingNonces = append(missingNonces, nonce)
