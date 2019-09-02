@@ -538,6 +538,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusState, "")
 	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
 	coreComponents.StatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricIsSyncing, uint64(1))
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
