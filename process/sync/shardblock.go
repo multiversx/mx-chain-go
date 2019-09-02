@@ -329,7 +329,7 @@ func (boot *ShardBootstrap) getHighestHdrForOwnShardFromMetachain(
 	metaHdrNonce := lastMetaHdrNonce
 
 	for {
-		if metaHdrNonce < 1 {
+		if metaHdrNonce == core.GenesisBlockNonce {
 			break
 		}
 

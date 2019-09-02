@@ -481,7 +481,7 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
-// GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
+// GetAllMiniBlockHashes as a map of hashes and sender IDs
 func (h *Header) GetAllMiniBlockHashes() map[string]uint32 {
 	hashDst := make(map[string]uint32, 0)
 	for _, val := range h.MiniBlockHeaders {
