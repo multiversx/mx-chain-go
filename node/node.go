@@ -603,8 +603,11 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	numOfSentTxs := uint64(0)
 	for shardId, txs := range transactionsByShards {
 		err := n.sendBulkTransactionsFromShard(txs, shardId)
-		log.LogIfError(err)
-		numOfSentTxs += uint64(len(txs))
+		if err != nil {
+			log.Error(err.Error())
+		} else {
+			numOfSentTxs += uint64(len(txs))
+		}
 	}
 
 	return numOfSentTxs, nil
