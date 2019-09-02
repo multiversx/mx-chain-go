@@ -1,17 +1,17 @@
-package statusHandler_test
+package presenter_test
 
 import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPresenterStatusHandler_NewPresenterStatusHandler(t *testing.T) {
 	t.Parallel()
 
-	presenterStatusHandler := statusHandler.NewPresenterStatusHandler()
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
 	assert.NotNil(t, presenterStatusHandler)
 }
@@ -19,7 +19,7 @@ func TestPresenterStatusHandler_NewPresenterStatusHandler(t *testing.T) {
 func TestPresenterStatusHandler_TestIncrement(t *testing.T) {
 	t.Parallel()
 
-	presenterStatusHandler := statusHandler.NewPresenterStatusHandler()
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
 	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 0)
 	presenterStatusHandler.Increment(core.MetricNonce)
@@ -33,7 +33,7 @@ func TestPresenterStatusHandler_TestSetInt64(t *testing.T) {
 
 	var intValue = int64(100)
 
-	presenterStatusHandler := statusHandler.NewPresenterStatusHandler()
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
 	presenterStatusHandler.SetInt64Value(core.MetricNonce, intValue)
 	valueI, err := presenterStatusHandler.GetPresenterMetricByKey(core.MetricNonce)
@@ -49,7 +49,7 @@ func TestPresenterStatusHandler_TestSetUInt64(t *testing.T) {
 
 	var intValue = uint64(200)
 
-	presenterStatusHandler := statusHandler.NewPresenterStatusHandler()
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
 	presenterStatusHandler.SetUInt64Value(core.MetricNonce, intValue)
 	result := presenterStatusHandler.GetNonce()
@@ -62,7 +62,7 @@ func TestPresenterStatusHandler_TestSetString(t *testing.T) {
 
 	var stringValue = "KEY"
 
-	presenterStatusHandler := statusHandler.NewPresenterStatusHandler()
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 
 	presenterStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, stringValue)
 	result := presenterStatusHandler.GetPublicKeyBlockSign()

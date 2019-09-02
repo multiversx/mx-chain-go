@@ -12,6 +12,9 @@ import (
 	"path/filepath"
 	"time"
 
+	factoryPresenter "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -594,6 +597,35 @@ func (ncv *nullChronologyValidator) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// PresenterStatusHandlerFactory will return an instance of PresenterStatusHandler
+func PresenterStatusHandlerFactory() view.Presenter {
+	presenterStatusHandlerFactory := factoryPresenter.NewPresenterFactory()
+
+	return presenterStatusHandlerFactory.Create()
+}
+
+// ViewsFactory will start an termui console  and will return an object if cannot create and start termuiConsole
+func ViewsFactory(presenter view.Presenter) ([]statusHandler.Viewer, error) {
+	viewsFactory, err := factoryPresenter.NewViewsFactory(presenter)
+	if err != nil {
+		return nil, err
+	}
+
+	views, err := viewsFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range views {
+		err = v.Start()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return views, nil
 }
 
 func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {

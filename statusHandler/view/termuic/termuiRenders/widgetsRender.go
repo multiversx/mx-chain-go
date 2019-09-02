@@ -2,11 +2,12 @@ package termuiRenders
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -27,11 +28,18 @@ type WidgetsRender struct {
 	networkRecv *widgets.Gauge
 	networkSent *widgets.Gauge
 
-	presenter statusHandler.PresenterInterface
+	presenter view.Presenter
 }
 
 //NewWidgetsRender method will create new WidgetsRender that display termui console
-func NewWidgetsRender(presenter statusHandler.PresenterInterface, grid *DrawableContainer) *WidgetsRender {
+func NewWidgetsRender(presenter view.Presenter, grid *DrawableContainer) (*WidgetsRender, error) {
+	if presenter == nil || presenter.IsInterfaceNil() {
+		return nil, statusHandler.ErrorNilPresenterInterface
+	}
+	if grid == nil {
+		return nil, statusHandler.ErrorNilGrid
+	}
+
 	self := &WidgetsRender{
 		presenter: presenter,
 		container: grid,
@@ -39,7 +47,7 @@ func NewWidgetsRender(presenter statusHandler.PresenterInterface, grid *Drawable
 	self.initWidgets()
 	self.setGrid()
 
-	return self
+	return self, nil
 }
 
 func (wr *WidgetsRender) initWidgets() {

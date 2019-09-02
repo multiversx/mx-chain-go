@@ -1,13 +1,16 @@
 package termuic
 
 import (
+	"errors"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/prometheus/common/log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/termuic/termuiRenders"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic/termuiRenders"
 	ui "github.com/gizak/termui/v3"
 )
 
@@ -16,18 +19,22 @@ const refreshInterval = time.Second
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
-	presenter     statusHandler.PresenterInterface
+	presenter     view.Presenter
 	consoleRender TermuiRender
 	grid          *termuiRenders.DrawableContainer
 }
 
 //NewTermuiConsole method is used to return a new TermuiConsole structure
-func NewTermuiConsole(presenter statusHandler.PresenterInterface) *TermuiConsole {
+func NewTermuiConsole(presenter view.Presenter) (*TermuiConsole, error) {
+	if presenter == nil || presenter.IsInterfaceNil() {
+		return nil, errors.New("nil presenter")
+	}
+
 	tc := TermuiConsole{
 		presenter: presenter,
 	}
 
-	return &tc
+	return &tc, nil
 }
 
 // Start method - will start termui console
@@ -46,7 +53,17 @@ func (tc *TermuiConsole) Start() error {
 
 func (tc *TermuiConsole) eventLoop() {
 	tc.grid = termuiRenders.NewDrawableContainer()
-	tc.consoleRender = termuiRenders.NewWidgetsRender(tc.presenter, tc.grid)
+	if tc.grid == nil {
+		log.Warn("Cannot render termui console", statusHandler.ErrorNilGrid)
+		return
+	}
+
+	var err error
+	tc.consoleRender, err = termuiRenders.NewWidgetsRender(tc.presenter, tc.grid)
+	if err != nil {
+		log.Warn("nil console render", err)
+		return
+	}
 
 	termWidth, termHeight := ui.TerminalDimensions()
 	tc.grid.SetRectangle(0, 0, termWidth, termHeight)
