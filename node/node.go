@@ -655,11 +655,11 @@ func (n *Node) CreateTransaction(
 	challenge string,
 ) (*transaction.Transaction, error) {
 
-	if n.addrConverter == nil {
+	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
 	}
 
-	if n.accounts == nil {
+	if n.accounts == nil || n.accounts.IsInterfaceNil() {
 		return nil, ErrNilAccountsAdapter
 	}
 

@@ -649,37 +649,6 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestCreateTransaction_InvalidChallengeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(
-		node.WithMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressConverter(&mock.AddressConverterStub{
-			CreateAddressFromHexHandler: func(hexAddress string) (container state.AddressContainer, e error) {
-				return state.NewAddress([]byte(hexAddress)), nil
-			},
-		}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxSignPrivKey(&mock.PrivateKeyStub{}),
-	)
-
-	nonce := uint64(0)
-	value := new(big.Int).SetInt64(10)
-	receiver := "rcv"
-	sender := "snd"
-	gasPrice := uint64(10)
-	gasLimit := uint64(20)
-	txData := "-"
-	signature := "617eff4f"
-	challenge := "-"
-
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
-
-	assert.Nil(t, tx)
-	assert.NotNil(t, err)
-}
-
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
