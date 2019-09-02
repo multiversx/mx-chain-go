@@ -455,7 +455,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return err
 	}
 
-	miniBlockHashes := header.GetAllMiniBlockHashes()
+	miniBlockHashes := header.MapMiniBlockHashesToShards()
 	err = sp.restoreMetaBlockIntoPool(miniBlockHashes, header.MetaBlockHashes)
 	if err != nil {
 		return err
