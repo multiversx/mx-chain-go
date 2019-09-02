@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"github.com/ElrondNetwork/hera/evmc/bindings/go/evmc"
 	"math/big"
 	"testing"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
+	"github.com/ElrondNetwork/hera"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -149,6 +151,37 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(
 	return txProcessor, blockChainHook
 }
 
+func CreateTxProcessorWithOneSCExecutorWASMVM(
+	accnts state.AccountsAdapter,
+	config string,
+) (process.TransactionProcessor, vmcommon.BlockchainHook) {
+
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+	cryptoHook := hooks.NewVMCryptoHook()
+	vm := evmc.NewWASMInstance(config, blockChainHook, cryptoHook)
+
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return vm, nil
+		}}
+
+	argsParser, _ := smartContract.NewAtArgumentParser()
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
+		vmContainer,
+		argsParser,
+		testHasher,
+		testMarshalizer,
+		accnts,
+		blockChainHook,
+		addrConv,
+		oneShardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+
+	return txProcessor, blockChainHook
+}
+
 func TestDeployedContractContents(
 	t *testing.T,
 	destinationAddressBytes []byte,
@@ -203,6 +236,23 @@ func CreatePreparedTxProcessorAndAccountsWithIeleVM(
 	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorIeleVM(accnts)
+	assert.NotNil(tb, txProcessor)
+
+	return txProcessor, accnts, blockchainHook
+}
+
+func CreatePreparedTxProcessorAndAccountsWithWASMVM(
+	tb testing.TB,
+	senderNonce uint64,
+	senderAddressBytes []byte,
+	senderBalance *big.Int,
+	config string,
+) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
+
+	accnts := CreateInMemoryShardAccountsDB()
+	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+
+	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorWASMVM(accnts, config)
 	assert.NotNil(tb, txProcessor)
 
 	return txProcessor, accnts, blockchainHook

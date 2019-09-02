@@ -22,7 +22,7 @@ var agarioFile = "../agarioV3.hex"
 var stepDelay = time.Second
 
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
-	t.Skip("this is a stress test for VM and AGAR.IO")
+	//t.Skip("this is a stress test for VM and AGAR.IO")
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()

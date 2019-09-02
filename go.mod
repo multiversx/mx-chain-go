@@ -7,6 +7,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.15
 	github.com/ElrondNetwork/elrond-vm-common v0.0.6
+	github.com/ElrondNetwork/hera v1.0.1
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
@@ -51,7 +52,9 @@ require (
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	go.dedis.ch/kyber/v3 v3.0.2
-	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/sys v0.0.0-20190825160603-fb81701db80f // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/ElrondNetwork/hera => ../hera
