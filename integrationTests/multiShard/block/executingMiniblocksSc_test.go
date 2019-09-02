@@ -206,7 +206,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	integrationTests.NodeCallsRewardAndSend(
 		nodes,
 		idxProposerShard1,
-		nodes[idxProposerShard0].OwnAccount.Address.Bytes(),
+		nodes[idxProposerShard0].OwnAccount,
 		withdrawValue,
 		"aaaa",
 		hardCodedScResultingAddress,
