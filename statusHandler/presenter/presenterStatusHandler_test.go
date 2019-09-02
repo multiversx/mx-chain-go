@@ -2,6 +2,7 @@ package presenter_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
@@ -68,4 +69,45 @@ func TestPresenterStatusHandler_TestSetString(t *testing.T) {
 	result := presenterStatusHandler.GetPublicKeyBlockSign()
 
 	assert.Equal(t, stringValue, result)
+}
+
+func TestPresenterStatusHandler_Write(t *testing.T) {
+	t.Parallel()
+
+	logLine := "Hello"
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	logLineLen, err := presenterStatusHandler.Write([]byte(logLine))
+
+	assert.Nil(t, err)
+	assert.Equal(t, len(logLine), logLineLen)
+
+}
+
+func TestPresenterStatusHandler_GetLogLine(t *testing.T) {
+	t.Parallel()
+
+	logLine := "Hello"
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	logLineLen, err := presenterStatusHandler.Write([]byte(logLine))
+
+	assert.Nil(t, err)
+	assert.Equal(t, len(logLine), logLineLen)
+
+	time.Sleep(time.Millisecond)
+	logLines := presenterStatusHandler.GetLogLines()
+
+	assert.Equal(t, 1, len(logLines))
+	assert.Equal(t, logLine, logLines[0])
+}
+
+func TestPresenterStatusHandler_Increment(t *testing.T) {
+	t.Parallel()
+
+	countConsensus := uint64(0)
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
+	presenterStatusHandler.Increment(core.MetricCountConsensus)
+	result := presenterStatusHandler.GetCountConsensus()
+
+	assert.Equal(t, countConsensus+1, result)
 }
