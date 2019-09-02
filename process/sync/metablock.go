@@ -142,6 +142,23 @@ func (boot *MetaBootstrap) syncFromStorer(
 	return nil
 }
 
+func (boot *MetaBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
+	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+		return
+	}
+
+	if shardId == sharding.MetachainShardId {
+		errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
+		if errNotCritical != nil {
+			log.Info(errNotCritical.Error())
+		}
+
+		return
+	}
+}
+
 func (boot *MetaBootstrap) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
 	return boot.getMetaHeaderFromStorage(shardId, nonce)
 }
@@ -462,6 +479,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	boot.requestsWithTimeout = 0
+
 	return nil
 }
 
