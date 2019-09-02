@@ -24,6 +24,7 @@ type TransactionProcessor interface {
 
 // RewardTransactionProcessor is the interface for reward transaction execution engine
 type RewardTransactionProcessor interface {
+	ProcessCreatedRewardTransaction(reward *rewardTx.RewardTx) error
 	ProcessRewardTransaction(rewardTx *rewardTx.RewardTx) error
 }
 
@@ -92,12 +93,8 @@ type TransactionVerifier interface {
 }
 
 // UnsignedTxHandler creates and verifies unsigned transactions for current round
-type UnsignedTxHandler interface {
-	CleanProcessedUTxs()
+type TransactionFeeHandler interface {
 	ProcessTransactionFee(cost *big.Int)
-	CreateAllUTxs() []data.TransactionHandler
-	VerifyCreatedUTxs() error
-	AddRewardTxFromBlock(tx data.TransactionHandler)
 }
 
 // SpecialAddressHandler responds with needed special addresses

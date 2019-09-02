@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 	"sync"
 
@@ -9,9 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // MinGasPrice is the minimal gas price to be paid for any transaction
@@ -30,21 +32,28 @@ var rewardValue = big.NewInt(1000)
 
 type rewardsHandler struct {
 	address          process.SpecialAddressHandler
-	shardCoordinator sharding.Coordinator
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
-	mut              sync.Mutex
-	accumulatedFees  *big.Int
+	shardCoordinator sharding.Coordinator
+	adrConv          state.AddressConverter
+	store            dataRetriever.StorageService
+	rewardTxPool     dataRetriever.ShardedDataCacherNotifier
+	protocolRewards  []data.TransactionHandler
 
-	rewardTxsFromBlock map[string]*rewardTx.RewardTx
+	mut               sync.Mutex
+	accumulatedFees   *big.Int
+	rewardTxsForBlock map[string]*rewardTx.RewardTx
 }
 
 // NewRewardTxHandler constructor for the reward transaction handler
 func NewRewardTxHandler(
 	address process.SpecialAddressHandler,
-	shardCoordinator sharding.Coordinator,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
+	shardCoordinator sharding.Coordinator,
+	adrConv state.AddressConverter,
+	store dataRetriever.StorageService,
+	rewardTxPool dataRetriever.ShardedDataCacherNotifier,
 ) (*rewardsHandler, error) {
 	if address == nil {
 		return nil, process.ErrNilSpecialAddressHandler
@@ -58,36 +67,119 @@ func NewRewardTxHandler(
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
+	if store == nil {
+		return nil, process.ErrNilStorage
+	}
 
 	rtxh := &rewardsHandler{
 		address:          address,
 		shardCoordinator: shardCoordinator,
+		adrConv:          adrConv,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
+		store:            store,
+		rewardTxPool:     rewardTxPool,
 	}
+
 	rtxh.accumulatedFees = big.NewInt(0)
-	rtxh.rewardTxsFromBlock = make(map[string]*rewardTx.RewardTx)
+	rtxh.rewardTxsForBlock = make(map[string]*rewardTx.RewardTx)
 
 	return rtxh, nil
 }
 
 // SaveCurrentIntermediateTxToStorage saves current cached data into storage - already saved for txs
 func (rtxh *rewardsHandler) SaveCurrentIntermediateTxToStorage() error {
-	//TODO implement me - save only created accumulatedFees
+	rtxh.mut.Lock()
+	defer rtxh.mut.Unlock()
+
+	for _, rTx := range rtxh.rewardTxsForBlock {
+		buff, err := rtxh.marshalizer.Marshal(rTx)
+		if err != nil {
+			return err
+		}
+
+		errNotCritical := rtxh.store.Put(dataRetriever.RewardTransactionUnit, rtxh.hasher.Compute(string(buff)), buff)
+		if errNotCritical != nil {
+			log.Error(errNotCritical.Error())
+		}
+	}
+
 	return nil
 }
 
 // AddIntermediateTransactions adds intermediate transactions to local cache
 func (rtxh *rewardsHandler) AddIntermediateTransactions(txs []data.TransactionHandler) error {
+	rtxh.mut.Lock()
+	defer rtxh.mut.Unlock()
+
+	for i := 0; i < len(txs); i++ {
+		addedRewardTx, ok := txs[i].(*rewardTx.RewardTx)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		if addedRewardTx.ShardId != rtxh.shardCoordinator.SelfId() {
+			continue
+		}
+
+		rewardTxHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, txs[i])
+		if err != nil {
+			return err
+		}
+
+		rtxh.rewardTxsForBlock[string(rewardTxHash)] = addedRewardTx
+	}
+
 	return nil
+}
+
+func (rtxh *rewardsHandler) getShardIdsFromAddress(addr []byte) (uint32, error) {
+	address, err := rtxh.adrConv.CreateAddressFromPublicKeyBytes(addr)
+	if err != nil {
+		return rtxh.shardCoordinator.NumberOfShards(), err
+	}
+	shardId := rtxh.shardCoordinator.ComputeId(address)
+
+	return shardId, nil
 }
 
 // CreateAllInterMiniBlocks creates miniblocks from process transactions
 func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
-	calculatedRewardTxs := rtxh.CreateAllUTxs()
+	calculatedRewardTxs := make([]data.TransactionHandler, 0)
+	rewardsFromFees := rtxh.createRewardFromFees()
+	rtxh.addTransactionsToPool(rewardsFromFees)
+	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewards...)
+	calculatedRewardTxs = append(calculatedRewardTxs, rewardsFromFees...)
 
-	miniBlocks := make(map[uint32]*block.MiniBlock)
-	for _, rTx := range calculatedRewardTxs {
+	miniBlocks := rtxh.miniblocksFromRewardTxs(calculatedRewardTxs)
+
+	return miniBlocks
+}
+
+func (rtxh *rewardsHandler) addTransactionsToPool(rewardTxs []data.TransactionHandler) {
+	for _, rTx := range rewardTxs {
+		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRecvAddress())
+		if err != nil {
+			log.Debug(err.Error())
+		}
+
+		txHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, rTx)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+
+		// add the reward transaction to the the pool so that the processor can find it
+		cacheId := process.ShardCacherIdentifier(rtxh.shardCoordinator.SelfId(), dstShId)
+		rtxh.rewardTxPool.AddData(txHash, rTx, cacheId)
+	}
+}
+
+func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
+	rewardTxs []data.TransactionHandler,
+) map[uint32]*block.MiniBlock {
+	miniBlocks := make(map[uint32]*block.MiniBlock, 0)
+
+	for _, rTx := range rewardTxs {
 		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRecvAddress())
 		if err != nil {
 			log.Debug(err.Error())
@@ -117,36 +209,39 @@ func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlo
 
 // VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block
 func (rtxh *rewardsHandler) VerifyInterMiniBlocks(body block.Body) error {
-	err := rtxh.VerifyCreatedUTxs()
-	rtxh.CleanProcessedUTxs()
+	err := rtxh.verifyCreatedRewardsTxs()
+	rtxh.cleanCachedData()
 
 	return err
 }
 
 // CreateBlockStarted does the cleanup before creating a new block
 func (rtxh *rewardsHandler) CreateBlockStarted() {
-	rtxh.CleanProcessedUTxs()
+	rtxh.cleanCachedData()
+	rewardTxs := rtxh.createProtocolRewards()
+	rtxh.addTransactionsToPool(rewardTxs)
 }
 
-// CleanProcessedUTxs deletes the cached data
-func (rtxh *rewardsHandler) CleanProcessedUTxs() {
+// CreateMarshalizedData creates the marshalized data for broadcasting purposes
+func (rtxh *rewardsHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
 	rtxh.mut.Lock()
-	rtxh.accumulatedFees = big.NewInt(0)
-	rtxh.rewardTxsFromBlock = make(map[string]*rewardTx.RewardTx)
-	rtxh.mut.Unlock()
-}
+	defer rtxh.mut.Unlock()
 
-// AddRewardTxFromBlock adds an existing reward transaction from block into local cache
-func (rtxh *rewardsHandler) AddRewardTxFromBlock(tx data.TransactionHandler) {
-	currRewardTx, ok := tx.(*rewardTx.RewardTx)
-	if !ok {
-		log.Error(process.ErrWrongTypeAssertion.Error())
-		return
+	marshaledTxs := make([][]byte, 0)
+	for _, txHash := range txHashes {
+		rTx, ok := rtxh.rewardTxsForBlock[string(txHash)]
+		if !ok {
+			return nil, process.ErrRewardTxNotFound
+		}
+
+		marshaledTx, err := rtxh.marshalizer.Marshal(rTx)
+		if err != nil {
+			return nil, process.ErrMarshalWithoutSuccess
+		}
+		marshaledTxs = append(marshaledTxs, marshaledTx)
 	}
 
-	rtxh.mut.Lock()
-	rtxh.rewardTxsFromBlock[string(tx.GetRecvAddress())] = currRewardTx
-	rtxh.mut.Unlock()
+	return marshaledTxs, nil
 }
 
 // ProcessTransactionFee adds the tx cost to the accumulated amount
@@ -158,6 +253,14 @@ func (rtxh *rewardsHandler) ProcessTransactionFee(cost *big.Int) {
 
 	rtxh.mut.Lock()
 	rtxh.accumulatedFees = rtxh.accumulatedFees.Add(rtxh.accumulatedFees, cost)
+	rtxh.mut.Unlock()
+}
+
+// cleanCachedData deletes the cached data
+func (rtxh *rewardsHandler) cleanCachedData() {
+	rtxh.mut.Lock()
+	rtxh.accumulatedFees = big.NewInt(0)
+	rtxh.rewardTxsForBlock = make(map[string]*rewardTx.RewardTx)
 	rtxh.mut.Unlock()
 }
 
@@ -200,22 +303,10 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 	return currTx
 }
 
-// CreateAllUTxs creates all the needed reward transactions
-// According to economic paper, out of the block fees 50% are burned, 40% go to the leader and 10% go
-// to Elrond community fund. Fixed rewards for every validator are
-func (rtxh *rewardsHandler) CreateAllUTxs() []data.TransactionHandler {
-
-	rewardTxs := make([]data.TransactionHandler, 0)
-	rewardsFromFees := rtxh.createRewardTxsFromFee()
-	rewardsForConsensus := rtxh.createRewardTxsForConsensusGroup()
-
-	rewardTxs = append(rewardTxs, rewardsFromFees...)
-	rewardTxs = append(rewardTxs, rewardsForConsensus...)
-
-	return rewardTxs
-}
-
-func (rtxh *rewardsHandler) createRewardTxsFromFee() []data.TransactionHandler {
+// createRewardFromFees creates the reward transactions from accumulated fees
+// According to economic paper, out of the block fees 50% are burned, 40% go to the
+// leader and 10% go to Elrond community fund.
+func (rtxh *rewardsHandler) createRewardFromFees() []data.TransactionHandler {
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
 
@@ -236,7 +327,8 @@ func (rtxh *rewardsHandler) createRewardTxsFromFee() []data.TransactionHandler {
 	return currFeeTxs
 }
 
-func (rtxh *rewardsHandler) createRewardTxsForConsensusGroup() []data.TransactionHandler {
+// createProtocolRewards creates the protocol reward transactions
+func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 	consensusRewardAddresses := rtxh.address.ConsensusRewardAddresses()
 
 	consensusRewardTxs := make([]data.TransactionHandler, 0)
@@ -248,31 +340,42 @@ func (rtxh *rewardsHandler) createRewardTxsForConsensusGroup() []data.Transactio
 
 		consensusRewardTxs = append(consensusRewardTxs, rTx)
 	}
+
+	rtxh.protocolRewards = consensusRewardTxs
+
 	return consensusRewardTxs
 }
 
-// VerifyCreatedUTxs creates all fee txs from added values, than verifies if in block the values are the same
-func (rtxh *rewardsHandler) VerifyCreatedUTxs() error {
-	calculatedFeeTxs := rtxh.CreateAllUTxs()
+// VerifyCreatedRewardsTxs verifies if the calculated rewards transactions and the block reward transactions are the same
+func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
+	calculatedRewardTxs := make([]data.TransactionHandler, 0)
+	rewardsFromFees := rtxh.createRewardFromFees()
+	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewards...)
+	calculatedRewardTxs = append(calculatedRewardTxs, rewardsFromFees...)
 
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
 
 	totalFeesFromBlock := big.NewInt(0)
-	for _, value := range rtxh.rewardTxsFromBlock {
-		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, value.Value)
+	for _, rTx := range rtxh.rewardTxsForBlock {
+		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, rTx.GetValue())
 	}
 
 	totalCalculatedFees := big.NewInt(0)
-	for _, value := range calculatedFeeTxs {
+	for _, value := range calculatedRewardTxs {
 		totalCalculatedFees = totalCalculatedFees.Add(totalCalculatedFees, value.GetValue())
 
-		txFromBlock, ok := rtxh.rewardTxsFromBlock[string(value.GetRecvAddress())]
-		if !ok {
-			return process.ErrTxsFeesNotFound
+		rewardTxHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, value)
+		if err != nil {
+			return err
 		}
-		if txFromBlock.Value.Cmp(value.GetValue()) != 0 {
-			return process.ErrTxsFeesDoNotMatch
+
+		txFromBlock, ok := rtxh.rewardTxsForBlock[string(rewardTxHash)]
+		if !ok {
+			return process.ErrRewardTxNotFound
+		}
+		if txFromBlock.GetValue().Cmp(value.GetValue()) != 0 {
+			return process.ErrRewardTxsDoNotMatch
 		}
 	}
 
@@ -281,11 +384,4 @@ func (rtxh *rewardsHandler) VerifyCreatedUTxs() error {
 	}
 
 	return nil
-}
-
-// CreateMarshalizedData creates the marshalized data for broadcasting purposes
-func (rtxh *rewardsHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
-	// TODO: implement me
-
-	return make([][]byte, 0), nil
 }

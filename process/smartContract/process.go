@@ -41,7 +41,7 @@ type scProcessor struct {
 	mapExecState map[uint64]scExecutionState
 
 	scrForwarder process.IntermediateTransactionHandler
-	txFeeHandler process.UnsignedTxHandler
+	txFeeHandler process.TransactionFeeHandler
 }
 
 var log = logger.DefaultLogger()
@@ -57,7 +57,7 @@ func NewSmartContractProcessor(
 	adrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 	scrForwarder process.IntermediateTransactionHandler,
-	txFeeHandler process.UnsignedTxHandler,
+	txFeeHandler process.TransactionFeeHandler,
 ) (*scProcessor, error) {
 	if vmContainer == nil {
 		return nil, process.ErrNoVM

@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -74,6 +75,7 @@ func NewTransactionCoordinator(
 	if tc.miniBlockPool == nil {
 		return nil, process.ErrNilMiniBlockPool
 	}
+
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
@@ -503,26 +505,40 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	tc.addRewardsMiniBlocks(&miniBlocks)
+	rewardMb := tc.createRewardsMiniBlocks()
+	if len(rewardMb) == 0 {
+		log.Error("could not create reward mini-blocks")
+	}
+
+	rewardsPreProc := tc.getPreProcessor(block.RewardsBlockType)
+	for _, mb := range rewardMb {
+		err := tc.processCompleteMiniBlock(rewardsPreProc, mb, round, haveTime)
+		if err != nil {
+			log.Error(fmt.Sprintf("could not process created reward miniblock: %s", err.Error()))
+		}
+	}
+	miniBlocks = append(miniBlocks, rewardMb...)
 
 	return miniBlocks
 }
 
-func (tc *transactionCoordinator) addRewardsMiniBlocks(miniBlocks *block.MiniBlockSlice) {
+func (tc *transactionCoordinator) createRewardsMiniBlocks() block.MiniBlockSlice {
 	// add rewards transactions to separate miniBlocks
 	interimProc := tc.getInterimProcessor(block.RewardsBlockType)
 	if interimProc == nil {
-		return
+		return nil
 	}
 
+	miniBlocks := make(block.MiniBlockSlice, 0)
 	rewardsMbs := interimProc.CreateAllInterMiniBlocks()
 	for key, mb := range rewardsMbs {
-			mb.ReceiverShardID = key
-			mb.SenderShardID = tc.shardCoordinator.SelfId()
-			mb.Type = block.RewardsBlockType
-
-			*miniBlocks = append(*miniBlocks, mb)
+		mb.ReceiverShardID = key
+		mb.SenderShardID = tc.shardCoordinator.SelfId()
+		mb.Type = block.RewardsBlockType
+		miniBlocks = append(miniBlocks, mb)
 	}
+
+	return miniBlocks
 }
 
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {

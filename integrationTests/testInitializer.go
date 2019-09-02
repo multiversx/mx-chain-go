@@ -88,27 +88,27 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
+func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier, nbShards uint32) dataRetriever.PoolsHolder {
 	if txPool == nil {
-		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards})
 	}
 
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache})
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: nbShards})
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: nbShards}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards}
 	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards}
 	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	dPool, _ := dataPool.NewShardedDataPool(
@@ -714,12 +714,12 @@ func GenerateAndDisseminateTxs(
 
 	for i := 0; i < len(senders); i++ {
 		senderKey := senders[i]
-		incrementalNonce := uint64(0)
+		incrementalNonce := make([]uint64, len(senders))
 		for _, recvPrivateKeys := range receiversPrivateKeys {
 			receiverKey := recvPrivateKeys[i]
-			tx := generateTransferTx(incrementalNonce, senderKey, receiverKey, valToTransfer, gasPrice, gasLimit)
+			tx := generateTransferTx(incrementalNonce[i], senderKey, receiverKey, valToTransfer, gasPrice, gasLimit)
 			_, _ = n.SendTransaction(tx)
-			incrementalNonce++
+			incrementalNonce[i]++
 		}
 	}
 }
@@ -933,6 +933,7 @@ func CreateRequesterDataPool(
 	recvTxs map[int]map[string]struct{},
 	mutRecvTxs *sync.Mutex,
 	nodeIndex int,
+	nbShards uint32,
 ) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
@@ -961,6 +962,7 @@ func CreateRequesterDataPool(
 			RegisterHandlerCalled: func(i func(key []byte)) {
 			},
 		},
+		nbShards,
 	)
 }
 
@@ -984,7 +986,7 @@ func CreateResolversDataPool(
 		txHashes[i] = txHash
 	}
 
-	return CreateTestShardDataPool(txPool), txHashes
+	return CreateTestShardDataPool(txPool, shardCoordinator.NumberOfShards()), txHashes
 }
 
 func generateValidTx(
@@ -1133,7 +1135,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	for shardId, shardNodesPks := range pubKeysMap {
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), []byte(shardNodesPks[i][:31]))
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), []byte(shardNodesPks[i][:32]))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators

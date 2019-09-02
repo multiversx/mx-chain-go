@@ -207,6 +207,7 @@ func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
@@ -340,12 +341,18 @@ func createNetNode(
 		testAddressConverter,
 		&mock.SpecialAddressHandlerMock{},
 		store,
+		dPool,
 	)
 	interimProcContainer, _ := interimProcFactory.Create()
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	rewardsInter, _ := interimProcContainer.Get(dataBlock.RewardsBlockType)
-	rewardsHandler, _ := rewardsInter.(process.UnsignedTxHandler)
-
+	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
+	rewardProcessor, _ := rewardTransaction.NewRewardTxProcessor(
+		accntAdapter,
+		addrConv,
+		shardCoordinator,
+		rewardsInter,
+	)
 	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
@@ -363,12 +370,6 @@ func createNetNode(
 		shardCoordinator,
 		scForwarder,
 		rewardsHandler,
-	)
-
-	rewardProcessor, _ := rewardTransaction.NewRewardTxProcessor(
-		accntAdapter,
-		addrConv,
-		shardCoordinator,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)

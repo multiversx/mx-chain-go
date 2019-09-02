@@ -19,6 +19,7 @@ type intermediateProcessorsContainerFactory struct {
 	addrConverter         state.AddressConverter
 	specialAddressHandler process.SpecialAddressHandler
 	store                 dataRetriever.StorageService
+	poolsHolder           dataRetriever.PoolsHolder
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -29,6 +30,7 @@ func NewIntermediateProcessorsContainerFactory(
 	addrConverter state.AddressConverter,
 	specialAddressHandler process.SpecialAddressHandler,
 	store dataRetriever.StorageService,
+	poolsHolder dataRetriever.PoolsHolder,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
@@ -49,6 +51,9 @@ func NewIntermediateProcessorsContainerFactory(
 	if store == nil {
 		return nil, process.ErrNilStorage
 	}
+	if poolsHolder == nil {
+		return nil, process.ErrNilPoolsHolder
+	}
 
 	return &intermediateProcessorsContainerFactory{
 		shardCoordinator:      shardCoordinator,
@@ -57,6 +62,7 @@ func NewIntermediateProcessorsContainerFactory(
 		addrConverter:         addrConverter,
 		specialAddressHandler: specialAddressHandler,
 		store:                 store,
+		poolsHolder:           poolsHolder,
 	}, nil
 }
 
@@ -103,9 +109,12 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
 	irp, err := preprocess.NewRewardTxHandler(
 		ppcm.specialAddressHandler,
-		ppcm.shardCoordinator,
 		ppcm.hasher,
 		ppcm.marshalizer,
+		ppcm.shardCoordinator,
+		ppcm.addrConverter,
+		ppcm.store,
+		ppcm.poolsHolder.RewardTransactions(),
 	)
 
 	return irp, err

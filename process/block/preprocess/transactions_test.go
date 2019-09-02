@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"math/big"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -46,6 +48,7 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
+				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -74,10 +77,40 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
+				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &smartContractResult.SmartContractResult{Nonce: 10}, true
+					}
+					return nil, false
+				},
+			}
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, []byte("tx1_hash")) {
+								return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
+							}
+							return nil, false
+						},
+						KeysCalled: func() [][]byte {
+							return [][]byte{[]byte("key1"), []byte("key2")}
+						},
+						LenCalled: func() int {
+							return 0
+						},
+					}
+				},
+				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
 					}
 					return nil, false
 				},

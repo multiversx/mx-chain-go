@@ -214,7 +214,7 @@ func (tpn *TestProcessorNode) initDataPools() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.MetaDataPool = CreateTestMetaDataPool()
 	} else {
-		tpn.ShardDataPool = CreateTestShardDataPool(nil)
+		tpn.ShardDataPool = CreateTestShardDataPool(nil, tpn.ShardCoordinator.NumberOfShards())
 	}
 }
 
@@ -330,9 +330,20 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressConverter,
 		tpn.SpecialAddressHandler,
 		tpn.Storage,
+		tpn.ShardDataPool,
 	)
+
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlockType)
+	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
+
+	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
+		tpn.AccntState,
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+		rewardsInter,
+	)
 
 	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
 	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
@@ -353,12 +364,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
-		&mock.UnsignedTxHandlerMock{},
-	)
-	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
-		tpn.AccntState,
-		TestAddressConverter,
-		tpn.ShardCoordinator,
+		rewardsHandler,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
@@ -370,7 +376,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
-		&mock.UnsignedTxHandlerMock{},
+		rewardsHandler,
 		txTypeHandler,
 	)
 
@@ -572,6 +578,12 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	haveTime := func() bool { return true }
+
+	addresses := []string{
+		"rewardAddr0000000000000000000000",
+		"rewardAddr0000000000000000000001",
+	}
+	tpn.BlockProcessor.SetConsensusRewardAddresses(addresses)
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
 	if err != nil {

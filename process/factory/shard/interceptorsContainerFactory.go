@@ -119,6 +119,16 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 		return nil, err
 	}
 
+	keys, interceptorSlice, err = icf.generateRewardTxInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.AddMultiple(keys, interceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
 	keys, interceptorSlice, err = icf.generateHdrInterceptor()
 	if err != nil {
 		return nil, err

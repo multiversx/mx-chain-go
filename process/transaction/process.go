@@ -2,12 +2,10 @@ package transaction
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -25,7 +23,7 @@ type txProcessor struct {
 	hasher           hashing.Hasher
 	scProcessor      process.SmartContractProcessor
 	marshalizer      marshal.Marshalizer
-	rewardTxHandler  process.UnsignedTxHandler
+	txFeeHandler     process.TransactionFeeHandler
 	shardCoordinator sharding.Coordinator
 	txTypeHandler    process.TxTypeHandler
 }
@@ -38,7 +36,7 @@ func NewTxProcessor(
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
-	rewardTxHandler process.UnsignedTxHandler,
+	txFeeHandler process.TransactionFeeHandler,
 	txTypeHandler process.TxTypeHandler,
 ) (*txProcessor, error) {
 
@@ -60,7 +58,7 @@ func NewTxProcessor(
 	if scProcessor == nil {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if rewardTxHandler == nil {
+	if txFeeHandler == nil {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
 	if txTypeHandler == nil {
@@ -74,7 +72,7 @@ func NewTxProcessor(
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
 		scProcessor:      scProcessor,
-		rewardTxHandler:  rewardTxHandler,
+		txFeeHandler:     txFeeHandler,
 		txTypeHandler:    txTypeHandler,
 	}, nil
 }
@@ -112,8 +110,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
-	case process.RewardTx:
-		return txProc.processRewardTx(tx, adrSrc)
 	}
 
 	return process.ErrWrongTransaction
@@ -149,36 +145,6 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 	return cost, nil
 }
 
-func (txProc *txProcessor) processRewardTx(
-	tx data.TransactionHandler,
-	adrSrc state.AddressContainer,
-) error {
-	rTx, ok := tx.(*rewardTx.RewardTx)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	acntSrc, _, err := txProc.getAccounts(adrSrc, adrSrc)
-	if err != nil {
-		return err
-	}
-
-	// is sender address in node shard
-	if acntSrc != nil {
-		op := big.NewInt(0)
-		err := acntSrc.SetBalanceWithJournal(op.Add(acntSrc.Balance, rTx.Value))
-		if err != nil {
-			return err
-		}
-	}
-
-	if rTx.ShardId == txProc.shardCoordinator.SelfId() {
-		txProc.rewardTxHandler.AddRewardTxFromBlock(rTx)
-	}
-
-	return nil
-}
-
 func (txProc *txProcessor) processMoveBalance(
 	tx *transaction.Transaction,
 	adrSrc, adrDst state.AddressContainer,
@@ -211,7 +177,7 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
-	txProc.rewardTxHandler.ProcessTransactionFee(txFee)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
 	return nil
 }

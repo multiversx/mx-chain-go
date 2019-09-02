@@ -177,7 +177,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 		if miniBlock.Type != block.RewardsBlockType {
 			continue
 		}
-		if miniBlock.ReceiverShardID != rtp.shardCoordinator.SelfId() {
+		if miniBlock.SenderShardID == rtp.shardCoordinator.SelfId() {
+			// if sender is the shard, then do this later when reward txs from fee are generated inside
 			continue
 		}
 
@@ -283,9 +284,9 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		if mb.Type != block.RewardsBlockType {
 			continue
 		}
-		//if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
-		//	continue
-		//}
+		if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
+			continue
+		}
 
 		rewardTxs = append(rewardTxs, mb)
 	}
@@ -335,6 +336,10 @@ func (rtp *rewardTxPreprocessor) RequestTransactionsForMiniBlock(mb block.MiniBl
 func (rtp *rewardTxPreprocessor) computeMissingRewardTxsForMiniBlock(mb block.MiniBlock) [][]byte {
 	missingRewardTxs := make([][]byte, 0)
 	if mb.Type != block.RewardsBlockType {
+		return missingRewardTxs
+	}
+
+	if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
 		return missingRewardTxs
 	}
 
@@ -391,7 +396,7 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 	return rewardTxs, txHashes, nil
 }
 
-// CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
+// CreateAndProcessMiniBlock creates the miniblock from storage and processes the reward transactions added into the miniblock
 func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
 	return nil, nil
 }

@@ -22,7 +22,7 @@ func (sh *SpecialAddressHandlerMock) ConsensusRewardAddresses() []string {
 
 func (sh *SpecialAddressHandlerMock) BurnAddress() []byte {
 	if sh.BurnAddressCalled == nil {
-		return []byte("burn")
+		return []byte("burn0000000000000000000000000000")
 	}
 
 	return sh.BurnAddressCalled()
@@ -30,7 +30,7 @@ func (sh *SpecialAddressHandlerMock) BurnAddress() []byte {
 
 func (sh *SpecialAddressHandlerMock) ElrondCommunityAddress() []byte {
 	if sh.ElrondCommunityAddressCalled == nil {
-		return []byte("elrond")
+		return []byte("elrond00000000000000000000000000")
 	}
 
 	return sh.ElrondCommunityAddressCalled()
@@ -38,7 +38,7 @@ func (sh *SpecialAddressHandlerMock) ElrondCommunityAddress() []byte {
 
 func (sh *SpecialAddressHandlerMock) LeaderAddress() []byte {
 	if sh.LeaderAddressCalled == nil {
-		return []byte("leader")
+		return []byte("leader0000000000000000000000000000")
 	}
 
 	return sh.LeaderAddressCalled()

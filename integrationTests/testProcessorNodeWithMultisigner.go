@@ -113,7 +113,7 @@ func ProposeBlockWithConsensusSignature(
 	round uint64,
 	nonce uint64,
 	randomness []byte,
-) (data.BodyHandler, data.HeaderHandler, [][]byte) {
+) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
 
 	nodesCoordinator := nodesMap[shardId][0].NodesCoordinator
 	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardId)
@@ -134,7 +134,7 @@ func ProposeBlockWithConsensusSignature(
 	header.SetPrevRandSeed(randomness)
 	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
 
-	return body, header, txHashes
+	return body, header, txHashes, consensusNodes
 }
 
 func selectTestNodesForPubKeys(nodes []*TestProcessorNode, pubKeys []string) []*TestProcessorNode {

@@ -445,11 +445,11 @@ var ErrNotEnoughFeeInTransactions = errors.New("transaction fee is not enough")
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
-// ErrTxsFeesDoNotMatch signals that txs fees do not match
-var ErrTxsFeesDoNotMatch = errors.New("calculated tx fees with block tx fee does not match")
+// ErrRewardTxsDoNotMatch signals that reward txs do not match
+var ErrRewardTxsDoNotMatch = errors.New("calculated reward tx with block reward tx does not match")
 
-// ErrTxsFeesNotFound signals that the tx fee not found
-var ErrTxsFeesNotFound = errors.New("tx fees not found")
+// ErrRewardTxNotFound signals that the reward transaction was not found
+var ErrRewardTxNotFound = errors.New("reward transaction not found")
 
 // ErrTotalTxsFeesDoNotMatch signals that the total tx fee do not match
 var ErrTotalTxsFeesDoNotMatch = errors.New("total tx fees do not match")
