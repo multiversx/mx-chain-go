@@ -166,7 +166,7 @@ func (boot *baseBootstrap) loadBlocks(
 	}
 
 	for i := validNonce - blockFinality; i <= validNonce; i++ {
-		boot.addHeaderToForkDetector(shardId, i)
+		boot.storageBootstrapper.addHeaderToForkDetector(shardId, i, lastNotarized[sharding.MetachainShardId])
 	}
 
 	return nil
@@ -214,20 +214,6 @@ func (boot *baseBootstrap) applyBlock(shardId uint32, nonce uint64) error {
 	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
 
 	return nil
-}
-
-func (boot *baseBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64) {
-	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-		return
-	}
-
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-		return
-	}
 }
 
 func (boot *baseBootstrap) cleanupStorage(

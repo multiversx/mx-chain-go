@@ -4048,7 +4048,8 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(3)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(4)) ||
-			bytes.Equal(key, uint64Converter.ToByteSlice(5)) {
+			bytes.Equal(key, uint64Converter.ToByteSlice(5)) ||
+			bytes.Equal(key, uint64Converter.ToByteSlice(6)) {
 			return nil
 		}
 
@@ -4058,6 +4059,7 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	shardBlockHash3 := []byte("shardhash_3")
 	shardBlockHash4 := []byte("shardhash_4")
 	shardBlockHash5 := []byte("shardhash_5")
+	shardBlockHash6 := []byte("shardhash_6")
 
 	metaBlockHashes1 := make([][]byte, 0)
 	metaBlockHash1 := []byte("metahash_1")
@@ -4071,6 +4073,15 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	metaBlockHash3 := []byte("metahash_3")
 	metaBlockHashes3 = append(metaBlockHashes3, metaBlockHash3)
 
+	metaBlockHashes4 := make([][]byte, 0)
+	metaBlockHash4 := []byte("metahash_4")
+	metaBlockHashes4 = append(metaBlockHashes4, metaBlockHash4)
+
+	shardInfo := make([]block.ShardData, 0)
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: shardBlockHash3})
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: shardBlockHash4})
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: shardBlockHash5})
+
 	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 		if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
 			if bytes.Equal(key, uint64Converter.ToByteSlice(3)) {
@@ -4081,6 +4092,9 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 			}
 			if bytes.Equal(key, uint64Converter.ToByteSlice(5)) {
 				return shardBlockHash5, nil
+			}
+			if bytes.Equal(key, uint64Converter.ToByteSlice(6)) {
+				return shardBlockHash6, nil
 			}
 		}
 
@@ -4093,6 +4107,9 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 			}
 			if bytes.Equal(key, uint64Converter.ToByteSlice(3)) {
 				return metaBlockHash3, nil
+			}
+			if bytes.Equal(key, uint64Converter.ToByteSlice(4)) {
+				return metaBlockHash4, nil
 			}
 		}
 
@@ -4115,6 +4132,10 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 						buff, _ := marshalizer.Marshal(&block.Header{Nonce: 5, MetaBlockHashes: metaBlockHashes3})
 						return buff, nil
 					}
+					if bytes.Equal(key, shardBlockHash6) {
+						buff, _ := marshalizer.Marshal(&block.Header{Nonce: 6, MetaBlockHashes: metaBlockHashes4})
+						return buff, nil
+					}
 
 					return nil, errKeyNotFound
 				},
@@ -4133,7 +4154,11 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 						return buff, nil
 					}
 					if bytes.Equal(key, metaBlockHash3) {
-						buff, _ := marshalizer.Marshal(&block.MetaBlock{Nonce: 3})
+						buff, _ := marshalizer.Marshal(&block.MetaBlock{Nonce: 3, ShardInfo: shardInfo})
+						return buff, nil
+					}
+					if bytes.Equal(key, metaBlockHash4) {
+						buff, _ := marshalizer.Marshal(&block.MetaBlock{Nonce: 4})
 						return buff, nil
 					}
 
@@ -4857,6 +4882,9 @@ func NewStorageBootstrapperMock() *sync.StorageBootstrapperMock {
 		},
 		CleanupNotarizedStorageCalled: func(lastNotarized map[uint32]uint64) {
 			fmt.Printf("last notarized items: %d\n", len(lastNotarized))
+		},
+		AddHeaderToForkDetectorCalled: func(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
+			fmt.Printf("add header to fork detector called")
 		},
 	}
 
