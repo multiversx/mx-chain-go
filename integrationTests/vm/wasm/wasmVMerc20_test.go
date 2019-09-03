@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var wrc20wasmFile = "./wrc20.wasm"
+var wrc20wasmFile = "./hello.wasm"
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
