@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -40,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
@@ -491,6 +493,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	var appStatusHandlers []core.AppStatusHandler
+	var views []factoryViews.Viewer
 
 	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
@@ -498,21 +501,32 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
 
+	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
+
 	useTermui := !ctx.GlobalBool(useLogView.Name)
 	if useTermui {
-		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
-		err = termuiStatusHandler.StartTermuiConsole()
+
+		views, err = factory.CreateViews(presenterStatusHandler)
 		if err != nil {
 			return err
 		}
 
-		termuiConsole := termuiStatusHandler.Termui()
-		err = log.ChangePrinterHookWriter(termuiConsole)
-		if err != nil {
-			return err
+		writer, ok := presenterStatusHandler.(io.Writer)
+		if ok {
+			err = log.ChangePrinterHookWriter(writer)
+			if err != nil {
+				return err
+			}
 		}
 
-		appStatusHandlers = append(appStatusHandlers, termuiStatusHandler)
+		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
+		if ok {
+			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
+		}
+	}
+
+	if views == nil {
+		log.Warn("No views for current node")
 	}
 
 	if len(appStatusHandlers) > 0 {
