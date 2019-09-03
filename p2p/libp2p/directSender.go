@@ -241,3 +241,11 @@ func (ds *directSender) createMessage(topic string, buff []byte, conn network.Co
 
 	return &mes
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ds *directSender) IsInterfaceNil() bool {
+	if ds == nil {
+		return true
+	}
+	return false
+}

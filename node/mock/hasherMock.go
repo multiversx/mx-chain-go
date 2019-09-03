@@ -20,3 +20,11 @@ func (hash HasherMock) EmptyHash() []byte {
 func (HasherMock) Size() int {
 	return 0
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hash *HasherMock) IsInterfaceNil() bool {
+	if hash == nil {
+		return true
+	}
+	return false
+}

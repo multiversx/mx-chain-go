@@ -1,6 +1,7 @@
 package block
 
 import (
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -194,6 +195,14 @@ func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
 	return mp.chRcvAllHdrs
 }
 
+func (mp *metaProcessor) UpdateShardsHeadersNonce(key uint32, value uint64) {
+	mp.updateShardHeadersNonce(key, value)
+}
+
+func (mp *metaProcessor) GetShardsHeadersNonce() *sync.Map {
+	return mp.shardsHeadersNonce
+}
+
 func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
 	return &baseProcessor{shardCoordinator: shardCord}
 }
@@ -267,7 +276,7 @@ func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*
 }
 
 func (sp *shardProcessor) RestoreMetaBlockIntoPool(
-	miniBlockHashes map[int][][]byte,
+	miniBlockHashes map[string]uint32,
 	metaBlockHashes [][]byte,
 ) error {
 	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)

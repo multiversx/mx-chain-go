@@ -51,12 +51,11 @@ func NewPrometheusStatusHandler() *PrometheusStatusHandler {
 	return psh
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (psh *PrometheusStatusHandler) IsInterfaceNil() bool {
 	if psh == nil {
 		return true
 	}
-
 	return false
 }
 

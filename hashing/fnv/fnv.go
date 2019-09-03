@@ -32,3 +32,11 @@ func (f Fnv) EmptyHash() []byte {
 func (Fnv) Size() int {
 	return fnv.New128a().Size()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (f Fnv) IsInterfaceNil() bool {
+	if &f == nil {
+		return true
+	}
+	return false
+}

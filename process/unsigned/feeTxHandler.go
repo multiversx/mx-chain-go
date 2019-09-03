@@ -255,3 +255,11 @@ func (ftxh *feeTxHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, er
 
 	return make([][]byte, 0), nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ftxh *feeTxHandler) IsInterfaceNil() bool {
+	if ftxh == nil {
+		return true
+	}
+	return false
+}

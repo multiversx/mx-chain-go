@@ -40,7 +40,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -63,7 +63,7 @@ func TestGenerateAndSendBulkTransactions_NilSingleSignerShouldErr(t *testing.T) 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -86,7 +86,7 @@ func TestGenerateAndSendBulkTransactions_NilShardCoordinatorShouldErr(t *testing
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -106,7 +106,7 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -132,7 +132,7 @@ func TestGenerateAndSendBulkTransactions_NilTransactionPoolShouldErr(t *testing.
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithAddressConverter(addrConverter),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -168,7 +168,7 @@ func TestGenerateAndSendBulkTransactions_TooManyTransactionsInPoolShouldErr(t *t
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithAddressConverter(addrConverter),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -392,7 +392,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	sk, pk := keyGen.GeneratePair()
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSignPrivKey(sk),

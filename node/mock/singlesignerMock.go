@@ -25,6 +25,14 @@ func (s *SinglesignMock) Verify(public crypto.PublicKey, msg []byte, sig []byte)
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *SinglesignMock) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}
+
 type SinglesignFailMock struct {
 }
 
@@ -36,6 +44,14 @@ func (s *SinglesignFailMock) Sign(private crypto.PrivateKey, msg []byte) ([]byte
 // Verify verifies a signature using a single signature schnorr scheme
 func (s *SinglesignFailMock) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
 	return errors.New("signature verification failure")
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *SinglesignFailMock) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }
 
 type SinglesignStub struct {
@@ -51,4 +67,12 @@ func (s *SinglesignStub) Sign(private crypto.PrivateKey, msg []byte) ([]byte, er
 // Verify verifies a signature using a single signature schnorr scheme
 func (s *SinglesignStub) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
 	return s.VerifyCalled(public, msg, sig)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *SinglesignStub) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }

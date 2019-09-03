@@ -35,3 +35,11 @@ func (tahm *TemporaryAccountsHandlerMock) TempAccount(address []byte) state.Acco
 
 	return tahm.TempAccountCalled(address)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tahm *TemporaryAccountsHandlerMock) IsInterfaceNil() bool {
+	if tahm == nil {
+		return true
+	}
+	return false
+}

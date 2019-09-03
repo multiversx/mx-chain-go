@@ -262,3 +262,11 @@ func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(shardId uint32) int 
 
 	return ihgs.shardConsensusGroupSize
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ihgs *indexHashedNodesCoordinator) IsInterfaceNil() bool {
+	if ihgs == nil {
+		return true
+	}
+	return false
+}

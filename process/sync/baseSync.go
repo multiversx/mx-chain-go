@@ -167,7 +167,7 @@ func (boot *baseBootstrap) loadBlocks(
 	}
 
 	for i := validNonce - blockFinality; i <= validNonce; i++ {
-		boot.addHeaderToForkDetector(shardId, i)
+		boot.storageBootstrapper.addHeaderToForkDetector(shardId, i, lastNotarized[sharding.MetachainShardId])
 	}
 
 	return nil
@@ -215,20 +215,6 @@ func (boot *baseBootstrap) applyBlock(shardId uint32, nonce uint64) error {
 	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
 
 	return nil
-}
-
-func (boot *baseBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64) {
-	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-		return
-	}
-
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-		return
-	}
 }
 
 func (boot *baseBootstrap) cleanupStorage(
@@ -501,34 +487,34 @@ func checkBootstrapNilParameters(
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
 ) error {
-	if blkc == nil {
+	if blkc == nil || blkc.IsInterfaceNil() {
 		return process.ErrNilBlockChain
 	}
-	if rounder == nil {
+	if rounder == nil || rounder.IsInterfaceNil() {
 		return process.ErrNilRounder
 	}
-	if blkExecutor == nil {
+	if blkExecutor == nil || blkExecutor.IsInterfaceNil() {
 		return process.ErrNilBlockExecutor
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if forkDetector == nil {
+	if forkDetector == nil || forkDetector.IsInterfaceNil() {
 		return process.ErrNilForkDetector
 	}
-	if resolversFinder == nil {
+	if resolversFinder == nil || resolversFinder.IsInterfaceNil() {
 		return process.ErrNilResolverContainer
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return process.ErrNilAccountsAdapter
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return process.ErrNilStore
 	}
 

@@ -36,7 +36,7 @@ func (rc *resolversContainer) Get(key string) (dataRetriever.Resolver, error) {
 // Add will add an object at a given key. Returns
 // an error if the element already exists
 func (rc *resolversContainer) Add(key string, resolver dataRetriever.Resolver) error {
-	if resolver == nil {
+	if resolver == nil || resolver.IsInterfaceNil() {
 		return dataRetriever.ErrNilContainerElement
 	}
 
@@ -68,7 +68,7 @@ func (rc *resolversContainer) AddMultiple(keys []string, resolvers []dataRetriev
 
 // Replace will add (or replace if it already exists) an object at a given key
 func (rc *resolversContainer) Replace(key string, resolver dataRetriever.Resolver) error {
-	if resolver == nil {
+	if resolver == nil || resolver.IsInterfaceNil() {
 		return dataRetriever.ErrNilContainerElement
 	}
 
@@ -84,4 +84,12 @@ func (rc *resolversContainer) Remove(key string) {
 // Len returns the length of the added objects
 func (rc *resolversContainer) Len() int {
 	return rc.objects.Len()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rc *resolversContainer) IsInterfaceNil() bool {
+	if rc == nil {
+		return true
+	}
+	return false
 }

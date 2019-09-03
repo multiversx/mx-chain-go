@@ -28,7 +28,7 @@ func (kms *KyberMultiSignerBLS) VerifySigShare(pubKey crypto.PublicKey, message 
 // VerifySigBytes provides an "cheap" integrity check of a signature given as a byte array
 // It does not validate the signature over a message, only verifies that it is a signature
 func (kms *KyberMultiSignerBLS) VerifySigBytes(suite crypto.Suite, sig []byte) error {
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return crypto.ErrNilSuite
 	}
 
@@ -43,7 +43,7 @@ func (kms *KyberMultiSignerBLS) VerifySigBytes(suite crypto.Suite, sig []byte) e
 
 // AggregateSignatures produces an aggregation of single BLS signatures over the same message
 func (kms *KyberMultiSignerBLS) AggregateSignatures(suite crypto.Suite, sigs ...[]byte) ([]byte, error) {
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return nil, crypto.ErrNilSuite
 	}
 
@@ -66,7 +66,7 @@ func (kms *KyberMultiSignerBLS) VerifyAggregatedSig(
 	aggSigBytes []byte,
 	msg []byte,
 ) error {
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return crypto.ErrNilSuite
 	}
 
@@ -86,7 +86,7 @@ func (kms *KyberMultiSignerBLS) VerifyAggregatedSig(
 
 // AggregatePublicKeys produces an aggregation of BLS public keys (points)
 func (kms *KyberMultiSignerBLS) AggregatePublicKeys(suite crypto.Suite, pubKeys ...crypto.Point) ([]byte, error) {
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return nil, crypto.ErrNilSuite
 	}
 
@@ -118,11 +118,11 @@ func (kms *KyberMultiSignerBLS) AggregatePublicKeys(suite crypto.Suite, pubKeys 
 
 // ScalarMulSig returns the result of multiplication of a scalar with a BLS signature
 func (kms *KyberMultiSignerBLS) ScalarMulSig(suite crypto.Suite, scalar crypto.Scalar, sig []byte) ([]byte, error) {
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return nil, crypto.ErrNilSuite
 	}
 
-	if scalar == nil {
+	if scalar == nil || scalar.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -163,4 +163,12 @@ func (kms *KyberMultiSignerBLS) sigBytesToKyberPoint(suite crypto.Suite, sig []b
 	}
 
 	return sigKPoint, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (kms *KyberMultiSignerBLS) IsInterfaceNil() bool {
+	if kms == nil {
+		return true
+	}
+	return false
 }

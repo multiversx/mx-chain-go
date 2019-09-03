@@ -28,15 +28,20 @@ type SerialDB struct {
 
 // NewSerialDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
-func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int) (s *SerialDB, err error) {
+func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *SerialDB, err error) {
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
 
+	if maxOpenFiles < 1 {
+		return nil, storage.ErrInvalidNumOpenFiles
+	}
+
 	options := &opt.Options{
 		// disable internal cache
-		BlockCacheCapacity: -1,
+		BlockCacheCapacity:     -1,
+		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
 	db, err := leveldb.OpenFile(path, options)
@@ -84,6 +89,10 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 
 // Put adds the value to the (key, val) storage medium
 func (s *SerialDB) Put(key, val []byte) error {
+	if s.isClosed() {
+		return storage.ErrSerialDBIsClosed
+	}
+
 	s.mutBatch.Lock()
 	err := s.batch.Put(key, val)
 	if err != nil {
@@ -105,6 +114,10 @@ func (s *SerialDB) Put(key, val []byte) error {
 
 // Get returns the value associated to the key
 func (s *SerialDB) Get(key []byte) ([]byte, error) {
+	if s.isClosed() {
+		return nil, storage.ErrSerialDBIsClosed
+	}
+
 	ch := make(chan *pairResult)
 	req := &getAct{
 		key:     key,
@@ -118,12 +131,19 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	if result.err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
+	if result.err != nil {
+		return nil, result.err
+	}
 
 	return result.value, nil
 }
 
 // Has returns true if the given key is present in the persistence medium
 func (s *SerialDB) Has(key []byte) error {
+	if s.isClosed() {
+		return storage.ErrSerialDBIsClosed
+	}
+
 	ch := make(chan error)
 	req := &hasAct{
 		key:     key,
@@ -168,6 +188,14 @@ func (s *SerialDB) putBatch() error {
 	return result
 }
 
+func (s *SerialDB) isClosed() bool {
+	s.mutClosed.Lock()
+	isClosed := s.closed
+	s.mutClosed.Unlock()
+
+	return isClosed
+}
+
 // Close closes the files/resources associated to the storage medium
 func (s *SerialDB) Close() error {
 	s.mutClosed.Lock()
@@ -186,6 +214,10 @@ func (s *SerialDB) Close() error {
 
 // Remove removes the data associated to the given key
 func (s *SerialDB) Remove(key []byte) error {
+	if s.isClosed() {
+		return storage.ErrSerialDBIsClosed
+	}
+
 	s.mutBatch.Lock()
 	_ = s.batch.Delete(key)
 	s.mutBatch.Unlock()
@@ -211,6 +243,11 @@ func (s *SerialDB) Destroy() error {
 	s.mutBatch.Unlock()
 
 	s.cancel()
+
+	s.mutClosed.Lock()
+	s.closed = true
+	s.mutClosed.Unlock()
+
 	err := s.db.Close()
 	if err != nil {
 		return err
@@ -233,4 +270,12 @@ func (s *SerialDB) processLoop(ctx context.Context) {
 			return
 		}
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *SerialDB) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }

@@ -71,3 +71,11 @@ func (blProcMock BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHa
 func (blProcMock BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (blProcMock *BlockProcessorStub) IsInterfaceNil() bool {
+	if blProcMock == nil {
+		return true
+	}
+	return false
+}

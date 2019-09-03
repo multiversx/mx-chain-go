@@ -138,7 +138,7 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 
 	cns := internalInitConsensusState()
 
-	nodesCoordinator := mock.NodesCoordinatorMock{}
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	err := errors.New("error")
 	nodesCoordinator.ComputeValidatorsGroupCalled = func(
 		randomness []byte,
@@ -157,7 +157,7 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	nodesCoordinator := mock.NodesCoordinatorMock{}
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
 	nextConsensusGroup, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoordinator)
 	assert.Nil(t, err)

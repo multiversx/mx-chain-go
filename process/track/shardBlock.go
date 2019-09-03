@@ -67,16 +67,16 @@ func checkTrackerNilParameters(
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
 ) error {
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return process.ErrNilDataPoolHolder
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return process.ErrNilStorage
 	}
 
@@ -159,4 +159,12 @@ func (sbt *shardBlockTracker) BlockBroadcastRound(nonce uint64) int64 {
 	}
 
 	return hInfo.broadcastInRound
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sbt *shardBlockTracker) IsInterfaceNil() bool {
+	if sbt == nil {
+		return true
+	}
+	return false
 }

@@ -107,6 +107,14 @@ func (f *Facade) GetVmValue(address string, funcName string, argsBuff ...[]byte)
 	return f.GetDataValueHandler(address, funcName, argsBuff...)
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (f *Facade) IsInterfaceNil() bool {
+	if f == nil {
+		return true
+	}
+	return false
+}
+
 // WrongFacade is a struct that can be used as a wrong implementation of the node router handler
 type WrongFacade struct {
 }

@@ -35,3 +35,11 @@ func (*bigEndianConverter) ToUint64(buff []byte) (uint64, error) {
 
 	return binary.BigEndian.Uint64(buff), nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bec *bigEndianConverter) IsInterfaceNil() bool {
+	if bec == nil {
+		return true
+	}
+	return false
+}

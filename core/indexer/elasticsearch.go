@@ -122,13 +122,13 @@ func checkElasticSearchParams(
 	if url == "" {
 		return core.ErrNilUrl
 	}
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return core.ErrNilCoordinator
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return core.ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return core.ErrNilHasher
 	}
 	if logger == nil {
@@ -456,6 +456,14 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 
 		closeESResponseBody(res)
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ei *elasticIndexer) IsInterfaceNil() bool {
+	if ei == nil {
+		return true
+	}
+	return false
 }
 
 func closeESResponseBody(res *esapi.Response) {

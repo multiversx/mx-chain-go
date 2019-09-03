@@ -15,7 +15,7 @@ type BaseJournalEntryCreation struct {
 
 // NewBaseJournalEntryCreation outputs a new BaseJournalEntry implementation used to revert an account creation
 func NewBaseJournalEntryCreation(key []byte, updater Updater) (*BaseJournalEntryCreation, error) {
-	if updater == nil {
+	if updater == nil || updater.IsInterfaceNil() {
 		return nil, ErrNilUpdater
 	}
 	if len(key) == 0 {
@@ -33,6 +33,14 @@ func (bjec *BaseJournalEntryCreation) Revert() (AccountHandler, error) {
 	return nil, bjec.updater.Update(bjec.key, nil)
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (bjec *BaseJournalEntryCreation) IsInterfaceNil() bool {
+	if bjec == nil {
+		return true
+	}
+	return false
+}
+
 //------- BaseJournalEntryCodeHash
 
 // BaseJournalEntryCodeHash creates a code hash change in account
@@ -43,7 +51,7 @@ type BaseJournalEntryCodeHash struct {
 
 // NewBaseJournalEntryCodeHash outputs a new BaseJournalEntry implementation used to save and revert a code hash change
 func NewBaseJournalEntryCodeHash(account AccountHandler, oldCodeHash []byte) (*BaseJournalEntryCodeHash, error) {
-	if account == nil {
+	if account == nil || account.IsInterfaceNil() {
 		return nil, ErrNilAccountHandler
 	}
 
@@ -60,6 +68,14 @@ func (bjech *BaseJournalEntryCodeHash) Revert() (AccountHandler, error) {
 	return bjech.account, nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (bjech *BaseJournalEntryCodeHash) IsInterfaceNil() bool {
+	if bjech == nil {
+		return true
+	}
+	return false
+}
+
 //------- BaseJournalEntryRoot
 
 // BaseJournalEntryRootHash creates an account's root hash change
@@ -71,7 +87,7 @@ type BaseJournalEntryRootHash struct {
 
 // NewBaseJournalEntryRootHash outputs a new BaseJournalEntry used to save and revert an account's root hash change
 func NewBaseJournalEntryRootHash(account AccountHandler, oldRootHash []byte, oldTrie data.Trie) (*BaseJournalEntryRootHash, error) {
-	if account == nil {
+	if account == nil || account.IsInterfaceNil() {
 		return nil, ErrNilAccountHandler
 	}
 
@@ -90,6 +106,14 @@ func (bjer *BaseJournalEntryRootHash) Revert() (AccountHandler, error) {
 	return bjer.account, nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (bjer *BaseJournalEntryRootHash) IsInterfaceNil() bool {
+	if bjer == nil {
+		return true
+	}
+	return false
+}
+
 //------- BaseJournalEntryData
 
 // BaseJournalEntryData is used to mark an account's data change
@@ -101,7 +125,7 @@ type BaseJournalEntryData struct {
 // NewBaseJournalEntryData outputs a new BaseJournalEntry implementation used to keep track of data change.
 // The revert will practically empty the dirty data map
 func NewBaseJournalEntryData(account AccountHandler, trie data.Trie) (*BaseJournalEntryData, error) {
-	if account == nil {
+	if account == nil || account.IsInterfaceNil() {
 		return nil, ErrNilAccountHandler
 	}
 
@@ -126,6 +150,14 @@ func (bjed *BaseJournalEntryData) Trie() data.Trie {
 	return bjed.trie
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (bjed *BaseJournalEntryData) IsInterfaceNil() bool {
+	if bjed == nil {
+		return true
+	}
+	return false
+}
+
 //------- BaseJournalEntryNonce
 
 // BaseJournalEntryNonce is used to revert a nonce change
@@ -136,7 +168,7 @@ type BaseJournalEntryNonce struct {
 
 // NewBaseJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
 func NewBaseJournalEntryNonce(account AccountHandler, oldNonce uint64) (*BaseJournalEntryNonce, error) {
-	if account == nil {
+	if account == nil || account.IsInterfaceNil() {
 		return nil, ErrNilAccountHandler
 	}
 
@@ -151,4 +183,12 @@ func (bjen *BaseJournalEntryNonce) Revert() (AccountHandler, error) {
 	bjen.account.SetNonce(bjen.oldNonce)
 
 	return bjen.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bjen *BaseJournalEntryNonce) IsInterfaceNil() bool {
+	if bjen == nil {
+		return true
+	}
+	return false
 }

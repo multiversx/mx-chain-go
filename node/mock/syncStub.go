@@ -22,3 +22,11 @@ func (ss *SyncStub) FormattedCurrentTime() string {
 func (ss *SyncStub) CurrentTime() time.Time {
 	panic("implement me")
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ss *SyncStub) IsInterfaceNil() bool {
+	if ss == nil {
+		return true
+	}
+	return false
+}

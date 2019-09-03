@@ -90,3 +90,11 @@ func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {
 func (nm *NodeMock) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 	return nm.GetHeartbeatsHandler()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (nm *NodeMock) IsInterfaceNil() bool {
+	if nm == nil {
+		return true
+	}
+	return false
+}

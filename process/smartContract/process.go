@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 	"sync"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -60,31 +60,31 @@ func NewSmartContractProcessor(
 	scrForwarder process.IntermediateTransactionHandler,
 	txFeeHandler process.UnsignedTxHandler,
 ) (*scProcessor, error) {
-	if vmContainer == nil {
+	if vmContainer == nil || vmContainer.IsInterfaceNil() {
 		return nil, process.ErrNoVM
 	}
-	if argsParser == nil {
+	if argsParser == nil || argsParser.IsInterfaceNil() {
 		return nil, process.ErrNilArgumentParser
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if accountsDB == nil {
+	if accountsDB == nil || accountsDB.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if tempAccounts == nil {
+	if tempAccounts == nil || tempAccounts.IsInterfaceNil() {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if adrConv == nil {
+	if adrConv == nil || adrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scrForwarder == nil {
+	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
 	if txFeeHandler == nil {
@@ -103,6 +103,37 @@ func NewSmartContractProcessor(
 		scrForwarder:     scrForwarder,
 		txFeeHandler:     txFeeHandler,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
+}
+
+// ComputeTransactionType calculates the type of the transaction
+func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
+	err := sc.checkTxValidity(tx)
+	if err != nil {
+		return 0, err
+	}
+
+	isEmptyAddress := sc.isDestAddressEmpty(tx)
+	if isEmptyAddress {
+		if len(tx.Data) > 0 {
+			return process.SCDeployment, nil
+		}
+		return 0, process.ErrWrongTransaction
+	}
+
+	acntDst, err := sc.getAccountFromAddress(tx.RcvAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	if acntDst == nil || acntDst.IsInterfaceNil() {
+		return process.MoveBalance, nil
+	}
+
+	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
+		return process.SCInvoking, nil
+	}
+
+	return process.MoveBalance, nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
@@ -131,10 +162,10 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 ) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
-	if tx == nil {
+	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
-	if acntDst == nil {
+	if acntDst == nil || acntDst.IsInterfaceNil() {
 		return process.ErrNilSCDestAccount
 	}
 	if acntDst.IsInterfaceNil() || acntDst.GetCode() == nil {
@@ -764,4 +795,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	}
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sc *scProcessor) IsInterfaceNil() bool {
+	if sc == nil {
+		return true
+	}
+	return false
 }

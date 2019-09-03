@@ -26,3 +26,11 @@ func (trss *TopicResolverSenderStub) Send(buff []byte, peer p2p.PeerID) error {
 func (trss *TopicResolverSenderStub) TargetShardID() uint32 {
 	return trss.TargetShardIDCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (trss *TopicResolverSenderStub) IsInterfaceNil() bool {
+	if trss == nil {
+		return true
+	}
+	return false
+}
