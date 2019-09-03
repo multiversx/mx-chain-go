@@ -1340,7 +1340,7 @@ func createInMemoryShardCoordinatorAndAccount(
 		return nil, nil, err
 	}
 
-	accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
+	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.UserAccount)
 	if err != nil {
 		return nil, nil, err
 	}

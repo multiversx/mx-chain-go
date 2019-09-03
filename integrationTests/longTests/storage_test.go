@@ -11,9 +11,7 @@ import (
 )
 
 func TestWriteContinuously(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Skip("this is not a short test")
 
 	nbTxsWrite := 1000000
 	testStorage := integrationTests.NewTestStorage()
@@ -41,9 +39,7 @@ func TestWriteContinuously(t *testing.T) {
 }
 
 func TestWriteReadDeleteLevelDB(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Skip("this is not a short test")
 
 	maxWritten := uint64(0)
 	mapRemovedKeys := sync.Map{}
@@ -71,9 +67,7 @@ func TestWriteReadDeleteLevelDB(t *testing.T) {
 }
 
 func TestWriteReadDeleteLevelDBSerial(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Skip("this is not a short test")
 
 	maxWritten := uint64(0)
 	mapRemovedKeys := sync.Map{}

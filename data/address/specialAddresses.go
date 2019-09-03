@@ -78,3 +78,11 @@ func (sp *specialAddresses) ShardIdForAddress(pubKey []byte) (uint32, error) {
 
 	return sp.shardCoordinator.ComputeId(convAdr), nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sp *specialAddresses) IsInterfaceNil() bool {
+	if sp == nil {
+		return true
+	}
+	return false
+}

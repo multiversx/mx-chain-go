@@ -44,3 +44,11 @@ func (sh *SpecialAddressHandlerMock) ShardIdForAddress(addr []byte) (uint32, err
 
 	return sh.ShardIdForAddressCalled(addr)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sh *SpecialAddressHandlerMock) IsInterfaceNil() bool {
+	if sh == nil {
+		return true
+	}
+	return false
+}

@@ -28,16 +28,20 @@ var (
 	}
 )
 
-func createNodesSetupOneShardOneNode() *sharding.NodesSetup {
-	noOfInitialNodes := 1
+func createNodesSetupOneShardOneNodeWithOneMeta() *sharding.NodesSetup {
+	noOfInitialNodes := 2
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 1
+	ns.MetaChainConsensusGroupSize = 1
+	ns.MetaChainMinNodes = 1
 	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 	ns.InitialNodes[0] = &sharding.InitialNode{}
 	ns.InitialNodes[0].PubKey = PubKeys[0]
 	ns.InitialNodes[0].Address = Address[0]
-
+	ns.InitialNodes[1] = &sharding.InitialNode{}
+	ns.InitialNodes[1].PubKey = PubKeys[1]
+	ns.InitialNodes[1].Address = Address[1]
 	err := ns.ProcessConfig()
 	if err != nil {
 		return nil
@@ -51,10 +55,12 @@ func createNodesSetupOneShardOneNode() *sharding.NodesSetup {
 }
 
 func createNodesSetupTwoShardTwoNodesWithOneMeta() *sharding.NodesSetup {
-	noOfInitialNodes := 4
+	noOfInitialNodes := 6
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
+	ns.MetaChainConsensusGroupSize = 1
+	ns.MetaChainMinNodes = 2
 	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
@@ -80,6 +86,8 @@ func createNodesSetupTwoShard5NodesWithMeta() *sharding.NodesSetup {
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
+	ns.MetaChainConsensusGroupSize = 1
+	ns.MetaChainMinNodes = 1
 	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
 
 	for i := 0; i < noOfInitialNodes; i++ {
@@ -383,18 +391,8 @@ func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 	inPK, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, len(inPK), 2)
+	assert.Equal(t, 2, len(inPK))
 	assert.Nil(t, err)
-}
-
-func TestNodesSetup_InitialNodesPubKeysForShardWrongMeta(t *testing.T) {
-	ns := createNodesSetupTwoShard6NodesMeta()
-	metaId := sharding.MetachainShardId
-	inPK, err := ns.InitialNodesInfoForShard(metaId)
-
-	assert.NotNil(t, ns)
-	assert.Nil(t, inPK)
-	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
@@ -403,7 +401,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 	inPK, err := ns.InitialNodesInfoForShard(metaId)
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, len(inPK), 2)
+	assert.Equal(t, 2, len(inPK))
 	assert.Nil(t, err)
 }
 
@@ -424,7 +422,7 @@ func TestNodesSetup_PublicKeyGood(t *testing.T) {
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), selfId)
+	assert.Equal(t, uint32(0), selfId)
 }
 
 func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {

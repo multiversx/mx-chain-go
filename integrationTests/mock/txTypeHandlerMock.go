@@ -16,3 +16,10 @@ func (th *TxTypeHandlerMock) ComputeTransactionType(tx data.TransactionHandler) 
 
 	return th.ComputeTransactionTypeCalled(tx)
 }
+
+func (th *TxTypeHandlerMock) IsInterfaceNil() bool {
+	if th == nil {
+		return true
+	}
+	return false
+}

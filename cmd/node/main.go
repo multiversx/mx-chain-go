@@ -1160,13 +1160,7 @@ func createNode(
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
-
 		err = nd.CreateShardedStores()
-		if err != nil {
-			return nil, err
-		}
-
-		err = nd.CreateShardGenesisBlock()
 		if err != nil {
 			return nil, err
 		}

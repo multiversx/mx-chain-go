@@ -111,6 +111,7 @@ type SpecialAddressHandler interface {
 	LeaderAddress() []byte
 	BurnAddress() []byte
 	ShardIdForAddress([]byte) (uint32, error)
+	IsInterfaceNil() bool
 }
 
 // PreProcessor is an interface used to prepare and process transaction data
