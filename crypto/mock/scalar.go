@@ -2,6 +2,7 @@ package mock
 
 import (
 	"crypto/cipher"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -110,4 +111,12 @@ func (sm *ScalarMock) UnmarshalBinary(val []byte) error {
 	x, err := sm.UnmarshalBinaryStub(val)
 	sm.X = x
 	return err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sm *ScalarMock) IsInterfaceNil() bool {
+	if sm == nil {
+		return true
+	}
+	return false
 }

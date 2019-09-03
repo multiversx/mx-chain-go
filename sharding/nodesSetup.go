@@ -43,7 +43,6 @@ type NodesSetup struct {
 	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
 	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
 
-	MetaChainActive             bool   `json:"metaChainActive"`
 	MetaChainConsensusGroupSize uint32 `json:"metaChainConsensusGroupSize"`
 	MetaChainMinNodes           uint32 `json:"metaChainMinNodes"`
 
@@ -73,10 +72,7 @@ func NewNodesSetup(nodesFilePath string, numOfNodes uint64) (*NodesSetup, error)
 		return nil, err
 	}
 
-	if nodes.MetaChainActive {
-		nodes.processMetaChainAssigment()
-	}
-
+	nodes.processMetaChainAssigment()
 	nodes.processShardAssignment()
 	nodes.createInitialNodesInfo()
 
@@ -117,18 +113,16 @@ func (ns *NodesSetup) processConfig() error {
 		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
 
-	if ns.MetaChainActive {
-		if ns.MetaChainConsensusGroupSize < 1 {
-			return ErrNegativeOrZeroConsensusGroupSize
-		}
-		if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
-			return ErrMinNodesPerShardSmallerThanConsensusSize
-		}
+	if ns.MetaChainConsensusGroupSize < 1 {
+		return ErrNegativeOrZeroConsensusGroupSize
+	}
+	if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
+		return ErrMinNodesPerShardSmallerThanConsensusSize
+	}
 
-		totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
-		if ns.nrOfNodes < totalMinNodes {
-			return ErrNodesSizeSmallerThanMinNoOfNodes
-		}
+	totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
+	if ns.nrOfNodes < totalMinNodes {
+		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
 
 	return nil
@@ -169,10 +163,7 @@ func (ns *NodesSetup) processShardAssignment() {
 }
 
 func (ns *NodesSetup) createInitialNodesInfo() {
-	nrOfShardAndMeta := ns.nrOfShards
-	if ns.MetaChainActive {
-		nrOfShardAndMeta += 1
-	}
+	nrOfShardAndMeta := ns.nrOfShards + 1
 
 	ns.allNodesInfo = make(map[uint32][]*NodeInfo, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
@@ -236,11 +227,6 @@ func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]*NodeInfo, err
 // NumberOfShards returns the calculated number of shards
 func (ns *NodesSetup) NumberOfShards() uint32 {
 	return ns.nrOfShards
-}
-
-// IsMetaChainActive returns if MetaChain is active
-func (ns *NodesSetup) IsMetaChainActive() bool {
-	return ns.MetaChainActive
 }
 
 // GetShardIDForPubKey returns the allocated shard ID from public key

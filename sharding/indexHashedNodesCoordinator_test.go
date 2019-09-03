@@ -73,7 +73,7 @@ func TestNewIndexHashedGroupSelector_InvalidConsensusGroupSizeShouldErr(t *testi
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(
 		0,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -90,7 +90,7 @@ func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(
 		1,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -109,7 +109,7 @@ func TestIndexHashedGroupSelector_SetNilNodesMapShouldErr(t *testing.T) {
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		2,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -125,7 +125,7 @@ func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(
 		2,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -144,7 +144,7 @@ func TestIndexHashedGroupSelector_NewCoordinatorGroup0SizeShouldErr(t *testing.T
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(
 		0,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -161,7 +161,7 @@ func TestIndexHashedGroupSelector_NewCoordinatorTooFewNodesShouldErr(t *testing.
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(
 		10,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -178,7 +178,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		2,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -197,7 +197,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupInvalidShardIdShouldErr(
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		2,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -223,7 +223,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -461,7 +461,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		consensusGroupSize,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -489,7 +489,7 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrNilPub
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -512,7 +512,7 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrValida
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		1,
 		nodesMap,
@@ -550,7 +550,7 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldWork(t *testing
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(
 		1,
 		1,
-		mock.HasherMock{},
+		&mock.HasherMock{},
 		0,
 		2,
 		nodesMap,

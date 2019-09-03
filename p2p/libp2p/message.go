@@ -72,3 +72,11 @@ func (m *Message) Key() []byte {
 func (m *Message) Peer() p2p.PeerID {
 	return m.peer
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (m *Message) IsInterfaceNil() bool {
+	if m == nil {
+		return true
+	}
+	return false
+}

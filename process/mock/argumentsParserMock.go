@@ -1,8 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type ArgumentParserMock struct {
@@ -62,4 +63,12 @@ func (ap *ArgumentParserMock) GetStorageUpdates(data string) ([]*vmcommon.Storag
 		return nil, nil
 	}
 	return ap.GetStorageUpdatesCalled(data)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ap *ArgumentParserMock) IsInterfaceNil() bool {
+	if ap == nil {
+		return true
+	}
+	return false
 }

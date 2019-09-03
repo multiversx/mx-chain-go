@@ -56,3 +56,11 @@ func (v *validator) PubKey() []byte {
 func (v *validator) Address() []byte {
 	return v.address
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (v *validator) IsInterfaceNil() bool {
+	if v == nil {
+		return true
+	}
+	return false
+}

@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -38,6 +39,8 @@ type metaProcessor struct {
 	requestedShardHdrsHashes    map[string]bool
 	allNeededShardHdrsFound     bool
 	mutRequestedShardHdrsHashes sync.RWMutex
+
+	shardsHeadersNonce *sync.Map
 
 	nextKValidity uint32
 
@@ -75,13 +78,13 @@ func NewMetaProcessor(
 		return nil, err
 	}
 
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if dataPool.ShardHeaders() == nil {
+	if dataPool.ShardHeaders() == nil || dataPool.ShardHeaders().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if requestHandler == nil {
+	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
 
@@ -103,6 +106,7 @@ func NewMetaProcessor(
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandler:        requestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
+		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 	}
 
 	err = base.setLastNotarizedHeadersSlice(startHeaders)
@@ -125,6 +129,8 @@ func NewMetaProcessor(
 
 	mp.nextKValidity = process.ShardBlockFinality
 	mp.allNeededShardHdrsFound = true
+
+	mp.shardsHeadersNonce = &sync.Map{}
 
 	return &mp, nil
 }
@@ -256,17 +262,17 @@ func (mp *metaProcessor) indexBlock(metaBlock *block.MetaBlock, headerPool map[s
 
 // removeBlockInfoFromPool removes the block info from associated pools
 func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		return process.ErrNilMetaBlockHeader
 	}
 
 	headerPool := mp.dataPool.ShardHeaders()
-	if headerPool == nil {
+	if headerPool == nil || headerPool.IsInterfaceNil() {
 		return process.ErrNilHeadersDataPool
 	}
 
 	headerNoncesPool := mp.dataPool.HeadersNonces()
-	if headerNoncesPool == nil {
+	if headerNoncesPool == nil || headerNoncesPool.IsInterfaceNil() {
 		return process.ErrNilHeadersNoncesDataPool
 	}
 
@@ -292,7 +298,7 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 
 // RestoreBlockIntoPools restores the block into associated pools
 func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
-	if headerHandler == nil {
+	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilMetaBlockHeader
 	}
 
@@ -302,12 +308,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	}
 
 	headerPool := mp.dataPool.ShardHeaders()
-	if headerPool == nil {
+	if headerPool == nil || headerPool.IsInterfaceNil() {
 		return process.ErrNilHeadersDataPool
 	}
 
 	headerNoncesPool := mp.dataPool.HeadersNonces()
-	if headerNoncesPool == nil {
+	if headerNoncesPool == nil || headerNoncesPool.IsInterfaceNil() {
 		return process.ErrNilHeadersNoncesDataPool
 	}
 
@@ -331,12 +337,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 			continue
 		}
 
-		headerPool.Put([]byte(hdrHash), &hdr)
+		headerPool.Put(hdrHash, &hdr)
 		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.ShardId, []byte(hdrHash))
+		syncMap.Store(hdr.ShardId, hdrHash)
 		headerNoncesPool.Merge(hdr.Nonce, syncMap)
 
-		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove([]byte(hdrHash))
+		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove(hdrHash)
 		if err != nil {
 			log.Error(err.Error())
 		}
@@ -473,6 +479,8 @@ func (mp *metaProcessor) CommitBlock(
 			return err
 		}
 
+		mp.updateShardHeadersNonce(shardData.ShardId, header.Nonce)
+
 		tempHeaderPool[string(shardData.HeaderHash)] = header
 
 		buff, err = mp.marshalizer.Marshal(header)
@@ -488,6 +496,8 @@ func (mp *metaProcessor) CommitBlock(
 		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardData.HeaderHash, buff)
 		log.LogIfError(errNotCritical)
 	}
+
+	mp.saveMetricCrossCheckBlockHeight()
 
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
@@ -539,6 +549,47 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockSizeThrottler.Succeed(header.Round)
 
 	return nil
+}
+
+func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
+	valueStoredI, ok := mp.shardsHeadersNonce.Load(key)
+	if !ok {
+		mp.shardsHeadersNonce.Store(key, value)
+		return
+	}
+
+	valueStored, ok := valueStoredI.(uint64)
+	if !ok {
+		mp.shardsHeadersNonce.Store(key, value)
+		return
+	}
+
+	if valueStored < value {
+		mp.shardsHeadersNonce.Store(key, value)
+	}
+}
+
+func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
+	crossCheckBlockHeight := ""
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		valueStoredI, ok := mp.shardsHeadersNonce.Load(i)
+		if !ok {
+			continue
+		}
+
+		valueStored, ok := valueStoredI.(uint64)
+		if !ok {
+			continue
+		}
+
+		if i > 0 {
+			crossCheckBlockHeight += ", "
+		}
+
+		crossCheckBlockHeight += fmt.Sprintf("%d: %d", i, valueStored)
+	}
+
+	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
 }
 
 func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error {
@@ -904,7 +955,7 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 	shardId uint32,
 ) error {
 
-	if hdrPool == nil {
+	if hdrPool == nil || hdrPool.IsInterfaceNil() {
 		return process.ErrNilHeadersDataPool
 	}
 	// TODO: real processing has to be done here, using metachain state
@@ -1091,7 +1142,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.TxCount = getTxCount(shardInfo)
 
 	mp.blockSizeThrottler.Add(
-		uint64(round),
+		round,
 		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
@@ -1364,4 +1415,12 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	}
 
 	return &header
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mp *metaProcessor) IsInterfaceNil() bool {
+	if mp == nil {
+		return true
+	}
+	return false
 }

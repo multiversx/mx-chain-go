@@ -41,18 +41,6 @@ type shardProcessor struct {
 	core          serviceContainer.Core
 	txCoordinator process.TransactionCoordinator
 	txCounter     *transactionCounter
-
-	appStatusHandler core.AppStatusHandler
-}
-
-// SetAppStatusHandler method is used to set appStatusHandler
-func (sp *shardProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return process.ErrNilAppStatusHandler
-	}
-
-	sp.appStatusHandler = ash
-	return nil
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -88,16 +76,16 @@ func NewShardProcessor(
 		return nil, err
 	}
 
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if blocksTracker == nil {
+	if blocksTracker == nil || blocksTracker.IsInterfaceNil() {
 		return nil, process.ErrNilBlocksTracker
 	}
-	if requestHandler == nil {
+	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
-	if txCoordinator == nil {
+	if txCoordinator == nil || txCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionCoordinator
 	}
 
@@ -118,6 +106,7 @@ func NewShardProcessor(
 		specialAddressHandler:         specialAddressHandler,
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
+		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 	}
 	err = base.setLastNotarizedHeadersSlice(startHeaders)
 	if err != nil {
@@ -125,13 +114,12 @@ func NewShardProcessor(
 	}
 
 	sp := shardProcessor{
-		core:             core,
-		baseProcessor:    base,
-		dataPool:         dataPool,
-		blocksTracker:    blocksTracker,
-		txCoordinator:    txCoordinator,
-		txCounter:        NewTransactionCounter(),
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		core:          core,
+		baseProcessor: base,
+		dataPool:      dataPool,
+		blocksTracker: blocksTracker,
+		txCoordinator: txCoordinator,
+		txCounter:     NewTransactionCounter(),
 	}
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
@@ -187,6 +175,14 @@ func (sp *shardProcessor) ProcessBlock(
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
+
+	mbLen := len(body)
+	totalTxCount := 0
+	for i := 0; i < mbLen; i++ {
+		totalTxCount += len(body[i].TxHashes)
+	}
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(mbLen))
 
 	err = sp.checkHeaderBodyCorrelation(header, body)
 	if err != nil {
@@ -333,7 +329,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Head
 
 // check if shard headers are final by checking if newer headers were constructed upon them
 func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round uint64) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
 
@@ -354,6 +350,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round 
 		if tmpHdr.hdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err = sp.isHdrConstructionValid(tmpHdr.hdr, lastVerifiedHdr)
 			if err != nil {
+				log.Debug(err.Error())
 				continue
 			}
 
@@ -459,10 +456,10 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
 func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
-	if headerHandler == nil {
+	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
-	if bodyHandler == nil {
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return process.ErrNilTxBlockBody
 	}
 
@@ -476,12 +473,13 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return process.ErrWrongTypeAssertion
 	}
 
-	restoredTxNr, miniBlockHashes, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
+	restoredTxNr, _, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
 	go sp.txCounter.substractRestoredTxs(restoredTxNr)
 	if err != nil {
 		return err
 	}
 
+	miniBlockHashes := header.MapMiniBlockHashesToShards()
 	err = sp.restoreMetaBlockIntoPool(miniBlockHashes, header.MetaBlockHashes)
 	if err != nil {
 		return err
@@ -492,7 +490,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	return nil
 }
 
-func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]byte, metaBlockHashes [][]byte) error {
+func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]uint32, metaBlockHashes [][]byte) error {
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
 		return process.ErrNilMetaBlockPool
@@ -537,34 +535,27 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 		if len(miniBlockHashes) == 0 {
 			break
 		}
-		metaBlock, _ := metaBlockPool.Peek(metaBlockKey)
-		if metaBlock == nil {
+		metaBlock, ok := metaBlockPool.Peek(metaBlockKey)
+		if !ok {
 			log.Error(process.ErrNilMetaBlockHeader.Error())
 			continue
 		}
 
-		hdr, _ := metaBlock.(data.HeaderHandler)
-		if hdr == nil {
+		hdr, ok := metaBlock.(data.HeaderHandler)
+		if !ok {
+			metaBlockPool.Remove(metaBlockKey)
 			log.Error(process.ErrWrongTypeAssertion.Error())
 			continue
 		}
 
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
-			canDelete := true
-			for _, mbHash := range miniBlockHashes[key] {
-				_, ok := crossMiniBlockHashes[string(mbHash)]
-				if !ok {
-					canDelete = false
-					continue
-				}
-
-				hdr.SetMiniBlockProcessed(mbHash, false)
+			_, ok := crossMiniBlockHashes[key]
+			if !ok {
+				continue
 			}
 
-			if canDelete {
-				delete(miniBlockHashes, key)
-			}
+			hdr.SetMiniBlockProcessed([]byte(key), false)
 		}
 	}
 
@@ -678,6 +669,13 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	headerMeta, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	sp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMeta.GetNonce()))
 
 	_, err = sp.accounts.Commit()
 	if err != nil {
@@ -966,7 +964,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 
 	miniBlksCache := sp.dataPool.MiniBlocks()
-	if miniBlksCache == nil {
+	if miniBlksCache == nil || miniBlksCache.IsInterfaceNil() {
 		return
 	}
 
@@ -1217,7 +1215,7 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, err
 
 // isMetaHeaderFinal verifies if meta is trully final, in order to not do rollbacks
 func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHdrs []*hashAndHdr, startPos int) bool {
-	if currHdr == nil {
+	if currHdr == nil || currHdr.IsInterfaceNil() {
 		return false
 	}
 	if sortedHdrs == nil {
@@ -1262,17 +1260,17 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 ) (block.MiniBlockSlice, [][]byte, uint32, error) {
 
 	metaBlockCache := sp.dataPool.MetaBlocks()
-	if metaBlockCache == nil {
+	if metaBlockCache == nil || metaBlockCache.IsInterfaceNil() {
 		return nil, nil, 0, process.ErrNilMetaBlockPool
 	}
 
 	miniBlockCache := sp.dataPool.MiniBlocks()
-	if miniBlockCache == nil {
+	if miniBlockCache == nil || miniBlockCache.IsInterfaceNil() {
 		return nil, nil, 0, process.ErrNilMiniBlockPool
 	}
 
 	txPool := sp.dataPool.Transactions()
-	if txPool == nil {
+	if txPool == nil || txPool.IsInterfaceNil() {
 		return nil, nil, 0, process.ErrNilTransactionPool
 	}
 
@@ -1438,7 +1436,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		go sp.checkAndRequestIfMetaHeadersMissing(round)
 	}()
 
-	if bodyHandler == nil {
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return header, nil
 	}
 
@@ -1471,6 +1469,9 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 	header.MiniBlockHeaders = miniBlockHeaders
 	header.TxCount = uint32(totalTxCount)
 
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(mbLen))
+
 	sp.mutUsedMetaHdrsHashes.Lock()
 
 	if usedMetaHdrsHashes, ok := sp.usedMetaHdrsHashes[round]; ok {
@@ -1502,7 +1503,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
-	if bodyHandler == nil {
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return nil, nil, process.ErrNilMiniBlocks
 	}
 
@@ -1558,4 +1559,12 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	}
 
 	return &header
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sp *shardProcessor) IsInterfaceNil() bool {
+	if sp == nil {
+		return true
+	}
+	return false
 }

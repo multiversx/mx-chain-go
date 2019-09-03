@@ -98,3 +98,11 @@ func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId
 func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
 	panic("implement me")
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
+	if ncm == nil {
+		return true
+	}
+	return false
+}

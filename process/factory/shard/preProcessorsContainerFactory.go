@@ -43,40 +43,40 @@ func NewPreProcessorsContainerFactory(
 	rewardsTxProcessor process.RewardTransactionProcessor,
 ) (*preProcessorsContainerFactory, error) {
 
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStore
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if addrConverter == nil {
+	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if txProcessor == nil {
+	if txProcessor == nil || txProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilTxProcessor
 	}
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if scProcessor == nil {
+	if scProcessor == nil || scProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if scResultProcessor == nil {
+	if scResultProcessor == nil || scResultProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
 	if rewardsTxProcessor == nil {
 		return nil, process.ErrNilRewardsTxProcessor
 	}
-	if requestHandler == nil {
+	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
 
@@ -176,4 +176,12 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 	)
 
 	return rewardTxPreprocessor, err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ppcm *preProcessorsContainerFactory) IsInterfaceNil() bool {
+	if ppcm == nil {
+		return true
+	}
+	return false
 }

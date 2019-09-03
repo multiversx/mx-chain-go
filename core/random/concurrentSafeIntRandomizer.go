@@ -18,3 +18,11 @@ func (csir *ConcurrentSafeIntRandomizer) Intn(n int) (int, error) {
 
 	return int(val.Int64()), nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (csir *ConcurrentSafeIntRandomizer) IsInterfaceNil() bool {
+	if csir == nil {
+		return true
+	}
+	return false
+}

@@ -61,3 +61,11 @@ func (scm *multipleShardsCoordinatorMock) CommunicationIdentifier(destShardID ui
 
 	return fmt.Sprintf("_%d_%d", scm.CurrentShard, destShardID)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (scm *multipleShardsCoordinatorMock) IsInterfaceNil() bool {
+	if scm == nil {
+		return true
+	}
+	return false
+}

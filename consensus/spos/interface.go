@@ -44,6 +44,8 @@ type ConsensusCoreHandler interface {
 	RandomnessPrivateKey() crypto.PrivateKey
 	// RandomnessSingleSigner returns the single signer stored in the ConsensusStore used for randomness generation
 	RandomnessSingleSigner() crypto.SingleSigner
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 //ConsensusService encapsulates the methods specifically for a consensus type (bls, bn)
@@ -61,12 +63,15 @@ type ConsensusService interface {
 	CanProceed(*ConsensusState, consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 //SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
 //for different consensus types
 type SubroundsFactory interface {
 	GenerateSubrounds() error
+	IsInterfaceNil() bool
 }
 
 //WorkerHandler represents the interface for the SposWorker
@@ -85,4 +90,6 @@ type WorkerHandler interface {
 	ExecuteStoredMessages()
 	//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
 	BroadcastUnnotarisedBlocks()
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }

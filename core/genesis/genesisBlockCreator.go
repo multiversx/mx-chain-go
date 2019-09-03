@@ -22,16 +22,16 @@ func CreateShardGenesisBlockFromInitialBalances(
 	genesisTime uint64,
 ) (data.HeaderHandler, error) {
 
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addrConv == nil {
+	if addrConv == nil || addrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
 	if initialBalances == nil {
 		return nil, process.ErrNilValue
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -59,6 +59,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 	return header, err
 }
 
+// CreateMetaGenesisBlock creates the meta genesis block
 func CreateMetaGenesisBlock(genesisTime uint64, initialPubKeys map[uint32][]string) (data.HeaderHandler, error) {
 	//TODO create the right metachain genesis block here
 	rootHash := []byte("root hash")
@@ -118,7 +119,7 @@ func setBalanceToTrie(
 	if err != nil {
 		return err
 	}
-	if addrContainer == nil {
+	if addrContainer == nil || addrContainer.IsInterfaceNil() {
 		return process.ErrNilAddressContainer
 	}
 	if shardCoordinator.ComputeId(addrContainer) != shardCoordinator.SelfId() {

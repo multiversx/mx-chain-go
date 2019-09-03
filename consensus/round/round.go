@@ -23,7 +23,7 @@ func NewRound(
 	syncTimer ntp.SyncTimer,
 ) (*round, error) {
 
-	if syncTimer == nil {
+	if syncTimer == nil || syncTimer.IsInterfaceNil() {
 		return nil, ErrNilSyncTimer
 	}
 
@@ -67,4 +67,12 @@ func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time
 	remainingTime := maxTime - elapsedTime
 
 	return remainingTime
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rnd *round) IsInterfaceNil() bool {
+	if rnd == nil {
+		return true
+	}
+	return false
 }

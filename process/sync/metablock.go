@@ -45,13 +45,13 @@ func NewMetaBootstrap(
 	bootstrapRoundIndex uint64,
 ) (*MetaBootstrap, error) {
 
-	if poolsHolder == nil {
+	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if poolsHolder.HeadersNonces() == nil {
+	if poolsHolder.HeadersNonces() == nil || poolsHolder.HeadersNonces().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-	if poolsHolder.MetaChainBlocks() == nil {
+	if poolsHolder.MetaChainBlocks() == nil || poolsHolder.MetaChainBlocks().IsInterfaceNil() {
 		return nil, process.ErrNilMetaBlockPool
 	}
 
@@ -140,6 +140,23 @@ func (boot *MetaBootstrap) syncFromStorer(
 	}
 
 	return nil
+}
+
+func (boot *MetaBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
+	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+		return
+	}
+
+	if shardId == sharding.MetachainShardId {
+		errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
+		if errNotCritical != nil {
+			log.Info(errNotCritical.Error())
+		}
+
+		return
+	}
 }
 
 func (boot *MetaBootstrap) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
@@ -462,6 +479,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
 	boot.requestsWithTimeout = 0
+
 	return nil
 }
 
@@ -658,4 +676,12 @@ func (boot *MetaBootstrap) getCurrentHeader() (*block.MetaBlock, error) {
 	}
 
 	return header, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *MetaBootstrap) IsInterfaceNil() bool {
+	if boot == nil {
+		return true
+	}
+	return false
 }

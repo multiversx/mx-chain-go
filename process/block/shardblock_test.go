@@ -2775,7 +2775,7 @@ func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
 		&mock.TransactionCoordinatorMock{},
 		&mock.Uint64ByteSliceConverterMock{},
 	)
-	wr := wrongBody{}
+	wr := &wrongBody{}
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, wr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, msh)
@@ -4444,7 +4444,7 @@ func TestShardProcessor_restoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
-	miniblockHashes := make(map[int][][]byte, 0)
+	miniblockHashes := make(map[string]uint32, 0)
 
 	meta := block.MetaBlock{
 		Nonce:     1,

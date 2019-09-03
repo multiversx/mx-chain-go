@@ -10,4 +10,5 @@ import (
 type Indexer interface {
 	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
+	IsInterfaceNil() bool
 }

@@ -65,7 +65,7 @@ func (imh *InterceptedMetaHeader) IntegrityAndValidity(coordinator sharding.Coor
 
 // Integrity checks the integrity of the state block wrapper
 func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) error {
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
 	if imh.MetaBlock == nil {
@@ -152,7 +152,7 @@ func (imh *InterceptedMetaHeader) VerifySig() error {
 	return err
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
 func (mb *InterceptedMetaHeader) IsInterfaceNil() bool {
 	if mb == nil {
 		return true

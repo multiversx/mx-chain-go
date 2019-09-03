@@ -39,28 +39,28 @@ func NewMetachainHeaderInterceptor(
 	nodesCoordinator sharding.NodesCoordinator,
 ) (*MetachainHeaderInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if metachainHeaders == nil {
+	if metachainHeaders == nil || metachainHeaders.IsInterfaceNil() {
 		return nil, process.ErrNilMetaHeadersDataPool
 	}
-	if metachainHeadersNonces == nil {
+	if metachainHeadersNonces == nil || metachainHeadersNonces.IsInterfaceNil() {
 		return nil, process.ErrNilMetaHeadersNoncesDataPool
 	}
-	if headerValidator == nil {
+	if headerValidator == nil || headerValidator.IsInterfaceNil() {
 		return nil, process.ErrNilHeaderHandlerValidator
 	}
-	if multiSigVerifier == nil {
+	if multiSigVerifier == nil || multiSigVerifier.IsInterfaceNil() {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil {
+	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilNodesCoordinator
 	}
 
@@ -126,4 +126,12 @@ func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *blo
 	syncMap := &dataPool.ShardIdHashSyncMap{}
 	syncMap.Store(sharding.MetachainShardId, metaHdrIntercepted.Hash())
 	mhi.metachainHeadersNonces.Merge(metaHdrIntercepted.Nonce, syncMap)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mhi *MetachainHeaderInterceptor) IsInterfaceNil() bool {
+	if mhi == nil {
+		return true
+	}
+	return false
 }

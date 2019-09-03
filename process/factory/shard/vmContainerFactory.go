@@ -22,10 +22,10 @@ func NewVMContainerFactory(
 	accounts state.AccountsAdapter,
 	addressConverter state.AddressConverter,
 ) (*vmContainerFactory, error) {
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addressConverter == nil {
+	if addressConverter == nil || addressConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
 
@@ -69,4 +69,12 @@ func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, erro
 // VMAccountsDB returns the created vmAccountsDB
 func (vmf *vmContainerFactory) VMAccountsDB() *hooks.VMAccountsDB {
 	return vmf.vmAccountsDB
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vmf *vmContainerFactory) IsInterfaceNil() bool {
+	if vmf == nil {
+		return true
+	}
+	return false
 }

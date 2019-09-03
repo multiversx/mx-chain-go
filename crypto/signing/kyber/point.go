@@ -15,7 +15,7 @@ type kyberPoint struct {
 // Equal tests if receiver is equal with the Point p given as parameter.
 // Both Points need to be derived from the same Group
 func (po *kyberPoint) Equal(p crypto.Point) (bool, error) {
-	if p == nil {
+	if p == nil || p.IsInterfaceNil() {
 		return false, crypto.ErrNilParam
 	}
 
@@ -48,7 +48,7 @@ func (po *kyberPoint) Base() crypto.Point {
 
 // Set sets the receiver equal to another Point p.
 func (po *kyberPoint) Set(p crypto.Point) error {
-	if p == nil {
+	if p == nil || p.IsInterfaceNil() {
 		return crypto.ErrNilParam
 	}
 
@@ -73,7 +73,7 @@ func (po *kyberPoint) Clone() crypto.Point {
 // Add returns the result of adding receiver with Point p given as parameter,
 // so that their scalars add homomorphically
 func (po *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {
-	if p == nil {
+	if p == nil || p.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -92,7 +92,7 @@ func (po *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {
 // Sub returns the result of subtracting from receiver the Point p given as parameter,
 // so that their scalars subtract homomorphically
 func (po *kyberPoint) Sub(p crypto.Point) (crypto.Point, error) {
-	if p == nil {
+	if p == nil || p.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -118,7 +118,7 @@ func (po *kyberPoint) Neg() crypto.Point {
 
 // Mul returns the result of multiplying receiver by the scalar s.
 func (po *kyberPoint) Mul(s crypto.Scalar) (crypto.Point, error) {
-	if s == nil {
+	if s == nil || s.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -159,4 +159,12 @@ func (po *kyberPoint) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary reconstructs a point from its byte array representation
 func (po *kyberPoint) UnmarshalBinary(point []byte) error {
 	return po.Point.UnmarshalBinary(point)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (po *kyberPoint) IsInterfaceNil() bool {
+	if po == nil {
+		return true
+	}
+	return false
 }

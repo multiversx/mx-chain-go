@@ -66,3 +66,11 @@ func (mm *MultisignMock) SignatureShare(index uint16) ([]byte, error) {
 func (mm *MultisignMock) AggregateSigs(bitmap []byte) ([]byte, error) {
 	panic("implement me")
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mm *MultisignMock) IsInterfaceNil() bool {
+	if mm == nil {
+		return true
+	}
+	return false
+}

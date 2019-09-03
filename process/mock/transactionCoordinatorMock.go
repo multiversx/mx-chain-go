@@ -136,3 +136,11 @@ func (tcm *TransactionCoordinatorMock) VerifyCreatedBlockTransactions(body block
 
 	return tcm.VerifyCreatedBlockTransactionsCalled(body)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tcm *TransactionCoordinatorMock) IsInterfaceNil() bool {
+	if tcm == nil {
+		return true
+	}
+	return false
+}

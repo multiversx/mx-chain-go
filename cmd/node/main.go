@@ -543,6 +543,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
 	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumTxInBlock, 0)
+	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
+	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusState, "")
+	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
+	coreComponents.StatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -567,13 +572,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
-		"OsVersion", "TestOs",
+		"GenesisTimeStamp", startTime.Unix(),
 	)
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
@@ -672,7 +677,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		processComponents,
 	)
 	if err != nil {
-		log.Info("Error creating status polling: ", err)
+		return err
 	}
 
 	updateMachineStatisticsDurationSec := 1
@@ -835,6 +840,7 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
 		appStatusHandler.SetUInt64Value(core.MetricTotalMem, memStats.TotalMemory())
+		appStatusHandler.SetUInt64Value(core.MetricMemoryUsedByNode, memStats.UsedMemory())
 	})
 }
 
@@ -1153,17 +1159,11 @@ func createNode(
 		err = nd.ApplyOptions(
 			node.WithInitialNodesBalances(state.InBalanceForShard),
 			node.WithDataPool(data.Datapool),
-			node.WithActiveMetachain(nodesConfig.MetaChainActive))
+		)
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
-
 		err = nd.CreateShardedStores()
-		if err != nil {
-			return nil, err
-		}
-
-		err = nd.CreateShardGenesisBlock()
 		if err != nil {
 			return nil, err
 		}
@@ -1172,10 +1172,6 @@ func createNode(
 		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
-		}
-		err = nd.CreateMetaGenesisBlock()
-		if err != nil {
-			return nil, err
 		}
 	}
 	return nd, nil

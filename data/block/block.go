@@ -485,6 +485,15 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
+// GetAllMiniBlockHashes as a map of hashes and sender IDs
+func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
+	hashDst := make(map[string]uint32, 0)
+	for _, val := range h.MiniBlockHeaders {
+		hashDst[string(val.Hash)] = val.SenderShardID
+	}
+	return hashDst
+}
+
 // GetMiniBlockProcessed verifies if miniblock from header was processed
 func (h *Header) GetMiniBlockProcessed(hash []byte) bool {
 	if h.processedMBs == nil {
@@ -503,7 +512,7 @@ func (h *Header) SetMiniBlockProcessed(hash []byte, processed bool) {
 
 // IntegrityAndValidity checks if data is valid
 func (b Body) IntegrityAndValidity() error {
-	if b == nil {
+	if b == nil || b.IsInterfaceNil() {
 		return data.ErrNilBlockBody
 	}
 
@@ -516,7 +525,15 @@ func (b Body) IntegrityAndValidity() error {
 	return nil
 }
 
-// IsInterfaceNil return if there is no value under the interface
+// IsInterfaceNil returns true if there is no value under the interface
+func (b Body) IsInterfaceNil() bool {
+	if b == nil {
+		return true
+	}
+	return false
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
 func (h *Header) IsInterfaceNil() bool {
 	if h == nil {
 		return true

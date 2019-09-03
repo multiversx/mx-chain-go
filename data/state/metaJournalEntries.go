@@ -29,6 +29,14 @@ func (jen *MetaJournalEntryRound) Revert() (AccountHandler, error) {
 	return jen.account, nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (jen *MetaJournalEntryRound) IsInterfaceNil() bool {
+	if jen == nil {
+		return true
+	}
+	return false
+}
+
 //------- MetaJournalEntryTxCount
 
 // MetaJournalEntryTxCount is used to revert a round change
@@ -54,6 +62,14 @@ func (jen *MetaJournalEntryTxCount) Revert() (AccountHandler, error) {
 	jen.account.TxCount = jen.oldTxCount
 
 	return jen.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (jen *MetaJournalEntryTxCount) IsInterfaceNil() bool {
+	if jen == nil {
+		return true
+	}
+	return false
 }
 
 //------- MetaJournalEntryMiniBlocksData
@@ -83,6 +99,14 @@ func (jen *MetaJournalEntryMiniBlocksData) Revert() (AccountHandler, error) {
 	return jen.account, nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (jen *MetaJournalEntryMiniBlocksData) IsInterfaceNil() bool {
+	if jen == nil {
+		return true
+	}
+	return false
+}
+
 //------- MetaJournalEntryShardRootHash
 
 // MetaJournalEntryShardRootHash is used to revert a round change
@@ -108,4 +132,12 @@ func (jen *MetaJournalEntryShardRootHash) Revert() (AccountHandler, error) {
 	jen.account.ShardRootHash = jen.oldShardRootHash
 
 	return jen.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (jen *MetaJournalEntryShardRootHash) IsInterfaceNil() bool {
+	if jen == nil {
+		return true
+	}
+	return false
 }

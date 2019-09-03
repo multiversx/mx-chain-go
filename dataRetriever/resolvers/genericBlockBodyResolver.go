@@ -25,19 +25,19 @@ func NewGenericBlockBodyResolver(
 	miniBlockStorage storage.Storer,
 	marshalizer marshal.Marshalizer) (*GenericBlockBodyResolver, error) {
 
-	if senderResolver == nil {
+	if senderResolver == nil || senderResolver.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
 
-	if miniBlockPool == nil {
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilBlockBodyPool
 	}
 
-	if miniBlockStorage == nil {
+	if miniBlockStorage == nil || miniBlockStorage.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilBlockBodyStorage
 	}
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
 
@@ -224,4 +224,12 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 	}
 
 	return miniBlocks
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (gbbRes *GenericBlockBodyResolver) IsInterfaceNil() bool {
+	if gbbRes == nil {
+		return true
+	}
+	return false
 }
