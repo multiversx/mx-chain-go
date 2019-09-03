@@ -1,7 +1,6 @@
 package wasm
 
 import (
-	"encoding/hex"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -32,13 +31,13 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCode,
+		string(scCode),
 	)
 
 	config := "./libhera.so,engine=wabt"
 	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithWASMVM(t, senderNonce, senderAddressBytes, senderBalance, config)
 
-	err := txProc.ProcessTransaction(tx, round)
+	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -51,13 +50,4 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		expectedBalance)
-	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
-
-	vm.TestDeployedContractContents(
-		t,
-		destinationAddressBytes,
-		accnts,
-		transferOnCalls,
-		string(scCode),
-		map[string]*big.Int{"a": big.NewInt(0).SetUint64(initialValueForInternalVariable)})
 }
