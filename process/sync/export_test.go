@@ -222,6 +222,7 @@ type StorageBootstrapperMock struct {
 	GetNonceWithLastNotarizedCalled func(currentNonce uint64) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64)
 	ApplyNotarizedBlocksCalled      func(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error
 	CleanupNotarizedStorageCalled   func(lastNotarized map[uint32]uint64)
+	AddHeaderToForkDetectorCalled   func(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
 }
 
 func (sbm *StorageBootstrapperMock) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
@@ -258,6 +259,10 @@ func (sbm *StorageBootstrapperMock) applyNotarizedBlocks(
 
 func (sbm *StorageBootstrapperMock) cleanupNotarizedStorage(lastNotarized map[uint32]uint64) {
 	sbm.CleanupNotarizedStorageCalled(lastNotarized)
+}
+
+func (sbm *StorageBootstrapperMock) addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
+	sbm.AddHeaderToForkDetectorCalled(shardId, nonce, lastNotarizedMeta)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
