@@ -2,13 +2,15 @@ package wasm
 
 import (
 	"encoding/hex"
-	"fmt"
+	"io/ioutil"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/stretchr/testify/assert"
 )
+
+var wrc20wasmFile = "./wrc20.wasm"
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
@@ -19,9 +21,8 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
-		initialValueForInternalVariable)
+	scCode, err := ioutil.ReadFile(wrc20wasmFile)
+	assert.Nil(t, err)
 
 	tx := vm.CreateTx(
 		t,
