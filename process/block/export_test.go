@@ -276,7 +276,7 @@ func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*
 }
 
 func (sp *shardProcessor) RestoreMetaBlockIntoPool(
-	miniBlockHashes map[int][][]byte,
+	miniBlockHashes map[string]uint32,
 	metaBlockHashes [][]byte,
 ) error {
 	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)
