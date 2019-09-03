@@ -481,6 +481,15 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
+// GetAllMiniBlockHashes as a map of hashes and sender IDs
+func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
+	hashDst := make(map[string]uint32, 0)
+	for _, val := range h.MiniBlockHeaders {
+		hashDst[string(val.Hash)] = val.SenderShardID
+	}
+	return hashDst
+}
+
 // GetMiniBlockProcessed verifies if miniblock from header was processed
 func (h *Header) GetMiniBlockProcessed(hash []byte) bool {
 	if h.processedMBs == nil {

@@ -51,12 +51,19 @@ func (rm *ResourceMonitor) GenerateStatistics() string {
 		}
 	}
 
-	return fmt.Sprintf("timestamp: %d, uptime: %v, num go: %d, go mem: %s, sys mem: %s, "+
+	return fmt.Sprintf("timestamp: %d, uptime: %v, num go: %d, alloc: %s, heap alloc: %s, heap idle: %s"+
+		", heap inuse: %s, heap sys: %s, heap released: %s, heap num objs: %d, sys mem: %s, "+
 		"total mem: %s, num GC: %d, FDs: %d, num opened files: %d, num conns: %d\n",
 		time.Now().Unix(),
 		time.Duration(time.Now().UnixNano()-rm.startTime.UnixNano()).Round(time.Second),
 		runtime.NumGoroutine(),
 		core.ConvertBytes(memStats.Alloc),
+		core.ConvertBytes(memStats.HeapAlloc),
+		core.ConvertBytes(memStats.HeapIdle),
+		core.ConvertBytes(memStats.HeapInuse),
+		core.ConvertBytes(memStats.HeapSys),
+		core.ConvertBytes(memStats.HeapReleased),
+		memStats.HeapObjects,
 		core.ConvertBytes(memStats.Sys),
 		core.ConvertBytes(memStats.TotalAlloc),
 		memStats.NumGC,
