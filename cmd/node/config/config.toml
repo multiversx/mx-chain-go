@@ -114,6 +114,7 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
         MaxBatchSize = 500
+        MaxOpenFiles = 10
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
