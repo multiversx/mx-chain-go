@@ -34,7 +34,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	config := "engine=wabt"
+	config := "./libhera.so,engine=wabt"
 	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithWASMVM(t, senderNonce, senderAddressBytes, senderBalance, config)
 
 	err := txProc.ProcessTransaction(tx, round)

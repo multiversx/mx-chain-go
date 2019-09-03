@@ -1,3 +1,5 @@
+// +build cgo
+
 package vm
 
 import (
@@ -22,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
-	"github.com/ElrondNetwork/hera"
 	"github.com/stretchr/testify/assert"
 )
 
