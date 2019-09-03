@@ -218,6 +218,30 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 	return nil
 }
 
+func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice) {
+
+	for _, rewardMb := range computedRewardMiniblocks {
+		txShardInfo := &txShardInfo{senderShardID: rewardMb.SenderShardID, receiverShardID: rewardMb.ReceiverShardID}
+		for _, txHash := range rewardMb.TxHashes {
+			tx, ok := rtp.rewardTxPool.SearchFirstData(txHash)
+			if !ok {
+				log.Error("reward transaction should be in pool but not found")
+				continue
+			}
+
+			rTx, ok := tx.(*rewardTx.RewardTx)
+			if !ok {
+				log.Error("wrong type in reward transactions pool")
+			}
+
+			rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{
+				tx:          rTx,
+				txShardInfo: txShardInfo,
+			}
+		}
+	}
+}
+
 // SaveTxBlockToStorage saves the reward transactions from body into storage
 func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body block.Body) error {
 	for i := 0; i < len(body); i++ {
@@ -287,9 +311,9 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		if mb.Type != block.RewardsBlockType {
 			continue
 		}
-		//if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
-		//	continue
-		//}
+		if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
+			continue
+		}
 
 		rewardTxs = append(rewardTxs, mb)
 	}

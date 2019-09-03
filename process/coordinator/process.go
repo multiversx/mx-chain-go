@@ -378,9 +378,16 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	// create the reward txs and make them available for processing
-	_ = tc.createRewardsMiniBlocks()
-	rewardsPreProc := tc.getPreProcessor(block.RewardsBlockType)
-	err := rewardsPreProc.ProcessBlockTransactions(separatedBodies[block.RewardsBlockType], round, haveTime)
+	mbRewards := tc.createRewardsMiniBlocks()
+	preproc := tc.getPreProcessor(block.RewardsBlockType)
+	rewardsPreProc, ok := preproc.(process.RewardTransactionPreProcessor)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	rewardsPreProc.AddComputedRewardMiniBlocks(mbRewards)
+
+	err := preproc.ProcessBlockTransactions(separatedBodies[block.RewardsBlockType], round, haveTime)
 	if err != nil {
 		return err
 	}

@@ -27,6 +27,11 @@ type RewardTransactionProcessor interface {
 	ProcessRewardTransaction(rewardTx *rewardTx.RewardTx) error
 }
 
+// RewardTransactionPreProcessor prepares the processing of reward transactions
+type RewardTransactionPreProcessor interface{
+	AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice)
+}
+
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
 type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
