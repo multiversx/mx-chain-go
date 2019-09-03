@@ -1742,7 +1742,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outAccs, err = sc.processSCOutputAccounts(outputAccounts)
 	assert.Nil(t, err)
 	assert.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
-	assert.Equal(t, len(outAccs), len(outAccs))
+	assert.Equal(t, len(outputAccounts), len(outAccs))
 }
 
 func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
