@@ -485,3 +485,11 @@ func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.Transact
 
 	return rewardTxPool
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rtp *rewardTxPreprocessor) IsInterfaceNil() bool {
+	if rtp == nil {
+		return true
+	}
+	return false
+}

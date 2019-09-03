@@ -2536,6 +2536,8 @@ func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		marshalizerMock,
 		&mock.ChainStorerMock{},

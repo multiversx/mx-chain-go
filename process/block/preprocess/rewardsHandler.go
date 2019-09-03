@@ -397,3 +397,11 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rtxh *rewardsHandler) IsInterfaceNil() bool {
+	if rtxh == nil {
+		return true
+	}
+	return false
+}

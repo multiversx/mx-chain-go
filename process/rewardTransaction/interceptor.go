@@ -149,3 +149,11 @@ func (rti *RewardTxInterceptor) processRewardTransaction(rTx *InterceptedRewardT
 		cacherIdentifier,
 	)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rti *RewardTxInterceptor) IsInterfaceNil() bool {
+	if rti == nil {
+		return true
+	}
+	return false
+}
