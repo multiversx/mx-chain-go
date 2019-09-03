@@ -1,9 +1,10 @@
 package factory
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestViewsFactory_NewViewFactoryShouldError(t *testing.T) {
