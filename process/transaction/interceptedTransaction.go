@@ -121,8 +121,9 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 		inTx.rcvShard = inTx.sndShard
 	}
 
-	inTx.isForMyShard = inTx.rcvShard == inTx.coordinator.SelfId() ||
-		inTx.sndShard == inTx.coordinator.SelfId()
+	isMyShardRecv := inTx.rcvShard == inTx.coordinator.SelfId()
+	isMyShardSender := inTx.sndShard == inTx.coordinator.SelfId()
+	inTx.isForMyShard = isMyShardRecv || isMyShardSender
 
 	return nil
 }
@@ -185,12 +186,20 @@ func (inTx *InterceptedTransaction) IsForMyShard() bool {
 	return inTx.isForMyShard
 }
 
-// UnderlyingTransaction returns the transaction pointer that actually holds the data
-func (inTx *InterceptedTransaction) UnderlyingTransaction() data.TransactionHandler {
+// Transaction returns the transaction pointer that actually holds the data
+func (inTx *InterceptedTransaction) Transaction() data.TransactionHandler {
 	return inTx.tx
 }
 
 // Hash gets the hash of this transaction
 func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (inTx *InterceptedTransaction) IsInterfaceNil() bool {
+	if inTx == nil {
+		return true
+	}
+	return false
 }

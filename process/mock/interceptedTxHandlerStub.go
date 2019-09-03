@@ -3,10 +3,10 @@ package mock
 import "github.com/ElrondNetwork/elrond-go/data"
 
 type InterceptedTxHandlerStub struct {
-	SndShardCalled              func() uint32
-	RcvShardCalled              func() uint32
-	HashCalled                  func() []byte
-	UnderlyingTransactionCalled func() data.TransactionHandler
+	SndShardCalled    func() uint32
+	RcvShardCalled    func() uint32
+	HashCalled        func() []byte
+	TransactionCalled func() data.TransactionHandler
 }
 
 func (itxhs *InterceptedTxHandlerStub) SndShard() uint32 {
@@ -21,6 +21,6 @@ func (itxhs *InterceptedTxHandlerStub) Hash() []byte {
 	return itxhs.HashCalled()
 }
 
-func (itxhs *InterceptedTxHandlerStub) UnderlyingTransaction() data.TransactionHandler {
-	return itxhs.UnderlyingTransactionCalled()
+func (itxhs *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {
+	return itxhs.TransactionCalled()
 }

@@ -262,7 +262,7 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 
 	assert.NotNil(t, txi)
 	assert.Nil(t, err)
-	assert.Equal(t, tx, txi.UnderlyingTransaction())
+	assert.Equal(t, tx, txi.Transaction())
 }
 
 //------- CheckValidity
@@ -486,7 +486,7 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, senderShard, txi.SndShard())
 	assert.Equal(t, recvShard, txi.RcvShard())
 	assert.False(t, txi.IsForMyShard())
-	assert.Equal(t, tx, txi.UnderlyingTransaction())
+	assert.Equal(t, tx, txi.Transaction())
 }
 
 func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *testing.T) {

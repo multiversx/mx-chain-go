@@ -3,6 +3,7 @@ package processor_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
@@ -39,7 +40,7 @@ func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
 
 	txip, err := processor.NewTxInterceptorProcessor(createDefaultArgument())
 
-	assert.NotNil(t, txip)
+	assert.False(t, check.ForNil(txip))
 	assert.Nil(t, err)
 }
 
@@ -86,7 +87,7 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 			HashCalled: func() []byte {
 				return make([]byte, 0)
 			},
-			UnderlyingTransactionCalled: func() data.TransactionHandler {
+			TransactionCalled: func() data.TransactionHandler {
 				return nil
 			},
 		},
@@ -103,4 +104,15 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)
+}
+
+//------- IsInterfaceNil
+
+func TestIsInterfaceNil_NotInstantiatedShouldRetTrue(t *testing.T) {
+	t.Parallel()
+
+	txip, _ := processor.NewTxInterceptorProcessor(createDefaultArgument())
+	txip = nil
+
+	assert.True(t, check.ForNil(txip))
 }

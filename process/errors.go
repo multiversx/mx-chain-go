@@ -163,9 +163,6 @@ var ErrNilSndAddr = errors.New("nil sender address")
 // ErrNegativeValue signals that a negative value has been detected and it is not allowed
 var ErrNegativeValue = errors.New("negative value")
 
-// ErrNotPositiveValue signals that a 0 or negative value has been provided
-var ErrNotPositiveValue = errors.New("the value provided is not positive")
-
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 

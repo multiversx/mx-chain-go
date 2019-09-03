@@ -119,3 +119,11 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	return lastErrEncountered
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
+	if mdi == nil {
+		return true
+	}
+	return false
+}

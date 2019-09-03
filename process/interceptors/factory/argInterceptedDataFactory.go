@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// InterceptedDataFactoryArgument holds all dependencies required by the intercepted data factory in order to create
+// ArgInterceptedDataFactory holds all dependencies required by the intercepted data factory in order to create
 // new instances
-type InterceptedDataFactoryArgument struct {
+type ArgInterceptedDataFactory struct {
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher
 	KeyGen           crypto.KeyGenerator

@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/throttler"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -33,8 +33,8 @@ type interceptorsContainerFactory struct {
 	dataPool              dataRetriever.PoolsHolder
 	addrConverter         state.AddressConverter
 	chronologyValidator   process.ChronologyValidator
-	argInterceptorFactory *interceptorFactory.InterceptedDataFactoryArgument
-	txGlobalThrottler     process.InterceptorThrottler
+	argInterceptorFactory *interceptorFactory.ArgInterceptedDataFactory
+	globalTxThrottler     process.InterceptorThrottler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -55,7 +55,7 @@ func NewInterceptorsContainerFactory(
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if messenger == nil {
+	if messenger == nil || messenger.IsInterfaceNil() {
 		return nil, process.ErrNilMessenger
 	}
 	if store == nil || store.IsInterfaceNil() {
@@ -86,7 +86,7 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilChronologyValidator
 	}
 
-	argInterceptorFactory := &interceptorFactory.InterceptedDataFactoryArgument{
+	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
 		Hasher:           hasher,
 		KeyGen:           keyGen,
@@ -111,7 +111,7 @@ func NewInterceptorsContainerFactory(
 	}
 
 	var err error
-	icf.txGlobalThrottler, err = throttler.NewNumThrottler(numGoRoutinesInTxInterceptors)
+	icf.globalTxThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutinesInTxInterceptors)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +256,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.marshalizer,
 		txFactory,
 		txProcessor,
-		icf.txGlobalThrottler,
+		icf.globalTxThrottler,
 	)
 
 	if err != nil {
