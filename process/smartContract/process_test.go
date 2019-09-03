@@ -1717,11 +1717,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	outAccs, err := sc.ProcessSCOutputAccounts(outputAccounts)
 	assert.Nil(t, err)
-	assert.Equal(t, len(outAccs), len(outAccs))
-
-	outAccs, err = sc.ProcessSCOutputAccounts(outputAccounts)
-	assert.Nil(t, err)
-	assert.Equal(t, len(outAccs), len(outAccs))
+	assert.Equal(t, len(outputAccounts), len(outAccs))
 
 	outacc1.Balance = nil
 	outacc1.Nonce = outacc1.Nonce.Add(outacc1.Nonce, big.NewInt(1))
