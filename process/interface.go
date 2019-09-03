@@ -85,6 +85,7 @@ type IntermediateTransactionHandler interface {
 	VerifyInterMiniBlocks(body block.Body) error
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error
+	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	IsInterfaceNil() bool
 }

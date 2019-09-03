@@ -12,6 +12,7 @@ type IntermediateTransactionHandlerMock struct {
 	SaveCurrentIntermediateTxToStorageCalled func() error
 	CreateBlockStartedCalled                 func()
 	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
+	GetAllCurrentUsedTxsCalled               func() map[string]data.TransactionHandler
 }
 
 func (ith *IntermediateTransactionHandlerMock) CreateMarshalizedData(txHashes [][]byte) ([][]byte, error) {
@@ -53,6 +54,13 @@ func (ith *IntermediateTransactionHandlerMock) CreateBlockStarted() {
 	if ith.CreateBlockStartedCalled != nil {
 		ith.CreateAllInterMiniBlocksCalled()
 	}
+}
+
+func (ith *IntermediateTransactionHandlerMock) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
+	if ith.GetAllCurrentUsedTxsCalled != nil {
+		return ith.GetAllCurrentUsedTxsCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
