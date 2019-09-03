@@ -64,11 +64,6 @@ func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.Accou
 	return acnt, nil
 }
 
-// ProcessCreatedRewardTransaction updates the account state from the reward transaction
-func (rtp *rewardTxProcessor) ProcessCreatedRewardTransaction(rTx *rewardTx.RewardTx) error {
-	return rtp.ProcessRewardTransaction(rTx)
-}
-
 // ProcessRewardTransaction updates the account state from the reward transaction
 func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) error {
 	if rTx == nil {
@@ -78,17 +73,21 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return process.ErrNilValueFromRewardTransaction
 	}
 
+	rtp.mutRewardsForwarder.Lock()
+	err := rtp.rewardTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{rTx})
+	rtp.mutRewardsForwarder.Unlock()
+	if err != nil {
+		return err
+	}
+
 	accHandler, err := rtp.getAccountFromAddress(rTx.RcvAddr)
 	if err != nil {
 		return err
 	}
 
 	if accHandler == nil || accHandler.IsInterfaceNil() {
-		rtp.mutRewardsForwarder.Lock()
-		err = rtp.rewardTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{rTx})
-		rtp.mutRewardsForwarder.Unlock()
-
-		return err
+		// address from different shard
+		return nil
 	}
 
 	rewardAcc, ok := accHandler.(*state.Account)
@@ -99,13 +98,6 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 	operation := big.NewInt(0)
 	operation = operation.Add(rTx.Value, rewardAcc.Balance)
 	err = rewardAcc.SetBalanceWithJournal(operation)
-	if err != nil {
-		return err
-	}
-
-	rtp.mutRewardsForwarder.Lock()
-	err = rtp.rewardTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{rTx})
-	rtp.mutRewardsForwarder.Unlock()
 
 	return err
 }

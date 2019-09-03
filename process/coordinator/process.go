@@ -362,6 +362,9 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		if separatedBodies[blockType] == nil {
 			continue
 		}
+		if blockType == block.RewardsBlockType {
+			continue
+		}
 
 		preproc := tc.getPreProcessor(blockType)
 		if preproc == nil {
@@ -372,6 +375,14 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		if err != nil {
 			return err
 		}
+	}
+
+	// create the reward txs and make them available for processing
+	_ = tc.createRewardsMiniBlocks()
+	rewardsPreProc := tc.getPreProcessor(block.RewardsBlockType)
+	err := rewardsPreProc.ProcessBlockTransactions(separatedBodies[block.RewardsBlockType], round, haveTime)
+	if err != nil {
+		return err
 	}
 
 	return nil

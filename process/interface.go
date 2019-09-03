@@ -24,7 +24,6 @@ type TransactionProcessor interface {
 
 // RewardTransactionProcessor is the interface for reward transaction execution engine
 type RewardTransactionProcessor interface {
-	ProcessCreatedRewardTransaction(reward *rewardTx.RewardTx) error
 	ProcessRewardTransaction(rewardTx *rewardTx.RewardTx) error
 }
 

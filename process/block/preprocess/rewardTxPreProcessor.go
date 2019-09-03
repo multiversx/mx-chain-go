@@ -177,10 +177,13 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 		if miniBlock.Type != block.RewardsBlockType {
 			continue
 		}
-		if miniBlock.SenderShardID == rtp.shardCoordinator.SelfId() {
-			// if sender is the shard, then do this later when reward txs from fee are generated inside
-			continue
-		}
+		//if miniBlock.ReceiverShardID != rtp.shardCoordinator.SelfId() {
+		//	continue
+		//}
+		//if miniBlock.SenderShardID == rtp.shardCoordinator.SelfId() {
+		//	// if sender is the shard, then do this later when reward txs from fee are generated
+		//	continue
+		//}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if haveTime() < 0 {
@@ -284,9 +287,9 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		if mb.Type != block.RewardsBlockType {
 			continue
 		}
-		if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
-			continue
-		}
+		//if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
+		//	continue
+		//}
 
 		rewardTxs = append(rewardTxs, mb)
 	}
@@ -339,9 +342,9 @@ func (rtp *rewardTxPreprocessor) computeMissingRewardTxsForMiniBlock(mb block.Mi
 		return missingRewardTxs
 	}
 
-	if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
-		return missingRewardTxs
-	}
+	//if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
+	//	return missingRewardTxs
+	//}
 
 	for _, txHash := range mb.TxHashes {
 		tx, _ := process.GetTransactionHandlerFromPool(

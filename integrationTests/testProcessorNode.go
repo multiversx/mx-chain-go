@@ -579,11 +579,11 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	haveTime := func() bool { return true }
 
-	addresses := []string{
-		"rewardAddr0000000000000000000000",
-		"rewardAddr0000000000000000000001",
-	}
-	tpn.BlockProcessor.SetConsensusRewardAddresses(addresses)
+	//addresses := []string{
+	//	"rewardAddr0000000000000000000000",
+	//	"rewardAddr0000000000000000000001",
+	//}
+	//tpn.BlockProcessor.SetConsensusRewardAddresses(addresses)
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
 	if err != nil {
