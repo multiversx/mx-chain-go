@@ -79,9 +79,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 
 	for key, value := range irp.interResultsForBlock {
 		recvShId := value.receiverShardID
-		if recvShId != irp.shardCoordinator.SelfId() {
-			miniBlocks[recvShId].TxHashes = append(miniBlocks[recvShId].TxHashes, []byte(key))
-		}
+		miniBlocks[recvShId].TxHashes = append(miniBlocks[recvShId].TxHashes, []byte(key))
 	}
 
 	finalMBs := make(map[uint32]*block.MiniBlock, 0)
