@@ -29,19 +29,38 @@ func TestPresenterStatusHandler_TestIncrement(t *testing.T) {
 	assert.Equal(t, uint64(1), result)
 }
 
+func TestPresenterStatusHandler_WrongKeyIncrementShouldDoNothing(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 0)
+	presenterStatusHandler.Increment("dummyKey")
+	result := presenterStatusHandler.GetNonce()
+
+	assert.Equal(t, uint64(0), result)
+}
+
+func TestPresenterStatusHandler_WrongTypeIncrementShouldDoNothing(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	presenterStatusHandler.SetStringValue(core.MetricNonce, "0")
+	presenterStatusHandler.Increment(core.MetricNonce)
+	result := presenterStatusHandler.GetNonce()
+
+	assert.Equal(t, uint64(0), result)
+}
+
 func TestPresenterStatusHandler_TestSetInt64(t *testing.T) {
 	t.Parallel()
 
 	var intValue = int64(100)
-
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-
 	presenterStatusHandler.SetInt64Value(core.MetricNonce, intValue)
 	valueI, err := presenterStatusHandler.GetPresenterMetricByKey(core.MetricNonce)
 	assert.Nil(t, err)
 
 	result := valueI.(int64)
-
 	assert.Equal(t, intValue, result)
 }
 
@@ -51,7 +70,6 @@ func TestPresenterStatusHandler_TestSetUInt64(t *testing.T) {
 	var intValue = uint64(200)
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-
 	presenterStatusHandler.SetUInt64Value(core.MetricNonce, intValue)
 	result := presenterStatusHandler.GetNonce()
 
@@ -64,7 +82,6 @@ func TestPresenterStatusHandler_TestSetString(t *testing.T) {
 	var stringValue = "KEY"
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-
 	presenterStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, stringValue)
 	result := presenterStatusHandler.GetPublicKeyBlockSign()
 

@@ -1,9 +1,10 @@
 package presenter
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestPresenterStatusHandler_GetNonce(t *testing.T) {

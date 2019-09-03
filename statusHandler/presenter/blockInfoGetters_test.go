@@ -1,9 +1,10 @@
 package presenter
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestPresenterStatusHandler_GetNumTxInBlock(t *testing.T) {
@@ -15,6 +16,26 @@ func TestPresenterStatusHandler_GetNumTxInBlock(t *testing.T) {
 	result := presenterStatusHandler.GetNumTxInBlock()
 
 	assert.Equal(t, numTxInBlock, result)
+}
+
+func TestPresenterStatusHandler_GetNumTxInBlockShouldBeZero(t *testing.T) {
+	t.Parallel()
+
+	numTxInBlock := "1000"
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetStringValue(core.MetricNumTxInBlock, numTxInBlock)
+	result := presenterStatusHandler.GetNumTxInBlock()
+
+	assert.Equal(t, uint64(0), result)
+}
+
+func TestPresenterStatusHandler_GetNumTxShouldZeroIfIsNotSet(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	result := presenterStatusHandler.GetNumTxInBlock()
+
+	assert.Equal(t, uint64(0), result)
 }
 
 func TestPresenterStatusHandler_GetNumMiniBLocks(t *testing.T) {
@@ -48,6 +69,26 @@ func TestPresenterStatusHandler_GetConsensusState(t *testing.T) {
 	result := presenterStatusHandler.GetConsensusState()
 
 	assert.Equal(t, consensusState, result)
+}
+
+func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalidType(t *testing.T) {
+	t.Parallel()
+
+	consensusState := uint64(1)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricConsensusState, consensusState)
+	result := presenterStatusHandler.GetConsensusState()
+
+	assert.Equal(t, invalidType, result)
+}
+
+func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalidKey(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	result := presenterStatusHandler.GetConsensusState()
+
+	assert.Equal(t, invalidKey, result)
 }
 
 func TestPresenterStatusHandler_GetConsensusRoundStateState(t *testing.T) {

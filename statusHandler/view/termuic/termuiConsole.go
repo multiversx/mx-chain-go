@@ -2,13 +2,13 @@ package termuic
 
 import (
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/prometheus/common/log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic/termuiRenders"
 	ui "github.com/gizak/termui/v3"
@@ -16,6 +16,8 @@ import (
 
 //refreshInterval is used for a ticker that refresh termui console at a specific interval
 const refreshInterval = time.Second
+
+var log = logger.DefaultLogger()
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {

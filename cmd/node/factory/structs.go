@@ -12,9 +12,6 @@ import (
 	"path/filepath"
 	"time"
 
-	factoryPresenter "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -66,6 +63,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -599,16 +598,16 @@ func (ncv *nullChronologyValidator) IsInterfaceNil() bool {
 	return false
 }
 
-// PresenterStatusHandlerFactory will return an instance of PresenterStatusHandler
-func PresenterStatusHandlerFactory() view.Presenter {
-	presenterStatusHandlerFactory := factoryPresenter.NewPresenterFactory()
+// CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler
+func CreateStatusHandlerPresenter() view.Presenter {
+	presenterStatusHandlerFactory := factoryViews.NewPresenterFactory()
 
 	return presenterStatusHandlerFactory.Create()
 }
 
-// ViewsFactory will start an termui console  and will return an object if cannot create and start termuiConsole
-func ViewsFactory(presenter view.Presenter) ([]statusHandler.Viewer, error) {
-	viewsFactory, err := factoryPresenter.NewViewsFactory(presenter)
+// CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
+func CreateViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
+	viewsFactory, err := factoryViews.NewViewsFactory(presenter)
 	if err != nil {
 		return nil, err
 	}

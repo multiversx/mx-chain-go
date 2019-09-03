@@ -22,16 +22,16 @@ func NewViewsFactory(presenter view.Presenter) (*viewsFactory, error) {
 }
 
 // Create returns an view slice that will hold all views in the system
-func (wf *viewsFactory) Create() ([]statusHandler.Viewer, error) {
-	viewers := make([]statusHandler.Viewer, 0)
+func (wf *viewsFactory) Create() ([]Viewer, error) {
+	views := make([]Viewer, 0)
 
 	termuiConsole, err := wf.createTermuiConsole()
 	if err != nil {
 		return nil, err
 	}
-	viewers = append(viewers, termuiConsole)
-	return viewers, nil
+	views = append(views, termuiConsole)
 
+	return views, nil
 }
 
 func (wf *viewsFactory) createTermuiConsole() (*termuic.TermuiConsole, error) {

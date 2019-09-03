@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
@@ -492,7 +493,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	var appStatusHandlers []core.AppStatusHandler
-	var views []statusHandler.Viewer
+	var views []factoryViews.Viewer
 
 	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
@@ -500,12 +501,12 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
 
-	presenterStatusHandler := factory.PresenterStatusHandlerFactory()
+	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
 
 	useTermui := !ctx.GlobalBool(useLogView.Name)
 	if useTermui {
 
-		views, err = factory.ViewsFactory(presenterStatusHandler)
+		views, err = factory.CreateViews(presenterStatusHandler)
 		if err != nil {
 			return err
 		}
@@ -518,9 +519,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 			}
 		}
 
-		statusHandlerO, ok := presenterStatusHandler.(core.AppStatusHandler)
+		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
 		if ok {
-			appStatusHandlers = append(appStatusHandlers, statusHandlerO)
+			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
 		}
 	}
 
