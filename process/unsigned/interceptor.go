@@ -35,22 +35,22 @@ func NewUnsignedTxInterceptor(
 	shardCoordinator sharding.Coordinator,
 ) (*UnsignedTxInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if uTxPool == nil {
+	if uTxPool == nil || uTxPool.IsInterfaceNil() {
 		return nil, process.ErrNilUTxDataPool
 	}
-	if uTxStorer == nil {
+	if uTxStorer == nil || uTxStorer.IsInterfaceNil() {
 		return nil, process.ErrNilUTxStorage
 	}
-	if addrConverter == nil {
+	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -69,7 +69,7 @@ func NewUnsignedTxInterceptor(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (utxi *UnsignedTxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	if message == nil {
+	if message == nil || message.IsInterfaceNil() {
 		return process.ErrNilMessage
 	}
 
@@ -148,4 +148,12 @@ func (utxi *UnsignedTxInterceptor) processUnsignedTransaction(uTx *InterceptedUn
 		uTx.UnsignedTransaction(),
 		cacherIdentifier,
 	)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (utxi *UnsignedTxInterceptor) IsInterfaceNil() bool {
+	if utxi == nil {
+		return true
+	}
+	return false
 }

@@ -9,4 +9,5 @@ import (
 type Accumulator interface {
 	Accumulate(...[]byte) []*big.Int
 	Verify(*big.Int, []byte) bool
+	IsInterfaceNil() bool
 }

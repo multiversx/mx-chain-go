@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -96,7 +95,6 @@ type Node struct {
 	consensusType  string
 
 	isRunning                bool
-	isMetachainActive        bool
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
@@ -120,7 +118,6 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
 		ctx:                      context.Background(),
-		isMetachainActive:        true,
 		currentSendingGoRoutines: 0,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 	}
@@ -324,59 +321,9 @@ func (n *Node) StartConsensus() error {
 	return nil
 }
 
-// CreateShardGenesisBlock creates the shard genesis block
-func (n *Node) CreateShardGenesisBlock() error {
-	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
-		n.accounts,
-		n.shardCoordinator,
-		n.addrConverter,
-		n.initialNodesBalances,
-		uint64(n.genesisTime.Unix()),
-	)
-	if err != nil {
-		return err
-	}
-
-	marshalizedHeader, err := n.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
-
-	return n.setGenesis(header, blockHeaderHash)
-}
-
-// CreateMetaGenesisBlock creates the meta genesis block
-func (n *Node) CreateMetaGenesisBlock() error {
-	header, err := genesis.CreateMetaGenesisBlock(uint64(n.genesisTime.Unix()), n.initialNodesPubkeys)
-	marshalizedHeader, err := n.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
-	err = n.store.Put(dataRetriever.MetaBlockUnit, blockHeaderHash, marshalizedHeader)
-	if err != nil {
-		return err
-	}
-
-	return n.setGenesis(header, blockHeaderHash)
-}
-
-func (n *Node) setGenesis(genesisHeader data.HeaderHandler, genesisHeaderHash []byte) error {
-	err := n.blkc.SetGenesisHeader(genesisHeader)
-	if err != nil {
-		return err
-	}
-
-	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
-	return nil
-}
-
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
-	if n.addrConverter == nil || n.accounts == nil {
+	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() || n.accounts == nil || n.accounts.IsInterfaceNil() {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
 
@@ -389,7 +336,7 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
-	if accWrp == nil {
+	if accWrp == nil || accWrp.IsInterfaceNil() {
 		return big.NewInt(0), nil
 	}
 
@@ -509,10 +456,10 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 
 // createConsensusTopic creates a consensus topic for node
 func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shardCoordinator sharding.Coordinator) error {
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return ErrNilShardCoordinator
 	}
-	if messageProcessor == nil {
+	if messageProcessor == nil || messageProcessor.IsInterfaceNil() {
 		return ErrNilMessenger
 	}
 
@@ -542,7 +489,7 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature []byte) (string, error) {
 
-	if n.shardCoordinator == nil {
+	if n.shardCoordinator == nil || n.shardCoordinator.IsInterfaceNil() {
 		return "", ErrNilShardCoordinator
 	}
 
@@ -609,10 +556,10 @@ func (n *Node) GetCurrentPublicKey() string {
 
 // GetAccount will return acount details for a given address
 func (n *Node) GetAccount(address string) (*state.Account, error) {
-	if n.addrConverter == nil {
+	if n.addrConverter == nil || n.addrConverter.IsInterfaceNil() {
 		return nil, ErrNilAddressConverter
 	}
-	if n.accounts == nil {
+	if n.accounts == nil || n.accounts.IsInterfaceNil() {
 		return nil, ErrNilAccountsAdapter
 	}
 
@@ -746,4 +693,12 @@ func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 		return nil
 	}
 	return n.heartbeatMonitor.GetHeartbeats()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (n *Node) IsInterfaceNil() bool {
+	if n == nil {
+		return true
+	}
+	return false
 }

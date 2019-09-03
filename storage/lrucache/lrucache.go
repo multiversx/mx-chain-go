@@ -136,3 +136,11 @@ func (c *LRUCache) Keys() [][]byte {
 func (c *LRUCache) Len() int {
 	return c.cache.Len()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (c *LRUCache) IsInterfaceNil() bool {
+	if c == nil {
+		return true
+	}
+	return false
+}

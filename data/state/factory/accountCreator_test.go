@@ -12,7 +12,11 @@ import (
 func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     0,
+		NrOfShards: 1,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.AccountCreator)
@@ -27,7 +31,11 @@ func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
 func TestAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     0,
+		NrOfShards: 1,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.AccountCreator)
@@ -42,7 +50,11 @@ func TestAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 func TestAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     0,
+		NrOfShards: 1,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.AccountCreator)

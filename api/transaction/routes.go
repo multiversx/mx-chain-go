@@ -18,6 +18,7 @@ type TxService interface {
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
 	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
+	IsInterfaceNil() bool
 }
 
 // TxRequest represents the structure on which user input for generating a new transaction will validate against

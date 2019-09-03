@@ -32,6 +32,14 @@ func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P) 
 	return mps.ProcessReceivedMessageCalled(message)
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (mps *messageProcessorStub) IsInterfaceNil() bool {
+	if mps == nil {
+		return true
+	}
+	return false
+}
+
 func createMessenger(ctx context.Context, seed int, initialPeerList []string) p2p.Messenger {
 
 	r := rand.New(rand.NewSource(int64(seed)))

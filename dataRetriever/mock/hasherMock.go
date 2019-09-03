@@ -27,3 +27,11 @@ func (sha HasherMock) EmptyHash() []byte {
 func (HasherMock) Size() int {
 	return sha256.Size
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sha *HasherMock) IsInterfaceNil() bool {
+	if sha == nil {
+		return true
+	}
+	return false
+}

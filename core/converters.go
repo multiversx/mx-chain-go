@@ -45,10 +45,10 @@ func CalculateHash(
 	hasher hashing.Hasher,
 	object interface{},
 ) ([]byte, error) {
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, ErrNilHasher
 	}
 

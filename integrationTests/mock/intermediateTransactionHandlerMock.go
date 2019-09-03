@@ -53,3 +53,11 @@ func (ith *IntermediateTransactionHandlerMock) CreateBlockStarted() {
 		ith.CreateAllInterMiniBlocksCalled()
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ith *IntermediateTransactionHandlerMock) IsInterfaceNil() bool {
+	if ith == nil {
+		return true
+	}
+	return false
+}

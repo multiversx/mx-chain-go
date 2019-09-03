@@ -14,7 +14,6 @@ func (ashs *AppStatusHandlerStub) IsInterfaceNil() bool {
 	if ashs == nil {
 		return true
 	}
-
 	return false
 }
 

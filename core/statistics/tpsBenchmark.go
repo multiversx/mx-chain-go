@@ -155,7 +155,7 @@ func (s *TpsBenchmark) isMetaBlockRelevant(mb *block.MetaBlock) bool {
 
 // Update receives a metablock and updates all fields accordingly for each shard available in the meta block
 func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
-	if mblock == nil {
+	if mblock == nil || mblock.IsInterfaceNil() {
 		return
 	}
 
@@ -240,6 +240,14 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *TpsBenchmark) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}
+
 // ShardID returns the shard id of the current statistic object
 func (ss *ShardStatistics) ShardID() uint32 {
 	return ss.shardID
@@ -278,4 +286,12 @@ func (ss *ShardStatistics) LastBlockTxCount() uint32 {
 // TotalProcessedTxCount returns the total number of processed transactions for this shard
 func (ss *ShardStatistics) TotalProcessedTxCount() *big.Int {
 	return ss.totalProcessedTxCount
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ss *ShardStatistics) IsInterfaceNil() bool {
+	if ss == nil {
+		return true
+	}
+	return false
 }

@@ -6,22 +6,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewAccountFactoryCreator_BadType(t *testing.T) {
+func TestNewAccountFactoryCreator_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(5)
+	accF, err := factory.NewAccountFactoryCreator(nil)
 
-	assert.Equal(t, err, state.ErrUnknownAccountType)
+	assert.Equal(t, err, state.ErrNilShardCoordinator)
 	assert.Nil(t, accF)
 }
 
 func TestNewAccountFactoryCreator_NormalAccount(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.UserAccount)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     0,
+		NrOfShards: 1,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, err)
 
 	accWrp, err := accF.CreateAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
@@ -35,7 +40,11 @@ func TestNewAccountFactoryCreator_NormalAccount(t *testing.T) {
 func TestNewAccountFactoryCreator_MetaAccount(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     sharding.MetachainShardId,
+		NrOfShards: 1,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, err)
 
 	accWrp, err := accF.CreateAccount(mock.NewAddressMock(), &mock.AccountTrackerStub{})
@@ -63,7 +72,11 @@ func TestNewAccountFactoryCreator_PeerAccount(t *testing.T) {
 func TestNewAccountFactoryCreator_UnknownType(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(10)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     10,
+		NrOfShards: 5,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, accF)
 	assert.Equal(t, state.ErrUnknownAccountType, err)
 }

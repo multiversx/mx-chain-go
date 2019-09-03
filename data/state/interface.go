@@ -14,27 +14,32 @@ type AddressConverter interface {
 	ConvertToHex(addressContainer AddressContainer) (string, error)
 	CreateAddressFromHex(hexAddress string) (AddressContainer, error)
 	PrepareAddressBytes(addressBytes []byte) ([]byte, error)
+	IsInterfaceNil() bool
 }
 
 // AddressContainer models what an Address struct should do
 type AddressContainer interface {
 	Bytes() []byte
+	IsInterfaceNil() bool
 }
 
 // AccountFactory creates an account of different types
 type AccountFactory interface {
 	CreateAccount(address AddressContainer, tracker AccountTracker) (AccountHandler, error)
+	IsInterfaceNil() bool
 }
 
 // AccountTracker saves an account state and journalizes new entries
 type AccountTracker interface {
 	SaveAccount(accountHandler AccountHandler) error
 	Journalize(entry JournalEntry)
+	IsInterfaceNil() bool
 }
 
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
 	Update(key, value []byte) error
+	IsInterfaceNil() bool
 }
 
 // AccountHandler models a state account, which can journalize and revert
@@ -70,6 +75,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte)
 	SetDataTrie(tr data.Trie)
 	DataTrie() data.Trie
+	IsInterfaceNil() bool
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
@@ -87,9 +93,11 @@ type AccountsAdapter interface {
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
+	IsInterfaceNil() bool
 }
 
 // JournalEntry will be used to implement different state changes to be able to easily revert them
 type JournalEntry interface {
 	Revert() (AccountHandler, error)
+	IsInterfaceNil() bool
 }

@@ -27,3 +27,11 @@ func (chrm *ChronologyHandlerMock) StartRounds() {
 		chrm.StartRoundCalled()
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (chrm *ChronologyHandlerMock) IsInterfaceNil() bool {
+	if chrm == nil {
+		return true
+	}
+	return false
+}

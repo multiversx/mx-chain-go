@@ -30,15 +30,20 @@ type DB struct {
 
 // NewDB is a constructor for the leveldb persister
 // It creates the files in the location given as parameter
-func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err error) {
+func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *DB, err error) {
 	err = os.MkdirAll(path, rwxOwner)
 	if err != nil {
 		return nil, err
 	}
 
+	if maxOpenFiles < 1 {
+		return nil, storage.ErrInvalidNumOpenFiles
+	}
+
 	options := &opt.Options{
 		// disable internal cache
-		BlockCacheCapacity: -1,
+		BlockCacheCapacity:     -1,
+		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
 	db, err := leveldb.OpenFile(path, options)
@@ -199,4 +204,12 @@ func (s *DB) Destroy() error {
 	err = os.RemoveAll(s.path)
 
 	return err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *DB) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }

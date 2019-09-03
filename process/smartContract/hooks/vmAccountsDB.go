@@ -22,10 +22,10 @@ func NewVMAccountsDB(
 	addrConv state.AddressConverter,
 ) (*VMAccountsDB, error) {
 
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, state.ErrNilAccountsAdapter
 	}
-	if addrConv == nil {
+	if addrConv == nil || addrConv.IsInterfaceNil() {
 		return nil, state.ErrNilAddressConverter
 	}
 
@@ -208,4 +208,12 @@ func (vadb *VMAccountsDB) TempAccount(address []byte) state.AccountHandler {
 	}
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vadb *VMAccountsDB) IsInterfaceNil() bool {
+	if vadb == nil {
+		return true
+	}
+	return false
 }

@@ -29,3 +29,11 @@ func (nd *NullDiscoverer) Name() string {
 func (nd *NullDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (nd *NullDiscoverer) IsInterfaceNil() bool {
+	if nd == nil {
+		return true
+	}
+	return false
+}

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
@@ -323,7 +324,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenShouldSyncRetur
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextConsensusGroupErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.NodesCoordinatorMock{}
+	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 	err := errors.New("error")
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32) ([]sharding.Validator, error) {
 		return nil, err
@@ -340,7 +341,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.NodesCoordinatorMock{}
+	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(
 		bytes []byte,
 		round uint64,
@@ -431,7 +432,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.NodesCoordinatorMock{}
+	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 
 	err := errors.New("error")
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(

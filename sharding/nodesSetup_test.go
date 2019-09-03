@@ -43,17 +43,14 @@ func createNodesSetupOneShardOneNode() *sharding.NodesSetup {
 		return nil
 	}
 
-	if ns.MetaChainActive {
-		ns.ProcessMetaChainAssigment()
-	}
-
+	ns.ProcessMetaChainAssigment()
 	ns.ProcessShardAssignment()
 	ns.CreateInitialNodesInfo()
 
 	return ns
 }
 
-func createNodesSetupTwoShardTwoNodes() *sharding.NodesSetup {
+func createNodesSetupTwoShardTwoNodesWithOneMeta() *sharding.NodesSetup {
 	noOfInitialNodes := 4
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
@@ -71,17 +68,14 @@ func createNodesSetupTwoShardTwoNodes() *sharding.NodesSetup {
 		return nil
 	}
 
-	if ns.MetaChainActive {
-		ns.ProcessMetaChainAssigment()
-	}
-
+	ns.ProcessMetaChainAssigment()
 	ns.ProcessShardAssignment()
 	ns.CreateInitialNodesInfo()
 
 	return ns
 }
 
-func createNodesSetupTwoShard5Nodes() *sharding.NodesSetup {
+func createNodesSetupTwoShard5NodesWithMeta() *sharding.NodesSetup {
 	noOfInitialNodes := 5
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
@@ -99,10 +93,7 @@ func createNodesSetupTwoShard5Nodes() *sharding.NodesSetup {
 		return nil
 	}
 
-	if ns.MetaChainActive {
-		ns.ProcessMetaChainAssigment()
-	}
-
+	ns.ProcessMetaChainAssigment()
 	ns.ProcessShardAssignment()
 	ns.CreateInitialNodesInfo()
 
@@ -114,7 +105,6 @@ func createNodesSetupTwoShard6NodesMeta() *sharding.NodesSetup {
 	ns := &sharding.NodesSetup{}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
-	ns.MetaChainActive = true
 	ns.MetaChainMinNodes = 2
 	ns.MetaChainConsensusGroupSize = 2
 	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
@@ -130,10 +120,7 @@ func createNodesSetupTwoShard6NodesMeta() *sharding.NodesSetup {
 		return nil
 	}
 
-	if ns.MetaChainActive {
-		ns.ProcessMetaChainAssigment()
-	}
-
+	ns.ProcessMetaChainAssigment()
 	ns.ProcessShardAssignment()
 	ns.CreateInitialNodesInfo()
 
@@ -224,7 +211,6 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testi
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 0,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             true,
 	}
 
 	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
@@ -269,7 +255,6 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNod
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             true,
 	}
 
 	ns.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -314,7 +299,6 @@ func TestNodesSetup_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
-		MetaChainActive:             true,
 	}
 
 	ns.InitialNodes = make([]*sharding.InitialNode, noOfInitialNodes)
@@ -355,9 +339,9 @@ func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardSho
 func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
 	noOfInitialNodes := 3
 	ns := sharding.NodesSetup{
-		ConsensusGroupSize:          1,
-		MinNodesPerShard:            1,
-		MetaChainActive:             true,
+		ConsensusGroupSize: 1,
+		MinNodesPerShard:   1,
+
 		MetaChainConsensusGroupSize: 2,
 		MetaChainMinNodes:           3,
 	}
@@ -386,7 +370,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
-	ns := createNodesSetupOneShardOneNode()
+	ns := createNodesSetupOneShardOneNodeWithOneMeta()
 	inPK, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
@@ -395,7 +379,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
-	ns := createNodesSetupTwoShardTwoNodes()
+	ns := createNodesSetupTwoShardTwoNodesWithOneMeta()
 	inPK, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
@@ -404,7 +388,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardWrongMeta(t *testing.T) {
-	ns := createNodesSetupTwoShardTwoNodes()
+	ns := createNodesSetupTwoShard6NodesMeta()
 	metaId := sharding.MetachainShardId
 	inPK, err := ns.InitialNodesInfoForShard(metaId)
 
@@ -433,7 +417,7 @@ func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
 }
 
 func TestNodesSetup_PublicKeyGood(t *testing.T) {
-	ns := createNodesSetupTwoShard5Nodes()
+	ns := createNodesSetupTwoShard5NodesWithMeta()
 	publicKey, err := hex.DecodeString(PubKeys[2])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)

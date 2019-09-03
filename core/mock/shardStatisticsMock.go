@@ -53,3 +53,11 @@ func (ss *ShardStatisticsMock) LastBlockTxCount() uint32 {
 func (ss *ShardStatisticsMock) TotalProcessedTxCount() *big.Int {
 	return ss.totalProcessedTxCount
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ss *ShardStatisticsMock) IsInterfaceNil() bool {
+	if ss == nil {
+		return true
+	}
+	return false
+}

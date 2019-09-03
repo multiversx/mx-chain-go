@@ -8,7 +8,6 @@ func (ashs *AppStatusHandlerMock) IsInterfaceNil() bool {
 	if ashs == nil {
 		return true
 	}
-
 	return false
 }
 
