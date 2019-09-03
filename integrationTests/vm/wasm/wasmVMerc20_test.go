@@ -1,6 +1,7 @@
 package wasm
 
 import (
+	"encoding/hex"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -23,6 +24,8 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	scCode, err := ioutil.ReadFile(wrc20wasmFile)
 	assert.Nil(t, err)
 
+	scCodeString := hex.EncodeToString(scCode)
+
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
@@ -31,7 +34,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		scCodeString,
 	)
 
 	config := "./libhera.so,engine=wabt"
