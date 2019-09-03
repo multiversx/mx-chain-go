@@ -1,7 +1,6 @@
 package termuic
 
 import (
-	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,7 +28,7 @@ type TermuiConsole struct {
 //NewTermuiConsole method is used to return a new TermuiConsole structure
 func NewTermuiConsole(presenter view.Presenter) (*TermuiConsole, error) {
 	if presenter == nil || presenter.IsInterfaceNil() {
-		return nil, errors.New("nil presenter")
+		return nil, statusHandler.ErrorNilPresenterInterface
 	}
 
 	tc := TermuiConsole{
