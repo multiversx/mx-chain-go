@@ -38,7 +38,10 @@ type rewardsHandler struct {
 	adrConv          state.AddressConverter
 	store            dataRetriever.StorageService
 	rewardTxPool     dataRetriever.ShardedDataCacherNotifier
-	protocolRewards  []data.TransactionHandler
+
+	mutGenRewardTxs sync.RWMutex
+	protocolRewards []data.TransactionHandler
+	feeRewards      []data.TransactionHandler
 
 	mut               sync.Mutex
 	accumulatedFees   *big.Int
@@ -145,11 +148,13 @@ func (rtxh *rewardsHandler) getShardIdsFromAddress(addr []byte) (uint32, error) 
 
 // CreateAllInterMiniBlocks creates miniblocks from process transactions
 func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
+	rtxh.mutGenRewardTxs.Lock()
 	calculatedRewardTxs := make([]data.TransactionHandler, 0)
-	rewardsFromFees := rtxh.createRewardFromFees()
-	rtxh.addTransactionsToPool(rewardsFromFees)
+	rtxh.feeRewards = rtxh.createRewardFromFees()
+	rtxh.addTransactionsToPool(rtxh.feeRewards)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewards...)
-	calculatedRewardTxs = append(calculatedRewardTxs, rewardsFromFees...)
+	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
+	rtxh.mutGenRewardTxs.Unlock()
 
 	miniBlocks := rtxh.miniblocksFromRewardTxs(calculatedRewardTxs)
 
@@ -210,8 +215,6 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 // VerifyInterMiniBlocks verifies if transaction fees were correctly handled for the block
 func (rtxh *rewardsHandler) VerifyInterMiniBlocks(body block.Body) error {
 	err := rtxh.verifyCreatedRewardsTxs()
-	rtxh.cleanCachedData()
-
 	return err
 }
 
@@ -262,6 +265,11 @@ func (rtxh *rewardsHandler) cleanCachedData() {
 	rtxh.accumulatedFees = big.NewInt(0)
 	rtxh.rewardTxsForBlock = make(map[string]*rewardTx.RewardTx)
 	rtxh.mut.Unlock()
+
+	rtxh.mutGenRewardTxs.Lock()
+	rtxh.feeRewards = make([]data.TransactionHandler, 0)
+	rtxh.protocolRewards = make([]data.TransactionHandler, 0)
+	rtxh.mutGenRewardTxs.Unlock()
 }
 
 func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
@@ -281,6 +289,7 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 
 	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, leaderPercentage)
 	currTx.RcvAddr = rtxh.address.LeaderAddress()
+	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 
 	return currTx
 }
@@ -290,6 +299,7 @@ func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 
 	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, burnPercentage)
 	currTx.RcvAddr = rtxh.address.BurnAddress()
+	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 
 	return currTx
 }
@@ -299,6 +309,7 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 
 	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, communityPercentage)
 	currTx.RcvAddr = rtxh.address.ElrondCommunityAddress()
+	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 
 	return currTx
 }
@@ -322,8 +333,6 @@ func (rtxh *rewardsHandler) createRewardFromFees() []data.TransactionHandler {
 	currFeeTxs := make([]data.TransactionHandler, 0)
 	currFeeTxs = append(currFeeTxs, leaderTx, communityTx, burnTx)
 
-	rtxh.accumulatedFees = big.NewInt(0)
-
 	return currFeeTxs
 }
 
@@ -341,7 +350,9 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 		consensusRewardTxs = append(consensusRewardTxs, rTx)
 	}
 
+	rtxh.mutGenRewardTxs.Lock()
 	rtxh.protocolRewards = consensusRewardTxs
+	rtxh.mutGenRewardTxs.Unlock()
 
 	return consensusRewardTxs
 }
@@ -349,9 +360,10 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 // VerifyCreatedRewardsTxs verifies if the calculated rewards transactions and the block reward transactions are the same
 func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	calculatedRewardTxs := make([]data.TransactionHandler, 0)
-	rewardsFromFees := rtxh.createRewardFromFees()
+	rtxh.mutGenRewardTxs.RLock()
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewards...)
-	calculatedRewardTxs = append(calculatedRewardTxs, rewardsFromFees...)
+	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
+	rtxh.mutGenRewardTxs.RUnlock()
 
 	rtxh.mut.Lock()
 	defer rtxh.mut.Unlock()
