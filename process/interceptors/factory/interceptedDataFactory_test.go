@@ -142,7 +142,7 @@ func TestNewInterceptedDataFactory_ShouldWork(t *testing.T) {
 
 	idf, err := factory.NewInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 
-	assert.False(t, check.ForNil(idf))
+	assert.False(t, check.IfNil(idf))
 	assert.Nil(t, err)
 }
 
@@ -185,5 +185,5 @@ func TestIsInterfaceNil_NotInstantiatedShouldRetTrue(t *testing.T) {
 	idf, _ := factory.NewInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 	idf = nil
 
-	assert.True(t, check.ForNil(idf))
+	assert.True(t, check.IfNil(idf))
 }

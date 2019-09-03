@@ -40,7 +40,7 @@ func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
 
 	txip, err := processor.NewTxInterceptorProcessor(createDefaultArgument())
 
-	assert.False(t, check.ForNil(txip))
+	assert.False(t, check.IfNil(txip))
 	assert.Nil(t, err)
 }
 
@@ -114,5 +114,5 @@ func TestIsInterfaceNil_NotInstantiatedShouldRetTrue(t *testing.T) {
 	txip, _ := processor.NewTxInterceptorProcessor(createDefaultArgument())
 	txip = nil
 
-	assert.True(t, check.ForNil(txip))
+	assert.True(t, check.IfNil(txip))
 }

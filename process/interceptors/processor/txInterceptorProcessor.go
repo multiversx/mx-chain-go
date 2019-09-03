@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -16,7 +17,7 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 	if argument == nil {
 		return nil, process.ErrNilArguments
 	}
-	if argument.ShardedDataCache == nil {
+	if check.IfNil(argument.ShardedDataCache) {
 		return nil, process.ErrNilDataPoolHolder
 	}
 

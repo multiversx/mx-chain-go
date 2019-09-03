@@ -37,22 +37,22 @@ func NewInterceptedDataFactory(
 	if argument == nil {
 		return nil, process.ErrNilArguments
 	}
-	if check.ForNil(argument.Marshalizer) {
+	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.ForNil(argument.Hasher) {
+	if check.IfNil(argument.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.ForNil(argument.KeyGen) {
+	if check.IfNil(argument.KeyGen) {
 		return nil, process.ErrNilKeyGen
 	}
-	if check.ForNil(argument.Signer) {
+	if check.IfNil(argument.Signer) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.ForNil(argument.AddrConv) {
+	if check.IfNil(argument.AddrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if check.ForNil(argument.ShardCoordinator) {
+	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 

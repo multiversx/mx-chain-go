@@ -3,6 +3,7 @@ package interceptors
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -21,13 +22,13 @@ func NewSingleDataInterceptor(
 	throttler process.InterceptorThrottler,
 ) (*SingleDataInterceptor, error) {
 
-	if factory == nil || factory.IsInterfaceNil() {
+	if check.IfNil(factory) {
 		return nil, process.ErrNilInterceptedDataFactory
 	}
-	if processor == nil || processor.IsInterfaceNil() {
+	if check.IfNil(processor) {
 		return nil, process.ErrNilInterceptedDataProcessor
 	}
-	if throttler == nil || throttler.IsInterfaceNil() {
+	if check.IfNil(throttler) {
 		return nil, process.ErrNilInterceptorThrottler
 	}
 
