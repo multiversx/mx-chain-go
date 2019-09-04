@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var wrc20wasmFile = "./hello.wasm"
+var wrc20wasmFile = "./store.wasm"
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
@@ -37,7 +37,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCodeString,
 	)
 
-	config := "./libhera.so,engine=wabt"
+	config := "./libhera.so,engine=wavm"
 	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithWASMVM(t, senderNonce, senderAddressBytes, senderBalance, config)
 
 	err = txProc.ProcessTransaction(tx, round)
