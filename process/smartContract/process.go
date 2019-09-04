@@ -515,13 +515,14 @@ func (sc *scProcessor) refundGasToSender(
 	refundErd := big.NewInt(0)
 	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasPrice)))
 
+	scTx := &smartContractResult.SmartContractResult{}
+	scTx.Value = refundErd
+	scTx.RcvAddr = tx.SndAddr
+	scTx.SndAddr = tx.RcvAddr
+	scTx.Nonce = tx.Nonce + 1
+	scTx.TxHash = txHash
+
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		scTx := &smartContractResult.SmartContractResult{}
-		scTx.Value = refundErd
-		scTx.RcvAddr = tx.SndAddr
-		scTx.SndAddr = tx.RcvAddr
-		scTx.Nonce = tx.Nonce + 1
-		scTx.TxHash = txHash
 		return scTx, nil
 	}
 
@@ -536,7 +537,7 @@ func (sc *scProcessor) refundGasToSender(
 		return nil, err
 	}
 
-	return nil, nil
+	return scTx, nil
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
@@ -602,10 +603,18 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			outAcc.Balance = outAcc.Balance.Add(outAcc.Balance, stAcc.Balance)
 		}
 
+		realBalanceChange := big.NewInt(0).Sub(outAcc.Balance, stAcc.Balance)
+
 		// update the values according to SC output
 		err = stAcc.SetBalanceWithJournal(outAcc.Balance)
 		if err != nil {
 			return nil, err
+		}
+
+		zero := big.NewInt(0)
+		if realBalanceChange.Cmp(zero) != 0 {
+			outAcc.Balance = realBalanceChange
+			crossOutAccs = append(crossOutAccs, outAcc)
 		}
 	}
 
