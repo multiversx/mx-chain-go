@@ -133,7 +133,7 @@ func TestPresenterStatusHandler_GetSynchronizationEstimation(t *testing.T) {
 	synchronizationEstimation := presenterStatusHandler.GetSynchronizationEstimation()
 
 	// Node needs to synchronize 190 blocks and synchronization speed is 10 blocks/s
-	// Synchronization estimation will be equals with (200-10)/10 seconds
+	// Synchronization estimation will be equals with ((200-10)/10) seconds
 	numBlocksThatNeedToBeSynchronized := int(probableHighestNonce - currentBlockNonce)
 	blocksPerSecond := int(currentBlockNonce - presenterStatusHandler.startBlock)
 	expectedTimeEstimation := secondsToHuman(numBlocksThatNeedToBeSynchronized / blocksPerSecond)
@@ -144,13 +144,16 @@ func TestPresenterStatusHandler_GetSynchronizationEstimation(t *testing.T) {
 func TestPresenterStatusHandler_GetSynchronizationSpeed(t *testing.T) {
 	t.Parallel()
 
+	initialNonce := uint64(10)
+	currentNonce := uint64(20)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 40)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, initialNonce)
 	syncSpeed := presenterStatusHandler.GetSynchronizationSpeed()
-	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 50)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, currentNonce)
 	syncSpeed = presenterStatusHandler.GetSynchronizationSpeed()
 
-	assert.Equal(t, uint64(10), syncSpeed)
+	expectedSpeed := currentNonce - initialNonce
+	assert.Equal(t, expectedSpeed, syncSpeed)
 }
 
 func TestPresenterStatusHandler_GetNumTxProcessed(t *testing.T) {
@@ -182,4 +185,26 @@ func TestPresenterStatusHandler_PrepareForCalculationSynchronizationTime(t *test
 	presenterStatusHandler.mutEstimationTime.Unlock()
 
 	assert.Equal(t, blockNonce, startBlockNonce)
+}
+
+func TestPresenterStatusHandler_GetNumShardHeadersInPool(t *testing.T) {
+	t.Parallel()
+
+	numShardHeadersInPool := uint64(100)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricNumShardHeadersInPool, numShardHeadersInPool)
+	result := presenterStatusHandler.GetNumShardHeadersInPool()
+
+	assert.Equal(t, numShardHeadersInPool, result)
+}
+
+func TestNewPresenterStatusHandler_GetNumShardHeadersProcessed(t *testing.T) {
+	t.Parallel()
+
+	numShardHeadersProcessed := uint64(100)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
+	result := presenterStatusHandler.GetNumShardHeadersProcessed()
+
+	assert.Equal(t, numShardHeadersProcessed, result)
 }

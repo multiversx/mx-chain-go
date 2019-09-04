@@ -124,3 +124,17 @@ func TestPresenterStatusHandler_GetCurrentRoundTimestamp(t *testing.T) {
 
 	assert.Equal(t, currentRoundTimestamp, result)
 }
+
+func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
+	t.Parallel()
+
+	miniBlocksSize := uint64(100)
+	headerSize := uint64(50)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, miniBlocksSize)
+	presenterStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
+	result := presenterStatusHandler.GetBlockSize()
+
+	blockExpectedSize := miniBlocksSize + headerSize
+	assert.Equal(t, blockExpectedSize, result)
+}
