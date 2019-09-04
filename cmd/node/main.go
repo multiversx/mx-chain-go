@@ -539,19 +539,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
-	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/milisecondsInSecond)
-	coreComponents.StatusHandler.SetStringValue(core.MetricAppVersion, version)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumTxInBlock, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
-	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusState, "")
-	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
-	coreComponents.StatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
+	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -708,6 +696,34 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func initMetrics(
+	appStatusHandler core.AppStatusHandler,
+	pubKey crypto.PublicKey,
+	nodeType core.NodeType,
+	shardCoordinator sharding.Coordinator,
+	nodesConfig *sharding.NodesSetup,
+	version string,
+) {
+	shardId := uint64(shardCoordinator.SelfId())
+	roundDuration := nodesConfig.RoundDuration
+	isSyncing := uint64(1)
+
+	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
+	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
+	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/milisecondsInSecond)
+	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
+	appStatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
+	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
+	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, 0)
+	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
+	appStatusHandler.SetStringValue(core.MetricConsensusState, "")
+	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
+	appStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
 }
 
 func startStatusPolling(
