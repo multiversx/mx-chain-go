@@ -1176,7 +1176,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		return nil, nil, err
 	}
 
-	dataPacker, err := partitioning.NewSizeDataPacker(core.Marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
 		return nil, nil, err
 	}
