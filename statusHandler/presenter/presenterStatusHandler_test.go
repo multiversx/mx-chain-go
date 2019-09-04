@@ -110,7 +110,7 @@ func TestPresenterStatusHandler_GetLogLine(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(logLine), logLineLen)
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	logLines := presenterStatusHandler.GetLogLines()
 
 	assert.Equal(t, 1, len(logLines))
