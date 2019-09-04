@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var wrc20wasmFile = "./store.wasm"
+var wrc20wasmFile = "./wrc20_output.wasm"
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
@@ -46,7 +46,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(99999811)
+	expectedBalance := big.NewInt(99979950)
 	vm.TestAccount(
 		t,
 		accnts,
