@@ -277,7 +277,7 @@ func (sp *shardProcessor) getMetricsFromHeader(header block.Header, numTxWithDst
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
 	sp.appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, numTxWithDst)
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxProcessed, uint64(sp.txCounter.totalTxs))
+	sp.appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, uint64(sp.txCounter.totalTxs))
 }
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction

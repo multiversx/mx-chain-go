@@ -39,8 +39,8 @@ type Presenter interface {
 	GetNumTxProcessed() uint64
 	GetCurrentBlockHash() string
 	PrepareForCalculationSynchronizationTime()
-	GetSynchronizationEstimation() string
-	GetSynchronizationSpeed() uint64
+	CalculateSynchronizationEstimation() string
+	CalculateSynchronizationSpeed() uint64
 	GetCurrentRoundTimestamp() uint64
 	GetBlockSize() uint64
 	GetNumShardHeadersInPool() uint64

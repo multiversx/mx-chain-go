@@ -231,11 +231,11 @@ func (mp *metaProcessor) getMetricsFromMetaHeader(header block.MetaBlock) {
 	mp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(header.TxCount))
 	mp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
 
-	numHeaderIsPool := 0
+	numShardHeadersFromPool := 0
 	shardMBHeaderCounterMutex.Lock()
 	mp.appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, uint64(shardMBHeadersTotalProcessed))
-	numHeaderIsPool = mp.getHeadersCountInPool()
-	mp.appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersInPool, uint64(numHeaderIsPool))
+	numShardHeadersFromPool = mp.getHeadersCountInPool()
+	mp.appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
 	shardMBHeaderCounterMutex.Unlock()
 }
 

@@ -56,8 +56,9 @@ func (psh *PresenterStatusHandler) GetCurrentRound() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCurrentRound)
 }
 
-// GetSynchronizationEstimation will return an estimation of the time required for synchronization
-func (psh *PresenterStatusHandler) GetSynchronizationEstimation() string {
+// CalculateSynchronizationEstimation will calculate and return an estimation of
+// the time required for synchronization in a human friendly format
+func (psh *PresenterStatusHandler) CalculateSynchronizationEstimation() string {
 	currentBlock := psh.GetNonce()
 
 	psh.mutEstimationTime.Lock()
@@ -77,8 +78,9 @@ func (psh *PresenterStatusHandler) GetSynchronizationEstimation() string {
 	return remainingTime
 }
 
-// GetSynchronizationSpeed will return speed of synchronization how many block per second are synchronized
-func (psh *PresenterStatusHandler) GetSynchronizationSpeed() uint64 {
+// CalculateSynchronizationSpeed will calculate and return speed of synchronization
+// how many block per second are synchronized
+func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed() uint64 {
 	currentBlock := psh.GetNonce()
 	psh.mutEstimationTime.Lock()
 	blocksSynchronized := currentBlock - psh.startBlock
@@ -127,12 +129,12 @@ func (psh *PresenterStatusHandler) PrepareForCalculationSynchronizationTime() {
 
 // GetNumTxProcessed will return number of processed transactions since node starts
 func (psh *PresenterStatusHandler) GetNumTxProcessed() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricNumTxProcessed)
+	return psh.getFromCacheAsUint64(core.MetricNumProcessedTxs)
 }
 
 // GetNumShardHeadersInPool will return number of shard headers that are in pool
 func (psh *PresenterStatusHandler) GetNumShardHeadersInPool() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricNumShardHeadersInPool)
+	return psh.getFromCacheAsUint64(core.MetricNumShardHeadersFromPool)
 }
 
 // GetNumShardHeadersProcessed will return number of shard header processed until now

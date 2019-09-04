@@ -126,8 +126,8 @@ const MetricCrossCheckBlockHeight = "erd_metric_cross_check_block_height"
 // MetricMemoryUsedByNode is the metric that stores  the total memory used by the node in bytes
 const MetricMemoryUsedByNode = "erd_used_memory_by_node"
 
-// MetricNumTxProcessed is the metric that stores the number of transactions processed
-const MetricNumTxProcessed = "erd_num_transactions_processed"
+// MetricNumProcessedTxs is the metric that stores the number of transactions processed
+const MetricNumProcessedTxs = "erd_num_transactions_processed"
 
 // MetricCurrentBlockHash is the metric that stores the current block hash
 const MetricCurrentBlockHash = "erd_current_block_hash"
@@ -141,8 +141,8 @@ const MetricHeaderSize = "erd_current_block_size"
 //MetricMiniBlocksSize is the metric that stores the current block size
 const MetricMiniBlocksSize = "erd_mini_blocks_size"
 
-//MetricNumShardHeadersInPool is the metric that stores number of shard header from pool
-const MetricNumShardHeadersInPool = "erd_num_shard_headers_in_pool"
+//MetricNumShardHeadersFromPool is the metric that stores number of shard header from pool
+const MetricNumShardHeadersFromPool = "erd_num_shard_headers_from_pool"
 
 //MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
 const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
