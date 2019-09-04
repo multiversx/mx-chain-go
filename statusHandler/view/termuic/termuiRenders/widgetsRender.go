@@ -152,38 +152,57 @@ func (wr *WidgetsRender) prepareChainInfo() {
 
 	syncStatus := wr.presenter.GetIsSyncing()
 	syncingStr := fmt.Sprintf("undefined %d", syncStatus)
+
+	remainingTimeMessage := ""
+	blocksPerSecondMessage := ""
 	switch syncStatus {
 	case 1:
 		syncingStr = statusSyncing
+
+		remainingTime := wr.presenter.GetSynchronizationEstimation()
+		remainingTimeMessage = fmt.Sprintf("Synchronization time remaining: ~%s", remainingTime)
+
+		blocksPerSecond := wr.presenter.GetSynchronizationSpeed()
+		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
 	case 0:
 		syncingStr = statusSynchronized
 	}
-	rows[0] = []string{fmt.Sprintf("Status: %s", syncingStr)}
+	rows[0] = []string{fmt.Sprintf("Status: %s %s", syncingStr, blocksPerSecondMessage)}
+
 	if strings.Contains(syncingStr, statusSynchronized) {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorGreen)
 	} else {
-		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorBlue)
+		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
 	}
 
-	memTxPoolSize := wr.presenter.GetTxPoolLoad()
-	rows[1] = []string{fmt.Sprintf("Number of transactions in pool: %d", memTxPoolSize)}
+	rows[1] = []string{fmt.Sprintf("%s", remainingTimeMessage)}
 
-	rows[2] = make([]string, 0)
+	shardId := wr.presenter.GetShardId()
+	if shardId == uint64(sharding.MetachainShardId) {
+		numShardHeadersInPool := wr.presenter.GetNumShardHeadersInPool()
+		rows[2] = []string{fmt.Sprintf("Number of shard headers in pool: %d", numShardHeadersInPool)}
+		numShardHeaderProcessed := wr.presenter.GetNumShardHeadersProcessed()
+		rows[3] = []string{fmt.Sprintf("Number of shard headers processed: %d", numShardHeaderProcessed)}
+	} else {
+		memTxPoolSize := wr.presenter.GetTxPoolLoad()
+		rows[2] = []string{fmt.Sprintf("Number of transactions in pool: %d", memTxPoolSize)}
+
+		numTxProcessed := wr.presenter.GetNumTxProcessed()
+		rows[3] = []string{fmt.Sprintf("Number of transactions processed: %d", numTxProcessed)}
+	}
 
 	nonce := wr.presenter.GetNonce()
 	probableHighestNonce := wr.presenter.GetProbableHighestNonce()
-	rows[3] = []string{fmt.Sprintf("Current synchronized block nonce: %d / %d",
+	rows[4] = []string{fmt.Sprintf("Current synchronized block nonce: %d / %d",
 		nonce, probableHighestNonce)}
 
 	synchronizedRound := wr.presenter.GetSynchronizedRound()
 	currentRound := wr.presenter.GetCurrentRound()
-	rows[4] = []string{fmt.Sprintf("Current consensus round: %d / %d",
+	rows[5] = []string{fmt.Sprintf("Current consensus round: %d / %d",
 		synchronizedRound, currentRound)}
 
 	consensusRoundTime := wr.presenter.GetRoundTime()
-	rows[5] = []string{fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)}
-
-	rows[6] = make([]string, 0)
+	rows[6] = []string{fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)}
 
 	numLiveValidators := wr.presenter.GetLiveValidatorNodes()
 	rows[7] = []string{fmt.Sprintf("Live validator nodes: %d", numLiveValidators)}
@@ -201,11 +220,12 @@ func (wr *WidgetsRender) prepareChainInfo() {
 
 func (wr *WidgetsRender) prepareBlockInfo() {
 	//7 rows and one column
-	numRows := 7
+	numRows := 8
 	rows := make([][]string, numRows)
 
 	currentBlockHeight := wr.presenter.GetNonce()
-	rows[0] = []string{fmt.Sprintf("Current block height: %d", currentBlockHeight)}
+	blockSize := wr.presenter.GetBlockSize()
+	rows[0] = []string{fmt.Sprintf("Current block height: %d, size: %s", currentBlockHeight, core.ConvertBytes(blockSize))}
 
 	numTransactionInBlock := wr.presenter.GetNumTxInBlock()
 	rows[1] = []string{fmt.Sprintf("Num transactions in block: %d", numTransactionInBlock)}
@@ -213,7 +233,8 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	numMiniBlocks := wr.presenter.GetNumMiniBlocks()
 	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %d", numMiniBlocks)}
 
-	rows[3] = make([]string, 0)
+	currentBlockHash := wr.presenter.GetCurrentBlockHash()
+	rows[3] = []string{fmt.Sprintf("Current block hash : %s", currentBlockHash)}
 
 	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
 	rows[4] = []string{fmt.Sprintf("Cross check block height: %s", crossCheckBlockHeight)}
@@ -234,6 +255,9 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 			rows[6] = []string{fmt.Sprintf("Consensus round state: %s", consensusRoundState)}
 		}
 	}
+
+	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
+	rows[7] = []string{fmt.Sprintf("Current round timestamp : %d", currentRoundTimestamp)}
 
 	wr.blockInfo.Title = "Block info"
 	wr.blockInfo.RowSeparator = false

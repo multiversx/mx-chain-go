@@ -15,7 +15,7 @@ func ConvertBytes(bytes uint64) string {
 		return fmt.Sprintf("%d B", bytes)
 	}
 	if bytes < 1024*1024 {
-		return fmt.Sprintf("%.2f kiB", float64(bytes)/1024.0)
+		return fmt.Sprintf("%.2f KB", float64(bytes)/1024.0)
 	}
 	if bytes < 1024*1024*1024 {
 		return fmt.Sprintf("%.2f MB", float64(bytes)/1024.0/1024.0)

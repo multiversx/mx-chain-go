@@ -2,6 +2,7 @@ package presenter
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
@@ -115,4 +116,70 @@ func TestPresenterStatusHandler_GetCurrentRound(t *testing.T) {
 	result := presenterStatusHandler.GetCurrentRound()
 
 	assert.Equal(t, currentRound, result)
+}
+
+func TestPresenterStatusHandler_GetSynchronizationEstimation(t *testing.T) {
+	t.Parallel()
+
+	currentBlockNonce := uint64(10)
+	probableHighestNonce := uint64(200)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.startTime = time.Now()
+	presenterStatusHandler.startBlock = 0
+
+	time.Sleep(time.Second)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, currentBlockNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHighestNonce)
+	synchronizationEstimation := presenterStatusHandler.GetSynchronizationEstimation()
+
+	// Node needs to synchronize 190 blocks and synchronization speed is 10 blocks/s
+	// Synchronization estimation will be equals with (200-10)/10 seconds
+	numBlocksThatNeedToBeSynchronized := int(probableHighestNonce - currentBlockNonce)
+	blocksPerSecond := int(currentBlockNonce - presenterStatusHandler.startBlock)
+	expectedTimeEstimation := secondsToHuman(numBlocksThatNeedToBeSynchronized / blocksPerSecond)
+
+	assert.Equal(t, expectedTimeEstimation, synchronizationEstimation)
+}
+
+func TestPresenterStatusHandler_GetSynchronizationSpeed(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 40)
+	syncSpeed := presenterStatusHandler.GetSynchronizationSpeed()
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 50)
+	syncSpeed = presenterStatusHandler.GetSynchronizationSpeed()
+
+	assert.Equal(t, uint64(10), syncSpeed)
+}
+
+func TestPresenterStatusHandler_GetNumTxProcessed(t *testing.T) {
+	t.Parallel()
+
+	numTxProcessed := uint64(1000)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricNumTxProcessed, numTxProcessed)
+	result := presenterStatusHandler.GetNumTxProcessed()
+
+	assert.Equal(t, numTxProcessed, result)
+}
+
+func TestPresenterStatusHandler_PrepareForCalculationSynchronizationTime(t *testing.T) {
+	t.Parallel()
+
+	blockNonce := uint64(40)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricIsSyncing, 0)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, 1)
+	presenterStatusHandler.PrepareForCalculationSynchronizationTime()
+	time.Sleep(time.Second)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, blockNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricIsSyncing, 1)
+	time.Sleep(time.Second)
+
+	presenterStatusHandler.mutEstimationTime.Lock()
+	startBlockNonce := presenterStatusHandler.startBlock
+	presenterStatusHandler.mutEstimationTime.Unlock()
+
+	assert.Equal(t, blockNonce, startBlockNonce)
 }

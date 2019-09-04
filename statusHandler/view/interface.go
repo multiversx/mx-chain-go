@@ -36,6 +36,15 @@ type Presenter interface {
 	GetNetworkSentBps() uint64
 	GetNetworkSentBpsPeak() uint64
 	GetLogLines() []string
+	GetNumTxProcessed() uint64
+	GetCurrentBlockHash() string
+	PrepareForCalculationSynchronizationTime()
+	GetSynchronizationEstimation() string
+	GetSynchronizationSpeed() uint64
+	GetCurrentRoundTimestamp() uint64
+	GetBlockSize() uint64
+	GetNumShardHeadersInPool() uint64
+	GetNumShardHeadersProcessed() uint64
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
