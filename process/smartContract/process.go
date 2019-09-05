@@ -378,6 +378,8 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 		return err
 	}
 
+	//TODO: add value to smart contract when the VM is changed.
+
 	return nil
 }
 
