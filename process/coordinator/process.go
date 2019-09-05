@@ -627,14 +627,24 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
-	tc.mutPreProcessor.RLock()
-	defer tc.mutPreProcessor.RUnlock()
+	txPool := make(map[string]data.TransactionHandler, 0)
+	interTxPool := make(map[string]data.TransactionHandler, 0)
 
-	if _, ok := tc.txPreProcessors[blockType]; !ok {
-		return nil
+	preProc := tc.getPreProcessor(blockType)
+	if preProc != nil {
+		txPool = preProc.GetAllCurrentUsedTxs()
 	}
 
-	return tc.txPreProcessors[blockType].GetAllCurrentUsedTxs()
+	interProc := tc.getInterimProcessor(blockType)
+	if interProc != nil {
+		interTxPool = interProc.GetAllCurrentFinishedTxs()
+	}
+
+	for hash, tx := range interTxPool {
+		txPool[hash] = tx
+	}
+
+	return txPool
 }
 
 // RequestMiniBlocks request miniblocks if missing
