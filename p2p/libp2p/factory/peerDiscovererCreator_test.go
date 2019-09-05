@@ -26,7 +26,7 @@ func TestPeerDiscovererCreator_CreatePeerDiscovererNoDiscoveryEnabledShouldRetNu
 	assert.Nil(t, err)
 }
 
-func TestPeerDiscovererCreator_CreatePeerDiscovererKadIntervalLessThenZeroShouldErr(t *testing.T) {
+func TestPeerDiscovererCreator_CreatePeerDiscovererKadIntervalLessThanZeroShouldErr(t *testing.T) {
 	p2pConfig := config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:              true,

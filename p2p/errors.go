@@ -59,7 +59,7 @@ var ErrNilHost = errors.New("nil host")
 var ErrNilValidator = errors.New("no validator has been set for this topic")
 
 // ErrPeerDiscoveryProcessAlreadyStarted signals that a peer discovery is already turned on
-var ErrPeerDiscoveryProcessAlreadyStarted = errors.New("peer discovery is already turned enabled")
+var ErrPeerDiscoveryProcessAlreadyStarted = errors.New("peer discovery is already turned on")
 
 // ErrNilContextProvider signals that a nil context applier has been provided
 var ErrNilContextProvider = errors.New("nil context provider")
