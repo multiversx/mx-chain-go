@@ -8,6 +8,9 @@ import (
 // SimpleDataPacker can split a large slice of byte slices in chunks <= maxPacketSize
 // If one element still exceeds maxPacketSize, it will be returned alone
 // It does the marshaling of the resulted (smaller) slice of byte slices
+// This is a simpler version of a data packer that does not marshall in a repetitive manner currentChunk slice
+// as the SizeDataPacker does. This limitation is lighter in terms of CPU cycles and memory used but is not as precise
+// as SizeDataPacker.
 type SimpleDataPacker struct {
 	marshalizer marshal.Marshalizer
 }
@@ -35,24 +38,24 @@ func (sdp *SimpleDataPacker) PackDataInChunks(data [][]byte, limit int) ([][]byt
 
 	returningBuff := make([][]byte, 0)
 
-	elements := make([][]byte, 0)
-	lenElements := 0
+	currentChunk := make([][]byte, 0)
+	lenChunk := 0
 	for _, element := range data {
-		isBuffToLarge := lenElements+len(element) >= limit
-		elementsNotEmpty := len(elements) > 0
-		if isBuffToLarge && elementsNotEmpty {
-			marshaledElements, _ := sdp.marshalizer.Marshal(elements)
-			returningBuff = append(returningBuff, marshaledElements)
-			elements = make([][]byte, 0)
-			lenElements = 0
+		isBuffToLarge := lenChunk+len(element) >= limit
+		chunkNotEmpty := len(currentChunk) > 0
+		if isBuffToLarge && chunkNotEmpty {
+			marshaledChunk, _ := sdp.marshalizer.Marshal(currentChunk)
+			returningBuff = append(returningBuff, marshaledChunk)
+			currentChunk = make([][]byte, 0)
+			lenChunk = 0
 		}
 
-		elements = append(elements, element)
-		lenElements += len(element)
+		currentChunk = append(currentChunk, element)
+		lenChunk += len(element)
 	}
 
-	if len(elements) > 0 {
-		marshaledElements, err := sdp.marshalizer.Marshal(elements)
+	if len(currentChunk) > 0 {
+		marshaledElements, err := sdp.marshalizer.Marshal(currentChunk)
 		if err != nil {
 			return nil, err
 		}
