@@ -177,13 +177,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 		if miniBlock.Type != block.RewardsBlockType {
 			continue
 		}
-		//if miniBlock.ReceiverShardID != rtp.shardCoordinator.SelfId() {
-		//	continue
-		//}
-		//if miniBlock.SenderShardID == rtp.shardCoordinator.SelfId() {
-		//	// if sender is the shard, then do this later when reward txs from fee are generated
-		//	continue
-		//}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if haveTime() < 0 {
@@ -246,7 +239,7 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body block.Body) error {
 	for i := 0; i < len(body); i++ {
 		miniBlock := (body)[i]
-		if miniBlock.Type != block.RewardsBlockType || miniBlock.ReceiverShardID != rtp.shardCoordinator.SelfId() {
+		if miniBlock.Type != block.RewardsBlockType {
 			continue
 		}
 

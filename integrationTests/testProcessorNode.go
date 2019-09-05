@@ -188,7 +188,10 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
-	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{}
+	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{
+		ShardCoordinator:tpn.ShardCoordinator,
+		AdrConv: TestAddressConverter,
+	}
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
@@ -563,11 +566,11 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 		tpn.ShardDataPool.UnsignedTransactions().RegisterHandler(txHandler)
 		tpn.ShardDataPool.Transactions().RegisterHandler(txHandler)
+		tpn.ShardDataPool.RewardTransactions().RegisterHandler(txHandler)
 		tpn.ShardDataPool.Headers().RegisterHandler(hdrHandlers)
 		tpn.ShardDataPool.MetaBlocks().RegisterHandler(metaHandlers)
 		tpn.ShardDataPool.MiniBlocks().RegisterHandler(mbHandlers)
 	}
-
 }
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair
@@ -578,12 +581,6 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	haveTime := func() bool { return true }
-
-	//addresses := []string{
-	//	"rewardAddr0000000000000000000000",
-	//	"rewardAddr0000000000000000000001",
-	//}
-	//tpn.BlockProcessor.SetConsensusRewardAddresses(addresses)
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
 	if err != nil {

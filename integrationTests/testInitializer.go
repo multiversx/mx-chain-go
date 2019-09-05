@@ -905,6 +905,22 @@ func ComputeAndRequestMissingTransactions(
 	}
 }
 
+func ComputeAndRequestMissingRewardTxs(
+	nodes []*TestProcessorNode,
+	generatedDataHashes [][]byte,
+	shardResolver uint32,
+	shardRequesters ...uint32,
+) {
+	for _, n := range nodes {
+		if !Uint32InSlice(n.ShardCoordinator.SelfId(), shardRequesters) {
+			continue
+		}
+
+		neededData := getMissingRewardTxsForNode(n, generatedDataHashes)
+		requestMissingRewardTxs(n, shardResolver, neededData)
+	}
+}
+
 func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
 	neededTxs := make([][]byte, 0)
 
@@ -919,11 +935,33 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 	return neededTxs
 }
 
+func getMissingRewardTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
+	neededTxs := make([][]byte, 0)
+
+	for i := 0; i < len(generatedTxHashes); i++ {
+		_, ok := n.ShardDataPool.RewardTransactions().SearchFirstData(generatedTxHashes[i])
+		if !ok {
+			//tx is still missing
+			neededTxs = append(neededTxs, generatedTxHashes[i])
+		}
+	}
+
+	return neededTxs
+}
+
 func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, neededTxs [][]byte) {
 	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
 		_ = txResolver.RequestDataFromHash(neededTxs[i])
+	}
+}
+
+func requestMissingRewardTxs(n *TestProcessorNode, shardResolver uint32, neededData [][]byte) {
+	dataResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.RewardsTransactionTopic, shardResolver)
+
+	for i := 0; i < len(neededData); i++ {
+		_ = dataResolver.RequestDataFromHash(neededData[i])
 	}
 }
 
@@ -1135,7 +1173,8 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	for shardId, shardNodesPks := range pubKeysMap {
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
-			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), []byte(shardNodesPks[i][:32]))
+			address := []byte(shardNodesPks[i][:32])
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), address)
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators

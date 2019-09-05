@@ -72,7 +72,7 @@ func (blProcMock BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, process
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-func (blProcMock BlockProcessorStub) SetConsensusRewardAddresses([]string) {
+func (blProcMock BlockProcessorStub) SetConsensusRewardAddresses([]string, uint64) {
 	panic("implement me")
 }
 

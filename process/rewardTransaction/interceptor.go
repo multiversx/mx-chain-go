@@ -134,14 +134,6 @@ func (rti *RewardTxInterceptor) SetBroadcastCallback(callback func(buffToSend []
 }
 
 func (rti *RewardTxInterceptor) processRewardTransaction(rTx *InterceptedRewardTransaction) {
-	//TODO should remove this as it is expensive
-	err := rti.rewardTxStorer.Has(rTx.Hash())
-	isRTxInStorage := err == nil
-	if isRTxInStorage {
-		log.Debug("intercepted reward tx already processed")
-		return
-	}
-
 	cacherIdentifier := process.ShardCacherIdentifier(rTx.SndShard(), rTx.RcvShard())
 	rti.rewardTxPool.AddData(
 		rTx.Hash(),

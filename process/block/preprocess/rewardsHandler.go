@@ -290,6 +290,8 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, leaderPercentage)
 	currTx.RcvAddr = rtxh.address.LeaderAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
+	currTx.Epoch = rtxh.address.Epoch()
+	currTx.Round = rtxh.address.Round()
 
 	return currTx
 }
@@ -300,6 +302,8 @@ func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, burnPercentage)
 	currTx.RcvAddr = rtxh.address.BurnAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
+	currTx.Epoch = rtxh.address.Epoch()
+	currTx.Round = rtxh.address.Round()
 
 	return currTx
 }
@@ -310,6 +314,8 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, communityPercentage)
 	currTx.RcvAddr = rtxh.address.ElrondCommunityAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
+	currTx.Epoch = rtxh.address.Epoch()
+	currTx.Round = rtxh.address.Round()
 
 	return currTx
 }
@@ -346,6 +352,8 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 		rTx.Value = rewardValue
 		rTx.RcvAddr = []byte(address)
 		rTx.ShardId = rtxh.shardCoordinator.SelfId()
+		rTx.Epoch = rtxh.address.Epoch()
+		rTx.Round = rtxh.address.Round()
 
 		consensusRewardTxs = append(consensusRewardTxs, rTx)
 	}

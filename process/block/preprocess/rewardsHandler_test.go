@@ -267,12 +267,15 @@ func TestRewardTxHandlerVerifyCreatedRewardsTxs(t *testing.T) {
 func TestRewardTxHandlerCreateAllInterMiniBlocks(t *testing.T) {
 	t.Parallel()
 
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
-		&mock.SpecialAddressHandlerMock{},
+		&mock.SpecialAddressHandlerMock{
+			AdrConv:          &mock.AddressConverterMock{},
+			ShardCoordinator: shardCoordinator},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
+		shardCoordinator,
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),

@@ -29,7 +29,7 @@ type RewardTransactionProcessor interface {
 }
 
 // RewardTransactionPreProcessor prepares the processing of reward transactions
-type RewardTransactionPreProcessor interface{
+type RewardTransactionPreProcessor interface {
 	AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice)
 }
 
@@ -114,11 +114,13 @@ type TransactionFeeHandler interface {
 type SpecialAddressHandler interface {
 	SetElrondCommunityAddress(elrond []byte)
 	ElrondCommunityAddress() []byte
-	SetConsensusRewardAddresses(consensusRewardAddresses []string)
+	SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
 	ConsensusRewardAddresses() []string
 	LeaderAddress() []byte
 	BurnAddress() []byte
 	ShardIdForAddress([]byte) (uint32, error)
+	Round() uint64
+	Epoch() uint32
 	IsInterfaceNil() bool
 }
 
@@ -156,7 +158,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusRewardAddresses(consensusRewardAddresses []string)
+	SetConsensusRewardAddresses(consensusRewardAddresses []string, round uint64)
 	IsInterfaceNil() bool
 }
 
