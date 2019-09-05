@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var wrc20wasmFile = "./test20_elrond.wasm"
+var wrc20wasmFile = "./main_ewasmified.wasm"
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
@@ -104,11 +104,11 @@ func TestVmDeployWithTransferAndExecute(t *testing.T) {
 
 	scAddress, _ := hex.DecodeString("0000000000000000000061356266303466386236353138373434383437633132")
 
-	alice := []byte("12345678901234567890123456789ALI")
+	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
 	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
 
-	bob := []byte("12345678901234567890123456789BOB")
+	bob := []byte("12345678901234567890123456789222")
 	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
 
 	transferCall := "transfer" + "@" + string(bob) + "@" + "0001"
