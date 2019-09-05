@@ -237,8 +237,8 @@ func (irp *intermediateResultsProcessor) CreateMarshalizedData(txHashes [][]byte
 	return mrsTxs, nil
 }
 
-// GetAllCurrentUsedTxs returns the cached finalized transactions for current round
-func (irp *intermediateResultsProcessor) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {
+// GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
+func (irp *intermediateResultsProcessor) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
 	irp.mutInterResultsForBlock.Lock()
 
 	scrPool := make(map[string]data.TransactionHandler)
