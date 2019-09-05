@@ -228,7 +228,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 }
 
 func (tpn *TestProcessorNode) initResolvers() {
-	dataPacker, _ := partitioning.NewSizeDataPacker(TestMarshalizer)
+	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(

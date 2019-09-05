@@ -151,7 +151,7 @@ func (scm *shardChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte
 
 // BroadcastTransactions will send on transaction topic the transactions
 func (scm *shardChainMessenger) BroadcastTransactions(transactions map[string][][]byte) error {
-	dataPacker, err := partitioning.NewSizeDataPacker(scm.marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(scm.marshalizer)
 	if err != nil {
 		return err
 	}
