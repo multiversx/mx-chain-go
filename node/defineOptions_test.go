@@ -452,6 +452,32 @@ func TestWithBlockProcessor_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithPeerProcessor_NilProcessorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithPeerProcessor(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.syncTimer)
+	assert.Equal(t, ErrNilPeerProcessor, err)
+}
+
+func TestWithPeerProcessor_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	pp := &mock.PeerProcessorMock{}
+
+	opt := WithPeerProcessor(pp)
+	err := opt(node)
+
+	assert.True(t, node.peerProcessor == pp)
+	assert.Nil(t, err)
+}
+
 func TestWithGenesisTime(t *testing.T) {
 	t.Parallel()
 

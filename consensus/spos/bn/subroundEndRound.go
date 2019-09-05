@@ -82,6 +82,12 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.Header.SetSignature(sig)
 
 	timeBefore := time.Now()
+	prevHeader := sr.Blockchain().GetCurrentBlockHeader()
+	err = sr.PeerProcessor().UpdatePeerState(prevHeader, sr.Header)
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
 	// Commit the block (commits also the account state)
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
 	if err != nil {

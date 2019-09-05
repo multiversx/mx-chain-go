@@ -444,3 +444,18 @@ var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 
 // ErrNilSpecialAddressHandler signals that special address handler is nil
 var ErrNilSpecialAddressHandler = errors.New("nil special address handler")
+
+// ErrNilPeerAccountsAdapter signals that a nil peer accounts database was provided
+var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts database")
+
+// ErrInvalidInitialNodesState signals that the initial nodes state is invalid
+var ErrInvalidInitialNodesState = errors.New("provided initial state is invalid")
+
+// ErrInvalidPeerAccount signals that a peer account is invalid
+var ErrInvalidPeerAccount = errors.New("invalid peer account")
+
+// ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
+var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
+
+// ErrNilShardHeaderStorage signals that nil storage was provided for shard headers
+var ErrNilShardHeaderStorage = errors.New("nil shard header storage")

@@ -67,6 +67,9 @@ var ErrNilBlockProcessor = errors.New("block processor is nil")
 // ErrNilBlocksTracker is raised when a valid block tracker is expected but nil used
 var ErrNilBlocksTracker = errors.New("blocks tracker is nil")
 
+// ErrNilPeerProcessor is raised when a valid peer processor is expected but nil used
+var ErrNilPeerProcessor = errors.New("peer processor is nil")
+
 // ErrNilBootstrapper is raised when a valid block processor is expected but nil used
 var ErrNilBootstrapper = errors.New("bootstrapper is nil")
 

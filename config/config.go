@@ -70,8 +70,9 @@ type Config struct {
 	MetaBlockStorage StorageConfig
 	PeerDataStorage  StorageConfig
 
-	AccountsTrieStorage StorageConfig
-	BadBlocksCache      CacheConfig
+	AccountsTrieStorage     StorageConfig
+	PeerAccountsTrieStorage StorageConfig
+	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	StateBlockBodyDataPool      CacheConfig

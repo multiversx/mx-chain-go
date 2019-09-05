@@ -20,6 +20,8 @@ type ConsensusCoreHandler interface {
 	BlockProcessor() process.BlockProcessor
 	// BlocksTracker gets the BlockTracker stored in the ConsensusCore
 	BlocksTracker() process.BlocksTracker
+	// PeerProcessor gets the PeerProcessor stored in the ConsensusCore
+	PeerProcessor() process.PeerProcessor
 	// BootStrapper gets the Bootstrapper stored in the ConsensusCore
 	BootStrapper() process.Bootstrapper
 	// BroadcastMessenger gets the BroadcastMessenger stored in ConsensusCore

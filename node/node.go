@@ -64,6 +64,7 @@ type Node struct {
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
 	blockTracker             process.BlocksTracker
+	peerProcessor            process.PeerProcessor
 	genesisTime              time.Time
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
@@ -289,6 +290,7 @@ func (n *Node) StartConsensus() error {
 		n.blkc,
 		n.blockProcessor,
 		n.blockTracker,
+		n.peerProcessor,
 		bootstrapper,
 		broadcastMessenger,
 		chronologyHandler,

@@ -14,6 +14,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.BlocksTracker() == nil || container.BlocksTracker().IsInterfaceNil() {
 		return ErrNilBlocksTracker
 	}
+	if container.PeerProcessor() == nil || container.PeerProcessor().IsInterfaceNil() {
+		return ErrNilPeerProcessor
+	}
 	if container.BootStrapper() == nil || container.BootStrapper().IsInterfaceNil() {
 		return ErrNilBootstrapper
 	}

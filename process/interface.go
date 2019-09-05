@@ -151,6 +151,13 @@ type BlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// PeerProcessor is the main interface for validators' consensus participation statistics
+type PeerProcessor interface {
+	LoadInitialState(in []*sharding.InitialNode) error
+	UpdatePeerState(header, previousHeader data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
 // Checker provides functionality to checks the integrity and validity of a data structure
 type Checker interface {
 	// IntegrityAndValidity does both validity and integrity checks on the data structure

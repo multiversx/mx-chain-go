@@ -49,6 +49,9 @@ var ErrNilRounder = errors.New("trying to set nil rounder")
 // ErrNilBlockProcessor signals that a nil block processor has been provided
 var ErrNilBlockProcessor = errors.New("trying to set nil block processor")
 
+// ErrNilPeerProcessor signals that a nil peer processor has been provided
+var ErrNilPeerProcessor = errors.New("trying to set nil peer processor")
+
 // ErrNilBlockTracker signals that a nil block tracker has been provided
 var ErrNilBlockTracker = errors.New("trying to set nil block tracker")
 

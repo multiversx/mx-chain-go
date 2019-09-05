@@ -17,6 +17,7 @@ type ConsensusCore struct {
 	blockChain         data.ChainHandler
 	blockProcessor     process.BlockProcessor
 	blocksTracker      process.BlocksTracker
+	peerProcessor      process.PeerProcessor
 	bootstrapper       process.Bootstrapper
 	broadcastMessenger consensus.BroadcastMessenger
 	chronologyHandler  consensus.ChronologyHandler
@@ -36,6 +37,7 @@ func NewConsensusCore(
 	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	blocksTracker process.BlocksTracker,
+	peerProcessor process.PeerProcessor,
 	bootstrapper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
 	chronologyHandler consensus.ChronologyHandler,
@@ -54,6 +56,7 @@ func NewConsensusCore(
 		blockChain,
 		blockProcessor,
 		blocksTracker,
+		peerProcessor,
 		bootstrapper,
 		broadcastMessenger,
 		chronologyHandler,
@@ -157,4 +160,9 @@ func (cc *ConsensusCore) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// PeerProcessor returns the processor used to save the peer consensus statistics
+func (cc *ConsensusCore) PeerProcessor() process.PeerProcessor {
+	return cc.peerProcessor
 }

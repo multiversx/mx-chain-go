@@ -15,6 +15,7 @@ type ConsensusCoreMock struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
 	blocksTracker          process.BlocksTracker
+	peerProcessor          process.PeerProcessor
 	bootstrapper           process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
 	chronologyHandler      consensus.ChronologyHandler
@@ -143,4 +144,8 @@ func (cdc *ConsensusCoreMock) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (cdc *ConsensusCoreMock) PeerProcessor() process.PeerProcessor {
+	return cdc.peerProcessor
 }

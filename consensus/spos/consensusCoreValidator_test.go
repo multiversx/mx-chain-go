@@ -23,11 +23,13 @@ func initConsensusDataContainer() *ConsensusCore {
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
+	peerProcessor := &mock.PeerProcessorMock{}
 
 	return &ConsensusCore{
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessorMock,
+		blockChain:         blockChain,
+		blockProcessor:     blockProcessorMock,
 		blocksTracker:      blocksTrackerMock,
+		peerProcessor:      peerProcessor,
 		bootstrapper:       bootstrapperMock,
 		broadcastMessenger: broadcastMessengerMock,
 		chronologyHandler:  chronologyHandlerMock,
@@ -51,7 +53,7 @@ func TestConsensusContainerValidator_ValidateNilBlockchainShouldFail(t *testing.
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilBlockChain)
+	assert.Equal(t, ErrNilBlockChain, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T) {
@@ -62,7 +64,7 @@ func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilBlockProcessor)
+	assert.Equal(t, ErrNilBlockProcessor, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testing.T) {
@@ -73,7 +75,7 @@ func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testin
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilBootstrapper)
+	assert.Equal(t, ErrNilBootstrapper, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.T) {
@@ -84,7 +86,7 @@ func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilChronologyHandler)
+	assert.Equal(t, ErrNilChronologyHandler, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilHasherShouldFail(t *testing.T) {
@@ -95,7 +97,7 @@ func TestConsensusContainerValidator_ValidateNilHasherShouldFail(t *testing.T) {
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilHasher)
+	assert.Equal(t, ErrNilHasher, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing.T) {
@@ -106,7 +108,7 @@ func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilMarshalizer)
+	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing.T) {
@@ -117,7 +119,7 @@ func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilMultiSigner)
+	assert.Equal(t, ErrNilMultiSigner, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilRounderShouldFail(t *testing.T) {
@@ -128,7 +130,7 @@ func TestConsensusContainerValidator_ValidateNilRounderShouldFail(t *testing.T) 
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilRounder)
+	assert.Equal(t, ErrNilRounder, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilShardCoordinatorShouldFail(t *testing.T) {
@@ -139,7 +141,7 @@ func TestConsensusContainerValidator_ValidateNilShardCoordinatorShouldFail(t *te
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilShardCoordinator)
+	assert.Equal(t, ErrNilShardCoordinator, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilSyncTimerShouldFail(t *testing.T) {
@@ -150,7 +152,7 @@ func TestConsensusContainerValidator_ValidateNilSyncTimerShouldFail(t *testing.T
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilSyncTimer)
+	assert.Equal(t, ErrNilSyncTimer, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail(t *testing.T) {
@@ -161,5 +163,5 @@ func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilValidatorGroupSelector)
+	assert.Equal(t, ErrNilValidatorGroupSelector, err)
 }

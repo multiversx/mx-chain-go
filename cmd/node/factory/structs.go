@@ -58,6 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -135,6 +136,7 @@ type Process struct {
 	Rounder               consensus.Rounder
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
+	PeerProcessor         process.PeerProcessor
 	BlockTracker          process.BlocksTracker
 }
 
@@ -401,6 +403,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 }
 
 type processComponentsFactoryArgs struct {
+	coreComponents       *coreComponentsFactoryArgs
 	genesisConfig        *sharding.Genesis
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
@@ -416,6 +419,7 @@ type processComponentsFactoryArgs struct {
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
+	coreComponents *coreComponentsFactoryArgs,
 	genesisConfig *sharding.Genesis,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
@@ -429,6 +433,7 @@ func NewProcessComponentsFactoryArgs(
 	coreServiceContainer serviceContainer.Core,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
+		coreComponents:       coreComponents,
 		genesisConfig:        genesisConfig,
 		nodesConfig:          nodesConfig,
 		syncer:               syncer,
@@ -505,10 +510,14 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.state,
 		forkDetector,
 		shardsGenesisBlocks,
-		args.nodesConfig,
 		args.coreServiceContainer,
 	)
 
+	if err != nil {
+		return nil, err
+	}
+
+	peerProcessor, err := newPeerProcessor(args)
 	if err != nil {
 		return nil, err
 	}
@@ -520,6 +529,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
 		BlockTracker:          blockTracker,
+		PeerProcessor:         peerProcessor,
+
 	}, nil
 }
 
@@ -1362,7 +1373,6 @@ func newBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
@@ -1375,7 +1385,6 @@ func newBlockProcessorAndTracker(
 			state,
 			forkDetector,
 			shardsGenesisBlocks,
-			nodesConfig,
 			coreServiceContainer,
 		)
 	}
@@ -1403,7 +1412,6 @@ func newShardBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
@@ -1638,6 +1646,80 @@ func newMetaBlockProcessorAndTracker(
 
 	return metaProcessor, blockTracker, nil
 }
+
+func newPeerProcessor(processComponents *processComponentsFactoryArgs) (process.PeerProcessor, error) {
+	peerAdapters, err := getShardedPeerAdapters(processComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	storageService := processComponents.data.Store
+	headerStorage := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	peerProcessor, err := peer.NewPeerProcessor(peerAdapters, processComponents.state.AddressConverter, processComponents.nodesCoordinator, processComponents.shardCoordinator, headerStorage)
+	if err != nil {
+		return nil, err
+	}
+
+	return peerProcessor, nil
+}
+
+func getShardedPeerAdapters(processComponents *processComponentsFactoryArgs) (peer.ShardedPeerAdapters, error) {
+	peerAdapters := make(peer.ShardedPeerAdapters, 0)
+
+	if processComponents.shardCoordinator.SelfId() != sharding.MetachainShardId {
+		shardPeerAdapter, err := getPeerAdapter(processComponents)
+		if err != nil {
+			return nil, err
+		}
+
+		peerAdapters[processComponents.shardCoordinator.SelfId()] = shardPeerAdapter
+		return peerAdapters, nil
+	}
+
+	metaPeerAdapter, err := getPeerAdapter(processComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAdapters[sharding.MetachainShardId] = metaPeerAdapter
+
+	for i := uint32(0); i < processComponents.shardCoordinator.NumberOfShards(); i++ {
+		peerAdapter, err := getPeerAdapter(processComponents)
+		if err != nil {
+			return nil, err
+		}
+
+		peerAdapters[i] = peerAdapter
+	}
+
+	return peerAdapters, nil
+}
+
+func getPeerAdapter(processComponents *processComponentsFactoryArgs) (*state.PeerAccountsDB, error) {
+	coreComponents := processComponents.coreComponents
+	peerAccountsTrie, err := getTrie(
+		coreComponents.config.PeerAccountsTrieStorage,
+		processComponents.core.Marshalizer,
+		processComponents.core.Hasher,
+		coreComponents.uniqueID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.ValidatorAccount)
+	if err != nil {
+		return nil, errors.New("could not create peer account factory: " + err.Error())
+	}
+
+	peerAdapter, err := state.NewPeerAccountsDB(peerAccountsTrie, processComponents.core.Hasher, processComponents.core.Marshalizer, accountFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return peerAdapter, nil
+}
+
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 	return storageUnit.CacheConfig{
 		Size:   cfg.Size,

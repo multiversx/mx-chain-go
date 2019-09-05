@@ -1,6 +1,7 @@
 package mock
 
 type HeaderHandlerStub struct {
+	GetRandSeedCalled func() []byte
 	GetMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
 }
 
@@ -37,7 +38,10 @@ func (hhs *HeaderHandlerStub) GetPrevRandSeed() []byte {
 }
 
 func (hhs *HeaderHandlerStub) GetRandSeed() []byte {
-	panic("implement me")
+	if hhs.GetRandSeedCalled != nil {
+		return hhs.GetRandSeedCalled()
+	}
+	return nil
 }
 
 func (hhs *HeaderHandlerStub) GetPubKeysBitmap() []byte {

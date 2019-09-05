@@ -618,6 +618,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(
+		coreArgs,
 		genesisConfig,
 		nodesConfig,
 		syncer,
@@ -1122,6 +1123,7 @@ func createNode(
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(process.BlockProcessor),
 		node.WithBlockTracker(process.BlockTracker),
+		node.WithPeerProcessor(process.PeerProcessor),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),
