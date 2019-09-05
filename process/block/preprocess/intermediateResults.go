@@ -237,6 +237,25 @@ func (irp *intermediateResultsProcessor) CreateMarshalizedData(txHashes [][]byte
 	return mrsTxs, nil
 }
 
+// GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
+func (irp *intermediateResultsProcessor) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
+	irp.mutInterResultsForBlock.Lock()
+
+	scrPool := make(map[string]data.TransactionHandler)
+	for txHash, txInfo := range irp.interResultsForBlock {
+		if txInfo.receiverShardID != irp.shardCoordinator.SelfId() {
+			continue
+		}
+		if txInfo.senderShardID != irp.shardCoordinator.SelfId() {
+			continue
+		}
+		scrPool[txHash] = txInfo.tx
+	}
+	irp.mutInterResultsForBlock.Unlock()
+
+	return scrPool
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (irp *intermediateResultsProcessor) IsInterfaceNil() bool {
 	if irp == nil {
