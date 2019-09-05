@@ -313,7 +313,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
-	assert.Equal(t, 0, len(mbs))
+	assert.Equal(t, 1, len(mbs))
 }
 
 func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *testing.T) {
@@ -682,4 +682,59 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 
 		assert.Equal(t, unMrsScr, txs[i])
 	}
+}
+
+func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
+	t.Parallel()
+
+	nrShards := 5
+	adrConv := &mock.AddressConverterMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	irp, err := NewIntermediateResultsProcessor(
+		hasher,
+		marshalizer,
+		shardCoordinator,
+		adrConv,
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	snd := []byte("snd")
+
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		if bytes.Equal(address.Bytes(), snd) {
+			return shardCoordinator.SelfId()
+		}
+		return shardCoordinator.SelfId() + 1
+	}
+
+	txHashes := make([][]byte, 0)
+	txs := make([]data.TransactionHandler, 0)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
+	currHash, _ := core.CalculateHash(marshalizer, hasher, txs[0])
+	txHashes = append(txHashes, currHash)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
+	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[1])
+	txHashes = append(txHashes, currHash)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 1})
+	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[2])
+	txHashes = append(txHashes, currHash)
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 2})
+	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[3])
+	txHashes = append(txHashes, currHash)
+
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Nil(t, err)
+
+	usedTxs := irp.GetAllCurrentFinishedTxs()
+	assert.Equal(t, 2, len(usedTxs))
 }

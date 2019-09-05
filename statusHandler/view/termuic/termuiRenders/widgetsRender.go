@@ -3,10 +3,11 @@ package termuiRenders
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -27,19 +28,26 @@ type WidgetsRender struct {
 	networkRecv *widgets.Gauge
 	networkSent *widgets.Gauge
 
-	termuiConsoleMetrics *sync.Map
+	presenter view.Presenter
 }
 
 //NewWidgetsRender method will create new WidgetsRender that display termui console
-func NewWidgetsRender(metricData *sync.Map, grid *DrawableContainer) *WidgetsRender {
+func NewWidgetsRender(presenter view.Presenter, grid *DrawableContainer) (*WidgetsRender, error) {
+	if presenter == nil || presenter.IsInterfaceNil() {
+		return nil, statusHandler.ErrorNilPresenterInterface
+	}
+	if grid == nil {
+		return nil, statusHandler.ErrorNilGrid
+	}
+
 	self := &WidgetsRender{
-		termuiConsoleMetrics: metricData,
-		container:            grid,
+		presenter: presenter,
+		container: grid,
 	}
 	self.initWidgets()
 	self.setGrid()
 
-	return self
+	return self, nil
 }
 
 func (wr *WidgetsRender) initWidgets() {
@@ -84,11 +92,11 @@ func (wr *WidgetsRender) setGrid() {
 }
 
 //RefreshData method is used to prepare data that are displayed on container
-func (wr *WidgetsRender) RefreshData(logLines []string) {
+func (wr *WidgetsRender) RefreshData() {
 	wr.prepareInstanceInfo()
 	wr.prepareChainInfo()
 	wr.prepareBlockInfo()
-	wr.prepareListWithLogsForDisplay(logLines)
+	wr.prepareListWithLogsForDisplay()
 	wr.prepareLoads()
 }
 
@@ -97,7 +105,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	numRows := 8
 	rows := make([][]string, numRows)
 
-	appVersion := wr.getFromCacheAsString(core.MetricAppVersion)
+	appVersion := wr.presenter.GetAppVersion()
 	rows[0] = []string{fmt.Sprintf("App version: %s", appVersion)}
 	if strings.Contains(appVersion, core.UnVersionedAppString) {
 		wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorRed)
@@ -105,13 +113,13 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 		wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorGreen)
 	}
 
-	pkTxSign := wr.getFromCacheAsString(core.MetricPublicKeyTxSign)
+	pkTxSign := wr.presenter.GetPublicKeyTxSign()
 	rows[1] = []string{fmt.Sprintf("Public key TxSign: %s", pkTxSign)}
 
-	pkBlockSign := wr.getFromCacheAsString(core.MetricPublicKeyBlockSign)
+	pkBlockSign := wr.presenter.GetPublicKeyBlockSign()
 	rows[2] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
 
-	shardId := wr.getFromCacheAsUint64(core.MetricShardId)
+	shardId := wr.presenter.GetShardId()
 	shardIdStr := ""
 	if shardId == uint64(sharding.MetachainShardId) {
 		shardIdStr = "meta"
@@ -120,16 +128,16 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	}
 	rows[3] = []string{fmt.Sprintf("ShardID: %s", shardIdStr)}
 
-	instanceType := wr.getFromCacheAsString(core.MetricNodeType)
+	instanceType := wr.presenter.GetNodeType()
 	rows[4] = []string{fmt.Sprintf("Instance type: %s", instanceType)}
 
-	countConsensus := wr.getFromCacheAsUint64(core.MetricCountConsensus)
+	countConsensus := wr.presenter.GetCountConsensus()
 	rows[5] = []string{fmt.Sprintf("Consensus group participation count: %d", countConsensus)}
 
-	countLeader := wr.getFromCacheAsUint64(core.MetricCountLeader)
+	countLeader := wr.presenter.GetCountLeader()
 	rows[6] = []string{fmt.Sprintf("Elected consensus leader count: %d", countLeader)}
 
-	countAcceptedBlocks := wr.getFromCacheAsUint64(core.MetricCountAcceptedBlocks)
+	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
 	rows[7] = []string{fmt.Sprintf("Consensus proposed & accepted blocks: %d", countAcceptedBlocks)}
 
 	wr.instanceInfo.Title = "Instance info"
@@ -142,7 +150,7 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	numRows := 10
 	rows := make([][]string, numRows)
 
-	syncStatus := wr.getFromCacheAsUint64(core.MetricIsSyncing)
+	syncStatus := wr.presenter.GetIsSyncing()
 	syncingStr := fmt.Sprintf("undefined %d", syncStatus)
 	switch syncStatus {
 	case 1:
@@ -157,33 +165,33 @@ func (wr *WidgetsRender) prepareChainInfo() {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorBlue)
 	}
 
-	memTxPoolSize := wr.getFromCacheAsUint64(core.MetricTxPoolLoad)
+	memTxPoolSize := wr.presenter.GetTxPoolLoad()
 	rows[1] = []string{fmt.Sprintf("Number of transactions in pool: %d", memTxPoolSize)}
 
 	rows[2] = make([]string, 0)
 
-	nonce := wr.getFromCacheAsUint64(core.MetricNonce)
-	probableHighestNonce := wr.getFromCacheAsUint64(core.MetricProbableHighestNonce)
+	nonce := wr.presenter.GetNonce()
+	probableHighestNonce := wr.presenter.GetProbableHighestNonce()
 	rows[3] = []string{fmt.Sprintf("Current synchronized block nonce: %d / %d",
 		nonce, probableHighestNonce)}
 
-	synchronizedRound := wr.getFromCacheAsUint64(core.MetricSynchronizedRound)
-	currentRound := wr.getFromCacheAsUint64(core.MetricCurrentRound)
+	synchronizedRound := wr.presenter.GetSynchronizedRound()
+	currentRound := wr.presenter.GetCurrentRound()
 	rows[4] = []string{fmt.Sprintf("Current consensus round: %d / %d",
 		synchronizedRound, currentRound)}
 
-	consensusRoundTime := wr.getFromCacheAsUint64(core.MetricRoundTime)
+	consensusRoundTime := wr.presenter.GetRoundTime()
 	rows[5] = []string{fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)}
 
 	rows[6] = make([]string, 0)
 
-	numLiveValidators := wr.getFromCacheAsUint64(core.MetricLiveValidatorNodes)
+	numLiveValidators := wr.presenter.GetLiveValidatorNodes()
 	rows[7] = []string{fmt.Sprintf("Live validator nodes: %d", numLiveValidators)}
 
-	numConnectedNodes := wr.getFromCacheAsUint64(core.MetricConnectedNodes)
+	numConnectedNodes := wr.presenter.GetConnectedNodes()
 	rows[8] = []string{fmt.Sprintf("Network connected nodes: %d", numConnectedNodes)}
 
-	numConnectedPeers := wr.getFromCacheAsUint64(core.MetricNumConnectedPeers)
+	numConnectedPeers := wr.presenter.GetNumConnectedPeers()
 	rows[9] = []string{fmt.Sprintf("This node is connected to %d peers", numConnectedPeers)}
 
 	wr.chainInfo.Title = "Chain info"
@@ -196,33 +204,33 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	numRows := 7
 	rows := make([][]string, numRows)
 
-	currentBlockHeight := wr.getFromCacheAsUint64(core.MetricNonce)
+	currentBlockHeight := wr.presenter.GetNonce()
 	rows[0] = []string{fmt.Sprintf("Current block height: %d", currentBlockHeight)}
 
-	numTransactionInBlock := wr.getFromCacheAsUint64(core.MetricNumTxInBlock)
+	numTransactionInBlock := wr.presenter.GetNumTxInBlock()
 	rows[1] = []string{fmt.Sprintf("Num transactions in block: %d", numTransactionInBlock)}
 
-	numMiniBlocks := wr.getFromCacheAsUint64(core.MetricNumMiniBlocks)
+	numMiniBlocks := wr.presenter.GetNumMiniBlocks()
 	rows[2] = []string{fmt.Sprintf("Num miniblocks in block: %d", numMiniBlocks)}
 
 	rows[3] = make([]string, 0)
 
-	crossCheckBlockHeight := wr.getFromCacheAsString(core.MetricCrossCheckBlockHeight)
+	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
 	rows[4] = []string{fmt.Sprintf("Cross check block height: %s", crossCheckBlockHeight)}
 
-	consensusState := wr.getFromCacheAsString(core.MetricConsensusState)
+	consensusState := wr.presenter.GetConsensusState()
 	rows[5] = []string{fmt.Sprintf("Consensus state: %s", consensusState)}
 
-	syncStatus := wr.getFromCacheAsUint64(core.MetricIsSyncing)
+	syncStatus := wr.presenter.GetIsSyncing()
 	switch syncStatus {
 	case 1:
 		rows[6] = []string{fmt.Sprintf("Consensus round state: N/A (syncing)")}
 	case 0:
-		instanceType := wr.getFromCacheAsString(core.MetricNodeType)
+		instanceType := wr.presenter.GetNodeType()
 		if instanceType == string(core.NodeTypeObserver) {
 			rows[6] = []string{fmt.Sprintf("Consensus round state: N/A (%s)", string(core.NodeTypeObserver))}
 		} else {
-			consensusRoundState := wr.getFromCacheAsString(core.MetricConsensusRoundState)
+			consensusRoundState := wr.presenter.GetConsensusRoundState()
 			rows[6] = []string{fmt.Sprintf("Consensus round state: %s", consensusRoundState)}
 		}
 	}
@@ -232,9 +240,11 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	wr.blockInfo.Rows = rows
 }
 
-func (wr *WidgetsRender) prepareListWithLogsForDisplay(logData []string) {
+func (wr *WidgetsRender) prepareListWithLogsForDisplay() {
 	wr.lLog.Title = "Log info"
 	wr.lLog.TextStyle = ui.NewStyle(ui.ColorWhite)
+
+	logData := wr.presenter.GetLogLines()
 	wr.lLog.Rows = wr.prepareLogLines(logData, wr.lLog.Size().Y)
 	wr.lLog.WrapText = true
 }
@@ -249,60 +259,32 @@ func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 }
 
 func (wr *WidgetsRender) prepareLoads() {
-	cpuLoadPercent := wr.getFromCacheAsUint64(core.MetricCpuLoadPercent)
+	cpuLoadPercent := wr.presenter.GetCpuLoadPercent()
 	wr.cpuLoad.Title = "CPU load"
 	wr.cpuLoad.Percent = int(cpuLoadPercent)
 
-	memLoadPercent := wr.getFromCacheAsUint64(core.MetricMemLoadPercent)
-	memTotalMemoryBytes := wr.getFromCacheAsUint64(core.MetricTotalMem)
-	memUsed := wr.getFromCacheAsUint64(core.MetricMemoryUsedByNode)
+	memLoadPercent := wr.presenter.GetMemLoadPercent()
+	memTotalMemoryBytes := wr.presenter.GetTotalMem()
+	memUsed := wr.presenter.GetMemUsedByNode()
 	wr.memoryLoad.Title = "Memory load"
 	wr.memoryLoad.Percent = int(memLoadPercent)
 	wr.memoryLoad.Label = fmt.Sprintf("%d%% / used: %s / total: %s", memLoadPercent, core.ConvertBytes(memUsed), core.ConvertBytes(memTotalMemoryBytes))
 
-	recvLoad := wr.getFromCacheAsUint64(core.MetricNetworkRecvPercent)
-	recvBps := wr.getFromCacheAsUint64(core.MetricNetworkRecvBps)
-	recvBpsPeak := wr.getFromCacheAsUint64(core.MetricNetworkRecvBpsPeak)
+	recvLoad := wr.presenter.GetNetworkRecvPercent()
+	recvBps := wr.presenter.GetNetworkRecvBps()
+	recvBpsPeak := wr.presenter.GetNetworkRecvBpsPeak()
 	wr.networkRecv.Title = "Network - recv:"
 	wr.networkRecv.Percent = int(recvLoad)
 	wr.networkRecv.Label = fmt.Sprintf("%d%% / rate: %s/s / peak rate: %s/s",
 		recvLoad, core.ConvertBytes(recvBps), core.ConvertBytes(recvBpsPeak))
 
-	sentLoad := wr.getFromCacheAsUint64(core.MetricNetworkSentPercent)
-	sentBps := wr.getFromCacheAsUint64(core.MetricNetworkSentBps)
-	sentBpsPeak := wr.getFromCacheAsUint64(core.MetricNetworkSentBpsPeak)
+	sentLoad := wr.presenter.GetNetworkSentPercent()
+	sentBps := wr.presenter.GetNetworkSentBps()
+	sentBpsPeak := wr.presenter.GetNetworkSentBpsPeak()
 	wr.networkSent.Title = "Network - sent:"
 	wr.networkSent.Percent = int(sentLoad)
 	wr.networkSent.Label = fmt.Sprintf("%d%% / rate: %s/s / peak rate: %s/s",
 		sentLoad, core.ConvertBytes(sentBps), core.ConvertBytes(sentBpsPeak))
-}
-
-func (wr *WidgetsRender) getFromCacheAsUint64(metric string) uint64 {
-	val, ok := wr.termuiConsoleMetrics.Load(metric)
-	if !ok {
-		return 0
-	}
-
-	valUint64, ok := val.(uint64)
-	if !ok {
-		return 0
-	}
-
-	return valUint64
-}
-
-func (wr *WidgetsRender) getFromCacheAsString(metric string) string {
-	val, ok := wr.termuiConsoleMetrics.Load(metric)
-	if !ok {
-		return "[invalid key]"
-	}
-
-	valStr, ok := val.(string)
-	if !ok {
-		return "[not a string]"
-	}
-
-	return valStr
 }
 
 func (wr *WidgetsRender) getNetworkRecvStats() {
