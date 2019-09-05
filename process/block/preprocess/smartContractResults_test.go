@@ -579,7 +579,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *te
 
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
-		SenderShardID:   0,
+		SenderShardID:   1,
 		TxHashes:        txHashes,
 		Type:            block.SmartContractResultBlock,
 	}

@@ -465,6 +465,7 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 			continue
 		}
 
+		n.OwnAccount.Balance = big.NewInt(0).Set(value)
 		MintAddress(targetNode.AccntState, n.OwnAccount.PkTxSignBytes, value)
 	}
 }
@@ -1051,7 +1052,6 @@ func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrS
 // ProposeAndSyncBlocks proposes and syncs blocks until all transaction pools are empty
 func ProposeAndSyncBlocks(
 	t *testing.T,
-	numInTxs int,
 	nodes []*TestProcessorNode,
 	idxProposers []int,
 	round uint64,
@@ -1059,7 +1059,8 @@ func ProposeAndSyncBlocks(
 ) (uint64, uint64) {
 
 	// if there are many transactions, they might not fit into the block body in only one round
-	for numTxsInPool := numInTxs; numTxsInPool != 0; {
+	for {
+		numTxsInPool := 0
 		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 		for _, idProposer := range idxProposers {
@@ -1073,6 +1074,10 @@ func ProposeAndSyncBlocks(
 			if numTxsInPool > 0 {
 				break
 			}
+		}
+
+		if numTxsInPool == 0 {
+			break
 		}
 	}
 

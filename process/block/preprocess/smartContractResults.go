@@ -179,7 +179,11 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+		// smart contract results are needed to be processed only at destination and only if they are cross shard
 		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+			continue
+		}
+		if miniBlock.SenderShardID == scr.shardCoordinator.SelfId() {
 			continue
 		}
 
@@ -220,7 +224,13 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 func (scr *smartContractResults) SaveTxBlockToStorage(body block.Body) error {
 	for i := 0; i < len(body); i++ {
 		miniBlock := (body)[i]
-		if miniBlock.Type != block.SmartContractResultBlock || miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+		if miniBlock.Type != block.SmartContractResultBlock {
+			continue
+		}
+		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+			continue
+		}
+		if miniBlock.SenderShardID == scr.shardCoordinator.SelfId() {
 			continue
 		}
 

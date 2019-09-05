@@ -3,62 +3,39 @@ package termuic
 import (
 	"os"
 	"os/signal"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/statusHandler/termuic/termuiRenders"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic/termuiRenders"
 	ui "github.com/gizak/termui/v3"
 )
 
 //refreshInterval is used for a ticker that refresh termui console at a specific interval
 const refreshInterval = time.Second
 
-//maxLogLines is used to specify how many lines of logs need to store in slice
-var maxLogLines = 100
+var log = logger.DefaultLogger()
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
-	termuiConsoleMetrics *sync.Map
-	logLines             []string
-	mutLogLineWrite      sync.RWMutex
-	consoleRender        TermuiRender
-	grid                 *termuiRenders.DrawableContainer
+	presenter     view.Presenter
+	consoleRender TermuiRender
+	grid          *termuiRenders.DrawableContainer
 }
 
 //NewTermuiConsole method is used to return a new TermuiConsole structure
-func NewTermuiConsole(metricData *sync.Map) *TermuiConsole {
-	tc := TermuiConsole{
-		termuiConsoleMetrics: metricData,
+func NewTermuiConsole(presenter view.Presenter) (*TermuiConsole, error) {
+	if presenter == nil || presenter.IsInterfaceNil() {
+		return nil, statusHandler.ErrorNilPresenterInterface
 	}
 
-	return &tc
-}
+	tc := TermuiConsole{
+		presenter: presenter,
+	}
 
-func (tc *TermuiConsole) Write(p []byte) (n int, err error) {
-	go func(p []byte) {
-		logLine := string(p)
-		stringSlice := strings.Split(logLine, "\n")
-
-		tc.mutLogLineWrite.Lock()
-		for _, line := range stringSlice {
-			line = strings.Replace(line, "\r", "", len(line))
-			if line != "" {
-				tc.logLines = append(tc.logLines, line)
-			}
-		}
-
-		startPos := len(tc.logLines) - maxLogLines
-		if startPos < 0 {
-			startPos = 0
-		}
-		tc.logLines = tc.logLines[startPos:len(tc.logLines)]
-
-		tc.mutLogLineWrite.Unlock()
-	}(p)
-
-	return len(p), nil
+	return &tc, nil
 }
 
 // Start method - will start termui console
@@ -77,7 +54,17 @@ func (tc *TermuiConsole) Start() error {
 
 func (tc *TermuiConsole) eventLoop() {
 	tc.grid = termuiRenders.NewDrawableContainer()
-	tc.consoleRender = termuiRenders.NewWidgetsRender(tc.termuiConsoleMetrics, tc.grid)
+	if tc.grid == nil {
+		log.Warn("Cannot render termui console", statusHandler.ErrorNilGrid)
+		return
+	}
+
+	var err error
+	tc.consoleRender, err = termuiRenders.NewWidgetsRender(tc.presenter, tc.grid)
+	if err != nil {
+		log.Warn("nil console render", err)
+		return
+	}
 
 	termWidth, termHeight := ui.TerminalDimensions()
 	tc.grid.SetRectangle(0, 0, termWidth, termHeight)
@@ -87,12 +74,12 @@ func (tc *TermuiConsole) eventLoop() {
 	sigTerm := make(chan os.Signal, 2)
 	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM)
 
-	tc.consoleRender.RefreshData(tc.logLines)
+	tc.consoleRender.RefreshData()
 
 	for {
 		select {
 		case <-time.After(refreshInterval):
-			tc.consoleRender.RefreshData(tc.logLines)
+			tc.consoleRender.RefreshData()
 			ui.Clear()
 			ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
 
