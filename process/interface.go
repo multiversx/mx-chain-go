@@ -34,12 +34,6 @@ type TxTypeHandler interface {
 	IsInterfaceNil() bool
 }
 
-// TxValidator can determine if a provided transaction handler is valid or not from the process point of view
-type TxValidator interface {
-	IsTxValidForProcessing(txHandler data.TransactionHandler) bool
-	IsInterfaceNil() bool
-}
-
 // HeaderValidator can determine if a provided header handler is valid or not from the process point of view
 type HeaderValidator interface {
 	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool
@@ -296,18 +290,23 @@ type MessageHandler interface {
 	IsInterfaceNil() bool
 }
 
-// TopicHandler defines the functionality needed by structs to manage topics and message processors
-type TopicHandler interface {
+type topicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+}
+
+// TopicHandler defines the functionality needed by structs to manage topics and message processors
+type TopicHandler interface {
+	topicHandler
+	IsInterfaceNil() bool
 }
 
 // TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
 // to other peers
 type TopicMessageHandler interface {
 	MessageHandler
-	TopicHandler
+	topicHandler
 }
 
 // ChronologyValidator defines the functionality needed to validate a received header block (shard or metachain)

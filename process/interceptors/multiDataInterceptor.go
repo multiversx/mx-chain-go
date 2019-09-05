@@ -3,6 +3,7 @@ package interceptors
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -27,16 +28,16 @@ func NewMultiDataInterceptor(
 	throttler process.InterceptorThrottler,
 ) (*MultiDataInterceptor, error) {
 
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if factory == nil || factory.IsInterfaceNil() {
+	if check.IfNil(factory) {
 		return nil, process.ErrNilInterceptedDataFactory
 	}
-	if processor == nil || processor.IsInterfaceNil() {
+	if check.IfNil(processor) {
 		return nil, process.ErrNilInterceptedDataProcessor
 	}
-	if throttler == nil || throttler.IsInterfaceNil() {
+	if check.IfNil(throttler) {
 		return nil, process.ErrNilInterceptorThrottler
 	}
 
@@ -118,4 +119,12 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	return lastErrEncountered
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
+	if mdi == nil {
+		return true
+	}
+	return false
 }

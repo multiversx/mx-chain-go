@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -12,8 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
-
-var log = logger.DefaultLogger()
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {

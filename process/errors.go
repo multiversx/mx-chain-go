@@ -136,9 +136,6 @@ var ErrNilRounder = errors.New("nil Rounder")
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
 
-// ErrNilTxDataPool signals that a nil transaction pool has been provided
-var ErrNilTxDataPool = errors.New("nil transaction data pool")
-
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
@@ -273,9 +270,6 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrRollbackFromGenesis signals that a rollback from genesis is called
 var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
-
-// ErrNoTransactionInMessage signals that no transaction was found after parsing received p2p message
-var ErrNoTransactionInMessage = errors.New("no transaction found in received message")
 
 // ErrNoDataInMessage signals that no data was found after parsing received p2p message
 var ErrNoDataInMessage = errors.New("no data found in received message")
@@ -412,9 +406,6 @@ var ErrUnknownBlockType = errors.New("block type is unknown")
 // ErrMissingPreProcessor signals that required pre processor is missing
 var ErrMissingPreProcessor = errors.New("pre processor is missing")
 
-// ErrNilTxHandlerValidator signals that a nil tx handler validator has been provided
-var ErrNilTxHandlerValidator = errors.New("nil tx handler validator provided")
-
 // ErrNilHeaderHandlerValidator signals that a nil header handler validator has been provided
 var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator provided")
 
@@ -429,3 +420,6 @@ var ErrNilInterceptedDataProcessor = errors.New("nil intercepted data processor"
 
 // ErrNilInterceptorThrottler signals that a nil interceptor throttler was provided
 var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
+
+// ErrInterceptedDataTypeNotDefined signals that the required data type has not been defined
+var ErrInterceptedDataTypeNotDefined = errors.New("intercepted data type is not defined")
