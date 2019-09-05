@@ -16,7 +16,7 @@ import (
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
-var durationMsgRecieved = time.Duration(time.Second * 2)
+var durationMsgRecieved = 2 * time.Second
 
 func CreateMessenger(ctx context.Context,
 	seed int,

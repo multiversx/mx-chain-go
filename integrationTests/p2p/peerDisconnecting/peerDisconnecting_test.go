@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = time.Duration(time.Second * 2)
+var durationBootstrapingTime = 2 * time.Second
 var randezVous = "elrondRandezVous"
 
 func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {

@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = time.Duration(time.Second * 2)
-var durationTest = time.Duration(time.Second * 30)
+var durationBootstrapingTime = 2 * time.Second
+var durationTest = 30 * time.Second
 var randezVous = "elrondRandezVous"
 
 type messageProcessorStub struct {
@@ -81,12 +81,12 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	defer func() {
 		for i := 0; i < noOfPeers; i++ {
 			if peers[i] != nil {
-				peers[i].Close()
+				_ = peers[i].Close()
 			}
 		}
 
 		if advertiser != nil {
-			advertiser.Close()
+			_ = advertiser.Close()
 		}
 	}()
 
@@ -100,9 +100,13 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	for i := 0; i < noOfPeers; i++ {
 		idx := i
 		mapMessages[idx] = make(map[string]struct{})
-		peers[idx].CreateTopic(testTopic, true)
+		err := peers[idx].CreateTopic(testTopic, true)
+		if err != nil {
+			fmt.Println("CreateTopic failed:", err.Error())
+			continue
+		}
 
-		peers[idx].RegisterMessageProcessor(testTopic, &messageProcessorStub{
+		err = peers[idx].RegisterMessageProcessor(testTopic, &messageProcessorStub{
 			ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
 				time.Sleep(time.Second)
 
@@ -120,12 +124,21 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 				return nil
 			},
 		})
+		if err != nil {
+			fmt.Println("RegisterMessageProcessor:", err.Error())
+		}
 	}
 
 	//Step 4. Call bootstrap on all peers
-	advertiser.Bootstrap()
+	err := advertiser.Bootstrap()
+	if err != nil {
+		fmt.Println("Bootstrap failed:", err.Error())
+	}
 	for _, p := range peers {
-		p.Bootstrap()
+		err := p.Bootstrap()
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Bootstrap() for peer id %s failed:%s", p.ID(), err.Error()))
+		}
 	}
 	waitForBootstrapAndShowConnected(peers)
 
