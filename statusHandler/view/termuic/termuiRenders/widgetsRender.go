@@ -159,7 +159,7 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	case 1:
 		syncingStr = statusSyncing
 
-		remainingTime := wr.presenter.CalculateSynchronizationEstimation()
+		remainingTime := wr.presenter.CalculateTimeToSynchronize()
 		remainingTimeMessage = fmt.Sprintf("Synchronization time remaining: ~%s", remainingTime)
 
 		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed()

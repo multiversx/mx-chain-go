@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"math"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -59,4 +61,38 @@ func CalculateHash(
 
 	hash := hasher.Compute(string(mrsData))
 	return hash, nil
+}
+
+func plural(count int, singular string) (result string) {
+	if count < 2 {
+		result = strconv.Itoa(count) + " " + singular + " "
+	} else {
+		result = strconv.Itoa(count) + " " + singular + "s "
+	}
+	return
+}
+
+// SecondsToHumanFormat transform seconds input in a human friendly format
+func SecondsToHumanFormat(input int) string {
+	numSecondsInAMinute := 60
+	numMinutesInAHour := 60
+	numSecondsInAHours := numSecondsInAMinute * numMinutesInAHour
+	result := ""
+
+	hours := math.Floor(float64(input) / float64(numSecondsInAMinute) / float64(numMinutesInAHour))
+	seconds := input % (numSecondsInAHours)
+	minutes := math.Floor(float64(seconds) / float64(numSecondsInAMinute))
+	seconds = input % numSecondsInAMinute
+
+	if hours > 0 {
+		result = plural(int(hours), "hour")
+	}
+	if minutes > 0 {
+		result += plural(int(minutes), "minute")
+	}
+	if seconds > 0 {
+		result += plural(seconds, "second")
+	}
+
+	return result
 }

@@ -66,8 +66,6 @@ func (tc *TermuiConsole) eventLoop() {
 		return
 	}
 
-	tc.presenter.PrepareForCalculationSynchronizationTime()
-
 	termWidth, termHeight := ui.TerminalDimensions()
 	tc.grid.SetRectangle(0, 0, termWidth, termHeight)
 

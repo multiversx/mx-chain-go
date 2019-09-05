@@ -38,8 +38,7 @@ type Presenter interface {
 	GetLogLines() []string
 	GetNumTxProcessed() uint64
 	GetCurrentBlockHash() string
-	PrepareForCalculationSynchronizationTime()
-	CalculateSynchronizationEstimation() string
+	CalculateTimeToSynchronize() string
 	CalculateSynchronizationSpeed() uint64
 	GetCurrentRoundTimestamp() uint64
 	GetBlockSize() uint64

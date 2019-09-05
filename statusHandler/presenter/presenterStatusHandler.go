@@ -3,7 +3,6 @@ package presenter
 import (
 	"strings"
 	"sync"
-	"time"
 )
 
 //maxLogLines is used to specify how many lines of logs need to store in slice
@@ -11,19 +10,18 @@ var maxLogLines = 100
 
 // PresenterStatusHandler is the AppStatusHandler impl that is able to process and store received data
 type PresenterStatusHandler struct {
-	presenterMetrics  *sync.Map
-	logLines          []string
-	mutLogLineWrite   sync.RWMutex
-	startTime         time.Time
-	startBlock        uint64
-	oldNonce          uint64
-	mutEstimationTime sync.RWMutex
+	presenterMetrics            *sync.Map
+	logLines                    []string
+	mutLogLineWrite             sync.RWMutex
+	oldNonce                    uint64
+	synchronizationSpeedHistory []uint64
 }
 
 // NewPresenterStatusHandler will return an instance of the struct
 func NewPresenterStatusHandler() *PresenterStatusHandler {
 	psh := &PresenterStatusHandler{
-		presenterMetrics: &sync.Map{},
+		presenterMetrics:            &sync.Map{},
+		synchronizationSpeedHistory: make([]uint64, 0),
 	}
 	return psh
 }

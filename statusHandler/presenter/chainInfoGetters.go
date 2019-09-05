@@ -1,10 +1,10 @@
 package presenter
 
 import (
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 )
+
+var maxSpeedHistorySaved = 1000
 
 // GetNonce will return current nonce of node
 func (psh *PresenterStatusHandler) GetNonce() uint64 {
@@ -56,24 +56,27 @@ func (psh *PresenterStatusHandler) GetCurrentRound() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCurrentRound)
 }
 
-// CalculateSynchronizationEstimation will calculate and return an estimation of
+// CalculateTimeToSynchronize will calculate and return an estimation of
 // the time required for synchronization in a human friendly format
-func (psh *PresenterStatusHandler) CalculateSynchronizationEstimation() string {
+func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
 	currentBlock := psh.GetNonce()
 
-	psh.mutEstimationTime.Lock()
-	diffTime := time.Now().Sub(psh.startTime).Seconds()
-	blocksSynchronized := currentBlock - psh.startBlock
-	psh.mutEstimationTime.Unlock()
+	numsynchronizationSpeedHistory := len(psh.synchronizationSpeedHistory)
 
-	if blocksSynchronized == 0 {
-		return ""
+	sum := uint64(0)
+	for i := 0; i < len(psh.synchronizationSpeedHistory); i++ {
+		sum += psh.synchronizationSpeedHistory[i]
+	}
+
+	speed := float64(0)
+	if numsynchronizationSpeedHistory > 0 {
+		speed = float64(sum) / float64(numsynchronizationSpeedHistory)
 	}
 
 	probableHighestNonce := psh.GetProbableHighestNonce()
 	remainingBlocksToSynchronize := probableHighestNonce - currentBlock
-	timeEstimationSeconds := uint64(diffTime) * remainingBlocksToSynchronize / blocksSynchronized
-	remainingTime := secondsToHuman(int(timeEstimationSeconds))
+	timeEstimationSeconds := float64(remainingBlocksToSynchronize) / speed
+	remainingTime := core.SecondsToHumanFormat(int(timeEstimationSeconds))
 
 	return remainingTime
 }
@@ -82,10 +85,8 @@ func (psh *PresenterStatusHandler) CalculateSynchronizationEstimation() string {
 // how many block per second are synchronized
 func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed() uint64 {
 	currentBlock := psh.GetNonce()
-	psh.mutEstimationTime.Lock()
-	blocksSynchronized := currentBlock - psh.startBlock
-	psh.mutEstimationTime.Unlock()
-	if blocksSynchronized == 0 {
+	if psh.oldNonce == 0 {
+		psh.oldNonce = currentBlock
 		return 0
 	}
 
@@ -94,37 +95,14 @@ func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed() uint64 {
 		blocksPerSecond = 0
 	}
 
+	if len(psh.synchronizationSpeedHistory) >= maxSpeedHistorySaved {
+		psh.synchronizationSpeedHistory = psh.synchronizationSpeedHistory[1:len(psh.synchronizationSpeedHistory)]
+	}
+	psh.synchronizationSpeedHistory = append(psh.synchronizationSpeedHistory, uint64(blocksPerSecond))
+
 	psh.oldNonce = currentBlock
 
 	return uint64(blocksPerSecond)
-}
-
-// PrepareForCalculationSynchronizationTime prepare information that are need to calculate synchronization time
-func (psh *PresenterStatusHandler) PrepareForCalculationSynchronizationTime() {
-	go func() {
-		oldSyncStatus := 0
-		// Wait until we receive a nonce from storage or a block was synchronized
-		// This wait is needed because time estimation cannot be calculated until a block was synchronized or
-		// block nonce was get from storage
-		for psh.GetNonce() == 0 {
-			time.Sleep(time.Second)
-		}
-
-		for {
-			syncStatus := psh.GetIsSyncing()
-			if syncStatus == 1 && oldSyncStatus == 0 {
-				psh.mutEstimationTime.Lock()
-				psh.startTime = time.Now()
-				psh.startBlock = psh.GetNonce()
-				oldSyncStatus = 1
-				psh.mutEstimationTime.Unlock()
-			}
-			if syncStatus == 0 {
-				oldSyncStatus = 0
-			}
-			time.Sleep(500 * time.Millisecond)
-		}
-	}()
 }
 
 // GetNumTxProcessed will return number of processed transactions since node starts

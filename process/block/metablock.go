@@ -155,7 +155,12 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	go mp.getMetricsFromMetaHeader(*header)
+	go getMetricsFromMetaHeader(
+		header,
+		mp.marshalizer,
+		mp.appStatusHandler,
+		mp.getHeadersCountInPool(),
+	)
 
 	requestedShardHdrs, requestedFinalShardHdrs := mp.requestShardHeaders(header)
 
@@ -211,32 +216,6 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	return nil
-}
-
-func (mp *metaProcessor) getMetricsFromMetaHeader(header block.MetaBlock) {
-	numMiniBlocksMetaBlock := uint64(0)
-	headerSize := uint64(0)
-
-	for _, shardInfo := range header.ShardInfo {
-		numMiniBlocksMetaBlock += uint64(len(shardInfo.ShardMiniBlockHeaders))
-
-	}
-
-	marshalizedHeader, err := mp.marshalizer.Marshal(header)
-	if err == nil {
-		headerSize = uint64(len(marshalizedHeader))
-	}
-
-	mp.appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
-	mp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(header.TxCount))
-	mp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
-
-	numShardHeadersFromPool := 0
-	shardMBHeaderCounterMutex.Lock()
-	mp.appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, uint64(shardMBHeadersTotalProcessed))
-	numShardHeadersFromPool = mp.getHeadersCountInPool()
-	mp.appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
-	shardMBHeaderCounterMutex.Unlock()
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
@@ -1201,15 +1180,15 @@ func (mp *metaProcessor) displayLogInfo(
 	}
 
 	shardMBHeaderCounterMutex.RLock()
-	headerHashS := core.ToB64(headerHash)
+	headerHashBase64 := core.ToB64(headerHash)
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal shard MB headers "+
 		"processed until now: %d. Total shard MB headers processed for this block: %d. Total shard headers remained in pool: %d\n",
-		headerHashS,
+		headerHashBase64,
 		shardMBHeadersTotalProcessed,
 		shardMBHeadersCurrentBlockProcessed,
 		mp.getHeadersCountInPool())
 	shardMBHeaderCounterMutex.RUnlock()
-	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, headerHashS)
+	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, headerHashBase64)
 	log.Info(tblString)
 }
 

@@ -170,7 +170,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	go sp.getMetricsFromBlockBody(body)
+	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
 	err = sp.checkHeaderBodyCorrelation(header, body)
 	if err != nil {
@@ -179,7 +179,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
 	totalTxs := sp.txCounter.totalTxs
-	go sp.getMetricsFromHeader(*header, uint64(numTxWithDst), totalTxs)
+	go getMetricsFromHeader(header, uint64(numTxWithDst), totalTxs, sp.marshalizer, sp.appStatusHandler)
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
@@ -249,35 +249,6 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	return nil
-}
-
-func (sp *shardProcessor) getMetricsFromBlockBody(body block.Body) {
-	mbLen := len(body)
-	miniblocksSize := uint64(0)
-	totalTxCount := 0
-	for i := 0; i < mbLen; i++ {
-		totalTxCount += len(body[i].TxHashes)
-
-		marshalizedBlock, err := sp.marshalizer.Marshal(body[i])
-		if err == nil {
-			miniblocksSize += uint64(len(marshalizedBlock))
-		}
-	}
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(mbLen))
-	sp.appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, miniblocksSize)
-}
-
-func (sp *shardProcessor) getMetricsFromHeader(header block.Header, numTxWithDst uint64, totalTx int) {
-	headerSize := uint64(0)
-	marshalizedHeader, err := sp.marshalizer.Marshal(header)
-	if err == nil {
-		headerSize = uint64(len(marshalizedHeader))
-	}
-
-	sp.appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
-	sp.appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, numTxWithDst)
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, uint64(totalTx))
 }
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
