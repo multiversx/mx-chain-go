@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 	"sync"
 )
@@ -24,11 +25,12 @@ const leaderPercentage = 0.4    // 1 = 100%, 0 = 0%
 const burnPercentage = 0.5      // 1 = 100%, 0 = 0%
 
 type feeTxHandler struct {
-	address     process.SpecialAddressHandler
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
-	mutTxs      sync.Mutex
-	feeTxs      []*feeTx.FeeTx
+	address          process.SpecialAddressHandler
+	shardCoordinator sharding.Coordinator
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	mutTxs           sync.Mutex
+	feeTxs           []*feeTx.FeeTx
 
 	feeTxsFromBlock map[string]*feeTx.FeeTx
 }
@@ -36,11 +38,15 @@ type feeTxHandler struct {
 // NewFeeTxHandler constructor for the fx tee handler
 func NewFeeTxHandler(
 	address process.SpecialAddressHandler,
+	shardCoordinator sharding.Coordinator,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 ) (*feeTxHandler, error) {
 	if address == nil {
 		return nil, process.ErrNilSpecialAddressHandler
+	}
+	if shardCoordinator == nil {
+		return nil, process.ErrNilShardCoordinator
 	}
 	if hasher == nil {
 		return nil, process.ErrNilHasher
@@ -50,9 +56,10 @@ func NewFeeTxHandler(
 	}
 
 	ftxh := &feeTxHandler{
-		address:     address,
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		address:          address,
+		shardCoordinator: shardCoordinator,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
 	}
 	ftxh.feeTxs = make([]*feeTx.FeeTx, 0)
 	ftxh.feeTxsFromBlock = make(map[string]*feeTx.FeeTx)
@@ -254,6 +261,31 @@ func (ftxh *feeTxHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, er
 	// TODO: implement me
 
 	return make([][]byte, 0), nil
+}
+
+// GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
+func (ftxh *feeTxHandler) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
+	ftxh.mutTxs.Lock()
+
+	txFeePool := make(map[string]data.TransactionHandler)
+	for txHash, txInfo := range ftxh.feeTxsFromBlock {
+
+		senderShard := txInfo.ShardId
+		receiverShard, err := ftxh.address.ShardIdForAddress(txInfo.RcvAddr)
+		if err != nil {
+			continue
+		}
+		if receiverShard != ftxh.shardCoordinator.SelfId() {
+			continue
+		}
+		if senderShard != ftxh.shardCoordinator.SelfId() {
+			continue
+		}
+		txFeePool[txHash] = txInfo
+	}
+	ftxh.mutTxs.Unlock()
+
+	return txFeePool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

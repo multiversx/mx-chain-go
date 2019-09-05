@@ -104,6 +104,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 func (ppcm *intermediateProcessorsContainerFactory) createTxFeeIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
 	irp, err := unsigned.NewFeeTxHandler(
 		ppcm.specialAddressHandler,
+		ppcm.shardCoordinator,
 		ppcm.hasher,
 		ppcm.marshalizer,
 	)

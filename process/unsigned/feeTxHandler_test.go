@@ -15,6 +15,7 @@ func TestNewFeeTxHandler_NilSpecialAddress(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		nil,
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -28,6 +29,7 @@ func TestNewFeeTxHandler_NilHasher(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		nil,
 		&mock.MarshalizerMock{},
 	)
@@ -41,6 +43,7 @@ func TestNewFeeTxHandler_NilMarshalizer(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		nil,
 	)
@@ -54,6 +57,7 @@ func TestNewFeeTxHandler_ValsOk(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -67,6 +71,7 @@ func TestFeeTxHandler_AddIntermediateTransactions(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -83,6 +88,7 @@ func TestFeeTxHandler_AddProcessedUTx(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -105,6 +111,7 @@ func TestFeeTxHandler_AddTxFeeFromBlock(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -127,6 +134,7 @@ func TestFeeTxHandler_CleanProcessedUTxs(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -149,6 +157,7 @@ func TestFeeTxHandler_CreateAllUTxs(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -178,6 +187,7 @@ func TestFeeTxHandler_VerifyCreatedUTxs(t *testing.T) {
 	addr := &mock.SpecialAddressHandlerMock{}
 	th, err := NewFeeTxHandler(
 		addr,
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -227,6 +237,7 @@ func TestFeeTxHandler_CreateAllInterMiniBlocks(t *testing.T) {
 
 	th, err := NewFeeTxHandler(
 		&mock.SpecialAddressHandlerMock{},
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
@@ -250,6 +261,7 @@ func TestFeeTxHandler_VerifyInterMiniBlocks(t *testing.T) {
 	addr := &mock.SpecialAddressHandlerMock{}
 	th, err := NewFeeTxHandler(
 		addr,
+		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 	)
