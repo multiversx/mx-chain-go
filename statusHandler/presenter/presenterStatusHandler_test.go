@@ -103,6 +103,7 @@ func TestPresenterStatusHandler_Write(t *testing.T) {
 func TestPresenterStatusHandler_GetLogLine(t *testing.T) {
 	t.Parallel()
 
+	waitTimeBeforeRead := 10 * time.Millisecond
 	logLine := "Hello"
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 	logLineLen, err := presenterStatusHandler.Write([]byte(logLine))
@@ -110,7 +111,7 @@ func TestPresenterStatusHandler_GetLogLine(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(logLine), logLineLen)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(waitTimeBeforeRead)
 	logLines := presenterStatusHandler.GetLogLines()
 
 	assert.Equal(t, 1, len(logLines))
