@@ -406,6 +406,32 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	return nil
 }
 
+
+// GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
+func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
+	rtxh.mut.Lock()
+
+	rewardTxPool := make(map[string]data.TransactionHandler)
+	for txHash, txInfo := range rtxh.rewardTxsForBlock {
+
+		senderShard := txInfo.ShardId
+		receiverShard, err := rtxh.address.ShardIdForAddress(txInfo.RcvAddr)
+		if err != nil {
+			continue
+		}
+		if receiverShard != rtxh.shardCoordinator.SelfId() {
+			continue
+		}
+		if senderShard != rtxh.shardCoordinator.SelfId() {
+			continue
+		}
+		rewardTxPool[txHash] = txInfo
+	}
+	rtxh.mut.Unlock()
+
+	return rewardTxPool
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtxh *rewardsHandler) IsInterfaceNil() bool {
 	if rtxh == nil {

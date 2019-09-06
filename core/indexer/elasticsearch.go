@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"io"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -505,6 +507,11 @@ func getTransactionByType(
 		return buildSmartContractResult(currentSc, txHash, mbHash, blockHash, mb, header)
 	}
 
+	currentReward, ok := tx.(*rewardTx.RewardTx)
+	if ok && currentReward != nil {
+		return buildRewardTransaction(currentReward, txHash, mbHash, blockHash, mb, header)
+	}
+
 	return nil
 }
 
@@ -557,6 +564,33 @@ func buildSmartContractResult(
 		GasPrice:      0,
 		GasLimit:      0,
 		Data:          scr.Data,
+		Signature:     "",
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        "Success",
+	}
+}
+
+func buildRewardTransaction(
+	rTx *rewardTx.RewardTx,
+	txHash []byte,
+	mbHash []byte,
+	blockHash []byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+) *Transaction {
+	return &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		BlockHash:     hex.EncodeToString(blockHash),
+		Nonce:         0,
+		Value:         rTx.Value,
+		Receiver:      hex.EncodeToString(rTx.RcvAddr),
+		Sender:        hex.EncodeToString([]byte(strconv.Itoa(int(rTx.ShardId)))),
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      0,
+		GasLimit:      0,
+		Data:          "",
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",

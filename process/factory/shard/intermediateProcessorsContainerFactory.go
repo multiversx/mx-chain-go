@@ -109,7 +109,6 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
 	irp, err := preprocess.NewRewardTxHandler(
 		ppcm.specialAddressHandler,
-		ppcm.shardCoordinator,
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.shardCoordinator,
