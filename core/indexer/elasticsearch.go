@@ -580,12 +580,7 @@ func buildRewardTransaction(
 	header data.HeaderHandler,
 ) *Transaction {
 
-	shardIdStr := []byte(fmt.Sprintf("Shard%d", rTx.ShardId))
-	lenShardIdStr := len(shardIdStr)
-	// address is 32 size
-	addressFrom := make([]byte, 32)
-	lenKeep := len(addressFrom) - lenShardIdStr
-	addressFrom = append(addressFrom[:lenKeep], shardIdStr...)
+	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardId)
 
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
@@ -595,7 +590,7 @@ func buildRewardTransaction(
 		Round:         rTx.Round,
 		Value:         rTx.Value,
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
-		Sender:        string(addressFrom),
+		Sender:        shardIdStr,
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
