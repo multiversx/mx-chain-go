@@ -72,8 +72,8 @@ func plural(count int, singular string) (result string) {
 	return
 }
 
-// SecondsToHumanFormat transform seconds input in a human friendly format
-func SecondsToHumanFormat(input int) string {
+// SecondsToHourMinSec transform seconds input in a human friendly format
+func SecondsToHourMinSec(input int) string {
 	numSecondsInAMinute := 60
 	numMinutesInAHour := 60
 	numSecondsInAHours := numSecondsInAMinute * numMinutesInAHour

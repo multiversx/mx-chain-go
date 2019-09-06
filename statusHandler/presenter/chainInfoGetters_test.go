@@ -137,7 +137,7 @@ func TestPresenterStatusHandler_CalculateTimeToSynchronize(t *testing.T) {
 	numBlocksThatNeedToBeSynchronized := probableHighestNonce - currentBlockNonce
 	synchronizationEstimationExpected := numBlocksThatNeedToBeSynchronized / synchronizationSpeed
 
-	assert.Equal(t, core.SecondsToHumanFormat(int(synchronizationEstimationExpected)), synchronizationEstimation)
+	assert.Equal(t, core.SecondsToHourMinSec(int(synchronizationEstimationExpected)), synchronizationEstimation)
 }
 
 func TestPresenterStatusHandler_CalculateSynchronizationSpeed(t *testing.T) {
