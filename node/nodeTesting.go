@@ -44,7 +44,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	mutErrFound := sync.Mutex{}
 	var errFound error
 
-	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.marshalizer)
 	if err != nil {
 		return err
 	}
