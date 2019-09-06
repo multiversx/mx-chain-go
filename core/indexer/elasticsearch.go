@@ -9,7 +9,6 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -529,6 +528,7 @@ func buildTransaction(
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         tx.Nonce,
+		Round:         header.GetRound(),
 		Value:         tx.Value,
 		Receiver:      hex.EncodeToString(tx.RcvAddr),
 		Sender:        hex.EncodeToString(tx.SndAddr),
@@ -556,6 +556,7 @@ func buildSmartContractResult(
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         scr.Nonce,
+		Round:         header.GetRound(),
 		Value:         scr.Value,
 		Receiver:      hex.EncodeToString(scr.RcvAddr),
 		Sender:        hex.EncodeToString(scr.SndAddr),
@@ -578,14 +579,23 @@ func buildRewardTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 ) *Transaction {
+
+	shardIdStr := []byte(fmt.Sprintf("Shard%d", rTx.ShardId))
+	lenShardIdStr := len(shardIdStr)
+	// address is 32 size
+	addressFrom := make([]byte, 32)
+	lenKeep := len(addressFrom) - lenShardIdStr
+	addressFrom = append(addressFrom[:lenKeep], shardIdStr...)
+
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         0,
+		Round:         rTx.Round,
 		Value:         rTx.Value,
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
-		Sender:        hex.EncodeToString([]byte(strconv.Itoa(int(rTx.ShardId)))),
+		Sender:        string(addressFrom),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
