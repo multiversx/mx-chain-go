@@ -76,11 +76,11 @@ func plural(count int, singular string) (result string) {
 func SecondsToHourMinSec(input int) string {
 	numSecondsInAMinute := 60
 	numMinutesInAHour := 60
-	numSecondsInAHours := numSecondsInAMinute * numMinutesInAHour
+	numSecondsInAHour := numSecondsInAMinute * numMinutesInAHour
 	result := ""
 
 	hours := math.Floor(float64(input) / float64(numSecondsInAMinute) / float64(numMinutesInAHour))
-	seconds := input % (numSecondsInAHours)
+	seconds := input % (numSecondsInAHour)
 	minutes := math.Floor(float64(seconds) / float64(numSecondsInAMinute))
 	seconds = input % numSecondsInAMinute
 
