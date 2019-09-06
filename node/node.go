@@ -614,7 +614,7 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
-	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.marshalizer)
 	if err != nil {
 		return err
 	}
