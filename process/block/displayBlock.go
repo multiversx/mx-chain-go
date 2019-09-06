@@ -66,8 +66,8 @@ func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRe
 	return sumTxs
 }
 
-// substractRestoredTxs updated the total processed txs in case of restore
-func (txc *transactionCounter) substractRestoredTxs(txsNr int) {
+// subtractRestoredTxs updated the total processed txs in case of restore
+func (txc *transactionCounter) subtractRestoredTxs(txsNr int) {
 	txc.mutex.Lock()
 	txc.totalTxs = txc.totalTxs - txsNr
 	txc.mutex.Unlock()
@@ -176,7 +176,7 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 
-		part := fmt.Sprintf("MiniBlock_%d", miniBlock.ReceiverShardID)
+		part := fmt.Sprintf("MiniBlock_%d_%d", miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 
 		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
