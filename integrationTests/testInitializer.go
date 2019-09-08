@@ -286,14 +286,6 @@ func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExe
 	return vm, blockChainHook
 }
 
-func CreateWASMVMAndBlockChainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, TestAddressConverter)
-	cryptoHook := hooks.NewVMCryptoHook()
-
-	vm
-
-}
-
 // CreateAddressFromAddrBytes creates an address container object from address bytes provided
 func CreateAddressFromAddrBytes(addressBytes []byte) state.AddressContainer {
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
