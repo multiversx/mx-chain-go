@@ -430,7 +430,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
-	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts)
+	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, tx.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -558,7 +558,10 @@ func (sc *scProcessor) refundGasToSender(
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
-func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) error {
+func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, txValue *big.Int) error {
+	sumOfAllDiff := big.NewInt(0)
+	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, txValue)
+
 	for i := 0; i < len(outputAccounts); i++ {
 		outAcc := outputAccounts[i]
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
@@ -615,6 +618,8 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			return process.ErrWrongTypeAssertion
 		}
 
+		sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
+
 		// update the values according to SC output
 		updatedBalance := big.NewInt(0)
 		updatedBalance = updatedBalance.Add(stAcc.Balance, outAcc.BalanceDelta)
@@ -622,6 +627,11 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		if err != nil {
 			return err
 		}
+	}
+
+	zero := big.NewInt(0)
+	if sumOfAllDiff.Cmp(zero) != 0 {
+		return process.ErrOverallBalanceChangeFromSC
 	}
 
 	return nil

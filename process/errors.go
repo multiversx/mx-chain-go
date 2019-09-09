@@ -423,3 +423,6 @@ var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy t
 
 // ErrVMTypeLengthInvalid signals that vm type length is too long
 var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
+
+// ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
+var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")

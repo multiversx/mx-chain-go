@@ -42,7 +42,7 @@ func TestDeployAgarioContract(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d97df32")
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -71,12 +71,12 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+string(factory.IELEVirtualMachine),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d97df32")
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
@@ -129,12 +129,12 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+string(factory.IELEVirtualMachine),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d97df32")
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
@@ -213,12 +213,12 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+string(factory.IELEVirtualMachine),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d97df32")
 
 	senderNonce++
 
@@ -347,12 +347,12 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+string(factory.IELEVirtualMachine),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d97df32")
 
 	defaultUserNonce := uint64(10)
 	defaultUserBalance := big.NewInt(10000000000)
