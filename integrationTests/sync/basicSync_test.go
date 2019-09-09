@@ -43,10 +43,10 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 		shardId,
 		advertiserAddr,
 	)
-	nodes[numNodesPerShard] = metachainNode
+	idxProposerMeta := numNodesPerShard
+	nodes[idxProposerMeta] = metachainNode
 
 	idxProposerShard0 := 0
-	idxProposerMeta := numNodesPerShard
 	idxProposers := []int{idxProposerShard0, idxProposerMeta}
 
 	defer func() {

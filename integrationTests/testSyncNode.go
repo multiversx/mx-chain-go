@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -65,7 +65,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
-	tpn.ForkDetector, _ = processSync.NewBasicForkDetector(tpn.Rounder)
+	tpn.ForkDetector, _ = sync.NewBasicForkDetector(tpn.Rounder)
 
 	tpn.BlockTracker = &mock.BlocksTrackerMock{
 		AddBlockCalled: func(headerHandler data.HeaderHandler) {
@@ -116,7 +116,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (process.Bootstrapper, error) {
-	bootstrap, err := processSync.NewShardBootstrap(
+	bootstrap, err := sync.NewShardBootstrap(
 		tpn.ShardDataPool,
 		tpn.Storage,
 		tpn.BlockChain,
@@ -139,7 +139,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (process.Bootstrapper, e
 }
 
 func (tpn *TestProcessorNode) createMetaChainBootstrapper() (process.Bootstrapper, error) {
-	bootstrap, err := processSync.NewMetaBootstrap(
+	bootstrap, err := sync.NewMetaBootstrap(
 		tpn.MetaDataPool,
 		tpn.Storage,
 		tpn.BlockChain,
