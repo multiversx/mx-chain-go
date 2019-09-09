@@ -522,7 +522,7 @@ func checkProcessorNilParameters(
 	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
 		return process.ErrNilNodesCoordinator
 	}
-	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil {
+	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {
 		return process.ErrNilSpecialAddressHandler
 	}
 	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {

@@ -197,7 +197,7 @@ func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rrh *ResolverRequestHandler) IsInterfaceNil() bool {
+func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 	if rrh == nil {
 		return true
 	}

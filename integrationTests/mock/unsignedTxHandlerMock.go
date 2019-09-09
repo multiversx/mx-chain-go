@@ -51,3 +51,11 @@ func (ut *UnsignedTxHandlerMock) VerifyCreatedUTxs() error {
 	}
 	return ut.VerifyCreatedUTxsCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ut *UnsignedTxHandlerMock) IsInterfaceNil() bool {
+	if ut == nil {
+		return true
+	}
+	return false
+}
