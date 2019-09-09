@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 	"testing"
 
@@ -115,7 +116,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv, oneShardCoordinator)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, endpoint.ElrondTestnet)
+	vm := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 	//Uncomment this to enable trace printing of the vm
 	//vm.SetTracePretty()
 

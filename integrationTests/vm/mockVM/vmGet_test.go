@@ -36,7 +36,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	transferOnCalls := big.NewInt(0)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@01@%X", initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -57,6 +57,6 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("00000000000000003031597e658cd20edf45a1004da5bf04f8b6518744847c32")
 	return accnts, destinationAddressBytes, big.NewInt(0).SetUint64(initialValueForInternalVariable)
 }

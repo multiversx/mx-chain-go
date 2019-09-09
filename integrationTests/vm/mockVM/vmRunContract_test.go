@@ -25,7 +25,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(0)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@01@%X", initialValueForInternalVariable)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
@@ -41,7 +41,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("00000000000000003031597e658cd20edf45a1004da5bf04f8b6518744847c32")
 	addValue := uint64(128)
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
@@ -90,7 +90,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@01@%X", initialValueForInternalVariable)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0
@@ -107,7 +107,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("00000000000000003031597e658cd20edf45a1004da5bf04f8b6518744847c32")
 	addValue := uint64(128)
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
@@ -156,7 +156,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@01@%X", initialValueForInternalVariable)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0
@@ -173,7 +173,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("00000000000000003031597e658cd20edf45a1004da5bf04f8b6518744847c32")
 	addValue := uint64(128)
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
@@ -223,7 +223,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@01@%X", initialValueForInternalVariable)
 
 	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0 and will succeed
@@ -240,7 +240,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("00000000000000003031597e658cd20edf45a1004da5bf04f8b6518744847c32")
 	addValue := uint64(128)
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx

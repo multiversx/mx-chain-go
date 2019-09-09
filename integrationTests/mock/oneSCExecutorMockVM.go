@@ -92,10 +92,10 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 	}
 
 	scOutputAccount := &vmcommon.OutputAccount{
-		Nonce:   0,
-		Code:    input.ContractCode,
-		Balance: input.CallValue,
-		Address: newSCAddr,
+		Nonce:        0,
+		Code:         input.ContractCode,
+		BalanceDelta: input.CallValue,
+		Address:      newSCAddr,
 		StorageUpdates: []*vmcommon.StorageUpdate{
 			{
 				//only one variable: a
@@ -110,7 +110,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		//VM does not increment sender's nonce
 		Nonce: senderNonce,
 		//tx succeed, return 0 back to the sender
-		Balance: big.NewInt(0),
+		BalanceDelta: big.NewInt(0),
 	}
 
 	return &vmcommon.VMOutput{
@@ -179,16 +179,10 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 		return nil, err
 	}
 
-	destBalance, err := vm.blockchainHook.GetBalance(input.RecipientAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	newBalance := big.NewInt(0).Add(destBalance, input.CallValue)
 	scOutputAccount := &vmcommon.OutputAccount{
-		Nonce:   destNonce,
-		Balance: newBalance,
-		Address: input.RecipientAddr,
+		Nonce:        destNonce,
+		BalanceDelta: input.CallValue,
+		Address:      input.RecipientAddr,
 		StorageUpdates: []*vmcommon.StorageUpdate{
 			{
 				//only one variable: a
@@ -208,7 +202,7 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 		//VM does not increment sender's nonce
 		Nonce: senderNonce,
 		//tx succeed, return 0 back to the sender
-		Balance: big.NewInt(0),
+		BalanceDelta: big.NewInt(0),
 	}
 
 	gasRemaining := big.NewInt(0).Sub(input.GasProvided, big.NewInt(0).SetUint64(vm.GasForOperation))
@@ -240,11 +234,11 @@ func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallI
 		return nil, errInsuficientFunds
 	}
 
-	newSCBalance := big.NewInt(0).Sub(destBalance, value)
+	newSCBalance := big.NewInt(0).Sub(big.NewInt(0), value)
 	scOutputAccount := &vmcommon.OutputAccount{
-		Nonce:   destNonce,
-		Balance: newSCBalance,
-		Address: input.RecipientAddr,
+		Nonce:        destNonce,
+		BalanceDelta: newSCBalance,
+		Address:      input.RecipientAddr,
 	}
 
 	senderNonce, err := vm.blockchainHook.GetNonce(input.CallerAddr)
@@ -257,7 +251,7 @@ func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallI
 		//VM does not increment sender's nonce
 		Nonce: senderNonce,
 		//tx succeed, return 0 back to the sender
-		Balance: value,
+		BalanceDelta: value,
 	}
 
 	gasRemaining := big.NewInt(0).Sub(input.GasProvided, big.NewInt(0).SetUint64(vm.GasForOperation))
@@ -285,15 +279,9 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 		return nil, err
 	}
 
-	destBalance, err := vm.blockchainHook.GetBalance(input.RecipientAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	newBalance := big.NewInt(0).Add(destBalance, input.CallValue)
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:          destNonce,
-		Balance:        newBalance,
+		BalanceDelta:   input.CallValue,
 		Address:        input.RecipientAddr,
 		StorageUpdates: make([]*vmcommon.StorageUpdate, 0),
 	}
@@ -317,14 +305,8 @@ func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput
 		return nil, err
 	}
 
-	destBalance, err := vm.blockchainHook.GetBalance(input.RecipientAddr)
-	if err != nil {
-		return nil, err
-	}
-
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:          destNonce,
-		Balance:        destBalance,
 		Address:        input.RecipientAddr,
 		StorageUpdates: make([]*vmcommon.StorageUpdate, 0),
 	}
@@ -348,9 +330,9 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 	}
 
 	vmo := &vmcommon.OutputAccount{
-		Balance: input.CallValue,
-		Address: input.CallerAddr,
-		Nonce:   nonce,
+		BalanceDelta: input.CallValue,
+		Address:      input.CallerAddr,
+		Nonce:        nonce,
 	}
 
 	return &vmcommon.VMOutput{

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -35,7 +36,7 @@ func TestDeployAgarioContract(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
@@ -70,7 +71,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+string(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
@@ -128,7 +129,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+string(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
@@ -212,7 +213,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+string(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
@@ -346,7 +347,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+string(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,

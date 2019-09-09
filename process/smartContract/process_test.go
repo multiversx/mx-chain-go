@@ -480,7 +480,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 		return vm, nil
 	}
 
-	vmArg := []byte("0000")
+	vmArg := []byte("00")
 	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
 		args := make([]*big.Int, 0)
 		args = append(args, big.NewInt(0).SetBytes(vmArg))
@@ -553,7 +553,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	vmArg := []byte("0000")
+	vmArg := []byte("00")
 	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
 		args := make([]*big.Int, 0)
 		args = append(args, big.NewInt(0).SetBytes(vmArg))
@@ -836,7 +836,7 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 	argParser.GetCodeCalled = func() (code []byte, e error) {
 		return nil, tmpError
 	}
-	vmArg := []byte("0000")
+	vmArg := []byte("00")
 	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
 		args := make([]*big.Int, 0)
 		args = append(args, big.NewInt(0).SetBytes(vmArg))
@@ -874,7 +874,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	tx.Data = "data@0000"
 	tx.Value = big.NewInt(45)
 
-	vmArg := []byte("0000")
+	vmArg := []byte("00")
 	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
 		args := make([]*big.Int, 0)
 		args = append(args, big.NewInt(0).SetBytes(vmArg))

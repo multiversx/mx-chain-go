@@ -221,7 +221,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 }
 
 const startVMTypeIndex = 8
-const endVMTypeIndex = 9
+const endVMTypeIndex = 10
 
 func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
 	vmType := tx.RcvAddr[startVMTypeIndex:endVMTypeIndex]
@@ -270,7 +270,6 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
-	// VM is formally verified, the output is correct
 	crossTxs, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
@@ -314,7 +313,14 @@ func (sc *scProcessor) createVMDeployInput(
 		return nil, nil, process.ErrNotEnoughArgumentsToDeploy
 	}
 	// first argument after the code is the vmType
+	vmAppendedType := make([]byte, endVMTypeIndex-startVMTypeIndex)
 	vmType := vmInput.Arguments[0].Bytes()
+	vmArgLen := len(vmType)
+	if vmArgLen > endVMTypeIndex-startVMTypeIndex {
+		return nil, nil, process.ErrVMTypeLengthInvalid
+	}
+
+	copy(vmAppendedType[endVMTypeIndex-startVMTypeIndex-vmArgLen:], vmType)
 	vmInput.Arguments = vmInput.Arguments[1:]
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
@@ -330,7 +336,7 @@ func (sc *scProcessor) createVMDeployInput(
 
 	vmCreateInput.VMInput = *vmInput
 
-	return vmCreateInput, vmType, nil
+	return vmCreateInput, vmAppendedType, nil
 }
 
 func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMInput, error) {
@@ -583,6 +589,8 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			if err != nil {
 				return err
 			}
+
+			fmt.Printf("Created SC addess %s \n", hex.EncodeToString(outAcc.Address))
 		}
 
 		// change nonce only if there is a change

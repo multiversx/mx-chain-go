@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"encoding/hex"
 	"math/big"
 	"sync"
 
@@ -182,9 +181,8 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64,
 	nonce := big.NewInt(0).SetUint64(creatorNonce)
 
 	adrAndNonce := append(creatorAddress, nonce.Bytes()...)
-	kecAdrAndNonce := hex.EncodeToString(keccak.Keccak{}.Compute(string(adrAndNonce)))
+	scAddress := keccak.Keccak{}.Compute(string(adrAndNonce))
 
-	scAddress := []byte(kecAdrAndNonce)
 	identifier := make([]byte, numInitCharactersForScAddress-vmTypeLen)
 	identifier = append(identifier, vmType...)
 	copy(scAddress[:numInitCharactersForScAddress], identifier)
