@@ -3,10 +3,10 @@ package peerDisconnecting
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
@@ -23,7 +23,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	noOfPeers := 20
+	numOfPeers := 20
 	netw := mocknet.New(context.Background())
 
 	//Step 1. Create advertiser
@@ -34,15 +34,15 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	)
 
 	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
-	peers := make([]p2p.Messenger, noOfPeers)
-	for i := 0; i < noOfPeers; i++ {
+	peers := make([]p2p.Messenger, numOfPeers)
+	for i := 0; i < numOfPeers; i++ {
 		node, _ := libp2p.NewMemoryMessenger(
 			context.Background(),
 			netw,
 			discovery.NewKadDhtPeerDiscoverer(
 				time.Second,
 				randezVous,
-				[]string{chooseNonCircuitAddress(advertiser.Addresses())},
+				[]string{integrationTests.GetConnectableAddress(advertiser)},
 			),
 		)
 		peers[i] = node
@@ -50,7 +50,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 
 	//cleanup function that closes all messengers
 	defer func() {
-		for i := 0; i < noOfPeers; i++ {
+		for i := 0; i < numOfPeers; i++ {
 			if peers[i] != nil {
 				_ = peers[i].Close()
 			}
@@ -69,7 +69,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	for _, p := range peers {
 		_ = p.Bootstrap()
 	}
-	waitForBootstrapAndShowConnected(peers)
+	integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
 
 	//Step 4. Disconnect one peer
 	disconnectedPeer := peers[5]
@@ -85,13 +85,13 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 		}
 	}
 	for i := 0; i < 5; i++ {
-		waitForBootstrapAndShowConnected(peers)
+		integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
 	}
 
 	//Step 4.1. Test that the peer is disconnected
 	for _, p := range peers {
 		if p != disconnectedPeer {
-			assert.Equal(t, noOfPeers-1, len(p.ConnectedPeers()))
+			assert.Equal(t, numOfPeers-1, len(p.ConnectedPeers()))
 		} else {
 			assert.Equal(t, 0, len(p.ConnectedPeers()))
 		}
@@ -101,36 +101,15 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	fmt.Println("--- Re-linking ---")
 	_ = netw.LinkAll()
 	for i := 0; i < 5; i++ {
-		waitForBootstrapAndShowConnected(peers)
+		integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
 	}
 
 	//Step 5.1. Test that the peer is reconnected
 	for _, p := range peers {
-		assert.Equal(t, noOfPeers, len(p.ConnectedPeers()))
+		assert.Equal(t, numOfPeers, len(p.ConnectedPeers()))
 	}
 }
 
 func getPeerId(netMessenger p2p.Messenger) peer.ID {
 	return peer.ID(netMessenger.ID().Bytes())
-}
-
-func waitForBootstrapAndShowConnected(peers []p2p.Messenger) {
-	fmt.Printf("Waiting %v for peer discovery...\n", durationBootstrapingTime)
-	time.Sleep(durationBootstrapingTime)
-
-	fmt.Println("Connected peers:")
-	for _, p := range peers {
-		fmt.Printf("Peer %s is connected to %d peers\n", p.ID().Pretty(), len(p.ConnectedPeers()))
-	}
-}
-
-func chooseNonCircuitAddress(addresses []string) string {
-	for _, adr := range addresses {
-		if strings.Contains(adr, "circuit") || strings.Contains(adr, "169.254") {
-			continue
-		}
-		return adr
-	}
-
-	return ""
 }

@@ -1,45 +1,17 @@
 package peerDiscovery
 
 import (
-	"context"
-	"crypto/ecdsa"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 var durationMsgRecieved = 2 * time.Second
 
-func CreateMessenger(ctx context.Context,
-	seed int,
-	peerDiscoverer p2p.PeerDiscoverer) p2p.Messenger {
-
-	r := rand.New(rand.NewSource(int64(seed)))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
-
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		peerDiscoverer)
-
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	return libP2PMes
-}
-
+// RunTest will test if all the peers receive a message
 func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
 	fmt.Printf("Running test %v\n", testIndex)
 
