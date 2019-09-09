@@ -325,7 +325,7 @@ func TestChronology_SetAppStatusHandlerWithOkValueShouldPass(t *testing.T) {
 func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 	t.Parallel()
 
-	chanDone := make(chan bool, 1)
+	chanDone := make(chan bool, 2)
 	rounderMock := &mock.RounderMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 	chr, _ := chronology.NewChronology(
