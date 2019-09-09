@@ -281,7 +281,9 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, TestAddressConverter)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, endpoint.ElrondTestnet)
+	vm := endpoint.NewElrondIeleVM(
+		endpoint.TestVMType, endpoint.ElrondTestnet,
+		blockChainHook, cryptoHook)
 
 	return vm, blockChainHook
 }

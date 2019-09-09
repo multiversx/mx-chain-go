@@ -51,6 +51,11 @@ func (vadb *VMAccountsDB) AccountExists(address []byte) (bool, error) {
 	return true, nil
 }
 
+// NewAddress yields the address of a new SC account when creating one
+func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+	return []byte{}, nil // empty result means fallback to default
+}
+
 // GetBalance returns the balance of a shard account
 func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
 	exists, err := vadb.AccountExists(address)
@@ -70,24 +75,21 @@ func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
 }
 
 // GetNonce returns the nonce of a shard account
-func (vadb *VMAccountsDB) GetNonce(address []byte) (*big.Int, error) {
+func (vadb *VMAccountsDB) GetNonce(address []byte) (uint64, error) {
 	exists, err := vadb.AccountExists(address)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	if !exists {
-		return big.NewInt(0), nil
+		return 0, nil
 	}
 
 	shardAccount, err := vadb.getShardAccountFromAddressBytes(address)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	nonce := big.NewInt(0)
-	nonce.SetUint64(shardAccount.Nonce)
-
-	return nonce, nil
+	return shardAccount.Nonce, nil
 }
 
 // GetStorageData returns the storage value of a variable held in account's data trie
