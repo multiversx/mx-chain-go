@@ -121,3 +121,11 @@ func (c *FIFOShardedCache) Keys() [][]byte {
 func (c *FIFOShardedCache) Len() int {
 	return c.cache.Count()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (c *FIFOShardedCache) IsInterfaceNil() bool {
+	if c == nil {
+		return true
+	}
+	return false
+}

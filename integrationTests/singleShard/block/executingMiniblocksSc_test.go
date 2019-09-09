@@ -153,29 +153,23 @@ func runMultipleRoundsOfTheGame(
 				strconv.Itoa(currentRound),
 				hardCodedScResultingAddress,
 			)
-			newBalance := big.NewInt(0)
-			newBalance = newBalance.Sub(player.Balance, topUpValue)
-			player.Balance = player.Balance.Set(newBalance)
 		}
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
-			newBalance := big.NewInt(0)
-			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
-			players[i].Balance = players[i].Balance.Set(newBalance)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
 		}
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])

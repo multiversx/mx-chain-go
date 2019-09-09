@@ -16,3 +16,11 @@ func (th *TxTypeHandlerMock) ComputeTransactionType(tx data.TransactionHandler) 
 
 	return th.ComputeTransactionTypeCalled(tx)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (th *TxTypeHandlerMock) IsInterfaceNil() bool {
+	if th == nil {
+		return true
+	}
+	return false
+}

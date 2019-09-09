@@ -12,7 +12,7 @@ type messageChecker struct {
 }
 
 func (*messageChecker) checkMessage(message p2p.MessageP2P) error {
-	if message == nil {
+	if message == nil || message.IsInterfaceNil() {
 		return process.ErrNilMessage
 	}
 

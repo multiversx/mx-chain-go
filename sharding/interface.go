@@ -16,6 +16,7 @@ type Coordinator interface {
 	SelfId() uint32
 	SameShard(firstAddress, secondAddress state.AddressContainer) bool
 	CommunicationIdentifier(destShardID uint32) string
+	IsInterfaceNil() bool
 }
 
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
@@ -33,6 +34,7 @@ type NodesCoordinator interface {
 	SetNodesPerShards(nodes map[uint32][]Validator) error
 	ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
+	IsInterfaceNil() bool
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys

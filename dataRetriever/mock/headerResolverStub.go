@@ -36,3 +36,11 @@ func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64) error {
 
 	return errNotImplemented
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hrs *HeaderResolverStub) IsInterfaceNil() bool {
+	if hrs == nil {
+		return true
+	}
+	return false
+}

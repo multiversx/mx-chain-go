@@ -32,8 +32,15 @@ type NodeWrapper interface {
 	//GenerateTransaction generates a new transaction with sender, receiver, amount and code
 	GenerateTransaction(senderHex string, receiverHex string, amount *big.Int, code string) (*transaction.Transaction, error)
 
-	//SendTransaction will send a new transaction on the topic channel
+	//CreateTransaction will return a transaction from all needed fields
+	CreateTransaction(nonce uint64, value *big.Int, receiverHex string, senderHex string, gasPrice uint64,
+		gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
+
+	//SendTransaction will send a new transaction on the 'send transactions pipe' channel
 	SendTransaction(nonce uint64, senderHex string, receiverHex string, value *big.Int, gasPrice uint64, gasLimit uint64, transactionData string, signature []byte) (string, error)
+
+	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
+	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)
@@ -55,9 +62,13 @@ type NodeWrapper interface {
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []heartbeat.PubKeyHeartbeat
+
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
 	GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	IsInterfaceNil() bool
 }

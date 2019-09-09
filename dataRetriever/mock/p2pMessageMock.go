@@ -41,3 +41,11 @@ func (msg *P2PMessageMock) Key() []byte {
 func (msg *P2PMessageMock) Peer() p2p.PeerID {
 	return msg.PeerField
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (msg *P2PMessageMock) IsInterfaceNil() bool {
+	if msg == nil {
+		return true
+	}
+	return false
+}

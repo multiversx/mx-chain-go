@@ -15,6 +15,7 @@ type DBConfig struct {
 	Type              string `json:"type"`
 	BatchDelaySeconds int    `json:"batchDelaySeconds"`
 	MaxBatchSize      int    `json:"maxBatchSize"`
+	MaxOpenFiles      int    `json:"maxOpenFiles"`
 }
 
 // BloomFilterConfig will map the json bloom filter configuration

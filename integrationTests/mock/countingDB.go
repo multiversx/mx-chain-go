@@ -51,3 +51,11 @@ func (cdb *countingDB) Reset() {
 func (cdb *countingDB) GetCounter() int {
 	return cdb.nrOfPut
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (cdb *countingDB) IsInterfaceNil() bool {
+	if cdb == nil {
+		return true
+	}
+	return false
+}

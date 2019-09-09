@@ -20,16 +20,16 @@ func NewMetaDataPool(
 	headersNonces dataRetriever.Uint64SyncMapCacher,
 ) (*metaDataPool, error) {
 
-	if metaBlocks == nil {
+	if metaBlocks == nil || metaBlocks.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMetaBlockPool
 	}
-	if miniBlockHashes == nil {
+	if miniBlockHashes == nil || miniBlockHashes.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMiniBlockHashesPool
 	}
-	if shardHeaders == nil {
+	if shardHeaders == nil || shardHeaders.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilShardHeaderPool
 	}
-	if headersNonces == nil {
+	if headersNonces == nil || headersNonces.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMetaBlockNoncesPool
 	}
 
@@ -60,4 +60,12 @@ func (mdp *metaDataPool) ShardHeaders() storage.Cacher {
 // also metachain header nonce-hash pairs
 func (mdp *metaDataPool) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return mdp.headersNonces
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mdp *metaDataPool) IsInterfaceNil() bool {
+	if mdp == nil {
+		return true
+	}
+	return false
 }

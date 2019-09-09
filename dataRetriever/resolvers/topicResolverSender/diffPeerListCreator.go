@@ -21,7 +21,7 @@ func NewDiffPeerListCreator(
 	mainTopic string,
 	excludePeersFromTopic string,
 ) (*DiffPeerListCreator, error) {
-	if messenger == nil {
+	if messenger == nil || messenger.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMessenger
 	}
 
@@ -53,6 +53,14 @@ func (dplc *DiffPeerListCreator) PeerList() []p2p.PeerID {
 	}
 
 	return diffList
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (dplc *DiffPeerListCreator) IsInterfaceNil() bool {
+	if dplc == nil {
+		return true
+	}
+	return false
 }
 
 func makeDiffList(

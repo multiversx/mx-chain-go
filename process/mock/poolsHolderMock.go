@@ -86,3 +86,11 @@ func (phm *PoolsHolderMock) SetTransactions(transactions dataRetriever.ShardedDa
 func (phm *PoolsHolderMock) SetUnsignedTransactions(scrs dataRetriever.ShardedDataCacherNotifier) {
 	phm.unsignedTransactions = scrs
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (phf *PoolsHolderFake) IsInterfaceNil() bool {
+	if phf == nil {
+		return true
+	}
+	return false
+}

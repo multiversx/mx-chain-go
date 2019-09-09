@@ -39,28 +39,28 @@ func NewHeaderInterceptor(
 	nodesCoordinator sharding.NodesCoordinator,
 ) (*HeaderInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if headersNonces == nil {
+	if headersNonces == nil || headersNonces.IsInterfaceNil() {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-	if headers == nil {
+	if headers == nil || headers.IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if headerValidator == nil {
+	if headerValidator == nil || headerValidator.IsInterfaceNil() {
 		return nil, process.ErrNilHeaderHandlerValidator
 	}
-	if multiSigVerifier == nil {
+	if multiSigVerifier == nil || multiSigVerifier.IsInterfaceNil() {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil {
+	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilNodesCoordinator
 	}
 
@@ -81,7 +81,7 @@ func NewHeaderInterceptor(
 // ParseReceivedMessage will transform the received p2p.Message in an InterceptedHeader.
 // If the header hash is present in storage it will output an error
 func (hi *HeaderInterceptor) ParseReceivedMessage(message p2p.MessageP2P) (*block.InterceptedHeader, error) {
-	if message == nil {
+	if message == nil || message.IsInterfaceNil() {
 		return nil, process.ErrNilMessage
 	}
 	if message.Data() == nil {
@@ -147,4 +147,12 @@ func (hi *HeaderInterceptor) processHeader(hdrIntercepted *block.InterceptedHead
 	syncMap := &dataPool.ShardIdHashSyncMap{}
 	syncMap.Store(hdrIntercepted.ShardId, hdrIntercepted.Hash())
 	hi.headersNonces.Merge(hdrIntercepted.Nonce, syncMap)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hi *HeaderInterceptor) IsInterfaceNil() bool {
+	if hi == nil {
+		return true
+	}
+	return false
 }

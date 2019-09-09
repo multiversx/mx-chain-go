@@ -18,7 +18,7 @@ func NewLibp2pContext(ctx context.Context, connHost ConnectableHost) (*Libp2pCon
 		return nil, p2p.ErrNilContext
 	}
 
-	if connHost == nil {
+	if connHost == nil || connHost.IsInterfaceNil() {
 		return nil, p2p.ErrNilHost
 	}
 
@@ -36,4 +36,12 @@ func (lctx *Libp2pContext) Context() context.Context {
 // Host returns the connectable host
 func (lctx *Libp2pContext) Host() ConnectableHost {
 	return lctx.connHost
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (lctx *Libp2pContext) IsInterfaceNil() bool {
+	if lctx == nil {
+		return true
+	}
+	return false
 }

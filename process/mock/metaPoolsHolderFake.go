@@ -45,3 +45,11 @@ func (mphf *MetaPoolsHolderFake) ShardHeaders() storage.Cacher {
 func (mphf *MetaPoolsHolderFake) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return mphf.headersNonces
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mphf *MetaPoolsHolderFake) IsInterfaceNil() bool {
+	if mphf == nil {
+		return true
+	}
+	return false
+}

@@ -52,3 +52,11 @@ func (phs *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCach
 func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return phs.RewardTransactionsCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (phs *PoolsHolderStub) IsInterfaceNil() bool {
+    if phs == nil {
+        return true
+    }
+    return false
+}

@@ -32,3 +32,11 @@ func (osc *OneShardCoordinator) SameShard(firstAddress, secondAddress state.Addr
 func (osc *OneShardCoordinator) CommunicationIdentifier(destShardID uint32) string {
 	return communicationIdentifierBetweenShards(destShardID, 0)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (osc *OneShardCoordinator) IsInterfaceNil() bool {
+	if osc == nil {
+		return true
+	}
+	return false
+}

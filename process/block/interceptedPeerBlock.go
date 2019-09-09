@@ -46,7 +46,7 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) IntegrityAndValidity(coordinator s
 
 // Integrity checks the integrity of the state block wrapper
 func (inPeerBlkBdy *InterceptedPeerBlockBody) Integrity(coordinator sharding.Coordinator) error {
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
 
@@ -71,4 +71,12 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) validityCheck() error {
 	// TODO: check that the peer changes received are equal with what has been calculated
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (inPeerBlkBdy *InterceptedPeerBlockBody) IsInterfaceNil() bool {
+	if inPeerBlkBdy == nil {
+		return true
+	}
+	return false
 }

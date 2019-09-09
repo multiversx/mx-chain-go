@@ -66,7 +66,7 @@ func (mpd *MdnsPeerDiscoverer) Bootstrap() error {
 
 // ApplyContext sets the context in which this discoverer is to be run
 func (mpd *MdnsPeerDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	if ctxProvider == nil {
+	if ctxProvider == nil || ctxProvider.IsInterfaceNil() {
 		return p2p.ErrNilContextProvider
 	}
 
@@ -121,4 +121,12 @@ func (mpd *MdnsPeerDiscoverer) HandlePeerFound(pi peer.AddrInfo) {
 			log.Debug(err.Error())
 		}
 	}()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mpd *MdnsPeerDiscoverer) IsInterfaceNil() bool {
+	if mpd == nil {
+		return true
+	}
+	return false
 }

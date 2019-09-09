@@ -945,7 +945,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	blockProcessorMock := createBlockProcessor()
 
@@ -999,7 +999,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
 		time.Duration(100*time.Millisecond),
-		mock.SyncTimerMock{})
+		&mock.SyncTimerMock{})
 
 	blockProcessorMock := createBlockProcessor()
 
@@ -1091,7 +1091,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
 		time.Duration(100*time.Millisecond),
-		mock.SyncTimerMock{})
+		&mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1143,7 +1143,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1261,7 +1261,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return nil, nil
 	}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1373,7 +1373,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
 		time.Duration(100*time.Millisecond),
-		mock.SyncTimerMock{})
+		&mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1481,7 +1481,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
 		time.Duration(100*time.Millisecond),
-		mock.SyncTimerMock{})
+		&mock.SyncTimerMock{})
 
 	ebm.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return process.ErrBlockHashDoesNotMatch
@@ -1526,7 +1526,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1565,7 +1565,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1609,7 +1609,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1653,7 +1653,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1810,7 +1810,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1880,7 +1880,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1928,7 +1928,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -2001,7 +2001,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -2078,7 +2078,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *te
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -4048,7 +4048,8 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 			bytes.Equal(key, uint64Converter.ToByteSlice(2)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(3)) ||
 			bytes.Equal(key, uint64Converter.ToByteSlice(4)) ||
-			bytes.Equal(key, uint64Converter.ToByteSlice(5)) {
+			bytes.Equal(key, uint64Converter.ToByteSlice(5)) ||
+			bytes.Equal(key, uint64Converter.ToByteSlice(6)) {
 			return nil
 		}
 
@@ -4058,6 +4059,7 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	shardBlockHash3 := []byte("shardhash_3")
 	shardBlockHash4 := []byte("shardhash_4")
 	shardBlockHash5 := []byte("shardhash_5")
+	shardBlockHash6 := []byte("shardhash_6")
 
 	metaBlockHashes1 := make([][]byte, 0)
 	metaBlockHash1 := []byte("metahash_1")
@@ -4071,6 +4073,15 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	metaBlockHash3 := []byte("metahash_3")
 	metaBlockHashes3 = append(metaBlockHashes3, metaBlockHash3)
 
+	metaBlockHashes4 := make([][]byte, 0)
+	metaBlockHash4 := []byte("metahash_4")
+	metaBlockHashes4 = append(metaBlockHashes4, metaBlockHash4)
+
+	shardInfo := make([]block.ShardData, 0)
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: shardBlockHash3})
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: shardBlockHash4})
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: shardBlockHash5})
+
 	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 		if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
 			if bytes.Equal(key, uint64Converter.ToByteSlice(3)) {
@@ -4081,6 +4092,9 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 			}
 			if bytes.Equal(key, uint64Converter.ToByteSlice(5)) {
 				return shardBlockHash5, nil
+			}
+			if bytes.Equal(key, uint64Converter.ToByteSlice(6)) {
+				return shardBlockHash6, nil
 			}
 		}
 
@@ -4093,6 +4107,9 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 			}
 			if bytes.Equal(key, uint64Converter.ToByteSlice(3)) {
 				return metaBlockHash3, nil
+			}
+			if bytes.Equal(key, uint64Converter.ToByteSlice(4)) {
+				return metaBlockHash4, nil
 			}
 		}
 
@@ -4115,6 +4132,10 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 						buff, _ := marshalizer.Marshal(&block.Header{Nonce: 5, MetaBlockHashes: metaBlockHashes3})
 						return buff, nil
 					}
+					if bytes.Equal(key, shardBlockHash6) {
+						buff, _ := marshalizer.Marshal(&block.Header{Nonce: 6, MetaBlockHashes: metaBlockHashes4})
+						return buff, nil
+					}
 
 					return nil, errKeyNotFound
 				},
@@ -4133,7 +4154,11 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 						return buff, nil
 					}
 					if bytes.Equal(key, metaBlockHash3) {
-						buff, _ := marshalizer.Marshal(&block.MetaBlock{Nonce: 3})
+						buff, _ := marshalizer.Marshal(&block.MetaBlock{Nonce: 3, ShardInfo: shardInfo})
+						return buff, nil
+					}
+					if bytes.Equal(key, metaBlockHash4) {
+						buff, _ := marshalizer.Marshal(&block.MetaBlock{Nonce: 4})
 						return buff, nil
 					}
 
@@ -4857,6 +4882,9 @@ func NewStorageBootstrapperMock() *sync.StorageBootstrapperMock {
 		},
 		CleanupNotarizedStorageCalled: func(lastNotarized map[uint32]uint64) {
 			fmt.Printf("last notarized items: %d\n", len(lastNotarized))
+		},
+		AddHeaderToForkDetectorCalled: func(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
+			fmt.Printf("add header to fork detector called")
 		},
 	}
 

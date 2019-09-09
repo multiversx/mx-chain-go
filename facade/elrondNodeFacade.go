@@ -36,10 +36,10 @@ type ElrondNodeFacade struct {
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
 func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver, restAPIServerDebugMode bool) *ElrondNodeFacade {
-	if node == nil {
+	if node == nil || node.IsInterfaceNil() {
 		return nil
 	}
-	if apiResolver == nil {
+	if apiResolver == nil || apiResolver.IsInterfaceNil() {
 		return nil
 	}
 
@@ -171,6 +171,22 @@ func (ef *ElrondNodeFacade) GenerateTransaction(senderHex string, receiverHex st
 	return ef.node.GenerateTransaction(senderHex, receiverHex, value, data)
 }
 
+// CreateTransaction creates a transaction from all needed fields
+func (ef *ElrondNodeFacade) CreateTransaction(
+	nonce uint64,
+	value *big.Int,
+	receiverHex string,
+	senderHex string,
+	gasPrice uint64,
+	gasLimit uint64,
+	data string,
+	signatureHex string,
+	challenge string,
+) (*transaction.Transaction, error) {
+
+	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, challenge)
+}
+
 // SendTransaction will send a new transaction on the topic channel
 func (ef *ElrondNodeFacade) SendTransaction(
 	nonce uint64,
@@ -184,6 +200,11 @@ func (ef *ElrondNodeFacade) SendTransaction(
 ) (string, error) {
 
 	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, gasPrice, gasLimit, transactionData, signature)
+}
+
+// SendBulkTransactions will send a bulk of transactions on the topic channel
+func (ef *ElrondNodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
+	return ef.node.SendBulkTransactions(txs)
 }
 
 // GetTransaction gets the transaction with a specified hash
@@ -242,4 +263,12 @@ func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff
 // PprofEnabled returns if profiling mode should be active or not on the application
 func (ef *ElrondNodeFacade) PprofEnabled() bool {
 	return ef.config.PprofEnabled
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ef *ElrondNodeFacade) IsInterfaceNil() bool {
+	if ef == nil {
+		return true
+	}
+	return false
 }

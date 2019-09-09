@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -41,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
@@ -501,6 +503,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	var appStatusHandlers []core.AppStatusHandler
+	var views []factoryViews.Viewer
 
 	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
@@ -508,21 +511,32 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
 
+	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
+
 	useTermui := !ctx.GlobalBool(useLogView.Name)
 	if useTermui {
-		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
-		err = termuiStatusHandler.StartTermuiConsole()
+
+		views, err = factory.CreateViews(presenterStatusHandler)
 		if err != nil {
 			return err
 		}
 
-		termuiConsole := termuiStatusHandler.Termui()
-		err = log.ChangePrinterHookWriter(termuiConsole)
-		if err != nil {
-			return err
+		writer, ok := presenterStatusHandler.(io.Writer)
+		if ok {
+			err = log.ChangePrinterHookWriter(writer)
+			if err != nil {
+				return err
+			}
 		}
 
-		appStatusHandlers = append(appStatusHandlers, termuiStatusHandler)
+		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
+		if ok {
+			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
+		}
+	}
+
+	if views == nil {
+		log.Warn("No views for current node")
 	}
 
 	if len(appStatusHandlers) > 0 {
@@ -535,14 +549,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
-	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/milisecondsInSecond)
-	coreComponents.StatusHandler.SetStringValue(core.MetricAppVersion, version)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
+	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -567,13 +574,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
-		"OsVersion", "TestOs",
+		"GenesisTimeStamp", startTime.Unix(),
 	)
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
@@ -672,7 +679,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		processComponents,
 	)
 	if err != nil {
-		log.Info("Error creating status polling: ", err)
+		return err
 	}
 
 	updateMachineStatisticsDurationSec := 1
@@ -724,6 +731,34 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func initMetrics(
+	appStatusHandler core.AppStatusHandler,
+	pubKey crypto.PublicKey,
+	nodeType core.NodeType,
+	shardCoordinator sharding.Coordinator,
+	nodesConfig *sharding.NodesSetup,
+	version string,
+) {
+	shardId := uint64(shardCoordinator.SelfId())
+	roundDuration := nodesConfig.RoundDuration
+	isSyncing := uint64(1)
+
+	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
+	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
+	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/milisecondsInSecond)
+	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
+	appStatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
+	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
+	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, 0)
+	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
+	appStatusHandler.SetStringValue(core.MetricConsensusState, "")
+	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
+	appStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
 }
 
 func startStatusPolling(
@@ -835,6 +870,7 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
 		appStatusHandler.SetUInt64Value(core.MetricTotalMem, memStats.TotalMemory())
+		appStatusHandler.SetUInt64Value(core.MetricMemoryUsedByNode, memStats.UsedMemory())
 	})
 }
 
@@ -1153,17 +1189,11 @@ func createNode(
 		err = nd.ApplyOptions(
 			node.WithInitialNodesBalances(state.InBalanceForShard),
 			node.WithDataPool(data.Datapool),
-			node.WithActiveMetachain(nodesConfig.MetaChainActive))
+		)
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
-
 		err = nd.CreateShardedStores()
-		if err != nil {
-			return nil, err
-		}
-
-		err = nd.CreateShardGenesisBlock()
 		if err != nil {
 			return nil, err
 		}
@@ -1172,10 +1202,6 @@ func createNode(
 		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
-		}
-		err = nd.CreateMetaGenesisBlock()
-		if err != nil {
-			return nil, err
 		}
 	}
 	return nd, nil

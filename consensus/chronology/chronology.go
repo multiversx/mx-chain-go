@@ -67,11 +67,11 @@ func checkNewChronologyParams(
 	syncTimer ntp.SyncTimer,
 ) error {
 
-	if rounder == nil {
+	if rounder == nil || rounder.IsInterfaceNil() {
 		return ErrNilRounder
 	}
 
-	if syncTimer == nil {
+	if syncTimer == nil || syncTimer.IsInterfaceNil() {
 		return ErrNilSyncTimer
 	}
 
@@ -190,4 +190,12 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 	}
 
 	return chr.subroundHandlers[index]
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (chr *chronology) IsInterfaceNil() bool {
+	if chr == nil {
+		return true
+	}
+	return false
 }

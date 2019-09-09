@@ -70,7 +70,7 @@ const MetricCountAcceptedBlocks = "erd_count_accepted_blocks"
 const MetricNodeType = "erd_node_type"
 
 // MetricLiveValidatorNodes is the metric for monitoring live validators on the network
-const MetricLiveValidatorNodes = "erd_max_validator_nodes"
+const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
 // MetricConnectedNodes is the metric for monitoring total connected peers on the network
 const MetricConnectedNodes = "erd_connected_nodes"
@@ -107,3 +107,21 @@ const MetricRoundTime = "erd_round_time"
 
 // MetricAppVersion is the metric for the current app version
 const MetricAppVersion = "erd_app_version"
+
+// MetricNumTxInBlock is the metric for the number of transactions in the proposed block
+const MetricNumTxInBlock = "erd_num_tx_block"
+
+// MetricConsensusState is the metric for consensus state of node proposer,participant or not consensus group
+const MetricConsensusState = "erd_consensus_state"
+
+// MetricNumMiniBlocks is the metric for number of miniblocks in a block
+const MetricNumMiniBlocks = "erd_num_mini_blocks"
+
+// MetricConsensusRoundState is the metric for consensus round state for a block
+const MetricConsensusRoundState = "erd_consensus_round_state"
+
+// MetricCrossCheckBlockHeight is the metric that store cross block height
+const MetricCrossCheckBlockHeight = "erd_metric_cross_check_block_height"
+
+// MetricMemoryUsedByNode is the metric that stores  the total memory used by the node in bytes
+const MetricMemoryUsedByNode = "erd_used_memory_by_node"

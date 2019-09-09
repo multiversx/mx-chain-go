@@ -92,6 +92,14 @@ func (msc *multiShardCoordinator) CommunicationIdentifier(destShardID uint32) st
 	return communicationIdentifierBetweenShards(msc.selfId, destShardID)
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (msc *multiShardCoordinator) IsInterfaceNil() bool {
+	if msc == nil {
+		return true
+	}
+	return false
+}
+
 // communicationIdentifierBetweenShards is used to generate the identifier between shardID1 and shardID2
 // identifier is generated such as the first shard from identifier is always smaller or equal than the last
 func communicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {

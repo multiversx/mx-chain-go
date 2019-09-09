@@ -46,22 +46,22 @@ func NewTransactionCoordinator(
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
 ) (*transactionCoordinator, error) {
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if requestHandler == nil {
+	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
-	if interProcessors == nil {
+	if interProcessors == nil || interProcessors.IsInterfaceNil() {
 		return nil, process.ErrNilIntermediateProcessorContainer
 	}
-	if preProcessors == nil {
+	if preProcessors == nil || preProcessors.IsInterfaceNil() {
 		return nil, process.ErrNilPreProcessorsContainer
 	}
 
@@ -71,7 +71,7 @@ func NewTransactionCoordinator(
 	}
 
 	tc.miniBlockPool = dataPool.MiniBlocks()
-	if tc.miniBlockPool == nil {
+	if tc.miniBlockPool == nil || tc.miniBlockPool.IsInterfaceNil() {
 		return nil, process.ErrNilMiniBlockPool
 	}
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
@@ -311,7 +311,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
 			preproc := tc.getPreProcessor(blockType)
-			if preproc == nil {
+			if preproc == nil || preproc.IsInterfaceNil() {
 				wg.Done()
 				return
 			}
@@ -348,7 +348,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		}
 
 		preproc := tc.getPreProcessor(blockType)
-		if preproc == nil {
+		if preproc == nil || preproc.IsInterfaceNil() {
 			return process.ErrMissingPreProcessor
 		}
 
@@ -401,7 +401,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
-		if preproc == nil {
+		if preproc == nil || preproc.IsInterfaceNil() {
 			continue
 		}
 
@@ -445,7 +445,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 ) block.MiniBlockSlice {
 
 	txPreProc := tc.getPreProcessor(block.TxBlock)
-	if txPreProc == nil {
+	if txPreProc == nil || txPreProc.IsInterfaceNil() {
 		return nil
 	}
 
@@ -622,7 +622,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 		}
 
 		preproc := tc.getPreProcessor(miniblock.Type)
-		if preproc == nil {
+		if preproc == nil || preproc.IsInterfaceNil() {
 			continue
 		}
 
@@ -639,7 +639,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 		}
 
 		interimProc := tc.getInterimProcessor(miniblock.Type)
-		if interimProc == nil {
+		if interimProc == nil || interimProc.IsInterfaceNil() {
 			continue
 		}
 
@@ -659,14 +659,24 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
-	tc.mutPreProcessor.RLock()
-	defer tc.mutPreProcessor.RUnlock()
+	txPool := make(map[string]data.TransactionHandler, 0)
+	interTxPool := make(map[string]data.TransactionHandler, 0)
 
-	if _, ok := tc.txPreProcessors[blockType]; !ok {
-		return nil
+	preProc := tc.getPreProcessor(blockType)
+	if preProc != nil {
+		txPool = preProc.GetAllCurrentUsedTxs()
 	}
 
-	return tc.txPreProcessors[blockType].GetAllCurrentUsedTxs()
+	interProc := tc.getInterimProcessor(blockType)
+	if interProc != nil {
+		interTxPool = interProc.GetAllCurrentFinishedTxs()
+	}
+
+	for hash, tx := range interTxPool {
+		txPool[hash] = tx
+	}
+
+	return txPool
 }
 
 // RequestMiniBlocks request miniblocks if missing
@@ -698,7 +708,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
 	}
 
 	preproc := tc.getPreProcessor(miniBlock.Type)
-	if preproc == nil {
+	if preproc == nil || preproc.IsInterfaceNil() {
 		return
 	}
 
@@ -769,4 +779,12 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 	}
 
 	return interimProc.VerifyInterMiniBlocks(body)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tc *transactionCoordinator) IsInterfaceNil() bool {
+	if tc == nil {
+		return true
+	}
+	return false
 }

@@ -37,6 +37,14 @@ func (af *accountFactory) CreateAccount(address state.AddressContainer, tracker 
 	return state.NewAccount(address, tracker)
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (af *accountFactory) IsInterfaceNil() bool {
+	if af == nil {
+		return true
+	}
+	return false
+}
+
 func CreateEmptyAddress() state.AddressContainer {
 	buff := make([]byte, testHasher.Size())
 

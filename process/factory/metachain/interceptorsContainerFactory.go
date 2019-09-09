@@ -38,28 +38,28 @@ func NewInterceptorsContainerFactory(
 	dataPool dataRetriever.MetaPoolsHolder,
 ) (*interceptorsContainerFactory, error) {
 
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil {
+	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil(){
 		return nil, process.ErrNilNodesCoordinator
 	}
 	if messenger == nil {
 		return nil, process.ErrNilMessenger
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStore
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if multiSigner == nil {
+	if multiSigner == nil || multiSigner.IsInterfaceNil() {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
 
@@ -194,4 +194,12 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 	}
 
 	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (icf *interceptorsContainerFactory) IsInterfaceNil() bool {
+	if icf == nil {
+		return true
+	}
+	return false
 }
