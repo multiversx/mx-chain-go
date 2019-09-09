@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-    "github.com/ElrondNetwork/elrond-go/sharding"
     "math/big"
     "sync"
 
@@ -12,6 +11,7 @@ import (
     "github.com/ElrondNetwork/elrond-go/hashing"
     "github.com/ElrondNetwork/elrond-go/marshal"
     "github.com/ElrondNetwork/elrond-go/process"
+    "github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 const communityPercentage = 0.1 // 1 = 100%, 0 = 0%
@@ -39,13 +39,16 @@ func NewRewardTxHandler(
     hasher hashing.Hasher,
     marshalizer marshal.Marshalizer,
 ) (*rewardsHandler, error) {
-    if address == nil {
+    if address == nil || address.IsInterfaceNil() {
         return nil, process.ErrNilSpecialAddressHandler
     }
-    if hasher == nil {
+    if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+        return nil, process.ErrNilShardCoordinator
+    }
+    if hasher == nil || hasher.IsInterfaceNil() {
         return nil, process.ErrNilHasher
     }
-    if marshalizer == nil {
+    if marshalizer == nil || marshalizer.IsInterfaceNil() {
         return nil, process.ErrNilMarshalizer
     }
 
