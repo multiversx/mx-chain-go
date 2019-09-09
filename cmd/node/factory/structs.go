@@ -403,7 +403,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 
 type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
-	rewardsConfig        *config.RewardConfig
+	economicsConfig      *config.EconomicsConfig
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
@@ -419,7 +419,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
-	rewardsConfig *config.RewardConfig,
+	economicsConfig *config.EconomicsConfig,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
 	shardCoordinator sharding.Coordinator,
@@ -433,7 +433,7 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		genesisConfig:        genesisConfig,
-		rewardsConfig:        rewardsConfig,
+		economicsConfig:      economicsConfig,
 		nodesConfig:          nodesConfig,
 		syncer:               syncer,
 		shardCoordinator:     shardCoordinator,
@@ -501,7 +501,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		args.shardCoordinator,
 		args.nodesCoordinator,
-		args.rewardsConfig,
+		args.economicsConfig,
 		args.data,
 		args.core,
 		args.state,
@@ -1098,10 +1098,6 @@ func createNetMessenger(
 	return nm, nil
 }
 
-func createRewardParametersFromConfig() {
-
-}
-
 func newInterceptorAndResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1294,7 +1290,7 @@ func newBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	rewardsConfig *config.RewardConfig,
+	economicsConfig *config.EconomicsConfig,
 	data *Data,
 	core *Core,
 	state *State,
@@ -1304,14 +1300,20 @@ func newBlockProcessorAndTracker(
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
-	if rewardsConfig.CommunityAddress == "" || rewardsConfig.BurnAddress == ""{
+	if economicsConfig.CommunityAddress == "" || economicsConfig.BurnAddress == "" {
 		return nil, nil, errors.New("rewards configuration missing")
 	}
 
-	communityAddress, _ := hex.DecodeString(rewardsConfig.CommunityAddress)
-	burnAddress, _ := hex.DecodeString(rewardsConfig.BurnAddress)
+	communityAddress, err := hex.DecodeString(economicsConfig.CommunityAddress)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	// TODO: construct this correctly on the PR
+	burnAddress, err := hex.DecodeString(economicsConfig.BurnAddress)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	specialAddressHolder, err := address.NewSpecialAddressHolder(
 		communityAddress,
 		burnAddress,
@@ -1405,7 +1407,7 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	rewardsTxInterim, err := interimProcContainer.Get(dataBlock.RewardsBlockType)
+	rewardsTxInterim, err := interimProcContainer.Get(dataBlock.RewardsBlock)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -245,6 +245,11 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 	return nil
 }
 
+// SetConsensusRewardAddresses - sets the reward addresses for the current consensus group
+func (bp *baseProcessor) SetConsensusRewardAddresses(consensusRewardAddresses []string) {
+	bp.specialAddressHandler.SetConsensusRewardAddresses(consensusRewardAddresses)
+}
+
 func (bp *baseProcessor) removeNotarizedHdrsBehindFinal(hdrsToAttestFinality uint32) {
 	bp.mutNotarizedHdrs.Lock()
 	for shardId := range bp.notarizedHdrs {

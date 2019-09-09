@@ -79,7 +79,7 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
-	err = container.Add(block.RewardsBlockType, interproc)
+	err = container.Add(block.RewardsBlock, interproc)
 	if err != nil {
 		return nil, err
 	}

@@ -66,7 +66,7 @@ func (sp *specialAddresses) SetConsensusRewardAddresses(consensusRewardAddresses
 
 // LeaderAddress provides leader address
 func (sp *specialAddresses) LeaderAddress() []byte {
-	if sp.consensusRewardAddresses == nil {
+	if len(sp.consensusRewardAddresses) == 0 {
 		return nil
 	}
 

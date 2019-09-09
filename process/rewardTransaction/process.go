@@ -15,6 +15,8 @@ type rewardTxProcessor struct {
 	shardCoordinator sharding.Coordinator
 }
 
+// NewRewardTxProcessor creates a rewardTxProcessor instance
+// TODO: add unit tests
 func NewRewardTxProcessor(
 	accountsDB state.AccountsAdapter,
 	adrConv state.AddressConverter,

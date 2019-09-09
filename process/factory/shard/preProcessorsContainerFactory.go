@@ -125,7 +125,7 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 		return nil, err
 	}
 
-	err = container.Add(block.RewardsBlockType, preproc)
+	err = container.Add(block.RewardsBlock, preproc)
 	if err != nil {
 		return nil, err
 	}

@@ -489,26 +489,32 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	tc.addRewardsMiniBlocks(&miniBlocks)
-
+	rewardsMBs := tc.createRewardsMiniBlocks()
+	if len(interMBs) > 0 {
+		miniBlocks = append(miniBlocks, rewardsMBs...)
+	}
+	
 	return miniBlocks
 }
 
-func (tc *transactionCoordinator) addRewardsMiniBlocks(miniBlocks *block.MiniBlockSlice) {
+func (tc *transactionCoordinator) createRewardsMiniBlocks() block.MiniBlockSlice {
 	// add rewards transactions to separate miniBlocks
-	interimProc := tc.getInterimProcessor(block.RewardsBlockType)
+	interimProc := tc.getInterimProcessor(block.RewardsBlock)
 	if interimProc == nil {
-		return
+		return nil
 	}
 
+	miniBlocks := make(block.MiniBlockSlice, 0)
 	rewardsMbs := interimProc.CreateAllInterMiniBlocks()
 	for key, mb := range rewardsMbs {
-			mb.ReceiverShardID = key
-			mb.SenderShardID = tc.shardCoordinator.SelfId()
-			mb.Type = block.RewardsBlockType
+		mb.ReceiverShardID = key
+		mb.SenderShardID = tc.shardCoordinator.SelfId()
+		mb.Type = block.RewardsBlock
 
-			*miniBlocks = append(*miniBlocks, mb)
+		miniBlocks = append(miniBlocks, mb)
 	}
+
+	return miniBlocks
 }
 
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
@@ -516,7 +522,7 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysInterimProcs {
-		if blockType == block.RewardsBlockType {
+		if blockType == block.RewardsBlock {
 			// this has to be processed last
 			continue
 		}
@@ -585,7 +591,7 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 		baseTopic = factory.PeerChBodyTopic
 	case block.SmartContractResultBlock:
 		baseTopic = factory.UnsignedTransactionTopic
-	case block.RewardsBlockType:
+	case block.RewardsBlock:
 		baseTopic = factory.RewardsTransactionTopic
 	default:
 		return "", process.ErrUnknownBlockType
@@ -734,7 +740,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 	wg.Add(len(tc.interimProcessors))
 
 	for key, interimProc := range tc.interimProcessors {
-		if key == block.RewardsBlockType {
+		if key == block.RewardsBlock {
 			// this has to be processed last
 			wg.Done()
 			continue
@@ -757,7 +763,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 		return errFound
 	}
 
-	interimProc := tc.getInterimProcessor(block.RewardsBlockType)
+	interimProc := tc.getInterimProcessor(block.RewardsBlock)
 	if interimProc == nil {
 		return nil
 	}

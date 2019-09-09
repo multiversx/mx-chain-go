@@ -1,8 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 type UnsignedTxHandlerMock struct {

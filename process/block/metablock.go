@@ -211,11 +211,6 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-// SetConsensusRewardAddresses - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusRewardAddresses(consensusRewardAddresses []string) {
-	// TODO set the reward addresses for metachain consensus nodes
-}
-
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
 	if err != nil {

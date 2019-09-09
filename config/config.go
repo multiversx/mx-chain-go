@@ -55,8 +55,8 @@ type NTPConfig struct {
 	Version int
 }
 
-// RewardConfig will hold the reward configuration
-type RewardConfig struct {
+// EconomicsConfig will hold the reward configuration
+type EconomicsConfig struct {
 	CommunityAddress string
 	BurnAddress      string
 }
@@ -105,8 +105,8 @@ type Config struct {
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
 
-	NTPConfig    NTPConfig
-	RewardConfig RewardConfig
+	NTPConfig       NTPConfig
+	EconomicsConfig EconomicsConfig
 }
 
 // NodeConfig will hold basic p2p settings
