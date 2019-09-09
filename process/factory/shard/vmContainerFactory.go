@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 )
@@ -15,12 +16,14 @@ type vmContainerFactory struct {
 	addressConverter state.AddressConverter
 	vmAccountsDB     *hooks.VMAccountsDB
 	cryptoHook       vmcommon.CryptoHook
+	shardCoordinator sharding.Coordinator
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	accounts state.AccountsAdapter,
 	addressConverter state.AddressConverter,
+	shardCoordinator sharding.Coordinator,
 ) (*vmContainerFactory, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -28,8 +31,11 @@ func NewVMContainerFactory(
 	if addressConverter == nil || addressConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+		return nil, process.ErrNilShardCoordinator
+	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(accounts, addressConverter)
+	vmAccountsDB, err := hooks.NewVMAccountsDB(accounts, addressConverter, shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +46,7 @@ func NewVMContainerFactory(
 		addressConverter: addressConverter,
 		vmAccountsDB:     vmAccountsDB,
 		cryptoHook:       cryptoHook,
+		shardCoordinator: shardCoordinator,
 	}, nil
 }
 

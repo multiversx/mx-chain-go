@@ -269,7 +269,7 @@ func createNetNode(
 	interimProcContainer, _ := interimProcFactory.Create()
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
-	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
+	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter, shardCoordinator)
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
@@ -762,8 +762,8 @@ func createMintingForSenders(
 	}
 }
 
-func createVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+func createVMAndBlockchainHook(accnts state.AccountsAdapter, shardC sharding.Coordinator) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv, shardC)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = uint64(opGas)
 

@@ -1,6 +1,7 @@
 package hooks_test
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -14,7 +15,11 @@ import (
 func TestNewVMAccountsDB_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := hooks.NewVMAccountsDB(nil, mock.NewAddressConverterFake(32, ""))
+	vadb, err := hooks.NewVMAccountsDB(
+		nil,
+		mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	assert.Nil(t, vadb)
 	assert.Equal(t, state.ErrNilAccountsAdapter, err)
@@ -23,16 +28,37 @@ func TestNewVMAccountsDB_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewVMAccountsDB_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := hooks.NewVMAccountsDB(mock.NewAccountsStub(), nil)
+	vadb, err := hooks.NewVMAccountsDB(
+		mock.NewAccountsStub(),
+		nil,
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	assert.Nil(t, vadb)
 	assert.Equal(t, state.ErrNilAddressConverter, err)
 }
 
+func TestNewVMAccountsDB_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	vadb, err := hooks.NewVMAccountsDB(
+		mock.NewAccountsStub(),
+		mock.NewAddressConverterFake(32, ""),
+		nil,
+	)
+
+	assert.Nil(t, vadb)
+	assert.Equal(t, state.ErrNilShardCoordinator, err)
+}
+
 func TestNewVMAccountsDB_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := hooks.NewVMAccountsDB(mock.NewAccountsStub(), mock.NewAddressConverterFake(32, ""))
+	vadb, err := hooks.NewVMAccountsDB(
+		mock.NewAccountsStub(),
+		mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	assert.NotNil(t, vadb)
 	assert.Nil(t, err)
@@ -48,7 +74,9 @@ func TestVMAccountsDB_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	accountsExists, err := vadb.AccountExists(make([]byte, 0))
 
@@ -63,7 +91,9 @@ func TestVMAccountsDB_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	accountsExists, err := vadb.AccountExists(make([]byte, 0))
 
@@ -78,7 +108,9 @@ func TestVMAccountsDB_AccountExistsDoesExistsRetTrueAndNil(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	accountsExists, err := vadb.AccountExists(make([]byte, 0))
 
@@ -95,7 +127,9 @@ func TestVMAccountsDB_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	balance, err := vadb.GetBalance(make([]byte, 0))
 
@@ -111,7 +145,9 @@ func TestVMAccountsDB_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	balance, err := vadb.GetBalance(make([]byte, 0))
 
@@ -130,7 +166,9 @@ func TestVMAccountsDB_GetBalanceShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	balance, err := vadb.GetBalance(make([]byte, 0))
 
@@ -148,12 +186,14 @@ func TestVMAccountsDB_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	nonce, err := vadb.GetNonce(make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
-	assert.Nil(t, nonce)
+	assert.Equal(t, nonce, uint64(0))
 }
 
 func TestVMAccountsDB_GetNonceShouldWork(t *testing.T) {
@@ -167,12 +207,14 @@ func TestVMAccountsDB_GetNonceShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	nonce, err := vadb.GetNonce(make([]byte, 0))
 
 	assert.Nil(t, err)
-	assert.Equal(t, accnt.Nonce, nonce.Uint64())
+	assert.Equal(t, accnt.Nonce, nonce)
 }
 
 //------- GetStorageData
@@ -185,7 +227,9 @@ func TestVMAccountsDB_GetStorageAccountErrorsShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	value, err := vadb.GetStorageData(make([]byte, 0), make([]byte, 0))
 
@@ -205,7 +249,9 @@ func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	value, err := vadb.GetStorageData(make([]byte, 0), variableIdentifier)
 
@@ -223,7 +269,9 @@ func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *testing.T)
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	isEmpty, err := vadb.IsCodeEmpty(make([]byte, 0))
 
@@ -240,7 +288,9 @@ func TestVMAccountsDB_IsCodeEmptyShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	isEmpty, err := vadb.IsCodeEmpty(make([]byte, 0))
 
@@ -258,7 +308,9 @@ func TestVMAccountsDB_GetCodeAccountErrorsShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	retrievedCode, err := vadb.GetCode(make([]byte, 0))
 
@@ -277,7 +329,9 @@ func TestVMAccountsDB_GetCodeShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	retrievedCode, err := vadb.GetCode(make([]byte, 0))
 
@@ -288,7 +342,11 @@ func TestVMAccountsDB_GetCodeShouldWork(t *testing.T) {
 func TestVMAccountsDB_CleanFakeAccounts(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+	vadb, _ := hooks.NewVMAccountsDB(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	address := []byte("test")
 	vadb.AddTempAccount(address, big.NewInt(10), 10)
@@ -301,7 +359,11 @@ func TestVMAccountsDB_CleanFakeAccounts(t *testing.T) {
 func TestVMAccountsDB_CreateAndGetFakeAccounts(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+	vadb, _ := hooks.NewVMAccountsDB(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	address := []byte("test")
 	nonce := uint64(10)
@@ -315,7 +377,11 @@ func TestVMAccountsDB_CreateAndGetFakeAccounts(t *testing.T) {
 func TestVMAccountsDB_GetNonceFromFakeAccount(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+	vadb, _ := hooks.NewVMAccountsDB(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(2),
+	)
 
 	address := []byte("test")
 	nonce := uint64(10)
@@ -323,5 +389,66 @@ func TestVMAccountsDB_GetNonceFromFakeAccount(t *testing.T) {
 
 	getNonce, err := vadb.GetNonce(address)
 	assert.Nil(t, err)
-	assert.Equal(t, nonce, getNonce.Uint64())
+	assert.Equal(t, nonce, getNonce)
+}
+
+func TestVMAccountsDB_NewAddressLengthNoGood(t *testing.T) {
+	t.Parallel()
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, adrConv, mock.NewMultiShardsCoordinatorMock(2))
+
+	address := []byte("test")
+	nonce := uint64(10)
+
+	scAddress, err := vadb.NewAddress(address, nonce)
+	assert.Equal(t, hooks.ErrAddressLengthNotCorrect, err)
+	assert.Nil(t, scAddress)
+
+	address = []byte("1234567890123456789012345678901234567890")
+	scAddress, err = vadb.NewAddress(address, nonce)
+	assert.Equal(t, hooks.ErrAddressLengthNotCorrect, err)
+	assert.Nil(t, scAddress)
+}
+
+func TestVMAccountsDB_NewAddressShardIdIncorrect(t *testing.T) {
+	t.Parallel()
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	shardC := mock.NewMultiShardsCoordinatorMock(2)
+	shardC.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardC.NumberOfShards()
+	}
+
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, adrConv, shardC)
+
+	address := []byte("012345678901234567890123456789ff")
+	nonce := uint64(10)
+
+	scAddress, err := vadb.NewAddress(address, nonce)
+	assert.Equal(t, hooks.ErrAddressIsInUnknownShard, err)
+	assert.Nil(t, scAddress)
+}
+
+func TestVMAccountsDB_NewAddress(t *testing.T) {
+	t.Parallel()
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, adrConv, mock.NewMultiShardsCoordinatorMock(2))
+
+	address := []byte("01234567890123456789012345678900")
+	nonce := uint64(10)
+
+	scAddress1, err := vadb.NewAddress(address, nonce)
+	assert.Nil(t, err)
+
+	for i := 0; i < 10; i++ {
+		assert.Equal(t, scAddress1[i], uint8(0))
+	}
+
+	nonce++
+	scAddress2, err := vadb.NewAddress(address, nonce)
+	assert.Nil(t, err)
+
+	assert.False(t, bytes.Equal(scAddress1, scAddress2))
 }

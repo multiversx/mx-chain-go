@@ -1,16 +1,20 @@
 package hooks
 
 import (
+	"encoding/hex"
 	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // VMAccountsDB is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type VMAccountsDB struct {
-	accounts state.AccountsAdapter
-	addrConv state.AddressConverter
+	accounts         state.AccountsAdapter
+	addrConv         state.AddressConverter
+	shardCoordinator sharding.Coordinator
 
 	mutTempAccounts sync.Mutex
 	tempAccounts    map[string]state.AccountHandler
@@ -20,6 +24,7 @@ type VMAccountsDB struct {
 func NewVMAccountsDB(
 	accounts state.AccountsAdapter,
 	addrConv state.AddressConverter,
+	coordinator sharding.Coordinator,
 ) (*VMAccountsDB, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
@@ -28,10 +33,14 @@ func NewVMAccountsDB(
 	if addrConv == nil || addrConv.IsInterfaceNil() {
 		return nil, state.ErrNilAddressConverter
 	}
+	if coordinator == nil || coordinator.IsInterfaceNil() {
+		return nil, state.ErrNilShardCoordinator
+	}
 
 	vmAccountsDB := &VMAccountsDB{
-		accounts: accounts,
-		addrConv: addrConv,
+		accounts:         accounts,
+		addrConv:         addrConv,
+		shardCoordinator: coordinator,
 	}
 
 	vmAccountsDB.tempAccounts = make(map[string]state.AccountHandler, 0)
@@ -70,24 +79,21 @@ func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
 }
 
 // GetNonce returns the nonce of a shard account
-func (vadb *VMAccountsDB) GetNonce(address []byte) (*big.Int, error) {
+func (vadb *VMAccountsDB) GetNonce(address []byte) (uint64, error) {
 	exists, err := vadb.AccountExists(address)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	if !exists {
-		return big.NewInt(0), nil
+		return 0, nil
 	}
 
 	shardAccount, err := vadb.getShardAccountFromAddressBytes(address)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	nonce := big.NewInt(0)
-	nonce.SetUint64(shardAccount.Nonce)
-
-	return nonce, nil
+	return shardAccount.Nonce, nil
 }
 
 // GetStorageData returns the storage value of a variable held in account's data trie
@@ -145,6 +151,48 @@ func (vadb *VMAccountsDB) GetCode(address []byte) ([]byte, error) {
 // GetBlockhash is deprecated
 func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 	return nil, nil
+}
+
+const numZeroCharactersForScAddress = 10
+
+// NewAddress is a hook which creates a new smart contract address from the creators address and nonce
+// The first 8 bytes are 0, bytes 9-10 are for the VM type, bytes 11-30 are keccak256 from address and nonce of creator
+// The last 2 bytes are for the shard ID
+func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64) ([]byte, error) {
+	addressLength := vadb.addrConv.AddressLen()
+	if len(creatorAddress) != addressLength {
+		return nil, ErrAddressLengthNotCorrect
+	}
+
+	creatorAddr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(creatorAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	shId := vadb.shardCoordinator.ComputeId(creatorAddr)
+	if shId >= vadb.shardCoordinator.NumberOfShards() {
+		return nil, ErrAddressIsInUnknownShard
+	}
+
+	scAddress := make([]byte, addressLength)
+
+	nonce := big.NewInt(0).SetUint64(creatorNonce)
+
+	adrAndNonce := append(scAddress, nonce.Bytes()...)
+	kecAdrAndNonce := hex.EncodeToString(keccak.Keccak{}.Compute(string(adrAndNonce)))
+
+	scAddress = []byte(kecAdrAndNonce)
+	for i := 0; i < numZeroCharactersForScAddress; i++ {
+		scAddress[i] = 0
+	}
+
+	bytesNeed := int(vadb.shardCoordinator.NumberOfShards()/256) + 1
+	for i := addressLength - bytesNeed; i < addressLength; i++ {
+		scAddress[i] = creatorAddress[i]
+		scAddress[i] = creatorAddress[i]
+	}
+
+	return scAddress, nil
 }
 
 func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (state.AccountHandler, error) {

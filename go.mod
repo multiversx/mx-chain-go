@@ -5,8 +5,8 @@ go 1.12
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/ElrondNetwork/concurrent-map v0.1.2
-	github.com/ElrondNetwork/elrond-vm v0.0.15
-	github.com/ElrondNetwork/elrond-vm-common v0.0.6
+	github.com/ElrondNetwork/elrond-vm v0.0.16
+	github.com/ElrondNetwork/elrond-vm-common v0.0.7
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
@@ -42,7 +42,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.3.0
 	github.com/prometheus/client_golang v1.0.0
-	github.com/prometheus/common v0.4.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/sirupsen/logrus v1.4.0

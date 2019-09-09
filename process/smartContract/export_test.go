@@ -30,7 +30,7 @@ func (sc *scProcessor) RefundGasToSender(gasRefund *big.Int, tx *transaction.Tra
 	return sc.refundGasToSender(gasRefund, tx, txHash, acntSnd)
 }
 
-func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) ([]*vmcommon.OutputAccount, error) {
+func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) error {
 	return sc.processSCOutputAccounts(outputAccounts)
 }
 
@@ -62,10 +62,10 @@ func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd sta
 	return sc.processSCPayment(tx, acntSnd)
 }
 
-func (sc *scProcessor) CreateCrossShardTransactions(
+func (sc *scProcessor) CreateSCRTransactions(
 	crossOutAccs []*vmcommon.OutputAccount,
 	tx *transaction.Transaction,
 	txHash []byte,
 ) ([]data.TransactionHandler, error) {
-	return sc.createCrossShardTransactions(crossOutAccs, tx, txHash)
+	return sc.createSCRTransactions(crossOutAccs, tx, txHash)
 }

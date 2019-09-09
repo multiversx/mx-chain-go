@@ -627,7 +627,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(stateComponents.AccountsAdapter, stateComponents.AddressConverter)
+	vmAccountsDB, err := hooks.NewVMAccountsDB(
+		stateComponents.AccountsAdapter,
+		stateComponents.AddressConverter,
+		shardCoordinator,
+	)
 	if err != nil {
 		return err
 	}

@@ -413,12 +413,12 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
-	crossOutAccs, err := sc.processSCOutputAccounts(vmOutput.OutputAccounts)
+	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts)
 	if err != nil {
 		return nil, err
 	}
 
-	crossTxs, err := sc.createCrossShardTransactions(crossOutAccs, tx, txHash)
+	crossTxs, err := sc.createSCRTransactions(vmOutput.OutputAccounts, tx, txHash)
 	if err != nil {
 		return nil, err
 	}
@@ -475,8 +475,8 @@ func (sc *scProcessor) createSmartContractResult(
 ) *smartContractResult.SmartContractResult {
 	crossSc := &smartContractResult.SmartContractResult{}
 
-	crossSc.Value = outAcc.Balance
-	crossSc.Nonce = outAcc.Nonce.Uint64()
+	crossSc.Value = outAcc.BalanceDelta
+	crossSc.Nonce = outAcc.Nonce
 	crossSc.RcvAddr = outAcc.Address
 	crossSc.SndAddr = scAddress
 	crossSc.Code = outAcc.Code
@@ -486,7 +486,7 @@ func (sc *scProcessor) createSmartContractResult(
 	return crossSc
 }
 
-func (sc *scProcessor) createCrossShardTransactions(
+func (sc *scProcessor) createSCRTransactions(
 	crossOutAccs []*vmcommon.OutputAccount,
 	tx *transaction.Transaction,
 	txHash []byte,
@@ -541,19 +541,15 @@ func (sc *scProcessor) refundGasToSender(
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
-func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) ([]*vmcommon.OutputAccount, error) {
-	crossOutAccs := make([]*vmcommon.OutputAccount, 0)
+func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) error {
 	for i := 0; i < len(outputAccounts); i++ {
 		outAcc := outputAccounts[i]
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		fakeAcc := sc.tempAccounts.TempAccount(outAcc.Address)
-
 		if acc == nil || acc.IsInterfaceNil() {
-			crossOutAccs = append(crossOutAccs, outAcc)
 			continue
 		}
 
@@ -566,59 +562,50 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			//SC with data variables
 			err := sc.accounts.SaveDataTrie(acc)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
+		// change code if there is a change
 		if len(outAcc.Code) > 0 {
 			err = sc.accounts.PutCode(acc, outAcc.Code)
 			if err != nil {
-				return nil, err
+				return err
+			}
+		}
+
+		// change nonce only if there is a change
+		if outAcc.Nonce > 0 {
+			if outAcc.Nonce < acc.GetNonce() {
+				return process.ErrWrongNonceInVMOutput
 			}
 
-			//TODO remove this when receipts are implemented
-			log.Info(fmt.Sprintf("*** Generated/called SC account: %s ***", hex.EncodeToString(outAcc.Address)))
+			err = acc.SetNonceWithJournal(outAcc.Nonce)
+			if err != nil {
+				return err
+			}
 		}
 
-		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) < 0 {
-			return nil, process.ErrWrongNonceInVMOutput
-		}
-
-		err = acc.SetNonceWithJournal(outAcc.Nonce.Uint64())
-		if err != nil {
-			return nil, err
-		}
-
-		if outAcc.Balance == nil {
-			return nil, process.ErrNilBalanceFromSC
+		// if no change then continue
+		if outAcc.BalanceDelta == nil {
+			continue
 		}
 
 		stAcc, ok := acc.(*state.Account)
 		if !ok {
-			return nil, process.ErrWrongTypeAssertion
+			return process.ErrWrongTypeAssertion
 		}
-
-		// if fake account, than VM only has transaction value as balance, so anything remaining is a plus
-		if fakeAcc != nil && !fakeAcc.IsInterfaceNil() {
-			outAcc.Balance = outAcc.Balance.Add(outAcc.Balance, stAcc.Balance)
-		}
-
-		realBalanceChange := big.NewInt(0).Sub(outAcc.Balance, stAcc.Balance)
 
 		// update the values according to SC output
-		err = stAcc.SetBalanceWithJournal(outAcc.Balance)
+		updatedBalance := big.NewInt(0)
+		updatedBalance = updatedBalance.Add(stAcc.Balance, outAcc.BalanceDelta)
+		err = stAcc.SetBalanceWithJournal(updatedBalance)
 		if err != nil {
-			return nil, err
-		}
-
-		zero := big.NewInt(0)
-		if realBalanceChange.Cmp(zero) != 0 {
-			outAcc.Balance = realBalanceChange
-			crossOutAccs = append(crossOutAccs, outAcc)
+			return err
 		}
 	}
 
-	return crossOutAccs, nil
+	return nil
 }
 
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM

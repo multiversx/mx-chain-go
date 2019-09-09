@@ -86,14 +86,16 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		return nil, err
 	}
 
-	senderNonceBytes := senderNonce.Bytes()
-	newSCAddr := vm.hasher.Compute(string(append(input.CallerAddr, senderNonceBytes...)))
+	newSCAddr, err := vm.blockchainHook.NewAddress(input.CallerAddr, senderNonce)
+	if err != nil {
+		return nil, err
+	}
 
 	scOutputAccount := &vmcommon.OutputAccount{
-		Nonce:   big.NewInt(0),
+		Nonce:   0,
 		Code:    input.ContractCode,
 		Balance: input.CallValue,
-		Address: []byte(newSCAddr),
+		Address: newSCAddr,
 		StorageUpdates: []*vmcommon.StorageUpdate{
 			{
 				//only one variable: a
@@ -348,7 +350,7 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 	vmo := &vmcommon.OutputAccount{
 		Balance: input.CallValue,
 		Address: input.CallerAddr,
-		Nonce:   big.NewInt(0).SetUint64(nonce.Uint64()),
+		Nonce:   nonce,
 	}
 
 	return &vmcommon.VMOutput{

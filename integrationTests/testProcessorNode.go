@@ -285,8 +285,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
-	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
-	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
+	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState, tpn.ShardCoordinator)
+	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState, tpn.ShardCoordinator)
 
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
