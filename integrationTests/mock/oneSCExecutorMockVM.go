@@ -330,7 +330,7 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 	}
 
 	vmo := &vmcommon.OutputAccount{
-		BalanceDelta: input.CallValue,
+		BalanceDelta: big.NewInt(0),
 		Address:      input.CallerAddr,
 		Nonce:        nonce,
 	}

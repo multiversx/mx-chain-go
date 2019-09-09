@@ -30,8 +30,8 @@ func (sc *scProcessor) RefundGasToSender(gasRefund *big.Int, tx *transaction.Tra
 	return sc.refundGasToSender(gasRefund, tx, txHash, acntSnd)
 }
 
-func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) error {
-	return sc.processSCOutputAccounts(outputAccounts)
+func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx *transaction.Transaction) error {
+	return sc.processSCOutputAccounts(outputAccounts, tx)
 }
 
 func (sc *scProcessor) DeleteAccounts(deletedAccounts [][]byte) error {

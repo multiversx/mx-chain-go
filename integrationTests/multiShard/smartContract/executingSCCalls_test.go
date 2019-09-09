@@ -44,7 +44,7 @@ func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint
 		vm.CreateEmptyAddress().Bytes(),
 		senderNonce,
 		big.NewInt(0),
-		scCode,
+		scCode+"@00",
 		initialValueForInternalVariable,
 	)
 
@@ -133,7 +133,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000003031669a486060759dd8adf010bae01d45e34942ac52c932")
 
 	// Now that the SC is deployed, we test a call from an account located in the first shard
 	addValue := uint64(100)
@@ -218,7 +218,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000003031669a486060759dd8adf010bae01d45e34942ac52c932")
 
 	// Now that the SC is deployed, we test a call from an account located in the second shard
 	addValue := uint64(100)
@@ -271,8 +271,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		t.Skip("this is not a short test")
 	}
 
-	fmt.Println("Step 1. Setup nodes...")
-
 	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
@@ -316,7 +314,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000003031669a486060759dd8adf010bae01d45e34942ac52c932")
 
 	// Update the SC account balance so we can call withdraw function
 	createMintingForSenders(nodes, scShard, [][]byte{scDeploymentAdddress}, mintingValue)

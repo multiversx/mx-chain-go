@@ -417,20 +417,33 @@ func (sc *scProcessor) processVMOutput(
 	}
 	txHash := sc.hasher.Compute(string(txBytes))
 
+	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
+	if err != nil {
+		return nil, err
+	}
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Info(fmt.Sprintf(
 			"error processing tx %s in VM: return code: %s",
 			hex.EncodeToString(txHash),
 			vmOutput.ReturnCode),
 		)
+
+		stAcc, ok := acntSnd.(*state.Account)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		totalCost := big.NewInt(0)
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.Value))
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, nil
 	}
 
-	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, tx.Value)
+	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -558,10 +571,11 @@ func (sc *scProcessor) refundGasToSender(
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
-func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, txValue *big.Int) error {
+func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx *transaction.Transaction) error {
 	sumOfAllDiff := big.NewInt(0)
-	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, txValue)
+	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.Value)
 
+	zero := big.NewInt(0)
 	for i := 0; i < len(outputAccounts); i++ {
 		outAcc := outputAccounts[i]
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
@@ -570,6 +584,14 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		}
 
 		if acc == nil || acc.IsInterfaceNil() {
+			if outAcc.BalanceDelta != nil {
+				// TODO: remove this when VM resolved
+				if bytes.Equal(outAcc.Address, tx.SndAddr) {
+					outAcc.BalanceDelta = outAcc.BalanceDelta.Add(outAcc.BalanceDelta, tx.Value)
+				}
+
+				sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
+			}
 			continue
 		}
 
@@ -609,8 +631,13 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		}
 
 		// if no change then continue
-		if outAcc.BalanceDelta == nil {
+		if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
 			continue
+		}
+
+		// TODO: delete this when VM is resolved
+		if bytes.Equal(outAcc.Address, tx.SndAddr) {
+			outAcc.BalanceDelta = outAcc.BalanceDelta.Add(outAcc.BalanceDelta, tx.Value)
 		}
 
 		stAcc, ok := acc.(*state.Account)
@@ -629,7 +656,6 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		}
 	}
 
-	zero := big.NewInt(0)
 	if sumOfAllDiff.Cmp(zero) != 0 {
 		return process.ErrOverallBalanceChangeFromSC
 	}
