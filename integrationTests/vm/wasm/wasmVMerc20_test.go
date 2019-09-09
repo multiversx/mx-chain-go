@@ -261,8 +261,10 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 		Signature: nil,
 		Challenge: nil,
 	}
-
+	start := time.Now()
 	err = txProc.ProcessTransaction(tx, round)
+	elapsedTime := time.Since(start)
+	fmt.Printf("time elapsed to process topup %s \n", elapsedTime.String())
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -270,7 +272,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 
 	aliceNonce++
 
-	start := time.Now()
+	start = time.Now()
 	for i := 0; i < 100000; i++ {
 		tx = &transaction.Transaction{
 			Nonce:     aliceNonce,
@@ -293,6 +295,6 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 		aliceNonce++
 	}
 
-	elapsedTime := time.Since(start)
+	elapsedTime = time.Since(start)
 	fmt.Printf("time elapsed to process 100000 ERC20 transfers %s \n", elapsedTime.String())
 }
