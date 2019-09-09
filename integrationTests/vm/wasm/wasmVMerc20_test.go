@@ -289,11 +289,11 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 		err = txProc.ProcessTransaction(tx, round)
 		assert.Nil(t, err)
 
-		_, err = accnts.Commit()
-		assert.Nil(t, err)
-
 		aliceNonce++
 	}
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
 
 	elapsedTime = time.Since(start)
 	fmt.Printf("time elapsed to process 100000 ERC20 transfers %s \n", elapsedTime.String())
