@@ -5,12 +5,19 @@ type SpecialAddressHandlerMock struct {
 	LeaderAddressCalled          func() []byte
 	BurnAddressCalled            func() []byte
 	ShardIdForAddressCalled      func([]byte) (uint32, error)
+
+	addresses []string
 }
 
 func (sh *SpecialAddressHandlerMock) SetElrondCommunityAddress(elrond []byte) {
 }
 
-func (sh *SpecialAddressHandlerMock) SetLeaderAddress(leader []byte) {
+func (sh *SpecialAddressHandlerMock) SetConsensusRewardAddresses(consensusRewardAddresses []string) {
+	sh.addresses = consensusRewardAddresses
+}
+
+func (sh *SpecialAddressHandlerMock) ConsensusRewardAddresses() []string {
+	return sh.addresses
 }
 
 func (sh *SpecialAddressHandlerMock) BurnAddress() []byte {

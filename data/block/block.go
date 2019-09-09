@@ -34,8 +34,8 @@ const (
 	PeerBlock Type = 2
 	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
 	SmartContractResultBlock Type = 3
-	// TxFeeBlock identifies a miniblock holding accumulated transaction fees
-	TxFeeBlock Type = 4
+	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
+	RewardsBlock Type = 4
 	// InvalidBlock identifies identifies an invalid miniblock
 	InvalidBlock Type = 5
 )
@@ -51,6 +51,8 @@ func (bType Type) String() string {
 		return "PeerBody"
 	case SmartContractResultBlock:
 		return "SmartContractResultBody"
+	case RewardsBlock:
+		return "RewardsBody"
 	case InvalidBlock:
 		return "InvalidBlock"
 	default:

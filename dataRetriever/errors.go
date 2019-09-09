@@ -1,7 +1,7 @@
 package dataRetriever
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilMessage signals that a nil message has been received
@@ -63,6 +63,9 @@ var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
 // ErrNilUnsignedTransactionPool signals that a nil unsigned transactions pool has been provided
 var ErrNilUnsignedTransactionPool = errors.New("nil unsigned transactions data pool")
+
+// ErrNilRewardTransactionPool signals that a nil reward transactions pool has been provided
+var ErrNilRewardTransactionPool = errors.New("nil reward transaction data pool")
 
 // ErrNilHeadersDataPool signals that a nil header pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
@@ -175,6 +178,9 @@ var ErrEmptyTxRequestTopic = errors.New("empty transaction request topic")
 
 // ErrEmptyScrRequestTopic signals that an empty smart contract result topic has been provided
 var ErrEmptyScrRequestTopic = errors.New("empty smart contract result request topic")
+
+// ErrEmptyRewardTxRequestTopic signals that an empty reward transaction topic has been provided
+var ErrEmptyRewardTxRequestTopic = errors.New("empty rewards transactions request topic")
 
 // ErrEmptyMiniBlockRequestTopic signals that an empty miniblock topic has been provided
 var ErrEmptyMiniBlockRequestTopic = errors.New("empty miniblock request topic")

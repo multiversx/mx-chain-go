@@ -54,6 +54,8 @@ func NewMetaProcessor(
 	dataPool dataRetriever.MetaPoolsHolder,
 	forkDetector process.ForkDetector,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	specialAddressHandler process.SpecialAddressHandler,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
@@ -69,6 +71,8 @@ func NewMetaProcessor(
 		marshalizer,
 		store,
 		shardCoordinator,
+		nodesCoordinator,
+		specialAddressHandler,
 		uint64Converter)
 	if err != nil {
 		return nil, err
@@ -97,6 +101,8 @@ func NewMetaProcessor(
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
+		nodesCoordinator:              nodesCoordinator,
+		specialAddressHandler:         specialAddressHandler,
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandler:        requestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,

@@ -35,11 +35,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -74,12 +75,13 @@ type CryptoParams struct {
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
-	ShardCoordinator sharding.Coordinator
-	NodesCoordinator sharding.NodesCoordinator
-	Messenger        p2p.Messenger
+	ShardCoordinator      sharding.Coordinator
+	NodesCoordinator      sharding.NodesCoordinator
+	SpecialAddressHandler process.SpecialAddressHandler
+	Messenger             p2p.Messenger
 
 	OwnAccount *TestWalletAccount
-	NodeKeys *TestKeyPair
+	NodeKeys   *TestKeyPair
 
 	ShardDataPool dataRetriever.PoolsHolder
 	MetaDataPool  dataRetriever.MetaPoolsHolder
@@ -102,6 +104,7 @@ type TestProcessorNode struct {
 	BlockchainHook         vmcommon.BlockchainHook
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            process.SmartContractProcessor
+	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 
 	ForkDetector       process.ForkDetector
@@ -306,6 +309,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ResolverFinder,
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
+			factory.RewardsTransactionTopic,
 			factory.MiniBlocksTopic,
 			factory.MetachainBlocksTopic,
 			100,
@@ -350,6 +354,11 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScrForwarder,
 		&mock.UnsignedTxHandlerMock{},
 	)
+	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
+		tpn.AccntState,
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 
@@ -376,6 +385,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.TxProcessor,
 		tpn.ScProcessor,
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
+		tpn.RewardsProcessor,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -422,6 +432,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.MetaDataPool,
 			tpn.ForkDetector,
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
+			&mock.SpecialAddressHandlerMock{},
 			TestHasher,
 			TestMarshalizer,
 			tpn.Storage,
@@ -438,6 +450,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			TestMarshalizer,
 			tpn.AccntState,
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
+			&mock.SpecialAddressHandlerMock{},
 			tpn.ForkDetector,
 			tpn.BlockTracker,
 			tpn.GenesisBlocks,

@@ -144,9 +144,13 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(publicKey []b
 	return nil, 0, ErrValidatorNotFound
 }
 
-// GetValidatorsPublicKeys calculates the validators group for a specific randomness,
+// GetValidatorsPublicKeys calculates the validators consensus group for a specific shard, randomness and round number,
 // returning their public keys
-func (ihgs *indexHashedNodesCoordinator) GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32) ([]string, error) {
+func (ihgs *indexHashedNodesCoordinator) GetValidatorsPublicKeys(
+	randomness []byte,
+	round uint64,
+	shardId uint32,
+) ([]string, error) {
 	consensusNodes, err := ihgs.ComputeValidatorsGroup(randomness, round, shardId)
 	if err != nil {
 		return nil, err
@@ -159,6 +163,26 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsPublicKeys(randomness []by
 	}
 
 	return pubKeys, nil
+}
+
+// GetValidatorsRewardsAddresses calculates the validator consensus group for a specific shard, randomness and round
+// number, returning their staking/rewards addresses
+func (ihgs *indexHashedNodesCoordinator) GetValidatorsRewardsAddresses(
+	randomness []byte,
+	round uint64,
+	shardId uint32,
+) ([]string, error) {
+	consensusNodes, err := ihgs.ComputeValidatorsGroup(randomness, round, shardId)
+	if err != nil {
+		return nil, err
+	}
+
+	addresses := make([]string, len(consensusNodes))
+	for i, v := range consensusNodes {
+		addresses[i] = string(v.Address())
+	}
+
+	return addresses, nil
 }
 
 // GetSelectedPublicKeys returns the stringified public keys of the marked validators in the selection bitmap

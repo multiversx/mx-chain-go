@@ -38,7 +38,7 @@ func (blProcMock *BlockProcessorMock) RevertAccountState() {
 	blProcMock.RevertAccountStateCalled()
 }
 
-// CreateTxBlockBody mocks the creation of a transaction block body
+// CreateBlockBody mocks the creation of a transaction block body
 func (blProcMock *BlockProcessorMock) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	return blProcMock.CreateBlockCalled(round, haveTime)
 }
@@ -67,10 +67,13 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+func (blProcMock BlockProcessorMock) SetConsensusRewardAddresses(addresses []string) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (blProcMock *BlockProcessorMock) IsInterfaceNil() bool {
-	if blProcMock == nil {
-		return true
-	}
-	return false
+    if blProcMock == nil {
+        return true
+    }
+    return false
 }

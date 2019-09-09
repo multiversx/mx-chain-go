@@ -1,18 +1,20 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 type UnsignedTxHandlerMock struct {
-	CleanProcessedUtxsCalled func()
-	AddProcessedUTxCalled    func(tx data.TransactionHandler)
-	CreateAllUTxsCalled      func() []data.TransactionHandler
-	VerifyCreatedUTxsCalled  func() error
-	AddTxFeeFromBlockCalled  func(tx data.TransactionHandler)
+	CleanProcessedUtxsCalled    func()
+	ProcessTransactionFeeCalled func(cost *big.Int)
+	CreateAllUTxsCalled         func() []data.TransactionHandler
+	VerifyCreatedUTxsCalled     func() error
+	AddTxFeeFromBlockCalled     func(tx data.TransactionHandler)
 }
 
-func (ut *UnsignedTxHandlerMock) AddTxFeeFromBlock(tx data.TransactionHandler) {
+func (ut *UnsignedTxHandlerMock) AddRewardTxFromBlock(tx data.TransactionHandler) {
 	if ut.AddTxFeeFromBlockCalled == nil {
 		return
 	}
@@ -28,12 +30,12 @@ func (ut *UnsignedTxHandlerMock) CleanProcessedUTxs() {
 	ut.CleanProcessedUtxsCalled()
 }
 
-func (ut *UnsignedTxHandlerMock) AddProcessedUTx(tx data.TransactionHandler) {
-	if ut.AddProcessedUTxCalled == nil {
+func (ut *UnsignedTxHandlerMock) ProcessTransactionFee(cost *big.Int) {
+	if ut.ProcessTransactionFeeCalled == nil {
 		return
 	}
 
-	ut.AddProcessedUTxCalled(tx)
+	ut.ProcessTransactionFeeCalled(cost)
 }
 
 func (ut *UnsignedTxHandlerMock) CreateAllUTxs() []data.TransactionHandler {
@@ -48,4 +50,12 @@ func (ut *UnsignedTxHandlerMock) VerifyCreatedUTxs() error {
 		return nil
 	}
 	return ut.VerifyCreatedUTxsCalled()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ut *UnsignedTxHandlerMock) IsInterfaceNil() bool {
+	if ut == nil {
+		return true
+	}
+	return false
 }

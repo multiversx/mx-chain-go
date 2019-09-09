@@ -72,10 +72,14 @@ func (blProcMock BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, process
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+func (blProcMock BlockProcessorStub) SetConsensusRewardAddresses([]string) {
+	panic("implement me")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (blProcMock *BlockProcessorStub) IsInterfaceNil() bool {
-	if blProcMock == nil {
-		return true
-	}
-	return false
+    if blProcMock == nil {
+        return true
+    }
+    return false
 }

@@ -10,18 +10,19 @@ import (
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorMock struct {
-	NrCommitBlockCalled              uint32
-	Marshalizer                      marshal.Marshalizer
-	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled         func()
-	CreateBlockCalled                func(round uint64, haveTime func() bool) (data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeaderCalled          func(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
-	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
-	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
-	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	NrCommitBlockCalled               uint32
+	Marshalizer                       marshal.Marshalizer
+	ProcessBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                 func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled          func()
+	CreateBlockCalled                 func(round uint64, haveTime func() bool) (data.BodyHandler, error)
+	RestoreBlockIntoPoolsCalled       func(header data.HeaderHandler, body data.BodyHandler) error
+	CreateBlockHeaderCalled           func(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	MarshalizedDataToBroadcastCalled  func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	DecodeBlockBodyCalled             func(dta []byte) data.BodyHandler
+	DecodeBlockHeaderCalled           func(dta []byte) data.HeaderHandler
+	AddLastNotarizedHdrCalled         func(shardId uint32, processedHdr data.HeaderHandler)
+	SetConsensusRewardAddressesCalled func([]string)
 }
 
 // ProcessBlock mocks pocessing a block
@@ -92,10 +93,16 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+func (blProcMock BlockProcessorMock) SetConsensusRewardAddresses(address []string) {
+	if blProcMock.SetConsensusRewardAddressesCalled != nil {
+		blProcMock.SetConsensusRewardAddressesCalled(address)
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (blProcMock *BlockProcessorMock) IsInterfaceNil() bool {
-	if blProcMock == nil {
-		return true
-	}
-	return false
+    if blProcMock == nil {
+        return true
+    }
+    return false
 }

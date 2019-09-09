@@ -58,6 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -404,6 +405,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 
 type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
+	economicsConfig      *config.EconomicsConfig
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
@@ -419,6 +421,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
+	economicsConfig *config.EconomicsConfig,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
 	shardCoordinator sharding.Coordinator,
@@ -432,6 +435,7 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		genesisConfig:        genesisConfig,
+		economicsConfig:      economicsConfig,
 		nodesConfig:          nodesConfig,
 		syncer:               syncer,
 		shardCoordinator:     shardCoordinator,
@@ -502,6 +506,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(
 		resolversFinder,
 		args.shardCoordinator,
+		args.nodesCoordinator,
+		args.economicsConfig,
 		args.data,
 		args.core,
 		args.state,
@@ -730,6 +736,7 @@ func createShardDataStoreFromConfig(
 	var txUnit *storageUnit.Unit
 	var metachainHeaderUnit *storageUnit.Unit
 	var unsignedTxUnit *storageUnit.Unit
+	var rewardTxUnit *storageUnit.Unit
 	var metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnit *storageUnit.Unit
 	var err error
@@ -751,6 +758,9 @@ func createShardDataStoreFromConfig(
 			}
 			if unsignedTxUnit != nil {
 				_ = unsignedTxUnit.DestroyUnit()
+			}
+			if rewardTxUnit != nil {
+				_ = rewardTxUnit.DestroyUnit()
 			}
 			if metachainHeaderUnit != nil {
 				_ = metachainHeaderUnit.DestroyUnit()
@@ -776,6 +786,14 @@ func createShardDataStoreFromConfig(
 		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
 		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
 		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	rewardTxUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.RewardTxStorage.Cache),
+		getDBFromConfig(config.RewardTxStorage.DB, uniqueID),
+		getBloomFromConfig(config.RewardTxStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -838,6 +856,7 @@ func createShardDataStoreFromConfig(
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
+	store.AddStorer(dataRetriever.RewardTransactionUnit, rewardTxUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
@@ -963,7 +982,13 @@ func createShardDataPoolFromConfig(
 
 	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
-		log.Info("error creating smart contract result")
+		log.Info("error creating smart contract result pool")
+		return nil, err
+	}
+
+	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTxDataPool))
+	if err != nil {
+		log.Info("error creating reward transaction pool")
 		return nil, err
 	}
 
@@ -1010,6 +1035,7 @@ func createShardDataPoolFromConfig(
 	return dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
+		rewardTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -1388,6 +1414,8 @@ func createInMemoryShardCoordinatorAndAccount(
 func newBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	economicsConfig *config.EconomicsConfig,
 	data *Data,
 	core *Core,
 	state *State,
@@ -1397,10 +1425,36 @@ func newBlockProcessorAndTracker(
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
+	if economicsConfig.CommunityAddress == "" || economicsConfig.BurnAddress == "" {
+		return nil, nil, errors.New("rewards configuration missing")
+	}
+
+	communityAddress, err := hex.DecodeString(economicsConfig.CommunityAddress)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	burnAddress, err := hex.DecodeString(economicsConfig.BurnAddress)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	specialAddressHolder, err := address.NewSpecialAddressHolder(
+		communityAddress,
+		burnAddress,
+		state.AddressConverter,
+		shardCoordinator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: remove nodesConfig as no longer needed with nodes coordinator available
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessorAndTracker(
 			resolversFinder,
 			shardCoordinator,
+			nodesCoordinator,
+			specialAddressHolder,
 			data,
 			core,
 			state,
@@ -1414,6 +1468,8 @@ func newBlockProcessorAndTracker(
 		return newMetaBlockProcessorAndTracker(
 			resolversFinder,
 			shardCoordinator,
+			nodesCoordinator,
+			specialAddressHolder,
 			data,
 			core,
 			state,
@@ -1429,6 +1485,8 @@ func newBlockProcessorAndTracker(
 func newShardBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	specialAddressHandler process.SpecialAddressHandler,
 	data *Data,
 	core *Core,
 	state *State,
@@ -1452,30 +1510,12 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	//TODO: replace with valid address
-	communityAddress, _ := hex.DecodeString("1bedf9f1db526aa98eb61f251e6eb29df64c0a4d96261b6fe9d4df1bc2cf5420")
-	burnAddress := communityAddress
-	leaderAddress := communityAddress
-
-	// TODO: construct this correctly on the PR
-	specialAddressHolder, err := address.NewSpecialAddressHolder(
-		communityAddress,
-		burnAddress,
-		state.AddressConverter,
-		shardCoordinator)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// TODO: remove when valid leader address is set in each round
-	specialAddressHolder.SetLeaderAddress(leaderAddress)
-
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		core.Marshalizer,
 		core.Hasher,
 		state.AddressConverter,
-		specialAddressHolder,
+		specialAddressHandler,
 		data.Store,
 	)
 	if err != nil {
@@ -1492,12 +1532,12 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	feeTxInterim, err := interimProcContainer.Get(dataBlock.TxFeeBlock)
+	rewardsTxInterim, err := interimProcContainer.Get(dataBlock.RewardsBlock)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	feeTxHandler, ok := feeTxInterim.(process.UnsignedTxHandler)
+	rewardsTxHandler, ok := rewardsTxInterim.(process.UnsignedTxHandler)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -1512,7 +1552,16 @@ func newShardBlockProcessorAndTracker(
 		state.AddressConverter,
 		shardCoordinator,
 		scForwarder,
-		feeTxHandler,
+		rewardsTxHandler,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
+		state.AccountsAdapter,
+		state.AddressConverter,
+		shardCoordinator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1522,6 +1571,7 @@ func newShardBlockProcessorAndTracker(
 		resolversFinder,
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
+		factory.RewardsTransactionTopic,
 		factory.MiniBlocksTopic,
 		factory.MetachainBlocksTopic,
 		MaxTxsToRequest,
@@ -1542,7 +1592,7 @@ func newShardBlockProcessorAndTracker(
 		core.Marshalizer,
 		shardCoordinator,
 		scProcessor,
-		feeTxHandler,
+		rewardsTxHandler,
 		txTypeHandler,
 	)
 	if err != nil {
@@ -1571,6 +1621,7 @@ func newShardBlockProcessorAndTracker(
 		transactionProcessor,
 		scProcessor,
 		scProcessor,
+		rewardsTxProcessor,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1601,6 +1652,8 @@ func newShardBlockProcessorAndTracker(
 		core.Marshalizer,
 		state.AccountsAdapter,
 		shardCoordinator,
+		nodesCoordinator,
+		specialAddressHandler,
 		forkDetector,
 		blockTracker,
 		shardsGenesisBlocks,
@@ -1623,6 +1676,8 @@ func newShardBlockProcessorAndTracker(
 func newMetaBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	specialAddressHandler process.SpecialAddressHandler,
 	data *Data,
 	core *Core,
 	state *State,
@@ -1651,6 +1706,8 @@ func newMetaBlockProcessorAndTracker(
 		data.MetaDatapool,
 		forkDetector,
 		shardCoordinator,
+		nodesCoordinator,
+		specialAddressHandler,
 		core.Hasher,
 		core.Marshalizer,
 		data.Store,

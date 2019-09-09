@@ -619,8 +619,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
+	economicsConfig := &generalConfig.EconomicsConfig
+
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		genesisConfig,
+		economicsConfig,
 		nodesConfig,
 		syncer,
 		shardCoordinator,

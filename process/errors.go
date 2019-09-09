@@ -286,9 +286,6 @@ var ErrNoTransactionInMessage = errors.New("no transaction found in received mes
 // ErrNilBuffer signals that a provided byte buffer is nil
 var ErrNilBuffer = errors.New("provided byte buffer is nil")
 
-// ErrNilChronologyValidator signals that a nil chronology validator has been provided
-var ErrNilChronologyValidator = errors.New("provided chronology validator object is nil")
-
 // ErrNilRandSeed signals that a nil rand seed has been provided
 var ErrNilRandSeed = errors.New("provided rand seed is nil")
 
@@ -358,6 +355,9 @@ var ErrNilVMOutput = errors.New("nil vm output")
 // ErrNilBalanceFromSC signals that balance is nil
 var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 
+// ErrNilValueFromRewardTransaction signals that the transfered value is nil
+var ErrNilValueFromRewardTransaction = errors.New("transferred value is nil in reward transaction")
+
 // ErrNilTemporaryAccountsHandler signals that temporary accounts handler is nil
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
@@ -367,6 +367,9 @@ var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in st
 // ErrNilSmartContractResult signals that the smart contract result is nil
 var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 
+// ErrNilRewardTransaction signals that the reward transaction is nil
+var ErrNilRewardTransaction = errors.New("reward transaction is nil")
+
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
@@ -375,6 +378,9 @@ var ErrNoUnsignedTransactionInMessage = errors.New("no unsigned transactions in 
 
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
+
+// ErrNilRewardTxDataPool signals that the reward transactions pool is nil
+var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
 
 // ErrNilUTxStorage signals that unsigned transaction storage is nil
 var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
@@ -403,6 +409,9 @@ var ErrNilUint64Converter = errors.New("unit64converter is nil")
 // ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
 var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
 
+// ErrNilRewardsTxProcessor signals that the rewards transaction processor is nil
+var ErrNilRewardsTxProcessor = errors.New("nil rewards transaction processor")
+
 // ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
 var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
 
@@ -430,8 +439,8 @@ var ErrNotEnoughFeeInTransactions = errors.New("transaction fee is not enough")
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
-// ErrTxsFeesDoesNotMatch signals that txs fees do not match
-var ErrTxsFeesDoesNotMatch = errors.New("calculated tx fees with block tx fee does not match")
+// ErrTxsFeesDoNotMatch signals that txs fees do not match
+var ErrTxsFeesDoNotMatch = errors.New("calculated tx fees with block tx fee does not match")
 
 // ErrTxsFeesNotFound signals that the tx fee not found
 var ErrTxsFeesNotFound = errors.New("tx fees not found")

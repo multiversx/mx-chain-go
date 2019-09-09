@@ -7,8 +7,9 @@ import (
 )
 
 type NodesCoordinatorMock struct {
-	ComputeValidatorsGroupCalled  func(randomness []byte, round uint64, shardId uint32) ([]sharding.Validator, error)
-	GetValidatorsPublicKeysCalled func(randomness []byte, round uint64, shardId uint32) ([]string, error)
+	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32) ([]sharding.Validator, error)
+	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32) ([]string, error)
+	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32) ([]string, error)
 }
 
 func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
@@ -53,6 +54,28 @@ func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(randomness []byte, roun
 	}
 
 	return pubKeys, nil
+}
+
+func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
+	randomness []byte,
+	round uint64,
+	shardId uint32,
+) ([]string, error) {
+	if ncm.GetValidatorsPublicKeysCalled != nil {
+		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId)
+	}
+
+	validators, err := ncm.ComputeValidatorsGroup(randomness, round, shardId)
+	if err != nil {
+		return nil, err
+	}
+
+	addresses := make([]string, 0)
+	for _, v := range validators {
+		addresses = append(addresses, string(v.Address()))
+	}
+
+	return addresses, nil
 }
 
 func (ncm *NodesCoordinatorMock) ConsensusGroupSize(shardId uint32) int {

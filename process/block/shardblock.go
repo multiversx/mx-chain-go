@@ -52,6 +52,8 @@ func NewShardProcessor(
 	marshalizer marshal.Marshalizer,
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	specialAddressHandler process.SpecialAddressHandler,
 	forkDetector process.ForkDetector,
 	blocksTracker process.BlocksTracker,
 	startHeaders map[uint32]data.HeaderHandler,
@@ -67,6 +69,8 @@ func NewShardProcessor(
 		marshalizer,
 		store,
 		shardCoordinator,
+		nodesCoordinator,
+		specialAddressHandler,
 		uint64Converter)
 	if err != nil {
 		return nil, err
@@ -98,6 +102,8 @@ func NewShardProcessor(
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
+		nodesCoordinator:              nodesCoordinator,
+		specialAddressHandler:         specialAddressHandler,
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
@@ -189,6 +195,17 @@ func (sp *shardProcessor) ProcessBlock(
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
+	// give transaction coordinator the consensus group validators addresses where to send the rewards.
+	consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
+		headerHandler.GetPrevRandSeed(),
+		headerHandler.GetRound(),
+		sp.shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
+	sp.SetConsensusRewardAddresses(consensusAddresses)
 	sp.txCoordinator.CreateBlockStarted()
 	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalMetaHdrs := sp.requestMetaHeaders(header)
@@ -293,7 +310,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Head
 	})
 
 	for _, metaHdr := range currAddedMetaHdrs {
-		err := sp.isHdrConstructionValid(metaHdr, tmpNotedHdr)
+		err = sp.isHdrConstructionValid(metaHdr, tmpNotedHdr)
 		if err != nil {
 			return err
 		}
@@ -329,7 +346,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round 
 
 		// found a header with the next nonce
 		if tmpHdr.hdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-			err := sp.isHdrConstructionValid(tmpHdr.hdr, lastVerifiedHdr)
+			err = sp.isHdrConstructionValid(tmpHdr.hdr, lastVerifiedHdr)
 			if err != nil {
 				log.Debug(err.Error())
 				continue
@@ -542,6 +559,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	log.Debug(fmt.Sprintf("started creating block body in round %d\n", round))
+
 	sp.txCoordinator.CreateBlockStarted()
 	sp.blockSizeThrottler.ComputeMaxItems()
 
@@ -743,7 +761,7 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(round uint64) (*
 			continue
 		}
 
-		err := sp.isHdrConstructionValid(hdr, lastNotarizedMetaHdr)
+		err = sp.isHdrConstructionValid(hdr, lastNotarizedMetaHdr)
 		if err != nil {
 			continue
 		}
@@ -833,7 +851,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
-			_, ok := crossMiniBlockHashes[string(miniBlockHashes[key])]
+			_, ok = crossMiniBlockHashes[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
@@ -1283,7 +1301,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		err := sp.isHdrConstructionValid(hdr, lastMetaHdr)
+		err = sp.isHdrConstructionValid(hdr, lastMetaHdr)
 		if err != nil {
 			continue
 		}

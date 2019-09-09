@@ -2,14 +2,15 @@ package coordinator
 
 import (
 	"crypto/rand"
-	"github.com/ElrondNetwork/elrond-go/data/feeTx"
+	"math/big"
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
@@ -242,7 +243,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	assert.Equal(t, process.MoveBalance, txType)
 }
 
-func TestTxTypeHandler_ComputeTransactionTypeTxFee(t *testing.T) {
+func TestTxTypeHandler_ComputeTransactionTypeRewardTx(t *testing.T) {
 	t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}
@@ -255,13 +256,13 @@ func TestTxTypeHandler_ComputeTransactionTypeTxFee(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	tx := &feeTx.FeeTx{RcvAddr: []byte("leader")}
+	tx := &rewardTx.RewardTx{RcvAddr: []byte("leader")}
 	txType, err := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.ErrWrongTransaction, err)
 	assert.Equal(t, process.InvalidTransaction, txType)
 
-	tx = &feeTx.FeeTx{RcvAddr: generateRandomByteSlice(addrConv.AddressLen())}
+	tx = &rewardTx.RewardTx{RcvAddr: generateRandomByteSlice(addrConv.AddressLen())}
 	txType, err = tth.ComputeTransactionType(tx)
 	assert.Nil(t, err)
-	assert.Equal(t, process.TxFee, txType)
+	assert.Equal(t, process.RewardTx, txType)
 }
