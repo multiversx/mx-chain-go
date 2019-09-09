@@ -284,7 +284,7 @@ func CreateIeleVMAndBlockchainHook(
 ) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, TestAddressConverter, coordinator)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, endpoint.ElrondTestnet)
+	vm := endpoint.NewElrondIeleVM(procFactory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 
 	return vm, blockChainHook
 }

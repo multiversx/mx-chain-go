@@ -86,7 +86,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		return nil, err
 	}
 
-	newSCAddr, err := vm.blockchainHook.NewAddress(input.CallerAddr, senderNonce)
+	newSCAddr, err := vm.blockchainHook.NewAddress(input.CallerAddr, senderNonce, []byte("01"))
 	if err != nil {
 		return nil, err
 	}

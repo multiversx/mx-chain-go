@@ -22,7 +22,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			value:    big.NewInt(0),
 			rcvAddr:  make([]byte, 32),
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
-			data:     scCode,
+			data:     scCode + "@0000",
 			gasLimit: 100000,
 			gasPrice: 0,
 		})

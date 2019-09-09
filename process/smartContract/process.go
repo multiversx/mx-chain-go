@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -175,7 +174,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	vm, err := sc.getVMFromTransaction(tx)
+	vm, err := sc.getVMFromRecvAddress(tx)
 	if err != nil {
 		return err
 	}
@@ -214,15 +213,19 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
 		nonce = acntSnd.GetNonce()
 	}
+
 	txValue := big.NewInt(0).Set(tx.Value)
 	sc.tempAccounts.AddTempAccount(tx.SndAddr, txValue, nonce)
 
 	return nil
 }
 
-func (sc *scProcessor) getVMFromTransaction(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
-	//TODO add processing here - like calculating what kind of VM does this contract call needs
-	vm, err := sc.vmContainer.Get([]byte(factory.IELEVirtualMachine))
+const startVMTypeIndex = 8
+const endVMTypeIndex = 9
+
+func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
+	vmType := tx.RcvAddr[startVMTypeIndex:endVMTypeIndex]
+	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
 	}
@@ -252,17 +255,16 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
-	vmInput, err := sc.createVMDeployInput(tx)
+	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {
 		return err
 	}
 
-	vm, err := sc.getVMFromTransaction(tx)
+	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Smart contract address calculation
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
 	if err != nil {
 		return err
@@ -300,26 +302,35 @@ func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon
 	return vmCallInput, nil
 }
 
-func (sc *scProcessor) createVMDeployInput(tx *transaction.Transaction) (*vmcommon.ContractCreateInput, error) {
+func (sc *scProcessor) createVMDeployInput(
+	tx *transaction.Transaction,
+) (*vmcommon.ContractCreateInput, []byte, error) {
 	vmInput, err := sc.createVMInput(tx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
+	if len(vmInput.Arguments) < 1 {
+		return nil, nil, process.ErrNotEnoughArgumentsToDeploy
+	}
+	// first argument after the code is the vmType
+	vmType := vmInput.Arguments[0].Bytes()
+	vmInput.Arguments = vmInput.Arguments[1:]
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
 	hexCode, err := sc.argsParser.GetCode()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	vmCreateInput.ContractCode, err = hex.DecodeString(string(hexCode))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	vmCreateInput.VMInput = *vmInput
 
-	return vmCreateInput, nil
+	return vmCreateInput, vmType, nil
 }
 
 func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMInput, error) {

@@ -13,3 +13,6 @@ var ErrAddressLengthNotCorrect = errors.New("address length is not correct")
 
 // ErrAddressIsInUnknownShard signals that an addresses computed shard id is unknown
 var ErrAddressIsInUnknownShard = errors.New("address is in unknown shard")
+
+// ErrVMTypeLengthIsNotCorrect signals that the vm type length is not correct
+var ErrVMTypeLengthIsNotCorrect = errors.New("vm type length is not correct")

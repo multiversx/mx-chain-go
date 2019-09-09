@@ -153,15 +153,20 @@ func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 	return nil, nil
 }
 
-const numZeroCharactersForScAddress = 10
+const numInitCharactersForScAddress = 10
+const vmTypeLen = 2
 
 // NewAddress is a hook which creates a new smart contract address from the creators address and nonce
 // The first 8 bytes are 0, bytes 9-10 are for the VM type, bytes 11-30 are keccak256 from address and nonce of creator
 // The last 2 bytes are for the shard ID
-func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64) ([]byte, error) {
+func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
 	addressLength := vadb.addrConv.AddressLen()
 	if len(creatorAddress) != addressLength {
 		return nil, ErrAddressLengthNotCorrect
+	}
+
+	if len(vmType) != vmTypeLen {
+		return nil, ErrVMTypeLengthIsNotCorrect
 	}
 
 	creatorAddr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(creatorAddress)
@@ -174,17 +179,15 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64)
 		return nil, ErrAddressIsInUnknownShard
 	}
 
-	scAddress := make([]byte, addressLength)
-
 	nonce := big.NewInt(0).SetUint64(creatorNonce)
 
-	adrAndNonce := append(scAddress, nonce.Bytes()...)
+	adrAndNonce := append(creatorAddress, nonce.Bytes()...)
 	kecAdrAndNonce := hex.EncodeToString(keccak.Keccak{}.Compute(string(adrAndNonce)))
 
-	scAddress = []byte(kecAdrAndNonce)
-	for i := 0; i < numZeroCharactersForScAddress; i++ {
-		scAddress[i] = 0
-	}
+	scAddress := []byte(kecAdrAndNonce)
+	identifier := make([]byte, numInitCharactersForScAddress-vmTypeLen)
+	identifier = append(identifier, vmType...)
+	copy(scAddress[:numInitCharactersForScAddress], identifier)
 
 	bytesNeed := int(vadb.shardCoordinator.NumberOfShards()/256) + 1
 	for i := addressLength - bytesNeed; i < addressLength; i++ {

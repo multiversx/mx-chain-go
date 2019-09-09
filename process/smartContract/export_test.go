@@ -14,7 +14,7 @@ func (sc *scProcessor) CreateVMCallInput(tx *transaction.Transaction) (*vmcommon
 	return sc.createVMCallInput(tx)
 }
 
-func (sc *scProcessor) CreateVMDeployInput(tx *transaction.Transaction) (*vmcommon.ContractCreateInput, error) {
+func (sc *scProcessor) CreateVMDeployInput(tx *transaction.Transaction) (*vmcommon.ContractCreateInput, []byte, error) {
 	return sc.createVMDeployInput(tx)
 }
 

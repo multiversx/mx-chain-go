@@ -417,3 +417,6 @@ var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator prov
 
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
+var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")

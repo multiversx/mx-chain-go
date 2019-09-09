@@ -17,7 +17,4 @@ const (
 	ShardHeadersForMetachainTopic = "shardHeadersForMetachain"
 )
 
-const (
-	// IELEVirtualMachine is the VM for IELE with k Framework and GO backend
-	IELEVirtualMachine = "0001"
-)
+var IELEVirtualMachine = []byte{0, 0}
