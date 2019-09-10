@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			value:    big.NewInt(0),
 			rcvAddr:  make([]byte, 32),
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
-			data:     scCode + "@00",
+			data:     scCode + "@" + hex.EncodeToString(factory.IELEVirtualMachine),
 			gasLimit: 100000,
 			gasPrice: 0,
 		})

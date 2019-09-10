@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +37,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	transferOnCalls := big.NewInt(0)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@01@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -57,6 +58,6 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	destinationAddressBytes, _ := hex.DecodeString("00000000000000003031597e658cd20edf45a1004da5bf04f8b6518744847c32")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000001a2983b179a480a60c4308da48f13b4480dbb4d33132")
 	return accnts, destinationAddressBytes, big.NewInt(0).SetUint64(initialValueForInternalVariable)
 }

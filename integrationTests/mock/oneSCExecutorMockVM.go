@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -86,7 +87,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		return nil, err
 	}
 
-	newSCAddr, err := vm.blockchainHook.NewAddress(input.CallerAddr, senderNonce, []byte("01"))
+	newSCAddr, err := vm.blockchainHook.NewAddress(input.CallerAddr, senderNonce, factory.InternalTestingVM)
 	if err != nil {
 		return nil, err
 	}

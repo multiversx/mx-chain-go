@@ -14,7 +14,6 @@ func TestNewVMContainerFactory_NilAccounts(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		nil,
 		&mock.AddressConverterMock{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, vmf)
@@ -27,24 +26,10 @@ func TestNewVMContainerFactory_NilAddressConverter(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		&mock.AccountsStub{},
 		nil,
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
-}
-
-func TestNewVMContainerFactory_NilShardCoordinator(t *testing.T) {
-	t.Parallel()
-
-	vmf, err := NewVMContainerFactory(
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		nil,
-	)
-
-	assert.Nil(t, vmf)
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
@@ -53,7 +38,6 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 
 	assert.NotNil(t, vmf)
@@ -66,7 +50,6 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
-		mock.NewOneShardCoordinatorMock(),
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)

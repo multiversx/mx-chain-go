@@ -1,19 +1,18 @@
 package hooks
 
 import (
+	"encoding/binary"
 	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // VMAccountsDB is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type VMAccountsDB struct {
-	accounts         state.AccountsAdapter
-	addrConv         state.AddressConverter
-	shardCoordinator sharding.Coordinator
+	accounts state.AccountsAdapter
+	addrConv state.AddressConverter
 
 	mutTempAccounts sync.Mutex
 	tempAccounts    map[string]state.AccountHandler
@@ -23,7 +22,6 @@ type VMAccountsDB struct {
 func NewVMAccountsDB(
 	accounts state.AccountsAdapter,
 	addrConv state.AddressConverter,
-	coordinator sharding.Coordinator,
 ) (*VMAccountsDB, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
@@ -32,14 +30,10 @@ func NewVMAccountsDB(
 	if addrConv == nil || addrConv.IsInterfaceNil() {
 		return nil, state.ErrNilAddressConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
-		return nil, state.ErrNilShardCoordinator
-	}
 
 	vmAccountsDB := &VMAccountsDB{
-		accounts:         accounts,
-		addrConv:         addrConv,
-		shardCoordinator: coordinator,
+		accounts: accounts,
+		addrConv: addrConv,
 	}
 
 	vmAccountsDB.tempAccounts = make(map[string]state.AccountHandler, 0)
@@ -152,47 +146,53 @@ func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 	return nil, nil
 }
 
-const numInitCharactersForScAddress = 10
-const vmTypeLen = 2
-
 // NewAddress is a hook which creates a new smart contract address from the creators address and nonce
-// The first 8 bytes are 0, bytes 9-10 are for the VM type, bytes 11-30 are keccak256 from address and nonce of creator
-// The last 2 bytes are for the shard ID
+// The address is created by applied keccak256 on the appended value off creator address and nonce
+// Prefix mask is applied for first 8 bytes 0, and for bytes 9-10 - VM type
+// Suffix mask is applied - last 2 bytes are for the shard ID - mask is applied as suffix mask
 func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
 	addressLength := vadb.addrConv.AddressLen()
 	if len(creatorAddress) != addressLength {
 		return nil, ErrAddressLengthNotCorrect
 	}
 
-	if len(vmType) != vmTypeLen {
+	if len(vmType) != VMTypeLen {
 		return nil, ErrVMTypeLengthIsNotCorrect
 	}
 
-	creatorAddr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(creatorAddress)
+	_, err := vadb.getShardAccountFromAddressBytes(creatorAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	shId := vadb.shardCoordinator.ComputeId(creatorAddr)
-	if shId >= vadb.shardCoordinator.NumberOfShards() {
-		return nil, ErrAddressIsInUnknownShard
-	}
+	base := hashFromAddressAndNonce(creatorAddress, creatorNonce)
+	prefixMask := createPrefixMask(vmType)
+	suffixMask := createSuffixMask(creatorAddress)
 
-	nonce := big.NewInt(0).SetUint64(creatorNonce)
+	copy(base[:NumInitCharactersForScAddress], prefixMask)
+	copy(base[len(base)-ShardIdentiferLen:], suffixMask)
 
-	adrAndNonce := append(creatorAddress, nonce.Bytes()...)
+	return base, nil
+}
+
+func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {
+	buffNonce := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
+	adrAndNonce := append(creatorAddress, buffNonce...)
 	scAddress := keccak.Keccak{}.Compute(string(adrAndNonce))
 
-	identifier := make([]byte, numInitCharactersForScAddress-vmTypeLen)
-	identifier = append(identifier, vmType...)
-	copy(scAddress[:numInitCharactersForScAddress], identifier)
+	return scAddress
+}
 
-	bytesNeed := int(vadb.shardCoordinator.NumberOfShards()/256) + 1
-	for i := addressLength - bytesNeed; i < addressLength; i++ {
-		scAddress[i] = creatorAddress[i]
-	}
+func createPrefixMask(vmType []byte) []byte {
+	prefixMask := make([]byte, NumInitCharactersForScAddress-VMTypeLen)
+	prefixMask = append(prefixMask, vmType...)
 
-	return scAddress, nil
+	return prefixMask
+}
+
+func createSuffixMask(creatorAddress []byte) []byte {
+	return creatorAddress[len(creatorAddress)-2:]
 }
 
 func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (state.AccountHandler, error) {

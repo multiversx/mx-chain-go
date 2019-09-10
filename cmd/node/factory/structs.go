@@ -1388,7 +1388,7 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter, shardCoordinator)
+	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
 	if err != nil {
 		return nil, nil, err
 	}

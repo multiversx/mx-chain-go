@@ -80,7 +80,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 }
 
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv, oneShardCoordinator)
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = opGas
 
@@ -107,14 +107,14 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 }
 
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv, oneShardCoordinator)
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 
 	return vm
 }
 
 func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv, oneShardCoordinator)
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	cryptoHook := hooks.NewVMCryptoHook()
 	vm := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 	//Uncomment this to enable trace printing of the vm

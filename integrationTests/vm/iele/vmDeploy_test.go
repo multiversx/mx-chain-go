@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,8 +21,8 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@00@%X",
-		initialValueForInternalVariable)
+	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%s@%X",
+		hex.EncodeToString(factory.IELEVirtualMachine), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -49,7 +50,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		expectedBalance)
-	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d97df32")
+	destinationAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
 
 	vm.TestDeployedContractContents(
 		t,
@@ -71,8 +72,8 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%X",
-		initialValueForInternalVariable)
+	scCode := fmt.Sprintf("0000003B6302690003616464690004676574416700000001616101550468000100016161015406010A6161015506F6000068000200006161005401F6000101@%s@%X",
+		hex.EncodeToString(factory.IELEVirtualMachine), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -101,7 +102,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderNonce+1,
 		//the transfer should get back to the sender as the tx failed
 		expectedBalance)
-	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	destinationAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
 
 	assert.False(t, vm.AccountExists(accnts, destinationAddressBytes))
 }

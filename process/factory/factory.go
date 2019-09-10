@@ -17,5 +17,8 @@ const (
 	ShardHeadersForMetachainTopic = "shardHeadersForMetachain"
 )
 
+// InternalTestingVM is a byte array identified for the smart contract address created for the testing VM
+var InternalTestingVM = []byte{0, 0}
+
 // IELEVirtualMachine is a byte array identifier for the smart contract address created for IELE VM
-var IELEVirtualMachine = []byte{0, 0}
+var IELEVirtualMachine = []byte{1, 0}

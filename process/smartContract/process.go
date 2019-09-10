@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -220,11 +221,21 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 	return nil
 }
 
-const startVMTypeIndex = 8
-const endVMTypeIndex = 10
+func (sc *scProcessor) getVMTypeFromArguments(arg *big.Int) ([]byte, error) {
+	// first parsed argument after the code in case of vmDeploy is the actual vmType
+	vmAppendedType := make([]byte, hooks.VMTypeLen)
+	vmType := arg.Bytes()
+	vmArgLen := len(vmType)
+	if vmArgLen > hooks.VMTypeLen {
+		return nil, process.ErrVMTypeLengthInvalid
+	}
+
+	copy(vmAppendedType[hooks.VMTypeLen-vmArgLen:], vmType)
+	return vmAppendedType, nil
+}
 
 func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
-	vmType := tx.RcvAddr[startVMTypeIndex:endVMTypeIndex]
+	vmType := tx.RcvAddr[hooks.NumInitCharactersForScAddress-hooks.VMTypeLen : hooks.NumInitCharactersForScAddress]
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
@@ -312,15 +323,12 @@ func (sc *scProcessor) createVMDeployInput(
 	if len(vmInput.Arguments) < 1 {
 		return nil, nil, process.ErrNotEnoughArgumentsToDeploy
 	}
-	// first argument after the code is the vmType
-	vmAppendedType := make([]byte, endVMTypeIndex-startVMTypeIndex)
-	vmType := vmInput.Arguments[0].Bytes()
-	vmArgLen := len(vmType)
-	if vmArgLen > endVMTypeIndex-startVMTypeIndex {
-		return nil, nil, process.ErrVMTypeLengthInvalid
-	}
 
-	copy(vmAppendedType[endVMTypeIndex-startVMTypeIndex-vmArgLen:], vmType)
+	vmType, err := sc.getVMTypeFromArguments(vmInput.Arguments[0])
+	if err != nil {
+		return nil, nil, err
+	}
+	// delete the first argument as it is the vmType
 	vmInput.Arguments = vmInput.Arguments[1:]
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
@@ -336,7 +344,7 @@ func (sc *scProcessor) createVMDeployInput(
 
 	vmCreateInput.VMInput = *vmInput
 
-	return vmCreateInput, vmAppendedType, nil
+	return vmCreateInput, vmType, nil
 }
 
 func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMInput, error) {
@@ -448,7 +456,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
-	crossTxs, err := sc.createSCRTransactions(vmOutput.OutputAccounts, tx, txHash)
+	scrTxs, err := sc.createSCRTransactions(vmOutput.OutputAccounts, tx, txHash)
 	if err != nil {
 		return nil, err
 	}
@@ -460,13 +468,13 @@ func (sc *scProcessor) processVMOutput(
 
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
-	scrIfCrossShard, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
+	scrRefund, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, err
 	}
 
-	if scrIfCrossShard != nil {
-		crossTxs = append(crossTxs, scrIfCrossShard)
+	if scrRefund != nil {
+		scrTxs = append(scrTxs, scrRefund)
 	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
@@ -479,7 +487,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
-	return crossTxs, nil
+	return scrTxs, nil
 }
 
 // reloadLocalSndAccount will reload from current account state the sender account
@@ -619,7 +627,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		}
 
 		// change nonce only if there is a change
-		if outAcc.Nonce > 0 {
+		if outAcc.Nonce != acc.GetNonce() {
 			if outAcc.Nonce < acc.GetNonce() {
 				return process.ErrWrongNonceInVMOutput
 			}
