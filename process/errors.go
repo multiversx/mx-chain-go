@@ -1,7 +1,7 @@
 package process
 
 import (
-    "errors"
+	"errors"
 )
 
 // ErrNilMessage signals that a nil message has been received
