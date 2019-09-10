@@ -430,6 +430,21 @@ func TestVMAccountsDB_NewAddressShardIdIncorrect(t *testing.T) {
 	assert.Nil(t, scAddress)
 }
 
+func TestVMAccountsDB_NewAddressVMTypeTooLong(t *testing.T) {
+	t.Parallel()
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, adrConv, mock.NewMultiShardsCoordinatorMock(2))
+
+	address := []byte("01234567890123456789012345678900")
+	nonce := uint64(10)
+
+	vmType := []byte("010")
+	scAddress, err := vadb.NewAddress(address, nonce, vmType)
+	assert.Equal(t, hooks.ErrVMTypeLengthIsNotCorrect, err)
+	assert.Nil(t, scAddress)
+}
+
 func TestVMAccountsDB_NewAddress(t *testing.T) {
 	t.Parallel()
 

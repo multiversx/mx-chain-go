@@ -190,7 +190,6 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64,
 	bytesNeed := int(vadb.shardCoordinator.NumberOfShards()/256) + 1
 	for i := addressLength - bytesNeed; i < addressLength; i++ {
 		scAddress[i] = creatorAddress[i]
-		scAddress[i] = creatorAddress[i]
 	}
 
 	return scAddress, nil

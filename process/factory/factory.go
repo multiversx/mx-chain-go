@@ -17,4 +17,5 @@ const (
 	ShardHeadersForMetachainTopic = "shardHeadersForMetachain"
 )
 
+// IELEVirtualMachine is a byte array identifier for the smart contract address created for IELE VM
 var IELEVirtualMachine = []byte{0, 0}

@@ -2,7 +2,6 @@ package vm
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 	"testing"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
