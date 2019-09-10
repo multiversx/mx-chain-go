@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const broadcastDelay = 2* time.Second
+const broadcastDelay = 2 * time.Second
 
 func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	if testing.Short() {

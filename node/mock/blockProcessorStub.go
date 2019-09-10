@@ -78,8 +78,8 @@ func (blProcMock BlockProcessorStub) SetConsensusRewardAddresses([]string) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (blProcMock *BlockProcessorStub) IsInterfaceNil() bool {
-    if blProcMock == nil {
-        return true
-    }
-    return false
+	if blProcMock == nil {
+		return true
+	}
+	return false
 }

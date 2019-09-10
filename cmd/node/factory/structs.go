@@ -1351,9 +1351,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	shardsGenesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
-			uint64(nodesSetup.StartTime),
-			nodesSetup.InitialNodesPubKeys(),
-		)
+		uint64(nodesSetup.StartTime),
+		nodesSetup.InitialNodesPubKeys(),
+	)
 
 	if err != nil {
 		return nil, err

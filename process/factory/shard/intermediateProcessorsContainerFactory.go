@@ -18,7 +18,7 @@ type intermediateProcessorsContainerFactory struct {
 	hasher                hashing.Hasher
 	addrConverter         state.AddressConverter
 	specialAddressHandler process.SpecialAddressHandler
-	store            dataRetriever.StorageService
+	store                 dataRetriever.StorageService
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -43,10 +43,10 @@ func NewIntermediateProcessorsContainerFactory(
 	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil(){
+	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {
 		return nil, process.ErrNilSpecialAddressHandler
 	}
-	if store == nil || store.IsInterfaceNil(){
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStorage
 	}
 
@@ -56,7 +56,7 @@ func NewIntermediateProcessorsContainerFactory(
 		hasher:                hasher,
 		addrConverter:         addrConverter,
 		specialAddressHandler: specialAddressHandler,
-		store:            store,
+		store:                 store,
 	}, nil
 }
 
