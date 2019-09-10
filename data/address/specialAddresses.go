@@ -62,7 +62,7 @@ func (sp *specialAddresses) BurnAddress() []byte {
 	return sp.burnAddress
 }
 
-// SetConsensusRewardAddresses sets the consensus rewards addresses for the round
+// SetConsensusData sets the consensus rewards addresses for the round
 func (sp *specialAddresses) SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32) {
 	sp.consensusRewardAddresses = consensusRewardAddresses
 	sp.round = round

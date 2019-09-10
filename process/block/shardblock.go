@@ -444,7 +444,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	rewardPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlockType)
+	rewardPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
 
 
 	for hash, tx := range scPool {

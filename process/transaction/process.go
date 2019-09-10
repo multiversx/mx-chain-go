@@ -6,14 +6,11 @@ import (
     "sync"
 
     "github.com/ElrondNetwork/elrond-go/core/logger"
-    "github.com/ElrondNetwork/elrond-go/data"
-    "github.com/ElrondNetwork/elrond-go/data/rewardTx"
     "github.com/ElrondNetwork/elrond-go/data/state"
     "github.com/ElrondNetwork/elrond-go/data/transaction"
     "github.com/ElrondNetwork/elrond-go/hashing"
     "github.com/ElrondNetwork/elrond-go/marshal"
     "github.com/ElrondNetwork/elrond-go/process"
-    "github.com/ElrondNetwork/elrond-go/process/block/preprocess"
     "github.com/ElrondNetwork/elrond-go/sharding"
 )
 

@@ -119,6 +119,7 @@ type SpecialAddressHandler interface {
     SetElrondCommunityAddress(elrond []byte)
     ElrondCommunityAddress() []byte
     SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
+    ConsensusRewardAddresses() []string
 	LeaderAddress() []byte
 	BurnAddress() []byte
 	ShardIdForAddress([]byte) (uint32, error)

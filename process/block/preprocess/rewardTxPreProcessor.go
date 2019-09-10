@@ -172,7 +172,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
-		if miniBlock.Type != block.RewardsBlockType {
+		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
 

@@ -528,7 +528,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		log.Error("could not create reward mini-blocks")
 	}
 
-	rewardsPreProc := tc.getPreProcessor(block.RewardsBlockType)
+	rewardsPreProc := tc.getPreProcessor(block.RewardsBlock)
 	for _, mb := range rewardMb {
 		err := tc.processCompleteMiniBlock(rewardsPreProc, mb, round, haveTime)
 		if err != nil {

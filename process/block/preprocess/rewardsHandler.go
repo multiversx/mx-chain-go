@@ -420,7 +420,7 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
     rtxh.mut.Lock()
 
     rewardTxPool := make(map[string]data.TransactionHandler)
-    for txHash, txInfo := range rtxh.rewardTxsFromBlock {
+    for txHash, txInfo := range rtxh.rewardTxsForBlock {
 
         senderShard := txInfo.ShardId
         receiverShard, err := rtxh.address.ShardIdForAddress(txInfo.RcvAddr)
@@ -438,12 +438,4 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
     rtxh.mut.Unlock()
 
     return rewardTxPool
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (rtxh *rewardsHandler) IsInterfaceNil() bool {
-    if rtxh == nil {
-        return true
-    }
-    return false
 }
