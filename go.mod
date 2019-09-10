@@ -34,7 +34,6 @@ require (
 	github.com/libp2p/go-libp2p-core v0.0.3
 	github.com/libp2p/go-libp2p-discovery v0.1.0
 	github.com/libp2p/go-libp2p-kad-dht v0.1.0
-	github.com/libp2p/go-libp2p-peerstore v0.1.0
 	github.com/libp2p/go-libp2p-pubsub v0.1.0
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.0.4
