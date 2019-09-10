@@ -111,6 +111,8 @@ type TestProcessorNode struct {
 	BlockTracker       process.BlocksTracker
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
+	Bootstrapper       process.Bootstrapper
+	Rounder            *mock.RounderMock
 
 	MultiSigner crypto.MultiSigner
 
@@ -274,7 +276,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 }
 
 func (tpn *TestProcessorNode) initResolvers() {
-	dataPacker, _ := partitioning.NewSizeDataPacker(TestMarshalizer)
+	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
@@ -561,6 +563,17 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		tpn.ShardDataPool.MiniBlocks().RegisterHandler(mbHandlers)
 	}
 
+}
+
+// StartSync calls Bootstrapper.StartSync. Errors if bootstrapper is not set
+func (tpn *TestProcessorNode) StartSync() error {
+	if tpn.Bootstrapper == nil {
+		return errors.New("no bootstrapper available")
+	}
+
+	tpn.Bootstrapper.StartSync()
+
+	return nil
 }
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair

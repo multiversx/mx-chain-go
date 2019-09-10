@@ -292,7 +292,7 @@ func createNetNode(
 	blkc := createTestShardChain()
 	store := createTestShardStore(shardCoordinator.NumberOfShards())
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
+	dataPacker, _ := partitioning.NewSimpleDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
