@@ -1160,6 +1160,7 @@ func newShardInterceptorAndResolverContainerFactory(
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
+		state.AccountsAdapter,
 		shardCoordinator,
 		network.NetMessenger,
 		data.Store,

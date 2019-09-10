@@ -131,8 +131,8 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		assert.Equal(t, txRecovered.RcvAddr, receiver)
 
 		sig, _ := hex.DecodeString(frontendSignature)
-		assert.Equal(t, txRecovered.Signature, sig)
-		assert.Equal(t, txRecovered.Data, frontendData)
+		assert.Equal(t, sig, txRecovered.Signature)
+		assert.Equal(t, frontendData, txRecovered.Data)
 
 		chDone <- struct{}{}
 	})
@@ -140,6 +140,8 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	rcvAddrBytes, _ := hex.DecodeString(frontendReceiverHex)
 	sndAddrBytes, _ := hex.DecodeString(frontendSenderHex)
 	signatureBytes, _ := hex.DecodeString(frontendSignature)
+
+	integrationTests.MintAddress(node.AccntState, sndAddrBytes, big.NewInt(20000))
 
 	txHexHash, err = node.SendTransaction(&transaction.Transaction{
 		Nonce:     frontendNonce,

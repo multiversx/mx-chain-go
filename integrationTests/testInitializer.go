@@ -942,6 +942,7 @@ func CreateRequesterDataPool(
 // CreateResolversDataPool creates a datapool containing a given number of transactions
 func CreateResolversDataPool(
 	t *testing.T,
+	nodes []*TestProcessorNode,
 	maxTxs int,
 	senderShardID uint32,
 	recvShardId uint32,
@@ -949,7 +950,7 @@ func CreateResolversDataPool(
 ) (dataRetriever.PoolsHolder, [][]byte) {
 
 	txHashes := make([][]byte, maxTxs)
-
+	txsSndAddr := make([][]byte, 0)
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 
 	for i := 0; i < maxTxs; i++ {
@@ -957,6 +958,15 @@ func CreateResolversDataPool(
 		cacherIdentifier := process.ShardCacherIdentifier(1, 0)
 		txPool.AddData(txHash, tx, cacherIdentifier)
 		txHashes[i] = txHash
+		txsSndAddr = append(txsSndAddr, tx.SndAddr)
+	}
+
+	for _, n := range nodes {
+		for _, txSenderAddr := range txsSndAddr {
+			account, _ := n.AccntState.GetAccountWithJournal(state.NewAddress(txSenderAddr))
+			_ = account.(*state.Account).SetBalanceWithJournal(big.NewInt(100000))
+		}
+		_, _ = n.AccntState.Commit()
 	}
 
 	return CreateTestShardDataPool(txPool), txHashes

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -77,6 +78,10 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		transactions = append(transactions, val.(*transaction.Transaction))
 		wg.Done()
 	})
+
+	shardId := uint32(0)
+	senderPrivateKeys := []crypto.PrivateKey{n.OwnAccount.SkTxSign}
+	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{n}, shardId, senderPrivateKeys, big.NewInt(100000))
 
 	err := n.Node.GenerateAndSendBulkTransactions(
 		integrationTests.CreateRandomHexString(64),

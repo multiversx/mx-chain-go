@@ -503,3 +503,105 @@ func TestNewInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t
 	assert.Equal(t, uint32(1), txIntercepted.RcvShard())
 	assert.Equal(t, uint32(1), txIntercepted.SndShard())
 }
+
+func TestNewInterceptedTransaction_GetNonce(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     nonce,
+		Value:     big.NewInt(2),
+		Data:      "data",
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	txi, err := createInterceptedTxFromPlainTx(tx)
+	assert.NotNil(t, txi)
+	assert.Nil(t, err)
+	assert.Equal(t, tx, txi.Transaction())
+
+	result := txi.GetNonce()
+	assert.Equal(t, nonce, result)
+}
+
+func TestNewInterceptedTransaction_GetSenderShardId(t *testing.T) {
+	t.Parallel()
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(2),
+		Data:      "data",
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	txi, err := createInterceptedTxFromPlainTx(tx)
+	assert.NotNil(t, txi)
+	assert.Nil(t, err)
+	assert.Equal(t, tx, txi.Transaction())
+
+	result := txi.GetSenderShardId()
+	assert.Equal(t, senderShard, result)
+}
+
+func TestNewInterceptedTransaction_GetTotalValue(t *testing.T) {
+	t.Parallel()
+
+	txValue := big.NewInt(2)
+	gasPrice := uint64(3)
+	gasLimit := uint64(4)
+	val := big.NewInt(0)
+	val = val.Mul(big.NewInt(int64(gasPrice)), big.NewInt(int64(gasLimit)))
+	expectedValue := big.NewInt(0)
+	expectedValue.Add(txValue, val)
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     0,
+		Value:     txValue,
+		Data:      "data",
+		GasLimit:  gasPrice,
+		GasPrice:  gasLimit,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	txi, err := createInterceptedTxFromPlainTx(tx)
+	assert.NotNil(t, txi)
+	assert.Nil(t, err)
+	assert.Equal(t, tx, txi.Transaction())
+
+	result := txi.GetTotalValue()
+	assert.Equal(t, expectedValue, result)
+}
+
+func TestNewInterceptedTransaction_GetSenderAddress(t *testing.T) {
+	t.Parallel()
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(2),
+		Data:      "data",
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	txi, err := createInterceptedTxFromPlainTx(tx)
+	assert.NotNil(t, txi)
+	assert.Nil(t, err)
+	assert.Equal(t, tx, txi.Transaction())
+
+	result := txi.GetSenderAddress()
+	assert.NotNil(t, result)
+}

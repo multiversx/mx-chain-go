@@ -26,6 +26,7 @@ type InterceptedTransaction struct {
 	rcvShard                 uint32
 	sndShard                 uint32
 	isAddressedToOtherShards bool
+	sndAddr                  state.AddressContainer
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -104,7 +105,7 @@ func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte,
 	}
 	inTx.hash = inTx.hasher.Compute(string(txBuffWithSig))
 
-	sndAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
+	inTx.sndAddr, err = inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
 	if err != nil {
 		return nil, process.ErrInvalidSndAddr
 	}
@@ -114,7 +115,7 @@ func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte,
 		return nil, process.ErrInvalidRcvAddr
 	}
 
-	inTx.sndShard = inTx.coordinator.ComputeId(sndAddr)
+	inTx.sndShard = inTx.coordinator.ComputeId(inTx.sndAddr)
 	emptyAddr := make([]byte, len(rcvAddr.Bytes()))
 	inTx.rcvShard = inTx.coordinator.ComputeId(rcvAddr)
 	if bytes.Equal(rcvAddr.Bytes(), emptyAddr) {
@@ -190,4 +191,31 @@ func (inTx *InterceptedTransaction) Transaction() *transaction.Transaction {
 // Hash gets the hash of this transaction
 func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
+}
+
+// GetSenderShardId returns the transaction sender shard id
+func (inTx *InterceptedTransaction) GetSenderShardId() uint32 {
+	return inTx.sndShard
+}
+
+// GetNonce return the transaction nonce
+func (inTx *InterceptedTransaction) GetNonce() uint64 {
+	return inTx.tx.Nonce
+}
+
+// GetSenderAddress return the transaction sender address
+func (inTx *InterceptedTransaction) GetSenderAddress() state.AddressContainer {
+	return inTx.sndAddr
+}
+
+// GetTotalValue returns the maximum cost of transaction
+func (inTx *InterceptedTransaction) GetTotalValue() *big.Int {
+	result := big.NewInt(0).Set(inTx.tx.Value)
+	gasPrice := big.NewInt(int64(inTx.tx.GasPrice))
+	gasLimit := big.NewInt(int64(inTx.tx.GasLimit))
+	mulTxCost := big.NewInt(0)
+	mulTxCost = mulTxCost.Mul(gasPrice, gasLimit)
+	result = result.Add(result, mulTxCost)
+
+	return result
 }

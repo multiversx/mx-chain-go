@@ -79,6 +79,8 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 
 	var txs []*transaction.Transaction
 
+	shardId := uint32(1)
+	sendersSks := make([]crypto.PrivateKey, 0)
 	// generate cross shard txs from shard 1 to shard 0
 	for len(txs) < numOfCrossShardTxsToSend {
 		// generate a tx from shard 0 to shard 1 and check if signature is correct
@@ -89,8 +91,9 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 		receiver := accountsByShard[0][randomReceiverId]
 
 		tx := generateTx(sender.sk, receiver.pk)
-
 		txs = append(txs, tx)
+
+		sendersSks = append(sendersSks, sender.sk)
 	}
 
 	// generate intra shard txs in shard 1
@@ -103,9 +106,11 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 		receiver := accountsByShard[1][randomReceiverId]
 
 		tx := generateTx(sender.sk, receiver.pk)
-
 		txs = append(txs, tx)
+		sendersSks = append(sendersSks, sender.sk)
 	}
+
+	integrationTests.CreateMintingForSenders(nodes, shardId, sendersSks, big.NewInt(100000))
 
 	sentTxs, err := nodes[0].Node.SendBulkTransactions(txs)
 	assert.Nil(t, err)

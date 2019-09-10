@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -58,7 +59,13 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 5)
 	pkBytes, _ := pkInShardFive.ToByteArray()
 	addrInShardFive := hex.EncodeToString(pkBytes)
-	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+
+	idxSender := 0
+	shardId := nodes[idxSender].ShardCoordinator.SelfId()
+	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
+	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, big.NewInt(100000))
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+
 	time.Sleep(time.Second * 10)
 
 	//since there is a slight chance that some transactions get lost (peer to slow, queue full, validators throttling...)
@@ -127,7 +134,12 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	pkBytes, _ := pkInShardFive.ToByteArray()
 	addrInShardFive := hex.EncodeToString(pkBytes)
 
-	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	idxSender := 0
+	shardId := uint32(4)
+	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
+	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, big.NewInt(100000))
+
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
 	//display, can be removed
 	for i := 0; i < 10; i++ {
@@ -222,6 +234,11 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		}
 	}
 
+	idxSender := 0
+	shardId := uint32(4)
+	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
+	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, big.NewInt(100000))
+
 	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")
@@ -302,7 +319,8 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	var txHashesGenerated [][]byte
 	var dPool dataRetriever.PoolsHolder
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), 0)
-	dPool, txHashesGenerated = integrationTests.CreateResolversDataPool(t, txGenerated, 0, 1, shardCoordinator)
+	dPool, txHashesGenerated = integrationTests.CreateResolversDataPool(t, nodes, txGenerated, 0, 1, shardCoordinator)
+
 	//shard 1, resolvers, same data pool, does not matter
 	for i := 0; i < nodesPerShard; i++ {
 		tn := integrationTests.NewTestProcessorNodeWithCustomDataPool(

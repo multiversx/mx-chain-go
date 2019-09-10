@@ -17,6 +17,7 @@ import (
 )
 
 type interceptorsContainerFactory struct {
+	accounts            state.AccountsAdapter
 	shardCoordinator    sharding.Coordinator
 	messenger           process.TopicHandler
 	store               dataRetriever.StorageService
@@ -32,6 +33,7 @@ type interceptorsContainerFactory struct {
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
+	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
@@ -44,7 +46,9 @@ func NewInterceptorsContainerFactory(
 	addrConverter state.AddressConverter,
 	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
-
+	if accounts == nil || accounts.IsInterfaceNil() {
+		return nil, process.ErrNilAccountsAdapter
+	}
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -80,6 +84,7 @@ func NewInterceptorsContainerFactory(
 	}
 
 	return &interceptorsContainerFactory{
+		accounts:            accounts,
 		shardCoordinator:    shardCoordinator,
 		messenger:           messenger,
 		store:               store,
@@ -212,7 +217,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
 	//TODO implement other TxHandlerProcessValidator that will check the tx nonce against account's nonce
-	txValidator, err := dataValidators.NewNilTxValidator()
+	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
