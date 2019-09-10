@@ -1,24 +1,24 @@
 package mock
 
 import (
-	"encoding/hex"
+    "encoding/hex"
 )
 
 type Streamer struct {
-	key []byte
+    key []byte
 }
 
 func NewStreamer() *Streamer {
-	key, _ := hex.DecodeString("aa")
-	return &Streamer{key: key}
+    key, _ := hex.DecodeString("aa")
+    return &Streamer{key: key}
 }
 
 func (stream *Streamer) XORKeyStream(dst, src []byte) {
-	if len(dst) < len(src) {
-		panic("dst length < src length")
-	}
+    if len(dst) < len(src) {
+        panic("dst length < src length")
+    }
 
-	for i := 0; i < len(src); i++ {
-		dst[i] = src[i] ^ stream.key[0]
-	}
+    for i := 0; i < len(src); i++ {
+        dst[i] = src[i] ^ stream.key[0]
+    }
 }

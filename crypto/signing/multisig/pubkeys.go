@@ -1,24 +1,24 @@
 package multisig
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
+    "github.com/ElrondNetwork/elrond-go/crypto"
 )
 
 func convertStringsToPubKeys(pubKeys []string, kg crypto.KeyGenerator) ([]crypto.PublicKey, error) {
-	var pk []crypto.PublicKey
+    var pk []crypto.PublicKey
 
-	//convert pubKeys
-	for _, pubKeyStr := range pubKeys {
-		if pubKeyStr == "" {
-			return nil, crypto.ErrEmptyPubKeyString
-		}
+    //convert pubKeys
+    for _, pubKeyStr := range pubKeys {
+        if pubKeyStr == "" {
+            return nil, crypto.ErrEmptyPubKeyString
+        }
 
-		pubKey, err := kg.PublicKeyFromByteArray([]byte(pubKeyStr))
-		if err != nil {
-			return nil, crypto.ErrInvalidPublicKeyString
-		}
+        pubKey, err := kg.PublicKeyFromByteArray([]byte(pubKeyStr))
+        if err != nil {
+            return nil, crypto.ErrInvalidPublicKeyString
+        }
 
-		pk = append(pk, pubKey)
-	}
-	return pk, nil
+        pk = append(pk, pubKey)
+    }
+    return pk, nil
 }

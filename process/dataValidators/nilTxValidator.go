@@ -8,18 +8,18 @@ type nilTxValidator struct {
 
 // NewNilTxValidator creates a new nil tx handler validator instance
 func NewNilTxValidator() (*nilTxValidator, error) {
-	return &nilTxValidator{}, nil
+    return &nilTxValidator{}, nil
 }
 
 // IsTxValidForProcessing is a nil implementation that will return true
 func (ntv *nilTxValidator) IsTxValidForProcessing(txHandler data.TransactionHandler) bool {
-	return true
+    return true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ntv *nilTxValidator) IsInterfaceNil() bool {
-	if ntv == nil {
-		return true
-	}
-	return false
+    if ntv == nil {
+        return true
+    }
+    return false
 }

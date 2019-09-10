@@ -1,67 +1,67 @@
 package factory_test
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/data/mock"
+    "github.com/ElrondNetwork/elrond-go/data/state"
+    "github.com/ElrondNetwork/elrond-go/data/state/factory"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestAccountCreator_CreateAccountNilAddress(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	shardC := &mock.ShardCoordinatorMock{
-		SelfID:     0,
-		NrOfShards: 1,
-	}
-	accF, err := factory.NewAccountFactoryCreator(shardC)
-	assert.Nil(t, err)
+    shardC := &mock.ShardCoordinatorMock{
+        SelfID:     0,
+        NrOfShards: 1,
+    }
+    accF, err := factory.NewAccountFactoryCreator(shardC)
+    assert.Nil(t, err)
 
-	_, ok := accF.(*factory.AccountCreator)
-	assert.Equal(t, true, ok)
+    _, ok := accF.(*factory.AccountCreator)
+    assert.Equal(t, true, ok)
 
-	acc, err := accF.CreateAccount(nil, &mock.AccountTrackerStub{})
+    acc, err := accF.CreateAccount(nil, &mock.AccountTrackerStub{})
 
-	assert.Nil(t, acc)
-	assert.Equal(t, err, state.ErrNilAddressContainer)
+    assert.Nil(t, acc)
+    assert.Equal(t, err, state.ErrNilAddressContainer)
 }
 
 func TestAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	shardC := &mock.ShardCoordinatorMock{
-		SelfID:     0,
-		NrOfShards: 1,
-	}
-	accF, err := factory.NewAccountFactoryCreator(shardC)
-	assert.Nil(t, err)
+    shardC := &mock.ShardCoordinatorMock{
+        SelfID:     0,
+        NrOfShards: 1,
+    }
+    accF, err := factory.NewAccountFactoryCreator(shardC)
+    assert.Nil(t, err)
 
-	_, ok := accF.(*factory.AccountCreator)
-	assert.Equal(t, true, ok)
+    _, ok := accF.(*factory.AccountCreator)
+    assert.Equal(t, true, ok)
 
-	acc, err := accF.CreateAccount(&mock.AddressMock{}, nil)
+    acc, err := accF.CreateAccount(&mock.AddressMock{}, nil)
 
-	assert.Nil(t, acc)
-	assert.Equal(t, err, state.ErrNilAccountTracker)
+    assert.Nil(t, acc)
+    assert.Equal(t, err, state.ErrNilAccountTracker)
 }
 
 func TestAccountCreator_CreateAccountOk(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	shardC := &mock.ShardCoordinatorMock{
-		SelfID:     0,
-		NrOfShards: 1,
-	}
-	accF, err := factory.NewAccountFactoryCreator(shardC)
-	assert.Nil(t, err)
+    shardC := &mock.ShardCoordinatorMock{
+        SelfID:     0,
+        NrOfShards: 1,
+    }
+    accF, err := factory.NewAccountFactoryCreator(shardC)
+    assert.Nil(t, err)
 
-	_, ok := accF.(*factory.AccountCreator)
-	assert.Equal(t, true, ok)
+    _, ok := accF.(*factory.AccountCreator)
+    assert.Equal(t, true, ok)
 
-	acc, err := accF.CreateAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+    acc, err := accF.CreateAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
 
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
+    assert.NotNil(t, acc)
+    assert.Nil(t, err)
 }

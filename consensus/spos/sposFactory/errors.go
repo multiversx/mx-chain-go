@@ -1,7 +1,7 @@
 package sposFactory
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrInvalidConsensusType signals that an invalid consensus type has been provided

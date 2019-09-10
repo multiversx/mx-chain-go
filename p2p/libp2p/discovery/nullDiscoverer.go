@@ -1,7 +1,7 @@
 package discovery
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+    "github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 const nullName = "no peer discovery"
@@ -12,28 +12,28 @@ type NullDiscoverer struct {
 
 // NewNullDiscoverer creates a new NullDiscoverer implementation
 func NewNullDiscoverer() *NullDiscoverer {
-	return &NullDiscoverer{}
+    return &NullDiscoverer{}
 }
 
 // Bootstrap will return nil. There is no implementation.
 func (nd *NullDiscoverer) Bootstrap() error {
-	return nil
+    return nil
 }
 
 // Name returns the name of the mdns peer discovery implementation
 func (nd *NullDiscoverer) Name() string {
-	return nullName
+    return nullName
 }
 
 // ApplyContext is an empty func as the context is not required
 func (nd *NullDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	return nil
+    return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nd *NullDiscoverer) IsInterfaceNil() bool {
-	if nd == nil {
-		return true
-	}
-	return false
+    if nd == nil {
+        return true
+    }
+    return false
 }

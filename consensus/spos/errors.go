@@ -1,7 +1,7 @@
 package spos
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilConsensusGroup is raised when an operation is attempted with a nil consensus group

@@ -5,10 +5,10 @@ type AppStatusHandlerMock struct {
 }
 
 func (ashs *AppStatusHandlerMock) IsInterfaceNil() bool {
-	if ashs == nil {
-		return true
-	}
-	return false
+    if ashs == nil {
+        return true
+    }
+    return false
 }
 
 // Increment method won't do anything

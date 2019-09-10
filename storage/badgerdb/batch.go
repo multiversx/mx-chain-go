@@ -1,44 +1,44 @@
 package badgerdb
 
 import (
-	"github.com/dgraph-io/badger"
+    "github.com/dgraph-io/badger"
 )
 
 type batch struct {
-	db    *badger.DB
-	batch *badger.Txn
+    db    *badger.DB
+    batch *badger.Txn
 }
 
 // NewBatch creates a batch
 func NewBatch(db *DB) *batch {
-	badgerDB := db.db
-	b := badgerDB.NewTransaction(true)
+    badgerDB := db.db
+    b := badgerDB.NewTransaction(true)
 
-	return &batch{
-		db:    db.db,
-		batch: b,
-	}
+    return &batch{
+        db:    db.db,
+        batch: b,
+    }
 }
 
 // Put inserts one entry - key, value pair - into the batch
 func (b *batch) Put(key []byte, val []byte) error {
-	return b.batch.Set(key, val)
+    return b.batch.Set(key, val)
 }
 
 // Delete deletes the entry for the provided key from the batch
 func (b *batch) Delete(key []byte) error {
-	return b.batch.Delete(key)
+    return b.batch.Delete(key)
 }
 
 // Reset clears the contents of the batch
 func (b *batch) Reset() {
-	b.batch = b.db.NewTransaction(true)
+    b.batch = b.db.NewTransaction(true)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b *batch) IsInterfaceNil() bool {
-	if b == nil {
-		return true
-	}
-	return false
+    if b == nil {
+        return true
+    }
+    return false
 }

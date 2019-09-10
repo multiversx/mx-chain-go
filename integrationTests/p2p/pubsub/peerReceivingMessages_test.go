@@ -1,23 +1,23 @@
 package peerDisconnecting
 
 import (
-	"context"
-	"crypto/ecdsa"
-	"encoding/hex"
-	"fmt"
-	"math/rand"
-	"strings"
-	"sync"
-	"testing"
-	"time"
+    "context"
+    "crypto/ecdsa"
+    "encoding/hex"
+    "fmt"
+    "math/rand"
+    "strings"
+    "sync"
+    "testing"
+    "time"
 
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
-	"github.com/btcsuite/btcd/btcec"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/p2p"
+    "github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+    "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
+    "github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
+    "github.com/btcsuite/btcd/btcec"
+    libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+    "github.com/stretchr/testify/assert"
 )
 
 var durationBootstrapingTime = time.Duration(time.Second * 2)
@@ -25,139 +25,139 @@ var durationTest = time.Duration(time.Second * 30)
 var randezVous = "elrondRandezVous"
 
 type messageProcessorStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+    ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
 func (mps *messageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	return mps.ProcessReceivedMessageCalled(message)
+    return mps.ProcessReceivedMessageCalled(message)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mps *messageProcessorStub) IsInterfaceNil() bool {
-	if mps == nil {
-		return true
-	}
-	return false
+    if mps == nil {
+        return true
+    }
+    return false
 }
 
 func createMessenger(ctx context.Context, seed int, initialPeerList []string) p2p.Messenger {
 
-	r := rand.New(rand.NewSource(int64(seed)))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
+    r := rand.New(rand.NewSource(int64(seed)))
+    prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
+    sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
-		ctx,
-		sk,
-		nil,
-		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(time.Second, randezVous, initialPeerList))
+    libP2PMes, err := libp2p.NewNetworkMessengerOnFreePort(
+        ctx,
+        sk,
+        nil,
+        loadBalancer.NewOutgoingChannelLoadBalancer(),
+        discovery.NewKadDhtPeerDiscoverer(time.Second, randezVous, initialPeerList))
 
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+    if err != nil {
+        fmt.Println(err.Error())
+    }
 
-	return libP2PMes
+    return libP2PMes
 }
 
 func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+    if testing.Short() {
+        t.Skip("this is not a short test")
+    }
 
-	noOfPeers := 20
+    noOfPeers := 20
 
-	//Step 1. Create advertiser
-	advertiser := createMessenger(context.Background(), noOfPeers, nil)
+    //Step 1. Create advertiser
+    advertiser := createMessenger(context.Background(), noOfPeers, nil)
 
-	//Step 2. Create noOfPeers instances of messenger type and call bootstrap
-	peers := make([]p2p.Messenger, noOfPeers)
-	for i := 0; i < noOfPeers; i++ {
-		node := createMessenger(context.Background(), i, []string{chooseNonCircuitAddress(advertiser.Addresses())})
-		peers[i] = node
-	}
+    //Step 2. Create noOfPeers instances of messenger type and call bootstrap
+    peers := make([]p2p.Messenger, noOfPeers)
+    for i := 0; i < noOfPeers; i++ {
+        node := createMessenger(context.Background(), i, []string{chooseNonCircuitAddress(advertiser.Addresses())})
+        peers[i] = node
+    }
 
-	//cleanup function that closes all messengers
-	defer func() {
-		for i := 0; i < noOfPeers; i++ {
-			if peers[i] != nil {
-				peers[i].Close()
-			}
-		}
+    //cleanup function that closes all messengers
+    defer func() {
+        for i := 0; i < noOfPeers; i++ {
+            if peers[i] != nil {
+                peers[i].Close()
+            }
+        }
 
-		if advertiser != nil {
-			advertiser.Close()
-		}
-	}()
+        if advertiser != nil {
+            advertiser.Close()
+        }
+    }()
 
-	chanStop := make(chan struct{})
+    chanStop := make(chan struct{})
 
-	//Step 3. Register pubsub validators
-	mutMapMessages := sync.Mutex{}
-	mapMessages := make(map[int]map[string]struct{})
-	testTopic := "test"
+    //Step 3. Register pubsub validators
+    mutMapMessages := sync.Mutex{}
+    mapMessages := make(map[int]map[string]struct{})
+    testTopic := "test"
 
-	for i := 0; i < noOfPeers; i++ {
-		idx := i
-		mapMessages[idx] = make(map[string]struct{})
-		peers[idx].CreateTopic(testTopic, true)
+    for i := 0; i < noOfPeers; i++ {
+        idx := i
+        mapMessages[idx] = make(map[string]struct{})
+        peers[idx].CreateTopic(testTopic, true)
 
-		peers[idx].RegisterMessageProcessor(testTopic, &messageProcessorStub{
-			ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
-				time.Sleep(time.Second)
+        peers[idx].RegisterMessageProcessor(testTopic, &messageProcessorStub{
+            ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
+                time.Sleep(time.Second)
 
-				mutMapMessages.Lock()
-				defer mutMapMessages.Unlock()
+                mutMapMessages.Lock()
+                defer mutMapMessages.Unlock()
 
-				msgId := "peer: " + message.Peer().Pretty() + " - seqNo: 0x" + hex.EncodeToString(message.SeqNo())
-				_, ok := mapMessages[idx][msgId]
-				if ok {
-					assert.Fail(t, "message %s received twice", msgId)
-					chanStop <- struct{}{}
-				}
+                msgId := "peer: " + message.Peer().Pretty() + " - seqNo: 0x" + hex.EncodeToString(message.SeqNo())
+                _, ok := mapMessages[idx][msgId]
+                if ok {
+                    assert.Fail(t, "message %s received twice", msgId)
+                    chanStop <- struct{}{}
+                }
 
-				mapMessages[idx][msgId] = struct{}{}
-				return nil
-			},
-		})
-	}
+                mapMessages[idx][msgId] = struct{}{}
+                return nil
+            },
+        })
+    }
 
-	//Step 4. Call bootstrap on all peers
-	advertiser.Bootstrap()
-	for _, p := range peers {
-		p.Bootstrap()
-	}
-	waitForBootstrapAndShowConnected(peers)
+    //Step 4. Call bootstrap on all peers
+    advertiser.Bootstrap()
+    for _, p := range peers {
+        p.Bootstrap()
+    }
+    waitForBootstrapAndShowConnected(peers)
 
-	//Step 5. Continuously send messages from one peer
-	for timeStart := time.Now(); timeStart.Add(durationTest).Unix() > time.Now().Unix(); {
-		peers[0].Broadcast(testTopic, []byte("test buff"))
-		select {
-		case <-chanStop:
-			return
-		default:
-		}
-		time.Sleep(time.Millisecond)
-	}
+    //Step 5. Continuously send messages from one peer
+    for timeStart := time.Now(); timeStart.Add(durationTest).Unix() > time.Now().Unix(); {
+        peers[0].Broadcast(testTopic, []byte("test buff"))
+        select {
+        case <-chanStop:
+            return
+        default:
+        }
+        time.Sleep(time.Millisecond)
+    }
 }
 
 func waitForBootstrapAndShowConnected(peers []p2p.Messenger) {
-	fmt.Printf("Waiting %v for peer discovery...\n", durationBootstrapingTime)
-	time.Sleep(durationBootstrapingTime)
+    fmt.Printf("Waiting %v for peer discovery...\n", durationBootstrapingTime)
+    time.Sleep(durationBootstrapingTime)
 
-	fmt.Println("Connected peers:")
-	for _, p := range peers {
-		fmt.Printf("Peer %s is connected to %d peers\n", p.ID().Pretty(), len(p.ConnectedPeers()))
-	}
+    fmt.Println("Connected peers:")
+    for _, p := range peers {
+        fmt.Printf("Peer %s is connected to %d peers\n", p.ID().Pretty(), len(p.ConnectedPeers()))
+    }
 }
 
 func chooseNonCircuitAddress(addresses []string) string {
-	for _, adr := range addresses {
-		if strings.Contains(adr, "circuit") || strings.Contains(adr, "169.254") {
-			continue
-		}
-		return adr
-	}
+    for _, adr := range addresses {
+        if strings.Contains(adr, "circuit") || strings.Contains(adr, "169.254") {
+            continue
+        }
+        return adr
+    }
 
-	return ""
+    return ""
 }

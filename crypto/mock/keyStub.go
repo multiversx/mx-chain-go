@@ -1,71 +1,71 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
+    "github.com/ElrondNetwork/elrond-go/crypto"
 )
 
 // PrivateKeyStub provides stubs for a PrivateKey implementation
 type PrivateKeyStub struct {
-	ToByteArrayStub    func() ([]byte, error)
-	GeneratePublicStub func() crypto.PublicKey
-	ScalarStub         func() crypto.Scalar
-	SuiteStub          func() crypto.Suite
+    ToByteArrayStub    func() ([]byte, error)
+    GeneratePublicStub func() crypto.PublicKey
+    ScalarStub         func() crypto.Scalar
+    SuiteStub          func() crypto.Suite
 }
 
 // PublicKeyStub provides stubs for a PublicKey implementation
 type PublicKeyStub struct {
-	ToByteArrayStub func() ([]byte, error)
-	PointStub       func() crypto.Point
-	SuiteStub       func() crypto.Suite
+    ToByteArrayStub func() ([]byte, error)
+    PointStub       func() crypto.Point
+    SuiteStub       func() crypto.Suite
 }
 
 // ToByteArray returns the byte array representation of the private key
 func (privKey *PrivateKeyStub) ToByteArray() ([]byte, error) {
-	return privKey.ToByteArrayStub()
+    return privKey.ToByteArrayStub()
 }
 
 // GeneratePublic builds a public key for the current private key
 func (privKey *PrivateKeyStub) GeneratePublic() crypto.PublicKey {
-	return privKey.GeneratePublicStub()
+    return privKey.GeneratePublicStub()
 }
 
 // Suite returns the Suite (curve data) used for this private key
 func (privKey *PrivateKeyStub) Suite() crypto.Suite {
-	return privKey.SuiteStub()
+    return privKey.SuiteStub()
 }
 
 // Scalar returns the Scalar corresponding to this Private Key
 func (privKey *PrivateKeyStub) Scalar() crypto.Scalar {
-	return privKey.ScalarStub()
+    return privKey.ScalarStub()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (privKey *PrivateKeyStub) IsInterfaceNil() bool {
-	if privKey == nil {
-		return true
-	}
-	return false
+    if privKey == nil {
+        return true
+    }
+    return false
 }
 
 // ToByteArray returns the byte array representation of the public key
 func (pubKey *PublicKeyStub) ToByteArray() ([]byte, error) {
-	return pubKey.ToByteArrayStub()
+    return pubKey.ToByteArrayStub()
 }
 
 // Suite returns the Suite (curve data) used for this private key
 func (pubKey *PublicKeyStub) Suite() crypto.Suite {
-	return pubKey.SuiteStub()
+    return pubKey.SuiteStub()
 }
 
 // Point returns the Point corresponding to this Public Key
 func (pubKey *PublicKeyStub) Point() crypto.Point {
-	return pubKey.PointStub()
+    return pubKey.PointStub()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pubKey *PublicKeyStub) IsInterfaceNil() bool {
-	if pubKey == nil {
-		return true
-	}
-	return false
+    if pubKey == nil {
+        return true
+    }
+    return false
 }

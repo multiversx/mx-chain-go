@@ -1,173 +1,173 @@
 package transaction
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/binary"
-	"encoding/hex"
-	"fmt"
-	"math/big"
-	"sync"
-	"testing"
-	"time"
+    "crypto/rand"
+    "encoding/base64"
+    "encoding/binary"
+    "encoding/hex"
+    "fmt"
+    "math/big"
+    "sync"
+    "testing"
+    "time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/core"
+    "github.com/ElrondNetwork/elrond-go/core/partitioning"
+    "github.com/ElrondNetwork/elrond-go/data"
+    "github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+    "github.com/ElrondNetwork/elrond-go/integrationTests"
+    "github.com/ElrondNetwork/elrond-go/marshal"
+    "github.com/ElrondNetwork/elrond-go/p2p"
+    "github.com/ElrondNetwork/elrond-go/process"
+    "github.com/ElrondNetwork/elrond-go/process/factory"
+    "github.com/ElrondNetwork/elrond-go/sharding"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+    if testing.Short() {
+        t.Skip("this is not a short test")
+    }
 
-	startingNonce := uint64(6)
+    startingNonce := uint64(6)
 
-	var nrOfShards uint32 = 1
-	var shardID uint32 = 0
-	var txSignPrivKeyShardId uint32 = 0
-	nodeAddr := "0"
+    var nrOfShards uint32 = 1
+    var shardID uint32 = 0
+    var txSignPrivKeyShardId uint32 = 0
+    nodeAddr := "0"
 
-	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
-	_ = n.Node.Start()
+    n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
+    _ = n.Node.Start()
 
-	defer func() {
-		_ = n.Node.Stop()
-	}()
+    defer func() {
+        _ = n.Node.Stop()
+    }()
 
-	_ = n.Node.P2PBootstrap()
+    _ = n.Node.P2PBootstrap()
 
-	time.Sleep(time.Second)
+    time.Sleep(time.Second)
 
-	//set the account's nonce to startingNonce
-	_ = n.SetAccountNonce(startingNonce)
-	noOfUnsignedTx := 8000
+    //set the account's nonce to startingNonce
+    _ = n.SetAccountNonce(startingNonce)
+    noOfUnsignedTx := 8000
 
-	time.Sleep(time.Second)
+    time.Sleep(time.Second)
 
-	wg := sync.WaitGroup{}
-	wg.Add(noOfUnsignedTx)
+    wg := sync.WaitGroup{}
+    wg.Add(noOfUnsignedTx)
 
-	chanDone := make(chan bool)
+    chanDone := make(chan bool)
 
-	go func() {
-		wg.Wait()
-		chanDone <- true
-	}()
+    go func() {
+        wg.Wait()
+        chanDone <- true
+    }()
 
-	mut := sync.Mutex{}
-	unsignedtxHashes := make([][]byte, 0)
-	unsignedTransactions := make([]data.TransactionHandler, 0)
+    mut := sync.Mutex{}
+    unsignedtxHashes := make([][]byte, 0)
+    unsignedTransactions := make([]data.TransactionHandler, 0)
 
-	//wire up handler
-	n.ShardDataPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
-		mut.Lock()
-		defer mut.Unlock()
+    //wire up handler
+    n.ShardDataPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
+        mut.Lock()
+        defer mut.Unlock()
 
-		unsignedtxHashes = append(unsignedtxHashes, key)
+        unsignedtxHashes = append(unsignedtxHashes, key)
 
-		dataStore := n.ShardDataPool.UnsignedTransactions().ShardDataStore(
-			process.ShardCacherIdentifier(n.ShardCoordinator.SelfId(), n.ShardCoordinator.SelfId()),
-		)
-		val, _ := dataStore.Get(key)
-		if val == nil {
-			assert.Fail(t, fmt.Sprintf("key %s not in store?", base64.StdEncoding.EncodeToString(key)))
-			return
-		}
+        dataStore := n.ShardDataPool.UnsignedTransactions().ShardDataStore(
+            process.ShardCacherIdentifier(n.ShardCoordinator.SelfId(), n.ShardCoordinator.SelfId()),
+        )
+        val, _ := dataStore.Get(key)
+        if val == nil {
+            assert.Fail(t, fmt.Sprintf("key %s not in store?", base64.StdEncoding.EncodeToString(key)))
+            return
+        }
 
-		unsignedTransactions = append(unsignedTransactions, val.(*smartContractResult.SmartContractResult))
-		wg.Done()
-	})
+        unsignedTransactions = append(unsignedTransactions, val.(*smartContractResult.SmartContractResult))
+        wg.Done()
+    })
 
-	err := generateAndSendBulkSmartContractResults(
-		startingNonce,
-		noOfUnsignedTx,
-		integrationTests.TestMarshalizer,
-		n.ShardCoordinator,
-		n.Messenger,
-	)
+    err := generateAndSendBulkSmartContractResults(
+        startingNonce,
+        noOfUnsignedTx,
+        integrationTests.TestMarshalizer,
+        n.ShardCoordinator,
+        n.Messenger,
+    )
 
-	assert.Nil(t, err)
+    assert.Nil(t, err)
 
-	select {
-	case <-chanDone:
-	case <-time.After(time.Second * 60):
-		assert.Fail(t, "timeout")
-		return
-	}
+    select {
+    case <-chanDone:
+    case <-time.After(time.Second * 60):
+        assert.Fail(t, "timeout")
+        return
+    }
 
-	integrationTests.CheckTxPresentAndRightNonce(
-		t,
-		startingNonce,
-		noOfUnsignedTx,
-		unsignedtxHashes,
-		unsignedTransactions,
-		n.ShardDataPool.UnsignedTransactions(),
-		n.ShardCoordinator,
-	)
+    integrationTests.CheckTxPresentAndRightNonce(
+        t,
+        startingNonce,
+        noOfUnsignedTx,
+        unsignedtxHashes,
+        unsignedTransactions,
+        n.ShardDataPool.UnsignedTransactions(),
+        n.ShardCoordinator,
+    )
 }
 
 func generateAndSendBulkSmartContractResults(
-	startingNonce uint64,
-	noOfUnsignedTx int,
-	marshalizer marshal.Marshalizer,
-	shardCoordinator sharding.Coordinator,
-	messenger p2p.Messenger,
+    startingNonce uint64,
+    noOfUnsignedTx int,
+    marshalizer marshal.Marshalizer,
+    shardCoordinator sharding.Coordinator,
+    messenger p2p.Messenger,
 ) error {
 
-	dataPacker, err := partitioning.NewSimpleDataPacker(marshalizer)
-	if err != nil {
-		return err
-	}
+    dataPacker, err := partitioning.NewSimpleDataPacker(marshalizer)
+    if err != nil {
+        return err
+    }
 
-	sender := make([]byte, 32)
-	_, _ = rand.Reader.Read(sender)
+    sender := make([]byte, 32)
+    _, _ = rand.Reader.Read(sender)
 
-	dest := make([]byte, 32)
-	_, _ = rand.Reader.Read(dest)
+    dest := make([]byte, 32)
+    _, _ = rand.Reader.Read(dest)
 
-	unsigedTxs := make([][]byte, 0)
-	for nonce := startingNonce; nonce < startingNonce+uint64(noOfUnsignedTx); nonce++ {
-		uTx := &smartContractResult.SmartContractResult{
-			Nonce:   nonce,
-			TxHash:  []byte("tx hash"),
-			SndAddr: sender,
-			RcvAddr: dest,
-			Value:   big.NewInt(0),
-		}
-		buff := make([]byte, 8)
-		binary.BigEndian.PutUint64(buff, nonce)
-		uTx.Data = hex.EncodeToString(buff)
+    unsigedTxs := make([][]byte, 0)
+    for nonce := startingNonce; nonce < startingNonce+uint64(noOfUnsignedTx); nonce++ {
+        uTx := &smartContractResult.SmartContractResult{
+            Nonce:   nonce,
+            TxHash:  []byte("tx hash"),
+            SndAddr: sender,
+            RcvAddr: dest,
+            Value:   big.NewInt(0),
+        }
+        buff := make([]byte, 8)
+        binary.BigEndian.PutUint64(buff, nonce)
+        uTx.Data = hex.EncodeToString(buff)
 
-		uTxBytes, _ := marshalizer.Marshal(uTx)
-		unsigedTxs = append(unsigedTxs, uTxBytes)
-	}
+        uTxBytes, _ := marshalizer.Marshal(uTx)
+        unsigedTxs = append(unsigedTxs, uTxBytes)
+    }
 
-	//the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.UnsignedTransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+    //the topic identifier is made of the current shard id and sender's shard id
+    identifier := factory.UnsignedTransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
-	packets, err := dataPacker.PackDataInChunks(unsigedTxs, core.MaxBulkTransactionSize)
-	if err != nil {
-		return err
-	}
+    packets, err := dataPacker.PackDataInChunks(unsigedTxs, core.MaxBulkTransactionSize)
+    if err != nil {
+        return err
+    }
 
-	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			messenger.BroadcastOnChannelBlocking(
-				identifier,
-				identifier,
-				bufferToSend,
-			)
-		}(buff)
-	}
+    for _, buff := range packets {
+        go func(bufferToSend []byte) {
+            messenger.BroadcastOnChannelBlocking(
+                identifier,
+                identifier,
+                bufferToSend,
+            )
+        }(buff)
+    }
 
-	return nil
+    return nil
 }

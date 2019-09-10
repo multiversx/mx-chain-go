@@ -1,7 +1,7 @@
 package typeConverters
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilByteSlice signals that a nil byte slice has been provided

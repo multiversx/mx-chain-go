@@ -1,46 +1,46 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/pkg/errors"
+    "github.com/ElrondNetwork/elrond-go/p2p"
+    "github.com/pkg/errors"
 )
 
 var errNotImplemented = errors.New("not implemented")
 
 type HeaderResolverStub struct {
-	RequestDataFromHashCalled    func(hash []byte) error
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	RequestDataFromNonceCalled   func(nonce uint64) error
+    RequestDataFromHashCalled    func(hash []byte) error
+    ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+    RequestDataFromNonceCalled   func(nonce uint64) error
 }
 
 func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte) error {
-	if hrs.RequestDataFromHashCalled != nil {
-		return hrs.RequestDataFromHashCalled(hash)
-	}
+    if hrs.RequestDataFromHashCalled != nil {
+        return hrs.RequestDataFromHashCalled(hash)
+    }
 
-	return errNotImplemented
+    return errNotImplemented
 }
 
 func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	if hrs.ProcessReceivedMessageCalled != nil {
-		return hrs.ProcessReceivedMessageCalled(message)
-	}
+    if hrs.ProcessReceivedMessageCalled != nil {
+        return hrs.ProcessReceivedMessageCalled(message)
+    }
 
-	return errNotImplemented
+    return errNotImplemented
 }
 
 func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64) error {
-	if hrs.RequestDataFromNonceCalled != nil {
-		return hrs.RequestDataFromNonceCalled(nonce)
-	}
+    if hrs.RequestDataFromNonceCalled != nil {
+        return hrs.RequestDataFromNonceCalled(nonce)
+    }
 
-	return errNotImplemented
+    return errNotImplemented
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (hrs *HeaderResolverStub) IsInterfaceNil() bool {
-	if hrs == nil {
-		return true
-	}
-	return false
+    if hrs == nil {
+        return true
+    }
+    return false
 }

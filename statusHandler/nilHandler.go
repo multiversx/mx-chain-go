@@ -6,15 +6,15 @@ type NilStatusHandler struct {
 
 // NewNilStatusHandler will return an instance of the struct
 func NewNilStatusHandler() *NilStatusHandler {
-	return new(NilStatusHandler)
+    return new(NilStatusHandler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nsh *NilStatusHandler) IsInterfaceNil() bool {
-	if nsh == nil {
-		return true
-	}
-	return false
+    if nsh == nil {
+        return true
+    }
+    return false
 }
 
 // Increment method - won't do anything

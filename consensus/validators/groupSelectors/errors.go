@@ -1,7 +1,7 @@
 package groupSelectors
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilInputSlice signals that a nil slice has been provided

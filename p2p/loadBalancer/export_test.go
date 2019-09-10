@@ -1,21 +1,21 @@
 package loadBalancer
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+    "github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 func (oplb *OutgoingChannelLoadBalancer) Chans() []chan *p2p.SendableData {
-	return oplb.chans
+    return oplb.chans
 }
 
 func (oplb *OutgoingChannelLoadBalancer) Names() []string {
-	return oplb.names
+    return oplb.names
 }
 
 func (oplb *OutgoingChannelLoadBalancer) NamesChans() map[string]chan *p2p.SendableData {
-	return oplb.namesChans
+    return oplb.namesChans
 }
 
 func DefaultSendChannel() string {
-	return defaultSendChannel
+    return defaultSendChannel
 }

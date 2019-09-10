@@ -1,96 +1,96 @@
 package presenter
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/core"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestPresenterStatusHandler_GetAppVersion(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	appVersion := "version001"
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricAppVersion, appVersion)
-	result := presenterStatusHandler.GetAppVersion()
+    appVersion := "version001"
+    presenterStatusHandler := NewPresenterStatusHandler()
+    presenterStatusHandler.SetStringValue(core.MetricAppVersion, appVersion)
+    result := presenterStatusHandler.GetAppVersion()
 
-	assert.Equal(t, appVersion, result)
+    assert.Equal(t, appVersion, result)
 }
 
 func TestPresenterStatusHandler_GetNodeType(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	nodeType := "validator"
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricNodeType, nodeType)
-	result := presenterStatusHandler.GetNodeType()
+    nodeType := "validator"
+    presenterStatusHandler := NewPresenterStatusHandler()
+    presenterStatusHandler.SetStringValue(core.MetricNodeType, nodeType)
+    result := presenterStatusHandler.GetNodeType()
 
-	assert.Equal(t, nodeType, result)
+    assert.Equal(t, nodeType, result)
 }
 
 func TestPresenterStatusHandler_GetPublicKeyTxSign(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	publicKey := "publicKeyTxSign"
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, publicKey)
-	result := presenterStatusHandler.GetPublicKeyTxSign()
+    publicKey := "publicKeyTxSign"
+    presenterStatusHandler := NewPresenterStatusHandler()
+    presenterStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, publicKey)
+    result := presenterStatusHandler.GetPublicKeyTxSign()
 
-	assert.Equal(t, publicKey, result)
+    assert.Equal(t, publicKey, result)
 }
 
 func TestPresenterStatusHandler_GetPublicKeyBlockSign(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	publicKeyBlock := "publicKeyBlockSign"
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, publicKeyBlock)
-	result := presenterStatusHandler.GetPublicKeyBlockSign()
+    publicKeyBlock := "publicKeyBlockSign"
+    presenterStatusHandler := NewPresenterStatusHandler()
+    presenterStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, publicKeyBlock)
+    result := presenterStatusHandler.GetPublicKeyBlockSign()
 
-	assert.Equal(t, publicKeyBlock, result)
+    assert.Equal(t, publicKeyBlock, result)
 }
 
 func TestPresenterStatusHandler_GetShardId(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	shardId := uint64(1)
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
-	result := presenterStatusHandler.GetShardId()
+    shardId := uint64(1)
+    presenterStatusHandler := NewPresenterStatusHandler()
+    presenterStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+    result := presenterStatusHandler.GetShardId()
 
-	assert.Equal(t, shardId, result)
+    assert.Equal(t, shardId, result)
 }
 
 func TestPresenterStatusHandler_GetCountConsensus(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	countConsensus := uint64(100)
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
-	result := presenterStatusHandler.GetCountConsensus()
+    countConsensus := uint64(100)
+    presenterStatusHandler := NewPresenterStatusHandler()
+    presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
+    result := presenterStatusHandler.GetCountConsensus()
 
-	assert.Equal(t, countConsensus, result)
+    assert.Equal(t, countConsensus, result)
 }
 
 func TestPresenterStatusHandler_GetCountLeader(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	countLeader := uint64(100)
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountLeader, countLeader)
-	result := presenterStatusHandler.GetCountLeader()
+    countLeader := uint64(100)
+    presenterStatusHandler := NewPresenterStatusHandler()
+    presenterStatusHandler.SetUInt64Value(core.MetricCountLeader, countLeader)
+    result := presenterStatusHandler.GetCountLeader()
 
-	assert.Equal(t, countLeader, result)
+    assert.Equal(t, countLeader, result)
 }
 
 func TestPresenterStatusHandler_GetCountAcceptedBlocks(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	countAcceptedBlocks := uint64(100)
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, countAcceptedBlocks)
-	result := presenterStatusHandler.GetCountAcceptedBlocks()
+    countAcceptedBlocks := uint64(100)
+    presenterStatusHandler := NewPresenterStatusHandler()
+    presenterStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, countAcceptedBlocks)
+    result := presenterStatusHandler.GetCountAcceptedBlocks()
 
-	assert.Equal(t, countAcceptedBlocks, result)
+    assert.Equal(t, countAcceptedBlocks, result)
 }

@@ -1,7 +1,7 @@
 package node
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilMarshalizer signals that a nil marshalizer has been provided
@@ -93,15 +93,15 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion: expected *block.He
 
 // ErrNegativeDurationInSecToConsiderUnresponsive is raised when a value less than 1 has been provided
 var ErrNegativeDurationInSecToConsiderUnresponsive = errors.New("value DurationInSecToConsiderUnresponsive is less" +
-	" than 1")
+    " than 1")
 
 // ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec is raised when a value less than 1 has been provided
 var ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec = errors.New("value MaxTimeToWaitBetweenBroadcastsInSec is less " +
-	"than 1")
+    "than 1")
 
 // ErrNegativeMinTimeToWaitBetweenBroadcastsInSec is raised when a value less than 1 has been provided
 var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeToWaitBetweenBroadcastsInSec is less " +
-	"than 1")
+    "than 1")
 
 // ErrWrongValues signals that wrong values were provided
 var ErrWrongValues = errors.New("wrong values for heartbeat parameters")

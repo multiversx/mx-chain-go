@@ -1,23 +1,23 @@
 package discovery
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestNullDiscoverer_ApplyContext(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	nd := NewNullDiscoverer()
+    nd := NewNullDiscoverer()
 
-	assert.Nil(t, nd.ApplyContext(nil))
+    assert.Nil(t, nd.ApplyContext(nil))
 }
 
 func TestNullDiscoverer_Bootstrap(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	nd := NewNullDiscoverer()
+    nd := NewNullDiscoverer()
 
-	assert.Nil(t, nd.Bootstrap())
+    assert.Nil(t, nd.Bootstrap())
 }

@@ -6,5 +6,5 @@ type ConnectedAddressesMock struct {
 
 // ConnectedAddresses returns an empty slice of string
 func (cam *ConnectedAddressesMock) ConnectedAddresses() []string {
-	return []string{}
+    return []string{}
 }

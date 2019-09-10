@@ -1,7 +1,7 @@
 package indexer
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrCannotCreateIndex signals that we could not create an elasticsearch index

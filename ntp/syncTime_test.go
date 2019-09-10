@@ -1,16 +1,16 @@
 package ntp_test
 
 import (
-	"errors"
-	"fmt"
-	"sync"
-	"testing"
-	"time"
+    "errors"
+    "fmt"
+    "sync"
+    "testing"
+    "time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	ntp2 "github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/beevik/ntp"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/config"
+    ntp2 "github.com/ElrondNetwork/elrond-go/ntp"
+    "github.com/beevik/ntp"
+    "github.com/stretchr/testify/assert"
 )
 
 var responseMock1 *ntp.Response
@@ -25,104 +25,104 @@ var queryMock4Call = 0
 var mutex = sync.Mutex{}
 
 func queryMock1(options ntp2.NTPOptions) (*ntp.Response, error) {
-	fmt.Printf("Host: %s\n", options.Host)
+    fmt.Printf("Host: %s\n", options.Host)
 
-	if failNtpMock1 {
-		return nil, errNtpMock
-	}
+    if failNtpMock1 {
+        return nil, errNtpMock
+    }
 
-	return responseMock1, nil
+    return responseMock1, nil
 }
 
 func queryMock2(options ntp2.NTPOptions) (*ntp.Response, error) {
-	fmt.Printf("Host: %s\n", options.Host)
+    fmt.Printf("Host: %s\n", options.Host)
 
-	if failNtpMock2 {
-		return nil, errNtpMock
-	}
+    if failNtpMock2 {
+        return nil, errNtpMock
+    }
 
-	return responseMock2, nil
+    return responseMock2, nil
 }
 
 func queryMock3(options ntp2.NTPOptions) (*ntp.Response, error) {
-	fmt.Printf("Host: %s\n", options.Host)
+    fmt.Printf("Host: %s\n", options.Host)
 
-	if failNtpMock3 {
-		return nil, errNtpMock
-	}
+    if failNtpMock3 {
+        return nil, errNtpMock
+    }
 
-	return responseMock3, nil
+    return responseMock3, nil
 }
 
 func queryMock4(options ntp2.NTPOptions) (*ntp.Response, error) {
-	fmt.Printf("Host: %s\n", options.Host)
+    fmt.Printf("Host: %s\n", options.Host)
 
-	mutex.Lock()
-	queryMock4Call++
-	mutex.Unlock()
+    mutex.Lock()
+    queryMock4Call++
+    mutex.Unlock()
 
-	return nil, errNtpMock
+    return nil, errNtpMock
 }
 
 func TestHandleErrorInDoSync(t *testing.T) {
-	failNtpMock1 = true
-	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock1)
+    failNtpMock1 = true
+    st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock1)
 
-	st.Sync()
+    st.Sync()
 
-	assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
+    assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
 
-	st.SetClockOffset(1234)
+    st.SetClockOffset(1234)
 
-	st.Sync()
+    st.Sync()
 
-	assert.Equal(t, st.ClockOffset(), time.Duration(1234))
+    assert.Equal(t, st.ClockOffset(), time.Duration(1234))
 
 }
 
 func TestValueInDoSync(t *testing.T) {
-	responseMock2 = &ntp.Response{ClockOffset: 23456}
+    responseMock2 = &ntp.Response{ClockOffset: 23456}
 
-	failNtpMock2 = false
-	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock2)
+    failNtpMock2 = false
+    st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock2)
 
-	assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
-	st.Sync()
-	assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
+    assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
+    st.Sync()
+    assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
 
-	st.SetClockOffset(1234)
+    st.SetClockOffset(1234)
 
-	st.Sync()
+    st.Sync()
 
-	assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
+    assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
 }
 
 func TestGetOffset(t *testing.T) {
-	responseMock3 = &ntp.Response{ClockOffset: 23456}
+    responseMock3 = &ntp.Response{ClockOffset: 23456}
 
-	failNtpMock3 = false
-	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock3)
+    failNtpMock3 = false
+    st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock3)
 
-	assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
-	st.Sync()
-	assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
-	assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
+    assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
+    st.Sync()
+    assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
+    assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
 }
 
 func TestCallQuery(t *testing.T) {
-	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock4)
-	go st.StartSync()
+    st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock4)
+    go st.StartSync()
 
-	assert.NotNil(t, st.Query())
-	assert.Equal(t, time.Millisecond, st.SyncPeriod())
+    assert.NotNil(t, st.Query())
+    assert.Equal(t, time.Millisecond, st.SyncPeriod())
 
-	// wait a few cycles
-	time.Sleep(time.Millisecond * 100)
+    // wait a few cycles
+    time.Sleep(time.Millisecond * 100)
 
-	mutex.Lock()
-	qmc := queryMock4Call
-	mutex.Unlock()
-	assert.NotEqual(t, qmc, 0)
+    mutex.Lock()
+    qmc := queryMock4Call
+    mutex.Unlock()
+    assert.NotEqual(t, qmc, 0)
 
-	fmt.Printf("Current time: %v\n", st.FormattedCurrentTime())
+    fmt.Printf("Current time: %v\n", st.FormattedCurrentTime())
 }

@@ -1,100 +1,100 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/crypto"
+    "github.com/ElrondNetwork/elrond-go/consensus/mock"
+    "github.com/ElrondNetwork/elrond-go/crypto"
 )
 
 type PublicKeyMock struct {
-	ToByteArrayHandler func() ([]byte, error)
-	SuiteCalled        func() crypto.Suite
-	PointCalled        func() crypto.Point
+    ToByteArrayHandler func() ([]byte, error)
+    SuiteCalled        func() crypto.Suite
+    PointCalled        func() crypto.Point
 }
 
 type PrivateKeyStub struct {
-	ToByteArrayHandler    func() ([]byte, error)
-	GeneratePublicHandler func() crypto.PublicKey
-	SuiteHandler          func() crypto.Suite
-	ScalarHandler         func() crypto.Scalar
+    ToByteArrayHandler    func() ([]byte, error)
+    GeneratePublicHandler func() crypto.PublicKey
+    SuiteHandler          func() crypto.Suite
+    ScalarHandler         func() crypto.Scalar
 }
 
 type KeyGenMock struct {
-	GeneratePairMock            func() (crypto.PrivateKey, crypto.PublicKey)
-	PrivateKeyFromByteArrayMock func(b []byte) (crypto.PrivateKey, error)
-	PublicKeyFromByteArrayMock  func(b []byte) (crypto.PublicKey, error)
-	SuiteMock                   func() crypto.Suite
+    GeneratePairMock            func() (crypto.PrivateKey, crypto.PublicKey)
+    PrivateKeyFromByteArrayMock func(b []byte) (crypto.PrivateKey, error)
+    PublicKeyFromByteArrayMock  func(b []byte) (crypto.PublicKey, error)
+    SuiteMock                   func() crypto.Suite
 }
 
 //------- PublicKeyMock
 
 func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
-	return sspk.ToByteArrayHandler()
+    return sspk.ToByteArrayHandler()
 }
 
 func (sspk *PublicKeyMock) Suite() crypto.Suite {
-	return sspk.SuiteCalled()
+    return sspk.SuiteCalled()
 }
 
 func (sspk *PublicKeyMock) Point() crypto.Point {
-	return sspk.PointCalled()
+    return sspk.PointCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sspk *PublicKeyMock) IsInterfaceNil() bool {
-	if sspk == nil {
-		return true
-	}
-	return false
+    if sspk == nil {
+        return true
+    }
+    return false
 }
 
 //------- PrivateKeyMock
 
 func (sk *PrivateKeyStub) ToByteArray() ([]byte, error) {
-	return sk.ToByteArrayHandler()
+    return sk.ToByteArrayHandler()
 }
 
 func (sk *PrivateKeyStub) GeneratePublic() crypto.PublicKey {
-	return sk.GeneratePublicHandler()
+    return sk.GeneratePublicHandler()
 }
 
 func (sk *PrivateKeyStub) Suite() crypto.Suite {
-	return sk.SuiteHandler()
+    return sk.SuiteHandler()
 }
 
 func (sk *PrivateKeyStub) Scalar() crypto.Scalar {
-	return sk.ScalarHandler()
+    return sk.ScalarHandler()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sk *PrivateKeyStub) IsInterfaceNil() bool {
-	if sk == nil {
-		return true
-	}
-	return false
+    if sk == nil {
+        return true
+    }
+    return false
 }
 
 //------KeyGenMock
 
 func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
-	return &mock.PrivateKeyMock{}, &mock.PublicKeyMock{}
+    return &mock.PrivateKeyMock{}, &mock.PublicKeyMock{}
 }
 
 func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
-	return keyGen.PrivateKeyFromByteArrayMock(b)
+    return keyGen.PrivateKeyFromByteArrayMock(b)
 }
 
 func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
-	return keyGen.PublicKeyFromByteArrayMock(b)
+    return keyGen.PublicKeyFromByteArrayMock(b)
 }
 
 func (keyGen *KeyGenMock) Suite() crypto.Suite {
-	return keyGen.SuiteMock()
+    return keyGen.SuiteMock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (keyGen *KeyGenMock) IsInterfaceNil() bool {
-	if keyGen == nil {
-		return true
-	}
-	return false
+    if keyGen == nil {
+        return true
+    }
+    return false
 }

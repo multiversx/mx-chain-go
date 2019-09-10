@@ -1,8 +1,8 @@
 package sync
 
 import (
-	"errors"
-	"fmt"
+    "errors"
+    "fmt"
 )
 
 // ErrNilHeader signals that a nil header has been provided
@@ -28,12 +28,12 @@ var ErrBlockIsNotSigned = errors.New("block is not signed")
 
 // ErrSignedBlock signals that a block is signed
 type ErrSignedBlock struct {
-	CurrentNonce uint64
+    CurrentNonce uint64
 }
 
 func (err ErrSignedBlock) Error() string {
-	return fmt.Sprintf("the current header with nonce %d is from a signed block\n",
-		err.CurrentNonce)
+    return fmt.Sprintf("the current header with nonce %d is from a signed block\n",
+        err.CurrentNonce)
 }
 
 // ErrRandomSeedNotValid signals that the random seed is not valid

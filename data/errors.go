@@ -1,7 +1,7 @@
 package data
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilHeadersDataPool signals that a nil header pool has been provided

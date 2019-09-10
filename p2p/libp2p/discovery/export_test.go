@@ -1,42 +1,42 @@
 package discovery
 
 import (
-	"time"
+    "time"
 
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+    "github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 )
 
 func (mpd *MdnsPeerDiscoverer) RefreshInterval() time.Duration {
-	return mpd.refreshInterval
+    return mpd.refreshInterval
 }
 
 func (mpd *MdnsPeerDiscoverer) ServiceTag() string {
-	return mpd.serviceTag
+    return mpd.serviceTag
 }
 
 func (mpd *MdnsPeerDiscoverer) ContextProvider() *libp2p.Libp2pContext {
-	return mpd.contextProvider
+    return mpd.contextProvider
 }
 
 func (kdd *KadDhtDiscoverer) RefreshInterval() time.Duration {
-	return kdd.refreshInterval
+    return kdd.refreshInterval
 }
 
 func (kdd *KadDhtDiscoverer) InitialPeersList() []string {
-	return kdd.initialPeersList
+    return kdd.initialPeersList
 }
 
 func (kdd *KadDhtDiscoverer) RandezVous() string {
-	return kdd.randezVous
+    return kdd.randezVous
 }
 
 func (kdd *KadDhtDiscoverer) ContextProvider() *libp2p.Libp2pContext {
-	return kdd.contextProvider
+    return kdd.contextProvider
 }
 
 func (kdd *KadDhtDiscoverer) ConnectToOnePeerFromInitialPeersList(
-	durationBetweenAttempts time.Duration,
-	initialPeersList []string) <-chan struct{} {
+    durationBetweenAttempts time.Duration,
+    initialPeersList []string) <-chan struct{} {
 
-	return kdd.connectToOnePeerFromInitialPeersList(durationBetweenAttempts, initialPeersList)
+    return kdd.connectToOnePeerFromInitialPeersList(durationBetweenAttempts, initialPeersList)
 }

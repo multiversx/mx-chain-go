@@ -1,23 +1,23 @@
 package consensus_test
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/consensus"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestConsensusMessage_NewConsensusMessageShouldWork(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	cnsMsg := consensus.NewConsensusMessage(
-		nil,
-		nil,
-		nil,
-		nil,
-		-1,
-		0,
-		0)
+    cnsMsg := consensus.NewConsensusMessage(
+        nil,
+        nil,
+        nil,
+        nil,
+        -1,
+        0,
+        0)
 
-	assert.NotNil(t, cnsMsg)
+    assert.NotNil(t, cnsMsg)
 }

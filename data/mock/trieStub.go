@@ -1,101 +1,101 @@
 package mock
 
 import (
-	"errors"
+    "errors"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+    "github.com/ElrondNetwork/elrond-go/data"
 )
 
 var errNotImplemented = errors.New("not implemented")
 
 type TrieStub struct {
-	GetCalled         func(key []byte) ([]byte, error)
-	UpdateCalled      func(key, value []byte) error
-	DeleteCalled      func(key []byte) error
-	RootCalled        func() ([]byte, error)
-	ProveCalled       func(key []byte) ([][]byte, error)
-	VerifyProofCalled func(proofs [][]byte, key []byte) (bool, error)
-	CommitCalled      func() error
-	RecreateCalled    func(root []byte) (data.Trie, error)
-	DeepCloneCalled   func() (data.Trie, error)
+    GetCalled         func(key []byte) ([]byte, error)
+    UpdateCalled      func(key, value []byte) error
+    DeleteCalled      func(key []byte) error
+    RootCalled        func() ([]byte, error)
+    ProveCalled       func(key []byte) ([][]byte, error)
+    VerifyProofCalled func(proofs [][]byte, key []byte) (bool, error)
+    CommitCalled      func() error
+    RecreateCalled    func(root []byte) (data.Trie, error)
+    DeepCloneCalled   func() (data.Trie, error)
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
-	if ts.GetCalled != nil {
-		return ts.GetCalled(key)
-	}
+    if ts.GetCalled != nil {
+        return ts.GetCalled(key)
+    }
 
-	return nil, errNotImplemented
+    return nil, errNotImplemented
 }
 
 func (ts *TrieStub) Update(key, value []byte) error {
-	if ts.UpdateCalled != nil {
-		return ts.UpdateCalled(key, value)
-	}
+    if ts.UpdateCalled != nil {
+        return ts.UpdateCalled(key, value)
+    }
 
-	return errNotImplemented
+    return errNotImplemented
 }
 
 func (ts *TrieStub) Delete(key []byte) error {
-	if ts.DeleteCalled != nil {
-		return ts.DeleteCalled(key)
-	}
+    if ts.DeleteCalled != nil {
+        return ts.DeleteCalled(key)
+    }
 
-	return errNotImplemented
+    return errNotImplemented
 }
 
 func (ts *TrieStub) Root() ([]byte, error) {
-	if ts.RootCalled != nil {
-		return ts.RootCalled()
-	}
+    if ts.RootCalled != nil {
+        return ts.RootCalled()
+    }
 
-	return nil, errNotImplemented
+    return nil, errNotImplemented
 }
 
 func (ts *TrieStub) Prove(key []byte) ([][]byte, error) {
-	if ts.ProveCalled != nil {
-		return ts.ProveCalled(key)
-	}
+    if ts.ProveCalled != nil {
+        return ts.ProveCalled(key)
+    }
 
-	return nil, errNotImplemented
+    return nil, errNotImplemented
 }
 
 func (ts *TrieStub) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
-	if ts.VerifyProofCalled != nil {
-		return ts.VerifyProofCalled(proofs, key)
-	}
+    if ts.VerifyProofCalled != nil {
+        return ts.VerifyProofCalled(proofs, key)
+    }
 
-	return false, errNotImplemented
+    return false, errNotImplemented
 }
 
 func (ts *TrieStub) Commit() error {
-	if ts != nil {
-		return ts.CommitCalled()
-	}
+    if ts != nil {
+        return ts.CommitCalled()
+    }
 
-	return errNotImplemented
+    return errNotImplemented
 }
 
 func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
-	if ts.RecreateCalled != nil {
-		return ts.RecreateCalled(root)
-	}
+    if ts.RecreateCalled != nil {
+        return ts.RecreateCalled(root)
+    }
 
-	return nil, errNotImplemented
+    return nil, errNotImplemented
 }
 
 func (ts *TrieStub) String() string {
-	return "stub trie"
+    return "stub trie"
 }
 
 func (ts *TrieStub) DeepClone() (data.Trie, error) {
-	return ts.DeepCloneCalled()
+    return ts.DeepCloneCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ts *TrieStub) IsInterfaceNil() bool {
-	if ts == nil {
-		return true
-	}
-	return false
+    if ts == nil {
+        return true
+    }
+    return false
 }

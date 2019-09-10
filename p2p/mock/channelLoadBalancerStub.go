@@ -1,36 +1,36 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+    "github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 type ChannelLoadBalancerStub struct {
-	AddChannelCalled                    func(pipe string) error
-	RemoveChannelCalled                 func(pipe string) error
-	GetChannelOrDefaultCalled           func(pipe string) chan *p2p.SendableData
-	CollectOneElementFromChannelsCalled func() *p2p.SendableData
+    AddChannelCalled                    func(pipe string) error
+    RemoveChannelCalled                 func(pipe string) error
+    GetChannelOrDefaultCalled           func(pipe string) chan *p2p.SendableData
+    CollectOneElementFromChannelsCalled func() *p2p.SendableData
 }
 
 func (plbs *ChannelLoadBalancerStub) AddChannel(pipe string) error {
-	return plbs.AddChannelCalled(pipe)
+    return plbs.AddChannelCalled(pipe)
 }
 
 func (plbs *ChannelLoadBalancerStub) RemoveChannel(pipe string) error {
-	return plbs.RemoveChannelCalled(pipe)
+    return plbs.RemoveChannelCalled(pipe)
 }
 
 func (plbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *p2p.SendableData {
-	return plbs.GetChannelOrDefaultCalled(pipe)
+    return plbs.GetChannelOrDefaultCalled(pipe)
 }
 
 func (plbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *p2p.SendableData {
-	return plbs.CollectOneElementFromChannelsCalled()
+    return plbs.CollectOneElementFromChannelsCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (plbs *ChannelLoadBalancerStub) IsInterfaceNil() bool {
-	if plbs == nil {
-		return true
-	}
-	return false
+    if plbs == nil {
+        return true
+    }
+    return false
 }

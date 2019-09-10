@@ -1,417 +1,417 @@
 package block_test
 
 import (
-	"bytes"
-	"testing"
+    "bytes"
+    "testing"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/data"
+    "github.com/ElrondNetwork/elrond-go/data/block"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestHeader_SaveLoad(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	mb := block.MiniBlockHeader{
-		Hash:            []byte("mini block hash"),
-		ReceiverShardID: uint32(0),
-		SenderShardID:   uint32(10),
-		TxCount:         uint32(10),
-	}
+    mb := block.MiniBlockHeader{
+        Hash:            []byte("mini block hash"),
+        ReceiverShardID: uint32(0),
+        SenderShardID:   uint32(10),
+        TxCount:         uint32(10),
+    }
 
-	pc := block.PeerChange{
-		PubKey:      []byte("peer1"),
-		ShardIdDest: uint32(0),
-	}
+    pc := block.PeerChange{
+        PubKey:      []byte("peer1"),
+        ShardIdDest: uint32(0),
+    }
 
-	h := block.Header{
-		Nonce:            uint64(1),
-		PrevHash:         []byte("previous hash"),
-		PrevRandSeed:     []byte("prev random seed"),
-		RandSeed:         []byte("current random seed"),
-		PubKeysBitmap:    []byte("pub key bitmap"),
-		ShardId:          uint32(10),
-		TimeStamp:        uint64(1234),
-		Round:            uint64(1),
-		Epoch:            uint32(1),
-		BlockBodyType:    block.TxBlock,
-		Signature:        []byte("signature"),
-		MiniBlockHeaders: []block.MiniBlockHeader{mb},
-		PeerChanges:      []block.PeerChange{pc},
-		RootHash:         []byte("root hash"),
-		MetaBlockHashes:  make([][]byte, 0),
-		TxCount:          uint32(10),
-	}
+    h := block.Header{
+        Nonce:            uint64(1),
+        PrevHash:         []byte("previous hash"),
+        PrevRandSeed:     []byte("prev random seed"),
+        RandSeed:         []byte("current random seed"),
+        PubKeysBitmap:    []byte("pub key bitmap"),
+        ShardId:          uint32(10),
+        TimeStamp:        uint64(1234),
+        Round:            uint64(1),
+        Epoch:            uint32(1),
+        BlockBodyType:    block.TxBlock,
+        Signature:        []byte("signature"),
+        MiniBlockHeaders: []block.MiniBlockHeader{mb},
+        PeerChanges:      []block.PeerChange{pc},
+        RootHash:         []byte("root hash"),
+        MetaBlockHashes:  make([][]byte, 0),
+        TxCount:          uint32(10),
+    }
 
-	var b bytes.Buffer
-	h.Save(&b)
+    var b bytes.Buffer
+    h.Save(&b)
 
-	loadHeader := block.Header{}
-	loadHeader.Load(&b)
+    loadHeader := block.Header{}
+    loadHeader.Load(&b)
 
-	assert.Equal(t, loadHeader, h)
+    assert.Equal(t, loadHeader, h)
 }
 
 func TestPeerChange_SaveLoad(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	pc := block.PeerChange{
-		PubKey:      []byte("pubKey"),
-		ShardIdDest: uint32(1),
-	}
+    pc := block.PeerChange{
+        PubKey:      []byte("pubKey"),
+        ShardIdDest: uint32(1),
+    }
 
-	var b bytes.Buffer
-	pc.Save(&b)
+    var b bytes.Buffer
+    pc.Save(&b)
 
-	loadPc := block.PeerChange{}
-	loadPc.Load(&b)
+    loadPc := block.PeerChange{}
+    loadPc.Load(&b)
 
-	assert.Equal(t, loadPc, pc)
+    assert.Equal(t, loadPc, pc)
 }
 
 func TestMiniBlockHeader_SaveLoad(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	mbh := block.MiniBlockHeader{
-		Hash:            []byte("mini block hash"),
-		SenderShardID:   uint32(1),
-		ReceiverShardID: uint32(0),
-	}
+    mbh := block.MiniBlockHeader{
+        Hash:            []byte("mini block hash"),
+        SenderShardID:   uint32(1),
+        ReceiverShardID: uint32(0),
+    }
 
-	var b bytes.Buffer
-	mbh.Save(&b)
+    var b bytes.Buffer
+    mbh.Save(&b)
 
-	loadMbh := block.MiniBlockHeader{}
-	loadMbh.Load(&b)
+    loadMbh := block.MiniBlockHeader{}
+    loadMbh.Load(&b)
 
-	assert.Equal(t, loadMbh, mbh)
+    assert.Equal(t, loadMbh, mbh)
 }
 
 func TestMiniBlock_SaveLoad(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	mb := block.MiniBlock{
-		TxHashes:        [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
-		ReceiverShardID: uint32(0),
-		SenderShardID:   uint32(0),
-	}
+    mb := block.MiniBlock{
+        TxHashes:        [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
+        ReceiverShardID: uint32(0),
+        SenderShardID:   uint32(0),
+    }
 
-	var b bytes.Buffer
-	mb.Save(&b)
+    var b bytes.Buffer
+    mb.Save(&b)
 
-	loadMb := block.MiniBlock{}
-	loadMb.Load(&b)
+    loadMb := block.MiniBlock{}
+    loadMb.Load(&b)
 
-	assert.Equal(t, loadMb, mb)
+    assert.Equal(t, loadMb, mb)
 }
 
 func TestHeader_GetEpoch(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	epoch := uint32(1)
-	h := block.Header{
-		Epoch: epoch,
-	}
+    epoch := uint32(1)
+    h := block.Header{
+        Epoch: epoch,
+    }
 
-	assert.Equal(t, epoch, h.GetEpoch())
+    assert.Equal(t, epoch, h.GetEpoch())
 }
 
 func TestHeader_GetShard(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	shardId := uint32(2)
-	h := block.Header{
-		ShardId: shardId,
-	}
+    shardId := uint32(2)
+    h := block.Header{
+        ShardId: shardId,
+    }
 
-	assert.Equal(t, shardId, h.GetShardID())
+    assert.Equal(t, shardId, h.GetShardID())
 }
 
 func TestHeader_GetNonce(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	nonce := uint64(2)
-	h := block.Header{
-		Nonce: nonce,
-	}
+    nonce := uint64(2)
+    h := block.Header{
+        Nonce: nonce,
+    }
 
-	assert.Equal(t, nonce, h.GetNonce())
+    assert.Equal(t, nonce, h.GetNonce())
 }
 
 func TestHeader_GetPrevHash(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	prevHash := []byte("prev hash")
-	h := block.Header{
-		PrevHash: prevHash,
-	}
+    prevHash := []byte("prev hash")
+    h := block.Header{
+        PrevHash: prevHash,
+    }
 
-	assert.Equal(t, prevHash, h.GetPrevHash())
+    assert.Equal(t, prevHash, h.GetPrevHash())
 }
 
 func TestHeader_GetPrevRandSeed(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	prevRandSeed := []byte("prev random seed")
-	h := block.Header{
-		PrevRandSeed: prevRandSeed,
-	}
+    prevRandSeed := []byte("prev random seed")
+    h := block.Header{
+        PrevRandSeed: prevRandSeed,
+    }
 
-	assert.Equal(t, prevRandSeed, h.GetPrevRandSeed())
+    assert.Equal(t, prevRandSeed, h.GetPrevRandSeed())
 }
 
 func TestHeader_GetRandSeed(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	randSeed := []byte("random seed")
-	h := block.Header{
-		RandSeed: randSeed,
-	}
+    randSeed := []byte("random seed")
+    h := block.Header{
+        RandSeed: randSeed,
+    }
 
-	assert.Equal(t, randSeed, h.GetRandSeed())
+    assert.Equal(t, randSeed, h.GetRandSeed())
 }
 
 func TestHeader_GetPubKeysBitmap(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	pubKeysBitmap := []byte{10, 11, 12, 13}
-	h := block.Header{
-		PubKeysBitmap: pubKeysBitmap,
-	}
+    pubKeysBitmap := []byte{10, 11, 12, 13}
+    h := block.Header{
+        PubKeysBitmap: pubKeysBitmap,
+    }
 
-	assert.Equal(t, pubKeysBitmap, h.GetPubKeysBitmap())
+    assert.Equal(t, pubKeysBitmap, h.GetPubKeysBitmap())
 }
 
 func TestHeader_GetRootHash(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	rootHash := []byte("root hash")
-	h := block.Header{
-		RootHash: rootHash,
-	}
+    rootHash := []byte("root hash")
+    h := block.Header{
+        RootHash: rootHash,
+    }
 
-	assert.Equal(t, rootHash, h.GetRootHash())
+    assert.Equal(t, rootHash, h.GetRootHash())
 }
 
 func TestHeader_GetRound(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	round := uint64(1234)
-	h := block.Header{
-		Round: round,
-	}
+    round := uint64(1234)
+    h := block.Header{
+        Round: round,
+    }
 
-	assert.Equal(t, round, h.GetRound())
+    assert.Equal(t, round, h.GetRound())
 }
 
 func TestHeader_GetSignature(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	signature := []byte("signature")
-	h := block.Header{
-		Signature: signature,
-	}
+    signature := []byte("signature")
+    h := block.Header{
+        Signature: signature,
+    }
 
-	assert.Equal(t, signature, h.GetSignature())
+    assert.Equal(t, signature, h.GetSignature())
 }
 
 func TestHeader_GetTxCount(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	txCount := uint32(10)
-	h := block.Header{
-		TxCount: txCount,
-	}
+    txCount := uint32(10)
+    h := block.Header{
+        TxCount: txCount,
+    }
 
-	assert.Equal(t, txCount, h.GetTxCount())
+    assert.Equal(t, txCount, h.GetTxCount())
 }
 
 func TestHeader_SetEpoch(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	epoch := uint32(10)
-	h := block.Header{}
-	h.SetEpoch(epoch)
+    epoch := uint32(10)
+    h := block.Header{}
+    h.SetEpoch(epoch)
 
-	assert.Equal(t, epoch, h.GetEpoch())
+    assert.Equal(t, epoch, h.GetEpoch())
 }
 
 func TestHeader_SetNonce(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	nonce := uint64(11)
-	h := block.Header{}
-	h.SetNonce(nonce)
+    nonce := uint64(11)
+    h := block.Header{}
+    h.SetNonce(nonce)
 
-	assert.Equal(t, nonce, h.GetNonce())
+    assert.Equal(t, nonce, h.GetNonce())
 }
 
 func TestHeader_SetPrevHash(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	prevHash := []byte("prev hash")
-	h := block.Header{}
-	h.SetPrevHash(prevHash)
+    prevHash := []byte("prev hash")
+    h := block.Header{}
+    h.SetPrevHash(prevHash)
 
-	assert.Equal(t, prevHash, h.GetPrevHash())
+    assert.Equal(t, prevHash, h.GetPrevHash())
 }
 
 func TestHeader_SetPrevRandSeed(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	prevRandSeed := []byte("prev random seed")
-	h := block.Header{}
-	h.SetPrevRandSeed(prevRandSeed)
+    prevRandSeed := []byte("prev random seed")
+    h := block.Header{}
+    h.SetPrevRandSeed(prevRandSeed)
 
-	assert.Equal(t, prevRandSeed, h.GetPrevRandSeed())
+    assert.Equal(t, prevRandSeed, h.GetPrevRandSeed())
 }
 
 func TestHeader_SetRandSeed(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	randSeed := []byte("random seed")
-	h := block.Header{}
-	h.SetRandSeed(randSeed)
+    randSeed := []byte("random seed")
+    h := block.Header{}
+    h.SetRandSeed(randSeed)
 
-	assert.Equal(t, randSeed, h.GetRandSeed())
+    assert.Equal(t, randSeed, h.GetRandSeed())
 }
 
 func TestHeader_SetPubKeysBitmap(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	pubKeysBitmap := []byte{12, 13, 14, 15}
-	h := block.Header{}
-	h.SetPubKeysBitmap(pubKeysBitmap)
+    pubKeysBitmap := []byte{12, 13, 14, 15}
+    h := block.Header{}
+    h.SetPubKeysBitmap(pubKeysBitmap)
 
-	assert.Equal(t, pubKeysBitmap, h.GetPubKeysBitmap())
+    assert.Equal(t, pubKeysBitmap, h.GetPubKeysBitmap())
 }
 
 func TestHeader_SetRootHash(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	rootHash := []byte("root hash")
-	h := block.Header{}
-	h.SetRootHash(rootHash)
+    rootHash := []byte("root hash")
+    h := block.Header{}
+    h.SetRootHash(rootHash)
 
-	assert.Equal(t, rootHash, h.GetRootHash())
+    assert.Equal(t, rootHash, h.GetRootHash())
 }
 
 func TestHeader_SetRound(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	rootHash := []byte("root hash")
-	h := block.Header{}
-	h.SetRootHash(rootHash)
+    rootHash := []byte("root hash")
+    h := block.Header{}
+    h.SetRootHash(rootHash)
 
-	assert.Equal(t, rootHash, h.GetRootHash())
+    assert.Equal(t, rootHash, h.GetRootHash())
 }
 
 func TestHeader_SetSignature(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	signature := []byte("signature")
-	h := block.Header{}
-	h.SetSignature(signature)
+    signature := []byte("signature")
+    h := block.Header{}
+    h.SetSignature(signature)
 
-	assert.Equal(t, signature, h.GetSignature())
+    assert.Equal(t, signature, h.GetSignature())
 }
 
 func TestHeader_SetTimeStamp(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	timeStamp := uint64(100000)
-	h := block.Header{}
-	h.SetTimeStamp(timeStamp)
+    timeStamp := uint64(100000)
+    h := block.Header{}
+    h.SetTimeStamp(timeStamp)
 
-	assert.Equal(t, timeStamp, h.GetTimeStamp())
+    assert.Equal(t, timeStamp, h.GetTimeStamp())
 }
 
 func TestHeader_SetTxCount(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	txCount := uint32(10)
-	h := block.Header{}
-	h.SetTxCount(txCount)
+    txCount := uint32(10)
+    h := block.Header{}
+    h.SetTxCount(txCount)
 
-	assert.Equal(t, txCount, h.GetTxCount())
+    assert.Equal(t, txCount, h.GetTxCount())
 }
 
 func TestBody_IntegrityAndValidityNil(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	body := block.Body{}
-	body = nil
-	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
+    body := block.Body{}
+    body = nil
+    assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
 }
 
 func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	txHash0 := []byte("txHash0")
-	mb0 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
-	}
+    txHash0 := []byte("txHash0")
+    mb0 := block.MiniBlock{
+        ReceiverShardID: 0,
+        SenderShardID:   0,
+        TxHashes:        [][]byte{[]byte(txHash0)},
+    }
 
-	mb1 := block.MiniBlock{}
+    mb1 := block.MiniBlock{}
 
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
-	body = append(body, &mb1)
+    body := make(block.Body, 0)
+    body = append(body, &mb0)
+    body = append(body, &mb1)
 
-	assert.Equal(t, data.ErrMiniBlockEmpty, body.IntegrityAndValidity())
+    assert.Equal(t, data.ErrMiniBlockEmpty, body.IntegrityAndValidity())
 }
 
 func TestBody_IntegrityAndValidityOK(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	txHash0 := []byte("txHash0")
-	mb0 := block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
-	}
+    txHash0 := []byte("txHash0")
+    mb0 := block.MiniBlock{
+        ReceiverShardID: 0,
+        SenderShardID:   0,
+        TxHashes:        [][]byte{[]byte(txHash0)},
+    }
 
-	body := make(block.Body, 0)
-	body = append(body, &mb0)
+    body := make(block.Body, 0)
+    body = append(body, &mb0)
 
-	assert.Equal(t, nil, body.IntegrityAndValidity())
+    assert.Equal(t, nil, body.IntegrityAndValidity())
 }
 
 func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
-	hash_0_0 := []byte("hash_0_0")
-	hash_0_1 := []byte("hash_0_1")
-	hash1_0_2 := []byte("hash_0_2")
-	hash2_0_2 := []byte("hash2_0_2")
+    hash_0_0 := []byte("hash_0_0")
+    hash_0_1 := []byte("hash_0_1")
+    hash1_0_2 := []byte("hash_0_2")
+    hash2_0_2 := []byte("hash2_0_2")
 
-	hdr := &block.Header{
-		MiniBlockHeaders: []block.MiniBlockHeader{
-			{
-				SenderShardID:   0,
-				ReceiverShardID: 0,
-				Hash:            hash_0_0,
-			},
-			{
-				SenderShardID:   0,
-				ReceiverShardID: 1,
-				Hash:            hash_0_1,
-			},
-			{
-				SenderShardID:   0,
-				ReceiverShardID: 2,
-				Hash:            hash1_0_2,
-			},
-			{
-				SenderShardID:   0,
-				ReceiverShardID: 2,
-				Hash:            hash2_0_2,
-			},
-		},
-	}
+    hdr := &block.Header{
+        MiniBlockHeaders: []block.MiniBlockHeader{
+            {
+                SenderShardID:   0,
+                ReceiverShardID: 0,
+                Hash:            hash_0_0,
+            },
+            {
+                SenderShardID:   0,
+                ReceiverShardID: 1,
+                Hash:            hash_0_1,
+            },
+            {
+                SenderShardID:   0,
+                ReceiverShardID: 2,
+                Hash:            hash1_0_2,
+            },
+            {
+                SenderShardID:   0,
+                ReceiverShardID: 2,
+                Hash:            hash2_0_2,
+            },
+        },
+    }
 
-	hashesWithDest2 := hdr.GetMiniBlockHeadersWithDst(2)
+    hashesWithDest2 := hdr.GetMiniBlockHeadersWithDst(2)
 
-	assert.Equal(t, uint32(0), hashesWithDest2[string(hash1_0_2)])
-	assert.Equal(t, uint32(0), hashesWithDest2[string(hash2_0_2)])
+    assert.Equal(t, uint32(0), hashesWithDest2[string(hash1_0_2)])
+    assert.Equal(t, uint32(0), hashesWithDest2[string(hash2_0_2)])
 }

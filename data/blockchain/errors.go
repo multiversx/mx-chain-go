@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrBadBlocksCacheNil defines the error for using a nil cache for bad blocks

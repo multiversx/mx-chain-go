@@ -1,20 +1,20 @@
 package epoch_test
 
 import (
-	"testing"
-	"time"
+    "testing"
+    "time"
 
-	"github.com/ElrondNetwork/elrond-go/consensus/epoch"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/consensus/epoch"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestEpoch_NewEpochShouldWork(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	genesisTime := time.Now()
-	index := 0
-	epc := epoch.NewEpoch(index, genesisTime)
+    genesisTime := time.Now()
+    index := 0
+    epc := epoch.NewEpoch(index, genesisTime)
 
-	assert.Equal(t, epc.Index(), index)
-	assert.Equal(t, epc.GenesisTime(), genesisTime)
+    assert.Equal(t, epc.Index(), index)
+    assert.Equal(t, epc.GenesisTime(), genesisTime)
 }

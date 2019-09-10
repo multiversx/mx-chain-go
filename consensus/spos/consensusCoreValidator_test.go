@@ -1,165 +1,165 @@
 package spos
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/consensus/mock"
+    "github.com/stretchr/testify/assert"
 )
 
 func initConsensusDataContainer() *ConsensusCore {
-	blockChain := &mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	blocksTrackerMock := &mock.BlocksTrackerMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	blsPrivateKeyMock := &mock.PrivateKeyMock{}
-	blsSingleSignerMock := &mock.SingleSignerMock{}
-	multiSignerMock := mock.NewMultiSigner()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := &mock.RounderMock{}
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	validatorGroupSelector := &mock.ValidatorGroupSelectorMock{}
+    blockChain := &mock.BlockChainMock{}
+    blockProcessorMock := mock.InitBlockProcessorMock()
+    blocksTrackerMock := &mock.BlocksTrackerMock{}
+    bootstrapperMock := &mock.BootstrapperMock{}
+    broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+    chronologyHandlerMock := mock.InitChronologyHandlerMock()
+    blsPrivateKeyMock := &mock.PrivateKeyMock{}
+    blsSingleSignerMock := &mock.SingleSignerMock{}
+    multiSignerMock := mock.NewMultiSigner()
+    hasherMock := mock.HasherMock{}
+    marshalizerMock := mock.MarshalizerMock{}
+    rounderMock := &mock.RounderMock{}
+    shardCoordinatorMock := mock.ShardCoordinatorMock{}
+    syncTimerMock := &mock.SyncTimerMock{}
+    validatorGroupSelector := &mock.ValidatorGroupSelectorMock{}
 
-	return &ConsensusCore{
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessorMock,
-		blocksTracker:          blocksTrackerMock,
-		bootstrapper:           bootstrapperMock,
-		broadcastMessenger:     broadcastMessengerMock,
-		chronologyHandler:      chronologyHandlerMock,
-		hasher:                 hasherMock,
-		marshalizer:            marshalizerMock,
-		blsPrivateKey:          blsPrivateKeyMock,
-		blsSingleSigner:        blsSingleSignerMock,
-		multiSigner:            multiSignerMock,
-		rounder:                rounderMock,
-		shardCoordinator:       shardCoordinatorMock,
-		syncTimer:              syncTimerMock,
-		validatorGroupSelector: validatorGroupSelector,
-	}
+    return &ConsensusCore{
+        blockChain:             blockChain,
+        blockProcessor:         blockProcessorMock,
+        blocksTracker:          blocksTrackerMock,
+        bootstrapper:           bootstrapperMock,
+        broadcastMessenger:     broadcastMessengerMock,
+        chronologyHandler:      chronologyHandlerMock,
+        hasher:                 hasherMock,
+        marshalizer:            marshalizerMock,
+        blsPrivateKey:          blsPrivateKeyMock,
+        blsSingleSigner:        blsSingleSignerMock,
+        multiSigner:            multiSignerMock,
+        rounder:                rounderMock,
+        shardCoordinator:       shardCoordinatorMock,
+        syncTimer:              syncTimerMock,
+        validatorGroupSelector: validatorGroupSelector,
+    }
 }
 
 func TestConsensusContainerValidator_ValidateNilBlockchainShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.blockChain = nil
+    container := initConsensusDataContainer()
+    container.blockChain = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilBlockChain)
+    assert.Equal(t, err, ErrNilBlockChain)
 }
 
 func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.blockProcessor = nil
+    container := initConsensusDataContainer()
+    container.blockProcessor = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilBlockProcessor)
+    assert.Equal(t, err, ErrNilBlockProcessor)
 }
 
 func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.bootstrapper = nil
+    container := initConsensusDataContainer()
+    container.bootstrapper = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilBootstrapper)
+    assert.Equal(t, err, ErrNilBootstrapper)
 }
 
 func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.chronologyHandler = nil
+    container := initConsensusDataContainer()
+    container.chronologyHandler = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilChronologyHandler)
+    assert.Equal(t, err, ErrNilChronologyHandler)
 }
 
 func TestConsensusContainerValidator_ValidateNilHasherShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.hasher = nil
+    container := initConsensusDataContainer()
+    container.hasher = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilHasher)
+    assert.Equal(t, err, ErrNilHasher)
 }
 
 func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.marshalizer = nil
+    container := initConsensusDataContainer()
+    container.marshalizer = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilMarshalizer)
+    assert.Equal(t, err, ErrNilMarshalizer)
 }
 
 func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.multiSigner = nil
+    container := initConsensusDataContainer()
+    container.multiSigner = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilMultiSigner)
+    assert.Equal(t, err, ErrNilMultiSigner)
 }
 
 func TestConsensusContainerValidator_ValidateNilRounderShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.rounder = nil
+    container := initConsensusDataContainer()
+    container.rounder = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilRounder)
+    assert.Equal(t, err, ErrNilRounder)
 }
 
 func TestConsensusContainerValidator_ValidateNilShardCoordinatorShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.shardCoordinator = nil
+    container := initConsensusDataContainer()
+    container.shardCoordinator = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilShardCoordinator)
+    assert.Equal(t, err, ErrNilShardCoordinator)
 }
 
 func TestConsensusContainerValidator_ValidateNilSyncTimerShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.syncTimer = nil
+    container := initConsensusDataContainer()
+    container.syncTimer = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilSyncTimer)
+    assert.Equal(t, err, ErrNilSyncTimer)
 }
 
 func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	container := initConsensusDataContainer()
-	container.validatorGroupSelector = nil
+    container := initConsensusDataContainer()
+    container.validatorGroupSelector = nil
 
-	err := ValidateConsensusCore(container)
+    err := ValidateConsensusCore(container)
 
-	assert.Equal(t, err, ErrNilValidatorGroupSelector)
+    assert.Equal(t, err, ErrNilValidatorGroupSelector)
 }

@@ -1,7 +1,7 @@
 package display
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilHeader signals that a nil header slice has been provided

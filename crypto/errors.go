@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilPrivateKey is raised when a private key was expected but received nil

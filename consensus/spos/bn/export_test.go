@@ -1,15 +1,15 @@
 package bn
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+    "github.com/ElrondNetwork/elrond-go/consensus"
+    "github.com/ElrondNetwork/elrond-go/consensus/spos"
+    "github.com/ElrondNetwork/elrond-go/crypto"
+    "github.com/ElrondNetwork/elrond-go/data"
+    "github.com/ElrondNetwork/elrond-go/hashing"
+    "github.com/ElrondNetwork/elrond-go/marshal"
+    "github.com/ElrondNetwork/elrond-go/ntp"
+    "github.com/ElrondNetwork/elrond-go/process"
+    "github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // factory
@@ -17,87 +17,87 @@ import (
 type Factory *factory
 
 func (fct *factory) BlockChain() data.ChainHandler {
-	return fct.consensusCore.Blockchain()
+    return fct.consensusCore.Blockchain()
 }
 
 func (fct *factory) BlockProcessor() process.BlockProcessor {
-	return fct.consensusCore.BlockProcessor()
+    return fct.consensusCore.BlockProcessor()
 }
 
 func (fct *factory) Bootstrapper() process.Bootstrapper {
-	return fct.consensusCore.BootStrapper()
+    return fct.consensusCore.BootStrapper()
 }
 
 func (fct *factory) ChronologyHandler() consensus.ChronologyHandler {
-	return fct.consensusCore.Chronology()
+    return fct.consensusCore.Chronology()
 }
 
 func (fct *factory) ConsensusState() *spos.ConsensusState {
-	return fct.consensusState
+    return fct.consensusState
 }
 
 func (fct *factory) Hasher() hashing.Hasher {
-	return fct.consensusCore.Hasher()
+    return fct.consensusCore.Hasher()
 }
 
 func (fct *factory) Marshalizer() marshal.Marshalizer {
-	return fct.consensusCore.Marshalizer()
+    return fct.consensusCore.Marshalizer()
 }
 
 func (fct *factory) MultiSigner() crypto.MultiSigner {
-	return fct.consensusCore.MultiSigner()
+    return fct.consensusCore.MultiSigner()
 }
 
 func (fct *factory) Rounder() consensus.Rounder {
-	return fct.consensusCore.Rounder()
+    return fct.consensusCore.Rounder()
 }
 
 func (fct *factory) ShardCoordinator() sharding.Coordinator {
-	return fct.consensusCore.ShardCoordinator()
+    return fct.consensusCore.ShardCoordinator()
 }
 
 func (fct *factory) SyncTimer() ntp.SyncTimer {
-	return fct.consensusCore.SyncTimer()
+    return fct.consensusCore.SyncTimer()
 }
 
 func (fct *factory) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
-	return fct.consensusCore.ValidatorGroupSelector()
+    return fct.consensusCore.ValidatorGroupSelector()
 }
 
 func (fct *factory) Worker() spos.WorkerHandler {
-	return fct.worker
+    return fct.worker
 }
 
 func (fct *factory) SetWorker(worker *spos.Worker) {
-	fct.worker = worker
+    fct.worker = worker
 }
 
 func (fct *factory) GenerateStartRoundSubround() error {
-	return fct.generateStartRoundSubround()
+    return fct.generateStartRoundSubround()
 }
 
 func (fct *factory) GenerateBlockSubround() error {
-	return fct.generateBlockSubround()
+    return fct.generateBlockSubround()
 }
 
 func (fct *factory) GenerateCommitmentHashSubround() error {
-	return fct.generateCommitmentHashSubround()
+    return fct.generateCommitmentHashSubround()
 }
 
 func (fct *factory) GenerateBitmapSubround() error {
-	return fct.generateBitmapSubround()
+    return fct.generateBitmapSubround()
 }
 
 func (fct *factory) GenerateCommitmentSubround() error {
-	return fct.generateCommitmentSubround()
+    return fct.generateCommitmentSubround()
 }
 
 func (fct *factory) GenerateSignatureSubround() error {
-	return fct.generateSignatureSubround()
+    return fct.generateSignatureSubround()
 }
 
 func (fct *factory) GenerateEndRoundSubround() error {
-	return fct.generateEndRoundSubround()
+    return fct.generateEndRoundSubround()
 }
 
 // subroundCommitmentHash
@@ -105,27 +105,27 @@ func (fct *factory) GenerateEndRoundSubround() error {
 type SubroundCommitmentHash *subroundCommitmentHash
 
 func (sr *subroundCommitmentHash) DoCommitmentHashJob() bool {
-	return sr.doCommitmentHashJob()
+    return sr.doCommitmentHashJob()
 }
 
 func (sr *subroundCommitmentHash) ReceivedCommitmentHash(cnsDta *consensus.Message) bool {
-	return sr.receivedCommitmentHash(cnsDta)
+    return sr.receivedCommitmentHash(cnsDta)
 }
 
 func (sr *subroundCommitmentHash) DoCommitmentHashConsensusCheck() bool {
-	return sr.doCommitmentHashConsensusCheck()
+    return sr.doCommitmentHashConsensusCheck()
 }
 
 func (sr *subroundCommitmentHash) IsCommitmentHashReceived(threshold int) bool {
-	return sr.isCommitmentHashReceived(threshold)
+    return sr.isCommitmentHashReceived(threshold)
 }
 
 func (sr *subroundCommitmentHash) CommitmentHashesCollected(threshold int) bool {
-	return sr.commitmentHashesCollected(threshold)
+    return sr.commitmentHashesCollected(threshold)
 }
 
 func (sr *subroundCommitmentHash) GenCommitmentHash() ([]byte, error) {
-	return sr.genCommitmentHash()
+    return sr.genCommitmentHash()
 }
 
 // subroundBitmap
@@ -133,19 +133,19 @@ func (sr *subroundCommitmentHash) GenCommitmentHash() ([]byte, error) {
 type SubroundBitmap *subroundBitmap
 
 func (sr *subroundBitmap) DoBitmapJob() bool {
-	return sr.doBitmapJob()
+    return sr.doBitmapJob()
 }
 
 func (sr *subroundBitmap) ReceivedBitmap(cnsDta *consensus.Message) bool {
-	return sr.receivedBitmap(cnsDta)
+    return sr.receivedBitmap(cnsDta)
 }
 
 func (sr *subroundBitmap) DoBitmapConsensusCheck() bool {
-	return sr.doBitmapConsensusCheck()
+    return sr.doBitmapConsensusCheck()
 }
 
 func (sr *subroundBitmap) IsBitmapReceived(threshold int) bool {
-	return sr.isBitmapReceived(threshold)
+    return sr.isBitmapReceived(threshold)
 }
 
 // subroundCommitment
@@ -153,19 +153,19 @@ func (sr *subroundBitmap) IsBitmapReceived(threshold int) bool {
 type SubroundCommitment *subroundCommitment
 
 func (sr *subroundCommitment) DoCommitmentJob() bool {
-	return sr.doCommitmentJob()
+    return sr.doCommitmentJob()
 }
 
 func (sr *subroundCommitment) ReceivedCommitment(cnsDta *consensus.Message) bool {
-	return sr.receivedCommitment(cnsDta)
+    return sr.receivedCommitment(cnsDta)
 }
 
 func (sr *subroundCommitment) DoCommitmentConsensusCheck() bool {
-	return sr.doCommitmentConsensusCheck()
+    return sr.doCommitmentConsensusCheck()
 }
 
 func (sr *subroundCommitment) CommitmentsCollected(threshold int) bool {
-	return sr.commitmentsCollected(threshold)
+    return sr.commitmentsCollected(threshold)
 }
 
 // subroundSignature
@@ -173,23 +173,23 @@ func (sr *subroundCommitment) CommitmentsCollected(threshold int) bool {
 type SubroundSignature *subroundSignature
 
 func (sr *subroundSignature) DoSignatureJob() bool {
-	return sr.doSignatureJob()
+    return sr.doSignatureJob()
 }
 
 func (sr *subroundSignature) ReceivedSignature(cnsDta *consensus.Message) bool {
-	return sr.receivedSignature(cnsDta)
+    return sr.receivedSignature(cnsDta)
 }
 
 func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
-	return sr.doSignatureConsensusCheck()
+    return sr.doSignatureConsensusCheck()
 }
 
 func (sr *subroundSignature) CheckCommitmentsValidity(bitmap []byte) error {
-	return sr.checkCommitmentsValidity(bitmap)
+    return sr.checkCommitmentsValidity(bitmap)
 }
 
 func (sr *subroundSignature) SignaturesCollected(threshold int) bool {
-	return sr.signaturesCollected(threshold)
+    return sr.signaturesCollected(threshold)
 }
 
 // subroundEndRound
@@ -197,17 +197,17 @@ func (sr *subroundSignature) SignaturesCollected(threshold int) bool {
 type SubroundEndRound *subroundEndRound
 
 func (sr *subroundEndRound) DoEndRoundJob() bool {
-	return sr.doEndRoundJob()
+    return sr.doEndRoundJob()
 }
 
 func (sr *subroundEndRound) DoEndRoundConsensusCheck() bool {
-	return sr.doEndRoundConsensusCheck()
+    return sr.doEndRoundConsensusCheck()
 }
 
 func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
-	return sr.checkSignaturesValidity(bitmap)
+    return sr.checkSignaturesValidity(bitmap)
 }
 
 func GetStringValue(messageType consensus.MessageType) string {
-	return getStringValue(messageType)
+    return getStringValue(messageType)
 }

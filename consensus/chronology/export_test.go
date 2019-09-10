@@ -1,37 +1,37 @@
 package chronology
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
+    "github.com/ElrondNetwork/elrond-go/consensus"
 )
 
 func (chr *chronology) StartRound() {
-	chr.startRound()
+    chr.startRound()
 }
 
 func (chr *chronology) SubroundId() int {
-	return chr.subroundId
+    return chr.subroundId
 }
 
 func (chr *chronology) SetSubroundId(subroundId int) {
-	chr.subroundId = subroundId
+    chr.subroundId = subroundId
 }
 
 func (chr *chronology) LoadSubroundHandler(subround int) consensus.SubroundHandler {
-	return chr.loadSubroundHandler(subround)
+    return chr.loadSubroundHandler(subround)
 }
 
 func (chr *chronology) SubroundHandlers() []consensus.SubroundHandler {
-	return chr.subroundHandlers
+    return chr.subroundHandlers
 }
 
 func (chr *chronology) SetSubroundHandlers(subroundHandlers []consensus.SubroundHandler) {
-	chr.subroundHandlers = subroundHandlers
+    chr.subroundHandlers = subroundHandlers
 }
 
 func (chr *chronology) UpdateRound() {
-	chr.updateRound()
+    chr.updateRound()
 }
 
 func (chr *chronology) InitRound() {
-	chr.initRound()
+    chr.initRound()
 }

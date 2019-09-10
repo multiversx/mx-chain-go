@@ -1,47 +1,47 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
+    "github.com/ElrondNetwork/elrond-go/data"
+    "github.com/ElrondNetwork/elrond-go/process"
 )
 
 type ForkDetectorMock struct {
-	AddHeaderCalled                         func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error
-	RemoveHeadersCalled                     func(nonce uint64, hash []byte)
-	CheckForkCalled                         func() (bool, uint64, []byte)
-	GetHighestFinalBlockNonceCalled         func() uint64
-	ProbableHighestNonceCalled              func() uint64
-	ResetProbableHighestNonceIfNeededCalled func()
+    AddHeaderCalled                         func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error
+    RemoveHeadersCalled                     func(nonce uint64, hash []byte)
+    CheckForkCalled                         func() (bool, uint64, []byte)
+    GetHighestFinalBlockNonceCalled         func() uint64
+    ProbableHighestNonceCalled              func() uint64
+    ResetProbableHighestNonceIfNeededCalled func()
 }
 
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
-	return fdm.AddHeaderCalled(header, hash, state, finalHeader, finalHeaderHash)
+    return fdm.AddHeaderCalled(header, hash, state, finalHeader, finalHeaderHash)
 }
 
 func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {
-	fdm.RemoveHeadersCalled(nonce, hash)
+    fdm.RemoveHeadersCalled(nonce, hash)
 }
 
 func (fdm *ForkDetectorMock) CheckFork() (bool, uint64, []byte) {
-	return fdm.CheckForkCalled()
+    return fdm.CheckForkCalled()
 }
 
 func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
-	return fdm.GetHighestFinalBlockNonceCalled()
+    return fdm.GetHighestFinalBlockNonceCalled()
 }
 
 func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
-	return fdm.ProbableHighestNonceCalled()
+    return fdm.ProbableHighestNonceCalled()
 }
 
 func (fdm *ForkDetectorMock) ResetProbableHighestNonceIfNeeded() {
-	fdm.ResetProbableHighestNonceIfNeededCalled()
+    fdm.ResetProbableHighestNonceIfNeededCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fdm *ForkDetectorMock) IsInterfaceNil() bool {
-	if fdm == nil {
-		return true
-	}
-	return false
+    if fdm == nil {
+        return true
+    }
+    return false
 }

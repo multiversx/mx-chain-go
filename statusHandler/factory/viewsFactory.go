@@ -1,44 +1,44 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic"
+    "github.com/ElrondNetwork/elrond-go/statusHandler"
+    "github.com/ElrondNetwork/elrond-go/statusHandler/view"
+    "github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic"
 )
 
 type viewsFactory struct {
-	presenter view.Presenter
+    presenter view.Presenter
 }
 
 // NewViewsFactory is responsible for creating a new viewers factory object
 func NewViewsFactory(presenter view.Presenter) (*viewsFactory, error) {
-	if presenter == nil || presenter.IsInterfaceNil() {
-		return nil, statusHandler.ErrorNilPresenterInterface
-	}
+    if presenter == nil || presenter.IsInterfaceNil() {
+        return nil, statusHandler.ErrorNilPresenterInterface
+    }
 
-	return &viewsFactory{
-		presenter,
-	}, nil
+    return &viewsFactory{
+        presenter,
+    }, nil
 }
 
 // Create returns an view slice that will hold all views in the system
 func (wf *viewsFactory) Create() ([]Viewer, error) {
-	views := make([]Viewer, 0)
+    views := make([]Viewer, 0)
 
-	termuiConsole, err := wf.createTermuiConsole()
-	if err != nil {
-		return nil, err
-	}
-	views = append(views, termuiConsole)
+    termuiConsole, err := wf.createTermuiConsole()
+    if err != nil {
+        return nil, err
+    }
+    views = append(views, termuiConsole)
 
-	return views, nil
+    return views, nil
 }
 
 func (wf *viewsFactory) createTermuiConsole() (*termuic.TermuiConsole, error) {
-	termuiConsole, err := termuic.NewTermuiConsole(wf.presenter)
-	if err != nil {
-		return nil, err
-	}
+    termuiConsole, err := termuic.NewTermuiConsole(wf.presenter)
+    if err != nil {
+        return nil, err
+    }
 
-	return termuiConsole, nil
+    return termuiConsole, nil
 }

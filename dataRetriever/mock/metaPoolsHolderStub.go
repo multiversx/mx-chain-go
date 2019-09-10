@@ -1,37 +1,37 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
+    "github.com/ElrondNetwork/elrond-go/dataRetriever"
+    "github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type MetaPoolsHolderStub struct {
-	MetaChainBlocksCalled func() storage.Cacher
-	MiniBlockHashesCalled func() dataRetriever.ShardedDataCacherNotifier
-	ShardHeadersCalled    func() storage.Cacher
-	HeadersNoncesCalled   func() dataRetriever.Uint64SyncMapCacher
+    MetaChainBlocksCalled func() storage.Cacher
+    MiniBlockHashesCalled func() dataRetriever.ShardedDataCacherNotifier
+    ShardHeadersCalled    func() storage.Cacher
+    HeadersNoncesCalled   func() dataRetriever.Uint64SyncMapCacher
 }
 
 func (mphs *MetaPoolsHolderStub) MetaChainBlocks() storage.Cacher {
-	return mphs.MetaChainBlocksCalled()
+    return mphs.MetaChainBlocksCalled()
 }
 
 func (mphs *MetaPoolsHolderStub) MiniBlockHashes() dataRetriever.ShardedDataCacherNotifier {
-	return mphs.MiniBlockHashesCalled()
+    return mphs.MiniBlockHashesCalled()
 }
 
 func (mphs *MetaPoolsHolderStub) ShardHeaders() storage.Cacher {
-	return mphs.ShardHeadersCalled()
+    return mphs.ShardHeadersCalled()
 }
 
 func (mphs *MetaPoolsHolderStub) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
-	return mphs.HeadersNoncesCalled()
+    return mphs.HeadersNoncesCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mphs *MetaPoolsHolderStub) IsInterfaceNil() bool {
-	if mphs == nil {
-		return true
-	}
-	return false
+    if mphs == nil {
+        return true
+    }
+    return false
 }

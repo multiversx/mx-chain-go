@@ -1,402 +1,402 @@
 package commonSubround
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
+    "github.com/ElrondNetwork/elrond-go/consensus"
+    "github.com/ElrondNetwork/elrond-go/consensus/spos"
+    "github.com/ElrondNetwork/elrond-go/core"
+    "github.com/ElrondNetwork/elrond-go/data"
+    "github.com/ElrondNetwork/elrond-go/process"
 )
 
 // SubroundBlock defines the data needed by the subround Block
 type SubroundBlock struct {
-	*spos.Subround
+    *spos.Subround
 
-	mtBlockBody                   int
-	mtBlockHeader                 int
-	processingThresholdPercentage int
-	getSubroundName               func(subroundId int) string
+    mtBlockBody                   int
+    mtBlockHeader                 int
+    processingThresholdPercentage int
+    getSubroundName               func(subroundId int) string
 }
 
 // NewSubroundBlock creates a SubroundBlock object
 func NewSubroundBlock(
-	baseSubround *spos.Subround,
-	extend func(subroundId int),
-	mtBlockBody int,
-	mtBlockHeader int,
-	processingThresholdPercentage int,
-	getSubroundName func(subroundId int) string,
+    baseSubround *spos.Subround,
+    extend func(subroundId int),
+    mtBlockBody int,
+    mtBlockHeader int,
+    processingThresholdPercentage int,
+    getSubroundName func(subroundId int) string,
 ) (*SubroundBlock, error) {
-	err := checkNewSubroundBlockParams(
-		baseSubround,
-	)
-	if err != nil {
-		return nil, err
-	}
+    err := checkNewSubroundBlockParams(
+        baseSubround,
+    )
+    if err != nil {
+        return nil, err
+    }
 
-	srBlock := SubroundBlock{
-		baseSubround,
-		mtBlockBody,
-		mtBlockHeader,
-		processingThresholdPercentage,
-		getSubroundName,
-	}
+    srBlock := SubroundBlock{
+        baseSubround,
+        mtBlockBody,
+        mtBlockHeader,
+        processingThresholdPercentage,
+        getSubroundName,
+    }
 
-	srBlock.Job = srBlock.doBlockJob
-	srBlock.Check = srBlock.doBlockConsensusCheck
-	srBlock.Extend = extend
+    srBlock.Job = srBlock.doBlockJob
+    srBlock.Check = srBlock.doBlockConsensusCheck
+    srBlock.Extend = extend
 
-	return &srBlock, nil
+    return &srBlock, nil
 }
 
 func checkNewSubroundBlockParams(
-	baseSubround *spos.Subround,
+    baseSubround *spos.Subround,
 ) error {
-	if baseSubround == nil {
-		return spos.ErrNilSubround
-	}
+    if baseSubround == nil {
+        return spos.ErrNilSubround
+    }
 
-	if baseSubround.ConsensusState == nil {
-		return spos.ErrNilConsensusState
-	}
+    if baseSubround.ConsensusState == nil {
+        return spos.ErrNilConsensusState
+    }
 
-	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
+    err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
-	return err
+    return err
 }
 
 // doBlockJob method does the job of the subround Block
 func (sr *SubroundBlock) doBlockJob() bool {
-	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
-		return false
-	}
+    if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+        return false
+    }
 
-	if sr.Rounder().Index() <= sr.getRoundInLastCommittedBlock() {
-		return false
-	}
+    if sr.Rounder().Index() <= sr.getRoundInLastCommittedBlock() {
+        return false
+    }
 
-	if sr.IsSelfJobDone(sr.Current()) {
-		return false
-	}
+    if sr.IsSelfJobDone(sr.Current()) {
+        return false
+    }
 
-	if sr.IsCurrentSubroundFinished(sr.Current()) {
-		return false
-	}
+    if sr.IsCurrentSubroundFinished(sr.Current()) {
+        return false
+    }
 
-	if !sr.sendBlockBody() ||
-		!sr.sendBlockHeader() {
-		return false
-	}
+    if !sr.sendBlockBody() ||
+        !sr.sendBlockHeader() {
+        return false
+    }
 
-	err := sr.SetSelfJobDone(sr.Current(), true)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    err := sr.SetSelfJobDone(sr.Current(), true)
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	return true
+    return true
 }
 
 // sendBlockBody method job the proposed block body in the subround Block
 func (sr *SubroundBlock) sendBlockBody() bool {
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
-	maxTime := time.Duration(sr.EndTime())
-	haveTimeInCurrentSubround := func() bool {
-		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
-	}
+    startTime := time.Time{}
+    startTime = sr.RoundTimeStamp
+    maxTime := time.Duration(sr.EndTime())
+    haveTimeInCurrentSubround := func() bool {
+        return sr.Rounder().RemainingTime(startTime, maxTime) > 0
+    }
 
-	blockBody, err := sr.BlockProcessor().CreateBlockBody(
-		uint64(sr.Rounder().Index()),
-		haveTimeInCurrentSubround,
-	)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    blockBody, err := sr.BlockProcessor().CreateBlockBody(
+        uint64(sr.Rounder().Index()),
+        haveTimeInCurrentSubround,
+    )
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	blkStr, err := sr.Marshalizer().Marshal(blockBody)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    blkStr, err := sr.Marshalizer().Marshal(blockBody)
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	msg := consensus.NewConsensusMessage(
-		nil,
-		blkStr,
-		[]byte(sr.SelfPubKey()),
-		nil,
-		sr.mtBlockBody,
-		uint64(sr.Rounder().TimeStamp().Unix()),
-		sr.Rounder().Index())
+    msg := consensus.NewConsensusMessage(
+        nil,
+        blkStr,
+        []byte(sr.SelfPubKey()),
+        nil,
+        sr.mtBlockBody,
+        uint64(sr.Rounder().TimeStamp().Unix()),
+        sr.Rounder().Index())
 
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	log.Info(fmt.Sprintf("%sStep 1: block body has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
+    log.Info(fmt.Sprintf("%sStep 1: block body has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
-	sr.BlockBody = blockBody
+    sr.BlockBody = blockBody
 
-	return true
+    return true
 }
 
 // sendBlockHeader method job the proposed block header in the subround Block
 func (sr *SubroundBlock) sendBlockHeader() bool {
-	hdr, err := sr.createHeader()
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    hdr, err := sr.createHeader()
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	hdrStr, err := sr.Marshalizer().Marshal(hdr)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    hdrStr, err := sr.Marshalizer().Marshal(hdr)
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	hdrHash := sr.Hasher().Compute(string(hdrStr))
+    hdrHash := sr.Hasher().Compute(string(hdrStr))
 
-	msg := consensus.NewConsensusMessage(
-		hdrHash,
-		hdrStr,
-		[]byte(sr.SelfPubKey()),
-		nil,
-		sr.mtBlockHeader,
-		uint64(sr.Rounder().TimeStamp().Unix()),
-		sr.Rounder().Index())
+    msg := consensus.NewConsensusMessage(
+        hdrHash,
+        hdrStr,
+        []byte(sr.SelfPubKey()),
+        nil,
+        sr.mtBlockHeader,
+        uint64(sr.Rounder().TimeStamp().Unix()),
+        sr.Rounder().Index())
 
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been sent\n",
-		sr.SyncTimer().FormattedCurrentTime(), hdr.GetNonce(), core.ToB64(hdrHash)))
+    log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been sent\n",
+        sr.SyncTimer().FormattedCurrentTime(), hdr.GetNonce(), core.ToB64(hdrHash)))
 
-	sr.Data = hdrHash
-	sr.Header = hdr
+    sr.Data = hdrHash
+    sr.Header = hdr
 
-	return true
+    return true
 }
 
 func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
-	maxTime := time.Duration(sr.EndTime())
-	haveTimeInCurrentSubround := func() bool {
-		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
-	}
+    startTime := time.Time{}
+    startTime = sr.RoundTimeStamp
+    maxTime := time.Duration(sr.EndTime())
+    haveTimeInCurrentSubround := func() bool {
+        return sr.Rounder().RemainingTime(startTime, maxTime) > 0
+    }
 
-	hdr, err := sr.BlockProcessor().CreateBlockHeader(
-		sr.BlockBody,
-		uint64(sr.Rounder().Index()),
-		haveTimeInCurrentSubround)
-	if err != nil {
-		return nil, err
-	}
+    hdr, err := sr.BlockProcessor().CreateBlockHeader(
+        sr.BlockBody,
+        uint64(sr.Rounder().Index()),
+        haveTimeInCurrentSubround)
+    if err != nil {
+        return nil, err
+    }
 
-	hdr.SetRound(uint64(sr.Rounder().Index()))
-	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
+    hdr.SetRound(uint64(sr.Rounder().Index()))
+    hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 
-	var prevRandSeed []byte
-	if sr.Blockchain().GetCurrentBlockHeader() == nil {
-		hdr.SetNonce(1)
-		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
+    var prevRandSeed []byte
+    if sr.Blockchain().GetCurrentBlockHeader() == nil {
+        hdr.SetNonce(1)
+        hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
 
-		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
-	} else {
-		hdr.SetNonce(sr.Blockchain().GetCurrentBlockHeader().GetNonce() + 1)
-		hdr.SetPrevHash(sr.Blockchain().GetCurrentBlockHeaderHash())
+        prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
+    } else {
+        hdr.SetNonce(sr.Blockchain().GetCurrentBlockHeader().GetNonce() + 1)
+        hdr.SetPrevHash(sr.Blockchain().GetCurrentBlockHeaderHash())
 
-		prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()
-	}
+        prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()
+    }
 
-	randSeed, err := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), prevRandSeed)
-	// Cannot propose block if unable to create random seed
-	if err != nil {
-		return nil, err
-	}
+    randSeed, err := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), prevRandSeed)
+    // Cannot propose block if unable to create random seed
+    if err != nil {
+        return nil, err
+    }
 
-	hdr.SetPrevRandSeed(prevRandSeed)
-	hdr.SetRandSeed(randSeed)
+    hdr.SetPrevRandSeed(prevRandSeed)
+    hdr.SetRandSeed(randSeed)
 
-	return hdr, nil
+    return hdr, nil
 }
 
 // ReceivedBlockBody method is called when a block body is received through the block body channel
 func (sr *SubroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
-	node := string(cnsDta.PubKey)
+    node := string(cnsDta.PubKey)
 
-	if sr.IsBlockBodyAlreadyReceived() {
-		return false
-	}
+    if sr.IsBlockBodyAlreadyReceived() {
+        return false
+    }
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
-		return false
-	}
+    if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+        return false
+    }
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
-		return false
-	}
+    if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+        return false
+    }
 
-	sr.BlockBody = sr.BlockProcessor().DecodeBlockBody(cnsDta.SubRoundData)
+    sr.BlockBody = sr.BlockProcessor().DecodeBlockBody(cnsDta.SubRoundData)
 
-	if sr.BlockBody == nil {
-		return false
-	}
+    if sr.BlockBody == nil {
+        return false
+    }
 
-	log.Info(fmt.Sprintf("%sStep 1: block body has been received\n", sr.SyncTimer().FormattedCurrentTime()))
+    log.Info(fmt.Sprintf("%sStep 1: block body has been received\n", sr.SyncTimer().FormattedCurrentTime()))
 
-	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+    blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
-	return blockProcessedWithSuccess
+    return blockProcessedWithSuccess
 }
 
 // ReceivedBlockHeader method is called when a block header is received through the block header channel.
 // If the block header is valid, than the validatorRoundStates map corresponding to the node which sent it,
 // is set on true for the subround Block
 func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
-	node := string(cnsDta.PubKey)
+    node := string(cnsDta.PubKey)
 
-	if sr.IsConsensusDataSet() {
-		return false
-	}
+    if sr.IsConsensusDataSet() {
+        return false
+    }
 
-	if sr.IsHeaderAlreadyReceived() {
-		return false
-	}
+    if sr.IsHeaderAlreadyReceived() {
+        return false
+    }
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
-		return false
-	}
+    if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+        return false
+    }
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
-		return false
-	}
+    if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+        return false
+    }
 
-	sr.Data = cnsDta.BlockHeaderHash
-	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.SubRoundData)
+    sr.Data = cnsDta.BlockHeaderHash
+    sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.SubRoundData)
 
-	if sr.Header == nil {
-		return false
-	}
+    if sr.Header == nil {
+        return false
+    }
 
-	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
-		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), core.ToB64(cnsDta.BlockHeaderHash)))
+    log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
+        sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), core.ToB64(cnsDta.BlockHeaderHash)))
 
-	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+    blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
-	return blockProcessedWithSuccess
+    return blockProcessedWithSuccess
 }
 
 func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
-	if sr.BlockBody == nil || sr.BlockBody.IsInterfaceNil() {
-		return false
-	}
-	if sr.Header == nil || sr.Header.IsInterfaceNil() {
-		return false
-	}
+    if sr.BlockBody == nil || sr.BlockBody.IsInterfaceNil() {
+        return false
+    }
+    if sr.Header == nil || sr.Header.IsInterfaceNil() {
+        return false
+    }
 
-	defer func() {
-		sr.SetProcessingBlock(false)
-	}()
+    defer func() {
+        sr.SetProcessingBlock(false)
+    }()
 
-	sr.SetProcessingBlock(true)
+    sr.SetProcessingBlock(true)
 
-	node := string(cnsDta.PubKey)
+    node := string(cnsDta.PubKey)
 
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
-	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
-	remainingTimeInCurrentRound := func() time.Duration {
-		return sr.Rounder().RemainingTime(startTime, maxTime)
-	}
+    startTime := time.Time{}
+    startTime = sr.RoundTimeStamp
+    maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+    remainingTimeInCurrentRound := func() time.Duration {
+        return sr.Rounder().RemainingTime(startTime, maxTime)
+    }
 
-	err := sr.BlockProcessor().ProcessBlock(
-		sr.Blockchain(),
-		sr.Header,
-		sr.BlockBody,
-		remainingTimeInCurrentRound,
-	)
+    err := sr.BlockProcessor().ProcessBlock(
+        sr.Blockchain(),
+        sr.Header,
+        sr.BlockBody,
+        remainingTimeInCurrentRound,
+    )
 
-	if cnsDta.RoundIndex < sr.Rounder().Index() {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, meantime round index has been changed to %d\n",
-			cnsDta.RoundIndex, sr.getSubroundName(sr.Current()), sr.Rounder().Index()))
-		return false
-	}
+    if cnsDta.RoundIndex < sr.Rounder().Index() {
+        log.Info(fmt.Sprintf("canceled round %d in subround %s, meantime round index has been changed to %d\n",
+            cnsDta.RoundIndex, sr.getSubroundName(sr.Current()), sr.Rounder().Index()))
+        return false
+    }
 
-	if err != nil {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
-			sr.Rounder().Index(), sr.getSubroundName(sr.Current()), err.Error()))
-		if err == process.ErrTimeIsOut {
-			sr.RoundCanceled = true
-		}
-		return false
-	}
+    if err != nil {
+        log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
+            sr.Rounder().Index(), sr.getSubroundName(sr.Current()), err.Error()))
+        if err == process.ErrTimeIsOut {
+            sr.RoundCanceled = true
+        }
+        return false
+    }
 
-	err = sr.SetJobDone(node, sr.Current(), true)
-	if err != nil {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
-			sr.Rounder().Index(), sr.getSubroundName(sr.Current()), err.Error()))
-		return false
-	}
+    err = sr.SetJobDone(node, sr.Current(), true)
+    if err != nil {
+        log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
+            sr.Rounder().Index(), sr.getSubroundName(sr.Current()), err.Error()))
+        return false
+    }
 
-	return true
+    return true
 }
 
 // doBlockConsensusCheck method checks if the consensus in the subround Block is achieved
 func (sr *SubroundBlock) doBlockConsensusCheck() bool {
-	if sr.RoundCanceled {
-		return false
-	}
+    if sr.RoundCanceled {
+        return false
+    }
 
-	if sr.Status(sr.Current()) == spos.SsFinished {
-		return true
-	}
+    if sr.Status(sr.Current()) == spos.SsFinished {
+        return true
+    }
 
-	threshold := sr.Threshold(sr.Current())
-	if sr.isBlockReceived(threshold) {
-		log.Info(fmt.Sprintf("%sStep 1: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
-		sr.SetStatus(sr.Current(), spos.SsFinished)
-		return true
-	}
+    threshold := sr.Threshold(sr.Current())
+    if sr.isBlockReceived(threshold) {
+        log.Info(fmt.Sprintf("%sStep 1: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+        sr.SetStatus(sr.Current(), spos.SsFinished)
+        return true
+    }
 
-	return false
+    return false
 }
 
 // isBlockReceived method checks if the block was received from the leader in the current round
 func (sr *SubroundBlock) isBlockReceived(threshold int) bool {
-	n := 0
+    n := 0
 
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		node := sr.ConsensusGroup()[i]
-		isJobDone, err := sr.JobDone(node, sr.Current())
+    for i := 0; i < len(sr.ConsensusGroup()); i++ {
+        node := sr.ConsensusGroup()[i]
+        isJobDone, err := sr.JobDone(node, sr.Current())
 
-		if err != nil {
-			log.Error(err.Error())
-			continue
-		}
+        if err != nil {
+            log.Error(err.Error())
+            continue
+        }
 
-		if isJobDone {
-			n++
-		}
-	}
+        if isJobDone {
+            n++
+        }
+    }
 
-	return n >= threshold
+    return n >= threshold
 }
 
 func (sr *SubroundBlock) getRoundInLastCommittedBlock() int64 {
-	roundInLastCommittedBlock := int64(0)
-	if sr.Blockchain().GetCurrentBlockHeader() != nil {
-		roundInLastCommittedBlock = int64(sr.Blockchain().GetCurrentBlockHeader().GetRound())
-	}
+    roundInLastCommittedBlock := int64(0)
+    if sr.Blockchain().GetCurrentBlockHeader() != nil {
+        roundInLastCommittedBlock = int64(sr.Blockchain().GetCurrentBlockHeader().GetRound())
+    }
 
-	return roundInLastCommittedBlock
+    return roundInLastCommittedBlock
 }

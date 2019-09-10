@@ -1,63 +1,63 @@
 package mock
 
 import (
-	"crypto/cipher"
+    "crypto/cipher"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
+    "github.com/ElrondNetwork/elrond-go/crypto"
 )
 
 type SuiteMock struct {
-	StringStub             func() string
-	ScalarLenStub          func() int
-	CreateScalarStub       func() crypto.Scalar
-	PointLenStub           func() int
-	CreatePointStub        func() crypto.Point
-	RandomStreamStub       func() cipher.Stream
-	GetUnderlyingSuiteStub func() interface{}
+    StringStub             func() string
+    ScalarLenStub          func() int
+    CreateScalarStub       func() crypto.Scalar
+    PointLenStub           func() int
+    CreatePointStub        func() crypto.Point
+    RandomStreamStub       func() cipher.Stream
+    GetUnderlyingSuiteStub func() interface{}
 }
 
 type GeneratorSuite struct {
-	SuiteMock
-	CreateKeyStub func(cipher.Stream) crypto.Scalar
+    SuiteMock
+    CreateKeyStub func(cipher.Stream) crypto.Scalar
 }
 
 func (s *SuiteMock) String() string {
-	return s.StringStub()
+    return s.StringStub()
 }
 
 func (s *SuiteMock) ScalarLen() int {
-	return s.ScalarLenStub()
+    return s.ScalarLenStub()
 }
 
 func (s *SuiteMock) CreateScalar() crypto.Scalar {
-	return s.CreateScalarStub()
+    return s.CreateScalarStub()
 }
 
 func (s *SuiteMock) PointLen() int {
-	return s.PointLenStub()
+    return s.PointLenStub()
 }
 
 func (s *SuiteMock) CreatePoint() crypto.Point {
-	return s.CreatePointStub()
+    return s.CreatePointStub()
 }
 
 func (s *SuiteMock) RandomStream() cipher.Stream {
-	stream := NewStreamer()
-	return stream
+    stream := NewStreamer()
+    return stream
 }
 
 func (s *SuiteMock) GetUnderlyingSuite() interface{} {
-	return s.GetUnderlyingSuiteStub()
+    return s.GetUnderlyingSuiteStub()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SuiteMock) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+    if s == nil {
+        return true
+    }
+    return false
 }
 
 func (gs *GeneratorSuite) CreateKey(c cipher.Stream) crypto.Scalar {
-	return gs.CreateKeyStub(c)
+    return gs.CreateKeyStub(c)
 }

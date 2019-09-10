@@ -1,274 +1,274 @@
 package sync
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
+    "github.com/ElrondNetwork/elrond-go/data"
+    "github.com/ElrondNetwork/elrond-go/data/block"
+    "github.com/ElrondNetwork/elrond-go/dataRetriever"
+    "github.com/ElrondNetwork/elrond-go/process"
 )
 
 func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
-	boot.requestHeaderWithNonce(nonce)
+    boot.requestHeaderWithNonce(nonce)
 }
 
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
-	return boot.miniBlockResolver.GetMiniBlocks(hashes)
+    return boot.miniBlockResolver.GetMiniBlocks(hashes)
 }
 
 func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
-	boot.receivedHeader(key)
+    boot.receivedHeader(key)
 }
 
 func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
-	boot.receivedHeaders(key)
+    boot.receivedHeaders(key)
 }
 
 func (boot *ShardBootstrap) ForkChoice() error {
-	return boot.forkChoice()
+    return boot.forkChoice()
 }
 
 func (boot *MetaBootstrap) ForkChoice() error {
-	return boot.forkChoice()
+    return boot.forkChoice()
 }
 
 func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
-	bfd.mutHeaders.Lock()
-	defer bfd.mutHeaders.Unlock()
+    bfd.mutHeaders.Lock()
+    defer bfd.mutHeaders.Unlock()
 
-	headers := bfd.headers[nonce]
+    headers := bfd.headers[nonce]
 
-	if headers == nil {
-		return nil
-	}
+    if headers == nil {
+        return nil
+    }
 
-	newHeaders := make([]*headerInfo, len(headers))
-	copy(newHeaders, headers)
+    newHeaders := make([]*headerInfo, len(headers))
+    copy(newHeaders, headers)
 
-	return newHeaders
+    return newHeaders
 }
 
 func (bfd *basicForkDetector) LastCheckpointNonce() uint64 {
-	return bfd.lastCheckpoint().nonce
+    return bfd.lastCheckpoint().nonce
 }
 
 func (bfd *basicForkDetector) LastCheckpointRound() uint64 {
-	return bfd.lastCheckpoint().round
+    return bfd.lastCheckpoint().round
 }
 
 func (bfd *basicForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
-	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round})
+    bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round})
 }
 
 func (bfd *basicForkDetector) FinalCheckpointNonce() uint64 {
-	return bfd.finalCheckpoint().nonce
+    return bfd.finalCheckpoint().nonce
 }
 
 func (bfd *basicForkDetector) FinalCheckpointRound() uint64 {
-	return bfd.finalCheckpoint().round
+    return bfd.finalCheckpoint().round
 }
 
 func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
-	return bfd.checkBlockValidity(header, state)
+    return bfd.checkBlockValidity(header, state)
 }
 
 func (bfd *basicForkDetector) RemovePastHeaders() {
-	bfd.removePastHeaders()
+    bfd.removePastHeaders()
 }
 
 func (bfd *basicForkDetector) RemoveInvalidHeaders() {
-	bfd.removeInvalidHeaders()
+    bfd.removeInvalidHeaders()
 }
 
 func (bfd *basicForkDetector) ComputeProbableHighestNonce() uint64 {
-	return bfd.computeProbableHighestNonce()
+    return bfd.computeProbableHighestNonce()
 }
 
 func (bfd *basicForkDetector) GetProbableHighestNonce(headersInfo []*headerInfo) uint64 {
-	return bfd.getProbableHighestNonce(headersInfo)
+    return bfd.getProbableHighestNonce(headersInfo)
 }
 
 func (hi *headerInfo) Hash() []byte {
-	return hi.hash
+    return hi.hash
 }
 
 func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
-	return hi.state
+    return hi.state
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners(boot.isNodeSynchronized)
+    boot.notifySyncStateListeners(boot.isNodeSynchronized)
 }
 
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners(boot.isNodeSynchronized)
+    boot.notifySyncStateListeners(boot.isNodeSynchronized)
 }
 
 func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {
-	return boot.syncStateListeners
+    return boot.syncStateListeners
 }
 
 func (boot *MetaBootstrap) SyncStateListeners() []func(bool) {
-	return boot.syncStateListeners
+    return boot.syncStateListeners
 }
 
 func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {
-	boot.forkNonce = nonce
+    boot.forkNonce = nonce
 }
 
 func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
-	boot.forkNonce = nonce
+    boot.forkNonce = nonce
 }
 
 func (boot *ShardBootstrap) IsForkDetected() bool {
-	return boot.isForkDetected
+    return boot.isForkDetected
 }
 
 func (boot *MetaBootstrap) IsForkDetected() bool {
-	return boot.isForkDetected
+    return boot.isForkDetected
 }
 
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	boot.processReceivedHeader(headerHandler, headerHash)
+    boot.processReceivedHeader(headerHandler, headerHash)
 }
 
 func (boot *baseBootstrap) LoadBlocks(
-	blockFinality uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
+    blockFinality uint64,
+    blockUnit dataRetriever.UnitType,
+    hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	return boot.loadBlocks(
-		blockFinality,
-		blockUnit,
-		hdrNonceHashDataUnit)
+    return boot.loadBlocks(
+        blockFinality,
+        blockUnit,
+        hdrNonceHashDataUnit)
 }
 
 func (boot *baseBootstrap) ApplyBlock(
-	shardId uint32,
-	nonce uint64,
+    shardId uint32,
+    nonce uint64,
 ) error {
-	return boot.applyBlock(shardId, nonce)
+    return boot.applyBlock(shardId, nonce)
 }
 
 func (boot *baseBootstrap) RemoveBlockHeader(
-	nonce uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
+    nonce uint64,
+    blockUnit dataRetriever.UnitType,
+    hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	return boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
+    return boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
 }
 
 func (boot *ShardBootstrap) RemoveBlockBody(
-	nonce uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
+    nonce uint64,
+    blockUnit dataRetriever.UnitType,
+    hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	return boot.removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
+    return boot.removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
 }
 
 func (boot *MetaBootstrap) RemoveBlockBody(
-	nonce uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
+    nonce uint64,
+    blockUnit dataRetriever.UnitType,
+    hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	return boot.removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
+    return boot.removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
 }
 
 func (boot *ShardBootstrap) ApplyNotarizedBlocks(
-	finalNotarized map[uint32]uint64,
-	lastNotarized map[uint32]uint64,
+    finalNotarized map[uint32]uint64,
+    lastNotarized map[uint32]uint64,
 ) error {
-	return boot.applyNotarizedBlocks(finalNotarized, lastNotarized)
+    return boot.applyNotarizedBlocks(finalNotarized, lastNotarized)
 }
 
 func (boot *MetaBootstrap) ApplyNotarizedBlocks(
-	finalNotarized map[uint32]uint64,
-	lastNotarized map[uint32]uint64,
+    finalNotarized map[uint32]uint64,
+    lastNotarized map[uint32]uint64,
 ) error {
-	return boot.applyNotarizedBlocks(finalNotarized, lastNotarized)
+    return boot.applyNotarizedBlocks(finalNotarized, lastNotarized)
 }
 
 func (boot *ShardBootstrap) SyncFromStorer(
-	blockFinality uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
-	notarizedBlockFinality uint64,
-	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
+    blockFinality uint64,
+    blockUnit dataRetriever.UnitType,
+    hdrNonceHashDataUnit dataRetriever.UnitType,
+    notarizedBlockFinality uint64,
+    notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	return boot.syncFromStorer(blockFinality, blockUnit, hdrNonceHashDataUnit, notarizedBlockFinality)
+    return boot.syncFromStorer(blockFinality, blockUnit, hdrNonceHashDataUnit, notarizedBlockFinality)
 }
 
 func (boot *MetaBootstrap) SyncFromStorer(
-	blockFinality uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
-	notarizedBlockFinality uint64,
-	notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
+    blockFinality uint64,
+    blockUnit dataRetriever.UnitType,
+    hdrNonceHashDataUnit dataRetriever.UnitType,
+    notarizedBlockFinality uint64,
+    notarizedHdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	return boot.syncFromStorer(blockFinality, blockUnit, hdrNonceHashDataUnit, notarizedBlockFinality)
+    return boot.syncFromStorer(blockFinality, blockUnit, hdrNonceHashDataUnit, notarizedBlockFinality)
 }
 
 func (boot *ShardBootstrap) SetStorageBootstrapper(sb storageBootstrapper) {
-	boot.storageBootstrapper = sb
+    boot.storageBootstrapper = sb
 }
 
 func (boot *MetaBootstrap) SetStorageBootstrapper(sb storageBootstrapper) {
-	boot.storageBootstrapper = sb
+    boot.storageBootstrapper = sb
 }
 
 type StorageBootstrapperMock struct {
-	GetHeaderCalled                 func(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error)
-	GetBlockBodyCalled              func(data.HeaderHandler) (data.BodyHandler, error)
-	RemoveBlockBodyCalled           func(nonce uint64, blockUnit dataRetriever.UnitType, hdrNonceHashDataUnit dataRetriever.UnitType) error
-	GetNonceWithLastNotarizedCalled func(currentNonce uint64) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64)
-	ApplyNotarizedBlocksCalled      func(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error
-	CleanupNotarizedStorageCalled   func(lastNotarized map[uint32]uint64)
-	AddHeaderToForkDetectorCalled   func(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
+    GetHeaderCalled                 func(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error)
+    GetBlockBodyCalled              func(data.HeaderHandler) (data.BodyHandler, error)
+    RemoveBlockBodyCalled           func(nonce uint64, blockUnit dataRetriever.UnitType, hdrNonceHashDataUnit dataRetriever.UnitType) error
+    GetNonceWithLastNotarizedCalled func(currentNonce uint64) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64)
+    ApplyNotarizedBlocksCalled      func(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error
+    CleanupNotarizedStorageCalled   func(lastNotarized map[uint32]uint64)
+    AddHeaderToForkDetectorCalled   func(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
 }
 
 func (sbm *StorageBootstrapperMock) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
-	return sbm.GetHeaderCalled(shardId, nonce)
+    return sbm.GetHeaderCalled(shardId, nonce)
 }
 
 func (sbm *StorageBootstrapperMock) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return sbm.GetBlockBodyCalled(headerHandler)
+    return sbm.GetBlockBodyCalled(headerHandler)
 }
 
 func (sbm *StorageBootstrapperMock) removeBlockBody(
-	nonce uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
+    nonce uint64,
+    blockUnit dataRetriever.UnitType,
+    hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
 
-	return sbm.RemoveBlockBodyCalled(nonce, blockUnit, hdrNonceHashDataUnit)
+    return sbm.RemoveBlockBodyCalled(nonce, blockUnit, hdrNonceHashDataUnit)
 }
 
 func (sbm *StorageBootstrapperMock) getNonceWithLastNotarized(
-	currentNonce uint64,
+    currentNonce uint64,
 ) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) {
 
-	return sbm.GetNonceWithLastNotarizedCalled(currentNonce)
+    return sbm.GetNonceWithLastNotarizedCalled(currentNonce)
 }
 
 func (sbm *StorageBootstrapperMock) applyNotarizedBlocks(
-	finalNotarized map[uint32]uint64,
-	lastNotarized map[uint32]uint64,
+    finalNotarized map[uint32]uint64,
+    lastNotarized map[uint32]uint64,
 ) error {
 
-	return sbm.ApplyNotarizedBlocksCalled(finalNotarized, lastNotarized)
+    return sbm.ApplyNotarizedBlocksCalled(finalNotarized, lastNotarized)
 }
 
 func (sbm *StorageBootstrapperMock) cleanupNotarizedStorage(lastNotarized map[uint32]uint64) {
-	sbm.CleanupNotarizedStorageCalled(lastNotarized)
+    sbm.CleanupNotarizedStorageCalled(lastNotarized)
 }
 
 func (sbm *StorageBootstrapperMock) addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
-	sbm.AddHeaderToForkDetectorCalled(shardId, nonce, lastNotarizedMeta)
+    sbm.AddHeaderToForkDetectorCalled(shardId, nonce, lastNotarizedMeta)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
-	if sbm == nil {
-		return true
-	}
-	return false
+    if sbm == nil {
+        return true
+    }
+    return false
 }

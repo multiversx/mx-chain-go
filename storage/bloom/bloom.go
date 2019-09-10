@@ -12,27 +12,27 @@
 package bloom
 
 import (
-	"encoding/binary"
-	"errors"
+    "encoding/binary"
+    "errors"
 
-	"sync"
+    "sync"
 
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+    "github.com/ElrondNetwork/elrond-go/hashing"
+    "github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+    "github.com/ElrondNetwork/elrond-go/hashing/fnv"
+    "github.com/ElrondNetwork/elrond-go/hashing/keccak"
 )
 
 const (
-	bitsInByte = 8
+    bitsInByte = 8
 )
 
 // Bloom represents a bloom filter. It holds the filter itself, the hashing functions that must be
 // applied to values that are added to the filter and a mutex to handle concurrent accesses to the filter
 type Bloom struct {
-	filter   []byte
-	hashFunc []hashing.Hasher
-	mutex    sync.Mutex
+    filter   []byte
+    hashFunc []hashing.Hasher
+    mutex    sync.Mutex
 }
 
 // NewFilter returns a new Bloom object with the given size and
@@ -40,100 +40,100 @@ type Bloom struct {
 // functions, or if the size of the filter is too small
 func NewFilter(size uint, h []hashing.Hasher) (*Bloom, error) {
 
-	if size <= uint(len(h)) {
-		return nil, errors.New("filter size is too low")
-	}
+    if size <= uint(len(h)) {
+        return nil, errors.New("filter size is too low")
+    }
 
-	if len(h) == 0 {
-		return nil, errors.New("too few hashing functions")
-	}
+    if len(h) == 0 {
+        return nil, errors.New("too few hashing functions")
+    }
 
-	return &Bloom{
-		filter:   make([]byte, size),
-		hashFunc: h,
-	}, nil
+    return &Bloom{
+        filter:   make([]byte, size),
+        hashFunc: h,
+    }, nil
 }
 
 // NewDefaultFilter returns a new Bloom object with a filter size of 2048 bytes
 // and implementations of blake2b, sha3-keccak and fnv128a hashing functions
 func NewDefaultFilter() *Bloom {
-	return &Bloom{
-		filter:   make([]byte, 2048),
-		hashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
-	}
+    return &Bloom{
+        filter:   make([]byte, 2048),
+        hashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
+    }
 }
 
 // Add sets the bits that correspond to the hashes of the data
 func (b *Bloom) Add(data []byte) {
-	res := getBitsIndexes(b, data)
+    res := getBitsIndexes(b, data)
 
-	for i := range res {
-		b.mutex.Lock()
-		pos, bitMask := getBytePositionAndBitMask(res[i])
+    for i := range res {
+        b.mutex.Lock()
+        pos, bitMask := getBytePositionAndBitMask(res[i])
 
-		b.filter[pos] = b.filter[pos] | bitMask
-		b.mutex.Unlock()
-	}
+        b.filter[pos] = b.filter[pos] | bitMask
+        b.mutex.Unlock()
+    }
 
 }
 
 // MayContain checks if the bits that correspond to the hashes of the data are set.
 // If all the bits are set, it returns true, otherwise it returns false
 func (b *Bloom) MayContain(data []byte) bool {
-	res := getBitsIndexes(b, data)
+    res := getBitsIndexes(b, data)
 
-	for i := range res {
-		pos, bitMask := getBytePositionAndBitMask(res[i])
+    for i := range res {
+        pos, bitMask := getBytePositionAndBitMask(res[i])
 
-		if b.filter[pos]&bitMask == 0 {
-			return false
-		}
-	}
-	return true
+        if b.filter[pos]&bitMask == 0 {
+            return false
+        }
+    }
+    return true
 }
 
 // Clear resets the bits of the bloom filter
 func (b *Bloom) Clear() {
-	for i := 0; i < len(b.filter); i++ {
-		b.filter[i] = 0
-	}
+    for i := 0; i < len(b.filter); i++ {
+        b.filter[i] = 0
+    }
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (b *Bloom) IsInterfaceNil() bool {
-	if b == nil {
-		return true
-	}
-	return false
+    if b == nil {
+        return true
+    }
+    return false
 }
 
 // getBytePositionAndBitMask takes the index of a bit and returns the position of the byte in the filter
 // that contains that index and the value of that byte with the bit set to 1.
 func getBytePositionAndBitMask(index uint64) (pos uint64, val byte) {
-	pos = index / 8
-	bitNo := index % 8
-	bitMask := byte(1 << bitNo)
+    pos = index / 8
+    bitNo := index % 8
+    bitMask := byte(1 << bitNo)
 
-	return pos, bitMask
+    return pos, bitMask
 }
 
 // getBitsIndexes returns a slice which contains indexes that represent bits from the filter that have to be set.
 func getBitsIndexes(b *Bloom, data []byte) []uint64 {
-	var ch = make(chan uint64, len(b.hashFunc))
-	var wg sync.WaitGroup
-	var res []uint64
+    var ch = make(chan uint64, len(b.hashFunc))
+    var wg sync.WaitGroup
+    var res []uint64
 
-	wg.Add(len(b.hashFunc))
-	for i := range b.hashFunc {
-		go getBitIndexFromHash(b.hashFunc[i], data, len(b.filter), &wg, ch)
-	}
-	wg.Wait()
+    wg.Add(len(b.hashFunc))
+    for i := range b.hashFunc {
+        go getBitIndexFromHash(b.hashFunc[i], data, len(b.filter), &wg, ch)
+    }
+    wg.Wait()
 
-	for i := 0; i < len(b.hashFunc); i++ {
-		res = append(res, <-ch)
-	}
+    for i := 0; i < len(b.hashFunc); i++ {
+        res = append(res, <-ch)
+    }
 
-	return res
+    return res
 
 }
 
@@ -141,11 +141,11 @@ func getBitsIndexes(b *Bloom, data []byte) []uint64 {
 // then writes on the channel the index of the bit from the filter that has to be set.
 func getBitIndexFromHash(h hashing.Hasher, data []byte, size int, wg *sync.WaitGroup, ch chan uint64) {
 
-	hash := h.Compute(string(data))
-	hash64 := binary.BigEndian.Uint64(hash)
-	val := hash64 % uint64(size*bitsInByte)
+    hash := h.Compute(string(data))
+    hash64 := binary.BigEndian.Uint64(hash)
+    val := hash64 % uint64(size*bitsInByte)
 
-	ch <- val
-	wg.Done()
+    ch <- val
+    wg.Done()
 
 }

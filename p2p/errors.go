@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilContext signals that a nil context was provided

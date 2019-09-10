@@ -1,204 +1,204 @@
 package bn
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
+    "github.com/ElrondNetwork/elrond-go/consensus/spos"
+    "github.com/ElrondNetwork/elrond-go/core"
+    "github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 type subroundEndRound struct {
-	*spos.Subround
+    *spos.Subround
 
-	appStatusHandler core.AppStatusHandler
+    appStatusHandler core.AppStatusHandler
 }
 
 // SetAppStatusHandler method set appStatusHandler
 func (sr *subroundEndRound) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return spos.ErrNilAppStatusHandler
-	}
+    if ash == nil || ash.IsInterfaceNil() {
+        return spos.ErrNilAppStatusHandler
+    }
 
-	sr.appStatusHandler = ash
-	return nil
+    sr.appStatusHandler = ash
+    return nil
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
-	baseSubround *spos.Subround,
-	extend func(subroundId int),
+    baseSubround *spos.Subround,
+    extend func(subroundId int),
 ) (*subroundEndRound, error) {
-	err := checkNewSubroundEndRoundParams(
-		baseSubround,
-	)
-	if err != nil {
-		return nil, err
-	}
+    err := checkNewSubroundEndRoundParams(
+        baseSubround,
+    )
+    if err != nil {
+        return nil, err
+    }
 
-	srEndRound := subroundEndRound{
-		baseSubround,
-		statusHandler.NewNilStatusHandler(),
-	}
-	srEndRound.Job = srEndRound.doEndRoundJob
-	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
-	srEndRound.Extend = extend
+    srEndRound := subroundEndRound{
+        baseSubround,
+        statusHandler.NewNilStatusHandler(),
+    }
+    srEndRound.Job = srEndRound.doEndRoundJob
+    srEndRound.Check = srEndRound.doEndRoundConsensusCheck
+    srEndRound.Extend = extend
 
-	return &srEndRound, nil
+    return &srEndRound, nil
 }
 
 func checkNewSubroundEndRoundParams(
-	baseSubround *spos.Subround,
+    baseSubround *spos.Subround,
 ) error {
-	if baseSubround == nil {
-		return spos.ErrNilSubround
-	}
-	if baseSubround.ConsensusState == nil {
-		return spos.ErrNilConsensusState
-	}
+    if baseSubround == nil {
+        return spos.ErrNilSubround
+    }
+    if baseSubround.ConsensusState == nil {
+        return spos.ErrNilConsensusState
+    }
 
-	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
+    err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
-	return err
+    return err
 }
 
 // doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob() bool {
-	bitmap := sr.GenerateBitmap(SrBitmap)
-	err := sr.checkSignaturesValidity(bitmap)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    bitmap := sr.GenerateBitmap(SrBitmap)
+    err := sr.checkSignaturesValidity(bitmap)
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	// Aggregate sig and add it to the block
-	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
+    // Aggregate sig and add it to the block
+    sig, err := sr.MultiSigner().AggregateSigs(bitmap)
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
 
-	sr.Header.SetSignature(sig)
+    sr.Header.SetSignature(sig)
 
-	timeBefore := time.Now()
-	// Commit the block (commits also the account state)
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-	timeAfter := time.Now()
+    timeBefore := time.Now()
+    // Commit the block (commits also the account state)
+    err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
+    if err != nil {
+        log.Error(err.Error())
+        return false
+    }
+    timeAfter := time.Now()
 
-	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
+    log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
-	sr.SetStatus(SrEndRound, spos.SsFinished)
+    sr.SetStatus(SrEndRound, spos.SsFinished)
 
-	// broadcast block body and header
-	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
-	if err != nil {
-		log.Error(err.Error())
-	}
+    // broadcast block body and header
+    err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
+    if err != nil {
+        log.Error(err.Error())
+    }
 
-	// broadcast header to metachain
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
-	if err != nil {
-		log.Error(err.Error())
-	}
+    // broadcast header to metachain
+    err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
+    if err != nil {
+        log.Error(err.Error())
+    }
 
-	sr.BlocksTracker().SetBlockBroadcastRound(sr.Header.GetNonce(), sr.RoundIndex)
+    sr.BlocksTracker().SetBlockBroadcastRound(sr.Header.GetNonce(), sr.RoundIndex)
 
-	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
+    log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 
-	err = sr.broadcastMiniBlocksAndTransactions()
-	if err != nil {
-		log.Error(err.Error())
-	}
+    err = sr.broadcastMiniBlocksAndTransactions()
+    if err != nil {
+        log.Error(err.Error())
+    }
 
-	actionMsg := "synchronized"
-	if sr.IsSelfLeaderInCurrentRound() {
-		actionMsg = "proposed"
-	}
+    actionMsg := "synchronized"
+    if sr.IsSelfLeaderInCurrentRound() {
+        actionMsg = "proposed"
+    }
 
-	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.Header.GetNonce())
-	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
+    msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.Header.GetNonce())
+    log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
-	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
+    sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
 
-	return true
+    return true
 }
 
 func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.BlockBody)
-	if err != nil {
-		return err
-	}
+    miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.BlockBody)
+    if err != nil {
+        return err
+    }
 
-	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
-	if err != nil {
-		return err
-	}
+    err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
+    if err != nil {
+        return err
+    }
 
-	err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
-	if err != nil {
-		return err
-	}
+    err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
+    if err != nil {
+        return err
+    }
 
-	return nil
+    return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved in each subround from first subround to the given
 // subround. If the consensus is achieved in one subround, the subround status is marked as finished
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
-	if sr.RoundCanceled {
-		return false
-	}
+    if sr.RoundCanceled {
+        return false
+    }
 
-	if sr.Status(SrEndRound) == spos.SsFinished {
-		return true
-	}
+    if sr.Status(SrEndRound) == spos.SsFinished {
+        return true
+    }
 
-	return false
+    return false
 }
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
-	nbBitsBitmap := len(bitmap) * 8
-	consensusGroup := sr.ConsensusGroup()
-	consensusGroupSize := len(consensusGroup)
-	size := consensusGroupSize
+    nbBitsBitmap := len(bitmap) * 8
+    consensusGroup := sr.ConsensusGroup()
+    consensusGroupSize := len(consensusGroup)
+    size := consensusGroupSize
 
-	if consensusGroupSize > nbBitsBitmap {
-		size = nbBitsBitmap
-	}
+    if consensusGroupSize > nbBitsBitmap {
+        size = nbBitsBitmap
+    }
 
-	for i := 0; i < size; i++ {
-		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
+    for i := 0; i < size; i++ {
+        indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
 
-		if !indexRequired {
-			continue
-		}
+        if !indexRequired {
+            continue
+        }
 
-		pubKey := consensusGroup[i]
-		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
-		if err != nil {
-			return err
-		}
+        pubKey := consensusGroup[i]
+        isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
+        if err != nil {
+            return err
+        }
 
-		if !isSigJobDone {
-			return spos.ErrNilSignature
-		}
+        if !isSigJobDone {
+            return spos.ErrNilSignature
+        }
 
-		signature, err := sr.MultiSigner().SignatureShare(uint16(i))
-		if err != nil {
-			return err
-		}
+        signature, err := sr.MultiSigner().SignatureShare(uint16(i))
+        if err != nil {
+            return err
+        }
 
-		// verify partial signature
-		err = sr.MultiSigner().VerifySignatureShare(uint16(i), signature, sr.GetData(), bitmap)
-		if err != nil {
-			return err
-		}
-	}
+        // verify partial signature
+        err = sr.MultiSigner().VerifySignatureShare(uint16(i), signature, sr.GetData(), bitmap)
+        if err != nil {
+            return err
+        }
+    }
 
-	return nil
+    return nil
 }

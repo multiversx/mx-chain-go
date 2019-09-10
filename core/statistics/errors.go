@@ -1,7 +1,7 @@
 package statistics
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrInvalidShardId signals that the shard id is invalid

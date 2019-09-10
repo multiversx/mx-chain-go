@@ -1,50 +1,50 @@
 package commonSubround
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/data"
+    "github.com/ElrondNetwork/elrond-go/consensus"
+    "github.com/ElrondNetwork/elrond-go/data"
 )
 
 // subroundStartRound
 
 func (sr *SubroundStartRound) DoStartRoundJob() bool {
-	return sr.doStartRoundJob()
+    return sr.doStartRoundJob()
 }
 
 func (sr *SubroundStartRound) DoStartRoundConsensusCheck() bool {
-	return sr.doStartRoundConsensusCheck()
+    return sr.doStartRoundConsensusCheck()
 }
 
 func (sr *SubroundStartRound) GenerateNextConsensusGroup(roundIndex int64) error {
-	return sr.generateNextConsensusGroup(roundIndex)
+    return sr.generateNextConsensusGroup(roundIndex)
 }
 
 func (sr *SubroundStartRound) InitCurrentRound() bool {
-	return sr.initCurrentRound()
+    return sr.initCurrentRound()
 }
 
 // subroundBlock
 
 func (sr *SubroundBlock) BlockChain() data.ChainHandler {
-	return sr.Blockchain()
+    return sr.Blockchain()
 }
 
 func (sr *SubroundBlock) DoBlockJob() bool {
-	return sr.doBlockJob()
+    return sr.doBlockJob()
 }
 
 func (sr *SubroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
-	return sr.processReceivedBlock(cnsDta)
+    return sr.processReceivedBlock(cnsDta)
 }
 
 func (sr *SubroundBlock) DoBlockConsensusCheck() bool {
-	return sr.doBlockConsensusCheck()
+    return sr.doBlockConsensusCheck()
 }
 
 func (sr *SubroundBlock) IsBlockReceived(threshold int) bool {
-	return sr.isBlockReceived(threshold)
+    return sr.isBlockReceived(threshold)
 }
 
 func (sr *SubroundBlock) CreateHeader() (data.HeaderHandler, error) {
-	return sr.createHeader()
+    return sr.createHeader()
 }

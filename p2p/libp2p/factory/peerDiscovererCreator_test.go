@@ -1,125 +1,125 @@
 package factory_test
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/factory"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/config"
+    "github.com/ElrondNetwork/elrond-go/p2p"
+    "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
+    "github.com/ElrondNetwork/elrond-go/p2p/libp2p/factory"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestPeerDiscovererCreator_CreatePeerDiscovererNoDiscoveryEnabledShouldRetNullDiscoverer(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
-			Enabled: false,
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled: false,
-		},
-	}
+    p2pConfig := config.P2PConfig{
+        MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
+            Enabled: false,
+        },
+        KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+            Enabled: false,
+        },
+    }
 
-	f := factory.NewPeerDiscovererCreator(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
+    f := factory.NewPeerDiscovererCreator(p2pConfig)
+    pDiscoverer, err := f.CreatePeerDiscoverer()
 
-	_, ok := pDiscoverer.(*discovery.NullDiscoverer)
+    _, ok := pDiscoverer.(*discovery.NullDiscoverer)
 
-	assert.True(t, ok)
-	assert.Nil(t, err)
+    assert.True(t, ok)
+    assert.Nil(t, err)
 }
 
 func TestPeerDiscovererCreator_CreatePeerDiscovererMoreThanOneShouldErr(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
-			Enabled: true,
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled: true,
-		},
-	}
+    p2pConfig := config.P2PConfig{
+        MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
+            Enabled: true,
+        },
+        KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+            Enabled: true,
+        },
+    }
 
-	f := factory.NewPeerDiscovererCreator(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
+    f := factory.NewPeerDiscovererCreator(p2pConfig)
+    pDiscoverer, err := f.CreatePeerDiscoverer()
 
-	assert.Nil(t, pDiscoverer)
-	assert.Equal(t, p2p.ErrMoreThanOnePeerDiscoveryActive, err)
+    assert.Nil(t, pDiscoverer)
+    assert.Equal(t, p2p.ErrMoreThanOnePeerDiscoveryActive, err)
 }
 
 func TestPeerDiscovererCreator_CreatePeerDiscovererKadIntervalLessThenZeroShouldErr(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
-			Enabled: false,
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: -1,
-		},
-	}
+    p2pConfig := config.P2PConfig{
+        MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
+            Enabled: false,
+        },
+        KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+            Enabled:              true,
+            RefreshIntervalInSec: -1,
+        },
+    }
 
-	f := factory.NewPeerDiscovererCreator(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
+    f := factory.NewPeerDiscovererCreator(p2pConfig)
+    pDiscoverer, err := f.CreatePeerDiscoverer()
 
-	assert.Nil(t, pDiscoverer)
-	assert.Equal(t, p2p.ErrNegativeOrZeroPeersRefreshInterval, err)
+    assert.Nil(t, pDiscoverer)
+    assert.Equal(t, p2p.ErrNegativeOrZeroPeersRefreshInterval, err)
 }
 
 func TestPeerDiscovererCreator_CreatePeerDiscovererKadOkValsShouldWork(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
-			Enabled: false,
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 1,
-		},
-	}
+    p2pConfig := config.P2PConfig{
+        MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
+            Enabled: false,
+        },
+        KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+            Enabled:              true,
+            RefreshIntervalInSec: 1,
+        },
+    }
 
-	f := factory.NewPeerDiscovererCreator(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
+    f := factory.NewPeerDiscovererCreator(p2pConfig)
+    pDiscoverer, err := f.CreatePeerDiscoverer()
 
-	_, ok := pDiscoverer.(*discovery.KadDhtDiscoverer)
+    _, ok := pDiscoverer.(*discovery.KadDhtDiscoverer)
 
-	assert.NotNil(t, pDiscoverer)
-	assert.True(t, ok)
-	assert.Nil(t, err)
+    assert.NotNil(t, pDiscoverer)
+    assert.True(t, ok)
+    assert.Nil(t, err)
 }
 
 func TestPeerDiscovererCreator_CreatePeerDiscovererMdnsIntervalLessThenZeroShouldErr(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: -1,
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled: false,
-		},
-	}
+    p2pConfig := config.P2PConfig{
+        MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
+            Enabled:              true,
+            RefreshIntervalInSec: -1,
+        },
+        KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+            Enabled: false,
+        },
+    }
 
-	f := factory.NewPeerDiscovererCreator(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
+    f := factory.NewPeerDiscovererCreator(p2pConfig)
+    pDiscoverer, err := f.CreatePeerDiscoverer()
 
-	assert.Nil(t, pDiscoverer)
-	assert.Equal(t, p2p.ErrNegativeOrZeroPeersRefreshInterval, err)
+    assert.Nil(t, pDiscoverer)
+    assert.Equal(t, p2p.ErrNegativeOrZeroPeersRefreshInterval, err)
 }
 
 func TestPeerDiscovererCreator_CreatePeerDiscovererMdnsOkValsShouldWork(t *testing.T) {
-	p2pConfig := config.P2PConfig{
-		MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 1,
-		},
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled: false,
-		},
-	}
+    p2pConfig := config.P2PConfig{
+        MdnsPeerDiscovery: config.MdnsPeerDiscoveryConfig{
+            Enabled:              true,
+            RefreshIntervalInSec: 1,
+        },
+        KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+            Enabled: false,
+        },
+    }
 
-	f := factory.NewPeerDiscovererCreator(p2pConfig)
-	pDiscoverer, err := f.CreatePeerDiscoverer()
+    f := factory.NewPeerDiscovererCreator(p2pConfig)
+    pDiscoverer, err := f.CreatePeerDiscoverer()
 
-	_, ok := pDiscoverer.(*discovery.MdnsPeerDiscoverer)
+    _, ok := pDiscoverer.(*discovery.MdnsPeerDiscoverer)
 
-	assert.NotNil(t, pDiscoverer)
-	assert.True(t, ok)
-	assert.Nil(t, err)
+    assert.NotNil(t, pDiscoverer)
+    assert.True(t, ok)
+    assert.Nil(t, err)
 }

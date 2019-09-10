@@ -1,31 +1,31 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+    "github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 type PeerDiscovererStub struct {
-	BootstrapCalled    func() error
-	CloseCalled        func() error
-	ApplyContextCalled func(ctxProvider p2p.ContextProvider) error
+    BootstrapCalled    func() error
+    CloseCalled        func() error
+    ApplyContextCalled func(ctxProvider p2p.ContextProvider) error
 }
 
 func (pds *PeerDiscovererStub) Bootstrap() error {
-	return pds.BootstrapCalled()
+    return pds.BootstrapCalled()
 }
 
 func (pds *PeerDiscovererStub) Name() string {
-	return "PeerDiscovererStub"
+    return "PeerDiscovererStub"
 }
 
 func (pds *PeerDiscovererStub) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	return pds.ApplyContextCalled(ctxProvider)
+    return pds.ApplyContextCalled(ctxProvider)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pds *PeerDiscovererStub) IsInterfaceNil() bool {
-	if pds == nil {
-		return true
-	}
-	return false
+    if pds == nil {
+        return true
+    }
+    return false
 }

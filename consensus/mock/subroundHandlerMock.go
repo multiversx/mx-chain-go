@@ -1,53 +1,53 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
+    "github.com/ElrondNetwork/elrond-go/consensus"
 )
 
 type SubroundHandlerMock struct {
-	DoWorkCalled    func(rounder consensus.Rounder) bool
-	PreviousCalled  func() int
-	NextCalled      func() int
-	CurrentCalled   func() int
-	StartTimeCalled func() int64
-	EndTimeCalled   func() int64
-	NameCalled      func() string
-	JobCalled       func() bool
-	CheckCalled     func() bool
+    DoWorkCalled    func(rounder consensus.Rounder) bool
+    PreviousCalled  func() int
+    NextCalled      func() int
+    CurrentCalled   func() int
+    StartTimeCalled func() int64
+    EndTimeCalled   func() int64
+    NameCalled      func() string
+    JobCalled       func() bool
+    CheckCalled     func() bool
 }
 
 func (srm *SubroundHandlerMock) DoWork(rounder consensus.Rounder) bool {
-	return srm.DoWorkCalled(rounder)
+    return srm.DoWorkCalled(rounder)
 }
 
 func (srm *SubroundHandlerMock) Previous() int {
-	return srm.PreviousCalled()
+    return srm.PreviousCalled()
 }
 
 func (srm *SubroundHandlerMock) Next() int {
-	return srm.NextCalled()
+    return srm.NextCalled()
 }
 
 func (srm *SubroundHandlerMock) Current() int {
-	return srm.CurrentCalled()
+    return srm.CurrentCalled()
 }
 
 func (srm *SubroundHandlerMock) StartTime() int64 {
-	return srm.StartTimeCalled()
+    return srm.StartTimeCalled()
 }
 
 func (srm *SubroundHandlerMock) EndTime() int64 {
-	return srm.EndTimeCalled()
+    return srm.EndTimeCalled()
 }
 
 func (srm *SubroundHandlerMock) Name() string {
-	return srm.NameCalled()
+    return srm.NameCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (srm *SubroundHandlerMock) IsInterfaceNil() bool {
-	if srm == nil {
-		return true
-	}
-	return false
+    if srm == nil {
+        return true
+    }
+    return false
 }

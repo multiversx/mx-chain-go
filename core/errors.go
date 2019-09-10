@@ -1,7 +1,7 @@
 package core
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilMarshalizer signals that a nil marshalizer has been provided

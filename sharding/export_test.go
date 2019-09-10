@@ -1,33 +1,33 @@
 package sharding
 
 func (msc *multiShardCoordinator) CalculateMasks() (uint32, uint32) {
-	return msc.calculateMasks()
+    return msc.calculateMasks()
 }
 
 func (msc *multiShardCoordinator) Masks() (uint32, uint32) {
-	return msc.maskHigh, msc.maskLow
+    return msc.maskHigh, msc.maskLow
 }
 
 func (g *Genesis) ProcessConfig() error {
-	return g.processConfig()
+    return g.processConfig()
 }
 
 func (ns *NodesSetup) ProcessConfig() error {
-	return ns.processConfig()
+    return ns.processConfig()
 }
 
 func (ns *NodesSetup) ProcessShardAssignment() {
-	ns.processShardAssignment()
+    ns.processShardAssignment()
 }
 
 func (ns *NodesSetup) ProcessMetaChainAssigment() {
-	ns.processMetaChainAssigment()
+    ns.processMetaChainAssigment()
 }
 
 func (ns *NodesSetup) CreateInitialNodesPubKeys() {
-	ns.createInitialNodesPubKeys()
+    ns.createInitialNodesPubKeys()
 }
 
 func CommunicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {
-	return communicationIdentifierBetweenShards(shardId1, shardId2)
+    return communicationIdentifierBetweenShards(shardId1, shardId2)
 }

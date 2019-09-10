@@ -1,34 +1,34 @@
 package libp2p
 
 import (
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
-	"github.com/whyrusleeping/timecache"
+    "github.com/ElrondNetwork/elrond-go/storage/lrucache"
+    "github.com/libp2p/go-libp2p-core/connmgr"
+    "github.com/libp2p/go-libp2p-pubsub/pb"
+    "github.com/whyrusleeping/timecache"
 )
 
 var MaxSendBuffSize = maxSendBuffSize
 
 func (netMes *networkMessenger) ConnManager() connmgr.ConnManager {
-	return netMes.ctxProvider.connHost.ConnManager()
+    return netMes.ctxProvider.connHost.ConnManager()
 }
 
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
-	netMes.ctxProvider.connHost = newHost
+    netMes.ctxProvider.connHost = newHost
 }
 
 func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message) error {
-	return ds.processReceivedDirectMessage(message)
+    return ds.processReceivedDirectMessage(message)
 }
 
 func (ds *directSender) SeenMessages() *timecache.TimeCache {
-	return ds.seenMessages
+    return ds.seenMessages
 }
 
 func (ds *directSender) Counter() uint64 {
-	return ds.counter
+    return ds.counter
 }
 
 func (mh *MutexHolder) Mutexes() *lrucache.LRUCache {
-	return mh.mutexes
+    return mh.mutexes
 }

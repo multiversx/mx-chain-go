@@ -1,7 +1,7 @@
 package chronology
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilRounder is raised when a valid rounder is expected but nil used

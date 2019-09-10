@@ -1,25 +1,25 @@
 package dataValidators_test
 
 import (
-	"testing"
+    "testing"
 
-	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/process/dataValidators"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestNilHeaderValidator(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	nhhv, err := dataValidators.NewNilHeaderValidator()
+    nhhv, err := dataValidators.NewNilHeaderValidator()
 
-	assert.NotNil(t, nhhv)
-	assert.Nil(t, err)
+    assert.NotNil(t, nhhv)
+    assert.Nil(t, err)
 }
 
 func TestNilHeaderValidator_IsHeaderValidForProcessing(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	nhv, _ := dataValidators.NewNilHeaderValidator()
+    nhv, _ := dataValidators.NewNilHeaderValidator()
 
-	assert.True(t, nhv.IsHeaderValidForProcessing(nil))
+    assert.True(t, nhv.IsHeaderValidForProcessing(nil))
 }

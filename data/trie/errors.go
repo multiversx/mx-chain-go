@@ -1,7 +1,7 @@
 package trie
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrInvalidNode is raised when we reach an invalid node

@@ -1,39 +1,39 @@
 package libp2p
 
 import (
-	"context"
-	"testing"
+    "context"
+    "testing"
 
-	"github.com/ElrondNetwork/elrond-go/p2p/mock"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/p2p/mock"
+    "github.com/libp2p/go-libp2p-core/peer"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestConnectableHost_ConnectToPeerWrongAddressShouldErr(t *testing.T) {
-	uhs := &mock.ConnectableHostStub{}
-	//we can safely use an upgraded instead of a real host as to not create another (useless) stub
-	uh := NewConnectableHost(uhs)
+    uhs := &mock.ConnectableHostStub{}
+    //we can safely use an upgraded instead of a real host as to not create another (useless) stub
+    uh := NewConnectableHost(uhs)
 
-	err := uh.ConnectToPeer(context.Background(), "invalid address")
+    err := uh.ConnectToPeer(context.Background(), "invalid address")
 
-	assert.NotNil(t, err)
+    assert.NotNil(t, err)
 }
 
 func TestConnectableHost_ConnectToPeerShouldWork(t *testing.T) {
-	wasCalled := false
+    wasCalled := false
 
-	uhs := &mock.ConnectableHostStub{
-		ConnectCalled: func(ctx context.Context, pi peer.AddrInfo) error {
-			wasCalled = true
-			return nil
-		},
-	}
-	//we can safely use an upgraded instead of a real host as to not create another (useless) stub
-	uh := NewConnectableHost(uhs)
+    uhs := &mock.ConnectableHostStub{
+        ConnectCalled: func(ctx context.Context, pi peer.AddrInfo) error {
+            wasCalled = true
+            return nil
+        },
+    }
+    //we can safely use an upgraded instead of a real host as to not create another (useless) stub
+    uh := NewConnectableHost(uhs)
 
-	validAddress := "/ip4/82.5.34.12/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE"
-	err := uh.ConnectToPeer(context.Background(), validAddress)
+    validAddress := "/ip4/82.5.34.12/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE"
+    err := uh.ConnectToPeer(context.Background(), validAddress)
 
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
+    assert.Nil(t, err)
+    assert.True(t, wasCalled)
 }

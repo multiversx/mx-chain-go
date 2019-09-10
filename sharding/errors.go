@@ -1,7 +1,7 @@
 package sharding
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrInvalidNumberOfShards signals that an invalid number of shards was passed to the sharding registry

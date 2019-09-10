@@ -1,32 +1,32 @@
 package logger
 
 import (
-	"os"
-	"time"
+    "os"
+    "time"
 )
 
 func (el *Logger) ErrorWithoutFileRoll(message string, extra ...interface{}) {
-	el.errorWithoutFileRoll(message, extra)
+    el.errorWithoutFileRoll(message, extra)
 }
 
 func RedirectStderr(f *os.File) error {
-	return redirectStderr(f)
+    return redirectStderr(f)
 }
 
 func (el *Logger) RollFiles() {
-	el.rollLock.Lock()
-	el.rollFiles()
-	el.rollLock.Unlock()
+    el.rollLock.Lock()
+    el.rollFiles()
+    el.rollLock.Unlock()
 }
 
 func (el *Logger) SetCreationTime(t time.Time) {
-	el.file.creationTime = t
+    el.file.creationTime = t
 }
 
 func (el *Logger) GetNrOfLogFiles() int {
-	return len(el.logFiles)
+    return len(el.logFiles)
 }
 
 func NrOfFilesToRemember() int {
-	return nrOfFilesToRemember
+    return nrOfFilesToRemember
 }

@@ -5,33 +5,33 @@ type MessageType int
 
 // Message defines the data needed by spos to communicate between nodes over network in all subrounds
 type Message struct {
-	BlockHeaderHash []byte
-	SubRoundData    []byte
-	PubKey          []byte
-	Signature       []byte
-	MsgType         int
-	TimeStamp       uint64
-	RoundIndex      int64
+    BlockHeaderHash []byte
+    SubRoundData    []byte
+    PubKey          []byte
+    Signature       []byte
+    MsgType         int
+    TimeStamp       uint64
+    RoundIndex      int64
 }
 
 // NewConsensusMessage creates a new Message object
 func NewConsensusMessage(
-	blHeaderHash []byte,
-	subRoundData []byte,
-	pubKey []byte,
-	sig []byte,
-	msg int,
-	tms uint64,
-	roundIndex int64,
+    blHeaderHash []byte,
+    subRoundData []byte,
+    pubKey []byte,
+    sig []byte,
+    msg int,
+    tms uint64,
+    roundIndex int64,
 ) *Message {
 
-	return &Message{
-		BlockHeaderHash: blHeaderHash,
-		SubRoundData:    subRoundData,
-		PubKey:          pubKey,
-		Signature:       sig,
-		MsgType:         msg,
-		TimeStamp:       tms,
-		RoundIndex:      roundIndex,
-	}
+    return &Message{
+        BlockHeaderHash: blHeaderHash,
+        SubRoundData:    subRoundData,
+        PubKey:          pubKey,
+        Signature:       sig,
+        MsgType:         msg,
+        TimeStamp:       tms,
+        RoundIndex:      roundIndex,
+    }
 }

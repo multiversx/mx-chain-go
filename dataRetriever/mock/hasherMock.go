@@ -10,28 +10,28 @@ type HasherMock struct {
 
 // Compute will output the SHA's equivalent of the input string
 func (sha HasherMock) Compute(s string) []byte {
-	h := sha256.New()
-	h.Write([]byte(s))
-	return h.Sum(nil)
+    h := sha256.New()
+    h.Write([]byte(s))
+    return h.Sum(nil)
 }
 
 // EmptyHash will return the equivalent of empty string SHA's
 func (sha HasherMock) EmptyHash() []byte {
-	if len(sha256EmptyHash) == 0 {
-		sha256EmptyHash = sha.Compute("")
-	}
-	return sha256EmptyHash
+    if len(sha256EmptyHash) == 0 {
+        sha256EmptyHash = sha.Compute("")
+    }
+    return sha256EmptyHash
 }
 
 // Size returns the required size in bytes
 func (HasherMock) Size() int {
-	return sha256.Size
+    return sha256.Size
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sha *HasherMock) IsInterfaceNil() bool {
-	if sha == nil {
-		return true
-	}
-	return false
+    if sha == nil {
+        return true
+    }
+    return false
 }

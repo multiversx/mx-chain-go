@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"errors"
+    "errors"
 )
 
 // ErrNilPersister is raised when a nil persister is provided
