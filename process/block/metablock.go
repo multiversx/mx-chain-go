@@ -156,7 +156,8 @@ func (mp *metaProcessor) ProcessBlock(
 		header,
 		mp.marshalizer,
 		mp.appStatusHandler,
-		mp.getHeadersCountInPool(),
+		mp.dataPool.ShardHeaders().Len(),
+		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
 	requestedShardHdrs, requestedFinalShardHdrs := mp.requestShardHeaders(header)
@@ -346,7 +347,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 			log.Error(err.Error())
 		}
 
-		mp.headersCounter.subtractRestoredMinibarsHeaders(len(hdr.MiniBlockHeaders))
+		mp.headersCounter.subtractRestoredMBHeaders(len(hdr.MiniBlockHeaders))
 	}
 
 	mp.removeLastNotarized()
@@ -535,7 +536,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.indexBlock(header, tempHeaderPool)
 
-	go mp.headersCounter.calculateNumOfShardMBHeaders(header)
+	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
 	go mp.headersCounter.displayLogInfo(
 		header,
@@ -1153,7 +1154,7 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 		return process.ErrTimeIsOut
 	}
 }
-mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, headerHashBase64)
+
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	header data.HeaderHandler,

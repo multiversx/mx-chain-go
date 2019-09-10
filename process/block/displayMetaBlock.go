@@ -17,7 +17,7 @@ type headersCounter struct {
 }
 
 // NewHeaderCounter returns a new object that keeps track of how many headers
-// was processed in total, and in the current block
+// were processed in total, and in the current block
 func NewHeaderCounter() *headersCounter {
 	return &headersCounter{
 		shardMBHeaderCounterMutex:           sync.RWMutex{},
@@ -26,16 +26,16 @@ func NewHeaderCounter() *headersCounter {
 	}
 }
 
-func (hc *headersCounter) subtractRestoredMinibarsHeaders(numMiniBlockHeaders int) {
+func (hc *headersCounter) subtractRestoredMBHeaders(numMiniBlockHeaders int) {
 	hc.shardMBHeaderCounterMutex.Lock()
 	hc.shardMBHeadersTotalProcessed -= uint64(numMiniBlockHeaders)
 	hc.shardMBHeaderCounterMutex.Unlock()
 }
 
-func (hc *headersCounter) countShardMbHeaders(countShardMNHeaders int) {
+func (hc *headersCounter) countShardMBHeaders(numShardMBHeaders int) {
 	hc.shardMBHeaderCounterMutex.Lock()
-	hc.shardMBHeadersCurrentBlockProcessed += uint64(countShardMNHeaders)
-	hc.shardMBHeadersTotalProcessed += uint64(countShardMNHeaders)
+	hc.shardMBHeadersCurrentBlockProcessed += uint64(numShardMBHeaders)
+	hc.shardMBHeadersTotalProcessed += uint64(numShardMBHeaders)
 	hc.shardMBHeaderCounterMutex.Unlock()
 }
 
@@ -46,7 +46,7 @@ func (hc *headersCounter) calculateNumOfShardMBHeaders(header *block.MetaBlock) 
 
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardData := header.ShardInfo[i]
-		hc.countShardMbHeaders(len(shardData.ShardMiniBlockHeaders))
+		hc.countShardMBHeaders(len(shardData.ShardMiniBlockHeaders))
 	}
 }
 
@@ -55,6 +55,8 @@ func (hc *headersCounter) displayLogInfo(
 	headerHash []byte,
 	numHeadersFromPool int,
 ) {
+	hc.calculateNumOfShardMBHeaders(header)
+
 	dispHeader, dispLines := hc.createDisplayableMetaHeader(header)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
@@ -129,4 +131,11 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 	}
 
 	return lines
+}
+
+func (hc *headersCounter) getNumShardMBHeadersTotalProcessed() uint64 {
+	hc.shardMBHeaderCounterMutex.Lock()
+	defer hc.shardMBHeaderCounterMutex.Unlock()
+
+	return hc.shardMBHeadersTotalProcessed
 }
