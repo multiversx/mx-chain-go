@@ -4428,7 +4428,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestShardProcessor_restoreMetaBlockIntoPoolShouldPass(t *testing.T) {
+func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -4843,7 +4843,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	assert.Equal(t, ownHdr.GetNonce(), hdr.GetNonce())
 }
 
-func TestShardProcessor_restoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
+func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
