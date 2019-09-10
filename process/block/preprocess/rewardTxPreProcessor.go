@@ -169,12 +169,12 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
 func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error {
-	// basic validation already done in interceptors
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-		if miniBlock.Type != block.RewardsBlock {
-			continue
-		}
+    // basic validation already done in interceptors
+    for i := 0; i < len(body); i++ {
+        miniBlock := body[i]
+        if miniBlock.Type != block.RewardsBlock {
+            continue
+        }
 
         for j := 0; j < len(miniBlock.TxHashes); j++ {
             if haveTime() < 0 {
@@ -211,35 +211,35 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 
 func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice) {
 
-	for _, rewardMb := range computedRewardMiniblocks {
-		txShardInfo := &txShardInfo{senderShardID: rewardMb.SenderShardID, receiverShardID: rewardMb.ReceiverShardID}
-		for _, txHash := range rewardMb.TxHashes {
-			tx, ok := rtp.rewardTxPool.SearchFirstData(txHash)
-			if !ok {
-				log.Error("reward transaction should be in pool but not found")
-				continue
-			}
+    for _, rewardMb := range computedRewardMiniblocks {
+        txShardInfo := &txShardInfo{senderShardID: rewardMb.SenderShardID, receiverShardID: rewardMb.ReceiverShardID}
+        for _, txHash := range rewardMb.TxHashes {
+            tx, ok := rtp.rewardTxPool.SearchFirstData(txHash)
+            if !ok {
+                log.Error("reward transaction should be in pool but not found")
+                continue
+            }
 
-			rTx, ok := tx.(*rewardTx.RewardTx)
-			if !ok {
-				log.Error("wrong type in reward transactions pool")
-			}
+            rTx, ok := tx.(*rewardTx.RewardTx)
+            if !ok {
+                log.Error("wrong type in reward transactions pool")
+            }
 
-			rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{
-				tx:          rTx,
-				txShardInfo: txShardInfo,
-			}
-		}
-	}
+            rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{
+                tx:          rTx,
+                txShardInfo: txShardInfo,
+            }
+        }
+    }
 }
 
 // SaveTxBlockToStorage saves the reward transactions from body into storage
 func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body block.Body) error {
-	for i := 0; i < len(body); i++ {
-		miniBlock := (body)[i]
-		if miniBlock.Type != block.RewardsBlock {
-			continue
-		}
+    for i := 0; i < len(body); i++ {
+        miniBlock := (body)[i]
+        if miniBlock.Type != block.RewardsBlock {
+            continue
+        }
 
         err := rtp.saveTxsToStorage(
             miniBlock.TxHashes,
@@ -297,25 +297,25 @@ func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body block.Body) int {
 // computeMissingAndExistingRewardTxsForShards calculates what reward transactions are available and what are missing
 // from block.Body
 func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
-	rewardTxs := block.Body{}
-	for _, mb := range body {
-		if mb.Type != block.RewardsBlock {
-			continue
-		}
-		if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
-			continue
-		}
+    rewardTxs := block.Body{}
+    for _, mb := range body {
+        if mb.Type != block.RewardsBlock {
+            continue
+        }
+        if mb.SenderShardID == rtp.shardCoordinator.SelfId() {
+            continue
+        }
 
-		rewardTxs = append(rewardTxs, mb)
-	}
+        rewardTxs = append(rewardTxs, mb)
+    }
 
-	missingTxsForShard := rtp.computeExistingAndMissing(
-		rewardTxs,
-		&rtp.rewardTxsForBlock,
-		rtp.chReceivedAllRewardTxs,
-		block.RewardsBlock,
-		rtp.rewardTxPool,
-	)
+    missingTxsForShard := rtp.computeExistingAndMissing(
+        rewardTxs,
+        &rtp.rewardTxsForBlock,
+        rtp.chReceivedAllRewardTxs,
+        block.RewardsBlock,
+        rtp.rewardTxPool,
+    )
 
     return missingTxsForShard
 }
@@ -474,8 +474,8 @@ func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.Transact
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rtp *rewardTxPreprocessor) IsInterfaceNil() bool {
-	if rtp == nil {
-		return true
-	}
-	return false
+    if rtp == nil {
+        return true
+    }
+    return false
 }

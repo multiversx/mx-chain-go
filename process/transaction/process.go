@@ -26,26 +26,26 @@ var mutTxFee sync.RWMutex
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
-	accounts         state.AccountsAdapter
-	adrConv          state.AddressConverter
-	hasher           hashing.Hasher
-	scProcessor      process.SmartContractProcessor
-	marshalizer      marshal.Marshalizer
-	txFeeHandler     process.TransactionFeeHandler
-	shardCoordinator sharding.Coordinator
-	txTypeHandler    process.TxTypeHandler
+    accounts         state.AccountsAdapter
+    adrConv          state.AddressConverter
+    hasher           hashing.Hasher
+    scProcessor      process.SmartContractProcessor
+    marshalizer      marshal.Marshalizer
+    txFeeHandler     process.TransactionFeeHandler
+    shardCoordinator sharding.Coordinator
+    txTypeHandler    process.TxTypeHandler
 }
 
 // NewTxProcessor creates a new txProcessor engine
 func NewTxProcessor(
-	accounts state.AccountsAdapter,
-	hasher hashing.Hasher,
-	addressConv state.AddressConverter,
-	marshalizer marshal.Marshalizer,
-	shardCoordinator sharding.Coordinator,
-	scProcessor process.SmartContractProcessor,
-	txFeeHandler process.TransactionFeeHandler,
-	txTypeHandler process.TxTypeHandler,
+    accounts state.AccountsAdapter,
+    hasher hashing.Hasher,
+    addressConv state.AddressConverter,
+    marshalizer marshal.Marshalizer,
+    shardCoordinator sharding.Coordinator,
+    scProcessor process.SmartContractProcessor,
+    txFeeHandler process.TransactionFeeHandler,
+    txTypeHandler process.TxTypeHandler,
 ) (*txProcessor, error) {
 
     if accounts == nil || accounts.IsInterfaceNil() {
@@ -73,16 +73,16 @@ func NewTxProcessor(
         return nil, process.ErrNilTxTypeHandler
     }
 
-	return &txProcessor{
-		accounts:         accounts,
-		hasher:           hasher,
-		adrConv:          addressConv,
-		marshalizer:      marshalizer,
-		shardCoordinator: shardCoordinator,
-		scProcessor:      scProcessor,
-		txFeeHandler:     txFeeHandler,
-		txTypeHandler:    txTypeHandler,
-	}, nil
+    return &txProcessor{
+        accounts:         accounts,
+        hasher:           hasher,
+        adrConv:          addressConv,
+        marshalizer:      marshalizer,
+        shardCoordinator: shardCoordinator,
+        scProcessor:      scProcessor,
+        txFeeHandler:     txFeeHandler,
+        txTypeHandler:    txTypeHandler,
+    }, nil
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
@@ -187,7 +187,7 @@ func (txProc *txProcessor) processMoveBalance(
         }
     }
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee)
+    txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
     return nil
 }
@@ -383,8 +383,8 @@ func (txProc *txProcessor) increaseNonce(acntSrc *state.Account) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txProc *txProcessor) IsInterfaceNil() bool {
-	if txProc == nil {
-		return true
-	}
-	return false
+    if txProc == nil {
+        return true
+    }
+    return false
 }

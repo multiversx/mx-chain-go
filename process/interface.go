@@ -31,7 +31,7 @@ type RewardTransactionProcessor interface {
 
 // RewardTransactionPreProcessor prepares the processing of reward transactions
 type RewardTransactionPreProcessor interface {
-	AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice)
+    AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice)
     IsInterfaceNil() bool
 }
 
@@ -120,11 +120,11 @@ type SpecialAddressHandler interface {
     ElrondCommunityAddress() []byte
     SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
     ConsensusRewardAddresses() []string
-	LeaderAddress() []byte
-	BurnAddress() []byte
-	ShardIdForAddress([]byte) (uint32, error)
-	Round() uint64
-	Epoch() uint32
+    LeaderAddress() []byte
+    BurnAddress() []byte
+    ShardIdForAddress([]byte) (uint32, error)
+    Round() uint64
+    Epoch() uint32
     IsInterfaceNil() bool
 }
 
@@ -152,18 +152,18 @@ type PreProcessor interface {
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountState()
-	CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error)
-	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
-	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBody(dta []byte) data.BodyHandler
-	DecodeBlockHeader(dta []byte) data.HeaderHandler
-	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusRewardAddresses(consensusRewardAddresses []string, round uint64)
-	IsInterfaceNil() bool
+    ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+    CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+    RevertAccountState()
+    CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error)
+    RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
+    CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+    MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+    DecodeBlockBody(dta []byte) data.BodyHandler
+    DecodeBlockHeader(dta []byte) data.HeaderHandler
+    AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+    SetConsensusRewardAddresses(consensusRewardAddresses []string, round uint64)
+    IsInterfaceNil() bool
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

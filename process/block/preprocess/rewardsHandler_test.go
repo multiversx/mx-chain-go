@@ -1,14 +1,14 @@
 package preprocess
 
 import (
-	"math/big"
-	"testing"
+    "math/big"
+    "testing"
 
     "github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/stretchr/testify/assert"
+    "github.com/ElrondNetwork/elrond-go/data/rewardTx"
+    "github.com/ElrondNetwork/elrond-go/process"
+    "github.com/ElrondNetwork/elrond-go/process/mock"
+    "github.com/stretchr/testify/assert"
 )
 
 func TestNewRewardTxHandler_NilSpecialAddressShouldErr(t *testing.T) {

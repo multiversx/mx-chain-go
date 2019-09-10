@@ -2,7 +2,7 @@ package coordinator
 
 import (
     "fmt"
-	"sort"
+    "sort"
     "sync"
     "time"
 
@@ -71,12 +71,12 @@ func NewTransactionCoordinator(
         accounts:         accounts,
     }
 
-	tc.miniBlockPool = dataPool.MiniBlocks()
-	if tc.miniBlockPool == nil || tc.miniBlockPool.IsInterfaceNil() {
-		return nil, process.ErrNilMiniBlockPool
-	}
+    tc.miniBlockPool = dataPool.MiniBlocks()
+    if tc.miniBlockPool == nil || tc.miniBlockPool.IsInterfaceNil() {
+        return nil, process.ErrNilMiniBlockPool
+    }
 
-	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
+    tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
     tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
     tc.requestedTxs = make(map[block.Type]int)
@@ -234,24 +234,24 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
     wg.Wait()
 
-	intermediatePreprocSC := tc.getInterimProcessor(block.SmartContractResultBlock)
-	if intermediatePreprocSC == nil {
-		return errFound
-	}
+    intermediatePreprocSC := tc.getInterimProcessor(block.SmartContractResultBlock)
+    if intermediatePreprocSC == nil {
+        return errFound
+    }
 
-	err := intermediatePreprocSC.SaveCurrentIntermediateTxToStorage()
-	if err != nil {
-		log.Debug(err.Error())
+    err := intermediatePreprocSC.SaveCurrentIntermediateTxToStorage()
+    if err != nil {
+        log.Debug(err.Error())
 
-		errMutex.Lock()
-		errFound = err
-		errMutex.Unlock()
-	}
+        errMutex.Lock()
+        errFound = err
+        errMutex.Unlock()
+    }
 
-	intermediatePreproc := tc.getInterimProcessor(block.RewardsBlock)
-	if intermediatePreproc == nil {
-		return errFound
-	}
+    intermediatePreproc := tc.getInterimProcessor(block.RewardsBlock)
+    if intermediatePreproc == nil {
+        return errFound
+    }
 
     err = intermediatePreproc.SaveCurrentIntermediateTxToStorage()
     if err != nil {
@@ -362,9 +362,9 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
         if separatedBodies[blockType] == nil {
             continue
         }
-		if blockType == block.RewardsBlock {
-			continue
-		}
+        if blockType == block.RewardsBlock {
+            continue
+        }
 
         preproc := tc.getPreProcessor(blockType)
         if preproc == nil || preproc.IsInterfaceNil() {
@@ -378,21 +378,21 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
     }
 
     // create the reward txs and make them available for processing
-	mbRewards := tc.createRewardsMiniBlocks()
-	preproc := tc.getPreProcessor(block.RewardsBlock)
-	rewardsPreProc, ok := preproc.(process.RewardTransactionPreProcessor)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
+    mbRewards := tc.createRewardsMiniBlocks()
+    preproc := tc.getPreProcessor(block.RewardsBlock)
+    rewardsPreProc, ok := preproc.(process.RewardTransactionPreProcessor)
+    if !ok {
+        return process.ErrWrongTypeAssertion
+    }
 
-	rewardsPreProc.AddComputedRewardMiniBlocks(mbRewards)
+    rewardsPreProc.AddComputedRewardMiniBlocks(mbRewards)
 
-	err := preproc.ProcessBlockTransactions(separatedBodies[block.RewardsBlock], round, haveTime)
-	if err != nil {
-		return err
-	}
+    err := preproc.ProcessBlockTransactions(separatedBodies[block.RewardsBlock], round, haveTime)
+    if err != nil {
+        return err
+    }
 
-	return nil
+    return nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction
@@ -523,19 +523,19 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
         miniBlocks = append(miniBlocks, interMBs...)
     }
 
-	rewardMb := tc.createRewardsMiniBlocks()
-	if len(rewardMb) == 0 {
-		log.Error("could not create reward mini-blocks")
-	}
+    rewardMb := tc.createRewardsMiniBlocks()
+    if len(rewardMb) == 0 {
+        log.Error("could not create reward mini-blocks")
+    }
 
-	rewardsPreProc := tc.getPreProcessor(block.RewardsBlock)
-	for _, mb := range rewardMb {
-		err := tc.processCompleteMiniBlock(rewardsPreProc, mb, round, haveTime)
-		if err != nil {
-			log.Error(fmt.Sprintf("could not process created reward miniblock: %s", err.Error()))
-		}
-	}
-	miniBlocks = append(miniBlocks, rewardMb...)
+    rewardsPreProc := tc.getPreProcessor(block.RewardsBlock)
+    for _, mb := range rewardMb {
+        err := tc.processCompleteMiniBlock(rewardsPreProc, mb, round, haveTime)
+        if err != nil {
+            log.Error(fmt.Sprintf("could not process created reward miniblock: %s", err.Error()))
+        }
+    }
+    miniBlocks = append(miniBlocks, rewardMb...)
 
     return miniBlocks
 }

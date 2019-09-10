@@ -294,7 +294,7 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
     currTx.Epoch = rtxh.address.Epoch()
     currTx.Round = rtxh.address.Round()
 
-	return currTx
+    return currTx
 }
 
 func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
@@ -306,7 +306,7 @@ func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
     currTx.Epoch = rtxh.address.Epoch()
     currTx.Round = rtxh.address.Round()
 
-	return currTx
+    return currTx
 }
 
 func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
@@ -318,7 +318,7 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
     currTx.Epoch = rtxh.address.Epoch()
     currTx.Round = rtxh.address.Round()
 
-	return currTx
+    return currTx
 }
 
 // createRewardFromFees creates the reward transactions from accumulated fees

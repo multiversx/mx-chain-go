@@ -4658,11 +4658,11 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHdr(t *testing.T) {
     t.Parallel()
 
-	dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
-	store := initStore()
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+    dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
+    store := initStore()
+    hasher := &mock.HasherMock{}
+    marshalizer := &mock.MarshalizerMock{}
+    genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
     sp, _ := blproc.NewShardProcessor(
         &mock.ServiceContainerMock{},
@@ -4724,11 +4724,11 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrButNotStored(t *testing.T) {
     t.Parallel()
 
-	dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
-	store := initStore()
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+    dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
+    store := initStore()
+    hasher := &mock.HasherMock{}
+    marshalizer := &mock.MarshalizerMock{}
+    genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
     sp, _ := blproc.NewShardProcessor(
         &mock.ServiceContainerMock{},
@@ -4789,11 +4789,11 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
     t.Parallel()
 
-	dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
-	store := initStore()
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+    dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
+    store := initStore()
+    hasher := &mock.HasherMock{}
+    marshalizer := &mock.MarshalizerMock{}
+    genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
     sp, _ := blproc.NewShardProcessor(
         &mock.ServiceContainerMock{},
