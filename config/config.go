@@ -107,13 +107,6 @@ type NodeConfig struct {
 	Seed string
 }
 
-// MdnsPeerDiscoveryConfig will hold the mdns discovery config settings
-type MdnsPeerDiscoveryConfig struct {
-	Enabled              bool
-	RefreshIntervalInSec int
-	ServiceTag           string
-}
-
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
 type KadDhtPeerDiscoveryConfig struct {
 	Enabled              bool
@@ -125,7 +118,6 @@ type KadDhtPeerDiscoveryConfig struct {
 // P2PConfig will hold all the P2P settings
 type P2PConfig struct {
 	Node                NodeConfig
-	MdnsPeerDiscovery   MdnsPeerDiscoveryConfig
 	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
 }
 
