@@ -830,3 +830,7 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 
 	return true
 }
+
+func (tpn *TestProcessorNode) initRounder() {
+	tpn.Rounder = &mock.RounderMock{}
+}

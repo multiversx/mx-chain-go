@@ -24,13 +24,24 @@ func NewTestSyncNode(
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
+		NodesCoordinator: nodesCoordinator,
 	}
 
+	kg := &mock.KeyGenMock{}
+	sk, pk := kg.GeneratePair()
+	tpn.NodeKeys = &TestKeyPair{
+		Sk: sk,
+		Pk: pk,
+	}
+
+	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initTestNodeWithSync()
@@ -41,9 +52,10 @@ func NewTestSyncNode(
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initRounder()
 	tpn.initStorage()
-	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
+	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
+	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{}
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
@@ -85,6 +97,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.MetaDataPool,
 			tpn.ForkDetector,
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
+			tpn.SpecialAddressHandler,
 			TestHasher,
 			TestMarshalizer,
 			tpn.Storage,
@@ -92,6 +106,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.RequestHandler,
 			TestUint64Converter,
 		)
+
 	} else {
 		tpn.BlockProcessor, err = block.NewShardProcessor(
 			nil,
@@ -101,6 +116,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			TestMarshalizer,
 			tpn.AccntState,
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
+			tpn.SpecialAddressHandler,
 			tpn.ForkDetector,
 			tpn.BlockTracker,
 			tpn.GenesisBlocks,

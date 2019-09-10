@@ -4888,19 +4888,21 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	poolFake := mock.NewPoolsHolderFake()
+	poolMock := mock.NewPoolsHolderMock()
 
 	storer := &mock.ChainStorerMock{}
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
 
 	sp, _ := blproc.NewShardProcessor(
 		&mock.ServiceContainerMock{},
-		poolFake,
+		poolMock,
 		storer,
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
-		shardC,
+        mock.NewMultiShardsCoordinatorMock(3),
+        mock.NewNodesCoordinatorMock(),
+        &mock.SpecialAddressHandlerMock{},
 		&mock.ForkDetectorMock{},
 		&mock.BlocksTrackerMock{},
 		createGenesisBlocks(shardC),
@@ -4940,7 +4942,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	metablockHashes := make([][]byte, 0)
 	metablockHashes = append(metablockHashes, metaHash)
 
-	metaBlockRestored, ok := poolFake.MetaBlocks().Get(metaHash)
+	metaBlockRestored, ok := poolMock.MetaBlocks().Get(metaHash)
 
 	assert.Equal(t, nil, metaBlockRestored)
 	assert.False(t, ok)
@@ -4958,7 +4960,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 
 	err := sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes)
 
-	metaBlockRestored, _ = poolFake.MetaBlocks().Get(metaHash)
+	metaBlockRestored, _ = poolMock.MetaBlocks().Get(metaHash)
 
 	assert.Equal(t, meta, metaBlockRestored)
 	assert.Nil(t, err)
