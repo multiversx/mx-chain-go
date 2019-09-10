@@ -17,7 +17,7 @@ import (
 )
 
 func createMultiSignersBls(
-	nbSigs uint16,
+	numOfSigners uint16,
 	grSize uint16,
 	hasher hashing.Hasher,
 	suite crypto.Suite,
@@ -40,19 +40,19 @@ func createMultiSignersBls(
 		pubKeysStr[i] = string(pubKeyBytes)
 	}
 
-	multiSigners := make([]crypto.MultiSigner, nbSigs)
+	multiSigners := make([]crypto.MultiSigner, numOfSigners)
 	llSigner := &llsig.KyberMultiSignerBLS{}
 
-	for i := uint16(0); i < nbSigs; i++ {
+	for i := uint16(0); i < numOfSigners; i++ {
 		multiSigners[i], _ = multisig.NewBLSMultisig(llSigner, hasher, pubKeysStr, privKeys[i], kg, i)
 	}
 
 	return pubKeysStr, multiSigners
 }
 
-func createSignaturesShares(nbSigs uint16, multiSigners []crypto.MultiSigner, message []byte) [][]byte {
-	sigShares := make([][]byte, nbSigs)
-	for i := uint16(0); i < nbSigs; i++ {
+func createSignaturesShares(numOfSigners uint16, multiSigners []crypto.MultiSigner, message []byte) [][]byte {
+	sigShares := make([][]byte, numOfSigners)
+	for i := uint16(0); i < numOfSigners; i++ {
 		sigShares[i], _ = multiSigners[i].CreateSignatureShare(message, []byte(""))
 	}
 
@@ -81,7 +81,8 @@ func verifySigAllSignersBls(
 	signature []byte,
 	pubKeys []string,
 	bitmap []byte,
-	grSize uint16) error {
+	grSize uint16,
+) error {
 
 	var err error
 	var muSig crypto.MultiSigner
@@ -92,12 +93,12 @@ func verifySigAllSignersBls(
 			return err
 		}
 
-		muSigBn, ok := muSig.(crypto.MultiSigner)
+		muSigBls, ok := muSig.(crypto.MultiSigner)
 		if !ok {
 			return crypto.ErrInvalidSigner
 		}
 
-		multiSigners[i] = muSigBn
+		multiSigners[i] = muSigBls
 		err = multiSigners[i].SetAggregatedSig(signature)
 		if err != nil {
 			return err
@@ -123,10 +124,10 @@ func aggregateSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, bi
 	}
 
 	for i := uint16(1); i < grSize; i++ {
-		aggSig2, err := multiSigners[i].AggregateSigs(bitmap)
+		aggSig2, err1 := multiSigners[i].AggregateSigs(bitmap)
 
-		if err != nil {
-			return nil, err
+		if err1 != nil {
+			return nil, err1
 		}
 
 		if !bytes.Equal(aggSig, aggSig2) {
@@ -145,7 +146,7 @@ func TestMultiSig_Bls(t *testing.T) {
 	message := "message"
 
 	bitmapSize := consensusGroupSize/8 + 1
-	// set bitmap to select all 21 members
+	// set bitmap to select all members
 	bitmap := make([]byte, bitmapSize)
 	byteMask := 0xFF
 	for i := uint16(0); i < bitmapSize; i++ {
