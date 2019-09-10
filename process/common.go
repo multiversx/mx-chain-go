@@ -1,6 +1,9 @@
 package process
 
 import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -11,10 +14,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var log = logger.DefaultLogger()
+
 // EmptyChannel empties the given channel
 func EmptyChannel(ch chan bool) {
-	for len(ch) > 0 {
-		<-ch
+	for {
+		select {
+		case <-ch:
+			log.Info("cleaning channel\n")
+			continue
+		case <-time.After(time.Millisecond):
+			return
+		}
 	}
 }
 

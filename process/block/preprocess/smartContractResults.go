@@ -255,7 +255,10 @@ func (scr *smartContractResults) receivedSmartContractResult(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created smartContractResults at this round
 func (scr *smartContractResults) CreateBlockStarted() {
+	process.EmptyChannel(scr.chRcvAllScrs)
+
 	scr.scrForBlock.mutTxsForBlock.Lock()
+	scr.scrForBlock.missingTxs = 0
 	scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 }

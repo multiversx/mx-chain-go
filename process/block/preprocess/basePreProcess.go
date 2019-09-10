@@ -181,7 +181,6 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	missingTxsForShard := make(map[uint32]*txsHashesInfo, 0)
 	forBlock.mutTxsForBlock.Lock()
 
-	forBlock.missingTxs = 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		if miniBlock.Type != currType {
@@ -213,10 +212,6 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 				receiverShardID: miniBlock.ReceiverShardID,
 			}
 		}
-	}
-
-	if forBlock.missingTxs > 0 {
-		process.EmptyChannel(chRcvAllTxs)
 	}
 
 	forBlock.mutTxsForBlock.Unlock()

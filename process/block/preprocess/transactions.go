@@ -252,7 +252,10 @@ func (txs *transactions) receivedTransaction(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
+	process.EmptyChannel(txs.chRcvAllTxs)
+
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.missingTxs = 0
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 }
@@ -392,7 +395,7 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 		return true
 	}
 
-	isSCAddress := bytes.Equal(rcvAddress[:(numZerosForSCAddress - 1)], make([]byte, numZerosForSCAddress-1))
+	isSCAddress := bytes.Equal(rcvAddress[:(numZerosForSCAddress-1)], make([]byte, numZerosForSCAddress-1))
 	if isSCAddress {
 		return true
 	}

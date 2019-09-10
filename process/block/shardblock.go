@@ -1029,8 +1029,11 @@ func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 }
 
 func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint32) {
+	process.EmptyChannel(sp.chRcvAllMetaHdrs)
+
 	sp.mutRequestedMetaHdrsHashes.Lock()
 
+	sp.requestedMetaHdrsHashes = make(map[string]bool)
 	sp.allNeededMetaHdrsFound = true
 
 	if len(header.MetaBlockHashes) == 0 {
@@ -1041,7 +1044,6 @@ func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint
 	missingHeaderHashes := sp.computeMissingHeaders(header)
 
 	requestedBlockHeaders := uint32(0)
-	sp.requestedMetaHdrsHashes = make(map[string]bool)
 	for _, hash := range missingHeaderHashes {
 		requestedBlockHeaders++
 		sp.requestedMetaHdrsHashes[string(hash)] = true
@@ -1056,10 +1058,6 @@ func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint
 		if requestedFinalBlockHeaders > 0 {
 			sp.allNeededMetaHdrsFound = false
 		}
-	}
-
-	if !sp.allNeededMetaHdrsFound {
-		process.EmptyChannel(sp.chRcvAllMetaHdrs)
 	}
 
 	sp.mutRequestedMetaHdrsHashes.Unlock()

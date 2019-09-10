@@ -878,8 +878,11 @@ func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 }
 
 func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
+	process.EmptyChannel(mp.chRcvAllHdrs)
+
 	mp.mutRequestedShardHdrsHashes.Lock()
 
+	mp.requestedShardHdrsHashes = make(map[string]bool)
 	mp.allNeededShardHdrsFound = true
 
 	if len(metaBlock.ShardInfo) == 0 {
@@ -890,7 +893,6 @@ func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32
 	missingHeaderHashes := mp.computeMissingHeaders(metaBlock)
 
 	requestedBlockHeaders := uint32(0)
-	mp.requestedShardHdrsHashes = make(map[string]bool)
 	for shardId, headerHashes := range missingHeaderHashes {
 		for _, headerHash := range headerHashes {
 			requestedBlockHeaders++
@@ -907,10 +909,6 @@ func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32
 		if requestedFinalBlockHeaders > 0 {
 			mp.allNeededShardHdrsFound = false
 		}
-	}
-
-	if !mp.allNeededShardHdrsFound {
-		process.EmptyChannel(mp.chRcvAllHdrs)
 	}
 
 	mp.mutRequestedShardHdrsHashes.Unlock()
