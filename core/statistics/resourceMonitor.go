@@ -55,7 +55,7 @@ func (rm *ResourceMonitor) GenerateStatistics() string {
 		", heap inuse: %s, heap sys: %s, heap released: %s, heap num objs: %d, sys mem: %s, "+
 		"total mem: %s, num GC: %d, FDs: %d, num opened files: %d, num conns: %d\n",
 		time.Now().Unix(),
-		time.Duration(time.Now().UnixNano()-rm.startTime.UnixNano()).Round(time.Second),
+		time.Duration(time.Now().UnixNano() - rm.startTime.UnixNano()).Round(time.Second),
 		runtime.NumGoroutine(),
 		core.ConvertBytes(memStats.Alloc),
 		core.ConvertBytes(memStats.HeapAlloc),

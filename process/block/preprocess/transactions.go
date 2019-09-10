@@ -392,7 +392,7 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 		return true
 	}
 
-	isSCAddress := bytes.Equal(rcvAddress[:(numZerosForSCAddress-1)], make([]byte, numZerosForSCAddress-1))
+	isSCAddress := bytes.Equal(rcvAddress[:(numZerosForSCAddress - 1)], make([]byte, numZerosForSCAddress-1))
 	if isSCAddress {
 		return true
 	}
