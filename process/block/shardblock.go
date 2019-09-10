@@ -484,6 +484,11 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 			continue
 		}
 
+		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		for mbHash := range processedMiniBlocks {
+			metaBlock.SetMiniBlockProcessed([]byte(mbHash), true)
+		}
+
 		metaBlockPool.Put(metaBlockHash, &metaBlock)
 		syncMap := &dataPool.ShardIdHashSyncMap{}
 		syncMap.Store(metaBlock.GetShardID(), metaBlockHash)
