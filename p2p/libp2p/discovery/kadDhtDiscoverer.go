@@ -4,15 +4,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/libp2p/go-libp2p-kad-dht"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 )
 
-var peerDiscoveryTimeout = time.Duration(time.Second * 10)
+var peerDiscoveryTimeout = 10 * time.Second
 var noOfQueries = 1
 
 const kadDhtName = "kad-dht discovery"
+
+var log = logger.DefaultLogger()
 
 // KadDhtDiscoverer is the kad-dht discovery type implementation
 type KadDhtDiscoverer struct {
@@ -86,7 +89,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 	cfg := dht.BootstrapConfig{
 		Period:  kdd.refreshInterval,
 		Queries: noOfQueries,
-		Timeout: time.Duration(peerDiscoveryTimeout),
+		Timeout: peerDiscoveryTimeout,
 	}
 
 	ctx := kdd.contextProvider.Context()
