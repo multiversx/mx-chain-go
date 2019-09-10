@@ -34,7 +34,7 @@ func NewShardedDataPool(
 	if unsignedTransactions == nil || unsignedTransactions.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilUnsignedTransactionPool
 	}
-	if rewardTransactions == nil {
+	if rewardTransactions == nil || rewardTransactions.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilRewardTransactionPool
 	}
 	if headers == nil || headers.IsInterfaceNil() {

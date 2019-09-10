@@ -79,9 +79,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 
 	for key, value := range irp.interResultsForBlock {
 		recvShId := value.receiverShardID
-		if recvShId != irp.shardCoordinator.SelfId() {
-			miniBlocks[recvShId].TxHashes = append(miniBlocks[recvShId].TxHashes, []byte(key))
-		}
+		miniBlocks[recvShId].TxHashes = append(miniBlocks[recvShId].TxHashes, []byte(key))
 	}
 
 	finalMBs := make(map[uint32]*block.MiniBlock, 0)
@@ -237,6 +235,25 @@ func (irp *intermediateResultsProcessor) CreateMarshalizedData(txHashes [][]byte
 	}
 
 	return mrsTxs, nil
+}
+
+// GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
+func (irp *intermediateResultsProcessor) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
+	irp.mutInterResultsForBlock.Lock()
+
+	scrPool := make(map[string]data.TransactionHandler)
+	for txHash, txInfo := range irp.interResultsForBlock {
+		if txInfo.receiverShardID != irp.shardCoordinator.SelfId() {
+			continue
+		}
+		if txInfo.senderShardID != irp.shardCoordinator.SelfId() {
+			continue
+		}
+		scrPool[txHash] = txInfo.tx
+	}
+	irp.mutInterResultsForBlock.Unlock()
+
+	return scrPool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

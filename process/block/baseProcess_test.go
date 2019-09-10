@@ -3,7 +3,6 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"math/big"
 	"reflect"
 	"testing"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -52,7 +52,7 @@ func generateTestUnit() storage.Storer {
 func createShardedDataChacherNotifier(
 	handler data.TransactionHandler,
 	testHash []byte,
-) (func() dataRetriever.ShardedDataCacherNotifier ) {
+) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte)) {},
@@ -98,9 +98,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	rewardTransactionsCalled := createShardedDataChacherNotifier(rewardTx, testHash)
 
 	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled: txCalled,
+		TransactionsCalled:         txCalled,
 		UnsignedTransactionsCalled: unsignedTxCalled,
-		RewardTransactionsCalled: rewardTransactionsCalled,
+		RewardTransactionsCalled:   rewardTransactionsCalled,
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{
 				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},

@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -49,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -56,7 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
@@ -348,7 +348,7 @@ func createNetNode(
 	)
 	interimProcContainer, _ := interimProcFactory.Create()
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
-	rewardsInter, _ := interimProcContainer.Get(dataBlock.RewardsBlockType)
+	rewardsInter, _ := interimProcContainer.Get(dataBlock.RewardsBlock)
 	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
 	rewardProcessor, _ := rewardTransaction.NewRewardTxProcessor(
 		accntAdapter,

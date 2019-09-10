@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../../agarioV3.hex"
+var agarioFile = "../agarioV3.hex"
 var stepDelay = time.Second
 
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
@@ -47,11 +47,10 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	idxProposer := 0
 	numPlayers := 100
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
-	players[0] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
-	for i := 1; i < numPlayers; i++ {
-		players[i] = players[0]
+	for i := 0; i < numPlayers; i++ {
+		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
 	}
-	numPlayers = 1
+
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
@@ -87,7 +86,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	numRounds := 100
+	numRounds := 10
 	runMultipleRoundsOfTheGame(
 		t,
 		numRounds,
@@ -431,33 +430,25 @@ func runMultipleRoundsOfTheGame(
 				strconv.Itoa(currentRound),
 				hardCodedScResultingAddress,
 			)
-			newBalance := big.NewInt(0)
-			newBalance = newBalance.Sub(player.Balance, topUpValue)
-			player.Balance = player.Balance.Set(newBalance)
 		}
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
-
-		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
-			newBalance := big.NewInt(0)
-			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
-			players[i].Balance = players[i].Balance.Set(newBalance)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
 		}
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
-
-		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
-			hardCodedScResultingAddress, idxProposers[0])
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		fmt.Println(rMonitor.GenerateStatistics())
 	}
+
+	integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
+		hardCodedScResultingAddress, idxProposers[0])
 }

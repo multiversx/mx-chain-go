@@ -409,7 +409,7 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	t.Parallel()
 
-	dataPool := mock.NewPoolsHolderFake()
+	dataPool := mock.NewPoolsHolderMock()
 
 	shardedDataStub := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -468,7 +468,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderFake()
+	dataPool := mock.NewPoolsHolderMock()
 	senderShardId := uint32(0)
 	destinationShardId := uint32(1)
 

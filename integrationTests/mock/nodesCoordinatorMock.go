@@ -63,7 +63,6 @@ func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
 	}
 
 	addresses := make([]string, 0)
-
 	for _, v := range validators {
 		addresses = append(addresses, string(v.Address()))
 	}

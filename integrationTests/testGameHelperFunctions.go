@@ -24,6 +24,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
 			data:     scCode,
 			gasLimit: 100000,
+			gasPrice: 0,
 		})
 	nodes[senderIdx].OwnAccount.Nonce++
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
@@ -53,8 +54,13 @@ func PlayerJoinsGame(
 			sndAddr:  player.Address.Bytes(),
 			data:     fmt.Sprintf("joinGame@%s", round),
 			gasLimit: 5000,
+			gasPrice: 0,
 		})
 	player.Nonce++
+	newBalance := big.NewInt(0)
+	newBalance = newBalance.Sub(player.Balance, joinGameVal)
+	player.Balance = player.Balance.Set(newBalance)
+
 	fmt.Printf("Join %s\n", hex.EncodeToString(player.Address.Bytes()))
 	_, _ = txDispatcherNode.SendTransaction(txScCall)
 }
@@ -63,12 +69,13 @@ func PlayerJoinsGame(
 func NodeCallsRewardAndSend(
 	nodes []*TestProcessorNode,
 	idxNodeOwner int,
-	winnerAddress []byte,
+	winnerPlayer *TestWalletAccount,
 	prize *big.Int,
 	round string,
 	scAddress []byte,
 ) {
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
+	winnerAddress := winnerPlayer.Address.Bytes()
 	txScCall := generateTx(
 		nodes[idxNodeOwner].OwnAccount.SkTxSign,
 		nodes[idxNodeOwner].OwnAccount.SingleSigner,
@@ -78,9 +85,19 @@ func NodeCallsRewardAndSend(
 			rcvAddr:  scAddress,
 			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("rewardAndSendToWallet@%s@%s@%X", round, hex.EncodeToString(winnerAddress), prize),
-			gasLimit: 5000,
+			gasLimit: 30000,
+			gasPrice: 0,
 		})
 	nodes[idxNodeOwner].OwnAccount.Nonce++
+
+	newBalance := big.NewInt(0)
+	newBalance = newBalance.Sub(nodes[idxNodeOwner].OwnAccount.Balance, prize)
+	nodes[idxNodeOwner].OwnAccount.Balance = nodes[idxNodeOwner].OwnAccount.Balance.Set(newBalance)
+
+	newBalance = big.NewInt(0)
+	newBalance = newBalance.Add(winnerPlayer.Balance, prize)
+	winnerPlayer.Balance = winnerPlayer.Balance.Set(newBalance)
+
 	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
 	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
 

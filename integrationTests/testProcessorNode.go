@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"sync/atomic"
 	"time"
 
@@ -36,11 +35,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -338,7 +338,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
-	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlockType)
+	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlock)
 	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
 
 	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
@@ -580,7 +580,14 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
-	haveTime := func() bool { return true }
+	startTime := time.Now()
+	maxTime := time.Second
+
+	haveTime := func() bool {
+		elapsedTime := time.Since(startTime)
+		remainingTime := maxTime - elapsedTime
+		return remainingTime > 0
+	}
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
 	if err != nil {

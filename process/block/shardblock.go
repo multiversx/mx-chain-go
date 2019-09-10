@@ -201,6 +201,9 @@ func (sp *shardProcessor) ProcessBlock(
 		headerHandler.GetRound(),
 		sp.shardCoordinator.SelfId(),
 	)
+	if err != nil {
+		return err
+	}
 
 	sp.SetConsensusRewardAddresses(consensusAddresses, headerHandler.GetRound())
 	sp.txCoordinator.CreateBlockStarted()

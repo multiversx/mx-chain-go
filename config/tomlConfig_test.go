@@ -74,7 +74,7 @@ func TestTomlParser(t *testing.T) {
 		Consensus: TypeConfig{
 			Type: consensusType,
 		},
-		RewardConfig: RewardConfig{
+		EconomicsConfig: EconomicsConfig{
 			CommunityAddress: communityAddress,
 			BurnAddress:      burnAddress,
 		},
@@ -115,8 +115,8 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
 	Type = "` + consensusType + `"
 
-[RewardConfig]
-	CommunityAddress = "` + communityAddress + `"
+[EconomicsConfig]
+    CommunityAddress = "` + communityAddress + `"
     BurnAddress = "` + burnAddress + `"
 `
 	cfg := Config{}

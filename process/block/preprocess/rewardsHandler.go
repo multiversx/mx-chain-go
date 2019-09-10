@@ -16,13 +16,6 @@ import (
     "github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// MinGasPrice is the minimal gas price to be paid for any transaction
-// TODO: Set MinGasPrice and MinTxFee to some positive value (TBD)
-var MinGasPrice = uint64(0)
-
-// MinTxFee is the minimal fee to be paid for any transaction
-var MinTxFee = uint64(0)
-
 const communityPercentage = 0.1 // 1 = 100%, 0 = 0%
 const leaderPercentage = 0.5    // 1 = 100%, 0 = 0%
 const burnPercentage = 0.4      // 1 = 100%, 0 = 0%
@@ -208,6 +201,8 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
         if mb, ok = miniBlocks[dstShId]; !ok {
             mb = &block.MiniBlock{
                 ReceiverShardID: dstShId,
+                SenderShardID:   rtxh.shardCoordinator.SelfId(),
+                Type:            block.RewardsBlock,
             }
         }
 
@@ -299,7 +294,7 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
     currTx.Epoch = rtxh.address.Epoch()
     currTx.Round = rtxh.address.Round()
 
-    return currTx
+	return currTx
 }
 
 func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
@@ -311,7 +306,7 @@ func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
     currTx.Epoch = rtxh.address.Epoch()
     currTx.Round = rtxh.address.Round()
 
-    return currTx
+	return currTx
 }
 
 func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
@@ -323,7 +318,7 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
     currTx.Epoch = rtxh.address.Epoch()
     currTx.Round = rtxh.address.Round()
 
-    return currTx
+	return currTx
 }
 
 // createRewardFromFees creates the reward transactions from accumulated fees
@@ -410,6 +405,39 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
     }
 
     return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rtxh *rewardsHandler) IsInterfaceNil() bool {
+    if rtxh == nil {
+        return true
+    }
+    return false
+}
+
+// GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
+func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
+    rtxh.mut.Lock()
+
+    rewardTxPool := make(map[string]data.TransactionHandler)
+    for txHash, txInfo := range rtxh.rewardTxsFromBlock {
+
+        senderShard := txInfo.ShardId
+        receiverShard, err := rtxh.address.ShardIdForAddress(txInfo.RcvAddr)
+        if err != nil {
+            continue
+        }
+        if receiverShard != rtxh.shardCoordinator.SelfId() {
+            continue
+        }
+        if senderShard != rtxh.shardCoordinator.SelfId() {
+            continue
+        }
+        rewardTxPool[txHash] = txInfo
+    }
+    rtxh.mut.Unlock()
+
+    return rewardTxPool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

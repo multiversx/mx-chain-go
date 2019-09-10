@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -41,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
@@ -501,6 +503,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	var appStatusHandlers []core.AppStatusHandler
+	var views []factoryViews.Viewer
 
 	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
@@ -508,21 +511,32 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
 
+	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
+
 	useTermui := !ctx.GlobalBool(useLogView.Name)
 	if useTermui {
-		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
-		err = termuiStatusHandler.StartTermuiConsole()
+
+		views, err = factory.CreateViews(presenterStatusHandler)
 		if err != nil {
 			return err
 		}
 
-		termuiConsole := termuiStatusHandler.Termui()
-		err = log.ChangePrinterHookWriter(termuiConsole)
-		if err != nil {
-			return err
+		writer, ok := presenterStatusHandler.(io.Writer)
+		if ok {
+			err = log.ChangePrinterHookWriter(writer)
+			if err != nil {
+				return err
+			}
 		}
 
-		appStatusHandlers = append(appStatusHandlers, termuiStatusHandler)
+		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
+		if ok {
+			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
+		}
+	}
+
+	if views == nil {
+		log.Warn("No views for current node")
 	}
 
 	if len(appStatusHandlers) > 0 {
@@ -535,19 +549,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
-	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/milisecondsInSecond)
-	coreComponents.StatusHandler.SetStringValue(core.MetricAppVersion, version)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumTxInBlock, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
-	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusState, "")
-	coreComponents.StatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
-	coreComponents.StatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
+	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -617,11 +619,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	rewardConfig := &generalConfig.RewardConfig
+	economicsConfig := &generalConfig.EconomicsConfig
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		genesisConfig,
-		rewardConfig,
+		economicsConfig,
 		nodesConfig,
 		syncer,
 		shardCoordinator,
@@ -729,6 +731,34 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func initMetrics(
+	appStatusHandler core.AppStatusHandler,
+	pubKey crypto.PublicKey,
+	nodeType core.NodeType,
+	shardCoordinator sharding.Coordinator,
+	nodesConfig *sharding.NodesSetup,
+	version string,
+) {
+	shardId := uint64(shardCoordinator.SelfId())
+	roundDuration := nodesConfig.RoundDuration
+	isSyncing := uint64(1)
+
+	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
+	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
+	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/milisecondsInSecond)
+	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
+	appStatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
+	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
+	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, 0)
+	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
+	appStatusHandler.SetStringValue(core.MetricConsensusState, "")
+	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
+	appStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
 }
 
 func startStatusPolling(
