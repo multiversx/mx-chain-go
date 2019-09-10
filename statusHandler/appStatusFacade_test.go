@@ -27,8 +27,10 @@ func TestNewAppStatusFacadeWithHandlers_OneOfTheHandlerIsNilShouldFail(t *testin
 func TestNewAppStatusFacadeWithHandlers_OkHandlersShouldPass(t *testing.T) {
 	t.Parallel()
 
-	_, err := statusHandler.NewAppStatusFacadeWithHandlers(statusHandler.NewNilStatusHandler(),
-		statusHandler.NewPrometheusStatusHandler())
+	_, err := statusHandler.NewAppStatusFacadeWithHandlers(
+		statusHandler.NewNilStatusHandler(),
+		statusHandler.NewNilStatusHandler(),
+	)
 
 	assert.Nil(t, err)
 }
@@ -39,7 +41,7 @@ func TestAppStatusFacade_IncrementShouldPass(t *testing.T) {
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
 
-	// we create a new facade which contains a prometheus handler in order to test
+	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		IncrementHandler: func(key string) {
 			chanDone <- true
@@ -64,7 +66,7 @@ func TestAppStatusFacade_DecrementShouldPass(t *testing.T) {
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
 
-	// we create a new facade which contains a prometheus handler in order to test
+	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		DecrementHandler: func(key string) {
 			chanDone <- true
@@ -89,7 +91,7 @@ func TestAppStatusFacade_SetInt64ValueShouldPass(t *testing.T) {
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
 
-	// we create a new facade which contains a prometheus handler in order to test
+	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
 			chanDone <- true
@@ -114,7 +116,7 @@ func TestAppStatusFacade_SetUint64ValueShouldPass(t *testing.T) {
 	chanDone := make(chan bool, 1)
 	var metricKey = core.MetricSynchronizedRound
 
-	// we create a new facade which contains a prometheus handler in order to test
+	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			chanDone <- true
