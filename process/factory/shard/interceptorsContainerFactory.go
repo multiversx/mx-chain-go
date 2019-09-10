@@ -216,7 +216,6 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	//TODO implement other TxHandlerProcessValidator that will check the tx nonce against account's nonce
 	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
 	if err != nil {
 		return nil, err

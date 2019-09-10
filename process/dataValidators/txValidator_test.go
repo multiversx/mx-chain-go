@@ -17,6 +17,7 @@ func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &state.Account{Nonce: nonce, Balance: balance}, nil
 	}
+
 	return accDB
 }
 
@@ -53,16 +54,17 @@ func getTxValidatorHandler(
 	}
 }
 
-func TestTxValidator_NewValidator_ShouldErrNilAccounts(t *testing.T) {
+func TestTxValidator_NewValidator_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txValidator, err := dataValidators.NewTxValidator(nil, nil)
+	shardCoordinator := createMockCoordinator("_", 0)
+	txValidator, err := dataValidators.NewTxValidator(nil, shardCoordinator)
 
 	assert.Nil(t, txValidator)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestTxValidator_NewValidator_ShouldErrNilShardCoordinator(t *testing.T) {
+func TestTxValidator_NewValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accounts := getAccAdapter(0, big.NewInt(0))
@@ -139,7 +141,7 @@ func TestTxValidator_IsTxValidForProcessing_ShouldReturnFalse_AccountBalanceIsLe
 	assert.Equal(t, false, result)
 }
 
-func TestTxValidator_IsTxValidForProcessing_ShouldReturnFalse_NumOfRejectedTxShouldIncreased(t *testing.T) {
+func TestTxValidator_IsTxValidForProcessing_ShouldReturnFalse_NumOfRejectedTxShouldIncrease(t *testing.T) {
 	t.Parallel()
 
 	accountNonce := uint64(0)

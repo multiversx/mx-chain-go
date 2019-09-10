@@ -121,14 +121,14 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		txRecovered, ok := dataRecovered.(*transaction.Transaction)
 		assert.True(t, ok)
 
-		assert.Equal(t, txRecovered.Nonce, frontendNonce)
-		assert.Equal(t, txRecovered.Value, frontendValue)
+		assert.Equal(t, frontendNonce, txRecovered.Nonce)
+		assert.Equal(t, frontendValue, txRecovered.Value)
 
 		sender, _ := hex.DecodeString(frontendSenderHex)
-		assert.Equal(t, txRecovered.SndAddr, sender)
+		assert.Equal(t, sender, txRecovered.SndAddr)
 
 		receiver, _ := hex.DecodeString(frontendReceiverHex)
-		assert.Equal(t, txRecovered.RcvAddr, receiver)
+		assert.Equal(t, receiver, txRecovered.RcvAddr)
 
 		sig, _ := hex.DecodeString(frontendSignature)
 		assert.Equal(t, sig, txRecovered.Signature)

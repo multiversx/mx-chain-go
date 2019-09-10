@@ -13,7 +13,7 @@ import (
 type TxValidator struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
-	rejectedTx       uint64
+	rejectedTxs      uint64
 }
 
 // NewTxValidator creates a new nil tx handler validator instance
@@ -28,11 +28,11 @@ func NewTxValidator(accounts state.AccountsAdapter, shardCoordinator sharding.Co
 	return &TxValidator{
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
-		rejectedTx:       uint64(0),
+		rejectedTxs:      uint64(0),
 	}, nil
 }
 
-// IsTxValidForProcessing is a nil implementation that will return true
+// IsTxValidForProcessing will filter transactions that needs to be added in pools
 func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorHandler) bool {
 	shardId := tv.shardCoordinator.SelfId()
 	txShardId := interceptedTx.GetSenderShardId()
@@ -43,14 +43,15 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	sndAddr := interceptedTx.GetSenderAddress()
 	accountHandler, err := tv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
-		log.Debug(fmt.Sprintf("Transaction sender address %s does not exits in current shard %d", sndAddr, shardId))
+		log.Debug(fmt.Sprintf("Transaction sender address %s does not exit in current shard %d", sndAddr, shardId))
+		tv.rejectedTxs++
 		return false
 	}
 
 	accountNonce := accountHandler.GetNonce()
 	txNonce := interceptedTx.GetNonce()
 	if txNonce < accountNonce {
-		tv.rejectedTx++
+		tv.rejectedTxs++
 		return false
 	}
 
@@ -62,9 +63,8 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 
 	accountBalance := account.Balance
 	txTotalValue := interceptedTx.GetTotalValue()
-	compareResult := accountBalance.Cmp(txTotalValue)
-	if compareResult == -1 { // -1 means accountBalance is less than txTotalValue
-		tv.rejectedTx++
+	if accountBalance.Cmp(txTotalValue) < 0 {
+		tv.rejectedTxs++
 		return false
 	}
 
@@ -73,7 +73,7 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 
 // GetNumRejectedTxs will return number of rejected transaction
 func (tv *TxValidator) GetNumRejectedTxs() uint64 {
-	return tv.rejectedTx
+	return tv.rejectedTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

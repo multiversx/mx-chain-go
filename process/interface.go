@@ -349,7 +349,7 @@ type BlockSizeThrottler interface {
 	IsInterfaceNil() bool
 }
 
-// TxValidatorHandler define the functionality that is needed for a TxValidator to validate a transaction
+// TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
 type TxValidatorHandler interface {
 	GetSenderShardId() uint32
 	GetNonce() uint64
