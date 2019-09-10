@@ -242,7 +242,7 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
 			// Return that will result in a correct run of GenerateTransaction -> will fail test
 			/*return mock.AddressContainerStub{
-			}, nil*/
+			  }, nil*/
 
 			return nil, errors.New("error")
 		},
