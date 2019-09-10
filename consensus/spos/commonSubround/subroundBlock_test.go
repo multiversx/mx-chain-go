@@ -78,7 +78,7 @@ func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusCo
 }
 
 func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container *mock.ConsensusCoreMock) *commonSubround.
-	SubroundBlock {
+SubroundBlock {
 	blockChain := &mock.BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{

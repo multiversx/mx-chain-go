@@ -8,7 +8,7 @@ import (
 
 type SposWorkerMock struct {
 	AddReceivedMessageCallCalled func(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.
-					Message) bool)
+	Message) bool)
 	RemoveAllReceivedMessagesCallsCalled   func()
 	ProcessReceivedMessageCalled           func(message p2p.MessageP2P) error
 	SendConsensusMessageCalled             func(cnsDta *consensus.Message) bool
