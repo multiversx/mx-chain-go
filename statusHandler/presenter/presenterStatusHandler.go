@@ -10,15 +10,18 @@ var maxLogLines = 100
 
 // PresenterStatusHandler is the AppStatusHandler impl that is able to process and store received data
 type PresenterStatusHandler struct {
-	presenterMetrics *sync.Map
-	logLines         []string
-	mutLogLineWrite  sync.RWMutex
+	presenterMetrics            *sync.Map
+	logLines                    []string
+	mutLogLineWrite             sync.RWMutex
+	oldNonce                    uint64
+	synchronizationSpeedHistory []uint64
 }
 
 // NewPresenterStatusHandler will return an instance of the struct
 func NewPresenterStatusHandler() *PresenterStatusHandler {
 	psh := &PresenterStatusHandler{
-		presenterMetrics: &sync.Map{},
+		presenterMetrics:            &sync.Map{},
+		synchronizationSpeedHistory: make([]uint64, 0),
 	}
 	return psh
 }

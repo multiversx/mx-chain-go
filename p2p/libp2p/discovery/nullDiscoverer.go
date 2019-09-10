@@ -20,7 +20,7 @@ func (nd *NullDiscoverer) Bootstrap() error {
 	return nil
 }
 
-// Name returns the name of the mdns peer discovery implementation
+// Name returns a message which says no peer discovery mechanism is used
 func (nd *NullDiscoverer) Name() string {
 	return nullName
 }
