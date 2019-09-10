@@ -10,7 +10,6 @@ import (
 
 //NodeWrapper contains all functions that a node should contain.
 type NodeWrapper interface {
-
 	// Start will create a new messenger and and set up the Node state as running
 	Start() error
 

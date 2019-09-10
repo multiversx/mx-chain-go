@@ -6,18 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 )
 
-func (mpd *MdnsPeerDiscoverer) RefreshInterval() time.Duration {
-	return mpd.refreshInterval
-}
-
-func (mpd *MdnsPeerDiscoverer) ServiceTag() string {
-	return mpd.serviceTag
-}
-
-func (mpd *MdnsPeerDiscoverer) ContextProvider() *libp2p.Libp2pContext {
-	return mpd.contextProvider
-}
-
 func (kdd *KadDhtDiscoverer) RefreshInterval() time.Duration {
 	return kdd.refreshInterval
 }
