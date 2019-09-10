@@ -1229,7 +1229,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		return nil, nil, err
 	}
 
-	dataPacker, err := partitioning.NewSizeDataPacker(core.Marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1351,9 +1351,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	shardsGenesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
-			uint64(nodesSetup.StartTime),
-			nodesSetup.InitialNodesPubKeys(),
-		)
+		uint64(nodesSetup.StartTime),
+		nodesSetup.InitialNodesPubKeys(),
+	)
 
 	if err != nil {
 		return nil, err

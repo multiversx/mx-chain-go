@@ -132,7 +132,7 @@ func (rrh *resolverRequestHandler) RequestUnsignedTransactions(destShardID uint3
 }
 
 // RequestRewardTransactions requests for reward transactions from the connected peers
-func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32, rewardTxHashes [][]byte){
+func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32, rewardTxHashes [][]byte) {
 	rrh.requestByHashes(destShardId, rewardTxHashes, rrh.rewardTxRequestTopic)
 }
 

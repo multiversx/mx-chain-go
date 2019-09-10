@@ -26,3 +26,21 @@ func (psh *PresenterStatusHandler) GetConsensusState() string {
 func (psh *PresenterStatusHandler) GetConsensusRoundState() string {
 	return psh.getFromCacheAsString(core.MetricConsensusRoundState)
 }
+
+// GetCurrentBlockHash will return current block hash
+func (psh *PresenterStatusHandler) GetCurrentBlockHash() string {
+	return psh.getFromCacheAsString(core.MetricCurrentBlockHash)
+}
+
+// GetCurrentRoundTimestamp will return current round timestamp
+func (psh *PresenterStatusHandler) GetCurrentRoundTimestamp() uint64 {
+	return psh.getFromCacheAsUint64(core.MetricCurrentRoundTimestamp)
+}
+
+// GetBlockSize will return current block size
+func (psh *PresenterStatusHandler) GetBlockSize() uint64 {
+	miniBlocksSize := psh.getFromCacheAsUint64(core.MetricMiniBlocksSize)
+	headerSize := psh.getFromCacheAsUint64(core.MetricHeaderSize)
+
+	return miniBlocksSize + headerSize
+}
