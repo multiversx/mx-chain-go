@@ -118,7 +118,9 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, endpoint.ElrondTestnet)
+	vm := endpoint.NewElrondIeleVM(
+		endpoint.TestVMType, endpoint.ElrondTestnet,
+		blockChainHook, cryptoHook)
 	//Uncomment this to enable trace printing of the vm
 	//vm.SetTracePretty()
 

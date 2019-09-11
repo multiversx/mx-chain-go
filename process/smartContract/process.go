@@ -478,7 +478,7 @@ func (sc *scProcessor) createSmartContractResult(
 	crossSc := &smartContractResult.SmartContractResult{}
 
 	crossSc.Value = outAcc.Balance
-	crossSc.Nonce = outAcc.Nonce.Uint64()
+	crossSc.Nonce = outAcc.Nonce
 	crossSc.RcvAddr = outAcc.Address
 	crossSc.SndAddr = scAddress
 	crossSc.Code = outAcc.Code
@@ -582,11 +582,11 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			log.Info(fmt.Sprintf("*** Generated/called SC account: %s ***", hex.EncodeToString(outAcc.Address)))
 		}
 
-		if outAcc.Nonce == nil || outAcc.Nonce.Cmp(big.NewInt(int64(acc.GetNonce()))) < 0 {
+		if outAcc.Nonce < acc.GetNonce() {
 			return nil, process.ErrWrongNonceInVMOutput
 		}
 
-		err = acc.SetNonceWithJournal(outAcc.Nonce.Uint64())
+		err = acc.SetNonceWithJournal(outAcc.Nonce)
 		if err != nil {
 			return nil, err
 		}
