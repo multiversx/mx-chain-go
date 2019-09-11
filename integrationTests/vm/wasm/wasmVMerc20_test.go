@@ -15,7 +15,7 @@ import (
 )
 
 var erc20wasm = "./main_ewasmified.wasm"
-var benchmarks = "./stringconcat_ewasmified.wasm"
+var benchmarks = "./fibonacci38_ewasmified.wasm"
 var agarioFile = "../../agar_v1_min.hex"
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
@@ -115,7 +115,7 @@ func TestVmDeployWithTransferAndExecute(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		tx = &transaction.Transaction{
 			Nonce:     aliceNonce,
-			Value:     big.NewInt(10000),
+			Value:     big.NewInt(64),
 			RcvAddr:   scAddress,
 			SndAddr:   alice,
 			GasPrice:  0,
