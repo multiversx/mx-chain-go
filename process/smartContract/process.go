@@ -593,11 +593,6 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 
 		if acc == nil || acc.IsInterfaceNil() {
 			if outAcc.BalanceDelta != nil {
-				// TODO: remove this when VM resolved
-				if bytes.Equal(outAcc.Address, tx.SndAddr) {
-					outAcc.BalanceDelta = outAcc.BalanceDelta.Add(outAcc.BalanceDelta, tx.Value)
-				}
-
 				sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 			}
 			continue
@@ -641,11 +636,6 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		// if no change then continue
 		if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
 			continue
-		}
-
-		// TODO: delete this when VM is resolved
-		if bytes.Equal(outAcc.Address, tx.SndAddr) {
-			outAcc.BalanceDelta = outAcc.BalanceDelta.Add(outAcc.BalanceDelta, tx.Value)
 		}
 
 		stAcc, ok := acc.(*state.Account)
