@@ -9,14 +9,25 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	libp2p2 "github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/stretchr/testify/assert"
 )
 
+var timeoutWaitResponses = 2 * time.Second
+
+func createDummyHost() libp2p2.ConnectableHost {
+	netw := mocknet.New(context.Background())
+
+	h, _ := netw.GenPeer()
+	return libp2p2.NewConnectableHost(h)
+}
+
 func TestNewKadDhtPeerDiscoverer_ShouldSetValues(t *testing.T) {
 	initialPeersList := []string{"peer1", "peer2"}
-	interval := time.Second * 4
+	interval := 4 * time.Second
 	randezVous := "randez vous"
 
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, randezVous, initialPeersList)

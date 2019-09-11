@@ -4428,7 +4428,7 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestShardProcessor_restoreMetaBlockIntoPoolShouldPass(t *testing.T) {
+func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -4841,4 +4841,85 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 	assert.Equal(t, ownHdr.GetNonce(), hdr.GetNonce())
+}
+
+func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	poolFake := mock.NewPoolsHolderFake()
+
+	storer := &mock.ChainStorerMock{}
+	shardC := mock.NewMultiShardsCoordinatorMock(3)
+
+	sp, _ := blproc.NewShardProcessor(
+		&mock.ServiceContainerMock{},
+		poolFake,
+		storer,
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		shardC,
+		&mock.ForkDetectorMock{},
+		&mock.BlocksTrackerMock{},
+		createGenesisBlocks(shardC),
+		&mock.RequestHandlerMock{},
+		&mock.TransactionCoordinatorMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+
+	miniblockHashes := make(map[string]uint32, 0)
+
+	testMBHash := []byte("hash")
+	shardMBHdr := block.ShardMiniBlockHeader{
+		Hash:            testMBHash,
+		SenderShardId:   shardC.SelfId() + 1,
+		ReceiverShardId: shardC.SelfId(),
+	}
+	shardMBHeaders := make([]block.ShardMiniBlockHeader, 0)
+	shardMBHeaders = append(shardMBHeaders, shardMBHdr)
+
+	shardHdr := block.ShardData{ShardMiniBlockHeaders: shardMBHeaders, ShardId: shardC.SelfId() + 1}
+
+	shardInfos := make([]block.ShardData, 0)
+	shardInfos = append(shardInfos, shardHdr)
+
+	meta := &block.MetaBlock{
+		Nonce:     1,
+		ShardInfo: shardInfos,
+	}
+	meta.SetMiniBlockProcessed(testMBHash, true)
+	hasher := &mock.HasherStub{}
+
+	metaBytes, _ := marshalizer.Marshal(meta)
+	hasher.ComputeCalled = func(s string) []byte {
+		return []byte("cool")
+	}
+	metaHash := hasher.Compute(string(metaBytes))
+	metablockHashes := make([][]byte, 0)
+	metablockHashes = append(metablockHashes, metaHash)
+
+	metaBlockRestored, ok := poolFake.MetaBlocks().Get(metaHash)
+
+	assert.Equal(t, nil, metaBlockRestored)
+	assert.False(t, ok)
+
+	storer.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		return metaBytes, nil
+	}
+	storer.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			RemoveCalled: func(key []byte) error {
+				return nil
+			},
+		}
+	}
+
+	err := sp.RestoreMetaBlockIntoPool(miniblockHashes, metablockHashes)
+
+	metaBlockRestored, _ = poolFake.MetaBlocks().Get(metaHash)
+
+	assert.Equal(t, meta, metaBlockRestored)
+	assert.Nil(t, err)
+	assert.True(t, meta.GetMiniBlockProcessed(testMBHash))
 }

@@ -2,6 +2,7 @@ package presenter
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
@@ -100,4 +101,40 @@ func TestPresenterStatusHandler_GetConsensusRoundStateState(t *testing.T) {
 	result := presenterStatusHandler.GetConsensusRoundState()
 
 	assert.Equal(t, consensusRoundState, result)
+}
+
+func TestPresenterStatusHandler_GetCurrentBlockHash(t *testing.T) {
+	t.Parallel()
+
+	currentBlockHash := "hash"
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
+	result := presenterStatusHandler.GetCurrentBlockHash()
+
+	assert.Equal(t, currentBlockHash, result)
+}
+
+func TestPresenterStatusHandler_GetCurrentRoundTimestamp(t *testing.T) {
+	t.Parallel()
+
+	currentRoundTimestamp := uint64(time.Now().Unix())
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, currentRoundTimestamp)
+	result := presenterStatusHandler.GetCurrentRoundTimestamp()
+
+	assert.Equal(t, currentRoundTimestamp, result)
+}
+
+func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
+	t.Parallel()
+
+	miniBlocksSize := uint64(100)
+	headerSize := uint64(50)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, miniBlocksSize)
+	presenterStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
+	result := presenterStatusHandler.GetBlockSize()
+
+	blockExpectedSize := miniBlocksSize + headerSize
+	assert.Equal(t, blockExpectedSize, result)
 }

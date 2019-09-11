@@ -374,6 +374,7 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 	return chr, nil
 }
 
+//TODO move this func in structs.go
 func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
 		return n.createShardBootstrapper(rounder)
