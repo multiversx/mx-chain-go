@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -627,7 +628,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(stateComponents.AccountsAdapter, stateComponents.AddressConverter)
+	vmAccountsDB, err := hooks.NewVMAccountsDB(
+		stateComponents.AccountsAdapter,
+		stateComponents.AddressConverter,
+	)
 	if err != nil {
 		return err
 	}
@@ -1198,7 +1202,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
+	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
 
 	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
 	if err != nil {
