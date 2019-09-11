@@ -814,7 +814,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 		miniBlockHashes[i] = mbHash
 	}
 
-	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
+	log.Info(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
 	for _, metaBlockKey := range header.MetaBlockHashes {
@@ -830,7 +830,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 			continue
 		}
 
-		log.Debug(fmt.Sprintf("meta header nonce: %d\n", hdr.Nonce))
+		log.Info(fmt.Sprintf("meta header nonce: %d\n", hdr.Nonce))
 
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
@@ -843,7 +843,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 			delete(miniBlockHashes, key)
 		}
 
-		log.Debug(fmt.Sprintf("cross mini blocks in meta header: %d\n", len(crossMiniBlockHashes)))
+		log.Info(fmt.Sprintf("cross mini blocks in meta header: %d\n", len(crossMiniBlockHashes)))
 
 		processedAll := true
 		for key := range crossMiniBlockHashes {
