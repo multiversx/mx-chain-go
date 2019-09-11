@@ -522,7 +522,7 @@ func TestNewInterceptedTransaction_GetNonce(t *testing.T) {
 
 	txi, _ := createInterceptedTxFromPlainTx(tx)
 
-	result := txi.GetNonce()
+	result := txi.Nonce()
 	assert.Equal(t, nonce, result)
 }
 
@@ -570,7 +570,7 @@ func TestNewInterceptedTransaction_GetTotalValue(t *testing.T) {
 
 	txi, _ := createInterceptedTxFromPlainTx(tx)
 
-	result := txi.GetTotalValue()
+	result := txi.TotalValue()
 	assert.Equal(t, expectedValue, result)
 }
 
@@ -590,6 +590,6 @@ func TestNewInterceptedTransaction_GetSenderAddress(t *testing.T) {
 
 	txi, _ := createInterceptedTxFromPlainTx(tx)
 
-	result := txi.GetSenderAddress()
+	result := txi.SenderAddress()
 	assert.NotNil(t, result)
 }

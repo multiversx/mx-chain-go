@@ -1,6 +1,7 @@
 package dataValidators
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -43,7 +44,7 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 		return true
 	}
 
-	sndAddr := interceptedTx.GetSenderAddress()
+	sndAddr := interceptedTx.SenderAddress()
 	accountHandler, err := tv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
 		log.Debug(fmt.Sprintf("Transaction's sender address %s does not exist in current shard %d", sndAddr, shardId))
@@ -52,7 +53,7 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	}
 
 	accountNonce := accountHandler.GetNonce()
-	txNonce := interceptedTx.GetNonce()
+	txNonce := interceptedTx.Nonce()
 	lowerNonceInTx := txNonce < accountNonce
 	if lowerNonceInTx {
 		tv.rejectedTxs++
@@ -61,12 +62,13 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 
 	account, ok := accountHandler.(*state.Account)
 	if !ok {
-		log.Error(fmt.Sprintf("Cannot convert account handler in a state.Account %v", sndAddr))
+		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
+		log.Error(fmt.Sprintf("Cannot convert account handler in a state.Account %s", hexSenderAddr))
 		return false
 	}
 
 	accountBalance := account.Balance
-	txTotalValue := interceptedTx.GetTotalValue()
+	txTotalValue := interceptedTx.TotalValue()
 	if accountBalance.Cmp(txTotalValue) < 0 {
 		tv.rejectedTxs++
 		return false

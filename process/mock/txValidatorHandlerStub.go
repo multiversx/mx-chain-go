@@ -7,24 +7,24 @@ import (
 )
 
 type TxValidatorHandlerStub struct {
-	SenderShardIdCalled    func() uint32
-	GetNonceCalled         func() uint64
-	GetSenderAddressCalled func() state.AddressContainer
-	GetTotalValueCalled    func() *big.Int
+	SenderShardIdCalled func() uint32
+	NonceCalled         func() uint64
+	SenderAddressCalled func() state.AddressContainer
+	TotalValueCalled    func() *big.Int
 }
 
 func (tvhs *TxValidatorHandlerStub) SenderShardId() uint32 {
 	return tvhs.SenderShardIdCalled()
 }
 
-func (tvhs *TxValidatorHandlerStub) GetNonce() uint64 {
-	return tvhs.GetNonceCalled()
+func (tvhs *TxValidatorHandlerStub) Nonce() uint64 {
+	return tvhs.NonceCalled()
 }
 
-func (tvhs *TxValidatorHandlerStub) GetSenderAddress() state.AddressContainer {
-	return tvhs.GetSenderAddressCalled()
+func (tvhs *TxValidatorHandlerStub) SenderAddress() state.AddressContainer {
+	return tvhs.SenderAddressCalled()
 }
 
-func (tvhs *TxValidatorHandlerStub) GetTotalValue() *big.Int {
-	return tvhs.GetTotalValueCalled()
+func (tvhs *TxValidatorHandlerStub) TotalValue() *big.Int {
+	return tvhs.TotalValueCalled()
 }

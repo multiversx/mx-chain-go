@@ -83,7 +83,8 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	shardId := uint32(0)
 	senderPrivateKeys := []crypto.PrivateKey{n.OwnAccount.SkTxSign}
-	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{n}, shardId, senderPrivateKeys, big.NewInt(100000))
+	mintingValue := big.NewInt(100000)
+	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{n}, shardId, senderPrivateKeys, mintingValue)
 
 	err := n.Node.GenerateAndSendBulkTransactions(
 		integrationTests.CreateRandomHexString(64),

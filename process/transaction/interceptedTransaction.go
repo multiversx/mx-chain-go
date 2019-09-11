@@ -198,19 +198,19 @@ func (inTx *InterceptedTransaction) SenderShardId() uint32 {
 	return inTx.sndShard
 }
 
-// GetNonce returns the transaction nonce
-func (inTx *InterceptedTransaction) GetNonce() uint64 {
+// Nonce returns the transaction nonce
+func (inTx *InterceptedTransaction) Nonce() uint64 {
 	return inTx.tx.Nonce
 }
 
-// GetSenderAddress returns the transaction sender address
-func (inTx *InterceptedTransaction) GetSenderAddress() state.AddressContainer {
+// SenderAddress returns the transaction sender address
+func (inTx *InterceptedTransaction) SenderAddress() state.AddressContainer {
 	return inTx.sndAddr
 }
 
-// GetTotalValue returns the maximum cost of transaction
+// TotalValue returns the maximum cost of transaction
 // totalValue = txValue + gasPrice*gasLimit
-func (inTx *InterceptedTransaction) GetTotalValue() *big.Int {
+func (inTx *InterceptedTransaction) TotalValue() *big.Int {
 	result := big.NewInt(0).Set(inTx.tx.Value)
 	gasPrice := big.NewInt(int64(inTx.tx.GasPrice))
 	gasLimit := big.NewInt(int64(inTx.tx.GasLimit))

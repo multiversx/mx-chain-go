@@ -43,13 +43,13 @@ func getTxValidatorHandler(
 		SenderShardIdCalled: func() uint32 {
 			return sndShardId
 		},
-		GetNonceCalled: func() uint64 {
+		NonceCalled: func() uint64 {
 			return nonce
 		},
-		GetSenderAddressCalled: func() state.AddressContainer {
+		SenderAddressCalled: func() state.AddressContainer {
 			return sndAddr
 		},
-		GetTotalValueCalled: func() *big.Int {
+		TotalValueCalled: func() *big.Int {
 			return totalValue
 		},
 	}

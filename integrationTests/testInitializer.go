@@ -830,6 +830,19 @@ func CreateMintingForSenders(
 	}
 }
 
+// CreateMintingFromAddresses creates account with balances for given address
+func CreateMintingFromAddresses(
+	nodes []*TestProcessorNode,
+	addresses [][]byte,
+	value *big.Int,
+) {
+	for _, n := range nodes {
+		for _, address := range addresses {
+			MintAddress(n.AccntState, address, value)
+		}
+	}
+}
+
 // ProposeBlockSignalsEmptyBlock proposes and broadcasts a block
 func ProposeBlockSignalsEmptyBlock(
 	node *TestProcessorNode,

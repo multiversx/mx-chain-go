@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -330,13 +329,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), senderShardId)
 	dPool, txHashesGenerated, txsSndAddr := integrationTests.CreateResolversDataPool(t, txGenerated, senderShardId, recvShardId, shardCoordinator)
 
-	for _, n := range nodes {
-		for _, txSenderAddr := range txsSndAddr {
-			account, _ := n.AccntState.GetAccountWithJournal(state.NewAddress(txSenderAddr))
-			_ = account.(*state.Account).SetBalanceWithJournal(balanceValue)
-		}
-		_, _ = n.AccntState.Commit()
-	}
+	integrationTests.CreateMintingFromAddresses(nodes, txsSndAddr, balanceValue)
 
 	//shard 1, resolvers, same data pool, does not matter
 	for i := 0; i < nodesPerShard; i++ {

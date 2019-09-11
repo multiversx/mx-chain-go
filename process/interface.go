@@ -352,7 +352,7 @@ type BlockSizeThrottler interface {
 // TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
 type TxValidatorHandler interface {
 	SenderShardId() uint32
-	GetNonce() uint64
-	GetSenderAddress() state.AddressContainer
-	GetTotalValue() *big.Int
+	Nonce() uint64
+	SenderAddress() state.AddressContainer
+	TotalValue() *big.Int
 }
