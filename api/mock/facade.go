@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 )
 
 // Facade is the mock implementation of a node router handler
@@ -28,6 +29,7 @@ type Facade struct {
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	NodeDetailsHandler                             func() nodeDetails.NodeDetails
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -128,6 +130,11 @@ func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, val
 
 func (f *Facade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
 	return f.GetDataValueHandler(address, funcName, argsBuff...)
+}
+
+// NodeDetails is the mock implementation of a handler's NodeDetails method
+func (f *Facade) NodeDetails() nodeDetails.NodeDetails {
+	return f.NodeDetailsHandler()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

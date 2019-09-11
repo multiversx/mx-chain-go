@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -77,6 +78,7 @@ type Node struct {
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
 	appStatusHandler         core.AppStatusHandler
+	nodeDetails              nodeDetails.NodeDetails
 
 	txSignPrivKey  crypto.PrivateKey
 	txSignPubKey   crypto.PublicKey

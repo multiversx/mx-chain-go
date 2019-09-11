@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 )
 
 //NodeWrapper contains all functions that a node should contain.
@@ -69,5 +70,6 @@ type NodeWrapper interface {
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
 	GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	NodeDetails() nodeDetails.NodeDetails
 	IsInterfaceNil() bool
 }

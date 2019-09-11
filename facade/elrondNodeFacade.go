@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 )
 
 // DefaultRestPort is the default port the REST API will start on if not specified
@@ -102,6 +103,7 @@ func (ef *ElrondNodeFacade) IsNodeRunning() bool {
 	return ef.node.IsRunning()
 }
 
+// RestAPIServerDebugMode return true is debug mode for Rest API is enabled
 func (ef *ElrondNodeFacade) RestAPIServerDebugMode() bool {
 	return ef.restAPIServerDebugMode
 }
@@ -253,6 +255,11 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	}
 
 	return hbStatus, nil
+}
+
+// NodeDetails will return a node details handler
+func (ef *ElrondNodeFacade) NodeDetails() nodeDetails.NodeDetails {
+	return ef.apiResolver.NodeDetails()
 }
 
 // GetVmValue retrieves data from existing SC trie

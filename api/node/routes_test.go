@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -440,6 +443,30 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	loadResponse(resp.Body, &statisticsRsp)
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
+}
+
+func TestDetails_ShouldDisplayMetrics(t *testing.T) {
+	nodeDetailsHandler := statusHandler.NewNodeDetailsHandler()
+	key := "test-details-key"
+	value := "test-details-value"
+	nodeDetailsHandler.SetStringValue(key, value)
+
+	facade := mock.Facade{}
+	facade.NodeDetailsHandler = func() nodeDetails.NodeDetails {
+		return nodeDetailsHandler
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/details", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
+	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

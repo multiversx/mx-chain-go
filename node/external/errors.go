@@ -19,3 +19,6 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNilScDataGetter signals that a nil data getter has been provided
 var ErrNilScDataGetter = errors.New("nil SC data getter")
+
+// ErrNilNodeDetails signals that a nil node details was provided
+var ErrNilNodeDetails = errors.New("nil node details handler")

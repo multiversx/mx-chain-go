@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,6 +21,7 @@ type FacadeHandler interface {
 	GetCurrentPublicKey() string
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
+	NodeDetails() nodeDetails.NodeDetails
 	IsInterfaceNil() bool
 }
 
@@ -56,6 +58,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/address", Address)
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
+	router.GET("/details", Details)
 }
 
 // Status returns the state of the node e.g. running/stopped
@@ -155,6 +158,23 @@ func Statistics(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())})
+}
+
+// Details returns the node statistics exported by an NodeDetailsHandler
+func Details(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	details, err := ef.NodeDetails().DetailsMap()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"details": details})
 }
 
 func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {
