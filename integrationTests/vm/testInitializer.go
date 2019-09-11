@@ -160,7 +160,7 @@ func CreateTxProcessorWithOneSCExecutorWASMVM(
 
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := evmc.NewWASMInstance(config, blockChainHook, cryptoHook)
+	vm := evmc.NewWASMInstance(config, blockChainHook, cryptoHook, factory.HeraWABTVirtualMachine)
 
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {

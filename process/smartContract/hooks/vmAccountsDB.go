@@ -53,11 +53,6 @@ func (vadb *VMAccountsDB) AccountExists(address []byte) (bool, error) {
 	return true, nil
 }
 
-// NewAddress yields the address of a new SC account when creating one
-func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
-	return []byte{}, nil // empty result means fallback to default
-}
-
 // GetBalance returns the balance of a shard account
 func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
 	exists, err := vadb.AccountExists(address)
