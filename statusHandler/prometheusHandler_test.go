@@ -1,7 +1,6 @@
 package statusHandler_test
 
 import (
-	"flag"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,18 +11,6 @@ import (
 	prometheusUtils "github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 )
-
-var testServerURL string
-
-func init() {
-	// check if bench cli flag is set in order to init the prometheus server
-	flag.Parse()
-	bench := flag.CommandLine.Lookup("test.bench")
-	if bench.Value.String() != "" {
-		testServer := httptest.NewServer(promhttp.Handler())
-		testServerURL = testServer.URL
-	}
-}
 
 func TestPrometheusStatusHandler_NewPrometheusStatusHandler(t *testing.T) {
 	t.Parallel()
@@ -121,21 +108,28 @@ func BenchmarkPrometheusStatusHandler_Increment(b *testing.B) {
 	var promStatusHandler core.AppStatusHandler
 	promStatusHandler = statusHandler.NewPrometheusStatusHandler()
 
-	_, err := http.Get(testServerURL)
+	testServer := httptest.NewServer(promhttp.Handler())
+	defer testServer.Close()
+	b.ResetTimer()
+
+	_, err := http.Get(testServer.URL)
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
 		promStatusHandler.Increment(core.MetricIsSyncing)
 	}
 	promStatusHandler.Close()
-
 }
 
 func BenchmarkPrometheusStatusHandler_Decrement(b *testing.B) {
 	var promStatusHandler core.AppStatusHandler
 	promStatusHandler = statusHandler.NewPrometheusStatusHandler()
 
-	_, err := http.Get(testServerURL)
+	testServer := httptest.NewServer(promhttp.Handler())
+	defer testServer.Close()
+	b.ResetTimer()
+
+	_, err := http.Get(testServer.URL)
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
@@ -149,7 +143,11 @@ func BenchmarkPrometheusStatusHandler_SetInt64Value(b *testing.B) {
 
 	promStatusHandler = statusHandler.NewPrometheusStatusHandler()
 
-	_, err := http.Get(testServerURL)
+	testServer := httptest.NewServer(promhttp.Handler())
+	defer testServer.Close()
+	b.ResetTimer()
+
+	_, err := http.Get(testServer.URL)
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
@@ -162,7 +160,11 @@ func BenchmarkPrometheusStatusHandler_SetUInt64Value(b *testing.B) {
 	var promStatusHandler core.AppStatusHandler
 	promStatusHandler = statusHandler.NewPrometheusStatusHandler()
 
-	_, err := http.Get(testServerURL)
+	testServer := httptest.NewServer(promhttp.Handler())
+	defer testServer.Close()
+	b.ResetTimer()
+
+	_, err := http.Get(testServer.URL)
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {

@@ -63,6 +63,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -594,6 +596,35 @@ func (ncv *nullChronologyValidator) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler
+func CreateStatusHandlerPresenter() view.Presenter {
+	presenterStatusHandlerFactory := factoryViews.NewPresenterFactory()
+
+	return presenterStatusHandlerFactory.Create()
+}
+
+// CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
+func CreateViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
+	viewsFactory, err := factoryViews.NewViewsFactory(presenter)
+	if err != nil {
+		return nil, err
+	}
+
+	views, err := viewsFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range views {
+		err = v.Start()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return views, nil
 }
 
 func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
@@ -1145,7 +1176,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		return nil, nil, err
 	}
 
-	dataPacker, err := partitioning.NewSizeDataPacker(core.Marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
 		return nil, nil, err
 	}

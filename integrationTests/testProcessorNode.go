@@ -92,6 +92,8 @@ type TestProcessorNode struct {
 	BlockTracker       process.BlocksTracker
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
+	Bootstrapper       process.Bootstrapper
+	Rounder            *mock.RounderMock
 
 	//Node is used to call the functionality already implemented in it
 	Node         *node.Node
@@ -103,7 +105,7 @@ type TestProcessorNode struct {
 	CounterMetaRcv int32
 }
 
-// NewTestProcessorNode returns a new TestProcessorNode instance
+// NewTestProcessorNode returns a new TestProcessorNode instance without sync capabilities
 func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
@@ -142,6 +144,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
+	tpn.initRounder()
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
 	tpn.initChainHandler()
@@ -169,6 +172,10 @@ func (tpn *TestProcessorNode) initDataPools() {
 	} else {
 		tpn.ShardDataPool = CreateTestShardDataPool(nil)
 	}
+}
+
+func (tpn *TestProcessorNode) initRounder() {
+	tpn.Rounder = &mock.RounderMock{}
 }
 
 func (tpn *TestProcessorNode) initStorage() {
@@ -228,7 +235,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 }
 
 func (tpn *TestProcessorNode) initResolvers() {
-	dataPacker, _ := partitioning.NewSizeDataPacker(TestMarshalizer)
+	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
@@ -497,6 +504,17 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 }
 
+// StartSync calls Bootstrapper.StartSync. Errors if bootstrapper is not set
+func (tpn *TestProcessorNode) StartSync() error {
+	if tpn.Bootstrapper == nil {
+		return errors.New("no bootstrapper available")
+	}
+
+	tpn.Bootstrapper.StartSync()
+
+	return nil
+}
+
 // LoadTxSignSkBytes alters the already generated sk/pk pair
 func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 	tpn.OwnAccount.LoadTxSignSkBytes(skBytes)
@@ -526,7 +544,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
-	blockHeader.SetPubKeysBitmap(make([]byte, 0))
+	blockHeader.SetPubKeysBitmap([]byte{1})
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()

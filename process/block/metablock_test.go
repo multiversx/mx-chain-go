@@ -944,31 +944,6 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- ComputeNewNoncePrevHash
-
-func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
-	t.Parallel()
-
-	mdp := initMetaDataPool()
-	hasher := mock.HasherMock{}
-	hdr := createMetaBlockHeader()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initStore(),
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-	hdr.PrevHash = hasher.Compute("prev hash")
-	mp.DisplayMetaBlock(hdr)
-}
-
 func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
 	t.Parallel()
 

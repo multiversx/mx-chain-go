@@ -171,6 +171,22 @@ func (ef *ElrondNodeFacade) GenerateTransaction(senderHex string, receiverHex st
 	return ef.node.GenerateTransaction(senderHex, receiverHex, value, data)
 }
 
+// CreateTransaction creates a transaction from all needed fields
+func (ef *ElrondNodeFacade) CreateTransaction(
+	nonce uint64,
+	value *big.Int,
+	receiverHex string,
+	senderHex string,
+	gasPrice uint64,
+	gasLimit uint64,
+	data string,
+	signatureHex string,
+	challenge string,
+) (*transaction.Transaction, error) {
+
+	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, challenge)
+}
+
 // SendTransaction will send a new transaction on the topic channel
 func (ef *ElrondNodeFacade) SendTransaction(
 	nonce uint64,
@@ -184,6 +200,11 @@ func (ef *ElrondNodeFacade) SendTransaction(
 ) (string, error) {
 
 	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, gasPrice, gasLimit, transactionData, signature)
+}
+
+// SendBulkTransactions will send a bulk of transactions on the topic channel
+func (ef *ElrondNodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
+	return ef.node.SendBulkTransactions(txs)
 }
 
 // GetTransaction gets the transaction with a specified hash

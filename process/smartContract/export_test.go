@@ -14,7 +14,7 @@ func (sc *scProcessor) CreateVMCallInput(tx *transaction.Transaction) (*vmcommon
 	return sc.createVMCallInput(tx)
 }
 
-func (sc *scProcessor) CreateVMDeployInput(tx *transaction.Transaction) (*vmcommon.ContractCreateInput, error) {
+func (sc *scProcessor) CreateVMDeployInput(tx *transaction.Transaction) (*vmcommon.ContractCreateInput, []byte, error) {
 	return sc.createVMDeployInput(tx)
 }
 
@@ -30,8 +30,8 @@ func (sc *scProcessor) RefundGasToSender(gasRefund *big.Int, tx *transaction.Tra
 	return sc.refundGasToSender(gasRefund, tx, txHash, acntSnd)
 }
 
-func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount) ([]*vmcommon.OutputAccount, error) {
-	return sc.processSCOutputAccounts(outputAccounts)
+func (sc *scProcessor) ProcessSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx *transaction.Transaction) error {
+	return sc.processSCOutputAccounts(outputAccounts, tx)
 }
 
 func (sc *scProcessor) DeleteAccounts(deletedAccounts [][]byte) error {
@@ -62,10 +62,10 @@ func (sc *scProcessor) ProcessSCPayment(tx *transaction.Transaction, acntSnd sta
 	return sc.processSCPayment(tx, acntSnd)
 }
 
-func (sc *scProcessor) CreateCrossShardTransactions(
+func (sc *scProcessor) CreateSCRTransactions(
 	crossOutAccs []*vmcommon.OutputAccount,
 	tx *transaction.Transaction,
 	txHash []byte,
 ) ([]data.TransactionHandler, error) {
-	return sc.createCrossShardTransactions(crossOutAccs, tx, txHash)
+	return sc.createSCRTransactions(crossOutAccs, tx, txHash)
 }

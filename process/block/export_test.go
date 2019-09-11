@@ -96,10 +96,6 @@ func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error 
 	return mp.removeBlockInfoFromPool(header)
 }
 
-func (mp *metaProcessor) DisplayMetaBlock(header *block.MetaBlock) {
-	mp.displayMetaBlock(header)
-}
-
 func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
 	mp.receivedHeader(hdrHash)
 }
@@ -276,7 +272,7 @@ func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*
 }
 
 func (sp *shardProcessor) RestoreMetaBlockIntoPool(
-	miniBlockHashes map[int][][]byte,
+	miniBlockHashes map[string]uint32,
 	metaBlockHashes [][]byte,
 ) error {
 	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)

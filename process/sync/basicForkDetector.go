@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -84,7 +83,7 @@ func (bfd *basicForkDetector) AddHeader(
 		// create a check point and remove all the past headers
 		if finalHeader == nil || finalHeader.IsInterfaceNil() {
 			bfd.setFinalCheckpoint(bfd.lastCheckpoint())
-		} else if finalHeader.GetNonce() > core.GenesisBlockNonce {
+		} else if finalHeader.GetNonce() > bfd.GetHighestFinalBlockNonce() {
 			bfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeader.GetNonce(), round: finalHeader.GetRound()})
 			bfd.append(&headerInfo{
 				nonce: finalHeader.GetNonce(),
@@ -116,7 +115,6 @@ func (bfd *basicForkDetector) removePastOrInvalidRecords() {
 	bfd.removePastHeaders()
 	bfd.removeInvalidHeaders()
 	bfd.removePastCheckpoints()
-
 }
 
 func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
@@ -124,7 +122,6 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
-	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-process.ForkBlockFinality
 
 	if roundDif <= 0 {
 		return ErrLowerRoundInBlock
@@ -134,9 +131,6 @@ func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler, stat
 	}
 	if int64(header.GetRound()) > nextRound {
 		return ErrHigherRoundInBlock
-	}
-	if roundTooOld {
-		return ErrLowerRoundInBlock
 	}
 	if roundDif < nonceDif {
 		return ErrHigherNonceInBlock

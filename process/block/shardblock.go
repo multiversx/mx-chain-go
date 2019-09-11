@@ -170,13 +170,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	mbLen := len(body)
-	totalTxCount := 0
-	for i := 0; i < mbLen; i++ {
-		totalTxCount += len(body[i].TxHashes)
-	}
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
-	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(mbLen))
+	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
 	err = sp.checkHeaderBodyCorrelation(header, body)
 	if err != nil {
@@ -184,8 +178,8 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
-
-	sp.appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, uint64(numTxWithDst))
+	totalTxs := sp.txCounter.totalTxs
+	go getMetricsFromHeader(header, uint64(numTxWithDst), totalTxs, sp.marshalizer, sp.appStatusHandler)
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
@@ -331,6 +325,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round 
 		if tmpHdr.hdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := sp.isHdrConstructionValid(tmpHdr.hdr, lastVerifiedHdr)
 			if err != nil {
+				log.Debug(err.Error())
 				continue
 			}
 
@@ -448,12 +443,13 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return process.ErrWrongTypeAssertion
 	}
 
-	restoredTxNr, miniBlockHashes, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
-	go sp.txCounter.substractRestoredTxs(restoredTxNr)
+	restoredTxNr, _, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
+	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 	if err != nil {
 		return err
 	}
 
+	miniBlockHashes := header.MapMiniBlockHashesToShards()
 	err = sp.restoreMetaBlockIntoPool(miniBlockHashes, header.MetaBlockHashes)
 	if err != nil {
 		return err
@@ -464,7 +460,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	return nil
 }
 
-func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]byte, metaBlockHashes [][]byte) error {
+func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]uint32, metaBlockHashes [][]byte) error {
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
 		return process.ErrNilMetaBlockPool
@@ -488,6 +484,11 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 			continue
 		}
 
+		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		for mbHash := range processedMiniBlocks {
+			metaBlock.SetMiniBlockProcessed([]byte(mbHash), true)
+		}
+
 		metaBlockPool.Put(metaBlockHash, &metaBlock)
 		syncMap := &dataPool.ShardIdHashSyncMap{}
 		syncMap.Store(metaBlock.GetShardID(), metaBlockHash)
@@ -509,34 +510,27 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][][]b
 		if len(miniBlockHashes) == 0 {
 			break
 		}
-		metaBlock, _ := metaBlockPool.Peek(metaBlockKey)
-		if metaBlock == nil {
+		metaBlock, ok := metaBlockPool.Peek(metaBlockKey)
+		if !ok {
 			log.Error(process.ErrNilMetaBlockHeader.Error())
 			continue
 		}
 
-		hdr, _ := metaBlock.(data.HeaderHandler)
-		if hdr == nil {
+		hdr, ok := metaBlock.(data.HeaderHandler)
+		if !ok {
+			metaBlockPool.Remove(metaBlockKey)
 			log.Error(process.ErrWrongTypeAssertion.Error())
 			continue
 		}
 
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
-			canDelete := true
-			for _, mbHash := range miniBlockHashes[key] {
-				_, ok := crossMiniBlockHashes[string(mbHash)]
-				if !ok {
-					canDelete = false
-					continue
-				}
-
-				hdr.SetMiniBlockProcessed(mbHash, false)
+			_, ok := crossMiniBlockHashes[key]
+			if !ok {
+				continue
 			}
 
-			if canDelete {
-				delete(miniBlockHashes, key)
-			}
+			hdr.SetMiniBlockProcessed([]byte(key), false)
 		}
 	}
 
@@ -687,6 +681,8 @@ func (sp *shardProcessor) CommitBlock(
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
+
+	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
 	hdrsToAttestFinality := uint32(header.Nonce - finalHeader.Nonce)
 	sp.removeNotarizedHdrsBehindFinal(hdrsToAttestFinality)

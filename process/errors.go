@@ -417,3 +417,12 @@ var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator prov
 
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
+var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
+
+// ErrVMTypeLengthInvalid signals that vm type length is too long
+var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
+
+// ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
+var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
