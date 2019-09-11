@@ -1,6 +1,10 @@
 package presenter
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+)
+
+var maxSpeedHistorySaved = 1000
 
 // GetNonce will return current nonce of node
 func (psh *PresenterStatusHandler) GetNonce() uint64 {
@@ -50,4 +54,68 @@ func (psh *PresenterStatusHandler) GetNumConnectedPeers() uint64 {
 // GetCurrentRound will return current round of node
 func (psh *PresenterStatusHandler) GetCurrentRound() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCurrentRound)
+}
+
+// CalculateTimeToSynchronize will calculate and return an estimation of
+// the time required for synchronization in a human friendly format
+func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
+	currentBlock := psh.GetNonce()
+
+	numsynchronizationSpeedHistory := len(psh.synchronizationSpeedHistory)
+
+	sum := uint64(0)
+	for i := 0; i < len(psh.synchronizationSpeedHistory); i++ {
+		sum += psh.synchronizationSpeedHistory[i]
+	}
+
+	speed := float64(0)
+	if numsynchronizationSpeedHistory > 0 {
+		speed = float64(sum) / float64(numsynchronizationSpeedHistory)
+	}
+
+	probableHighestNonce := psh.GetProbableHighestNonce()
+	remainingBlocksToSynchronize := probableHighestNonce - currentBlock
+	timeEstimationSeconds := float64(remainingBlocksToSynchronize) / speed
+	remainingTime := core.SecondsToHourMinSec(int(timeEstimationSeconds))
+
+	return remainingTime
+}
+
+// CalculateSynchronizationSpeed will calculate and return speed of synchronization
+// how many block per second are synchronized
+func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed() uint64 {
+	currentBlock := psh.GetNonce()
+	if psh.oldNonce == 0 {
+		psh.oldNonce = currentBlock
+		return 0
+	}
+
+	blocksPerSecond := int64(currentBlock - psh.oldNonce)
+	if blocksPerSecond < 0 {
+		blocksPerSecond = 0
+	}
+
+	if len(psh.synchronizationSpeedHistory) >= maxSpeedHistorySaved {
+		psh.synchronizationSpeedHistory = psh.synchronizationSpeedHistory[1:len(psh.synchronizationSpeedHistory)]
+	}
+	psh.synchronizationSpeedHistory = append(psh.synchronizationSpeedHistory, uint64(blocksPerSecond))
+
+	psh.oldNonce = currentBlock
+
+	return uint64(blocksPerSecond)
+}
+
+// GetNumTxProcessed will return number of processed transactions since node starts
+func (psh *PresenterStatusHandler) GetNumTxProcessed() uint64 {
+	return psh.getFromCacheAsUint64(core.MetricNumProcessedTxs)
+}
+
+// GetNumShardHeadersInPool will return number of shard headers that are in pool
+func (psh *PresenterStatusHandler) GetNumShardHeadersInPool() uint64 {
+	return psh.getFromCacheAsUint64(core.MetricNumShardHeadersFromPool)
+}
+
+// GetNumShardHeadersProcessed will return number of shard header processed until now
+func (psh *PresenterStatusHandler) GetNumShardHeadersProcessed() uint64 {
+	return psh.getFromCacheAsUint64(core.MetricNumShardHeadersProcessed)
 }
