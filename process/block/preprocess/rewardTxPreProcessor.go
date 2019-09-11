@@ -209,6 +209,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 	return nil
 }
 
+// AddComputedRewardMiniBlocks adds to the local cache the reward transactions from the given miniblocks
 func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice) {
 
 	for _, rewardMb := range computedRewardMiniblocks {

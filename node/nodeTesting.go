@@ -11,14 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
-// maxLoadThresholdPercent specifies the max load percent accepted from txs storage size when generates new txs
-const maxLoadThresholdPercent = 70
 
 const maxGoRoutinesSendMessage = 30
 
@@ -36,44 +30,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return err
 	}
 
-	//TODO: Remove this approach later, when throttle is done
-	if n.shardCoordinator.SelfId() != sharding.MetachainShardId {
-		txPool := n.dataPool.Transactions()
-		if txPool == nil {
-			return ErrNilTransactionPool
-		}
-
-		txStorageSize := uint64(n.txStorageSize) * maxLoadThresholdPercent / 100
-		selfId := n.shardCoordinator.SelfId()
-		strCache := process.ShardCacherIdentifier(selfId, selfId)
-		txStore := txPool.ShardDataStore(strCache)
-		if txStore != nil {
-			noOfTxs = getMaxNoOfTxsToGenerate(txStore, txStorageSize, noOfTxs)
-		}
-
-		for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
-			if i == selfId {
-				continue
-			}
-
-			strCache = process.ShardCacherIdentifier(i, selfId)
-			txStore = txPool.ShardDataStore(strCache)
-			if txStore != nil {
-				noOfTxs = getMaxNoOfTxsToGenerate(txStore, txStorageSize, noOfTxs)
-			}
-
-			strCache = process.ShardCacherIdentifier(selfId, i)
-			txStore = txPool.ShardDataStore(strCache)
-			if txStore != nil {
-				noOfTxs = getMaxNoOfTxsToGenerate(txStore, txStorageSize, noOfTxs)
-			}
-		}
-
-		if noOfTxs == 0 {
-			return ErrTooManyTransactionsInPool
-		}
-	}
-
 	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex)
 	if err != nil {
 		return err
@@ -88,7 +44,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	mutErrFound := sync.Mutex{}
 	var errFound error
 
-	dataPacker, err := partitioning.NewSizeDataPacker(n.marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -151,25 +107,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	return nil
-}
-
-func getMaxNoOfTxsToGenerate(
-	txStore storage.Cacher,
-	txStorageSize uint64,
-	noOfTxs uint64,
-) uint64 {
-
-	txStoreLen := uint64(txStore.Len())
-	if txStoreLen >= txStorageSize {
-		return 0
-	}
-
-	maxNoOfTxs := txStorageSize - txStoreLen
-	if maxNoOfTxs < noOfTxs {
-		return maxNoOfTxs
-	}
-
-	return noOfTxs
 }
 
 // GenerateAndSendBulkTransactionsOneByOne is a method for generating and propagating a set

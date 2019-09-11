@@ -294,7 +294,7 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 	currTx.Epoch = rtxh.address.Epoch()
 	currTx.Round = rtxh.address.Round()
 
-	return currTx
+    return currTx
 }
 
 func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
@@ -318,7 +318,7 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 	currTx.Epoch = rtxh.address.Epoch()
 	currTx.Round = rtxh.address.Round()
 
-	return currTx
+    return currTx
 }
 
 // createRewardFromFees creates the reward transactions from accumulated fees
@@ -366,7 +366,7 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 	return consensusRewardTxs
 }
 
-// VerifyCreatedRewardsTxs verifies if the calculated rewards transactions and the block reward transactions are the same
+// verifyCreatedRewardsTxs verifies if the calculated rewards transactions and the block reward transactions are the same
 func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	calculatedRewardTxs := make([]data.TransactionHandler, 0)
 	rtxh.mutGenRewardTxs.RLock()
@@ -407,13 +407,6 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (rtxh *rewardsHandler) IsInterfaceNil() bool {
-	if rtxh == nil {
-		return true
-	}
-	return false
-}
 
 // GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
 func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
@@ -438,4 +431,12 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 	rtxh.mut.Unlock()
 
 	return rewardTxPool
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rtxh *rewardsHandler) IsInterfaceNil() bool {
+	if rtxh == nil {
+		return true
+	}
+	return false
 }

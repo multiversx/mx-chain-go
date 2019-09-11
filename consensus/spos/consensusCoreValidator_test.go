@@ -25,8 +25,8 @@ func initConsensusDataContainer() *ConsensusCore {
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 
 	return &ConsensusCore{
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessorMock,
+		blockChain:         blockChain,
+		blockProcessor:     blockProcessorMock,
 		blocksTracker:      blocksTrackerMock,
 		bootstrapper:       bootstrapperMock,
 		broadcastMessenger: broadcastMessengerMock,

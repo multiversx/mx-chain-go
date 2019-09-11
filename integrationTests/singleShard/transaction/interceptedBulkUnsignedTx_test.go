@@ -123,7 +123,7 @@ func generateAndSendBulkSmartContractResults(
 	messenger p2p.Messenger,
 ) error {
 
-	dataPacker, err := partitioning.NewSizeDataPacker(marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(marshalizer)
 	if err != nil {
 		return err
 	}

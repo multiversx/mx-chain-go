@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var stepDelay = time.Second
+
 func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -35,13 +37,13 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	_ = n.Node.P2PBootstrap()
 
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	//set the account's nonce to startingNonce
 	_ = n.SetAccountNonce(startingNonce)
 	noOfTx := 8000
 
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	wg := sync.WaitGroup{}
 	wg.Add(noOfTx)

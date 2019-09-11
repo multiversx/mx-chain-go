@@ -1155,6 +1155,18 @@ func ProposeAndSyncOneBlock(
 	return round, nonce
 }
 
+// WaitForBootstrapAndShowConnected will delay a given duration in order to wait for bootstraping  and print the
+// number of peers that each node is connected to
+func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapingTime time.Duration) {
+	fmt.Printf("Waiting %v for peer discovery...\n", durationBootstrapingTime)
+	time.Sleep(durationBootstrapingTime)
+
+	fmt.Println("Connected peers:")
+	for _, peer := range peers {
+		fmt.Printf("Peer %s is connected to %d peers\n", peer.ID().Pretty(), len(peer.ConnectedPeers()))
+	}
+}
+
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
 func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
 	keysMap := make(map[uint32][]string, 0)

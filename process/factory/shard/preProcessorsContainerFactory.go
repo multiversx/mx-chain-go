@@ -73,9 +73,9 @@ func NewPreProcessorsContainerFactory(
 	if scResultProcessor == nil || scResultProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
-    if rewardsTxProcessor == nil || rewardsTxProcessor.IsInterfaceNil() {
-        return nil, process.ErrNilRewardsTxProcessor
-    }
+	if rewardsTxProcessor == nil || rewardsTxProcessor.IsInterfaceNil() {
+		return nil, process.ErrNilRewardsTxProcessor
+	}
 	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
@@ -180,8 +180,8 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppcm *preProcessorsContainerFactory) IsInterfaceNil() bool {
-    if ppcm == nil {
-        return true
-    }
-    return false
+	if ppcm == nil {
+		return true
+	}
+	return false
 }
