@@ -104,6 +104,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	nodeShardId := uint32(0)
 	txSignPrivKeyShardId := uint32(0)
 	initialNodeAddr := "nodeAddr"
+	valMinting := big.NewInt(20000)
 
 	node := integrationTests.NewTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
 
@@ -141,7 +142,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	sndAddrBytes, _ := hex.DecodeString(frontendSenderHex)
 	signatureBytes, _ := hex.DecodeString(frontendSignature)
 
-	integrationTests.MintAddress(node.AccntState, sndAddrBytes, big.NewInt(20000))
+	integrationTests.MintAddress(node.AccntState, sndAddrBytes, valMinting)
 
 	txHexHash, err = node.SendTransaction(&transaction.Transaction{
 		Nonce:     frontendNonce,

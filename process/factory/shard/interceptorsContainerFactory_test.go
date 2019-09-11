@@ -77,6 +77,27 @@ func createStore() *mock.ChainStorerMock {
 }
 
 //------- NewInterceptorsContainerFactory
+func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		nil,
+		mock.NewOneShardCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+}
 
 func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()

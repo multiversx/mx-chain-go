@@ -48,7 +48,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	buffPk1, _ := nRequester.OwnAccount.SkTxSign.GeneratePublic().ToByteArray()
 
-	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{nRequester}, 0, []crypto.PrivateKey{nRequester.OwnAccount.SkTxSign}, big.NewInt(100000))
+	valMinting := big.NewInt(100000)
+	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{nRequester}, 0, []crypto.PrivateKey{nRequester.OwnAccount.SkTxSign}, valMinting)
 	//Step 1. Generate a signed transaction
 	tx := transaction.Transaction{
 		Nonce:   0,

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -31,6 +31,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	numOfShards := 6
 	nodesPerShard := 3
 	numMetachainNodes := 0
+	shardId := uint32(5)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -53,18 +54,20 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 	txToSend := 100
 
-	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), shardId)
 
 	fmt.Println("Generating and broadcasting transactions...")
-	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 5)
+	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
 	pkBytes, _ := pkInShardFive.ToByteArray()
 	addrInShardFive := hex.EncodeToString(pkBytes)
 
 	idxSender := 0
-	shardId := nodes[idxSender].ShardCoordinator.SelfId()
+	shardId = nodes[idxSender].ShardCoordinator.SelfId()
+	balanceValue := big.NewInt(100000)
+	transactionValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
-	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, big.NewInt(100000))
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, balanceValue)
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, transactionValue, uint64(txToSend))
 
 	time.Sleep(time.Second * 10)
 
@@ -105,6 +108,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	nodesPerShard := 3
 	numMetachainNodes := 0
 	firstSkInShard := uint32(4)
+	shardId := uint32(5)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -128,18 +132,20 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	txToSend := 100
 
-	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), shardId)
 
-	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 5)
+	_, pkInShardFive, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
 	pkBytes, _ := pkInShardFive.ToByteArray()
 	addrInShardFive := hex.EncodeToString(pkBytes)
 
 	idxSender := 0
-	shardId := uint32(4)
+	shardId = uint32(4)
+	mintingValue := big.NewInt(100000)
+	txValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
-	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, big.NewInt(100000))
+	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend))
 
 	//display, can be removed
 	for i := 0; i < 10; i++ {
@@ -236,10 +242,12 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	idxSender := 0
 	shardId := uint32(4)
+	mintingValue := big.NewInt(100000)
+	txValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
-	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, big.NewInt(100000))
+	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend))
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")
 	time.Sleep(time.Second * 10)
@@ -316,10 +324,19 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 		nodes = append(nodes, tn)
 	}
 
-	var txHashesGenerated [][]byte
-	var dPool dataRetriever.PoolsHolder
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), 0)
-	dPool, txHashesGenerated = integrationTests.CreateResolversDataPool(t, nodes, txGenerated, 0, 1, shardCoordinator)
+	senderShardId := uint32(0)
+	recvShardId := uint32(1)
+	balanceValue := big.NewInt(10000)
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), senderShardId)
+	dPool, txHashesGenerated, txsSndAddr := integrationTests.CreateResolversDataPool(t, txGenerated, senderShardId, recvShardId, shardCoordinator)
+
+	for _, n := range nodes {
+		for _, txSenderAddr := range txsSndAddr {
+			account, _ := n.AccntState.GetAccountWithJournal(state.NewAddress(txSenderAddr))
+			_ = account.(*state.Account).SetBalanceWithJournal(balanceValue)
+		}
+		_, _ = n.AccntState.Commit()
+	}
 
 	//shard 1, resolvers, same data pool, does not matter
 	for i := 0; i < nodesPerShard; i++ {

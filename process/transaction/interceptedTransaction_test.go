@@ -520,16 +520,13 @@ func TestNewInterceptedTransaction_GetNonce(t *testing.T) {
 		Signature: sigOk,
 	}
 
-	txi, err := createInterceptedTxFromPlainTx(tx)
-	assert.NotNil(t, txi)
-	assert.Nil(t, err)
-	assert.Equal(t, tx, txi.Transaction())
+	txi, _ := createInterceptedTxFromPlainTx(tx)
 
 	result := txi.GetNonce()
 	assert.Equal(t, nonce, result)
 }
 
-func TestNewInterceptedTransaction_GetSenderShardId(t *testing.T) {
+func TestNewInterceptedTransaction_SenderShardId(t *testing.T) {
 	t.Parallel()
 
 	tx := &dataTransaction.Transaction{
@@ -543,12 +540,9 @@ func TestNewInterceptedTransaction_GetSenderShardId(t *testing.T) {
 		Signature: sigOk,
 	}
 
-	txi, err := createInterceptedTxFromPlainTx(tx)
-	assert.NotNil(t, txi)
-	assert.Nil(t, err)
-	assert.Equal(t, tx, txi.Transaction())
+	txi, _ := createInterceptedTxFromPlainTx(tx)
 
-	result := txi.GetSenderShardId()
+	result := txi.SenderShardId()
 	assert.Equal(t, senderShard, result)
 }
 
@@ -574,10 +568,7 @@ func TestNewInterceptedTransaction_GetTotalValue(t *testing.T) {
 		Signature: sigOk,
 	}
 
-	txi, err := createInterceptedTxFromPlainTx(tx)
-	assert.NotNil(t, txi)
-	assert.Nil(t, err)
-	assert.Equal(t, tx, txi.Transaction())
+	txi, _ := createInterceptedTxFromPlainTx(tx)
 
 	result := txi.GetTotalValue()
 	assert.Equal(t, expectedValue, result)
@@ -597,10 +588,7 @@ func TestNewInterceptedTransaction_GetSenderAddress(t *testing.T) {
 		Signature: sigOk,
 	}
 
-	txi, err := createInterceptedTxFromPlainTx(tx)
-	assert.NotNil(t, txi)
-	assert.Nil(t, err)
-	assert.Equal(t, tx, txi.Transaction())
+	txi, _ := createInterceptedTxFromPlainTx(tx)
 
 	result := txi.GetSenderAddress()
 	assert.NotNil(t, result)

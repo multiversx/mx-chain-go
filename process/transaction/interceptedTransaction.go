@@ -193,8 +193,8 @@ func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
 }
 
-// GetSenderShardId returns the transaction sender shard id
-func (inTx *InterceptedTransaction) GetSenderShardId() uint32 {
+// SenderShardId returns the transaction sender shard id
+func (inTx *InterceptedTransaction) SenderShardId() uint32 {
 	return inTx.sndShard
 }
 

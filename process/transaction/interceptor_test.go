@@ -18,6 +18,14 @@ import (
 
 var durTimeout = time.Second
 
+func createMockedTxValidator() *mock.TxValidatorStub {
+	return &mock.TxValidatorStub{
+		RejectedTxsCalled: func() uint64 {
+			return 0
+		},
+	}
+}
+
 //------- NewTxInterceptor
 
 func TestNewTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
@@ -27,11 +35,7 @@ func TestNewTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
@@ -54,11 +58,7 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
@@ -104,11 +104,7 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	txPool := &mock.ShardedDataStub{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
@@ -132,11 +128,7 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
@@ -160,11 +152,7 @@ func TestNewTxInterceptor_NilSignerShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -186,11 +174,7 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
@@ -213,11 +197,7 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
@@ -241,11 +221,7 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
@@ -271,11 +247,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *te
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
@@ -300,11 +272,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t 
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
@@ -333,11 +301,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
@@ -370,11 +334,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
@@ -412,11 +372,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
@@ -547,11 +503,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 	errExpected := errors.New("sig not valid")
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			return errExpected
@@ -678,11 +630,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	multiSharder.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		return 0
 	}
-	txValidator := &mock.TxValidatorStub{
-		GetNumRejectedTxsCalled: func() uint64 {
-			return 0
-		},
-	}
+	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			return nil
@@ -748,7 +696,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *
 		IsTxValidForProcessingCalled: func(txHandler process.TxValidatorHandler) bool {
 			return false
 		},
-		GetNumRejectedTxsCalled: func() uint64 {
+		RejectedTxsCalled: func() uint64 {
 			return 0
 		},
 	}

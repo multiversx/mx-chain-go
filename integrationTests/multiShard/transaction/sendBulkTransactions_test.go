@@ -110,7 +110,8 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 		sendersSks = append(sendersSks, sender.sk)
 	}
 
-	integrationTests.CreateMintingForSenders(nodes, shardId, sendersSks, big.NewInt(100000))
+	valMinting := big.NewInt(100000)
+	integrationTests.CreateMintingForSenders(nodes, shardId, sendersSks, valMinting)
 
 	sentTxs, err := nodes[0].Node.SendBulkTransactions(txs)
 	assert.Nil(t, err)

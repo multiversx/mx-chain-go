@@ -37,7 +37,7 @@ type TxTypeHandler interface {
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
 	IsTxValidForProcessing(txHandler TxValidatorHandler) bool
-	GetNumRejectedTxs() uint64
+	NumRejectedTxs() uint64
 	IsInterfaceNil() bool
 }
 
@@ -351,7 +351,7 @@ type BlockSizeThrottler interface {
 
 // TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
 type TxValidatorHandler interface {
-	GetSenderShardId() uint32
+	SenderShardId() uint32
 	GetNonce() uint64
 	GetSenderAddress() state.AddressContainer
 	GetTotalValue() *big.Int

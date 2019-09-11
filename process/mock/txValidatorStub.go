@@ -6,15 +6,15 @@ import (
 
 type TxValidatorStub struct {
 	IsTxValidForProcessingCalled func(txValidatorHandler process.TxValidatorHandler) bool
-	GetNumRejectedTxsCalled      func() uint64
+	RejectedTxsCalled            func() uint64
 }
 
 func (t *TxValidatorStub) IsTxValidForProcessing(txValidatorHandler process.TxValidatorHandler) bool {
 	return t.IsTxValidForProcessingCalled(txValidatorHandler)
 }
 
-func (t *TxValidatorStub) GetNumRejectedTxs() uint64 {
-	return t.GetNumRejectedTxsCalled()
+func (t *TxValidatorStub) NumRejectedTxs() uint64 {
+	return t.RejectedTxsCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
