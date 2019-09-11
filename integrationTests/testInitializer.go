@@ -278,10 +278,12 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 }
 
 // CreateIeleVMAndBlockchainHook creates a new instance of a iele VM
-func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
+func CreateIeleVMAndBlockchainHook(
+	accnts state.AccountsAdapter,
+) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, TestAddressConverter)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, endpoint.ElrondTestnet)
+	vm := endpoint.NewElrondIeleVM(procFactory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 
 	return vm, blockChainHook
 }

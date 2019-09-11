@@ -11,7 +11,10 @@ import (
 func TestNewVMContainerFactory_NilAccounts(t *testing.T) {
 	t.Parallel()
 
-	vmf, err := NewVMContainerFactory(nil, &mock.AddressConverterMock{})
+	vmf, err := NewVMContainerFactory(
+		nil,
+		&mock.AddressConverterMock{},
+	)
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -20,7 +23,10 @@ func TestNewVMContainerFactory_NilAccounts(t *testing.T) {
 func TestNewVMContainerFactory_NilAddressConverter(t *testing.T) {
 	t.Parallel()
 
-	vmf, err := NewVMContainerFactory(&mock.AccountsStub{}, nil)
+	vmf, err := NewVMContainerFactory(
+		&mock.AccountsStub{},
+		nil,
+	)
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -29,7 +35,10 @@ func TestNewVMContainerFactory_NilAddressConverter(t *testing.T) {
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
-	vmf, err := NewVMContainerFactory(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+	vmf, err := NewVMContainerFactory(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+	)
 
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -38,7 +47,10 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	vmf, err := NewVMContainerFactory(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+	vmf, err := NewVMContainerFactory(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
 
