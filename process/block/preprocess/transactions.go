@@ -266,24 +266,32 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	for senderShardID, txsHashesInfo := range missingTxsForShards {
-		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: txsHashesInfo.receiverShardID}
-		for _, txHash := range txsHashesInfo.txHashes {
-			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	for senderShardID, mbsInfo := range missingTxsForShards {
+		for _, mbInfo := range mbsInfo {
+			txs.setMissingTxsForShard(senderShardID, mbInfo)
 		}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	for senderShardID, txsHashesInfo := range missingTxsForShards {
-		requestedTxs += len(txsHashesInfo.txHashes)
-		txs.onRequestTransaction(senderShardID, txsHashesInfo.txHashes)
+	for senderShardID, mbsInfo := range missingTxsForShards {
+		for _, mbInfo := range mbsInfo {
+			requestedTxs += len(mbInfo.txHashes)
+			txs.onRequestTransaction(senderShardID, mbInfo.txHashes)
+		}
 	}
 
 	return requestedTxs
 }
 
+func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbInfo *txsHashesInfo) {
+	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbInfo.receiverShardID}
+	for _, txHash := range mbInfo.txHashes {
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	}
+}
+
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
-func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
+func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32][]*txsHashesInfo {
 	missingTxsForShard := txs.computeExistingAndMissing(body, &txs.txsForCurrBlock, txs.chRcvAllTxs, block.TxBlock, txs.txPool)
 
 	return missingTxsForShard
@@ -386,7 +394,7 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 //TODO move this constant to txFeeHandler
 const minGasLimitForTx = uint64(5)
 
-const numZerosForSCAddress = 10
+const numZerosForSCAddress = 8
 
 //TODO move this to smart contract address calculation component
 func isSmartContractAddress(rcvAddress []byte) bool {
@@ -395,7 +403,7 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 		return true
 	}
 
-	isSCAddress := bytes.Equal(rcvAddress[:(numZerosForSCAddress-1)], make([]byte, numZerosForSCAddress-1))
+	isSCAddress := bytes.Equal(rcvAddress[:numZerosForSCAddress], make([]byte, numZerosForSCAddress))
 	if isSCAddress {
 		return true
 	}
