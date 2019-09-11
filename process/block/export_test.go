@@ -96,10 +96,6 @@ func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error 
 	return mp.removeBlockInfoFromPool(header)
 }
 
-func (mp *metaProcessor) DisplayMetaBlock(header *block.MetaBlock) {
-	mp.displayMetaBlock(header)
-}
-
 func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
 	mp.receivedHeader(hdrHash)
 }

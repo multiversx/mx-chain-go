@@ -444,7 +444,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	restoredTxNr, _, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
-	go sp.txCounter.substractRestoredTxs(restoredTxNr)
+	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 	if err != nil {
 		return err
 	}
