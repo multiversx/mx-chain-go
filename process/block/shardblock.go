@@ -199,7 +199,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.SetConsensusRewardAddresses(consensusAddresses, headerHandler.GetRound())
+	sp.SetConsensusData(consensusAddresses, headerHandler.GetRound())
 	sp.txCoordinator.CreateBlockStarted()
 	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalMetaHdrs := sp.requestMetaHeaders(header)
@@ -268,8 +268,8 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-// SetConsensusRewardAddresses - sets the reward addresses for the current consensus group
-func (sp *shardProcessor) SetConsensusRewardAddresses(consensusRewardAddresses []string, round uint64) {
+// SetConsensusData - sets the reward addresses for the current consensus group
+func (sp *shardProcessor) SetConsensusData(consensusRewardAddresses []string, round uint64) {
 	sp.specialAddressHandler.SetConsensusData(consensusRewardAddresses, round, 0)
 }
 

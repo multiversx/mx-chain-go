@@ -2,13 +2,13 @@ package transaction
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"

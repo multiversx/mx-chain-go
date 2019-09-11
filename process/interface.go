@@ -162,7 +162,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusRewardAddresses(consensusRewardAddresses []string, round uint64)
+	SetConsensusData(consensusRewardAddresses []string, round uint64)
 	IsInterfaceNil() bool
 }
 

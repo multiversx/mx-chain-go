@@ -224,8 +224,8 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-// SetConsensusRewardAddresses - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusRewardAddresses(consensusRewardAddresses []string, round uint64) {
+// SetConsensusData - sets the reward addresses for the current consensus group
+func (mp *metaProcessor) SetConsensusData(consensusRewardAddresses []string, round uint64) {
 	// TODO set the reward addresses for metachain consensus nodes
 }
 

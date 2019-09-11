@@ -125,7 +125,7 @@ func ProposeBlockWithConsensusSignature(
 
 	// set the consensus reward addresses
 	for _, node := range nodesMap[shardId] {
-		node.BlockProcessor.SetConsensusRewardAddresses(adddresses, round)
+		node.BlockProcessor.SetConsensusData(adddresses, round)
 	}
 
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
