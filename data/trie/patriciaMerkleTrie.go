@@ -19,15 +19,20 @@ const (
 var emptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
-	root         node
-	db           data.DBWriteCacher
-	marshalizer  marshal.Marshalizer
-	hasher       hashing.Hasher
-	mutOperation sync.RWMutex
+	root            node
+	db              data.DBWriteCacher
+	dbEvictionQueue []data.DBWriteCacher
+	marshalizer     marshal.Marshalizer
+	hasher          hashing.Hasher
+	mutOperation    sync.RWMutex
 }
 
 // NewTrie creates a new Patricia Merkle Trie
-func NewTrie(db data.DBWriteCacher, msh marshal.Marshalizer, hsh hashing.Hasher) (*patriciaMerkleTrie, error) {
+func NewTrie(
+	db data.DBWriteCacher,
+	msh marshal.Marshalizer,
+	hsh hashing.Hasher,
+) (*patriciaMerkleTrie, error) {
 	if db == nil || db.IsInterfaceNil() {
 		return nil, ErrNilDatabase
 	}
@@ -37,7 +42,13 @@ func NewTrie(db data.DBWriteCacher, msh marshal.Marshalizer, hsh hashing.Hasher)
 	if hsh == nil || hsh.IsInterfaceNil() {
 		return nil, ErrNilHasher
 	}
-	return &patriciaMerkleTrie{db: db, marshalizer: msh, hasher: hsh}, nil
+
+	return &patriciaMerkleTrie{
+		db:              db,
+		dbEvictionQueue: make([]data.DBWriteCacher, 0),
+		marshalizer:     msh,
+		hasher:          hsh,
+	}, nil
 }
 
 // Get starts at the root and searches for the given key.
@@ -235,6 +246,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	if err != nil {
 		return nil, err
 	}
+	newTr.dbEvictionQueue = tr.dbEvictionQueue
 
 	if emptyTrie(root) {
 		return newTr, nil
@@ -263,6 +275,7 @@ func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
 	if err != nil {
 		return nil, err
 	}
+	clonedTrie.dbEvictionQueue = tr.dbEvictionQueue
 
 	if tr.root == nil {
 		return clonedTrie, nil

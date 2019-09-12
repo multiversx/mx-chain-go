@@ -7,17 +7,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
-var marshalizer = &mock.ProtobufMarshalizerMock{}
-var hasher = &mock.KeccakMock{}
 var emptyTrieHash = make([]byte, 32)
 
-func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
+func emptyTrie() data.Trie {
+	tr, _ := trie.NewTrie(getDefaultTrieParameters())
+
+	return tr
+}
+
+func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashing.Hasher) {
 	db, _ := mock.NewMemDbMock()
-	tr, _ := trie.NewTrie(db, marshalizer, hasher)
+	marshalizer := &mock.ProtobufMarshalizerMock{}
+	hasher := &mock.KeccakMock{}
+
+	return db, marshalizer, hasher
+}
+
+func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
+	tr := emptyTrie()
 
 	var values [][]byte
 	hsh := keccak.Keccak{}
@@ -31,9 +44,7 @@ func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
 }
 
 func initTrie() data.Trie {
-	db, _ := mock.NewMemDbMock()
-	tr, _ := trie.NewTrie(db, marshalizer, hasher)
-
+	tr := emptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
@@ -42,29 +53,34 @@ func initTrie() data.Trie {
 }
 
 func TestNewTrieWithNilDB(t *testing.T) {
+	t.Parallel()
+	_, marshalizer, hasher := getDefaultTrieParameters()
 	tr, err := trie.NewTrie(nil, marshalizer, hasher)
 
 	assert.Nil(t, tr)
-	assert.NotNil(t, err)
+	assert.Equal(t, trie.ErrNilDatabase, err)
 }
 
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
-	db, _ := mock.NewMemDbMock()
+	t.Parallel()
+	db, _, hasher := getDefaultTrieParameters()
 	tr, err := trie.NewTrie(db, nil, hasher)
 
 	assert.Nil(t, tr)
-	assert.NotNil(t, err)
+	assert.Equal(t, trie.ErrNilMarshalizer, err)
 }
 
 func TestNewTrieWithNilHasher(t *testing.T) {
-	db, _ := mock.NewMemDbMock()
+	t.Parallel()
+	db, marshalizer, _ := getDefaultTrieParameters()
 	tr, err := trie.NewTrie(db, marshalizer, nil)
 
 	assert.Nil(t, tr)
-	assert.NotNil(t, err)
+	assert.Equal(t, trie.ErrNilHasher, err)
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
+	t.Parallel()
 	tr, val := initTrieMultipleValues(10000)
 
 	for i := range val {
@@ -74,8 +90,8 @@ func TestPatriciaMerkleTree_Get(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_GetEmptyTrie(t *testing.T) {
-	db, _ := mock.NewMemDbMock()
-	tr, _ := trie.NewTrie(db, marshalizer, hasher)
+	t.Parallel()
+	tr := emptyTrie()
 
 	val, err := tr.Get([]byte("dog"))
 	assert.Nil(t, err)
@@ -83,6 +99,7 @@ func TestPatriciaMerkleTree_GetEmptyTrie(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Update(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	newVal := []byte("doge")
@@ -93,6 +110,7 @@ func TestPatriciaMerkleTree_Update(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 	var empty []byte
 
@@ -103,6 +121,7 @@ func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	_ = tr.Update([]byte("does"), []byte("this"))
@@ -112,6 +131,7 @@ func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Delete(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 	var empty []byte
 
@@ -122,14 +142,15 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_DeleteEmptyTrie(t *testing.T) {
-	db, _ := mock.NewMemDbMock()
-	tr, _ := trie.NewTrie(db, marshalizer, hasher)
+	t.Parallel()
+	tr := emptyTrie()
 
 	err := tr.Delete([]byte("dog"))
 	assert.Nil(t, err)
 }
 
 func TestPatriciaMerkleTree_Root(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	root, err := tr.Root()
@@ -138,8 +159,8 @@ func TestPatriciaMerkleTree_Root(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
-	db, _ := mock.NewMemDbMock()
-	tr, _ := trie.NewTrie(db, marshalizer, hasher)
+	t.Parallel()
+	tr := emptyTrie()
 
 	root, err := tr.Root()
 	assert.Nil(t, err)
@@ -147,6 +168,7 @@ func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	proof, err := tr.Prove([]byte("dog"))
@@ -156,6 +178,7 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 	_ = tr.Commit()
 
@@ -166,8 +189,8 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
-	db, _ := mock.NewMemDbMock()
-	tr, _ := trie.NewTrie(db, marshalizer, hasher)
+	t.Parallel()
+	tr := emptyTrie()
 
 	proof, err := tr.Prove([]byte("dog"))
 	assert.Nil(t, proof)
@@ -175,6 +198,7 @@ func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
+	t.Parallel()
 	tr, val := initTrieMultipleValues(50)
 
 	for i := range val {
@@ -192,6 +216,7 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_VerifyProofNilProofs(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	ok, err := tr.VerifyProof(nil, []byte("dog"))
@@ -200,6 +225,7 @@ func TestPatriciaMerkleTree_VerifyProofNilProofs(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	ok, err := tr.VerifyProof([][]byte{}, []byte("dog"))
@@ -208,6 +234,7 @@ func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Consistency(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 	root1, _ := tr.Root()
 
@@ -222,6 +249,7 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Commit(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	err := tr.Commit()
@@ -229,6 +257,7 @@ func TestPatriciaMerkleTree_Commit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_CommitCollapsesTrieOk(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	_ = tr.Update([]byte("zebra"), []byte("zebra"))
@@ -240,6 +269,7 @@ func TestPatriciaMerkleTree_CommitCollapsesTrieOk(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_CommitAfterCommit(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	_ = tr.Commit()
@@ -248,14 +278,15 @@ func TestPatriciaMerkleTree_CommitAfterCommit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_CommitEmptyRoot(t *testing.T) {
-	db, _ := mock.NewMemDbMock()
-	tr, _ := trie.NewTrie(db, marshalizer, hasher)
+	t.Parallel()
+	tr := emptyTrie()
 
 	err := tr.Commit()
 	assert.Nil(t, err)
 }
 
 func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	err := tr.Commit()
@@ -267,6 +298,7 @@ func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
+	t.Parallel()
 	tr1 := initTrie()
 	tr2 := initTrie()
 
@@ -284,6 +316,7 @@ func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
+	t.Parallel()
 	tr1 := initTrie()
 	tr2 := initTrie()
 
@@ -300,6 +333,7 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 	rootHash, _ := tr.Root()
 	_ = tr.Commit()
@@ -313,6 +347,7 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 }
 
 func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
+	t.Parallel()
 	tr := initTrie()
 
 	newTr, err := tr.Recreate(nil)
@@ -321,13 +356,8 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 	assert.Equal(t, emptyTrieHash, root)
 }
 
-func emptyTrie() data.Trie {
-	db, _ := mock.NewMemDbMock()
-	tr, _ := trie.NewTrie(db, marshalizer, hasher)
-	return tr
-}
-
 func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing.T) {
+	t.Parallel()
 	tr1 := emptyTrie()
 	tr2 := emptyTrie()
 
@@ -345,6 +375,7 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 }
 
 func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T) {
+	t.Parallel()
 	tr := emptyTrie()
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
@@ -357,6 +388,7 @@ func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T
 }
 
 func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testing.T) {
+	t.Parallel()
 	tr := emptyTrie()
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
@@ -370,7 +402,6 @@ func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testin
 
 func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
 	t.Parallel()
-
 	tr := initTrie()
 
 	_ = tr.Update([]byte("doee"), []byte("value of doee"))
