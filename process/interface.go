@@ -356,3 +356,9 @@ type TxValidatorHandler interface {
 	SenderAddress() state.AddressContainer
 	TotalValue() *big.Int
 }
+
+// PoolsCleaner define the functionality that is needed for a pools cleaner
+type PoolsCleaner interface {
+	Clean(haveTime func() bool) error
+	NumRemovedTxs() uint64
+}

@@ -22,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+const cleaningTime = 1.0
+
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
@@ -41,6 +43,8 @@ type shardProcessor struct {
 	core          serviceContainer.Core
 	txCoordinator process.TransactionCoordinator
 	txCounter     *transactionCounter
+
+	txsPoolsCleaner process.PoolsCleaner
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -107,15 +111,20 @@ func NewShardProcessor(
 		return nil, err
 	}
 
-	sp := shardProcessor{
-		core:          core,
-		baseProcessor: base,
-		dataPool:      dataPool,
-		blocksTracker: blocksTracker,
-		txCoordinator: txCoordinator,
-		txCounter:     NewTransactionCounter(),
+	txsPoolsCleaner, err := NewTxsPoolsCleaner(accounts, shardCoordinator, dataPool)
+	if err != nil {
+		return nil, err
 	}
 
+	sp := shardProcessor{
+		core:            core,
+		baseProcessor:   base,
+		dataPool:        dataPool,
+		blocksTracker:   blocksTracker,
+		txCoordinator:   txCoordinator,
+		txCounter:       NewTransactionCounter(),
+		txsPoolsCleaner: txsPoolsCleaner,
+	}
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
 	transactionPool := sp.dataPool.Transactions()
@@ -698,8 +707,9 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler)
+
+	sp.cleanTxsPools()
 
 	// write data to log
 	go sp.txCounter.displayLogInfo(
@@ -714,6 +724,21 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockSizeThrottler.Succeed(header.Round)
 
 	return nil
+}
+
+func (sp *shardProcessor) cleanTxsPools() {
+	go func() {
+		startTime := time.Now()
+		haveTime := func() bool {
+			return time.Now().Sub(startTime).Seconds() < cleaningTime
+		}
+
+		errW := sp.txsPoolsCleaner.Clean(haveTime)
+		log.LogIfError(errW)
+
+		numRemovedTxs := sp.txsPoolsCleaner.NumRemovedTxs()
+		log.Info(fmt.Sprintf("Total txs removed from pools with clean mechanism  %d", numRemovedTxs))
+	}()
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
