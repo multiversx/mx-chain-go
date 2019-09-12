@@ -592,7 +592,7 @@ func (boot *ShardBootstrap) syncBlocks() {
 	}
 }
 
-func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error, isProcessingError bool) {
+func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 	if err == process.ErrTimeIsOut {
 		boot.requestsWithTimeout++
 	}
@@ -607,21 +607,6 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error, i
 			log.Info(errNotCritical.Error())
 		}
 	}
-
-	// The below section of code fixed a situation when all peers would have replaced in their headerNonceHash pool a
-	// good/used header in their blockchain construction, with a wrong/unused header on which they didn't construct,
-	// but which came after a late broadcast from a valid proposer.
-	//if err != process.ErrTimeIsOut && isProcessingError &&
-	//	boot.forkDetector.GetHighestFinalBlockNonce() < hdr.Nonce-1 {
-	//	prevHdr, errNotCritical := boot.getHeaderWithHashRequestingIfMissing(hdr.GetPrevHash())
-	//	if errNotCritical != nil {
-	//		log.Info(errNotCritical.Error())
-	//	} else {
-	//		syncMap := &dataPool.ShardIdHashSyncMap{}
-	//		syncMap.Store(prevHdr.GetShardID(), hdr.GetPrevHash())
-	//		boot.headersNonces.Merge(prevHdr.GetNonce(), syncMap)
-	//	}
-	//}
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
@@ -665,10 +650,9 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		return err
 	}
 
-	isProcessingError := false
 	defer func() {
 		if err != nil {
-			boot.doJobOnSyncBlockFail(hdr, err, isProcessingError)
+			boot.doJobOnSyncBlockFail(hdr, err)
 		}
 	}()
 
@@ -696,7 +680,6 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	timeBefore := time.Now()
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 	if err != nil {
-		isProcessingError = true
 		return err
 	}
 	timeAfter := time.Now()

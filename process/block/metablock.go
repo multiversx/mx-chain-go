@@ -175,7 +175,9 @@ func (mp *metaProcessor) ProcessBlock(
 		mp.allNeededShardHdrsFound = true
 		unreceivedShardHdrs := len(mp.requestedShardHdrsHashes)
 		mp.mutRequestedShardHdrsHashes.Unlock()
-		log.Info(fmt.Sprintf("received %d missing shard headers\n", int(requestedShardHdrs)-unreceivedShardHdrs))
+		if requestedShardHdrs > 0 {
+			log.Info(fmt.Sprintf("received %d missing shard headers\n", int(requestedShardHdrs)-unreceivedShardHdrs))
+		}
 		if err != nil {
 			return err
 		}
@@ -833,6 +835,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		if lenReqShardHdrsHashes == 0 {
 			requestedBlockHeaders := mp.requestFinalMissingHeaders()
 			if requestedBlockHeaders == 0 {
+				log.Info(fmt.Sprintf("received all final shard headers\n"))
 				areFinalAttestingHdrsInCache = true
 			} else {
 				log.Info(fmt.Sprintf("requested %d missing final shard headers\n", requestedBlockHeaders))
