@@ -1,12 +1,13 @@
 package shard
 
 import (
+	vm "github.com/ElrondNetwork/elrond-go/core/libLocator"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/ElrondNetwork/hera/evmc/bindings/go/evmc"
 )
@@ -48,42 +49,42 @@ func NewVMContainerFactory(
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
-	vm, err := vmf.createIeleVM()
+	currVm, err := vmf.createIeleVM()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(factory.IELEVirtualMachine, vm)
+	err = container.Add(factory.IELEVirtualMachine, currVm)
 	if err != nil {
 		return nil, err
 	}
 
-	vm, err = vmf.createHeraBinaryenVM()
+	currVm, err = vmf.createHeraBinaryenVM()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(factory.HeraWBinaryenVirtualMachine, vm)
+	err = container.Add(factory.HeraWBinaryenVirtualMachine, currVm)
 	if err != nil {
 		return nil, err
 	}
 
-	vm, err = vmf.createHeraWABTVM()
+	currVm, err = vmf.createHeraWABTVM()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(factory.HeraWABTVirtualMachine, vm)
+	err = container.Add(factory.HeraWABTVirtualMachine, currVm)
 	if err != nil {
 		return nil, err
 	}
 
-	vm, err = vmf.createHeraWAVMVM()
+	currVm, err = vmf.createHeraWAVMVM()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(factory.HeraWAVMVirtualMachine, vm)
+	err = container.Add(factory.HeraWAVMVirtualMachine, currVm)
 	if err != nil {
 		return nil, err
 	}
@@ -97,19 +98,19 @@ func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, erro
 }
 
 func (vmf *vmContainerFactory) createHeraBinaryenVM() (vmcommon.VMExecutionHandler, error) {
-	config := "./libhera.so,engine=binaryen"
+	config := vm.WASMLibLocation() + ",engine=binaryen"
 	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
 	return wasmVM, err
 }
 
 func (vmf *vmContainerFactory) createHeraWABTVM() (vmcommon.VMExecutionHandler, error) {
-	config := "./libhera.so,engine=wabt"
+	config := vm.WASMLibLocation() + ",engine=wabt"
 	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
 	return wasmVM, err
 }
 
 func (vmf *vmContainerFactory) createHeraWAVMVM() (vmcommon.VMExecutionHandler, error) {
-	config := "./libhera.so,engine=wavm"
+	config := vm.WASMLibLocation() + ",engine=wavm"
 	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
 	return wasmVM, err
 }

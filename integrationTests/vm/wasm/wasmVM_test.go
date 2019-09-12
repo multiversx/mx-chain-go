@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	vmLib "github.com/ElrondNetwork/elrond-go/core/libLocator"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -39,7 +40,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCodeString+"@"+hex.EncodeToString(factory.HeraWABTVirtualMachine),
 	)
 
-	config := "./libhera.so,engine=wavm"
+	config := vmLib.WASMLibLocation() + ",engine=wavm"
 	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithWASMVM(t, senderNonce, senderAddressBytes, senderBalance, config)
 
 	err = txProc.ProcessTransaction(tx, round)
@@ -96,7 +97,7 @@ func runWASMVMBenchmark(t *testing.T, fileSC string, numRun int, testingValue ui
 		scCodeString+"@"+hex.EncodeToString(factory.HeraWABTVirtualMachine),
 	)
 
-	config := "./libhera.so,engine=wavm"
+	config := vmLib.WASMLibLocation() + ",engine=wavm"
 	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithWASMVM(t, ownerNonce, ownerAddressBytes, ownerBalance, config)
 
 	err = txProc.ProcessTransaction(tx, round)
@@ -162,7 +163,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 		scCodeString+"@"+hex.EncodeToString(factory.HeraWABTVirtualMachine),
 	)
 
-	config := "./libhera.so,engine=wabt"
+	config := vmLib.WASMLibLocation() + ",engine=wabt"
 	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithWASMVM(t, ownerNonce, ownerAddressBytes, ownerBalance, config)
 
 	err = txProc.ProcessTransaction(tx, round)
