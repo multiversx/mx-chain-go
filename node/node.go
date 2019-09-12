@@ -409,6 +409,11 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		return nil, err
 	}
 
+	err = bootstrap.SetStatusHandler(n.GetAppStatusHandler())
+	if err != nil {
+		log.Warn("cannot set app status handler for shard bootstrapper")
+	}
+
 	return bootstrap, nil
 }
 
@@ -431,6 +436,11 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 
 	if err != nil {
 		return nil, err
+	}
+
+	err = bootstrap.SetStatusHandler(n.GetAppStatusHandler())
+	if err != nil {
+		log.Warn("cannot set app status handler for meta chain bootstrapper")
 	}
 
 	return bootstrap, nil

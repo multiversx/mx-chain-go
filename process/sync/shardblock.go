@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -32,6 +33,7 @@ type ShardBootstrap struct {
 	resolversFinder   dataRetriever.ResolversFinder
 	hdrRes            dataRetriever.HeaderResolver
 	miniBlockResolver dataRetriever.MiniBlocksResolver
+	statusHandler     core.AppStatusHandler
 }
 
 // NewShardBootstrap creates a new Bootstrap object
@@ -132,6 +134,8 @@ func NewShardBootstrap(
 	boot.headers.RegisterHandler(boot.receivedHeaders)
 
 	boot.chStopSync = make(chan bool)
+
+	boot.statusHandler = statusHandler.NewNilStatusHandler()
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
@@ -576,6 +580,16 @@ func (boot *ShardBootstrap) StopSync() {
 	boot.chStopSync <- true
 }
 
+// SetStatusHandler will set the instance of the AppStatusHandler
+func (boot *ShardBootstrap) SetStatusHandler(handler core.AppStatusHandler) error {
+	if handler != nil {
+		boot.statusHandler = handler
+		return nil
+	}
+
+	return process.ErrNilAppStatusHandler
+}
+
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *ShardBootstrap) syncBlocks() {
 	for {
@@ -846,6 +860,7 @@ func (boot *ShardBootstrap) waitForMiniBlocks() error {
 // forkChoice decides if rollback must be called
 func (boot *ShardBootstrap) forkChoice() error {
 	log.Info("starting fork choice\n")
+	boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 	isForkResolved := false
 	for !isForkResolved {
 		header, err := boot.getCurrentHeader()

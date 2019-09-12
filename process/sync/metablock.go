@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -26,6 +27,7 @@ type MetaBootstrap struct {
 
 	resolversFinder dataRetriever.ResolversFinder
 	hdrRes          dataRetriever.HeaderResolver
+	statusHandler   core.AppStatusHandler
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -115,6 +117,8 @@ func NewMetaBootstrap(
 	boot.headers.RegisterHandler(boot.receivedHeader)
 
 	boot.chStopSync = make(chan bool)
+
+	boot.statusHandler = statusHandler.NewNilStatusHandler()
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
@@ -363,6 +367,16 @@ func (boot *MetaBootstrap) StopSync() {
 	boot.chStopSync <- true
 }
 
+// SetStatusHandler will set the instance of the AppStatusHandler
+func (boot *MetaBootstrap) SetStatusHandler(handler core.AppStatusHandler) error {
+	if handler != nil {
+		boot.statusHandler = handler
+		return nil
+	}
+
+	return process.ErrNilAppStatusHandler
+}
+
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *MetaBootstrap) syncBlocks() {
 	for {
@@ -558,6 +572,7 @@ func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (*b
 // forkChoice decides if rollback must be called
 func (boot *MetaBootstrap) forkChoice() error {
 	log.Info("starting fork choice\n")
+	boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 	isForkResolved := false
 	for !isForkResolved {
 		header, err := boot.getCurrentHeader()

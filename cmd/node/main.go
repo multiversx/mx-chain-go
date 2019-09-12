@@ -741,6 +741,7 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 }
 
 func startStatusPolling(
