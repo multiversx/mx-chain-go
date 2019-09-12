@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +45,7 @@ func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint
 		vm.CreateEmptyAddress().Bytes(),
 		senderNonce,
 		big.NewInt(0),
-		scCode,
+		scCode+"@"+hex.EncodeToString(factory.InternalTestingVM),
 		initialValueForInternalVariable,
 	)
 
@@ -93,8 +94,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	fmt.Println("Step 1. Setup nodes...")
-
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
 	senderNonce := uint64(0)
@@ -133,7 +132,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Now that the SC is deployed, we test a call from an account located in the first shard
 	addValue := uint64(100)
@@ -171,8 +170,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	fmt.Println("Step 1. Setup nodes...")
 
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
@@ -218,7 +215,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Now that the SC is deployed, we test a call from an account located in the second shard
 	addValue := uint64(100)
@@ -271,8 +268,6 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 		t.Skip("this is not a short test")
 	}
 
-	fmt.Println("Step 1. Setup nodes...")
-
 	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
 	accShard := uint32(1)
@@ -316,7 +311,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Update the SC account balance so we can call withdraw function
 	createMintingForSenders(nodes, scShard, [][]byte{scDeploymentAdddress}, mintingValue)
