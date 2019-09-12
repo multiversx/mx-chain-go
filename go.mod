@@ -7,7 +7,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.19
 	github.com/ElrondNetwork/elrond-vm-common v0.0.8
-	github.com/ElrondNetwork/hera v1.0.1
+	github.com/ElrondNetwork/hera v1.0.5
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
@@ -55,5 +55,3 @@ require (
 	golang.org/x/sys v0.0.0-20190825160603-fb81701db80f // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
-
-replace github.com/ElrondNetwork/hera => ../hera

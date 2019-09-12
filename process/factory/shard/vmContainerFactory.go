@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
+	"github.com/ElrondNetwork/hera/evmc/bindings/go/evmc"
 )
 
 type vmContainerFactory struct {
@@ -57,12 +58,60 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
+	vm, err = vmf.createHeraBinaryenVM()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.HeraWBinaryenVirtualMachine, vm)
+	if err != nil {
+		return nil, err
+	}
+
+	vm, err = vmf.createHeraWABTVM()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.HeraWABTVirtualMachine, vm)
+	if err != nil {
+		return nil, err
+	}
+
+	vm, err = vmf.createHeraWAVMVM()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.HeraWAVMVirtualMachine, vm)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
 	return ieleVM, nil
+}
+
+func (vmf *vmContainerFactory) createHeraBinaryenVM() (vmcommon.VMExecutionHandler, error) {
+	config := "./libhera.so,engine=binaryen"
+	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
+	return wasmVM, err
+}
+
+func (vmf *vmContainerFactory) createHeraWABTVM() (vmcommon.VMExecutionHandler, error) {
+	config := "./libhera.so,engine=wabt"
+	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
+	return wasmVM, err
+}
+
+func (vmf *vmContainerFactory) createHeraWAVMVM() (vmcommon.VMExecutionHandler, error) {
+	config := "./libhera.so,engine=wavm"
+	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
+	return wasmVM, err
 }
 
 // VMAccountsDB returns the created vmAccountsDB

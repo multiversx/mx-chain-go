@@ -4,7 +4,6 @@ package vm
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/hera/evmc/bindings/go/evmc"
 	"math/big"
 	"testing"
 
@@ -23,8 +22,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
+	"github.com/ElrondNetwork/hera/evmc/bindings/go/evmc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -160,7 +160,7 @@ func CreateTxProcessorWithOneSCExecutorWASMVM(
 
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := evmc.NewWASMInstance(config, blockChainHook, cryptoHook, factory.HeraWABTVirtualMachine)
+	vm, _ := evmc.NewWASMInstance(config, blockChainHook, cryptoHook, factory.HeraWABTVirtualMachine)
 
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {

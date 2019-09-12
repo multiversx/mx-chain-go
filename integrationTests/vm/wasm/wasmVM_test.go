@@ -3,24 +3,18 @@ package wasm
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
-var erc20wasm = "./main_ewasmified.wasm"
-var benchmarks = "./fibonacci38_ewasmified.wasm"
-var agarioFile = "../../agar_v1_min.hex"
-
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
-	t.Skip("skip it now")
-
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)
@@ -29,7 +23,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, err := ioutil.ReadFile(benchmarks)
+	scCode, err := ioutil.ReadFile("./store.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -42,7 +36,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCodeString,
+		scCodeString+"@"+hex.EncodeToString(factory.HeraWABTVirtualMachine),
 	)
 
 	config := "./libhera.so,engine=wavm"
@@ -54,7 +48,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(99999139)
+	expectedBalance := big.NewInt(99999805)
 	fmt.Printf("%s \n", hex.EncodeToString(expectedBalance.Bytes()))
 
 	vm.TestAccount(
@@ -63,17 +57,21 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		expectedBalance)
-
-	fmt.Printf("%s \n", hex.EncodeToString(keccak.Keccak{}.Compute("transfer")))
-	fmt.Printf("%s \n", hex.EncodeToString(keccak.Keccak{}.Compute("balance")))
-	fmt.Printf("%s \n", hex.EncodeToString(keccak.Keccak{}.Compute("topUp")))
-	fmt.Printf("%s \n", hex.EncodeToString(keccak.Keccak{}.Compute("joinGame")))
-	fmt.Printf("%s \n", hex.EncodeToString(keccak.Keccak{}.Compute("rewardAndSendToWallet")))
 }
 
-func TestVmDeployWithTransferAndExecute(t *testing.T) {
-	t.Skip("skip it now")
+func TestVmDeployWithFibbonacciAndExecute(t *testing.T) {
+	runWASMVMBenchmark(t, "./fibonacci_ewasmified.wasm", 100, 32)
+}
 
+func TestVmDeployWithCPUCalculateAndExecute(t *testing.T) {
+	runWASMVMBenchmark(t, "./cpucalculate_ewasmified.wasm", 100, 8000)
+}
+
+func TestVmDeployWithStringConcatAndExecute(t *testing.T) {
+	runWASMVMBenchmark(t, "./stringconcat_ewasmified.wasm", 100, 10000)
+}
+
+func runWASMVMBenchmark(t *testing.T, fileSC string, numRun int, testingValue uint64) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(100000000)
@@ -82,7 +80,7 @@ func TestVmDeployWithTransferAndExecute(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(1)
 
-	scCode, err := ioutil.ReadFile(benchmarks)
+	scCode, err := ioutil.ReadFile(fileSC)
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -95,7 +93,7 @@ func TestVmDeployWithTransferAndExecute(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCodeString,
+		scCodeString+"@"+hex.EncodeToString(factory.HeraWABTVirtualMachine),
 	)
 
 	config := "./libhera.so,engine=wavm"
@@ -107,24 +105,21 @@ func TestVmDeployWithTransferAndExecute(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	scAddress, _ := hex.DecodeString("0000000000000000000061356266303466386236353138373434383437633132")
+	scAddress, _ := hex.DecodeString("000000000000000002001a2983b179a480a60c4308da48f13b4480dbb4d33132")
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
 	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(10000000000))
 
-	bob := []byte("12345678901234567890123456789222")
-	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
-
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < numRun; i++ {
 		tx = &transaction.Transaction{
 			Nonce:     aliceNonce,
-			Value:     big.NewInt(64),
+			Value:     big.NewInt(0).SetUint64(testingValue),
 			RcvAddr:   scAddress,
 			SndAddr:   alice,
 			GasPrice:  0,
 			GasLimit:  5000,
-			Data:      "joinGame@111",
+			Data:      "benchmark",
 			Signature: nil,
 			Challenge: nil,
 		}
@@ -142,80 +137,7 @@ func TestVmDeployWithTransferAndExecute(t *testing.T) {
 	}
 }
 
-func TestVmDeployWithTransferAndExecuteIele(t *testing.T) {
-	t.Skip("skip it now")
-
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(100000000)
-	round := uint64(444)
-	gasPrice := uint64(1)
-	gasLimit := uint64(100000)
-	transferOnCalls := big.NewInt(500000)
-
-	scCode, err := ioutil.ReadFile(agarioFile)
-	assert.Nil(t, err)
-
-	scCodeString := string(scCode)
-
-	tx := vm.CreateTx(
-		t,
-		ownerAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
-		ownerNonce,
-		transferOnCalls,
-		gasPrice,
-		gasLimit,
-		scCodeString,
-	)
-
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, ownerNonce, ownerAddressBytes, ownerBalance)
-
-	err = txProc.ProcessTransaction(tx, round)
-	assert.Nil(t, err)
-
-	_, err = accnts.Commit()
-	assert.Nil(t, err)
-
-	scAddress, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
-
-	alice := []byte("12345678901234567890123456789111")
-	aliceNonce := uint64(0)
-	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
-
-	bob := []byte("12345678901234567890123456789222")
-	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
-
-	startTime := time.Now()
-	for i := 0; i < 10000; i++ {
-		tx = &transaction.Transaction{
-			Nonce:     aliceNonce,
-			Value:     big.NewInt(50),
-			RcvAddr:   scAddress,
-			SndAddr:   alice,
-			GasPrice:  0,
-			GasLimit:  5000,
-			Data:      "joinGame@111",
-			Signature: nil,
-			Challenge: nil,
-		}
-
-		err = txProc.ProcessTransaction(tx, round)
-		assert.Nil(t, err)
-
-		_, err = accnts.Commit()
-		assert.Nil(t, err)
-
-		aliceNonce++
-	}
-
-	elapsedTime := time.Since(startTime)
-	fmt.Printf("time elapsed %s \n", elapsedTime.String())
-}
-
 func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
-	t.Skip("skip it now")
-
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(100000000)
@@ -224,7 +146,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := ioutil.ReadFile(erc20wasm)
+	scCode, err := ioutil.ReadFile("./wrc20_ewasmified.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -237,7 +159,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
-		scCodeString,
+		scCodeString+"@"+hex.EncodeToString(factory.HeraWABTVirtualMachine),
 	)
 
 	config := "./libhera.so,engine=wabt"
@@ -249,7 +171,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	scAddress, _ := hex.DecodeString("0000000000000000000061356266303466386236353138373434383437633132")
+	scAddress, _ := hex.DecodeString("000000000000000002001a2983b179a480a60c4308da48f13b4480dbb4d33132")
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
@@ -265,7 +187,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 		SndAddr:   alice,
 		GasPrice:  0,
 		GasLimit:  5000,
-		Data:      "topUp@50",
+		Data:      "topUp@1",
 		Signature: nil,
 		Challenge: nil,
 	}
@@ -281,7 +203,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	aliceNonce++
 
 	start = time.Now()
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 10000; i++ {
 		tx = &transaction.Transaction{
 			Nonce:     aliceNonce,
 			Value:     big.NewInt(5),
@@ -304,5 +226,5 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	assert.Nil(t, err)
 
 	elapsedTime = time.Since(start)
-	fmt.Printf("time elapsed to process 100000 ERC20 transfers %s \n", elapsedTime.String())
+	fmt.Printf("time elapsed to process 10000 ERC20 transfers %s \n", elapsedTime.String())
 }
