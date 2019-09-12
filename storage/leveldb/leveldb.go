@@ -128,7 +128,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	return data, nil
 }
 
-// Has returns true if the given key is present in the persistance medium
+// Has returns true if the given key is present in the persistence medium
 func (s *DB) Has(key []byte) error {
 	has, err := s.db.Has(key, nil)
 	if err != nil {

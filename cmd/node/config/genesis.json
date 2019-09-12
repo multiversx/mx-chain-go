@@ -2,87 +2,87 @@
   "initialBalances": [
     {
       "pubkey": "d4105de8e44aee9d4be670401cec546e5df381028e805012386a05acf76518d9",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "d11e60011ffc1b7ebb1fd4c92c2821ecef8bed5c518d76a24640153a462cdc1e",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "0f36a982b79d3c1fda9b82a646a2b423cb3e7223cffbae73a4e3d2c1ea62ee5e",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "8c93db70abe14a6aa8c4ca7b722b67f4342b4251c0f3731b12b5f75885a9b9b6",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "afb051dc3a1dfb029866730243c2cbc51d8b8ef15951e4da3929f9c8391f307a",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "86fe0a4a9bf7dbed6784b8cfbfd5a80d927be30b4debff67e60e1fd05cd2359b",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "fdc635bc2bf1477609bea5ba90365a99d4bbb023b2eaffb5c20642a2f2458dfa",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "5bdf4c81489bea69ba29cd3eea2670c1bb6cb5d922fa8cb6e17bca71dfdd49f0",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "22c2e3721a6256a5891ba612ad55343dceb6655388176f981ab2885ed756d6fd",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "f9c28a8369df5ff3f8589a0aaad93d2d8f94f5ad70d898d422c964fdd6a87d0b",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "69e34e6a9e6aeb051f46e15cae1fe7d0f8641b6bcd9ff23ab228c78b1e4418af",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "d453e66ea50b05ec3c102cdaabbcee172136f53db82ba434ca170a53483d4ad1",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "04e61f7bf892ca638451f6efeccf069d7fb5a5c82303aa27e6d28725da8ae1df",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "97d0f43b88e104aa9b0cc98c5cea96f5468a59d3986d2d187b19319a5911b7ff",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "8e660d69a8d99e9cb15323c0c8db36f1f432231a1b9a74da8ffa44a2b9abc7fe",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "a901ae67ca50d4af01f813da27613f124137be835a5d6902697ec719b2df704f",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "6b0dcc478115c270f2a6c6a9809c04b61eff8a5877b837d86810396fdb50feda",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "c53b7e4463091a999e002c75ed55c79e1f4c64e91ca8ba1b72d984dea9c0e477",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "18e6af48dad7fd4902991efb019e741e0f2a7a192c8678b1da3f4cf42c164519",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "95fe2d76c72ada51156aed96d083c993d637d7a772fb48efeb8bc3f3cedc7237",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     },
     {
       "pubkey": "d6ad6476141dd798dc7b009b92b8c2d50a8caff8452a459548aa5ccb6c11b6c3",
-      "balance": "10000000000"
+      "balance": "10000000000000000000000000000"
     }
   ]
 }
