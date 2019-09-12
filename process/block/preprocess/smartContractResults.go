@@ -255,7 +255,7 @@ func (scr *smartContractResults) receivedSmartContractResult(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created smartContractResults at this round
 func (scr *smartContractResults) CreateBlockStarted() {
-	process.EmptyChannel(scr.chRcvAllScrs)
+	_ = process.EmptyChannel(scr.chRcvAllScrs)
 
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	scr.scrForBlock.missingTxs = 0
@@ -265,36 +265,36 @@ func (scr *smartContractResults) CreateBlockStarted() {
 
 // RequestBlockTransactions request for smartContractResults if missing from a block.Body
 func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
-	requestedScrs := 0
-	missingScrsForShards := scr.computeMissingAndExistingScrsForShards(body)
+	requestedSCResults := 0
+	missingSCResultsForShards := scr.computeMissingAndExistingSCResultsForShards(body)
 
 	scr.scrForBlock.mutTxsForBlock.Lock()
-	for senderShardID, mbsInfo := range missingScrsForShards {
-		for _, mbInfo := range mbsInfo {
-			scr.setMissingTxsForShard(senderShardID, mbInfo)
+	for senderShardID, mbsTxHashes := range missingSCResultsForShards {
+		for _, mbTxHashes := range mbsTxHashes {
+			scr.setMissingSCResultsForShard(senderShardID, mbTxHashes)
 		}
 	}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
-	for senderShardID, mbsInfo := range missingScrsForShards {
-		for _, mbInfo := range mbsInfo {
-			requestedScrs += len(mbInfo.txHashes)
-			scr.onRequestSmartContractResult(senderShardID, mbInfo.txHashes)
+	for senderShardID, mbsTxHashes := range missingSCResultsForShards {
+		for _, mbTxHashes := range mbsTxHashes {
+			requestedSCResults += len(mbTxHashes.txHashes)
+			scr.onRequestSmartContractResult(senderShardID, mbTxHashes.txHashes)
 		}
 	}
 
-	return requestedScrs
+	return requestedSCResults
 }
 
-func (scr *smartContractResults) setMissingTxsForShard(senderShardID uint32, mbInfo *txsHashesInfo) {
-	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbInfo.receiverShardID}
-	for _, txHash := range mbInfo.txHashes {
+func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
+	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
+	for _, txHash := range mbTxHashes.txHashes {
 		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
 	}
 }
 
-// computeMissingAndExistingScrsForShards calculates what smartContractResults are available and what are missing from block.Body
-func (scr *smartContractResults) computeMissingAndExistingScrsForShards(body block.Body) map[uint32][]*txsHashesInfo {
+// computeMissingAndExistingSCResultsForShards calculates what smartContractResults are available and what are missing from block.Body
+func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body block.Body) map[uint32][]*txsHashesInfo {
 	onlyScrFromOthersBody := block.Body{}
 	for _, mb := range body {
 		if mb.Type != block.SmartContractResultBlock {

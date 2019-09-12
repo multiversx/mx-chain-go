@@ -3982,7 +3982,7 @@ func createShardData(hasher hashing.Hasher, marshalizer marshal.Marshalizer, min
 	shardData := make([]block.ShardData, len(miniBlocks))
 	for i := 0; i < len(miniBlocks); i++ {
 		marshaled, _ := marshalizer.Marshal(miniBlocks[i])
-		hashed := hasher.Compute(string(marshaled))
+		hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
 
 		shardMBHeader := block.ShardMiniBlockHeader{
 			ReceiverShardId: miniBlocks[i].ReceiverShardID,
@@ -4082,15 +4082,15 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	mbHeaders := make([]block.MiniBlockHeader, 0)
 
 	marshaled, _ := marshalizer.Marshal(miniblock1)
-	hashed := hasher.Compute(string(marshaled))
+	hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	marshaled, _ = marshalizer.Marshal(miniblock2)
-	hashed = hasher.Compute(string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	marshaled, _ = marshalizer.Marshal(miniblock3)
-	hashed = hasher.Compute(string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	miniBlocks := make([]block.MiniBlock, 0)
@@ -4222,19 +4222,19 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	mbHeaders := make([]block.MiniBlockHeader, 0)
 
 	marshaled, _ := marshalizer.Marshal(miniblock1)
-	hashed := hasher.Compute(string(marshaled))
+	hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	marshaled, _ = marshalizer.Marshal(miniblock2)
-	hashed = hasher.Compute(string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	marshaled, _ = marshalizer.Marshal(miniblock3)
-	hashed = hasher.Compute(string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	marshaled, _ = marshalizer.Marshal(miniblock4)
-	hashed = hasher.Compute(string(marshaled))
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	miniBlocks := make([]block.MiniBlock, 0)

@@ -252,7 +252,7 @@ func (txs *transactions) receivedTransaction(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
-	process.EmptyChannel(txs.chRcvAllTxs)
+	_ = process.EmptyChannel(txs.chRcvAllTxs)
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	txs.txsForCurrBlock.missingTxs = 0
@@ -266,26 +266,26 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	for senderShardID, mbsInfo := range missingTxsForShards {
-		for _, mbInfo := range mbsInfo {
-			txs.setMissingTxsForShard(senderShardID, mbInfo)
+	for senderShardID, mbsTxHashes := range missingTxsForShards {
+		for _, mbTxHashes := range mbsTxHashes {
+			txs.setMissingTxsForShard(senderShardID, mbTxHashes)
 		}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	for senderShardID, mbsInfo := range missingTxsForShards {
-		for _, mbInfo := range mbsInfo {
-			requestedTxs += len(mbInfo.txHashes)
-			txs.onRequestTransaction(senderShardID, mbInfo.txHashes)
+	for senderShardID, mbsTxHashes := range missingTxsForShards {
+		for _, mbTxHashes := range mbsTxHashes {
+			requestedTxs += len(mbTxHashes.txHashes)
+			txs.onRequestTransaction(senderShardID, mbTxHashes.txHashes)
 		}
 	}
 
 	return requestedTxs
 }
 
-func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbInfo *txsHashesInfo) {
-	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbInfo.receiverShardID}
-	for _, txHash := range mbInfo.txHashes {
+func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
+	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
+	for _, txHash := range mbTxHashes.txHashes {
 		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
 	}
 }

@@ -1016,7 +1016,7 @@ func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 }
 
 func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint32) {
-	process.EmptyChannel(sp.chRcvAllMetaHdrs)
+	_ = process.EmptyChannel(sp.chRcvAllMetaHdrs)
 
 	sp.mutRequestedMetaHdrsHashes.Lock()
 

@@ -881,7 +881,7 @@ func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 }
 
 func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
-	process.EmptyChannel(mp.chRcvAllHdrs)
+	_ = process.EmptyChannel(mp.chRcvAllHdrs)
 
 	mp.mutRequestedShardHdrsHashes.Lock()
 
