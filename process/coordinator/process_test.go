@@ -183,11 +183,9 @@ func generateTestCache() storage.Cacher {
 }
 
 func generateTestUnit() storage.Storer {
-	memDB, _ := memorydb.New()
-
 	storer, _ := storageUnit.NewStorageUnit(
 		generateTestCache(),
-		memDB,
+		memorydb.New(),
 	)
 
 	return storer

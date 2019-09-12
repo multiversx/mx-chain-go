@@ -15,11 +15,11 @@ type DB struct {
 }
 
 // New creates a new memorydb object
-func New() (*DB, error) {
+func New() *DB {
 	return &DB{
 		db:   make(map[string][]byte),
 		mutx: sync.RWMutex{},
-	}, nil
+	}
 }
 
 // Put adds the value to the (key, val) storage medium
