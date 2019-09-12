@@ -8,8 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,7 +21,7 @@ type FacadeHandler interface {
 	GetCurrentPublicKey() string
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
-	NodeDetails() nodeDetails.NodeDetails
+	NodeDetails() external.NodeDetailsHandler
 	IsInterfaceNil() bool
 }
 

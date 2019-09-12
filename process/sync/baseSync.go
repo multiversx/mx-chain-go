@@ -69,6 +69,8 @@ type baseBootstrap struct {
 
 	requestedHashes process.RequiredDataPool
 
+	statusHandler core.AppStatusHandler
+
 	chStopSync chan bool
 	waitTime   time.Duration
 
@@ -377,6 +379,16 @@ func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(isSyncing
 	boot.mutSyncStateListeners.Lock()
 	boot.syncStateListeners = append(boot.syncStateListeners, syncStateListener)
 	boot.mutSyncStateListeners.Unlock()
+}
+
+// SetStatusHandler will set the instance of the AppStatusHandler
+func (boot *baseBootstrap) SetStatusHandler(handler core.AppStatusHandler) error {
+	if handler != nil {
+		boot.statusHandler = handler
+		return nil
+	}
+
+	return process.ErrNilAppStatusHandler
 }
 
 func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {

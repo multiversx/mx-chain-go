@@ -43,7 +43,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
@@ -531,8 +530,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Warn("No views for current node")
 	}
 
-	nodeDetailsHandler := statusHandler.NewNodeDetailsHandler()
-	appStatusHandlers = append(appStatusHandlers, nodeDetailsHandler)
+	nodeDetailsProvider := statusHandler.NewNodeDetailsProvider()
+	appStatusHandlers = append(appStatusHandlers, nodeDetailsProvider)
 
 	if len(appStatusHandlers) > 0 {
 		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
@@ -640,7 +639,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	apiResolver, err := createApiResolver(vmAccountsDB, nodeDetailsHandler)
+	apiResolver, err := createApiResolver(vmAccountsDB, nodeDetailsProvider)
 	if err != nil {
 		return err
 	}
@@ -1204,7 +1203,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, nodeDetails nodeDetails.NodeDetails) (facade.ApiResolver, error) {
+func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, nodeDetails external.NodeDetailsHandler) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
 	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)

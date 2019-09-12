@@ -4,20 +4,20 @@ import (
 	"sync"
 )
 
-// NodeDetailsHandler will handle displaying at /node/details all metrics already collected for other status handlers
-type NodeDetailsHandler struct {
+// NodeDetailsProvider will handle displaying at /node/details all metrics already collected for other status handlers
+type NodeDetailsProvider struct {
 	nodeMetrics *sync.Map
 }
 
-// NewNodeDetailsHandler will return an instance of the struct
-func NewNodeDetailsHandler() *NodeDetailsHandler {
-	return &NodeDetailsHandler{
+// NewNodeDetailsProvider will return an instance of the struct
+func NewNodeDetailsProvider() *NodeDetailsProvider {
+	return &NodeDetailsProvider{
 		nodeMetrics: &sync.Map{},
 	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (nd *NodeDetailsHandler) IsInterfaceNil() bool {
+func (nd *NodeDetailsProvider) IsInterfaceNil() bool {
 	if nd == nil {
 		return true
 	}
@@ -25,7 +25,7 @@ func (nd *NodeDetailsHandler) IsInterfaceNil() bool {
 }
 
 // Increment method increment a metric
-func (nd *NodeDetailsHandler) Increment(key string) {
+func (nd *NodeDetailsProvider) Increment(key string) {
 	keyValueI, ok := nd.nodeMetrics.Load(key)
 	if !ok {
 		return
@@ -41,7 +41,7 @@ func (nd *NodeDetailsHandler) Increment(key string) {
 }
 
 // Decrement method - decrement a metric
-func (nd *NodeDetailsHandler) Decrement(key string) {
+func (nd *NodeDetailsProvider) Decrement(key string) {
 	keyValueI, ok := nd.nodeMetrics.Load(key)
 	if !ok {
 		return
@@ -57,26 +57,26 @@ func (nd *NodeDetailsHandler) Decrement(key string) {
 }
 
 // SetInt64Value method - sets an int64 value for a key
-func (nd *NodeDetailsHandler) SetInt64Value(key string, value int64) {
+func (nd *NodeDetailsProvider) SetInt64Value(key string, value int64) {
 	nd.nodeMetrics.Store(key, value)
 }
 
 // SetUInt64Value method - sets an uint64 value for a key
-func (nd *NodeDetailsHandler) SetUInt64Value(key string, value uint64) {
+func (nd *NodeDetailsProvider) SetUInt64Value(key string, value uint64) {
 	nd.nodeMetrics.Store(key, value)
 }
 
 // SetStringValue method - sets a string value for a key
-func (nd *NodeDetailsHandler) SetStringValue(key string, value string) {
+func (nd *NodeDetailsProvider) SetStringValue(key string, value string) {
 	nd.nodeMetrics.Store(key, value)
 }
 
 // Close method - won't do anything
-func (nd *NodeDetailsHandler) Close() {
+func (nd *NodeDetailsProvider) Close() {
 }
 
 // DetailsMap will return all metrics in a map
-func (nd *NodeDetailsHandler) DetailsMap() (map[string]interface{}, error) {
+func (nd *NodeDetailsProvider) DetailsMap() (map[string]interface{}, error) {
 	nodeDetailsMap := make(map[string]interface{})
 	nd.nodeMetrics.Range(func(key, value interface{}) bool {
 		nodeDetailsMap[key.(string)] = value

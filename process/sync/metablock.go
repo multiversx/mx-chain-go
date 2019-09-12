@@ -27,7 +27,6 @@ type MetaBootstrap struct {
 
 	resolversFinder dataRetriever.ResolversFinder
 	hdrRes          dataRetriever.HeaderResolver
-	statusHandler   core.AppStatusHandler
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -365,16 +364,6 @@ func (boot *MetaBootstrap) StartSync() {
 // StopSync method will stop SyncBlocks
 func (boot *MetaBootstrap) StopSync() {
 	boot.chStopSync <- true
-}
-
-// SetStatusHandler will set the instance of the AppStatusHandler
-func (boot *MetaBootstrap) SetStatusHandler(handler core.AppStatusHandler) error {
-	if handler != nil {
-		boot.statusHandler = handler
-		return nil
-	}
-
-	return process.ErrNilAppStatusHandler
 }
 
 // syncBlocks method calls repeatedly synchronization method SyncBlock

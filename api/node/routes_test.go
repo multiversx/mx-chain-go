@@ -16,9 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -446,13 +446,13 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 }
 
 func TestDetails_ShouldDisplayMetrics(t *testing.T) {
-	nodeDetailsHandler := statusHandler.NewNodeDetailsHandler()
+	nodeDetailsHandler := statusHandler.NewNodeDetailsProvider()
 	key := "test-details-key"
 	value := "test-details-value"
 	nodeDetailsHandler.SetStringValue(key, value)
 
 	facade := mock.Facade{}
-	facade.NodeDetailsHandler = func() nodeDetails.NodeDetails {
+	facade.NodeDetailsHandler = func() external.NodeDetailsHandler {
 		return nodeDetailsHandler
 	}
 

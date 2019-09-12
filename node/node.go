@@ -36,7 +36,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -78,7 +77,6 @@ type Node struct {
 	heartbeatMonitor         *heartbeat.Monitor
 	heartbeatSender          *heartbeat.Sender
 	appStatusHandler         core.AppStatusHandler
-	nodeDetails              nodeDetails.NodeDetails
 
 	txSignPrivKey  crypto.PrivateKey
 	txSignPubKey   crypto.PublicKey
@@ -231,6 +229,10 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	err = bootstrapper.SetStatusHandler(n.GetAppStatusHandler())
+	if err != nil {
+		log.Warn("cannot set app status handler for shard bootstrapper")
+	}
 	if n.appStatusHandler != nil {
 		bootstrapper.AddSyncStateListener(func(b bool) {
 			var result uint64
@@ -407,11 +409,6 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	err = bootstrap.SetStatusHandler(n.GetAppStatusHandler())
-	if err != nil {
-		log.Warn("cannot set app status handler for shard bootstrapper")
 	}
 
 	return bootstrap, nil

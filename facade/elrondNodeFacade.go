@@ -12,9 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
 )
 
 // DefaultRestPort is the default port the REST API will start on if not specified
@@ -257,8 +257,8 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	return hbStatus, nil
 }
 
-// NodeDetails will return a node details handler
-func (ef *ElrondNodeFacade) NodeDetails() nodeDetails.NodeDetails {
+// NodeDetails will return the node's details handler
+func (ef *ElrondNodeFacade) NodeDetails() external.NodeDetailsHandler {
 	return ef.apiResolver.NodeDetails()
 }
 

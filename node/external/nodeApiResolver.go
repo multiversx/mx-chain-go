@@ -1,21 +1,16 @@
 package external
 
-import (
-	"github.com/ElrondNetwork/elrond-go/statusHandler/nodeDetails"
-)
-
 // NodeApiResolver can resolve API requests
 type NodeApiResolver struct {
 	scDataGetter   ScDataGetter
-	detailsHandler nodeDetails.NodeDetails
+	detailsHandler NodeDetailsHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
-func NewNodeApiResolver(scDataGetter ScDataGetter, detailsHandler nodeDetails.NodeDetails) (*NodeApiResolver, error) {
+func NewNodeApiResolver(scDataGetter ScDataGetter, detailsHandler NodeDetailsHandler) (*NodeApiResolver, error) {
 	if scDataGetter == nil || scDataGetter.IsInterfaceNil() {
 		return nil, ErrNilScDataGetter
 	}
-
 	if detailsHandler == nil || detailsHandler.IsInterfaceNil() {
 		return nil, ErrNilNodeDetails
 	}
@@ -31,8 +26,8 @@ func (nar *NodeApiResolver) GetVmValue(address string, funcName string, argsBuff
 	return nar.scDataGetter.Get([]byte(address), funcName, argsBuff...)
 }
 
-// NodeDetails return an implementation of the NodeDetails interface
-func (nar *NodeApiResolver) NodeDetails() nodeDetails.NodeDetails {
+// NodeDetails returns an implementation of the NodeDetailsHandler interface
+func (nar *NodeApiResolver) NodeDetails() NodeDetailsHandler {
 	return nar.detailsHandler
 }
 
