@@ -3496,15 +3496,18 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	)
 
 	//create mini block headers with first 3 miniblocks from miniblocks var
-	mbHeaders := make([]block.MiniBlockHeader, 0)
-	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: miniblockHashes[0]})
-	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: miniblockHashes[1]})
-	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: miniblockHashes[2]})
+	mbHeaders := []block.MiniBlockHeader{
+		{Hash: miniblockHashes[0]},
+		{Hash: miniblockHashes[1]},
+		{Hash: miniblockHashes[2]},
+	}
 
-	hashes := make([][]byte, 0)
-	hashes = append(hashes, mb1Hash)
-	hashes = append(hashes, mb2Hash)
-	hashes = append(hashes, mb3Hash)
+	hashes := [][]byte{
+		mb1Hash,
+		mb2Hash,
+		mb3Hash,
+	}
+
 	blockHeader := &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
 	_, err := bp.GetProcessedMetaBlocksFromPool(blockHeader)

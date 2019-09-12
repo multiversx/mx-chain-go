@@ -43,18 +43,21 @@ func TestEmptyChannelShouldWorkOnNotBufferdChannel(t *testing.T) {
 	assert.Equal(t, 0, readsCnt)
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		wg.Done()
-		ch <- true
-	}()
+	numConcurrentWrites := 100
+	wg.Add(numConcurrentWrites)
+	for i := 0; i < numConcurrentWrites; i++ {
+		go func() {
+			wg.Done()
+			ch <- true
+		}()
+	}
 
+	// wait for go routines to start
 	wg.Wait()
 
-	assert.Equal(t, 0, len(ch))
 	readsCnt = process.EmptyChannel(ch)
 	assert.Equal(t, 0, len(ch))
-	assert.Equal(t, 1, readsCnt)
+	assert.Equal(t, numConcurrentWrites, readsCnt)
 }
 
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {

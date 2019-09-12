@@ -32,6 +32,10 @@ func NewTransactionCounter() *transactionCounter {
 
 // getNumTxsFromPool returns the number of transactions from pool for a given shard
 func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
+	if dataPool == nil {
+		return 0
+	}
+
 	txPool := dataPool.Transactions()
 	if txPool == nil {
 		return 0
@@ -66,8 +70,8 @@ func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRe
 	return sumTxs
 }
 
-// substractRestoredTxs updated the total processed txs in case of restore
-func (txc *transactionCounter) substractRestoredTxs(txsNr int) {
+// subtractRestoredTxs updated the total processed txs in case of restore
+func (txc *transactionCounter) subtractRestoredTxs(txsNr int) {
 	txc.mutex.Lock()
 	txc.totalTxs = txc.totalTxs - txsNr
 	txc.mutex.Unlock()
@@ -214,6 +218,7 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	return lines
 }
 
+// DisplayLastNotarized will display information about last notarized block
 func DisplayLastNotarized(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,

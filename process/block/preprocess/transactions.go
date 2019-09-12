@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -394,8 +395,6 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 //TODO move this constant to txFeeHandler
 const minGasLimitForTx = uint64(5)
 
-const numZerosForSCAddress = 8
-
 //TODO move this to smart contract address calculation component
 func isSmartContractAddress(rcvAddress []byte) bool {
 	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
@@ -403,7 +402,8 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 		return true
 	}
 
-	isSCAddress := bytes.Equal(rcvAddress[:numZerosForSCAddress], make([]byte, numZerosForSCAddress))
+	isSCAddress := bytes.Equal(rcvAddress[:(hooks.NumInitCharactersForScAddress-hooks.VMTypeLen)],
+		make([]byte, hooks.NumInitCharactersForScAddress-hooks.VMTypeLen))
 	if isSCAddress {
 		return true
 	}
