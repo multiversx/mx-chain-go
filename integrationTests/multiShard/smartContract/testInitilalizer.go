@@ -229,6 +229,7 @@ func createNetNode(
 	dataPacker, _ := partitioning.NewSimpleDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+		accntAdapter,
 		shardCoordinator,
 		messenger,
 		store,
