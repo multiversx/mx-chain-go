@@ -2,22 +2,22 @@ package external
 
 // NodeApiResolver can resolve API requests
 type NodeApiResolver struct {
-	scDataGetter   ScDataGetter
-	detailsHandler NodeDetailsHandler
+	scDataGetter         ScDataGetter
+	statusMetricsHandler StatusMetricsHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
-func NewNodeApiResolver(scDataGetter ScDataGetter, detailsHandler NodeDetailsHandler) (*NodeApiResolver, error) {
+func NewNodeApiResolver(scDataGetter ScDataGetter, statusMetricsHandler StatusMetricsHandler) (*NodeApiResolver, error) {
 	if scDataGetter == nil || scDataGetter.IsInterfaceNil() {
 		return nil, ErrNilScDataGetter
 	}
-	if detailsHandler == nil || detailsHandler.IsInterfaceNil() {
-		return nil, ErrNilNodeDetails
+	if statusMetricsHandler == nil || statusMetricsHandler.IsInterfaceNil() {
+		return nil, ErrNilStatusMetrics
 	}
 
 	return &NodeApiResolver{
-		scDataGetter:   scDataGetter,
-		detailsHandler: detailsHandler,
+		scDataGetter:         scDataGetter,
+		statusMetricsHandler: statusMetricsHandler,
 	}, nil
 }
 
@@ -26,9 +26,9 @@ func (nar *NodeApiResolver) GetVmValue(address string, funcName string, argsBuff
 	return nar.scDataGetter.Get([]byte(address), funcName, argsBuff...)
 }
 
-// NodeDetails returns an implementation of the NodeDetailsHandler interface
-func (nar *NodeApiResolver) NodeDetails() NodeDetailsHandler {
-	return nar.detailsHandler
+// StatusMetrics returns an implementation of the StatusMetricsHandler interface
+func (nar *NodeApiResolver) StatusMetrics() StatusMetricsHandler {
+	return nar.statusMetricsHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

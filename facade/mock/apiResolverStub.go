@@ -5,16 +5,16 @@ import (
 )
 
 type ApiResolverStub struct {
-	GetVmValueHandler  func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
-	NodeDetailsHandler func() external.NodeDetailsHandler
+	GetVmValueHandler    func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	StatusMetricsHandler func() external.StatusMetricsHandler
 }
 
 func (ars *ApiResolverStub) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
 	return ars.GetVmValueHandler(address, funcName, argsBuff...)
 }
 
-func (ars *ApiResolverStub) NodeDetails() external.NodeDetailsHandler {
-	return ars.NodeDetailsHandler()
+func (ars *ApiResolverStub) StatusMetrics() external.StatusMetricsHandler {
+	return ars.StatusMetricsHandler()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

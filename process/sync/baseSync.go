@@ -383,12 +383,12 @@ func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(isSyncing
 
 // SetStatusHandler will set the instance of the AppStatusHandler
 func (boot *baseBootstrap) SetStatusHandler(handler core.AppStatusHandler) error {
-	if handler != nil {
-		boot.statusHandler = handler
-		return nil
+	if handler == nil || handler.IsInterfaceNil() {
+		return process.ErrNilAppStatusHandler
 	}
+	boot.statusHandler = handler
 
-	return process.ErrNilAppStatusHandler
+	return nil
 }
 
 func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
@@ -454,15 +454,13 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.roundIndex = boot.rounder.Index()
 
-	if boot.statusHandler != nil {
-		var result uint64
-		if isNodeSynchronized {
-			result = uint64(0)
-		} else {
-			result = uint64(1)
-		}
-		boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
+	var result uint64
+	if isNodeSynchronized {
+		result = uint64(0)
+	} else {
+		result = uint64(1)
 	}
+	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
 
 	return !isNodeSynchronized
 }

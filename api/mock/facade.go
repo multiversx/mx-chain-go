@@ -29,7 +29,7 @@ type Facade struct {
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
-	NodeDetailsHandler                             func() external.NodeDetailsHandler
+	StatusMetricsHandler                           func() external.StatusMetricsHandler
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -132,9 +132,9 @@ func (f *Facade) GetVmValue(address string, funcName string, argsBuff ...[]byte)
 	return f.GetDataValueHandler(address, funcName, argsBuff...)
 }
 
-// NodeDetails is the mock implementation for the NodeDetails
-func (f *Facade) NodeDetails() external.NodeDetailsHandler {
-	return f.NodeDetailsHandler()
+// StatusMetrics is the mock implementation for the StatusMetrics
+func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
+	return f.StatusMetricsHandler()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

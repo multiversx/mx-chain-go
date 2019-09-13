@@ -21,7 +21,7 @@ type FacadeHandler interface {
 	GetCurrentPublicKey() string
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
-	NodeDetails() external.NodeDetailsHandler
+	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }
 
@@ -58,7 +58,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/address", Address)
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
-	router.GET("/details", Details)
+	router.GET("/details", StatusMetrics)
 }
 
 // Status returns the state of the node e.g. running/stopped
@@ -160,15 +160,15 @@ func Statistics(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())})
 }
 
-// Details returns the node statistics exported by an NodeDetailsHandler
-func Details(c *gin.Context) {
+// StatusMetrics returns the node statistics exported by an StatusMetricsHandler
+func StatusMetrics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 
-	details, err := ef.NodeDetails().DetailsMap()
+	details, err := ef.StatusMetrics().StatusMetricsMap()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

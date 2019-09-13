@@ -445,15 +445,15 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
 }
 
-func TestDetails_ShouldDisplayMetrics(t *testing.T) {
-	nodeDetailsHandler := statusHandler.NewNodeDetailsProvider()
+func TestStatusMetrics_ShouldDisplayMetrics(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetricsProvider()
 	key := "test-details-key"
 	value := "test-details-value"
-	nodeDetailsHandler.SetStringValue(key, value)
+	statusMetricsProvider.SetStringValue(key, value)
 
 	facade := mock.Facade{}
-	facade.NodeDetailsHandler = func() external.NodeDetailsHandler {
-		return nodeDetailsHandler
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
 	}
 
 	ws := startNodeServer(&facade)

@@ -6,8 +6,8 @@ type ScDataGetter interface {
 	IsInterfaceNil() bool
 }
 
-// NodeDetailsHandler is the interface that defines what a node details handler/provider should do
-type NodeDetailsHandler interface {
-	DetailsMap() (map[string]interface{}, error)
+// StatusMetricsHandler is the interface that defines what a node details handler/provider should do
+type StatusMetricsHandler interface {
+	StatusMetricsMap() (map[string]interface{}, error)
 	IsInterfaceNil() bool
 }

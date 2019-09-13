@@ -257,9 +257,9 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	return hbStatus, nil
 }
 
-// NodeDetails will return the node's details handler
-func (ef *ElrondNodeFacade) NodeDetails() external.NodeDetailsHandler {
-	return ef.apiResolver.NodeDetails()
+// StatusMetrics will return the node's status metrics
+func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
+	return ef.apiResolver.StatusMetrics()
 }
 
 // GetVmValue retrieves data from existing SC trie

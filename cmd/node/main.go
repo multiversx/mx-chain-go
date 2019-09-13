@@ -530,8 +530,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Warn("No views for current node")
 	}
 
-	nodeDetailsProvider := statusHandler.NewNodeDetailsProvider()
-	appStatusHandlers = append(appStatusHandlers, nodeDetailsProvider)
+	statusMetricsProvider := statusHandler.NewStatusMetricsProvider()
+	appStatusHandlers = append(appStatusHandlers, statusMetricsProvider)
 
 	if len(appStatusHandlers) > 0 {
 		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
@@ -639,7 +639,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	apiResolver, err := createApiResolver(vmAccountsDB, nodeDetailsProvider)
+	apiResolver, err := createApiResolver(vmAccountsDB, statusMetricsProvider)
 	if err != nil {
 		return err
 	}
@@ -1203,7 +1203,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, nodeDetails external.NodeDetailsHandler) (facade.ApiResolver, error) {
+func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
 	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
@@ -1213,5 +1213,5 @@ func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, nodeDetails externa
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scDataGetter, nodeDetails)
+	return external.NewNodeApiResolver(scDataGetter, statusMetrics)
 }
