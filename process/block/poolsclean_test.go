@@ -136,6 +136,7 @@ func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 	t.Parallel()
 
+	cleanDurationSeconds := 1.0
 	nonce := uint64(1)
 	balance := big.NewInt(1)
 	accounts := getAccAdapter(nonce, balance)
@@ -145,7 +146,7 @@ func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 
 	startTime := time.Now()
 	haveTime := func() bool {
-		return time.Now().Sub(startTime).Seconds() < 1.0
+		return time.Now().Sub(startTime).Seconds() < cleanDurationSeconds
 	}
 
 	err := txsPoolsCleaner.Clean(haveTime)
@@ -158,6 +159,7 @@ func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 	t.Parallel()
 
+	cleanDurationSeconds := 2.0
 	accounts := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
@@ -169,7 +171,7 @@ func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 
 	startTime := time.Now()
 	haveTime := func() bool {
-		return time.Now().Sub(startTime).Seconds() < 2.0
+		return time.Now().Sub(startTime).Seconds() < cleanDurationSeconds
 	}
 
 	err := txsPoolsCleaner.Clean(haveTime)
@@ -182,6 +184,7 @@ func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 func TestTxPoolsCleaner_CleanLowerAccountNonceShouldRemoveTx(t *testing.T) {
 	t.Parallel()
 
+	cleanDurationSeconds := 2.0
 	nonce := uint64(11)
 	balance := big.NewInt(1)
 	accounts := getAccAdapter(nonce, balance)
@@ -191,7 +194,7 @@ func TestTxPoolsCleaner_CleanLowerAccountNonceShouldRemoveTx(t *testing.T) {
 
 	startTime := time.Now()
 	haveTime := func() bool {
-		return time.Now().Sub(startTime).Seconds() < 2.0
+		return time.Now().Sub(startTime).Seconds() < cleanDurationSeconds
 	}
 
 	err := txsPoolsCleaner.Clean(haveTime)
