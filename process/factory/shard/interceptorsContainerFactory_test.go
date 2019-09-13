@@ -77,11 +77,33 @@ func createStore() *mock.ChainStorerMock {
 }
 
 //------- NewInterceptorsContainerFactory
+func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		nil,
+		mock.NewOneShardCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		&mock.ChronologyValidatorStub{},
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+}
 
 func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		nil,
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -103,6 +125,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		createStore(),
@@ -124,6 +147,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		nil,
@@ -145,6 +169,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -166,6 +191,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -187,6 +213,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -208,6 +235,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -229,6 +257,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -250,6 +279,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -271,6 +301,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -292,6 +323,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
@@ -315,6 +347,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler(factory.TransactionTopic, ""),
 		createStore(),
@@ -338,6 +371,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler(factory.HeadersTopic, ""),
 		createStore(),
@@ -361,6 +395,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler(factory.MiniBlocksTopic, ""),
 		createStore(),
@@ -384,6 +419,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationPeerChBlocksFailsShould
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler(factory.PeerChBodyTopic, ""),
 		createStore(),
@@ -407,6 +443,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler(factory.MetachainBlocksTopic, ""),
 		createStore(),
@@ -430,6 +467,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler("", factory.TransactionTopic),
 		createStore(),
@@ -453,6 +491,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler("", factory.HeadersTopic),
 		createStore(),
@@ -476,6 +515,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler("", factory.MiniBlocksTopic),
 		createStore(),
@@ -499,6 +539,7 @@ func TestInterceptorsContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler("", factory.PeerChBodyTopic),
 		createStore(),
@@ -522,6 +563,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler("", factory.MetachainBlocksTopic),
 		createStore(),
@@ -545,6 +587,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{
 			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
@@ -581,6 +624,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.CurrentShard = 1
 
 	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		shardCoordinator,
 		&mock.TopicHandlerStub{
 			CreateTopicCalled: func(name string, createChannelForTopic bool) error {

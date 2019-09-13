@@ -2,6 +2,7 @@ package process_test
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -15,16 +16,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEmptyChannelShouldWork(t *testing.T) {
+func TestEmptyChannelShouldWorkOnBufferedChannel(t *testing.T) {
 	ch := make(chan bool, 10)
+
+	assert.Equal(t, 0, len(ch))
+	readsCnt := process.EmptyChannel(ch)
+	assert.Equal(t, 0, len(ch))
+	assert.Equal(t, 0, readsCnt)
 
 	ch <- true
 	ch <- true
 	ch <- true
 
 	assert.Equal(t, 3, len(ch))
-	process.EmptyChannel(ch)
+	readsCnt = process.EmptyChannel(ch)
 	assert.Equal(t, 0, len(ch))
+	assert.Equal(t, 3, readsCnt)
+}
+
+func TestEmptyChannelShouldWorkOnNotBufferdChannel(t *testing.T) {
+	ch := make(chan bool)
+
+	assert.Equal(t, 0, len(ch))
+	readsCnt := process.EmptyChannel(ch)
+	assert.Equal(t, 0, len(ch))
+	assert.Equal(t, 0, readsCnt)
+
+	wg := sync.WaitGroup{}
+	numConcurrentWrites := 100
+	wg.Add(numConcurrentWrites)
+	for i := 0; i < numConcurrentWrites; i++ {
+		go func() {
+			wg.Done()
+			ch <- true
+		}()
+	}
+
+	// wait for go routines to start
+	wg.Wait()
+
+	readsCnt = process.EmptyChannel(ch)
+	assert.Equal(t, 0, len(ch))
+	assert.Equal(t, numConcurrentWrites, readsCnt)
 }
 
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
