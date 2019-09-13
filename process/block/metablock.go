@@ -618,9 +618,6 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 	}
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		if tmpLastNotarizedHdrForShard[i] == nil || tmpLastNotarizedHdrForShard[i].IsInterfaceNil() {
-			continue
-		}
 		mp.notarizedHdrs[i] = append(mp.notarizedHdrs[i], tmpLastNotarizedHdrForShard[i])
 		DisplayLastNotarized(mp.marshalizer, mp.hasher, tmpLastNotarizedHdrForShard[i], i)
 	}
