@@ -1516,7 +1516,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -1571,7 +1571,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -2250,7 +2250,7 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 	}

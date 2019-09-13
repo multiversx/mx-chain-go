@@ -1981,7 +1981,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -2036,7 +2036,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *te
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 		if state == process.BHProcessed {
 			return errors.New("processed")
 		}
@@ -3020,7 +3020,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 	}
@@ -3108,7 +3108,7 @@ func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 	}
@@ -3264,7 +3264,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenBodyIsNotFound(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 	}
@@ -3337,7 +3337,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockBodyFails(t *testing.T)
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 	}
@@ -3408,7 +3408,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockHeaderFails(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 	}
@@ -3474,7 +3474,7 @@ func TestBootstrap_ApplyBlockShouldWork(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 	}
@@ -4029,7 +4029,7 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 	}

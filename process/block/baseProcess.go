@@ -271,7 +271,7 @@ func (bp *baseProcessor) removeLastNotarized() {
 	bp.mutNotarizedHdrs.Lock()
 	for shardId := range bp.notarizedHdrs {
 		notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
-		if notarizedHdrsCount > 0 {
+		if notarizedHdrsCount > 1 {
 			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][:notarizedHdrsCount-1]
 		}
 	}

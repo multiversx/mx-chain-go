@@ -63,8 +63,8 @@ func (bfd *basicForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
-	finalHeader data.HeaderHandler,
-	finalHeaderHash []byte,
+	finalHeaders []data.HeaderHandler,
+	finalHeadersHashes [][]byte,
 ) error {
 
 	if header == nil || header.IsInterfaceNil() {
@@ -81,16 +81,23 @@ func (bfd *basicForkDetector) AddHeader(
 
 	if state == process.BHProcessed {
 		// create a check point and remove all the past headers
-		if finalHeader == nil || finalHeader.IsInterfaceNil() {
+		if finalHeaders == nil {
 			bfd.setFinalCheckpoint(bfd.lastCheckpoint())
-		} else if finalHeader.GetNonce() > bfd.GetHighestFinalBlockNonce() {
-			bfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeader.GetNonce(), round: finalHeader.GetRound()})
-			bfd.append(&headerInfo{
-				nonce: finalHeader.GetNonce(),
-				round: finalHeader.GetRound(),
-				hash:  finalHeaderHash,
-				state: process.BHNotarized,
-			})
+		} else {
+			for i := 0; i < len(finalHeaders); i++ {
+				if finalHeaders[i].GetNonce() > bfd.GetHighestFinalBlockNonce() {
+					if i == 0 {
+						bfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeaders[i].GetNonce(), round: finalHeaders[i].GetRound()})
+					}
+
+					bfd.append(&headerInfo{
+						nonce: finalHeaders[i].GetNonce(),
+						round: finalHeaders[i].GetRound(),
+						hash:  finalHeadersHashes[i],
+						state: process.BHNotarized,
+					})
+				}
+			}
 		}
 
 		bfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
