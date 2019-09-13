@@ -46,8 +46,8 @@ var ErrInvalidSignatureHex = errors.New("invalid signature, could not decode hex
 // ErrValidationEmptyTxHash signals an empty tx hash was provided
 var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 
-// ErrGetTransaction signals an error happend trying to fetch a transaction
+// ErrGetTransaction signals an error happened trying to fetch a transaction
 var ErrGetTransaction = errors.New("transaction getting failed")
 
-// ErrTxNotFound signals an error happend trying to fetch a transaction
+// ErrTxNotFound signals an error happened trying to fetch a transaction
 var ErrTxNotFound = errors.New("transaction was not found")

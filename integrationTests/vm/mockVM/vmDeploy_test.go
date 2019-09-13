@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(0)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -48,7 +49,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000001a2983b179a480a60c4308da48f13b4480dbb4d33132")
 
 	vm.TestDeployedContractContents(
 		t,
@@ -70,7 +71,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -97,7 +98,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000001a2983b179a480a60c4308da48f13b4480dbb4d33132")
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -119,7 +120,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -147,7 +148,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderNonce+1,
 		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
 
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000001a2983b179a480a60c4308da48f13b4480dbb4d33132")
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -170,7 +171,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
-	scCode := fmt.Sprintf("aaaa@%X", initialValueForInternalVariable)
+	scCode := fmt.Sprintf("aaaa@%s@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
 		t,
@@ -198,7 +199,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderNonce+1,
 		//the transfer should get back to the sender as the tx failed
 		vm.ComputeExpectedBalance(senderBalance, big.NewInt(0), gasLimit, gasPrice))
-	destinationAddressBytes, _ := hex.DecodeString("b473e38c40c60c8b22eb80fffff0717a98386bb129a7750ffe8091c77b85990e")
+	destinationAddressBytes, _ := hex.DecodeString("000000000000000000001a2983b179a480a60c4308da48f13b4480dbb4d33132")
 
 	assert.False(t, vm.AccountExists(accnts, destinationAddressBytes))
 }
