@@ -454,6 +454,16 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.roundIndex = boot.rounder.Index()
 
+	if boot.statusHandler != nil {
+		var result uint64
+		if isNodeSynchronized {
+			result = uint64(0)
+		} else {
+			result = uint64(1)
+		}
+		boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
+	}
+
 	return !isNodeSynchronized
 }
 

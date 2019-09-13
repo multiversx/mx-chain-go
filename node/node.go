@@ -233,17 +233,6 @@ func (n *Node) StartConsensus() error {
 	if err != nil {
 		log.Warn("cannot set app status handler for shard bootstrapper")
 	}
-	if n.appStatusHandler != nil {
-		bootstrapper.AddSyncStateListener(func(b bool) {
-			var result uint64
-			if b {
-				result = uint64(0)
-			} else {
-				result = uint64(1)
-			}
-			n.appStatusHandler.SetUInt64Value(core.MetricIsSyncing, result)
-		})
-	}
 
 	bootstrapper.StartSync()
 
