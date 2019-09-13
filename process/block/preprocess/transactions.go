@@ -180,7 +180,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
-func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error {
+func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -189,7 +189,7 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			if haveTime() < 0 {
+			if !haveTime() {
 				return process.ErrTimeIsOut
 			}
 
@@ -398,6 +398,52 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 	}
 
 	return false
+}
+
+// CreateAndProcessMiniBlocks creates miniblocks from storage and processes the transactions added into the miniblocks
+// as long as it has time
+func (txs *transactions) CreateAndProcessMiniBlocks(
+	maxTxSpaceRemained uint32,
+	maxMbSpaceRemained uint32,
+	round uint64,
+	haveTime func() bool,
+) (block.MiniBlockSlice, error) {
+
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	newMBAdded := true
+	txSpaceRemained := int(maxTxSpaceRemained)
+
+	for newMBAdded {
+		newMBAdded = false
+		for shardId := uint32(0); shardId < txs.shardCoordinator.NumberOfShards(); shardId++ {
+			if maxTxSpaceRemained <= 0 {
+				break
+			}
+
+			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
+			if mbSpaceRemained <= 0 {
+				break
+			}
+
+			miniBlock, err := txs.CreateAndProcessMiniBlock(
+				txs.shardCoordinator.SelfId(),
+				shardId,
+				txSpaceRemained,
+				haveTime,
+				round)
+			if err != nil {
+				continue
+			}
+
+			if len(miniBlock.TxHashes) > 0 {
+				txSpaceRemained -= len(miniBlock.TxHashes)
+				miniBlocks = append(miniBlocks, miniBlock)
+				newMBAdded = true
+			}
+		}
+	}
+
+	return miniBlocks, nil
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock

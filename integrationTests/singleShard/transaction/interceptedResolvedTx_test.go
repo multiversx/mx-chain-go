@@ -131,7 +131,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	//Step 1. Generate a signed transaction
+	//Step 1. Generate a reward Transaction
 	tx := rewardTx.RewardTx{
 		Value:   big.NewInt(0),
 		RcvAddr: integrationTests.TestHasher.Compute("receiver"),

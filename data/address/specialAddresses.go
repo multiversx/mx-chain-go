@@ -30,10 +30,10 @@ func NewSpecialAddressHolder(
 	if burnAddress == nil {
 		return nil, data.ErrNilBurnAddress
 	}
-	if adrConv == nil {
+	if adrConv == nil || adrConv.IsInterfaceNil() {
 		return nil, data.ErrNilAddressConverter
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, data.ErrNilShardCoordinator
 	}
 

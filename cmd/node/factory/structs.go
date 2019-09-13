@@ -1543,6 +1543,11 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	internalTransactionProducer, ok:= rewardsTxInterim.(process.InternalTransactionProducer)
+	if !ok{
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -1624,6 +1629,7 @@ func newShardBlockProcessorAndTracker(
 		scProcessor,
 		scProcessor,
 		rewardsTxProcessor,
+		internalTransactionProducer,
 	)
 	if err != nil {
 		return nil, nil, err

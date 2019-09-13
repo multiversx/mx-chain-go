@@ -172,7 +172,7 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
-func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error {
+func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -188,7 +188,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			if haveTime() < 0 {
+			if !haveTime() {
 				return process.ErrTimeIsOut
 			}
 
@@ -392,6 +392,17 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
 func (scr *smartContractResults) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
+	return nil, nil
+}
+
+// CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
+// as long as it has time
+func (scr *smartContractResults) CreateAndProcessMiniBlocks(
+	maxTxSpaceRemained uint32,
+	maxMbSpaceRemained uint32,
+	round uint64,
+	_ func() bool,
+) (block.MiniBlockSlice, error) {
 	return nil, nil
 }
 

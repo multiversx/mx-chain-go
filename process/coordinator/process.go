@@ -1,7 +1,6 @@
 package coordinator
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -208,8 +207,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 	errMutex := sync.Mutex{}
 
 	wg := sync.WaitGroup{}
-	// Length of body types + another go routine for the intermediate transactions
-	wg.Add(len(separatedBodies))
+	wg.Add(len(separatedBodies) + len(tc.keysInterimProcs))
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
@@ -232,35 +230,28 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 		}(key, value)
 	}
 
+	for _, blockType := range tc.keysInterimProcs {
+		go func(blockType block.Type) {
+			intermediateProc := tc.getInterimProcessor(blockType)
+			if intermediateProc == nil {
+				wg.Done()
+				return
+			}
+
+			err := intermediateProc.SaveCurrentIntermediateTxToStorage()
+			if err != nil {
+				log.Debug(err.Error())
+
+				errMutex.Lock()
+				errFound = err
+				errMutex.Unlock()
+			}
+
+			wg.Done()
+		}(blockType)
+	}
+
 	wg.Wait()
-
-	intermediatePreprocSC := tc.getInterimProcessor(block.SmartContractResultBlock)
-	if intermediatePreprocSC == nil {
-		return errFound
-	}
-
-	err := intermediatePreprocSC.SaveCurrentIntermediateTxToStorage()
-	if err != nil {
-		log.Debug(err.Error())
-
-		errMutex.Lock()
-		errFound = err
-		errMutex.Unlock()
-	}
-
-	intermediatePreproc := tc.getInterimProcessor(block.RewardsBlock)
-	if intermediatePreproc == nil {
-		return errFound
-	}
-
-	err = intermediatePreproc.SaveCurrentIntermediateTxToStorage()
-	if err != nil {
-		log.Debug(err.Error())
-
-		errMutex.Lock()
-		errFound = err
-		errMutex.Unlock()
-	}
 
 	return errFound
 }
@@ -353,10 +344,14 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	body block.Body,
 	round uint64,
-	haveTime func() time.Duration,
+	timeRemaining func() time.Duration,
 ) error {
-	separatedBodies := tc.separateBodyByType(body)
 
+	haveTime := func() bool {
+		return timeRemaining() >= 0
+	}
+
+	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
 		if separatedBodies[blockType] == nil {
@@ -375,21 +370,6 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		if err != nil {
 			return err
 		}
-	}
-
-	// create the reward txs and make them available for processing
-	mbRewards := tc.createRewardsMiniBlocks()
-	preproc := tc.getPreProcessor(block.RewardsBlock)
-	rewardsPreProc, ok := preproc.(process.RewardTransactionPreProcessor)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	rewardsPreProc.AddComputedRewardMiniBlocks(mbRewards)
-
-	err := preproc.ProcessBlockTransactions(separatedBodies[block.RewardsBlock], round, haveTime)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -478,94 +458,46 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
-	txPreProc := tc.getPreProcessor(block.TxBlock)
-	if txPreProc == nil || txPreProc.IsInterfaceNil() {
-		return nil
-	}
-
 	miniBlocks := make(block.MiniBlockSlice, 0)
-	txSpaceRemained := int(maxTxSpaceRemained)
+	for _, blockType := range tc.keysTxPreProcs {
 
-	newMBAdded := true
-	for newMBAdded {
-		newMBAdded = false
+		txPreProc := tc.getPreProcessor(blockType)
+		if txPreProc == nil || txPreProc.IsInterfaceNil() {
+			return nil
+		}
 
-		for shardId := uint32(0); shardId < tc.shardCoordinator.NumberOfShards(); shardId++ {
-			if txSpaceRemained <= 0 {
-				break
-			}
+		mbs, err := txPreProc.CreateAndProcessMiniBlocks(
+			maxTxSpaceRemained,
+			maxMbSpaceRemained,
+			round,
+			haveTime,
+		)
 
-			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
-			if mbSpaceRemained <= 0 {
-				break
-			}
+		if err != nil {
+			log.Error(err.Error())
+		}
 
-			miniBlock, err := txPreProc.CreateAndProcessMiniBlock(
-				tc.shardCoordinator.SelfId(),
-				shardId,
-				txSpaceRemained,
-				haveTime,
-				round)
-			if err != nil {
-				continue
-			}
-
-			if len(miniBlock.TxHashes) > 0 {
-				txSpaceRemained -= len(miniBlock.TxHashes)
-				miniBlocks = append(miniBlocks, miniBlock)
-				newMBAdded = true
-			}
+		if len(mbs) > 0 {
+			miniBlocks = append(miniBlocks, mbs...)
 		}
 	}
 
-	interMBs := tc.processAddedInterimTransactions()
+	interMBs := tc.processAddedInterimTransactions(round, haveTime)
 	if len(interMBs) > 0 {
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	rewardMb := tc.createRewardsMiniBlocks()
-	if len(rewardMb) == 0 {
-		log.Error("could not create reward mini-blocks")
-	}
-
-	rewardsPreProc := tc.getPreProcessor(block.RewardsBlock)
-	for _, mb := range rewardMb {
-		err := tc.processCompleteMiniBlock(rewardsPreProc, mb, round, haveTime)
-		if err != nil {
-			log.Error(fmt.Sprintf("could not process created reward miniblock: %s", err.Error()))
-		}
-	}
-	miniBlocks = append(miniBlocks, rewardMb...)
-
 	return miniBlocks
 }
 
-func (tc *transactionCoordinator) createRewardsMiniBlocks() block.MiniBlockSlice {
-	// add rewards transactions to separate miniBlocks
-	interimProc := tc.getInterimProcessor(block.RewardsBlock)
-	if interimProc == nil {
-		return nil
-	}
+func (tc *transactionCoordinator) processAddedInterimTransactions(
+	round uint64,
+	haveTime func() bool,
+) block.MiniBlockSlice {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
-	rewardsMbs := interimProc.CreateAllInterMiniBlocks()
-	for _, mb := range rewardsMbs {
-		miniBlocks = append(miniBlocks, mb)
-	}
-
-	return miniBlocks
-}
-
-func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
-	miniBlocks := make(block.MiniBlockSlice, 0)
-
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysInterimProcs {
-		if blockType == block.RewardsBlock {
-			// this has to be processed last
-			continue
-		}
-
 		interimProc := tc.getInterimProcessor(blockType)
 		if interimProc == nil {
 			// this will never be reached as keysInterimProcs are the actual keys from the interimMap
@@ -573,6 +505,7 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 		}
 
 		currMbs := interimProc.CreateAllInterMiniBlocks()
+
 		for _, value := range currMbs {
 			miniBlocks = append(miniBlocks, value)
 		}

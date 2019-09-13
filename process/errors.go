@@ -262,6 +262,9 @@ var ErrNilResolverContainer = errors.New("nil resolver container")
 // ErrNilRequestHandler signals that a nil request handler interface was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
+// ErrNilInternalTransactionProducer signals that a nil system transactions producer was provided
+var ErrNilInternalTransactionProducer = errors.New("nil internal transaction producere")
+
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
 
@@ -370,6 +373,9 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 // ErrNilRewardTransaction signals that the reward transaction is nil
 var ErrNilRewardTransaction = errors.New("reward transaction is nil")
 
+// ErrRewardTransactionNotFound is raised when reward transaction should be present but was not found
+var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
+
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
@@ -451,8 +457,8 @@ var ErrRewardTxsDoNotMatch = errors.New("calculated reward tx with block reward 
 // ErrRewardTxNotFound signals that the reward transaction was not found
 var ErrRewardTxNotFound = errors.New("reward transaction not found")
 
-// ErrTotalTxsFeesDoNotMatch signals that the total tx fee do not match
-var ErrTotalTxsFeesDoNotMatch = errors.New("total tx fees do not match")
+// ErrRewardTxsMismatchCreatedReceived signals a mismatch between the nb of created and received reward transactions
+var ErrRewardTxsMismatchCreatedReceived = errors.New("mismatch between created and received reward transactions")
 
 // ErrNilTxTypeHandler signals that tx type handler is nil
 var ErrNilTxTypeHandler = errors.New("nil tx type handler")

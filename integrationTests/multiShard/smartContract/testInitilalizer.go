@@ -350,6 +350,7 @@ func createNetNode(
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	rewardsInter, _ := interimProcContainer.Get(dataBlock.RewardsBlock)
 	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
+	internalTxProducer, _ := rewardsInter.(process.InternalTransactionProducer)
 	rewardProcessor, _ := rewardTransaction.NewRewardTxProcessor(
 		accntAdapter,
 		addrConv,
@@ -401,6 +402,7 @@ func createNetNode(
 		scProcessor,
 		scProcessor,
 		rewardProcessor,
+		internalTxProducer,
 	)
 	container, _ := fact.Create()
 

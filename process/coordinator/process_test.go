@@ -368,6 +368,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -407,6 +408,7 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -677,6 +679,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -766,6 +769,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1129,6 +1133,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1285,6 +1290,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1404,6 +1410,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1518,6 +1525,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1623,6 +1631,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 

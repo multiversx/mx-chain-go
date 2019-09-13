@@ -219,7 +219,7 @@ func (tpn *TestProcessorNode) initDataPools() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.MetaDataPool = CreateTestMetaDataPool()
 	} else {
-		tpn.ShardDataPool = CreateTestShardDataPool(nil, tpn.ShardCoordinator.NumberOfShards())
+		tpn.ShardDataPool = CreateTestShardDataPool(nil)
 	}
 }
 
@@ -342,6 +342,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlock)
 	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
+	internalTxProducer,_:= rewardsInter.(process.InternalTransactionProducer)
 
 	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
 		tpn.AccntState,
@@ -398,6 +399,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
+		internalTxProducer,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

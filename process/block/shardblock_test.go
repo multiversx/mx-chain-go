@@ -616,6 +616,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -801,6 +802,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2073,6 +2075,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2762,6 +2765,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2897,6 +2901,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -3380,6 +3385,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -3612,6 +3618,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -4658,7 +4665,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHdr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
+	dataPool := integrationTests.CreateTestShardDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -4724,7 +4731,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrButNotStored(t *testing.T) {
 	t.Parallel()
 
-	dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
+	dataPool := integrationTests.CreateTestShardDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -4789,7 +4796,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
 	t.Parallel()
 
-	dataPool := integrationTests.CreateTestShardDataPool(nil, 3)
+	dataPool := integrationTests.CreateTestShardDataPool(nil)
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}

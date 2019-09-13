@@ -288,6 +288,9 @@ func TestRewardTxHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 	currTxFee := big.NewInt(50)
 	th.ProcessTransactionFee(currTxFee)
 	_ = th.CreateAllInterMiniBlocks()
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.LeaderAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.BurnAddress()}})
 	err = th.verifyCreatedRewardsTxs()
 	assert.Equal(t, process.ErrRewardTxNotFound, err)
 }
@@ -324,7 +327,7 @@ func TestRewardTxHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testin
 	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: extraVal, RcvAddr: addr.BurnAddress()}})
 	_ = th.CreateAllInterMiniBlocks()
 	err = th.verifyCreatedRewardsTxs()
-	assert.Equal(t, process.ErrTotalTxsFeesDoNotMatch, err)
+	assert.Equal(t, process.ErrRewardTxsMismatchCreatedReceived, err)
 }
 
 func TestRewardTxHandlerVerifyCreatedRewardsTxsOK(t *testing.T) {

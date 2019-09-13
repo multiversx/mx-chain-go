@@ -35,22 +35,22 @@ func NewRewardTxInterceptor(
 	shardCoordinator sharding.Coordinator,
 ) (*RewardTxInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if rewardTxPool == nil {
+	if rewardTxPool == nil || rewardTxPool.IsInterfaceNil() {
 		return nil, process.ErrNilRewardTxDataPool
 	}
-	if rewardTxStorer == nil {
+	if rewardTxStorer == nil || rewardTxStorer.IsInterfaceNil() {
 		return nil, process.ErrNilRewardsTxStorage
 	}
-	if addrConverter == nil {
+	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -69,7 +69,7 @@ func NewRewardTxInterceptor(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (rti *RewardTxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	if message == nil {
+	if message == nil || message.IsInterfaceNil() {
 		return process.ErrNilMessage
 	}
 

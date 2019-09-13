@@ -1251,7 +1251,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 				receiverShard := shardData.ShardMiniBlockHeaders[j].ReceiverShardId
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
-					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d_%d", j+1, senderShard, receiverShard),
+					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d->%d", j+1, senderShard, receiverShard),
 					core.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
