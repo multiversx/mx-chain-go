@@ -3442,13 +3442,11 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	dataPool := mock.NewPoolsHolderFake()
 
-	miniblocks := make([]*block.MiniBlock, 6)
 	miniblockHashes := make([][]byte, 6)
 
 	destShards := []uint32{1, 3, 4}
 	for i := 0; i < 6; i++ {
-		mb, hash := createDummyMiniBlock(fmt.Sprintf("tx hash %d", i), marshalizer, hasher, destShardId, destShards[i/2])
-		miniblocks[i] = mb
+		_, hash := createDummyMiniBlock(fmt.Sprintf("tx hash %d", i), marshalizer, hasher, destShardId, destShards[i/2])
 		miniblockHashes[i] = hash
 	}
 
@@ -3497,16 +3495,22 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
-	//create block body with first 3 miniblocks from miniblocks var
-	blockBody := block.Body{miniblocks[0], miniblocks[1], miniblocks[2]}
+	//create mini block headers with first 3 miniblocks from miniblocks var
+	mbHeaders := []block.MiniBlockHeader{
+		{Hash: miniblockHashes[0]},
+		{Hash: miniblockHashes[1]},
+		{Hash: miniblockHashes[2]},
+	}
 
-	hashes := make([][]byte, 0)
-	hashes = append(hashes, mb1Hash)
-	hashes = append(hashes, mb2Hash)
-	hashes = append(hashes, mb3Hash)
-	blockHeader := &block.Header{MetaBlockHashes: hashes}
+	hashes := [][]byte{
+		mb1Hash,
+		mb2Hash,
+		mb3Hash,
+	}
 
-	_, err := bp.GetProcessedMetaBlocksFromPool(blockBody, blockHeader)
+	blockHeader := &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
+
+	_, err := bp.GetProcessedMetaBlocksFromPool(blockHeader)
 
 	assert.Nil(t, err)
 	//check WasMiniBlockProcessed for remaining metablocks
@@ -3917,12 +3921,11 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
 
 	shardHdr := &block.Header{Round: 15}
-	shardBlock := block.Body{}
-
+	mbHeaders := make([]block.MiniBlockHeader, 0)
 	blockHeader := &block.Header{}
 
 	// test header not in pool and defer called
-	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
+	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(blockHeader)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -3941,10 +3944,10 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
-	blockHeader = &block.Header{MetaBlockHashes: hashes}
+	blockHeader = &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
-	assert.Equal(t, nil, err)
+	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(blockHeader)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
@@ -3963,9 +3966,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	hashes = make([][]byte, 0)
 	hashes = append(hashes, currHash)
 	hashes = append(hashes, prevHash)
-	blockHeader = &block.Header{MetaBlockHashes: hashes}
+	blockHeader = &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
+	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromPool(blockHeader)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -3982,7 +3985,7 @@ func createShardData(hasher hashing.Hasher, marshalizer marshal.Marshalizer, min
 	shardData := make([]block.ShardData, len(miniBlocks))
 	for i := 0; i < len(miniBlocks); i++ {
 		marshaled, _ := marshalizer.Marshal(miniBlocks[i])
-		hashed := hasher.Compute(string(marshaled))
+		hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
 
 		shardMBHeader := block.ShardMiniBlockHeader{
 			ReceiverShardId: miniBlocks[i].ReceiverShardID,
@@ -4056,7 +4059,6 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 		RandSeed: prevRandSeed}
 	notarizedHdrs[sharding.MetachainShardId] = append(notarizedHdrs[sharding.MetachainShardId], lastHdr)
 
-	shardBlock := make(block.Body, 0)
 	txHash := []byte("txhash")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -4080,7 +4082,19 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 		SenderShardID:   4,
 		TxHashes:        txHashes,
 	}
-	shardBlock = append(shardBlock, &miniblock1, &miniblock2, &miniblock3)
+	mbHeaders := make([]block.MiniBlockHeader, 0)
+
+	marshaled, _ := marshalizer.Marshal(miniblock1)
+	hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
+	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
+
+	marshaled, _ = marshalizer.Marshal(miniblock2)
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
+
+	marshaled, _ = marshalizer.Marshal(miniblock3)
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	miniBlocks := make([]block.MiniBlock, 0)
 	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
@@ -4116,9 +4130,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
 	hashes = append(hashes, prevHash)
-	blockHeader := &block.Header{MetaBlockHashes: hashes}
+	blockHeader := &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
+	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(blockHeader)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -4184,7 +4198,6 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 		RandSeed: prevRandSeed}
 	notarizedHdrs[sharding.MetachainShardId] = append(notarizedHdrs[sharding.MetachainShardId], lastHdr)
 
-	shardBlock := make(block.Body, 0)
 	txHash := []byte("txhash")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -4208,7 +4221,24 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 		SenderShardID:   4,
 		TxHashes:        txHashes,
 	}
-	shardBlock = append(shardBlock, &miniblock1, &miniblock2, &miniblock3, &miniblock4)
+
+	mbHeaders := make([]block.MiniBlockHeader, 0)
+
+	marshaled, _ := marshalizer.Marshal(miniblock1)
+	hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
+	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
+
+	marshaled, _ = marshalizer.Marshal(miniblock2)
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
+
+	marshaled, _ = marshalizer.Marshal(miniblock3)
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
+
+	marshaled, _ = marshalizer.Marshal(miniblock4)
+	hashed, _ = core.CalculateHash(marshalizer, hasher, string(marshaled))
+	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	miniBlocks := make([]block.MiniBlock, 0)
 	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
@@ -4249,9 +4279,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
 	hashes = append(hashes, prevHash)
-	blockHeader := &block.Header{MetaBlockHashes: hashes}
+	blockHeader := &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(shardBlock, blockHeader)
+	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromPool(blockHeader)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(processedMetaHdrs))
 

@@ -44,8 +44,8 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint
 	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
-	return sp.getProcessedMetaBlocksFromPool(body, header)
+func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(header *block.Header) ([]data.HeaderHandler, error) {
+	return sp.getProcessedMetaBlocksFromPool(header)
 }
 
 func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
