@@ -320,6 +320,10 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 		tmpLastNotarizedHdrForShard = processedHdrs[i]
 	}
 
+	if tmpLastNotarizedHdrForShard == nil || tmpLastNotarizedHdrForShard.IsInterfaceNil() {
+		return nil
+	}
+
 	bp.notarizedHdrs[shardId] = append(bp.notarizedHdrs[shardId], tmpLastNotarizedHdrForShard)
 	DisplayLastNotarized(bp.marshalizer, bp.hasher, tmpLastNotarizedHdrForShard, shardId)
 
