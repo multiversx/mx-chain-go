@@ -27,7 +27,7 @@ var IELEVirtualMachine = []byte{1, 0}
 var HeraWABTVirtualMachine = []byte{2, 0}
 
 // HeraWAVMVirtualMachine is a byte array identifier for the smart contract address created for Hera WAVM VM
-var HeraWAVMVirtualMachine = []byte{2, 0}
+var HeraWAVMVirtualMachine = []byte{3, 0}
 
 // HeraWBinaryenVirtualMachine is a byte array identifier for the smart contract address created for Hera Binaryen VM
-var HeraWBinaryenVirtualMachine = []byte{2, 0}
+var HeraWBinaryenVirtualMachine = []byte{4, 0}
