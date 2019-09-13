@@ -253,7 +253,10 @@ func (txs *transactions) receivedTransaction(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
+	_ = process.EmptyChannel(txs.chRcvAllTxs)
+
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.missingTxs = 0
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 }
@@ -264,24 +267,32 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	for senderShardID, txsHashesInfo := range missingTxsForShards {
-		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: txsHashesInfo.receiverShardID}
-		for _, txHash := range txsHashesInfo.txHashes {
-			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	for senderShardID, mbsTxHashes := range missingTxsForShards {
+		for _, mbTxHashes := range mbsTxHashes {
+			txs.setMissingTxsForShard(senderShardID, mbTxHashes)
 		}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	for senderShardID, txsHashesInfo := range missingTxsForShards {
-		requestedTxs += len(txsHashesInfo.txHashes)
-		txs.onRequestTransaction(senderShardID, txsHashesInfo.txHashes)
+	for senderShardID, mbsTxHashes := range missingTxsForShards {
+		for _, mbTxHashes := range mbsTxHashes {
+			requestedTxs += len(mbTxHashes.txHashes)
+			txs.onRequestTransaction(senderShardID, mbTxHashes.txHashes)
+		}
 	}
 
 	return requestedTxs
 }
 
+func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
+	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
+	for _, txHash := range mbTxHashes.txHashes {
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	}
+}
+
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
-func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
+func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32][]*txsHashesInfo {
 	missingTxsForShard := txs.computeExistingAndMissing(body, &txs.txsForCurrBlock, txs.chRcvAllTxs, block.TxBlock, txs.txPool)
 
 	return missingTxsForShard

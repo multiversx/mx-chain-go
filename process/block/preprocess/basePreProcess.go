@@ -177,11 +177,10 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	chRcvAllTxs chan bool,
 	currType block.Type,
 	txPool dataRetriever.ShardedDataCacherNotifier,
-) map[uint32]*txsHashesInfo {
-	missingTxsForShard := make(map[uint32]*txsHashesInfo, 0)
+) map[uint32][]*txsHashesInfo {
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, 0)
 	forBlock.mutTxsForBlock.Lock()
 
-	forBlock.missingTxs = 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		if miniBlock.Type != currType {
@@ -208,15 +207,9 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 
 		if len(txHashes) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = &txsHashesInfo{
-				txHashes:        txHashes,
-				receiverShardID: miniBlock.ReceiverShardID,
-			}
+			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID],
+				&txsHashesInfo{txHashes: txHashes, receiverShardID: miniBlock.ReceiverShardID})
 		}
-	}
-
-	if forBlock.missingTxs > 0 {
-		process.EmptyChannel(chRcvAllTxs)
 	}
 
 	forBlock.mutTxsForBlock.Unlock()
