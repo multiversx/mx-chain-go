@@ -18,7 +18,7 @@ type MetaChain struct {
 	CurrentBlock     *block.MetaBlock      // Current Block pointer
 	currentBlockHash []byte                // Current Block hash
 	localHeight      int64                 // Height of the local chain
-	networkHeight    int64                 // Percieved height of the network chain
+	networkHeight    int64                 // Perceived height of the network chain
 	badBlocks        storage.Cacher        // Bad blocks cache
 	appStatusHandler core.AppStatusHandler // AppStatusHandler used for monitoring
 }
@@ -139,12 +139,12 @@ func (mc *MetaChain) SetLocalHeight(height int64) {
 	mc.localHeight = height
 }
 
-// GetNetworkHeight sets the percieved height of the network chain
+// GetNetworkHeight sets the perceived height of the network chain
 func (mc *MetaChain) GetNetworkHeight() int64 {
 	return mc.networkHeight
 }
 
-// SetNetworkHeight sets the percieved height of the network chain
+// SetNetworkHeight sets the perceived height of the network chain
 func (mc *MetaChain) SetNetworkHeight(height int64) {
 	mc.networkHeight = height
 }
