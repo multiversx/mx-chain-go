@@ -214,6 +214,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		}
 	} else {
 		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+			tpn.AccntState,
 			tpn.ShardCoordinator,
 			tpn.Messenger,
 			tpn.Storage,
