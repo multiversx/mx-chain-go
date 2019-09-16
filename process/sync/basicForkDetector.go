@@ -371,23 +371,24 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 				if lowestRoundInForkNonce > 0 {
 					lowestRoundInForkNonce = 0
 					forkHeaderHash = hdrInfos[i].hash
-				} else {
-					if strings.Compare(string(hdrInfos[i].hash), string(forkHeaderHash)) < 0 {
-						forkHeaderHash = hdrInfos[i].hash
-					}
+					continue
 				}
+
+				if lowestRoundInForkNonce == 0 && bytes.Compare(hdrInfos[i].hash, forkHeaderHash) < 0 {
+					forkHeaderHash = hdrInfos[i].hash
+				}
+
 				continue
 			}
 
-			if hdrInfos[i].round <= lowestRoundInForkNonce {
-				if hdrInfos[i].round < lowestRoundInForkNonce {
-					lowestRoundInForkNonce = hdrInfos[i].round
-					forkHeaderHash = hdrInfos[i].hash
-				} else {
-					if strings.Compare(string(hdrInfos[i].hash), string(forkHeaderHash)) < 0 {
-						forkHeaderHash = hdrInfos[i].hash
-					}
-				}
+			if hdrInfos[i].round < lowestRoundInForkNonce {
+				lowestRoundInForkNonce = hdrInfos[i].round
+				forkHeaderHash = hdrInfos[i].hash
+				continue
+			}
+
+			if hdrInfos[i].round == lowestRoundInForkNonce && bytes.Compare(hdrInfos[i].hash, forkHeaderHash) < 0 {
+				forkHeaderHash = hdrInfos[i].hash
 			}
 		}
 

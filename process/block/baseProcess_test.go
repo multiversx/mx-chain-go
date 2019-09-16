@@ -166,6 +166,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs := &mock.CacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
+			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+				return &block.Header{}, true
+			}
 			return cs
 		},
 	}
