@@ -153,6 +153,10 @@ func (sp *shardProcessor) ProcessBlock(
 
 	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
+		if err == process.ErrBlockHashDoesNotMatch {
+			sp.requestShardHeaderByHashIfMissing(headerHandler)
+		}
+
 		return err
 	}
 
@@ -1507,4 +1511,16 @@ func (sp *shardProcessor) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (sp *shardProcessor) requestShardHeaderByHashIfMissing(headerHandler data.HeaderHandler) {
+	_, err := process.GetShardHeader(
+		headerHandler.GetPrevHash(),
+		sp.dataPool.Headers(),
+		sp.marshalizer,
+		sp.store)
+
+	if err != nil {
+		go sp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
+	}
 }
