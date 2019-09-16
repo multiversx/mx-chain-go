@@ -256,7 +256,8 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
-		return process.ErrRootStateMissmatch
+		err = process.ErrRootStateMissmatch
+		return err
 	}
 
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
