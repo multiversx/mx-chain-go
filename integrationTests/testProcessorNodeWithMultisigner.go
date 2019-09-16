@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -12,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/stretchr/testify/assert"
 )
 
 // NewTestProcessorNodeWithCustomNodesCoordinator returns a new TestProcessorNode instance with custom NodesCoordinator
@@ -73,7 +76,7 @@ func CreateNodesWithNodesCoordinator(
 ) map[uint32][]*TestProcessorNode {
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
-	validatorsMap := GenValidatorsFromPubKeys(pubKeys)
+	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	for shardId, validatorList := range validatorsMap {
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
@@ -193,4 +196,100 @@ func DoConsensusSigningOnBlock(
 	blockHeader.SetPubKeysBitmap(bitmap)
 
 	return blockHeader
+}
+
+// AllShardsProposeBlock simulates each shard selecting a consensus group and proposing/broadcasting/committing a block
+func AllShardsProposeBlock(
+	round uint64,
+	nonce uint64,
+	prevRandomness map[uint32][]byte,
+	nodesMap map[uint32][]*TestProcessorNode,
+) (
+	map[uint32]data.BodyHandler,
+	map[uint32]data.HeaderHandler,
+	map[uint32][]*TestProcessorNode,
+	map[uint32][]byte,
+) {
+
+	body := make(map[uint32]data.BodyHandler)
+	header := make(map[uint32]data.HeaderHandler)
+	consensusNodes := make(map[uint32][]*TestProcessorNode)
+	newRandomness := make(map[uint32][]byte)
+
+	// propose blocks
+	for i, _ := range nodesMap {
+		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(i, nodesMap, round, nonce, prevRandomness[i])
+		newRandomness[i] = header[i].GetRandSeed()
+	}
+
+	// propagate blocks
+	for i, _ := range nodesMap {
+		consensusNodes[i][0].BroadcastBlock(body[i], header[i])
+		consensusNodes[i][0].CommitBlock(body[i], header[i])
+	}
+
+	time.Sleep(2 * time.Second)
+
+	return body, header, consensusNodes, newRandomness
+}
+
+// SyncAllShardsWithRoundBlock enforces all nodes in each shard synchronizing the block for the given round
+func SyncAllShardsWithRoundBlock(
+	t *testing.T,
+	nodesMap map[uint32][]*TestProcessorNode,
+	indexProposers map[uint32]int,
+	round uint64,
+) {
+	for shard, nodeList := range nodesMap {
+		SyncBlock(t, nodeList, []int{indexProposers[shard]}, round)
+	}
+	time.Sleep(2 * time.Second)
+}
+
+// VerifyNodesHaveHeaders verifies that each node has the corresponding header
+func VerifyNodesHaveHeaders(
+	t *testing.T,
+	headers map[uint32]data.HeaderHandler,
+	nodesMap map[uint32][]*TestProcessorNode,
+) {
+	var v interface{}
+	var ok bool
+
+	// all nodes in metachain have the block headers in pool as interceptor validates them
+	for shHeader, header := range headers {
+		headerBytes, _ := TestMarshalizer.Marshal(header)
+		headerHash := TestHasher.Compute(string(headerBytes))
+
+		for _, metaNode := range nodesMap[sharding.MetachainShardId] {
+			if shHeader == sharding.MetachainShardId {
+				v, ok = metaNode.MetaDataPool.MetaChainBlocks().Get(headerHash)
+			} else {
+				v, ok = metaNode.MetaDataPool.ShardHeaders().Get(headerHash)
+			}
+
+			assert.True(t, ok)
+			assert.Equal(t, header, v)
+		}
+
+		// all nodes in shards need to have their own shard headers and metachain headers
+		for sh, nodesList := range nodesMap {
+			if sh == sharding.MetachainShardId {
+				continue
+			}
+
+			if sh != shHeader && shHeader != sharding.MetachainShardId {
+				continue
+			}
+
+			for _, node := range nodesList {
+				if shHeader == sharding.MetachainShardId {
+					v, ok = node.ShardDataPool.MetaBlocks().Get(headerHash)
+				} else {
+					v, ok = node.ShardDataPool.Headers().Get(headerHash)
+				}
+				assert.True(t, ok)
+				assert.Equal(t, header, v)
+			}
+		}
+	}
 }

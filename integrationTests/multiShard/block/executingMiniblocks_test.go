@@ -59,17 +59,17 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	//sender shard keys, receivers  keys
 	sendersPrivateKeys := make([]crypto.PrivateKey, 3)
-	receiversPrivateKeys := make(map[uint32][]crypto.PrivateKey)
+	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
 		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 
 		//receivers in same shard with the sender
-		sk, _, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
-		receiversPrivateKeys[senderShard] = append(receiversPrivateKeys[senderShard], sk)
+		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+		receiversPublicKeys[senderShard] = append(receiversPublicKeys[senderShard], pk)
 		//receivers in other shards
 		for _, shardId := range recvShards {
-			sk, _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
-			receiversPrivateKeys[shardId] = append(receiversPrivateKeys[shardId], sk)
+			_, pk, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
+			receiversPublicKeys[shardId] = append(receiversPublicKeys[shardId], pk)
 		}
 	}
 
@@ -77,7 +77,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	integrationTests.GenerateAndDisseminateTxs(
 		proposerNode,
 		sendersPrivateKeys,
-		receiversPrivateKeys,
+		receiversPublicKeys,
 		valToTransferPerTx,
 		gasPricePerTx,
 		gasLimitPerTx,
@@ -108,13 +108,13 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 		//test sender balances
 		for _, sk := range sendersPrivateKeys {
-			valTransferred := big.NewInt(0).Mul(totalValuePerTx, big.NewInt(int64(len(receiversPrivateKeys))))
+			valTransferred := big.NewInt(0).Mul(totalValuePerTx, big.NewInt(int64(len(receiversPublicKeys))))
 			valRemaining := big.NewInt(0).Sub(valMinting, valTransferred)
 			integrationTests.TestPrivateKeyHasBalance(t, n, sk, valRemaining)
 		}
 		//test receiver balances from same shard
-		for _, sk := range receiversPrivateKeys[proposerNode.ShardCoordinator.SelfId()] {
-			integrationTests.TestPrivateKeyHasBalance(t, n, sk, valToTransferPerTx)
+		for _, pk := range receiversPublicKeys[proposerNode.ShardCoordinator.SelfId()] {
+			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
 	}
 
@@ -132,8 +132,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		}
 
 		//test receiver balances from same shard
-		for _, sk := range receiversPrivateKeys[n.ShardCoordinator.SelfId()] {
-			integrationTests.TestPrivateKeyHasBalance(t, n, sk, valToTransferPerTx)
+		for _, pk := range receiversPublicKeys[n.ShardCoordinator.SelfId()] {
+			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
 	}
 }
