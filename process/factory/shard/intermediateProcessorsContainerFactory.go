@@ -51,7 +51,7 @@ func NewIntermediateProcessorsContainerFactory(
 	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStorage
 	}
-	if poolsHolder == nil {
+	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
 		return nil, process.ErrNilPoolsHolder
 	}
 

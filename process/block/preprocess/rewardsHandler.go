@@ -322,7 +322,7 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 }
 
 // createRewardFromFees creates the reward transactions from accumulated fees
-// According to economic paper, out of the block fees 50% are burned, 40% go to the
+// According to economic paper, out of the block fees 40% are burned, 50% go to the
 // leader and 10% go to Elrond community fund.
 func (rtxh *rewardsHandler) createRewardFromFees() []data.TransactionHandler {
 	rtxh.mut.Lock()

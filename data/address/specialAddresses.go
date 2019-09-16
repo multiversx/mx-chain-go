@@ -83,10 +83,12 @@ func (sp *specialAddresses) ConsensusRewardAddresses() []string {
 	return sp.consensusRewardAddresses
 }
 
+// Round returns the round for the current block
 func (sp *specialAddresses) Round() uint64 {
 	return sp.round
 }
 
+// Epoch returns the epoch for the current block
 func (sp *specialAddresses) Epoch() uint32 {
 	return sp.epoch
 }
