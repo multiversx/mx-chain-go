@@ -1,17 +1,17 @@
 package preprocess
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewRewardTxHandler_NilSpecialAddress(t *testing.T) {
+func TestNewRewardTxHandler_NilSpecialAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -27,24 +27,6 @@ func TestNewRewardTxHandler_NilSpecialAddress(t *testing.T) {
 
 	assert.Nil(t, th)
 	assert.Equal(t, process.ErrNilSpecialAddressHandler, err)
-}
-
-func TestNewRewardTxHandler_NilShardCoordinator(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool()
-	th, err := NewRewardTxHandler(
-		&mock.SpecialAddressHandlerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		nil,
-		&mock.AddressConverterMock{},
-		&mock.ChainStorerMock{},
-		tdp.RewardTransactions(),
-	)
-
-	assert.Nil(t, th)
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewRewardTxHandler_NilHasher(t *testing.T) {
@@ -81,6 +63,77 @@ func TestNewRewardTxHandler_NilMarshalizer(t *testing.T) {
 
 	assert.Nil(t, th)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewRewardTxHandler_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	th, err := NewRewardTxHandler(
+		&mock.SpecialAddressHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		nil,
+		&mock.AddressConverterMock{},
+		&mock.ChainStorerMock{},
+		tdp.RewardTransactions(),
+	)
+
+	assert.Nil(t, th)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewRewardTxHandler_NilAddressConverter(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	th, err := NewRewardTxHandler(
+		&mock.SpecialAddressHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		nil,
+		&mock.ChainStorerMock{},
+		tdp.RewardTransactions(),
+	)
+
+	assert.Nil(t, th)
+	assert.Equal(t, process.ErrNilAddressConverter, err)
+}
+
+func TestNewRewardTxHandler_NilChainStorer(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	th, err := NewRewardTxHandler(
+		&mock.SpecialAddressHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AddressConverterMock{},
+		nil,
+		tdp.RewardTransactions(),
+	)
+
+	assert.Nil(t, th)
+	assert.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestNewRewardTxHandler_NilRewardsPool(t *testing.T) {
+	t.Parallel()
+
+	th, err := NewRewardTxHandler(
+		&mock.SpecialAddressHandlerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AddressConverterMock{},
+		&mock.ChainStorerMock{},
+		nil,
+	)
+
+	assert.Nil(t, th)
+	assert.NotNil(t, process.ErrNilRewardTxDataPool, err)
 }
 
 func TestNewRewardTxHandler_ValsOk(t *testing.T) {
@@ -209,17 +262,19 @@ func TestRewardTxHandlerCreateAllUTxs(t *testing.T) {
 	assert.Equal(t, currTxFee.Uint64(), totalSum)
 }
 
-func TestRewardTxHandlerVerifyCreatedRewardsTxs(t *testing.T) {
+func TestRewardTxHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	addr := &mock.SpecialAddressHandlerMock{}
+	adrConv := &mock.AddressConverterMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator)
 	th, err := NewRewardTxHandler(
 		addr,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AddressConverterMock{},
+		shardCoordinator,
+		adrConv,
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
 	)
@@ -232,39 +287,80 @@ func TestRewardTxHandlerVerifyCreatedRewardsTxs(t *testing.T) {
 
 	currTxFee := big.NewInt(50)
 	th.ProcessTransactionFee(currTxFee)
-
+	_ = th.CreateAllInterMiniBlocks()
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.LeaderAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.BurnAddress()}})
 	err = th.verifyCreatedRewardsTxs()
 	assert.Equal(t, process.ErrRewardTxNotFound, err)
+}
 
-	badValue := big.NewInt(100)
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: badValue}})
+func TestRewardTxHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	adrConv := &mock.AddressConverterMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator)
+	th, err := NewRewardTxHandler(
+		addr,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		shardCoordinator,
+		adrConv,
+		&mock.ChainStorerMock{},
+		tdp.RewardTransactions(),
+	)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, th)
 
 	err = th.verifyCreatedRewardsTxs()
-	assert.Equal(t, process.ErrTotalTxsFeesDoNotMatch, err)
+	assert.Nil(t, err)
 
-	th.cleanCachedData()
-
-	currTxFee = big.NewInt(50)
-	halfCurrTxFee := big.NewInt(25)
+	currTxFee := big.NewInt(50)
 	th.ProcessTransactionFee(currTxFee)
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: halfCurrTxFee}})
-
+	extraVal := big.NewInt(100)
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(25), RcvAddr: addr.LeaderAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.BurnAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: extraVal, RcvAddr: addr.BurnAddress()}})
+	_ = th.CreateAllInterMiniBlocks()
 	err = th.verifyCreatedRewardsTxs()
-	assert.Equal(t, process.ErrRewardTxNotFound, err)
+	assert.Equal(t, process.ErrRewardTxsMismatchCreatedReceived, err)
+}
 
-	th.cleanCachedData()
+func TestRewardTxHandlerVerifyCreatedRewardsTxsOK(t *testing.T) {
+	t.Parallel()
 
-	currTxFee = big.NewInt(50)
+	tdp := initDataPool()
+	adrConv := &mock.AddressConverterMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator)
+	th, err := NewRewardTxHandler(
+		addr,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		shardCoordinator,
+		adrConv,
+		&mock.ChainStorerMock{},
+		tdp.RewardTransactions(),
+	)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, th)
+
+	currTxFee := big.NewInt(50)
 	th.ProcessTransactionFee(currTxFee)
 	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.LeaderAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(25), RcvAddr: addr.BurnAddress()}})
-
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(25), RcvAddr: addr.LeaderAddress()}})
+	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.BurnAddress()}})
+	_ = th.CreateAllInterMiniBlocks()
 	err = th.verifyCreatedRewardsTxs()
 	assert.Nil(t, err)
 }
 
-func TestRewardTxHandlerCreateAllInterMiniBlocks(t *testing.T) {
+func TestRewardTxHandlerCreateAllInterMiniBlocksOK(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
@@ -292,55 +388,4 @@ func TestRewardTxHandlerCreateAllInterMiniBlocks(t *testing.T) {
 
 	mbs = th.CreateAllInterMiniBlocks()
 	assert.Equal(t, 1, len(mbs))
-}
-
-func TestRewardTxHandlerVerifyInterMiniBlocks(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool()
-	addr := &mock.SpecialAddressHandlerMock{}
-	th, err := NewRewardTxHandler(
-		addr,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AddressConverterMock{},
-		&mock.ChainStorerMock{},
-		tdp.RewardTransactions(),
-	)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, th)
-
-	err = th.VerifyInterMiniBlocks(nil)
-	assert.Nil(t, err)
-
-	currTxFee := big.NewInt(50)
-	th.ProcessTransactionFee(currTxFee)
-
-	err = th.VerifyInterMiniBlocks(nil)
-	assert.Equal(t, process.ErrRewardTxNotFound, err)
-
-	badValue := big.NewInt(100)
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: badValue}})
-
-	err = th.VerifyInterMiniBlocks(nil)
-	assert.Equal(t, process.ErrTotalTxsFeesDoNotMatch, err)
-
-	th.cleanCachedData()
-
-	currTxFee = big.NewInt(50)
-	halfCurrTxFee := big.NewInt(25)
-	th.ProcessTransactionFee(currTxFee)
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: halfCurrTxFee}})
-
-	err = th.VerifyInterMiniBlocks(nil)
-	assert.Equal(t, process.ErrRewardTxNotFound, err)
-
-	th.cleanCachedData()
-
-	currTxFee = big.NewInt(50)
-	th.ProcessTransactionFee(currTxFee)
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(5), RcvAddr: addr.ElrondCommunityAddress()}})
-	_ = th.AddIntermediateTransactions([]data.TransactionHandler{&rewardTx.RewardTx{Value: big.NewInt(20), RcvAddr: addr.LeaderAddress()}})
 }

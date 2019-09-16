@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -59,6 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
@@ -405,7 +405,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 
 type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
-	rewardsConfig        *config.RewardConfig
+	economicsConfig      *config.EconomicsConfig
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
@@ -421,7 +421,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
-	rewardsConfig *config.RewardConfig,
+	economicsConfig *config.EconomicsConfig,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
 	shardCoordinator sharding.Coordinator,
@@ -435,7 +435,7 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		genesisConfig:        genesisConfig,
-		rewardsConfig:        rewardsConfig,
+		economicsConfig:      economicsConfig,
 		nodesConfig:          nodesConfig,
 		syncer:               syncer,
 		shardCoordinator:     shardCoordinator,
@@ -507,7 +507,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		args.shardCoordinator,
 		args.nodesCoordinator,
-		args.rewardsConfig,
+		args.economicsConfig,
 		args.data,
 		args.core,
 		args.state,
@@ -1229,7 +1229,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		return nil, nil, err
 	}
 
-	dataPacker, err := partitioning.NewSizeDataPacker(core.Marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1351,9 +1351,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	shardsGenesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
-			uint64(nodesSetup.StartTime),
-			nodesSetup.InitialNodesPubKeys(),
-		)
+		uint64(nodesSetup.StartTime),
+		nodesSetup.InitialNodesPubKeys(),
+	)
 
 	if err != nil {
 		return nil, err
@@ -1415,7 +1415,7 @@ func newBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	rewardsConfig *config.RewardConfig,
+	economicsConfig *config.EconomicsConfig,
 	data *Data,
 	core *Core,
 	state *State,
@@ -1425,14 +1425,20 @@ func newBlockProcessorAndTracker(
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
-	if rewardsConfig.CommunityAddress == "" || rewardsConfig.BurnAddress == "" {
+	if economicsConfig.CommunityAddress == "" || economicsConfig.BurnAddress == "" {
 		return nil, nil, errors.New("rewards configuration missing")
 	}
 
-	communityAddress, _ := hex.DecodeString(rewardsConfig.CommunityAddress)
-	burnAddress, _ := hex.DecodeString(rewardsConfig.BurnAddress)
+	communityAddress, err := hex.DecodeString(economicsConfig.CommunityAddress)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	// TODO: construct this correctly on the PR
+	burnAddress, err := hex.DecodeString(economicsConfig.BurnAddress)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	specialAddressHolder, err := address.NewSpecialAddressHolder(
 		communityAddress,
 		burnAddress,
@@ -1504,10 +1510,6 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	if err != nil {
-		return nil, nil, err
-	}
-
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		core.Marshalizer,
@@ -1531,13 +1533,18 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	rewardsTxInterim, err := interimProcContainer.Get(dataBlock.RewardsBlockType)
+	rewardsTxInterim, err := interimProcContainer.Get(dataBlock.RewardsBlock)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	rewardsTxHandler, ok := rewardsTxInterim.(process.TransactionFeeHandler)
 	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	internalTransactionProducer, ok:= rewardsTxInterim.(process.InternalTransactionProducer)
+	if !ok{
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
@@ -1622,6 +1629,7 @@ func newShardBlockProcessorAndTracker(
 		scProcessor,
 		scProcessor,
 		rewardsTxProcessor,
+		internalTransactionProducer,
 	)
 	if err != nil {
 		return nil, nil, err

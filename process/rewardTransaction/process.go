@@ -1,10 +1,10 @@
 package rewardTransaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -20,6 +20,8 @@ type rewardTxProcessor struct {
 	rewardTxForwarder   process.IntermediateTransactionHandler
 }
 
+// NewRewardTxProcessor creates a rewardTxProcessor instance
+// TODO: add unit tests
 func NewRewardTxProcessor(
 	accountsDB state.AccountsAdapter,
 	adrConv state.AddressConverter,
@@ -100,4 +102,12 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 	err = rewardAcc.SetBalanceWithJournal(operation)
 
 	return err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rtp *rewardTxProcessor) IsInterfaceNil() bool {
+	if rtp == nil {
+		return true
+	}
+	return false
 }

@@ -37,16 +37,16 @@ func NewInterceptedRewardTransaction(
 	if rewardTxBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if addrConv == nil {
+	if addrConv == nil || addrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 

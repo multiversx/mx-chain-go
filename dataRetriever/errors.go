@@ -65,7 +65,7 @@ var ErrNilTxDataPool = errors.New("nil transaction data pool")
 var ErrNilUnsignedTransactionPool = errors.New("nil unsigned transactions data pool")
 
 // ErrNilRewardTransactionPool signals that a nil reward transactions pool has been provided
-var ErrNilRewardTransactionPool = errors.New("nil fee transaction data pool")
+var ErrNilRewardTransactionPool = errors.New("nil reward transaction data pool")
 
 // ErrNilHeadersDataPool signals that a nil header pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")

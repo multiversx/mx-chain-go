@@ -15,3 +15,10 @@ func (scrp *RewardTxProcessorMock) ProcessRewardTransaction(rTx *rewardTx.Reward
 
 	return scrp.ProcessRewardTransactionCalled(rTx)
 }
+
+func (scrp *RewardTxProcessorMock) IsInterfaceNil() bool {
+	if scrp == nil {
+		return true
+	}
+	return false
+}

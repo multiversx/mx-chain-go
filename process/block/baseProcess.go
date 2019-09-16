@@ -514,7 +514,7 @@ func checkProcessorNilParameters(
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil(){
+	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
 		return process.ErrNilNodesCoordinator
 	}
 	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {

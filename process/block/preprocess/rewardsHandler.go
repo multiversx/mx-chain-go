@@ -16,16 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// MinGasPrice is the minimal gas price to be paid for any transaction
-// TODO: Set MinGasPrice and MinTxFee to some positive value (TBD)
-var MinGasPrice = uint64(0)
-
-// MinTxFee is the minimal fee to be paid for any transaction
-var MinTxFee = uint64(0)
-
 const communityPercentage = 0.1 // 1 = 100%, 0 = 0%
-const leaderPercentage = 0.4    // 1 = 100%, 0 = 0%
-const burnPercentage = 0.5      // 1 = 100%, 0 = 0%
+const leaderPercentage = 0.5    // 1 = 100%, 0 = 0%
+const burnPercentage = 0.4      // 1 = 100%, 0 = 0%
 
 // TODO: Replace with valid reward value
 var rewardValue = big.NewInt(1000)
@@ -58,20 +51,26 @@ func NewRewardTxHandler(
 	store dataRetriever.StorageService,
 	rewardTxPool dataRetriever.ShardedDataCacherNotifier,
 ) (*rewardsHandler, error) {
-	if address == nil {
+	if address == nil || address.IsInterfaceNil() {
 		return nil, process.ErrNilSpecialAddressHandler
 	}
-	if shardCoordinator == nil {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if store == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+		return nil, process.ErrNilShardCoordinator
+	}
+	if adrConv == nil || adrConv.IsInterfaceNil() {
+		return nil, process.ErrNilAddressConverter
+	}
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStorage
+	}
+	if rewardTxPool == nil || rewardTxPool.IsInterfaceNil() {
+		return nil, process.ErrNilRewardTxDataPool
 	}
 
 	rtxh := &rewardsHandler{
@@ -202,6 +201,8 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 		if mb, ok = miniBlocks[dstShId]; !ok {
 			mb = &block.MiniBlock{
 				ReceiverShardID: dstShId,
+				SenderShardID:   rtxh.shardCoordinator.SelfId(),
+				Type:            block.RewardsBlock,
 			}
 		}
 
@@ -321,7 +322,7 @@ func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 }
 
 // createRewardFromFees creates the reward transactions from accumulated fees
-// According to economic paper, out of the block fees 50% are burned, 40% go to the
+// According to economic paper, out of the block fees 40% are burned, 50% go to the
 // leader and 10% go to Elrond community fund.
 func (rtxh *rewardsHandler) createRewardFromFees() []data.TransactionHandler {
 	rtxh.mut.Lock()
@@ -365,7 +366,7 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 	return consensusRewardTxs
 }
 
-// VerifyCreatedRewardsTxs verifies if the calculated rewards transactions and the block reward transactions are the same
+// verifyCreatedRewardsTxs verifies if the calculated rewards transactions and the block reward transactions are the same
 func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	calculatedRewardTxs := make([]data.TransactionHandler, 0)
 	rtxh.mutGenRewardTxs.RLock()
@@ -379,6 +380,10 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	totalFeesFromBlock := big.NewInt(0)
 	for _, rTx := range rtxh.rewardTxsForBlock {
 		totalFeesFromBlock = totalFeesFromBlock.Add(totalFeesFromBlock, rTx.GetValue())
+	}
+
+	if len(calculatedRewardTxs) != len(rtxh.rewardTxsForBlock) {
+		return process.ErrRewardTxsMismatchCreatedReceived
 	}
 
 	totalCalculatedFees := big.NewInt(0)
@@ -399,11 +404,32 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 		}
 	}
 
-	if totalCalculatedFees.Cmp(totalFeesFromBlock) != 0 {
-		return process.ErrTotalTxsFeesDoNotMatch
-	}
-
 	return nil
+}
+
+// GetAllCurrentFinishedTxs returns the cached finalized transactions for current round
+func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.TransactionHandler {
+	rtxh.mut.Lock()
+
+	rewardTxPool := make(map[string]data.TransactionHandler)
+	for txHash, txInfo := range rtxh.rewardTxsForBlock {
+
+		senderShard := txInfo.ShardId
+		receiverShard, err := rtxh.address.ShardIdForAddress(txInfo.RcvAddr)
+		if err != nil {
+			continue
+		}
+		if receiverShard != rtxh.shardCoordinator.SelfId() {
+			continue
+		}
+		if senderShard != rtxh.shardCoordinator.SelfId() {
+			continue
+		}
+		rewardTxPool[txHash] = txInfo
+	}
+	rtxh.mut.Unlock()
+
+	return rewardTxPool
 }
 
 

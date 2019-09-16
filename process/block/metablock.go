@@ -161,6 +161,13 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
+	go getMetricsFromMetaHeader(
+		header,
+		mp.marshalizer,
+		mp.appStatusHandler,
+		mp.getHeadersCountInPool(),
+	)
+
 	requestedShardHdrs, requestedFinalShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
@@ -217,8 +224,8 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-// SetConsensusRewardAddresses - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusRewardAddresses(consensusRewardAddresses []string, round uint64) {
+// SetConsensusData - sets the reward addresses for the current consensus group
+func (mp *metaProcessor) SetConsensusData(consensusRewardAddresses []string, round uint64) {
 	// TODO set the reward addresses for metachain consensus nodes
 }
 
@@ -1184,14 +1191,15 @@ func (mp *metaProcessor) displayLogInfo(
 	}
 
 	shardMBHeaderCounterMutex.RLock()
+	headerHashBase64 := core.ToB64(headerHash)
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal shard MB headers "+
 		"processed until now: %d. Total shard MB headers processed for this block: %d. Total shard headers remained in pool: %d\n",
-		core.ToB64(headerHash),
+		headerHashBase64,
 		shardMBHeadersTotalProcessed,
 		shardMBHeadersCurrentBlockProcessed,
 		mp.getHeadersCountInPool())
 	shardMBHeaderCounterMutex.RUnlock()
-
+	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, headerHashBase64)
 	log.Info(tblString)
 }
 
@@ -1243,7 +1251,7 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 				receiverShard := shardData.ShardMiniBlockHeaders[j].ReceiverShardId
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
-					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d_%d", j+1, senderShard, receiverShard),
+					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d->%d", j+1, senderShard, receiverShard),
 					core.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{

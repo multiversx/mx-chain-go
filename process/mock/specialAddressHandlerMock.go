@@ -18,6 +18,23 @@ type SpecialAddressHandlerMock struct {
 	round     uint64
 }
 
+func NewSpecialAddressHandlerMock(
+	addrConv state.AddressConverter,
+	shardCoordinator sharding.Coordinator,
+) *SpecialAddressHandlerMock {
+	return &SpecialAddressHandlerMock{
+		ElrondCommunityAddressCalled: nil,
+		LeaderAddressCalled:          nil,
+		BurnAddressCalled:            nil,
+		ShardIdForAddressCalled:      nil,
+		AdrConv:                      addrConv,
+		ShardCoordinator:             shardCoordinator,
+		addresses:                    nil,
+		epoch:                        0,
+		round:                        0,
+	}
+}
+
 func (sh *SpecialAddressHandlerMock) SetElrondCommunityAddress(elrond []byte) {
 }
 

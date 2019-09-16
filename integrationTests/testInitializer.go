@@ -88,27 +88,27 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateTestShardDataPool creates a test data pool for shard nodes
-func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier, nbShards uint32) dataRetriever.PoolsHolder {
+func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
-		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards})
+		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	}
 
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: nbShards})
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: nbShards}
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: 1}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nbShards}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	dPool, _ := dataPool.NewShardedDataPool(
@@ -906,6 +906,7 @@ func ComputeAndRequestMissingTransactions(
 	}
 }
 
+// ComputeAndRequestMissingRewardTxs computes the missing reward transactions for each node and requests them
 func ComputeAndRequestMissingRewardTxs(
 	nodes []*TestProcessorNode,
 	generatedDataHashes [][]byte,
@@ -928,7 +929,6 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 	for i := 0; i < len(generatedTxHashes); i++ {
 		_, ok := n.ShardDataPool.Transactions().SearchFirstData(generatedTxHashes[i])
 		if !ok {
-			//tx is still missing
 			neededTxs = append(neededTxs, generatedTxHashes[i])
 		}
 	}
@@ -942,7 +942,6 @@ func getMissingRewardTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte
 	for i := 0; i < len(generatedTxHashes); i++ {
 		_, ok := n.ShardDataPool.RewardTransactions().SearchFirstData(generatedTxHashes[i])
 		if !ok {
-			//tx is still missing
 			neededTxs = append(neededTxs, generatedTxHashes[i])
 		}
 	}
@@ -967,42 +966,33 @@ func requestMissingRewardTxs(n *TestProcessorNode, shardResolver uint32, neededD
 }
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
-func CreateRequesterDataPool(
-	t *testing.T,
-	recvTxs map[int]map[string]struct{},
-	mutRecvTxs *sync.Mutex,
-	nodeIndex int,
-	nbShards uint32,
-) dataRetriever.PoolsHolder {
+func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, ) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
-	return CreateTestShardDataPool(
-		&mock.ShardedDataStub{
-			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-				assert.Fail(t, "same-shard requesters should not be queried")
-				return nil, false
-			},
-			ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-				assert.Fail(t, "same-shard requesters should not be queried")
-				return nil
-			},
-			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				mutRecvTxs.Lock()
-				defer mutRecvTxs.Unlock()
-
-				txMap := recvTxs[nodeIndex]
-				if txMap == nil {
-					txMap = make(map[string]struct{})
-					recvTxs[nodeIndex] = txMap
-				}
-
-				txMap[string(key)] = struct{}{}
-			},
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
+	return CreateTestShardDataPool(&mock.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			assert.Fail(t, "same-shard requesters should not be queried")
+			return nil, false
 		},
-		nbShards,
-	)
+		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
+			assert.Fail(t, "same-shard requesters should not be queried")
+			return nil
+		},
+		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			mutRecvTxs.Lock()
+			defer mutRecvTxs.Unlock()
+
+			txMap := recvTxs[nodeIndex]
+			if txMap == nil {
+				txMap = make(map[string]struct{})
+				recvTxs[nodeIndex] = txMap
+			}
+
+			txMap[string(key)] = struct{}{}
+		},
+		RegisterHandlerCalled: func(i func(key []byte)) {
+		},
+	})
 }
 
 // CreateResolversDataPool creates a datapool containing a given number of transactions
@@ -1025,7 +1015,7 @@ func CreateResolversDataPool(
 		txHashes[i] = txHash
 	}
 
-	return CreateTestShardDataPool(txPool, shardCoordinator.NumberOfShards()), txHashes
+	return CreateTestShardDataPool(txPool), txHashes
 }
 
 func generateValidTx(
@@ -1153,6 +1143,18 @@ func ProposeAndSyncOneBlock(
 	nonce++
 
 	return round, nonce
+}
+
+// WaitForBootstrapAndShowConnected will delay a given duration in order to wait for bootstraping  and print the
+// number of peers that each node is connected to
+func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapingTime time.Duration) {
+	fmt.Printf("Waiting %v for peer discovery...\n", durationBootstrapingTime)
+	time.Sleep(durationBootstrapingTime)
+
+	fmt.Println("Connected peers:")
+	for _, peer := range peers {
+		fmt.Printf("Peer %s is connected to %d peers\n", peer.ID().Pretty(), len(peer.ConnectedPeers()))
+	}
 }
 
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.

@@ -10,13 +10,12 @@ type SpecialAddressHandlerMock struct {
 	LeaderAddressCalled          func() []byte
 	BurnAddressCalled            func() []byte
 	ShardIdForAddressCalled      func([]byte) (uint32, error)
-	AdrConv          state.AddressConverter
-	ShardCoordinator sharding.Coordinator
-
+	AdrConv                      state.AddressConverter
+	ShardCoordinator             sharding.Coordinator
 
 	addresses []string
-	epoch uint32
-	round uint64
+	epoch     uint32
+	round     uint64
 }
 
 func (sh *SpecialAddressHandlerMock) SetElrondCommunityAddress(elrond []byte) {

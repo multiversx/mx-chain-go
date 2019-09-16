@@ -2,8 +2,8 @@ package transaction
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -15,6 +15,14 @@ import (
 )
 
 var log = logger.DefaultLogger()
+
+// minGasPrice is the minimal gas price to be paid for any transaction
+// TODO: Set minGasPrice and minTxFee to some positive value (TBD)
+var minGasPrice = uint64(0)
+
+// minTxFee is the minimal fee to be paid for any transaction
+var minTxFee = uint64(0)
+var mutTxFee sync.RWMutex
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
@@ -58,10 +66,10 @@ func NewTxProcessor(
 	if scProcessor == nil || scProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if txFeeHandler == nil {
+	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
-	if txTypeHandler == nil {
+	if txTypeHandler == nil || txTypeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilTxTypeHandler
 	}
 
@@ -124,9 +132,11 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 
 	txDataLen := int64(len(tx.Data))
+	mutTxFee.RLock()
 	minFee := big.NewInt(0)
-	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(preprocess.MinGasPrice))
-	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(preprocess.MinTxFee))
+	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(minGasPrice))
+	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(minTxFee))
+	mutTxFee.RUnlock()
 
 	if minFee.Cmp(cost) > 0 {
 		return nil, process.ErrNotEnoughFeeInTransactions

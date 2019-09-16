@@ -45,13 +45,13 @@ func NewIntermediateProcessorsContainerFactory(
 	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil(){
+	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {
 		return nil, process.ErrNilSpecialAddressHandler
 	}
-	if store == nil || store.IsInterfaceNil(){
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStorage
 	}
-	if poolsHolder == nil {
+	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
 		return nil, process.ErrNilPoolsHolder
 	}
 
@@ -85,7 +85,7 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
-	err = container.Add(block.RewardsBlockType, interproc)
+	err = container.Add(block.RewardsBlock, interproc)
 	if err != nil {
 		return nil, err
 	}

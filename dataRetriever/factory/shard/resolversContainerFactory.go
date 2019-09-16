@@ -108,6 +108,7 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, resolverSlice)
 	if err != nil {
 		return nil, err

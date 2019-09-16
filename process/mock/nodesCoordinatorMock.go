@@ -2,6 +2,8 @@ package mock
 
 import (
 	"bytes"
+	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -22,12 +24,29 @@ type NodesCoordinatorMock struct {
 }
 
 func NewNodesCoordinatorMock() *NodesCoordinatorMock {
+	nbShards := uint32(1)
+	nodesPerShard := 2
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for sh := uint32(0); sh < nbShards; sh++ {
+		validatorsList := make([]sharding.Validator, nodesPerShard)
+		for v := 0; v < nodesPerShard; v++ {
+			validatorsList[v], _ = sharding.NewValidator(
+				big.NewInt(10),
+				1,
+				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
+				[]byte(fmt.Sprintf("address%d%d", sh, v)),
+			)
+		}
+		validatorsMap[sh] = validatorsList
+	}
+
 	return &NodesCoordinatorMock{
 		ShardConsensusSize: 1,
 		MetaConsensusSize:  1,
 		ShardId:            0,
-		NbShards:           1,
-		Validators:         make(map[uint32][]sharding.Validator),
+		NbShards:           nbShards,
+		Validators:         validatorsMap,
 	}
 }
 
@@ -87,7 +106,6 @@ func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
 	}
 
 	addresses := make([]string, 0)
-
 	for _, v := range validators {
 		addresses = append(addresses, string(v.Address()))
 	}

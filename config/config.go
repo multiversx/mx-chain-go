@@ -56,8 +56,8 @@ type NTPConfig struct {
 	Version int
 }
 
-// RewardConfig will hold the reward configuration
-type RewardConfig struct {
+// EconomicsConfig will hold the reward configuration
+type EconomicsConfig struct {
 	CommunityAddress string
 	BurnAddress      string
 }
@@ -106,21 +106,14 @@ type Config struct {
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
 
-	NTPConfig    NTPConfig
-	RewardConfig RewardConfig
+	NTPConfig       NTPConfig
+	EconomicsConfig EconomicsConfig
 }
 
 // NodeConfig will hold basic p2p settings
 type NodeConfig struct {
 	Port int
 	Seed string
-}
-
-// MdnsPeerDiscoveryConfig will hold the mdns discovery config settings
-type MdnsPeerDiscoveryConfig struct {
-	Enabled              bool
-	RefreshIntervalInSec int
-	ServiceTag           string
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
@@ -134,7 +127,6 @@ type KadDhtPeerDiscoveryConfig struct {
 // P2PConfig will hold all the P2P settings
 type P2PConfig struct {
 	Node                NodeConfig
-	MdnsPeerDiscovery   MdnsPeerDiscoveryConfig
 	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
 }
 

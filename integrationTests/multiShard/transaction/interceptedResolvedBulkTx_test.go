@@ -286,7 +286,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	recvTxs := make(map[int]map[string]struct{})
 	mutRecvTxs := sync.Mutex{}
 	for i := 0; i < nodesPerShard; i++ {
-		dPool := integrationTests.CreateRequesterDataPool(t, recvTxs, &mutRecvTxs, i, uint32(maxShards))
+		dPool := integrationTests.CreateRequesterDataPool(t, recvTxs, &mutRecvTxs, i)
 
 		tn := integrationTests.NewTestProcessorNodeWithCustomDataPool(
 			uint32(maxShards),

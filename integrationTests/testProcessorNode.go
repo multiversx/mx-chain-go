@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"sync/atomic"
 	"time"
 
@@ -36,11 +35,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -111,6 +111,8 @@ type TestProcessorNode struct {
 	BlockTracker       process.BlocksTracker
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
+	Bootstrapper       process.Bootstrapper
+	Rounder            *mock.RounderMock
 
 	MultiSigner crypto.MultiSigner
 
@@ -189,8 +191,8 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{
-		ShardCoordinator:tpn.ShardCoordinator,
-		AdrConv: TestAddressConverter,
+		ShardCoordinator: tpn.ShardCoordinator,
+		AdrConv:          TestAddressConverter,
 	}
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
@@ -217,7 +219,7 @@ func (tpn *TestProcessorNode) initDataPools() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.MetaDataPool = CreateTestMetaDataPool()
 	} else {
-		tpn.ShardDataPool = CreateTestShardDataPool(nil, tpn.ShardCoordinator.NumberOfShards())
+		tpn.ShardDataPool = CreateTestShardDataPool(nil)
 	}
 }
 
@@ -278,7 +280,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 }
 
 func (tpn *TestProcessorNode) initResolvers() {
-	dataPacker, _ := partitioning.NewSizeDataPacker(TestMarshalizer)
+	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
@@ -338,8 +340,9 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
-	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlockType)
+	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlock)
 	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
+	internalTxProducer,_:= rewardsInter.(process.InternalTransactionProducer)
 
 	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
 		tpn.AccntState,
@@ -396,6 +399,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
+		internalTxProducer,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -571,6 +575,17 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		tpn.ShardDataPool.MetaBlocks().RegisterHandler(metaHandlers)
 		tpn.ShardDataPool.MiniBlocks().RegisterHandler(mbHandlers)
 	}
+}
+
+// StartSync calls Bootstrapper.StartSync. Errors if bootstrapper is not set
+func (tpn *TestProcessorNode) StartSync() error {
+	if tpn.Bootstrapper == nil {
+		return errors.New("no bootstrapper available")
+	}
+
+	tpn.Bootstrapper.StartSync()
+
+	return nil
 }
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair
@@ -826,4 +841,8 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 	}
 
 	return true
+}
+
+func (tpn *TestProcessorNode) initRounder() {
+	tpn.Rounder = &mock.RounderMock{}
 }

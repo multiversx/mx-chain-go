@@ -2,13 +2,13 @@ package transaction
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -131,7 +131,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	//Step 1. Generate a signed transaction
+	//Step 1. Generate a reward Transaction
 	tx := rewardTx.RewardTx{
 		Value:   big.NewInt(0),
 		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
@@ -154,7 +154,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
 
-		if reflect.DeepEqual(rewardTxStored, &tx){
+		if reflect.DeepEqual(rewardTxStored, &tx) {
 			chanDone <- true
 		}
 

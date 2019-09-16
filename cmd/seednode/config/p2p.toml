@@ -22,18 +22,6 @@
 #If all config types are disabled then the peer will run in single mode (will not try to find other peers)
 #If more than one peer discovery mechanism is enabled, the application will output an error and will not start
 
-#MdnsPeerDiscovery can be used on LAN networks for discovering the new peers
-[MdnsPeerDiscovery]
-    #Enabled: true/false to enable/disable this discovery mechanism
-    Enabled = false
-
-    #RefreshIntervalInSec represents the time in seconds between querying for new peers
-    RefreshIntervalInSec = 1
-
-    #ServiceTag represents the subnetwork on which this node will respond to queries
-    #To connect to other nodes, those nodes should have the same ServiceTag string
-    ServiceTag = "elrond"
-
 [KadDhtPeerDiscovery]
     #Enabled: true/false to enable/disable this discovery mechanism
     Enabled = true

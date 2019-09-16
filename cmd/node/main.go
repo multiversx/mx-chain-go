@@ -619,11 +619,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	rewardConfig := &generalConfig.RewardConfig
+	economicsConfig := &generalConfig.EconomicsConfig
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		genesisConfig,
-		rewardConfig,
+		economicsConfig,
 		nodesConfig,
 		syncer,
 		shardCoordinator,
@@ -744,21 +744,30 @@ func initMetrics(
 	shardId := uint64(shardCoordinator.SelfId())
 	roundDuration := nodesConfig.RoundDuration
 	isSyncing := uint64(1)
+	initUint := uint64(0)
+	initString := ""
 
 	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
 	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/milisecondsInSecond)
 	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
-	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
-	appStatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
-	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
-	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, 0)
-	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, 0)
-	appStatusHandler.SetStringValue(core.MetricConsensusState, "")
-	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
-	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "")
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountLeader, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, initUint)
+	appStatusHandler.SetStringValue(core.MetricConsensusState, initString)
+	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, initString)
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, initString)
 	appStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
+	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, initString)
+	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 }
 
 func startStatusPolling(

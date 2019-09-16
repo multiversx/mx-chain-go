@@ -25,6 +25,7 @@ type preProcessorsContainerFactory struct {
 	rewardsTxProcessor process.RewardTransactionProcessor
 	accounts           state.AccountsAdapter
 	requestHandler     process.RequestHandler
+	rewardsProducer    process.InternalTransactionProducer
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -41,6 +42,7 @@ func NewPreProcessorsContainerFactory(
 	scProcessor process.SmartContractProcessor,
 	scResultProcessor process.SmartContractResultProcessor,
 	rewardsTxProcessor process.RewardTransactionProcessor,
+	rewardsProducer process.InternalTransactionProducer,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -73,11 +75,14 @@ func NewPreProcessorsContainerFactory(
 	if scResultProcessor == nil || scResultProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
-	if rewardsTxProcessor == nil {
+	if rewardsTxProcessor == nil || rewardsTxProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilRewardsTxProcessor
 	}
 	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
+	}
+	if rewardsProducer == nil || rewardsProducer.IsInterfaceNil() {
+		return nil, process.ErrNilInternalTransactionProducer
 	}
 
 	return &preProcessorsContainerFactory{
@@ -93,6 +98,7 @@ func NewPreProcessorsContainerFactory(
 		scResultProcessor:  scResultProcessor,
 		rewardsTxProcessor: rewardsTxProcessor,
 		requestHandler:     requestHandler,
+		rewardsProducer:    rewardsProducer,
 	}, nil
 }
 
@@ -125,7 +131,7 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 		return nil, err
 	}
 
-	err = container.Add(block.RewardsBlockType, preproc)
+	err = container.Add(block.RewardsBlock, preproc)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +176,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.rewardsTxProcessor,
+		ppcm.rewardsProducer,
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestRewardTransactions,
@@ -185,4 +192,3 @@ func (ppcm *preProcessorsContainerFactory) IsInterfaceNil() bool {
 	}
 	return false
 }
-

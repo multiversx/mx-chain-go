@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-type PoolsHolderFake struct {
+type PoolsHolderMock struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
 	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
@@ -21,8 +21,8 @@ type PoolsHolderFake struct {
 	metaHdrNonces        dataRetriever.Uint64SyncMapCacher
 }
 
-func NewPoolsHolderFake() *PoolsHolderFake {
-	phf := &PoolsHolderFake{}
+func NewPoolsHolderMock() *PoolsHolderMock {
+	phf := &PoolsHolderMock{}
 	phf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	phf.unsignedTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	phf.rewardTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
@@ -43,52 +43,52 @@ func NewPoolsHolderFake() *PoolsHolderFake {
 	return phf
 }
 
-func (phf *PoolsHolderFake) Transactions() dataRetriever.ShardedDataCacherNotifier {
-	return phf.transactions
+func (phm *PoolsHolderMock) Transactions() dataRetriever.ShardedDataCacherNotifier {
+	return phm.transactions
 }
 
-func (phf *PoolsHolderFake) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phf.unsignedTransactions
+func (phm *PoolsHolderMock) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return phm.unsignedTransactions
 }
 
-func (phf *PoolsHolderFake) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phf.rewardTransactions
+func (phm *PoolsHolderMock) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return phm.rewardTransactions
 }
 
-func (phf *PoolsHolderFake) Headers() storage.Cacher {
-	return phf.headers
+func (phm *PoolsHolderMock) Headers() storage.Cacher {
+	return phm.headers
 }
 
-func (phf *PoolsHolderFake) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
-	return phf.hdrNonces
+func (phm *PoolsHolderMock) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
+	return phm.hdrNonces
 }
 
-func (phf *PoolsHolderFake) MiniBlocks() storage.Cacher {
-	return phf.miniBlocks
+func (phm *PoolsHolderMock) MiniBlocks() storage.Cacher {
+	return phm.miniBlocks
 }
 
-func (phf *PoolsHolderFake) PeerChangesBlocks() storage.Cacher {
-	return phf.peerChangesBlocks
+func (phm *PoolsHolderMock) PeerChangesBlocks() storage.Cacher {
+	return phm.peerChangesBlocks
 }
 
-func (phf *PoolsHolderFake) MetaBlocks() storage.Cacher {
-	return phf.metaBlocks
+func (phm *PoolsHolderMock) MetaBlocks() storage.Cacher {
+	return phm.metaBlocks
 }
 
-func (phf *PoolsHolderFake) MetaHeadersNonces() dataRetriever.Uint64SyncMapCacher {
-	return phf.metaHdrNonces
+func (phm *PoolsHolderMock) MetaHeadersNonces() dataRetriever.Uint64SyncMapCacher {
+	return phm.metaHdrNonces
 }
 
-func (phf *PoolsHolderFake) SetTransactions(transactions dataRetriever.ShardedDataCacherNotifier) {
-	phf.transactions = transactions
+func (phm *PoolsHolderMock) SetTransactions(transactions dataRetriever.ShardedDataCacherNotifier) {
+	phm.transactions = transactions
 }
 
-func (phf *PoolsHolderFake) SetUnsignedTransactions(scrs dataRetriever.ShardedDataCacherNotifier) {
-	phf.unsignedTransactions = scrs
+func (phm *PoolsHolderMock) SetUnsignedTransactions(scrs dataRetriever.ShardedDataCacherNotifier) {
+	phm.unsignedTransactions = scrs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (phf *PoolsHolderFake) IsInterfaceNil() bool {
+func (phf *PoolsHolderMock) IsInterfaceNil() bool {
 	if phf == nil {
 		return true
 	}
