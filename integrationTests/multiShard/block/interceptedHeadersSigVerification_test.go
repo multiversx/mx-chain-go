@@ -58,7 +58,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	round := uint64(1)
 	nonce := uint64(1)
 
-	body, header, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
 
 	nodesMap[0][0].BroadcastBlock(body, header)
 
@@ -127,7 +127,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	round := uint64(1)
 	nonce := uint64(1)
 
-	body, header, _ := integrationTests.ProposeBlockWithConsensusSignature(
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(
 		sharding.MetachainShardId,
 		nodesMap,
 		round,

@@ -232,7 +232,8 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	log.Info(fmt.Sprintf("\n"))
 
 	sr.SetConsensusGroup(nextConsensusGroup)
-	sr.BlockProcessor().SetConsensusRewardAddresses(rewardsAddresses)
+
+	sr.BlockProcessor().SetConsensusData(rewardsAddresses, uint64(sr.RoundIndex))
 
 	return nil
 }

@@ -29,6 +29,12 @@ type RewardTransactionProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// RewardTransactionPreProcessor prepares the processing of reward transactions
+type RewardTransactionPreProcessor interface {
+	AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice)
+	IsInterfaceNil() bool
+}
+
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
 type SmartContractResultProcessor interface {
 	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
@@ -97,18 +103,20 @@ type IntermediateTransactionHandler interface {
 	IsInterfaceNil() bool
 }
 
+// InternalTransactionProducer creates system transactions (e.g. rewards)
+type InternalTransactionProducer interface {
+	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
+	IsInterfaceNil() bool
+}
+
 // TransactionVerifier interface validates if the transaction is good and if it should be processed
 type TransactionVerifier interface {
 	IsTransactionValid(tx data.TransactionHandler) error
 }
 
 // UnsignedTxHandler creates and verifies unsigned transactions for current round
-type UnsignedTxHandler interface {
-	CleanProcessedUTxs()
+type TransactionFeeHandler interface {
 	ProcessTransactionFee(cost *big.Int)
-	CreateAllUTxs() []data.TransactionHandler
-	VerifyCreatedUTxs() error
-	AddRewardTxFromBlock(tx data.TransactionHandler)
 	IsInterfaceNil() bool
 }
 
@@ -116,11 +124,13 @@ type UnsignedTxHandler interface {
 type SpecialAddressHandler interface {
 	SetElrondCommunityAddress(elrond []byte)
 	ElrondCommunityAddress() []byte
-	SetConsensusRewardAddresses(consensusRewardAddresses []string)
+	SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
 	ConsensusRewardAddresses() []string
 	LeaderAddress() []byte
 	BurnAddress() []byte
 	ShardIdForAddress([]byte) (uint32, error)
+	Round() uint64
+	Epoch() uint32
 	IsInterfaceNil() bool
 }
 
@@ -133,7 +143,7 @@ type PreProcessor interface {
 	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
 	SaveTxBlockToStorage(body block.Body) error
 
-	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error
+	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error
 	RequestBlockTransactions(body block.Body) int
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
@@ -141,6 +151,7 @@ type PreProcessor interface {
 	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
+	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -158,7 +169,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusRewardAddresses(consensusRewardAddresses []string)
+	SetConsensusData(consensusRewardAddresses []string, round uint64)
 	IsInterfaceNil() bool
 }
 

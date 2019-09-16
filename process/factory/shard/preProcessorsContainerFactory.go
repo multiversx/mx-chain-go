@@ -25,6 +25,7 @@ type preProcessorsContainerFactory struct {
 	rewardsTxProcessor process.RewardTransactionProcessor
 	accounts           state.AccountsAdapter
 	requestHandler     process.RequestHandler
+	rewardsProducer    process.InternalTransactionProducer
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -41,6 +42,7 @@ func NewPreProcessorsContainerFactory(
 	scProcessor process.SmartContractProcessor,
 	scResultProcessor process.SmartContractResultProcessor,
 	rewardsTxProcessor process.RewardTransactionProcessor,
+	rewardsProducer process.InternalTransactionProducer,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -79,6 +81,9 @@ func NewPreProcessorsContainerFactory(
 	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
+	if rewardsProducer == nil || rewardsProducer.IsInterfaceNil() {
+		return nil, process.ErrNilInternalTransactionProducer
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:   shardCoordinator,
@@ -93,6 +98,7 @@ func NewPreProcessorsContainerFactory(
 		scResultProcessor:  scResultProcessor,
 		rewardsTxProcessor: rewardsTxProcessor,
 		requestHandler:     requestHandler,
+		rewardsProducer:    rewardsProducer,
 	}, nil
 }
 
@@ -170,6 +176,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.rewardsTxProcessor,
+		ppcm.rewardsProducer,
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestRewardTransactions,

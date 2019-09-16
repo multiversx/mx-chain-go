@@ -224,6 +224,11 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
+// SetConsensusData - sets the reward addresses for the current consensus group
+func (mp *metaProcessor) SetConsensusData(consensusRewardAddresses []string, round uint64) {
+	// TODO set the reward addresses for metachain consensus nodes
+}
+
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
 	if err != nil {
@@ -1242,9 +1247,11 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 
 		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
 			if j == 0 || j >= len(shardData.ShardMiniBlockHeaders)-1 {
+				senderShard := shardData.ShardMiniBlockHeaders[j].SenderShardId
+				receiverShard := shardData.ShardMiniBlockHeaders[j].ReceiverShardId
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
-					fmt.Sprintf("ShardMiniBlockHeaderHash_%d", j+1),
+					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d->%d", j+1, senderShard, receiverShard),
 					core.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{

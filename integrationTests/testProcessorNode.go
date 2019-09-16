@@ -190,6 +190,10 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
+	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{
+		ShardCoordinator: tpn.ShardCoordinator,
+		AdrConv:          TestAddressConverter,
+	}
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
@@ -329,11 +333,23 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		TestHasher,
 		TestAddressConverter,
-		&mock.SpecialAddressHandlerMock{},
+		tpn.SpecialAddressHandler,
 		tpn.Storage,
+		tpn.ShardDataPool,
 	)
+
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlock)
+	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
+	internalTxProducer,_:= rewardsInter.(process.InternalTransactionProducer)
+
+	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
+		tpn.AccntState,
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+		rewardsInter,
+	)
 
 	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
 	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
@@ -354,12 +370,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
-		&mock.UnsignedTxHandlerMock{},
-	)
-	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
-		tpn.AccntState,
-		TestAddressConverter,
-		tpn.ShardCoordinator,
+		rewardsHandler,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
@@ -371,7 +382,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
-		&mock.UnsignedTxHandlerMock{},
+		rewardsHandler,
 		txTypeHandler,
 	)
 
@@ -388,6 +399,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
+		internalTxProducer,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -435,7 +447,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.ForkDetector,
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
-			&mock.SpecialAddressHandlerMock{},
+			tpn.SpecialAddressHandler,
 			TestHasher,
 			TestMarshalizer,
 			tpn.Storage,
@@ -453,7 +465,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.AccntState,
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
-			&mock.SpecialAddressHandlerMock{},
+			tpn.SpecialAddressHandler,
 			tpn.ForkDetector,
 			tpn.BlockTracker,
 			tpn.GenesisBlocks,
@@ -558,11 +570,11 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 		tpn.ShardDataPool.UnsignedTransactions().RegisterHandler(txHandler)
 		tpn.ShardDataPool.Transactions().RegisterHandler(txHandler)
+		tpn.ShardDataPool.RewardTransactions().RegisterHandler(txHandler)
 		tpn.ShardDataPool.Headers().RegisterHandler(hdrHandlers)
 		tpn.ShardDataPool.MetaBlocks().RegisterHandler(metaHandlers)
 		tpn.ShardDataPool.MiniBlocks().RegisterHandler(mbHandlers)
 	}
-
 }
 
 // StartSync calls Bootstrapper.StartSync. Errors if bootstrapper is not set

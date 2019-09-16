@@ -986,7 +986,7 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTxDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTransactionDataPool))
 	if err != nil {
 		log.Info("error creating reward transaction pool")
 		return nil, err
@@ -1517,6 +1517,7 @@ func newShardBlockProcessorAndTracker(
 		state.AddressConverter,
 		specialAddressHandler,
 		data.Store,
+		data.Datapool,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1537,8 +1538,13 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	rewardsTxHandler, ok := rewardsTxInterim.(process.UnsignedTxHandler)
+	rewardsTxHandler, ok := rewardsTxInterim.(process.TransactionFeeHandler)
 	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	internalTransactionProducer, ok:= rewardsTxInterim.(process.InternalTransactionProducer)
+	if !ok{
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
@@ -1558,15 +1564,6 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
-		state.AccountsAdapter,
-		state.AddressConverter,
-		shardCoordinator,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
 		resolversFinder,
 		factory.TransactionTopic,
@@ -1575,6 +1572,16 @@ func newShardBlockProcessorAndTracker(
 		factory.MiniBlocksTopic,
 		factory.MetachainBlocksTopic,
 		MaxTxsToRequest,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
+		state.AccountsAdapter,
+		state.AddressConverter,
+		shardCoordinator,
+		rewardsTxInterim,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1622,6 +1629,7 @@ func newShardBlockProcessorAndTracker(
 		scProcessor,
 		scProcessor,
 		rewardsTxProcessor,
+		internalTransactionProducer,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1726,6 +1734,7 @@ func newMetaBlockProcessorAndTracker(
 
 	return metaProcessor, blockTracker, nil
 }
+
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 	return storageUnit.CacheConfig{
 		Size:   cfg.Size,

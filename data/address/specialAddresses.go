@@ -10,8 +10,11 @@ type specialAddresses struct {
 	elrond                   []byte
 	consensusRewardAddresses []string
 	burnAddress              []byte
-	adrConv                  state.AddressConverter
-	shardCoordinator         sharding.Coordinator
+
+	epoch            uint32
+	round            uint64
+	adrConv          state.AddressConverter
+	shardCoordinator sharding.Coordinator
 }
 
 // NewSpecialAddressHolder creates a special address holder
@@ -27,10 +30,10 @@ func NewSpecialAddressHolder(
 	if burnAddress == nil {
 		return nil, data.ErrNilBurnAddress
 	}
-	if adrConv == nil {
+	if adrConv == nil || adrConv.IsInterfaceNil() {
 		return nil, data.ErrNilAddressConverter
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, data.ErrNilShardCoordinator
 	}
 
@@ -59,9 +62,11 @@ func (sp *specialAddresses) BurnAddress() []byte {
 	return sp.burnAddress
 }
 
-// SetConsensusRewardAddresses sets the consensus rewards addresses for the round
-func (sp *specialAddresses) SetConsensusRewardAddresses(consensusRewardAddresses []string) {
+// SetConsensusData sets the consensus rewards addresses for the round
+func (sp *specialAddresses) SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32) {
 	sp.consensusRewardAddresses = consensusRewardAddresses
+	sp.round = round
+	sp.epoch = epoch
 }
 
 // LeaderAddress provides leader address
@@ -76,6 +81,16 @@ func (sp *specialAddresses) LeaderAddress() []byte {
 // ConsensusRewardAddresses provides the consensus reward addresses
 func (sp *specialAddresses) ConsensusRewardAddresses() []string {
 	return sp.consensusRewardAddresses
+}
+
+// Round returns the round for the current block
+func (sp *specialAddresses) Round() uint64 {
+	return sp.round
+}
+
+// Epoch returns the epoch for the current block
+func (sp *specialAddresses) Epoch() uint32 {
+	return sp.epoch
 }
 
 // ShardIdForAddress calculates shard id for address
