@@ -530,8 +530,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Warn("No views for current node")
 	}
 
-	statusMetricsProvider := statusHandler.NewStatusMetricsProvider()
-	appStatusHandlers = append(appStatusHandlers, statusMetricsProvider)
+	statusMetrics := statusHandler.NewStatusMetrics()
+	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
 	if len(appStatusHandlers) > 0 {
 		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
@@ -639,7 +639,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	apiResolver, err := createApiResolver(vmAccountsDB, statusMetricsProvider)
+	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
 	if err != nil {
 		return err
 	}

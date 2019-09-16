@@ -10,7 +10,7 @@ import (
 func TestNewStatusMetricsProvider(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetricsProvider()
+	ndh := statusHandler.NewStatusMetrics()
 	assert.NotNil(t, ndh)
 	assert.False(t, ndh.IsInterfaceNil())
 }
@@ -18,7 +18,7 @@ func TestNewStatusMetricsProvider(t *testing.T) {
 func TestStatusMetricsProvider_IncrementCallNonExistingKey(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetricsProvider()
+	ndh := statusHandler.NewStatusMetrics()
 	key1 := "test-key1"
 	ndh.Increment(key1)
 
@@ -30,7 +30,7 @@ func TestStatusMetricsProvider_IncrementCallNonExistingKey(t *testing.T) {
 func TestStatusMetricsProvider_IncrementNonUint64ValueShouldNotWork(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetricsProvider()
+	ndh := statusHandler.NewStatusMetrics()
 	key1 := "test-key2"
 	value1 := "value2"
 
@@ -45,7 +45,7 @@ func TestStatusMetricsProvider_IncrementNonUint64ValueShouldNotWork(t *testing.T
 func TestStatusMetricsProvider_IncrementShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetricsProvider()
+	ndh := statusHandler.NewStatusMetrics()
 	key1 := "test-key3"
 	ndh.SetUInt64Value(key1, 0)
 	ndh.Increment(key1)
@@ -58,7 +58,7 @@ func TestStatusMetricsProvider_IncrementShouldWork(t *testing.T) {
 func TestStatusMetricsProvider_Decrement(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetricsProvider()
+	ndh := statusHandler.NewStatusMetrics()
 	key := "test-key4"
 	ndh.SetUInt64Value(key, 2)
 	ndh.Decrement(key)
@@ -71,7 +71,7 @@ func TestStatusMetricsProvider_Decrement(t *testing.T) {
 func TestStatusMetricsProvider_SetInt64Value(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetricsProvider()
+	ndh := statusHandler.NewStatusMetrics()
 	key := "test-key5"
 	value := int64(5)
 	ndh.SetInt64Value(key, value)
@@ -85,7 +85,7 @@ func TestStatusMetricsProvider_SetInt64Value(t *testing.T) {
 func TestStatusMetricsProvider_SetStringValue(t *testing.T) {
 	t.Parallel()
 
-	ndh := statusHandler.NewStatusMetricsProvider()
+	ndh := statusHandler.NewStatusMetrics()
 	key := "test-key6"
 	value := "value"
 	ndh.SetStringValue(key, value)

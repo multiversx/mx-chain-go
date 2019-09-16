@@ -4,20 +4,20 @@ import (
 	"sync"
 )
 
-// StatusMetricsProvider will handle displaying at /node/details all metrics already collected for other status handlers
-type StatusMetricsProvider struct {
+// statusMetrics will handle displaying at /node/details all metrics already collected for other status handlers
+type statusMetrics struct {
 	nodeMetrics *sync.Map
 }
 
-// NewStatusMetricsProvider will return an instance of the struct
-func NewStatusMetricsProvider() *StatusMetricsProvider {
-	return &StatusMetricsProvider{
+// NewStatusMetrics will return an instance of the struct
+func NewStatusMetrics() *statusMetrics {
+	return &statusMetrics{
 		nodeMetrics: &sync.Map{},
 	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (nd *StatusMetricsProvider) IsInterfaceNil() bool {
+func (nd *statusMetrics) IsInterfaceNil() bool {
 	if nd == nil {
 		return true
 	}
@@ -25,7 +25,7 @@ func (nd *StatusMetricsProvider) IsInterfaceNil() bool {
 }
 
 // Increment method increment a metric
-func (nd *StatusMetricsProvider) Increment(key string) {
+func (nd *statusMetrics) Increment(key string) {
 	keyValueI, ok := nd.nodeMetrics.Load(key)
 	if !ok {
 		return
@@ -41,7 +41,7 @@ func (nd *StatusMetricsProvider) Increment(key string) {
 }
 
 // Decrement method - decrement a metric
-func (nd *StatusMetricsProvider) Decrement(key string) {
+func (nd *statusMetrics) Decrement(key string) {
 	keyValueI, ok := nd.nodeMetrics.Load(key)
 	if !ok {
 		return
@@ -57,26 +57,26 @@ func (nd *StatusMetricsProvider) Decrement(key string) {
 }
 
 // SetInt64Value method - sets an int64 value for a key
-func (nd *StatusMetricsProvider) SetInt64Value(key string, value int64) {
+func (nd *statusMetrics) SetInt64Value(key string, value int64) {
 	nd.nodeMetrics.Store(key, value)
 }
 
 // SetUInt64Value method - sets an uint64 value for a key
-func (nd *StatusMetricsProvider) SetUInt64Value(key string, value uint64) {
+func (nd *statusMetrics) SetUInt64Value(key string, value uint64) {
 	nd.nodeMetrics.Store(key, value)
 }
 
 // SetStringValue method - sets a string value for a key
-func (nd *StatusMetricsProvider) SetStringValue(key string, value string) {
+func (nd *statusMetrics) SetStringValue(key string, value string) {
 	nd.nodeMetrics.Store(key, value)
 }
 
 // Close method - won't do anything
-func (nd *StatusMetricsProvider) Close() {
+func (nd *statusMetrics) Close() {
 }
 
 // StatusMetricsMap will return all metrics in a map
-func (nd *StatusMetricsProvider) StatusMetricsMap() (map[string]interface{}, error) {
+func (nd *statusMetrics) StatusMetricsMap() (map[string]interface{}, error) {
 	statusMetricsMap := make(map[string]interface{})
 	nd.nodeMetrics.Range(func(key, value interface{}) bool {
 		statusMetricsMap[key.(string)] = value

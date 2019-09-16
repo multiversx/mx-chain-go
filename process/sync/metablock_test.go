@@ -2561,7 +2561,6 @@ func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 		sds := &mock.CacherStub{}
 
 		sds.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
-			assert.Fail(t, "should have not reached this point")
 			return false, false
 		}
 

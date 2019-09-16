@@ -392,7 +392,7 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 }
 
 func TestStatusMetrics_ShouldDisplayMetrics(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetricsProvider()
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
 	value := "test-details-value"
 	statusMetricsProvider.SetStringValue(key, value)
