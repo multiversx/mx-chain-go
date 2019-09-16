@@ -224,7 +224,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 
 // AddComputedRewardMiniBlocks adds to the local cache the reward transactions from the given miniblocks
 func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice) {
-
 	for _, rewardMb := range computedRewardMiniblocks {
 		txShardInfo := &txShardInfo{senderShardID: rewardMb.SenderShardID, receiverShardID: rewardMb.ReceiverShardID}
 		for _, txHash := range rewardMb.TxHashes {
@@ -448,7 +447,6 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	for _, mb := range computedRewardsMbsMap {
 		rewardMiniBlocksSlice = append(rewardMiniBlocksSlice, mb)
 	}
-	rtp.AddComputedRewardMiniBlocks(rewardMiniBlocksSlice)
 
 	snapshot := rtp.accounts.JournalLen()
 

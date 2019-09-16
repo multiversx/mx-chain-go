@@ -357,9 +357,6 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		if separatedBodies[blockType] == nil {
 			continue
 		}
-		if blockType == block.RewardsBlock {
-			continue
-		}
 
 		preproc := tc.getPreProcessor(blockType)
 		if preproc == nil || preproc.IsInterfaceNil() {
@@ -482,7 +479,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		}
 	}
 
-	interMBs := tc.processAddedInterimTransactions(round, haveTime)
+	interMBs := tc.processAddedInterimTransactions()
 	if len(interMBs) > 0 {
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
@@ -490,14 +487,16 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	return miniBlocks
 }
 
-func (tc *transactionCoordinator) processAddedInterimTransactions(
-	round uint64,
-	haveTime func() bool,
-) block.MiniBlockSlice {
-
+func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
+
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysInterimProcs {
+		if blockType == block.RewardsBlock {
+			// this has to be processed last
+			continue
+		}
+
 		interimProc := tc.getInterimProcessor(blockType)
 		if interimProc == nil {
 			// this will never be reached as keysInterimProcs are the actual keys from the interimMap
@@ -505,7 +504,6 @@ func (tc *transactionCoordinator) processAddedInterimTransactions(
 		}
 
 		currMbs := interimProc.CreateAllInterMiniBlocks()
-
 		for _, value := range currMbs {
 			miniBlocks = append(miniBlocks, value)
 		}
@@ -698,7 +696,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	snapshot := tc.accounts.JournalLen()
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Error(err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
