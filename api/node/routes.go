@@ -52,24 +52,12 @@ type shardStatisticsResponse struct {
 
 // Routes defines node related routes
 func Routes(router *gin.RouterGroup) {
-	router.GET("/start", StartNode)
-	router.GET("/status", Status)
-	router.GET("/stop", StopNode)
 	router.GET("/address", Address)
 	router.GET("/heartbeatstatus", HeartbeatStatus)
+	router.GET("/start", StartNode)
 	router.GET("/statistics", Statistics)
-	router.GET("/details", StatusMetrics)
-}
-
-// Status returns the state of the node e.g. running/stopped
-func Status(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "ok", "running": ef.IsNodeRunning()})
+	router.GET("/status", StatusMetrics)
+	router.GET("/stop", StopNode)
 }
 
 // StartNode will start the node instance
