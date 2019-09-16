@@ -140,10 +140,6 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
-		if err == process.ErrBlockHashDoesNotMatch {
-			mp.requestMetaHeaderByHashIfMissing(headerHandler)
-		}
-
 		return err
 	}
 
@@ -1316,16 +1312,4 @@ func (mp *metaProcessor) IsInterfaceNil() bool {
 		return true
 	}
 	return false
-}
-
-func (mp *metaProcessor) requestMetaHeaderByHashIfMissing(headerHandler data.HeaderHandler) {
-	_, err := process.GetMetaHeader(
-		headerHandler.GetPrevHash(),
-		mp.dataPool.MetaChainBlocks(),
-		mp.marshalizer,
-		mp.store)
-
-	if err != nil {
-		go mp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
-	}
 }
