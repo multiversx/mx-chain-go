@@ -153,6 +153,10 @@ func (bp *baseProcessor) LastNotarizedHdrForShard(shardId uint32) data.HeaderHan
 	return bp.lastNotarizedHdrForShard(shardId)
 }
 
+func (bp *baseProcessor) RemoveLastNotarized() {
+	bp.removeLastNotarized()
+}
+
 func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
 	bp.marshalizer = marshal
 }
