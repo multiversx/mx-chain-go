@@ -1897,6 +1897,9 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 				return nil
 			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
 		},
 		&mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
@@ -1972,6 +1975,9 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{
 			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 				return nil
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
 			},
 		},
 		&mock.BlocksTrackerMock{
@@ -2218,6 +2224,9 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 			return errors.New("should have not got here")
 		},
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 0
+		},
 	}
 	hasher := &mock.HasherStub{}
 	hasher.ComputeCalled = func(s string) []byte {
@@ -2313,6 +2322,9 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	fd := &mock.ForkDetectorMock{
 		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
+		},
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 0
 		},
 	}
 	hasher := &mock.HasherStub{}
@@ -4645,7 +4657,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
-	hdrs, _ := sp.GetHighestHdrForOwnShardFromMetachain(nil)
+	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(nil)
 
 	assert.NotNil(t, hdrs)
 	assert.Equal(t, uint64(0), hdrs[0].GetNonce())
@@ -4711,7 +4723,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
-	hdrs, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
+	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
 
 	assert.NotNil(t, hdrs)
 	assert.Equal(t, uint64(0), hdrs[0].GetNonce())
@@ -4776,10 +4788,9 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
-	hdrs, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
+	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
 
-	assert.NotNil(t, hdrs)
-	assert.Equal(t, uint64(0), hdrs[0].GetNonce())
+	assert.Nil(t, hdrs)
 }
 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
@@ -4872,7 +4883,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
-	hdrs, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
+	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
 
 	assert.NotNil(t, hdrs)
 	assert.Equal(t, ownHdr.GetNonce(), hdrs[0].GetNonce())

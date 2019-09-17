@@ -641,7 +641,10 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	finalHeaders, finalHeadersHashes := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
+	finalHeaders, finalHeadersHashes, err := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
+	if err != nil {
+		return err
+	}
 
 	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
@@ -681,6 +684,10 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
+	log.Info("shardBlock with nonce %d is the highest notarized by metachain for shard %d\n",
+		sp.forkDetector.GetHighestFinalBlockNonce(),
+		sp.shardCoordinator.SelfId())
+
 	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
 	hdrsToAttestFinality := uint32(header.Nonce - finalHeaders[0].GetNonce())
@@ -716,7 +723,10 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
-func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
+	processedHdrs []data.HeaderHandler,
+) ([]data.HeaderHandler, [][]byte, error) {
+
 	ownShIdHdrs := make([]data.HeaderHandler, 0)
 
 	sort.Slice(processedHdrs, func(i, j int) bool {
@@ -726,10 +736,14 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(processedHdrs []
 	for i := 0; i < len(processedHdrs); i++ {
 		hdr, ok := processedHdrs[i].(*block.MetaBlock)
 		if !ok {
-			continue
+			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
-		hdrs := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
+		hdrs, err := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
 	}
 
@@ -747,10 +761,10 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(processedHdrs []
 		ownShIdHdrsHashes = append(ownShIdHdrsHashes, hash)
 	}
 
-	return ownShIdHdrs, ownShIdHdrsHashes
+	return ownShIdHdrs, ownShIdHdrsHashes, nil
 }
 
-func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) []data.HeaderHandler {
+func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) ([]data.HeaderHandler, error) {
 	ownShIdHdr := make([]data.HeaderHandler, 0)
 
 	// search for own shard id in shardInfo from metaHeaders
@@ -761,13 +775,14 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 
 		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			continue
+			//TODO: Request shard header after hash on go routine
+			return nil, err
 		}
 
 		ownShIdHdr = append(ownShIdHdr, ownHdr)
 	}
 
-	return ownShIdHdr
+	return ownShIdHdr, nil
 }
 
 // getProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
