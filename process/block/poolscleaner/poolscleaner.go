@@ -1,10 +1,9 @@
-package block
+package poolscleaner
 
 import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -16,7 +15,7 @@ type TxPoolsCleaner struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
 	dataPool         dataRetriever.PoolsHolder
-	addrConverter    *addressConverters.PlainAddressConverter
+	addrConverter    state.AddressConverter
 	numRemovedTxs    uint64
 	mutNumRemovedTxs sync.RWMutex
 }
@@ -26,6 +25,7 @@ func NewTxsPoolsCleaner(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	dataPool dataRetriever.PoolsHolder,
+	addrConverter state.AddressConverter,
 ) (*TxPoolsCleaner, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -40,9 +40,8 @@ func NewTxsPoolsCleaner(
 	if transactionPool == nil {
 		return nil, process.ErrNilTransactionPool
 	}
-	addrConverter, err := addressConverters.NewPlainAddressConverter(32, "0x")
-	if err != nil {
-		return nil, err
+	if addrConverter == nil || addrConverter.IsInterfaceNil() {
+		return nil, process.ErrNilAddressConverter
 	}
 
 	return &TxPoolsCleaner{

@@ -1,6 +1,7 @@
 package block
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/poolscleaner"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -111,11 +113,6 @@ func NewShardProcessor(
 		return nil, err
 	}
 
-	txsPoolsCleaner, err := NewTxsPoolsCleaner(accounts, shardCoordinator, dataPool)
-	if err != nil {
-		return nil, err
-	}
-
 	sp := shardProcessor{
 		core:            core,
 		baseProcessor:   base,
@@ -123,7 +120,7 @@ func NewShardProcessor(
 		blocksTracker:   blocksTracker,
 		txCoordinator:   txCoordinator,
 		txCounter:       NewTransactionCounter(),
-		txsPoolsCleaner: txsPoolsCleaner,
+		txsPoolsCleaner: poolscleaner.NewNilPoolsCleaner(),
 	}
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
@@ -146,6 +143,16 @@ func NewShardProcessor(
 	sp.allNeededMetaHdrsFound = true
 
 	return &sp, nil
+}
+
+// SetPoolsCleaner will set pool cleaner
+func (sp *shardProcessor) SetPoolsCleaner(poolsCleaner process.PoolsCleaner) error {
+	if poolsCleaner == nil {
+		return errors.New("nil pools cleaner")
+	}
+	sp.txsPoolsCleaner = poolsCleaner
+
+	return nil
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
