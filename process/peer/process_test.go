@@ -158,8 +158,9 @@ func TestPeerProcessor_LoadInitialStateErrOnInvalidAssignedShard(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
-		nil,
+	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa",}}
+	_, err := peer.NewValidatorStatisticsProcessor(
+		initialNodes,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
@@ -167,11 +168,7 @@ func TestPeerProcessor_LoadInitialStateErrOnInvalidAssignedShard(t *testing.T) {
 		&mock.StorerStub{},
 	)
 
-	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa",}}
-	err := peerProcessor.LoadInitialState(initialNodes)
-
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "peer account adapter for shard id")
+	assert.Equal(t, process.ErrNilPeerAccountsAdapter, err)
 }
 
 func TestPeerProcessor_LoadInitialStateErrOnGetAccountFail(t *testing.T) {
@@ -189,17 +186,15 @@ func TestPeerProcessor_LoadInitialStateErrOnGetAccountFail(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
-		nil,
+	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
+	_, err := peer.NewValidatorStatisticsProcessor(
+		initialNodes,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
 	)
-
-	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
-	err := peerProcessor.LoadInitialState(initialNodes)
 
 	assert.Equal(t, adapterError, err)
 }
@@ -218,17 +213,16 @@ func TestPeerProcessor_LoadInitialStateGetAccountReturnsInvalid(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
-		nil,
+
+	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
+	_, err := peer.NewValidatorStatisticsProcessor(
+		initialNodes,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
 	)
-
-	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
-	err := peerProcessor.LoadInitialState(initialNodes)
 
 	assert.Equal(t, process.ErrInvalidPeerAccount, err)
 }
@@ -256,17 +250,16 @@ func TestPeerProcessor_LoadInitialStateSetAddressErrors(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
-		nil,
+
+	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
+	_, err := peer.NewValidatorStatisticsProcessor(
+		initialNodes,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
 	)
-
-	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
-	err := peerProcessor.LoadInitialState(initialNodes)
 
 	assert.Equal(t, saveAccountError, err)
 }
@@ -297,17 +290,16 @@ func TestPeerProcessor_LoadInitialStateCommitErrors(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
-		nil,
+
+	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
+	_, err := peer.NewValidatorStatisticsProcessor(
+		initialNodes,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
 	)
-
-	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
-	err := peerProcessor.LoadInitialState(initialNodes)
 
 	assert.Equal(t, commitError, err)
 }
@@ -337,17 +329,16 @@ func TestPeerProcessor_LoadInitialStateCommit(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
-		nil,
+
+	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
+	_, err := peer.NewValidatorStatisticsProcessor(
+		initialNodes,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
 	)
-
-	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
-	err := peerProcessor.LoadInitialState(initialNodes)
 
 	assert.Nil(t, err)
 }
@@ -426,7 +417,7 @@ func TestPeerProcess_UpdatePeerStateComputeValidatorErrShouldError(t *testing.T)
 
 func getHeaderHandler(randSeed []byte) *mock.HeaderHandlerStub {
 	return &mock.HeaderHandlerStub{
-		GetRandSeedCalled: func() []byte {
+		GetPrevRandSeedCalled: func() []byte {
 			return randSeed
 		},
 	}

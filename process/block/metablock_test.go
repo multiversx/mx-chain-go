@@ -707,6 +707,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	mdp := initMetaDataPool()
 	wasCalled := false
 	errPersister := errors.New("failure")
+	marshalizer := &mock.MarshalizerMock{}
 	accounts := &mock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
@@ -718,6 +719,10 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
 			return errPersister
+		},
+		GetCalled: func(key []byte) (i []byte, e error) {
+			hdr, _ := marshalizer.Marshal(&block.MetaBlock{})
+			return hdr, nil
 		},
 	}
 	store := initStore()
@@ -737,7 +742,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		mock.NewNodesCoordinatorMock(),
 		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
+		marshalizer,
 		store,
 		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 		&mock.RequestHandlerMock{},
