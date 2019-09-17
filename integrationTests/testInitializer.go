@@ -786,7 +786,7 @@ func skToPk(sk crypto.PrivateKey) []byte {
 	return pkBuff
 }
 
-// TestPrivateKeyHasBalance checks if the account corresponding to the given public key has the expected balance
+// TestPublicKeyHasBalance checks if the account corresponding to the given public key has the expected balance
 func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.PublicKey, expectedBalance *big.Int) {
 	pkBuff, _ := pk.ToByteArray()
 	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
@@ -856,7 +856,7 @@ func CreateAndSendIntraShardTransactions(
 	sendersPrivKeysMap := make(map[uint32][]crypto.PrivateKey)
 	receiversPubKeysMap := make(map[uint32][]crypto.PublicKey)
 
-	for shardId, _ := range nodes {
+	for shardId := range nodes {
 		if shardId == sharding.MetachainShardId {
 			continue
 		}

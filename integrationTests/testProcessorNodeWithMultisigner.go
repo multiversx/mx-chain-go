@@ -217,13 +217,13 @@ func AllShardsProposeBlock(
 	newRandomness := make(map[uint32][]byte)
 
 	// propose blocks
-	for i, _ := range nodesMap {
+	for i := range nodesMap {
 		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(i, nodesMap, round, nonce, prevRandomness[i])
 		newRandomness[i] = header[i].GetRandSeed()
 	}
 
 	// propagate blocks
-	for i, _ := range nodesMap {
+	for i := range nodesMap {
 		consensusNodes[i][0].BroadcastBlock(body[i], header[i])
 		consensusNodes[i][0].CommitBlock(body[i], header[i])
 	}

@@ -69,6 +69,7 @@ func TestExecuteBlocksWithOnlyRewards(t *testing.T) {
 	mapRewardsForAddress := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
+	rewardValue := 1000
 	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 	feePerTxForLeader := gasPrice * gasLimit / 2
@@ -128,7 +129,7 @@ func TestExecuteBlocksWithOnlyRewards(t *testing.T) {
 			assert.Nil(t, err)
 
 			nbProposedTxs := nbTxsForLeaderAddress[address]
-			expectedBalance := int64(nbRewards)*1000 + int64(nbProposedTxs)*int64(feePerTxForLeader)
+			expectedBalance := int64(nbRewards)*int64(rewardValue) + int64(nbProposedTxs)*int64(feePerTxForLeader)
 			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
 			assert.Equal(t, big.NewInt(expectedBalance), acc.(*state.Account).Balance)
 		}
