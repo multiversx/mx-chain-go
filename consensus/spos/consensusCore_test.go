@@ -17,7 +17,6 @@ func TestConsensusCore_WithNilBlockchainShouldFail(t *testing.T) {
 		nil,
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -45,7 +44,6 @@ func TestConsensusCore_WithNilBlockProcessorShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		nil,
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -73,7 +71,6 @@ func TestConsensusCore_WithNilBlocksTrackerShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		nil,
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -101,7 +98,6 @@ func TestConsensusCore_WithNilBootstrapperShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		nil,
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -120,34 +116,6 @@ func TestConsensusCore_WithNilBootstrapperShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBootstrapper, err)
 }
 
-func TestConsensusCore_WithNilPeerProcessorShouldFail(t *testing.T) {
-	t.Parallel()
-
-	consensusCoreMock := mock.InitConsensusCore()
-
-	consensusCore, err := spos.NewConsensusCore(
-		consensusCoreMock.Blockchain(),
-		consensusCoreMock.BlockProcessor(),
-		consensusCoreMock.BlocksTracker(),
-		nil,
-		consensusCoreMock.BootStrapper(),
-		consensusCoreMock.BroadcastMessenger(),
-		consensusCoreMock.Chronology(),
-		consensusCoreMock.Hasher(),
-		consensusCoreMock.Marshalizer(),
-		consensusCoreMock.RandomnessPrivateKey(),
-		consensusCoreMock.RandomnessSingleSigner(),
-		consensusCoreMock.MultiSigner(),
-		consensusCoreMock.Rounder(),
-		consensusCoreMock.ShardCoordinator(),
-		consensusCoreMock.NodesCoordinator(),
-		consensusCoreMock.SyncTimer(),
-	)
-
-	assert.Nil(t, consensusCore)
-	assert.Equal(t, spos.ErrNilPeerProcessor, err)
-}
-
 func TestConsensusCore_WithNilBroadcastMessengerShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -157,7 +125,6 @@ func TestConsensusCore_WithNilBroadcastMessengerShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		nil,
 		consensusCoreMock.Chronology(),
@@ -185,7 +152,6 @@ func TestConsensusCore_WithNilChronologyShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		nil,
@@ -213,7 +179,6 @@ func TestConsensusCore_WithNilHasherShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -241,7 +206,6 @@ func TestConsensusCore_WithNilMarshalizerShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -269,7 +233,6 @@ func TestConsensusCore_WithNilBlsPrivateKeyShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -297,7 +260,6 @@ func TestConsensusCore_WithNilBlsSingleSignerShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -325,7 +287,6 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -353,7 +314,6 @@ func TestConsensusCore_WithNilRounderShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -381,7 +341,6 @@ func TestConsensusCore_WithNilShardCoordinatorShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -409,7 +368,6 @@ func TestConsensusCore_WithNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -437,7 +395,6 @@ func TestConsensusCore_WithNilSyncTimerShouldFail(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),
@@ -465,7 +422,6 @@ func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {
 		consensusCoreMock.Blockchain(),
 		consensusCoreMock.BlockProcessor(),
 		consensusCoreMock.BlocksTracker(),
-		consensusCoreMock.PeerProcessor(),
 		consensusCoreMock.BootStrapper(),
 		consensusCoreMock.BroadcastMessenger(),
 		consensusCoreMock.Chronology(),

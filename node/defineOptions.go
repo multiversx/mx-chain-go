@@ -228,7 +228,7 @@ func WithBlockTracker(blockTracker process.BlocksTracker) Option {
 // WithPeerProcessor sets up the peer processor option for the Node
 func WithPeerProcessor(peerProcessor process.PeerProcessor) Option {
 	return func(n *Node) error {
-		if peerProcessor == nil {
+		if peerProcessor == nil || peerProcessor.IsInterfaceNil() {
 			return ErrNilPeerProcessor
 		}
 		n.peerProcessor = peerProcessor

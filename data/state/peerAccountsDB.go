@@ -20,16 +20,16 @@ func NewPeerAccountsDB(
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
 ) (*PeerAccountsDB, error) {
-	if trie == nil {
+	if trie == nil || trie.IsInterfaceNil() {
 		return nil, ErrNilTrie
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
-	if accountFactory == nil {
+	if accountFactory == nil || accountFactory.IsInterfaceNil() {
 		return nil, ErrNilAccountFactory
 	}
 

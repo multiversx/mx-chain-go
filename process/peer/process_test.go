@@ -14,7 +14,8 @@ import (
 
 func TestNewPeerProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, err := peer.NewPeerProcessor(
+	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
+		nil,
 		nil,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
@@ -29,7 +30,8 @@ func TestNewPeerProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
 func TestNewPeerProcessor_NilAddressConverterShouldErr(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, err := peer.NewPeerProcessor(
+	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		nil,
 		&mock.NodesCoordinatorMock{},
@@ -44,7 +46,8 @@ func TestNewPeerProcessor_NilAddressConverterShouldErr(t *testing.T) {
 func TestNewPeerProcessor_NilNodesCoordinatorShouldErr(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, err := peer.NewPeerProcessor(
+	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		nil,
@@ -58,7 +61,8 @@ func TestNewPeerProcessor_NilNodesCoordinatorShouldErr(t *testing.T) {
 
 func TestNewPeerProcessor_ShardCoordinatorShouldErr(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
-	peerProcessor, err := peer.NewPeerProcessor(
+	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
@@ -73,7 +77,8 @@ func TestNewPeerProcessor_ShardCoordinatorShouldErr(t *testing.T) {
 func TestNewPeerProcessor_ShardHeaderStorageShouldErr(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, err := peer.NewPeerProcessor(
+	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
@@ -88,7 +93,8 @@ func TestNewPeerProcessor_ShardHeaderStorageShouldErr(t *testing.T) {
 func TestNewPeerProcessor(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, err := peer.NewPeerProcessor(
+	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
@@ -103,7 +109,8 @@ func TestNewPeerProcessor(t *testing.T) {
 func TestPeerProcessor_LoadInitialStateErrOnInvalidNode(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
@@ -127,7 +134,8 @@ func TestPeerProcessor_LoadInitialStateErrOnWrongAddressConverter(t *testing.T) 
 			return nil, addressErr
 		},
 	}
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
@@ -150,7 +158,8 @@ func TestPeerProcessor_LoadInitialStateErrOnInvalidAssignedShard(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
@@ -180,7 +189,8 @@ func TestPeerProcessor_LoadInitialStateErrOnGetAccountFail(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
@@ -208,7 +218,8 @@ func TestPeerProcessor_LoadInitialStateGetAccountReturnsInvalid(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
@@ -245,7 +256,8 @@ func TestPeerProcessor_LoadInitialStateSetAddressErrors(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
@@ -285,7 +297,8 @@ func TestPeerProcessor_LoadInitialStateCommitErrors(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
@@ -324,7 +337,8 @@ func TestPeerProcessor_LoadInitialStateCommit(t *testing.T) {
 			return &mock.AddressMock{}, nil
 		},
 	}
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
@@ -341,7 +355,8 @@ func TestPeerProcessor_LoadInitialStateCommit(t *testing.T) {
 func TestPeerProcess_IsNodeValidEmptyAddressShoudErr(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
@@ -356,7 +371,8 @@ func TestPeerProcess_IsNodeValidEmptyAddressShoudErr(t *testing.T) {
 func TestPeerProcess_IsNodeValidEmptyPubKeyShoudErr(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
@@ -371,7 +387,8 @@ func TestPeerProcess_IsNodeValidEmptyPubKeyShoudErr(t *testing.T) {
 func TestPeerProcess_IsNodeValid(t *testing.T) {
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
@@ -387,7 +404,8 @@ func TestPeerProcess_UpdatePeerStateComputeValidatorErrShouldError(t *testing.T)
 	computeValidatorsErr := errors.New("compute validators error")
 	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-	peerProcessor, _ := peer.NewPeerProcessor(
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
 		peerAdapters,
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{
@@ -405,8 +423,6 @@ func TestPeerProcess_UpdatePeerStateComputeValidatorErrShouldError(t *testing.T)
 
 	assert.Equal(t, computeValidatorsErr, err)
 }
-
-
 
 func getHeaderHandler(randSeed []byte) *mock.HeaderHandlerStub {
 	return &mock.HeaderHandlerStub{

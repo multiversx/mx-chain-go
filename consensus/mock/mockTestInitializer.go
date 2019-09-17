@@ -123,13 +123,11 @@ func InitConsensusCore() *ConsensusCoreMock {
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &NodesCoordinatorMock{}
-	peerProcessor := &PeerProcessorMock{}
 
 	container := &ConsensusCoreMock{
 		blockChain,
 		blockProcessorMock,
 		blockTrackerMock,
-		peerProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		chronologyHandlerMock,

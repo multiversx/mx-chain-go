@@ -33,6 +33,7 @@ type baseProcessor struct {
 	shardCoordinator   sharding.Coordinator
 	accounts           state.AccountsAdapter
 	forkDetector       process.ForkDetector
+	peerProcessor      process.PeerProcessor
 	hasher             hashing.Hasher
 	marshalizer        marshal.Marshalizer
 	store              dataRetriever.StorageService
@@ -485,6 +486,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 func checkProcessorNilParameters(
 	accounts state.AccountsAdapter,
 	forkDetector process.ForkDetector,
+	peerProcessor process.PeerProcessor,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
@@ -497,6 +499,9 @@ func checkProcessorNilParameters(
 	}
 	if forkDetector == nil || forkDetector.IsInterfaceNil() {
 		return process.ErrNilForkDetector
+	}
+	if peerProcessor == nil || peerProcessor.IsInterfaceNil() {
+		return process.ErrNilPeerProcessor
 	}
 	if hasher == nil || hasher.IsInterfaceNil() {
 		return process.ErrNilHasher

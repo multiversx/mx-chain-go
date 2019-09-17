@@ -23,13 +23,11 @@ func initConsensusDataContainer() *ConsensusCore {
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
-	peerProcessor := &mock.PeerProcessorMock{}
 
 	return &ConsensusCore{
 		blockChain:         blockChain,
 		blockProcessor:     blockProcessorMock,
 		blocksTracker:      blocksTrackerMock,
-		peerProcessor:      peerProcessor,
 		bootstrapper:       bootstrapperMock,
 		broadcastMessenger: broadcastMessengerMock,
 		chronologyHandler:  chronologyHandlerMock,

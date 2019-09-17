@@ -1,7 +1,7 @@
 package mock
 
 type HeaderHandlerStub struct {
-	GetRandSeedCalled func() []byte
+	GetRandSeedCalled                func() []byte
 	GetMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
 }
 

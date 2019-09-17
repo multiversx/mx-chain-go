@@ -290,7 +290,6 @@ func (n *Node) StartConsensus() error {
 		n.blkc,
 		n.blockProcessor,
 		n.blockTracker,
-		n.peerProcessor,
 		bootstrapper,
 		broadcastMessenger,
 		chronologyHandler,

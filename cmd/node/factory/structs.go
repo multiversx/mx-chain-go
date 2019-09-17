@@ -503,14 +503,10 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	blockProcessor, blockTracker, err := newBlockProcessorAndTracker(
+		args,
 		resolversFinder,
-		args.shardCoordinator,
-		args.data,
-		args.core,
-		args.state,
 		forkDetector,
 		shardsGenesisBlocks,
-		args.coreServiceContainer,
 	)
 
 	if err != nil {
@@ -530,7 +526,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockProcessor:        blockProcessor,
 		BlockTracker:          blockTracker,
 		PeerProcessor:         peerProcessor,
-
 	}, nil
 }
 
@@ -1366,38 +1361,42 @@ func createInMemoryShardCoordinatorAndAccount(
 }
 
 func newBlockProcessorAndTracker(
+	processArgs *processComponentsFactoryArgs,
 	resolversFinder dataRetriever.ResolversFinder,
-	shardCoordinator sharding.Coordinator,
-	data *Data,
-	core *Core,
-	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
+
+	shardCoordinator := processArgs.shardCoordinator
+	peerProcessor, err := newPeerProcessor(processArgs)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessorAndTracker(
 			resolversFinder,
-			shardCoordinator,
-			data,
-			core,
-			state,
+			processArgs.shardCoordinator,
+			processArgs.data,
+			processArgs.core,
+			processArgs.state,
 			forkDetector,
 			shardsGenesisBlocks,
-			coreServiceContainer,
+			processArgs.coreServiceContainer,
+			peerProcessor,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
 		return newMetaBlockProcessorAndTracker(
 			resolversFinder,
-			shardCoordinator,
-			data,
-			core,
-			state,
+			processArgs.shardCoordinator,
+			processArgs.data,
+			processArgs.core,
+			processArgs.state,
 			forkDetector,
 			shardsGenesisBlocks,
-			coreServiceContainer,
+			processArgs.coreServiceContainer,
+			peerProcessor,
 		)
 	}
 
@@ -1413,6 +1412,7 @@ func newShardBlockProcessorAndTracker(
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
+	peerProcessor process.PeerProcessor,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1580,6 +1580,7 @@ func newShardBlockProcessorAndTracker(
 		shardCoordinator,
 		forkDetector,
 		blockTracker,
+		peerProcessor,
 		shardsGenesisBlocks,
 		requestHandler,
 		txCoordinator,
@@ -1606,6 +1607,7 @@ func newMetaBlockProcessorAndTracker(
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
+	peerProcessor process.PeerProcessor,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
@@ -1627,6 +1629,7 @@ func newMetaBlockProcessorAndTracker(
 		state.AccountsAdapter,
 		data.MetaDatapool,
 		forkDetector,
+		peerProcessor,
 		shardCoordinator,
 		core.Hasher,
 		core.Marshalizer,
@@ -1655,7 +1658,16 @@ func newPeerProcessor(processComponents *processComponentsFactoryArgs) (process.
 
 	storageService := processComponents.data.Store
 	headerStorage := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
-	peerProcessor, err := peer.NewPeerProcessor(peerAdapters, processComponents.state.AddressConverter, processComponents.nodesCoordinator, processComponents.shardCoordinator, headerStorage)
+	initialNodes := processComponents.nodesConfig.InitialNodes
+
+	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
+		initialNodes,
+		peerAdapters,
+		processComponents.state.AddressConverter,
+		processComponents.nodesCoordinator,
+		processComponents.shardCoordinator,
+		headerStorage,
+	)
 	if err != nil {
 		return nil, err
 	}

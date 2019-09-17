@@ -428,6 +428,7 @@ func createNetNode(
 				return make([]data.HeaderHandler, 0)
 			},
 		},
+		&mock.PeerProcessorMock{},
 		genesisBlocks,
 		requestHandler,
 		tc,
@@ -744,6 +745,7 @@ func createMetaNetNode(
 				return 0
 			},
 		},
+		&mock.PeerProcessorMock{},
 		shardCoordinator,
 		testHasher,
 		testMarshalizer,

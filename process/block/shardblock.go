@@ -54,6 +54,7 @@ func NewShardProcessor(
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
 	blocksTracker process.BlocksTracker,
+	peerProcessor process.PeerProcessor,
 	startHeaders map[uint32]data.HeaderHandler,
 	requestHandler process.RequestHandler,
 	txCoordinator process.TransactionCoordinator,
@@ -63,6 +64,7 @@ func NewShardProcessor(
 	err := checkProcessorNilParameters(
 		accounts,
 		forkDetector,
+		peerProcessor,
 		hasher,
 		marshalizer,
 		store,

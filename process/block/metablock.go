@@ -53,6 +53,7 @@ func NewMetaProcessor(
 	accounts state.AccountsAdapter,
 	dataPool dataRetriever.MetaPoolsHolder,
 	forkDetector process.ForkDetector,
+	peerProcessor process.PeerProcessor,
 	shardCoordinator sharding.Coordinator,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -65,6 +66,7 @@ func NewMetaProcessor(
 	err := checkProcessorNilParameters(
 		accounts,
 		forkDetector,
+		peerProcessor,
 		hasher,
 		marshalizer,
 		store,
@@ -93,6 +95,7 @@ func NewMetaProcessor(
 		accounts:                      accounts,
 		blockSizeThrottler:            blockSizeThrottler,
 		forkDetector:                  forkDetector,
+		peerProcessor:                 peerProcessor,
 		hasher:                        hasher,
 		marshalizer:                   marshalizer,
 		store:                         store,
@@ -493,6 +496,11 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	err = mp.updatePeerState(header)
+	if err != nil {
+		return err
+	}
+
 	_, err = mp.accounts.Commit()
 	if err != nil {
 		return err
@@ -538,6 +546,22 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockSizeThrottler.Succeed(header.Round)
 
 	return nil
+}
+
+func (mp *metaProcessor) updatePeerState(header *block.MetaBlock) error {
+	metaBlockStore := mp.store.GetStorer(dataRetriever.MetaBlockUnit)
+	buff, err := metaBlockStore.Get(header.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
+	prevMetaHeader := &block.MetaBlock{}
+	err = mp.marshalizer.Unmarshal(prevMetaHeader, buff)
+	if err != nil {
+		return err
+	}
+
+	return mp.peerProcessor.UpdatePeerState(header, prevMetaHeader)
 }
 
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
