@@ -173,7 +173,9 @@ func (mp *metaProcessor) ProcessBlock(
 		mp.allNeededShardHdrsFound = true
 		unreceivedShardHdrs := len(mp.requestedShardHdrsHashes)
 		mp.mutRequestedShardHdrsHashes.Unlock()
-		log.Info(fmt.Sprintf("received %d missing shard headers\n", int(requestedShardHdrs)-unreceivedShardHdrs))
+		if requestedShardHdrs > 0 {
+			log.Info(fmt.Sprintf("received %d missing shard headers\n", int(requestedShardHdrs)-unreceivedShardHdrs))
+		}
 		if err != nil {
 			return err
 		}
@@ -835,6 +837,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		if lenReqShardHdrsHashes == 0 {
 			requestedBlockHeaders := mp.requestFinalMissingHeaders()
 			if requestedBlockHeaders == 0 {
+				log.Info(fmt.Sprintf("received all final shard headers\n"))
 				areFinalAttestingHdrsInCache = true
 			} else {
 				log.Info(fmt.Sprintf("requested %d missing final shard headers\n", requestedBlockHeaders))
@@ -880,8 +883,11 @@ func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 }
 
 func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
+	_ = process.EmptyChannel(mp.chRcvAllHdrs)
+
 	mp.mutRequestedShardHdrsHashes.Lock()
 
+	mp.requestedShardHdrsHashes = make(map[string]bool)
 	mp.allNeededShardHdrsFound = true
 
 	if len(metaBlock.ShardInfo) == 0 {
@@ -892,7 +898,6 @@ func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32
 	missingHeaderHashes := mp.computeMissingHeaders(metaBlock)
 
 	requestedBlockHeaders := uint32(0)
-	mp.requestedShardHdrsHashes = make(map[string]bool)
 	for shardId, headerHashes := range missingHeaderHashes {
 		for _, headerHash := range headerHashes {
 			requestedBlockHeaders++
@@ -909,10 +914,6 @@ func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32
 		if requestedFinalBlockHeaders > 0 {
 			mp.allNeededShardHdrsFound = false
 		}
-	}
-
-	if !mp.allNeededShardHdrsFound {
-		process.EmptyChannel(mp.chRcvAllHdrs)
 	}
 
 	mp.mutRequestedShardHdrsHashes.Unlock()
