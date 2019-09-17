@@ -530,6 +530,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Warn("No views for current node")
 	}
 
+	statusMetrics := statusHandler.NewStatusMetrics()
+	appStatusHandlers = append(appStatusHandlers, statusMetrics)
+
 	if len(appStatusHandlers) > 0 {
 		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
 		if err != nil {
@@ -636,7 +639,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	apiResolver, err := createApiResolver(vmAccountsDB)
+	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
 	if err != nil {
 		return err
 	}
@@ -737,6 +740,7 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 }
 
 func startStatusPolling(
@@ -1199,7 +1203,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
+func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
 	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
@@ -1209,5 +1213,5 @@ func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scDataGetter)
+	return external.NewNodeApiResolver(scDataGetter, statusMetrics)
 }

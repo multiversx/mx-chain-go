@@ -135,14 +135,17 @@ const MetricCurrentBlockHash = "erd_current_block_hash"
 // MetricCurrentRoundTimestamp is the metric that stores current round timestamp
 const MetricCurrentRoundTimestamp = "erd_current_round_timestamp"
 
-//MetricHeaderSize is the metric that stores the current block size
+// MetricHeaderSize is the metric that stores the current block size
 const MetricHeaderSize = "erd_current_block_size"
 
-//MetricMiniBlocksSize is the metric that stores the current block size
+// MetricMiniBlocksSize is the metric that stores the current block size
 const MetricMiniBlocksSize = "erd_mini_blocks_size"
 
-//MetricNumShardHeadersFromPool is the metric that stores number of shard header from pool
+// MetricNumShardHeadersFromPool is the metric that stores number of shard header from pool
 const MetricNumShardHeadersFromPool = "erd_num_shard_headers_from_pool"
 
-//MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
+// MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
 const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
+
+// MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
+const MetricNumTimesInForkChoice = "erd_fork_choice_count"
