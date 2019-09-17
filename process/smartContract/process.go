@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -18,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type scExecutionState struct {
@@ -42,7 +41,7 @@ type scProcessor struct {
 	mapExecState map[uint64]scExecutionState
 
 	scrForwarder process.IntermediateTransactionHandler
-	txFeeHandler process.UnsignedTxHandler
+	txFeeHandler process.TransactionFeeHandler
 }
 
 var log = logger.DefaultLogger()
@@ -58,7 +57,7 @@ func NewSmartContractProcessor(
 	adrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
 	scrForwarder process.IntermediateTransactionHandler,
-	txFeeHandler process.UnsignedTxHandler,
+	txFeeHandler process.TransactionFeeHandler,
 ) (*scProcessor, error) {
 	if vmContainer == nil || vmContainer.IsInterfaceNil() {
 		return nil, process.ErrNoVM
@@ -203,7 +202,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	sc.txFeeHandler.AddProcessedUTx(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
 	return nil
 }
@@ -288,7 +287,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
-	sc.txFeeHandler.AddProcessedUTx(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
 	return nil
 }
@@ -401,7 +400,7 @@ func (sc *scProcessor) processVMOutput(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 	round uint64,
-) ([]data.TransactionHandler, *feeTx.FeeTx, error) {
+) ([]data.TransactionHandler, *big.Int, error) {
 	if vmOutput == nil {
 		return nil, nil, process.ErrNilVMOutput
 	}
@@ -464,12 +463,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	currFeeTx := &feeTx.FeeTx{
-		Nonce: tx.Nonce,
-		Value: consumedFee,
-	}
-
-	return crossTxs, currFeeTx, nil
+	return crossTxs, consumedFee, nil
 }
 
 // reloadLocalSndAccount will reload from current account state the sender account
@@ -536,16 +530,16 @@ func (sc *scProcessor) refundGasToSender(
 
 	refundErd := big.NewInt(0)
 	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasPrice)))
-
 	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
+	scTx := &smartContractResult.SmartContractResult{}
+	scTx.Value = refundErd
+	scTx.RcvAddr = tx.SndAddr
+	scTx.SndAddr = tx.RcvAddr
+	scTx.Nonce = tx.Nonce + 1
+	scTx.TxHash = txHash
+
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		scTx := &smartContractResult.SmartContractResult{}
-		scTx.Value = refundErd
-		scTx.RcvAddr = tx.SndAddr
-		scTx.SndAddr = tx.RcvAddr
-		scTx.Nonce = tx.Nonce + 1
-		scTx.TxHash = txHash
 		return scTx, consumedFee, nil
 	}
 
@@ -560,7 +554,7 @@ func (sc *scProcessor) refundGasToSender(
 		return nil, nil, err
 	}
 
-	return nil, consumedFee, nil
+	return scTx, consumedFee, nil
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
@@ -626,10 +620,18 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 			outAcc.Balance = outAcc.Balance.Add(outAcc.Balance, stAcc.Balance)
 		}
 
+		realBalanceChange := big.NewInt(0).Sub(outAcc.Balance, stAcc.Balance)
+
 		// update the values according to SC output
 		err = stAcc.SetBalanceWithJournal(outAcc.Balance)
 		if err != nil {
 			return nil, err
+		}
+
+		zero := big.NewInt(0)
+		if realBalanceChange.Cmp(zero) != 0 {
+			outAcc.Balance = realBalanceChange
+			crossOutAccs = append(crossOutAccs, outAcc)
 		}
 	}
 

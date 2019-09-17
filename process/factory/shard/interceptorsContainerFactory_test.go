@@ -65,6 +65,9 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
+	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
 	return pools
 }
 
@@ -632,12 +635,15 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	container, _ := icf.Create()
 
 	numInterceptorTxs := noOfShards + 1
+	numInterceptorsUnsignedTxs := numInterceptorTxs
+	numInterceptorsRewardTxs := numInterceptorTxs
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards
 	numInterceptorPeerChanges := 1
 	numInterceptorMetachainHeaders := 1
 	totalInterceptors := numInterceptorTxs + numInterceptorHeaders + numInterceptorMiniBlocks +
-		numInterceptorPeerChanges + numInterceptorMetachainHeaders + numInterceptorTxs
+		numInterceptorPeerChanges + numInterceptorMetachainHeaders + numInterceptorsUnsignedTxs +
+		numInterceptorsRewardTxs
 
 	assert.Equal(t, totalInterceptors, container.Len())
 }

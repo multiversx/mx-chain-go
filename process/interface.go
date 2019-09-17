@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -13,12 +14,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction, round uint64) error
+	IsInterfaceNil() bool
+}
+
+// RewardTransactionProcessor is the interface for reward transaction execution engine
+type RewardTransactionProcessor interface {
+	ProcessRewardTransaction(rewardTx *rewardTx.RewardTx) error
+	IsInterfaceNil() bool
+}
+
+// RewardTransactionPreProcessor prepares the processing of reward transactions
+type RewardTransactionPreProcessor interface {
+	AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice)
 	IsInterfaceNil() bool
 }
 
@@ -85,7 +98,14 @@ type IntermediateTransactionHandler interface {
 	VerifyInterMiniBlocks(body block.Body) error
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error
+	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
+	IsInterfaceNil() bool
+}
+
+// InternalTransactionProducer creates system transactions (e.g. rewards)
+type InternalTransactionProducer interface {
+	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
 	IsInterfaceNil() bool
 }
 
@@ -95,22 +115,22 @@ type TransactionVerifier interface {
 }
 
 // UnsignedTxHandler creates and verifies unsigned transactions for current round
-type UnsignedTxHandler interface {
-	CleanProcessedUTxs()
-	AddProcessedUTx(tx data.TransactionHandler)
-	CreateAllUTxs() []data.TransactionHandler
-	VerifyCreatedUTxs() error
-	AddTxFeeFromBlock(tx data.TransactionHandler)
+type TransactionFeeHandler interface {
+	ProcessTransactionFee(cost *big.Int)
+	IsInterfaceNil() bool
 }
 
 // SpecialAddressHandler responds with needed special addresses
 type SpecialAddressHandler interface {
 	SetElrondCommunityAddress(elrond []byte)
 	ElrondCommunityAddress() []byte
-	SetLeaderAddress(leader []byte)
+	SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
+	ConsensusRewardAddresses() []string
 	LeaderAddress() []byte
 	BurnAddress() []byte
 	ShardIdForAddress([]byte) (uint32, error)
+	Round() uint64
+	Epoch() uint32
 	IsInterfaceNil() bool
 }
 
@@ -123,7 +143,7 @@ type PreProcessor interface {
 	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
 	SaveTxBlockToStorage(body block.Body) error
 
-	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error
+	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error
 	RequestBlockTransactions(body block.Body) int
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
@@ -131,6 +151,7 @@ type PreProcessor interface {
 	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
+	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -148,6 +169,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+	SetConsensusData(consensusRewardAddresses []string, round uint64)
 	IsInterfaceNil() bool
 }
 
@@ -335,6 +357,7 @@ type RequestHandler interface {
 	RequestHeaderByNonce(shardId uint32, nonce uint64)
 	RequestTransaction(shardId uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
+	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
 	RequestHeader(shardId uint32, hash []byte)
 	IsInterfaceNil() bool

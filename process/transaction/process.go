@@ -3,20 +3,26 @@ package transaction
 import (
 	"bytes"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.DefaultLogger()
+
+// minGasPrice is the minimal gas price to be paid for any transaction
+// TODO: Set minGasPrice and minTxFee to some positive value (TBD)
+var minGasPrice = uint64(0)
+
+// minTxFee is the minimal fee to be paid for any transaction
+var minTxFee = uint64(0)
+var mutTxFee sync.RWMutex
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
@@ -25,7 +31,7 @@ type txProcessor struct {
 	hasher           hashing.Hasher
 	scProcessor      process.SmartContractProcessor
 	marshalizer      marshal.Marshalizer
-	txFeeHandler     process.UnsignedTxHandler
+	txFeeHandler     process.TransactionFeeHandler
 	shardCoordinator sharding.Coordinator
 	txTypeHandler    process.TxTypeHandler
 }
@@ -38,7 +44,7 @@ func NewTxProcessor(
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
-	txFeeHandler process.UnsignedTxHandler,
+	txFeeHandler process.TransactionFeeHandler,
 	txTypeHandler process.TxTypeHandler,
 ) (*txProcessor, error) {
 
@@ -60,10 +66,10 @@ func NewTxProcessor(
 	if scProcessor == nil || scProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if txFeeHandler == nil {
+	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
-	if txTypeHandler == nil {
+	if txTypeHandler == nil || txTypeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilTxTypeHandler
 	}
 
@@ -112,14 +118,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return txProc.processSCDeployment(tx, adrSrc, roundIndex)
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, adrSrc, adrDst, roundIndex)
-	case process.TxFee:
-		return txProc.processAccumulatedTxFees(tx, adrSrc)
 	}
 
 	return process.ErrWrongTransaction
 }
 
-func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*feeTx.FeeTx, error) {
+func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*big.Int, error) {
 	if acntSnd == nil {
 		return nil, nil
 	}
@@ -128,9 +132,11 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 
 	txDataLen := int64(len(tx.Data))
+	mutTxFee.RLock()
 	minFee := big.NewInt(0)
-	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(unsigned.MinGasPrice))
-	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(unsigned.MinTxFee))
+	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(minGasPrice))
+	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(minTxFee))
+	mutTxFee.RUnlock()
 
 	if minFee.Cmp(cost) > 0 {
 		return nil, process.ErrNotEnoughFeeInTransactions
@@ -146,42 +152,7 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 		return nil, err
 	}
 
-	currFeeTx := &feeTx.FeeTx{
-		Nonce: tx.Nonce,
-		Value: cost,
-	}
-
-	return currFeeTx, nil
-}
-
-func (txProc *txProcessor) processAccumulatedTxFees(
-	tx data.TransactionHandler,
-	adrSrc state.AddressContainer,
-) error {
-	currTxFee, ok := tx.(*feeTx.FeeTx)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	acntSrc, _, err := txProc.getAccounts(adrSrc, adrSrc)
-	if err != nil {
-		return err
-	}
-
-	// is sender address in node shard
-	if acntSrc != nil {
-		op := big.NewInt(0)
-		err := acntSrc.SetBalanceWithJournal(op.Add(acntSrc.Balance, currTxFee.Value))
-		if err != nil {
-			return err
-		}
-	}
-
-	if currTxFee.ShardId == txProc.shardCoordinator.SelfId() {
-		txProc.txFeeHandler.AddTxFeeFromBlock(currTxFee)
-	}
-
-	return nil
+	return cost, nil
 }
 
 func (txProc *txProcessor) processMoveBalance(
@@ -196,7 +167,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	currFeeTx, err := txProc.processTxFee(tx, acntSrc)
+	txFee, err := txProc.processTxFee(tx, acntSrc)
 	if err != nil {
 		return err
 	}
@@ -216,11 +187,7 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
-	if currFeeTx == nil || currFeeTx.IsInterfaceNil() {
-		return nil
-	}
-
-	txProc.txFeeHandler.AddProcessedUTx(currFeeTx)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee)
 
 	return nil
 }

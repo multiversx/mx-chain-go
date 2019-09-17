@@ -41,7 +41,7 @@ func NewInterceptorsContainerFactory(
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil(){
+	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilNodesCoordinator
 	}
 	if messenger == nil {

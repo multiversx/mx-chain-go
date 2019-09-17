@@ -14,7 +14,9 @@ import (
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	GenerateTransaction(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
+	CreateTransaction(nonce uint64, value *big.Int, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
 	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
+	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
 	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
@@ -27,7 +29,6 @@ type TxRequest struct {
 	Receiver string   `form:"receiver" json:"receiver"`
 	Value    *big.Int `form:"value" json:"value"`
 	Data     string   `form:"data" json:"data"`
-	//SecretKey string `form:"sk" json:"sk" binding:"skValidator"`
 }
 
 // MultipleTxRequest represents the structure on which user input for generating a bulk of transactions will validate against
@@ -66,6 +67,7 @@ func Routes(router *gin.RouterGroup) {
 	router.POST("/generate-and-send-multiple", GenerateAndSendBulkTransactions)
 	router.POST("/generate-and-send-multiple-one-by-one", GenerateAndSendBulkTransactionsOneByOne)
 	router.POST("/send", SendTransaction)
+	router.POST("/send-multiple", SendMultipleTransactions)
 	router.GET("/:txhash", GetTransaction)
 }
 
@@ -121,6 +123,50 @@ func SendTransaction(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"txHash": txHash})
+}
+
+// SendMultipleTransactions will receive a number of transactions and will propagate them for processing
+func SendMultipleTransactions(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(TxService)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	var gtx []SendTxRequest
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		return
+	}
+
+	var txs []*transaction.Transaction
+	for _, receivedTx := range gtx {
+		tx, err := ef.CreateTransaction(
+			receivedTx.Nonce,
+			receivedTx.Value,
+			receivedTx.Receiver,
+			receivedTx.Sender,
+			receivedTx.GasPrice,
+			receivedTx.GasLimit,
+			receivedTx.Data,
+			receivedTx.Signature,
+			receivedTx.Challenge,
+		)
+		if err != nil {
+			continue
+		}
+
+		txs = append(txs, tx)
+	}
+
+	numOfSentTxs, err := ef.SendBulkTransactions(txs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"txsSent": numOfSentTxs})
 }
 
 // GenerateAndSendBulkTransactions generates multipleTransactions
@@ -205,7 +251,7 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response.Nonce = tx.Nonce
 	response.Sender = hex.EncodeToString(tx.SndAddr)
 	response.Receiver = hex.EncodeToString(tx.RcvAddr)
-	response.Data = string(tx.Data)
+	response.Data = tx.Data
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Challenge = string(tx.Challenge)
 	response.Value = tx.Value

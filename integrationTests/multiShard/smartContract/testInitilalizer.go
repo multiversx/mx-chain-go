@@ -48,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -55,7 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
@@ -206,6 +207,7 @@ func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
@@ -219,6 +221,7 @@ func createTestShardStore(numOfShards uint32) dataRetriever.StorageService {
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -238,6 +241,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
+		rewardsTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -289,7 +293,7 @@ func createNetNode(
 	blkc := createTestShardChain()
 	store := createTestShardStore(shardCoordinator.NumberOfShards())
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	dataPacker, _ := partitioning.NewSizeDataPacker(testMarshalizer)
+	dataPacker, _ := partitioning.NewSimpleDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -324,6 +328,7 @@ func createNetNode(
 		resolversFinder,
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
+		factory.RewardsTransactionTopic,
 		factory.MiniBlocksTopic,
 		factory.MetachainBlocksTopic,
 		100,
@@ -334,14 +339,24 @@ func createNetNode(
 		testMarshalizer,
 		testHasher,
 		testAddressConverter,
-		&mock.SpecialAddressHandlerMock{},
+		&mock.SpecialAddressHandlerMock{
+			ShardCoordinator: shardCoordinator,
+			AdrConv:          testAddressConverter,
+		},
 		store,
+		dPool,
 	)
 	interimProcContainer, _ := interimProcFactory.Create()
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
-	txFeeInter, _ := interimProcContainer.Get(dataBlock.TxFeeBlock)
-	txFeeHandler, _ := txFeeInter.(process.UnsignedTxHandler)
-
+	rewardsInter, _ := interimProcContainer.Get(dataBlock.RewardsBlock)
+	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
+	internalTxProducer, _ := rewardsInter.(process.InternalTransactionProducer)
+	rewardProcessor, _ := rewardTransaction.NewRewardTxProcessor(
+		accntAdapter,
+		addrConv,
+		shardCoordinator,
+		rewardsInter,
+	)
 	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
@@ -358,7 +373,7 @@ func createNetNode(
 		addrConv,
 		shardCoordinator,
 		scForwarder,
-		txFeeHandler,
+		rewardsHandler,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
@@ -370,7 +385,7 @@ func createNetNode(
 		testMarshalizer,
 		shardCoordinator,
 		scProcessor,
-		txFeeHandler,
+		rewardsHandler,
 		txTypeHandler,
 	)
 
@@ -386,6 +401,8 @@ func createNetNode(
 		txProcessor,
 		scProcessor,
 		scProcessor,
+		rewardProcessor,
+		internalTxProducer,
 	)
 	container, _ := fact.Create()
 
@@ -407,6 +424,11 @@ func createNetNode(
 		testMarshalizer,
 		accntAdapter,
 		shardCoordinator,
+		nodesCoordinator,
+		&mock.SpecialAddressHandlerMock{
+			ShardCoordinator: shardCoordinator,
+			AdrConv:          testAddressConverter,
+		},
 		&mock.ForkDetectorMock{
 			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
@@ -747,6 +769,11 @@ func createMetaNetNode(
 		},
 		&mock.PeerProcessorMock{},
 		shardCoordinator,
+		nodesCoordinator,
+		&mock.SpecialAddressHandlerMock{
+			ShardCoordinator: shardCoordinator,
+			AdrConv:          testAddressConverter,
+		},
 		testHasher,
 		testMarshalizer,
 		store,

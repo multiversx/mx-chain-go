@@ -2,31 +2,51 @@ package mock
 
 import (
 	"bytes"
+	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
-	Validators                      map[uint32][]sharding.Validator
-	ShardConsensusSize              uint32
-	MetaConsensusSize               uint32
-	ShardId                         uint32
-	NbShards                        uint32
-	GetSelectedPublicKeysCalled     func(selection []byte, shardId uint32) (publicKeys []string, err error)
-	GetValidatorsPublicKeysCalled   func(randomness []byte, round uint64, shardId uint32) ([]string, error)
-	LoadNodesPerShardsCalled        func(nodes map[uint32][]sharding.Validator) error
-	ComputeValidatorsGroupCalled    func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error)
-	GetValidatorWithPublicKeyCalled func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
+	Validators                          map[uint32][]sharding.Validator
+	ShardConsensusSize                  uint32
+	MetaConsensusSize                   uint32
+	ShardId                             uint32
+	NbShards                            uint32
+	GetSelectedPublicKeysCalled         func(selection []byte, shardId uint32) (publicKeys []string, err error)
+	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32) ([]string, error)
+	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32) ([]string, error)
+	LoadNodesPerShardsCalled            func(nodes map[uint32][]sharding.Validator) error
+	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error)
+	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
 }
 
 func NewNodesCoordinatorMock() *NodesCoordinatorMock {
+	nbShards := uint32(1)
+	nodesPerShard := 2
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for sh := uint32(0); sh < nbShards; sh++ {
+		validatorsList := make([]sharding.Validator, nodesPerShard)
+		for v := 0; v < nodesPerShard; v++ {
+			validatorsList[v], _ = sharding.NewValidator(
+				big.NewInt(10),
+				1,
+				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
+				[]byte(fmt.Sprintf("address%d%d", sh, v)),
+			)
+		}
+		validatorsMap[sh] = validatorsList
+	}
+
 	return &NodesCoordinatorMock{
 		ShardConsensusSize: 1,
 		MetaConsensusSize:  1,
 		ShardId:            0,
-		NbShards:           1,
-		Validators:         make(map[uint32][]sharding.Validator),
+		NbShards:           nbShards,
+		Validators:         validatorsMap,
 	}
 }
 
@@ -69,6 +89,28 @@ func (ncm *NodesCoordinatorMock) GetValidatorsPublicKeys(
 	}
 
 	return valGrStr, nil
+}
+
+func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
+	randomness []byte,
+	round uint64,
+	shardId uint32,
+) ([]string, error) {
+	if ncm.GetValidatorsPublicKeysCalled != nil {
+		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId)
+	}
+
+	validators, err := ncm.ComputeValidatorsGroup(randomness, round, shardId)
+	if err != nil {
+		return nil, err
+	}
+
+	addresses := make([]string, 0)
+	for _, v := range validators {
+		addresses = append(addresses, string(v.Address()))
+	}
+
+	return addresses, nil
 }
 
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(nodes map[uint32][]sharding.Validator) error {

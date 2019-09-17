@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/feeTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -28,7 +27,7 @@ func (sc *scProcessor) ProcessVMOutput(
 	tx *transaction.Transaction,
 	acntSnd state.AccountHandler,
 	round uint64,
-) ([]data.TransactionHandler, *feeTx.FeeTx, error) {
+) ([]data.TransactionHandler, *big.Int, error) {
 	return sc.processVMOutput(vmOutput, tx, acntSnd, round)
 }
 

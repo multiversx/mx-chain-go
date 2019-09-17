@@ -42,7 +42,15 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(nil, "topic", "topic", "topic", "topic", 1)
+	rrh, err := NewShardResolverRequestHandler(
+		nil,
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrNilResolverFinder, err)
@@ -51,7 +59,15 @@ func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
 func TestNewShardResolverRequestHandlerTxTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "", "topic", "topic", "topic", 1)
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyTxRequestTopic, err)
@@ -60,7 +76,15 @@ func TestNewShardResolverRequestHandlerTxTopicEmpty(t *testing.T) {
 func TestNewShardResolverRequestHandlerScrTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "", "topic", "topic", 1)
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"topic",
+		"",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyScrRequestTopic, err)
@@ -69,7 +93,15 @@ func TestNewShardResolverRequestHandlerScrTopicEmpty(t *testing.T) {
 func TestNewShardResolverRequestHandlerMBTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "", "topic", 1)
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"topic",
+		"topic",
+		"topic",
+		"",
+		"topic",
+		1,
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyMiniBlockRequestTopic, err)
@@ -78,7 +110,15 @@ func TestNewShardResolverRequestHandlerMBTopicEmpty(t *testing.T) {
 func TestNewShardResolverRequestHandlerHdrTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic", "", 1)
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"",
+		1,
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyHeaderRequestTopic, err)
@@ -87,7 +127,15 @@ func TestNewShardResolverRequestHandlerHdrTopicEmpty(t *testing.T) {
 func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic", "topic", 0)
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		0,
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrInvalidMaxTxRequest, err)
@@ -96,7 +144,15 @@ func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 func TestNewShardResolverRequestHandler(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic", "topic", 1)
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, rrh)
@@ -122,6 +178,7 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -153,6 +210,7 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -177,6 +235,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -223,6 +282,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -260,6 +320,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -293,6 +354,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -317,6 +379,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -351,6 +414,7 @@ func TestResolverRequestHandler_RequestHeaderShouldCallRequestOnResolver(t *test
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -380,6 +444,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardFinderReturnsErrorShoul
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -416,6 +481,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardFinderReturnsAWrongReso
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -449,6 +515,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardResolverFailsShouldNotP
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -473,6 +540,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardShouldRequest(t *testin
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -532,6 +600,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 		"scrtopic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -560,6 +629,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 		"scrtopic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -585,6 +655,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 		},
 		"txTopic",
 		"scrtopic",
+		"topic",
 		"topic",
 		"topic",
 		1,
@@ -628,6 +699,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 		},
 		"txTopic",
 		"scrtopic",
+		"topic",
 		"topic",
 		"topic",
 		1,

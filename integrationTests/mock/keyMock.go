@@ -60,6 +60,7 @@ func (sk *PrivateKeyMock) IsInterfaceNil() bool {
 	}
 	return false
 }
+
 //------KeyGenMock
 
 func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {

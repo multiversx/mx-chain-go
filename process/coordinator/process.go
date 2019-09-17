@@ -74,6 +74,7 @@ func NewTransactionCoordinator(
 	if tc.miniBlockPool == nil || tc.miniBlockPool.IsInterfaceNil() {
 		return nil, process.ErrNilMiniBlockPool
 	}
+
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
@@ -206,8 +207,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 	errMutex := sync.Mutex{}
 
 	wg := sync.WaitGroup{}
-	// Length of body types + another go routine for the intermediate transactions
-	wg.Add(len(separatedBodies))
+	wg.Add(len(separatedBodies) + len(tc.keysInterimProcs))
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
@@ -230,21 +230,28 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 		}(key, value)
 	}
 
+	for _, blockType := range tc.keysInterimProcs {
+		go func(blockType block.Type) {
+			intermediateProc := tc.getInterimProcessor(blockType)
+			if intermediateProc == nil {
+				wg.Done()
+				return
+			}
+
+			err := intermediateProc.SaveCurrentIntermediateTxToStorage()
+			if err != nil {
+				log.Debug(err.Error())
+
+				errMutex.Lock()
+				errFound = err
+				errMutex.Unlock()
+			}
+
+			wg.Done()
+		}(blockType)
+	}
+
 	wg.Wait()
-
-	intermediatePreproc := tc.getInterimProcessor(block.SmartContractResultBlock)
-	if intermediatePreproc == nil {
-		return errFound
-	}
-
-	err := intermediatePreproc.SaveCurrentIntermediateTxToStorage()
-	if err != nil {
-		log.Debug(err.Error())
-
-		errMutex.Lock()
-		errFound = err
-		errMutex.Unlock()
-	}
 
 	return errFound
 }
@@ -337,10 +344,14 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	body block.Body,
 	round uint64,
-	haveTime func() time.Duration,
+	timeRemaining func() time.Duration,
 ) error {
-	separatedBodies := tc.separateBodyByType(body)
 
+	haveTime := func() bool {
+		return timeRemaining() >= 0
+	}
+
+	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
 		if separatedBodies[blockType] == nil {
@@ -444,43 +455,27 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
 ) block.MiniBlockSlice {
 
-	txPreProc := tc.getPreProcessor(block.TxBlock)
-	if txPreProc == nil || txPreProc.IsInterfaceNil() {
-		return nil
-	}
-
 	miniBlocks := make(block.MiniBlockSlice, 0)
-	txSpaceRemained := int(maxTxSpaceRemained)
+	for _, blockType := range tc.keysTxPreProcs {
 
-	newMBAdded := true
-	for newMBAdded {
-		newMBAdded = false
+		txPreProc := tc.getPreProcessor(blockType)
+		if txPreProc == nil || txPreProc.IsInterfaceNil() {
+			return nil
+		}
 
-		for shardId := uint32(0); shardId < tc.shardCoordinator.NumberOfShards(); shardId++ {
-			if txSpaceRemained <= 0 {
-				break
-			}
+		mbs, err := txPreProc.CreateAndProcessMiniBlocks(
+			maxTxSpaceRemained,
+			maxMbSpaceRemained,
+			round,
+			haveTime,
+		)
 
-			mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
-			if mbSpaceRemained <= 0 {
-				break
-			}
+		if err != nil {
+			log.Error(err.Error())
+		}
 
-			miniBlock, err := txPreProc.CreateAndProcessMiniBlock(
-				tc.shardCoordinator.SelfId(),
-				shardId,
-				txSpaceRemained,
-				haveTime,
-				round)
-			if err != nil {
-				continue
-			}
-
-			if len(miniBlock.TxHashes) > 0 {
-				txSpaceRemained -= len(miniBlock.TxHashes)
-				miniBlocks = append(miniBlocks, miniBlock)
-				newMBAdded = true
-			}
+		if len(mbs) > 0 {
+			miniBlocks = append(miniBlocks, mbs...)
 		}
 	}
 
@@ -489,49 +484,15 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	tc.addTxFeeToMatchingMiniBlocks(&miniBlocks)
-
 	return miniBlocks
-}
-
-func (tc *transactionCoordinator) addTxFeeToMatchingMiniBlocks(miniBlocks *block.MiniBlockSlice) {
-	// add txfee transactions to matching blocks
-	interimProc := tc.getInterimProcessor(block.TxFeeBlock)
-	if interimProc == nil {
-		return
-	}
-
-	txFeeMbs := interimProc.CreateAllInterMiniBlocks()
-	for key, mb := range txFeeMbs {
-		var matchingMBFound bool
-		for i := 0; i < len(*miniBlocks); i++ {
-			currMb := (*miniBlocks)[i]
-			if currMb.ReceiverShardID == key &&
-				currMb.SenderShardID == tc.shardCoordinator.SelfId() &&
-				currMb.Type == block.TxBlock {
-				currMb.TxHashes = append(currMb.TxHashes, mb.TxHashes...)
-				matchingMBFound = true
-				break
-			}
-		}
-
-		if !matchingMBFound {
-			mb.ReceiverShardID = key
-			mb.SenderShardID = tc.shardCoordinator.SelfId()
-			mb.Type = block.TxBlock
-
-			*miniBlocks = append(*miniBlocks, mb)
-		}
-	}
 }
 
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
-	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysInterimProcs {
-		if blockType == block.TxFeeBlock {
+		if blockType == block.RewardsBlock {
 			// this has to be processed last
 			continue
 		}
@@ -600,6 +561,8 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 		baseTopic = factory.PeerChBodyTopic
 	case block.SmartContractResultBlock:
 		baseTopic = factory.UnsignedTransactionTopic
+	case block.RewardsBlock:
+		baseTopic = factory.RewardsTransactionTopic
 	default:
 		return "", process.ErrUnknownBlockType
 	}
@@ -666,14 +629,24 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 // GetAllCurrentUsedTxs returns the cached transaction data for current round
 func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler {
-	tc.mutPreProcessor.RLock()
-	defer tc.mutPreProcessor.RUnlock()
+	txPool := make(map[string]data.TransactionHandler, 0)
+	interTxPool := make(map[string]data.TransactionHandler, 0)
 
-	if _, ok := tc.txPreProcessors[blockType]; !ok {
-		return nil
+	preProc := tc.getPreProcessor(blockType)
+	if preProc != nil {
+		txPool = preProc.GetAllCurrentUsedTxs()
 	}
 
-	return tc.txPreProcessors[blockType].GetAllCurrentUsedTxs()
+	interProc := tc.getInterimProcessor(blockType)
+	if interProc != nil {
+		interTxPool = interProc.GetAllCurrentFinishedTxs()
+	}
+
+	for hash, tx := range interTxPool {
+		txPool[hash] = tx
+	}
+
+	return txPool
 }
 
 // RequestMiniBlocks request miniblocks if missing
@@ -723,7 +696,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	snapshot := tc.accounts.JournalLen()
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Error(err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
@@ -747,7 +720,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 	wg.Add(len(tc.interimProcessors))
 
 	for key, interimProc := range tc.interimProcessors {
-		if key == block.TxFeeBlock {
+		if key == block.RewardsBlock {
 			// this has to be processed last
 			wg.Done()
 			continue
@@ -770,7 +743,7 @@ func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body
 		return errFound
 	}
 
-	interimProc := tc.getInterimProcessor(block.TxFeeBlock)
+	interimProc := tc.getInterimProcessor(block.RewardsBlock)
 	if interimProc == nil {
 		return nil
 	}

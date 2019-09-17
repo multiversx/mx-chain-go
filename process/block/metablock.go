@@ -55,6 +55,8 @@ func NewMetaProcessor(
 	forkDetector process.ForkDetector,
 	peerProcessor process.PeerProcessor,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	specialAddressHandler process.SpecialAddressHandler,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
@@ -71,6 +73,8 @@ func NewMetaProcessor(
 		marshalizer,
 		store,
 		shardCoordinator,
+		nodesCoordinator,
+		specialAddressHandler,
 		uint64Converter)
 	if err != nil {
 		return nil, err
@@ -100,6 +104,8 @@ func NewMetaProcessor(
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
+		nodesCoordinator:              nodesCoordinator,
+		specialAddressHandler:         specialAddressHandler,
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandler:        requestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
@@ -158,6 +164,13 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
+	go getMetricsFromMetaHeader(
+		header,
+		mp.marshalizer,
+		mp.appStatusHandler,
+		mp.getHeadersCountInPool(),
+	)
+
 	requestedShardHdrs, requestedFinalShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
@@ -212,6 +225,11 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+// SetConsensusData - sets the reward addresses for the current consensus group
+func (mp *metaProcessor) SetConsensusData(consensusRewardAddresses []string, round uint64) {
+	// TODO set the reward addresses for metachain consensus nodes
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
@@ -1197,14 +1215,15 @@ func (mp *metaProcessor) displayLogInfo(
 	}
 
 	shardMBHeaderCounterMutex.RLock()
+	headerHashBase64 := core.ToB64(headerHash)
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal shard MB headers "+
 		"processed until now: %d. Total shard MB headers processed for this block: %d. Total shard headers remained in pool: %d\n",
-		core.ToB64(headerHash),
+		headerHashBase64,
 		shardMBHeadersTotalProcessed,
 		shardMBHeadersCurrentBlockProcessed,
 		mp.getHeadersCountInPool())
 	shardMBHeaderCounterMutex.RUnlock()
-
+	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, headerHashBase64)
 	log.Info(tblString)
 }
 
@@ -1252,9 +1271,11 @@ func displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*dis
 
 		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
 			if j == 0 || j >= len(shardData.ShardMiniBlockHeaders)-1 {
+				senderShard := shardData.ShardMiniBlockHeaders[j].SenderShardId
+				receiverShard := shardData.ShardMiniBlockHeaders[j].ReceiverShardId
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
-					fmt.Sprintf("ShardMiniBlockHeaderHash_%d", j+1),
+					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d->%d", j+1, senderShard, receiverShard),
 					core.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{

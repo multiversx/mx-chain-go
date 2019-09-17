@@ -172,19 +172,23 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
-func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error {
+func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
+		// smart contract results are needed to be processed only at destination and only if they are cross shard
 		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+			continue
+		}
+		if miniBlock.SenderShardID == scr.shardCoordinator.SelfId() {
 			continue
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			if haveTime() < 0 {
+			if !haveTime() {
 				return process.ErrTimeIsOut
 			}
 
@@ -220,7 +224,13 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 func (scr *smartContractResults) SaveTxBlockToStorage(body block.Body) error {
 	for i := 0; i < len(body); i++ {
 		miniBlock := (body)[i]
-		if miniBlock.Type != block.SmartContractResultBlock || miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+		if miniBlock.Type != block.SmartContractResultBlock {
+			continue
+		}
+		if miniBlock.ReceiverShardID != scr.shardCoordinator.SelfId() {
+			continue
+		}
+		if miniBlock.SenderShardID == scr.shardCoordinator.SelfId() {
 			continue
 		}
 
@@ -382,6 +392,17 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
 func (scr *smartContractResults) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
+	return nil, nil
+}
+
+// CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
+// as long as it has time
+func (scr *smartContractResults) CreateAndProcessMiniBlocks(
+	maxTxSpaceRemained uint32,
+	maxMbSpaceRemained uint32,
+	round uint64,
+	_ func() bool,
+) (block.MiniBlockSlice, error) {
 	return nil, nil
 }
 
