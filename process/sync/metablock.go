@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -114,6 +115,8 @@ func NewMetaBootstrap(
 	boot.headers.RegisterHandler(boot.receivedHeader)
 
 	boot.chStopSync = make(chan bool)
+
+	boot.statusHandler = statusHandler.NewNilStatusHandler()
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
@@ -543,6 +546,7 @@ func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (*b
 // forkChoice decides if rollback must be called
 func (boot *MetaBootstrap) forkChoice() error {
 	log.Info("starting fork choice\n")
+	boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 	isForkResolved := false
 	for !isForkResolved {
 		header, err := boot.getCurrentHeader()

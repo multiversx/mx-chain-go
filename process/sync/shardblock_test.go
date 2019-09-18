@@ -4890,3 +4890,63 @@ func NewStorageBootstrapperMock() *sync.StorageBootstrapperMock {
 
 	return &sbm
 }
+
+func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pools := &mock.PoolsHolderStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
+
+		sds.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+			assert.Fail(t, "should have not reached this point")
+			return false, false
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+		hnc := &mock.Uint64SyncMapCacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
+
+		return hnc
+	}
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+
+		return cs
+	}
+
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	bs, _ := sync.NewShardBootstrap(
+		pools,
+		createStore(),
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinder(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+	)
+
+	err := bs.SetStatusHandler(nil)
+	assert.Equal(t, process.ErrNilAppStatusHandler, err)
+
+}
