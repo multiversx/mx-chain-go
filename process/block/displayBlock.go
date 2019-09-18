@@ -224,6 +224,12 @@ func DisplayLastNotarized(
 	hasher hashing.Hasher,
 	lastNotarizedHdrForShard data.HeaderHandler,
 	shardId uint32) {
+
+	if lastNotarizedHdrForShard == nil || lastNotarizedHdrForShard.IsInterfaceNil() {
+		log.Error("last notarized header for shard is nil")
+		return
+	}
+
 	lastNotarizedHdrHashForShard, errNotCritical := core.CalculateHash(
 		marshalizer,
 		hasher,
