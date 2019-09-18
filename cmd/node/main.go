@@ -530,6 +530,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Warn("No views for current node")
 	}
 
+	statusMetrics := statusHandler.NewStatusMetrics()
+	appStatusHandlers = append(appStatusHandlers, statusMetrics)
+
 	if len(appStatusHandlers) > 0 {
 		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
 		if err != nil {
@@ -555,7 +558,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
+	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
@@ -564,10 +567,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		"GenesisTimeStamp", startTime.Unix(),
 	)
 
+	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	for _, flag := range ctx.App.Flags {
+		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
+		if flagValue != "" {
+			sessionInfoFileOutput += fmt.Sprintf("%s = %v\n", flag.GetName(), flagValue)
+		}
+	}
+
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
 	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
 
-	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
 	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
@@ -636,7 +647,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	apiResolver, err := createApiResolver(vmAccountsDB)
+	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
 	if err != nil {
 		return err
 	}
@@ -737,6 +748,7 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 }
 
 func startStatusPolling(
@@ -1199,7 +1211,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
+func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
 	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
@@ -1209,5 +1221,5 @@ func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scDataGetter)
+	return external.NewNodeApiResolver(scDataGetter, statusMetrics)
 }

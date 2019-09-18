@@ -2552,3 +2552,55 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 }
+
+func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pools := &mock.MetaPoolsHolderStub{}
+	pools.MetaChainBlocksCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
+
+		sds.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+			return false, false
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+		hnc := &mock.Uint64SyncMapCacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
+
+		return hnc
+	}
+
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		createStore(),
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+	)
+
+	err := bs.SetStatusHandler(nil)
+	assert.Equal(t, process.ErrNilAppStatusHandler, err)
+}

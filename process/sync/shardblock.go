@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -131,6 +132,8 @@ func NewShardBootstrap(
 	boot.headers.RegisterHandler(boot.receivedHeaders)
 
 	boot.chStopSync = make(chan bool)
+
+	boot.statusHandler = statusHandler.NewNilStatusHandler()
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
@@ -834,6 +837,7 @@ func (boot *ShardBootstrap) waitForMiniBlocks() error {
 // forkChoice decides if rollback must be called
 func (boot *ShardBootstrap) forkChoice() error {
 	log.Info("starting fork choice\n")
+	boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 	isForkResolved := false
 	for !isForkResolved {
 		header, err := boot.getCurrentHeader()
