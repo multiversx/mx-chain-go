@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -154,7 +155,7 @@ func TestNewRewardTxHandler_ValsOk(t *testing.T) {
 	assert.NotNil(t, th)
 }
 
-func TestRewardTxHandlerAddIntermediateTransactions(t *testing.T) {
+func TestRewardsHandler_AddIntermediateTransactions(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -175,7 +176,7 @@ func TestRewardTxHandlerAddIntermediateTransactions(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestRewardTxHandlerProcessTransactionFee(t *testing.T) {
+func TestRewardsHandler_ProcessTransactionFee(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -202,7 +203,7 @@ func TestRewardTxHandlerProcessTransactionFee(t *testing.T) {
 	assert.Equal(t, big.NewInt(110), th.accumulatedFees)
 }
 
-func TestRewardTxHandlerCleanProcessedUTxs(t *testing.T) {
+func TestRewardsHandler_cleanCachedData(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -229,7 +230,7 @@ func TestRewardTxHandlerCleanProcessedUTxs(t *testing.T) {
 	assert.Equal(t, 0, len(th.rewardTxsForBlock))
 }
 
-func TestRewardTxHandlerCreateAllUTxs(t *testing.T) {
+func TestRewardsHandler_CreateRewardsFromFees(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -262,7 +263,7 @@ func TestRewardTxHandlerCreateAllUTxs(t *testing.T) {
 	assert.Equal(t, currTxFee.Uint64(), totalSum)
 }
 
-func TestRewardTxHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
+func TestRewardsHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -295,7 +296,7 @@ func TestRewardTxHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 	assert.Equal(t, process.ErrRewardTxNotFound, err)
 }
 
-func TestRewardTxHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testing.T) {
+func TestRewardsHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -330,7 +331,7 @@ func TestRewardTxHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testin
 	assert.Equal(t, process.ErrRewardTxsMismatchCreatedReceived, err)
 }
 
-func TestRewardTxHandlerVerifyCreatedRewardsTxsOK(t *testing.T) {
+func TestRewardsHandler_VerifyCreatedRewardsTxsOK(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -360,10 +361,10 @@ func TestRewardTxHandlerVerifyCreatedRewardsTxsOK(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestRewardTxHandlerCreateAllInterMiniBlocksOK(t *testing.T) {
+func TestRewardsHandler_CreateAllInterMiniBlocksOK(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		&mock.SpecialAddressHandlerMock{
@@ -388,4 +389,70 @@ func TestRewardTxHandlerCreateAllInterMiniBlocksOK(t *testing.T) {
 
 	mbs = th.CreateAllInterMiniBlocks()
 	assert.Equal(t, 1, len(mbs))
+}
+
+func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	tdp := initDataPool()
+	specialAddress := &mock.SpecialAddressHandlerMock{
+		AdrConv:          &mock.AddressConverterMock{},
+		ShardCoordinator: shardCoordinator,
+	}
+
+	consensusAddresses := []string{
+		"1000000000000000000000000000000000000000000000000000000000000000",
+		"2000000000000000000000000000000000000000000000000000000000000000",
+	}
+
+	specialAddress.SetConsensusData(consensusAddresses, 0, 0)
+
+	th, err := NewRewardTxHandler(
+		specialAddress,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		shardCoordinator,
+		&mock.AddressConverterMock{},
+		&mock.ChainStorerMock{},
+		tdp.RewardTransactions(),
+	)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, th)
+
+	txs := []data.TransactionHandler{
+		&rewardTx.RewardTx{
+			Round:   0,
+			Epoch:   0,
+			Value:   big.NewInt(1),
+			RcvAddr: []byte(consensusAddresses[0]),
+			ShardId: 0,
+		},
+		&rewardTx.RewardTx{
+			Round:   0,
+			Epoch:   0,
+			Value:   big.NewInt(1),
+			RcvAddr: []byte(consensusAddresses[1]),
+			ShardId: 0,
+		},
+	}
+
+	err = th.AddIntermediateTransactions(txs)
+	assert.Nil(t, err)
+
+	finishedTxs := th.GetAllCurrentFinishedTxs()
+	assert.Equal(t, 2, len(txs))
+
+	for _, ftx := range finishedTxs {
+		found := false
+		for _, tx := range txs {
+			if reflect.DeepEqual(tx, ftx) {
+				found = true
+				break
+			}
+		}
+
+		assert.True(t, found)
+	}
 }
