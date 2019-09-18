@@ -53,21 +53,25 @@ func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
-	shardProcessor, err := NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		genesisBlocks,
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	arguments := ArgsShardProcessor{
+		ArgsBaseProcessor: &ArgsBaseProcessor{
+			Accounts:         &mock.AccountsStub{},
+			ForkDetector:     &mock.ForkDetectorMock{},
+			Hasher:           &mock.HasherMock{},
+			Marshalizer:      &mock.MarshalizerMock{},
+			Store:            &mock.ChainStorerMock{},
+			ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+			Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:     genesisBlocks,
+			RequestHandler:   &mock.RequestHandlerMock{},
+			Core:             &mock.ServiceContainerMock{},
+		},
+		DataPool:      tdp,
+		BlocksTracker: &mock.BlocksTrackerMock{},
+		TxCoordinator: &mock.TransactionCoordinatorMock{},
+	}
+	shardProcessor, err := NewShardProcessor(arguments)
 	return shardProcessor, err
 }
 

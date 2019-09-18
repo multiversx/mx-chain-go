@@ -314,24 +314,38 @@ func (wr *wrongBody) IsInterfaceNil() bool {
 	return false
 }
 
+func CreateMockArguments() blproc.ArgsShardProcessor {
+	arguments := blproc.ArgsShardProcessor{
+		ArgsBaseProcessor: &blproc.ArgsBaseProcessor{
+			Accounts:         &mock.AccountsStub{},
+			ForkDetector:     &mock.ForkDetectorMock{},
+			Hasher:           &mock.HasherStub{},
+			Marshalizer:      &mock.MarshalizerMock{},
+			Store:            &mock.ChainStorerMock{},
+			ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+			Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:     createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+			RequestHandler:   &mock.RequestHandlerMock{},
+			Core:             &mock.ServiceContainerMock{},
+		},
+		DataPool:      initDataPool([]byte("")),
+		BlocksTracker: &mock.BlocksTrackerMock{},
+		TxCoordinator: &mock.TransactionCoordinatorMock{},
+	}
+
+	return arguments
+}
+
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte(""))
-	bp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		initStore(),
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	arguments := CreateMockArguments()
+	arguments.DataPool = initDataPool([]byte(""))
+	arguments.Store = initStore()
+	arguments.ShardCoordinator = mock.NewOneShardCoordinatorMock()
+	arguments.StartHeaders = createGenesisBlocks(arguments.ShardCoordinator)
+	arguments.Hasher = &mock.HasherMock{}
+	bp, _ := blproc.NewShardProcessor(arguments)
 	blkc := createTestBlockchain()
 	body := &block.Body{}
 	hdr := &block.Header{}
@@ -390,7 +404,6 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 
 func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte(""))
 	rootHash := []byte("root hash to be tested")
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
@@ -399,21 +412,13 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	}
 	store := initStore()
 
-	bp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		store,
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		accounts,
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+	arguments := CreateMockArguments()
+	arguments.Accounts = accounts
+	arguments.Store = store
+	arguments.ShardCoordinator = mock.NewOneShardCoordinatorMock()
+	arguments.StartHeaders = createGenesisBlocks(arguments.ShardCoordinator)
+	bp, _ := blproc.NewShardProcessor(arguments)
+
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
 
@@ -421,23 +426,14 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 
 func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte(""))
 	marshalizer := &mock.MarshalizerStub{}
-	bp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		initStore(),
-		&mock.HasherStub{},
-		marshalizer,
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	arguments := CreateMockArguments()
+	arguments.ShardCoordinator = mock.NewOneShardCoordinatorMock()
+	arguments.StartHeaders = createGenesisBlocks(arguments.ShardCoordinator)
+	arguments.Marshalizer = marshalizer
+	arguments.Store = initStore()
+	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	expectedError := errors.New("marshalizer fail")
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
@@ -456,24 +452,17 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 
 func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool([]byte(""))
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
-	bp, _ := blproc.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		initStore(),
-		hasher,
-		marshalizer,
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	arguments := CreateMockArguments()
+	arguments.DataPool = initDataPool([]byte(""))
+	arguments.Marshalizer = marshalizer
+	arguments.Hasher = hasher
+	arguments.Store = initStore()
+	arguments.ShardCoordinator = mock.NewOneShardCoordinatorMock()
+	arguments.StartHeaders = createGenesisBlocks(arguments.ShardCoordinator)
+	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
 		if hdr == obj {

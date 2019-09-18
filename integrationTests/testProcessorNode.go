@@ -389,21 +389,25 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			TestUint64Converter,
 		)
 	} else {
-		tpn.BlockProcessor, err = block.NewShardProcessor(
-			nil,
-			tpn.ShardDataPool,
-			tpn.Storage,
-			TestHasher,
-			TestMarshalizer,
-			tpn.AccntState,
-			tpn.ShardCoordinator,
-			tpn.ForkDetector,
-			tpn.BlockTracker,
-			tpn.GenesisBlocks,
-			tpn.RequestHandler,
-			tpn.TxCoordinator,
-			TestUint64Converter,
-		)
+		arguments := block.ArgsShardProcessor{
+			ArgsBaseProcessor: &block.ArgsBaseProcessor{
+				Accounts:         tpn.AccntState,
+				ForkDetector:     tpn.ForkDetector,
+				Hasher:           TestHasher,
+				Marshalizer:      TestMarshalizer,
+				Store:            tpn.Storage,
+				ShardCoordinator: tpn.ShardCoordinator,
+				Uint64Converter:  TestUint64Converter,
+				StartHeaders:     tpn.GenesisBlocks,
+				RequestHandler:   tpn.RequestHandler,
+				Core:             nil,
+			},
+			DataPool:      tpn.ShardDataPool,
+			BlocksTracker: tpn.BlockTracker,
+			TxCoordinator: tpn.TxCoordinator,
+		}
+
+		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
 	}
 
 	if err != nil {
