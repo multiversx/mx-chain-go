@@ -6,10 +6,46 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
+	scCode := []byte("wrong smart contract code")
+
+	senderAddressBytes := []byte("12345678901234567890123456789012")
+	senderNonce := uint64(11)
+	senderBalance := big.NewInt(100000000)
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(1000000)
+
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	assert.Equal(t, 0, accnts.JournalLen())
+
+	tx := &transaction.Transaction{
+		Nonce:    senderNonce,
+		Value:    big.NewInt(0),
+		SndAddr:  senderAddressBytes,
+		RcvAddr:  vm.CreateEmptyAddress().Bytes(),
+		Data:     string(scCode) + "@" + hex.EncodeToString(factory.IELEVirtualMachine),
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+
+	// tx is not processed due to the invalid sc code
+	err := txProc.ProcessTransaction(tx, round)
+	assert.NotNil(t, err)
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
+
+	ah, err := accnts.GetExistingAccount(state.NewAddress(scAddressBytes))
+	assert.Nil(t, ah)
+	assert.Equal(t, state.ErrAccNotFound, err)
+}
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
@@ -35,7 +71,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
 	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
@@ -50,7 +86,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		expectedBalance)
-	destinationAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
+	destinationAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	vm.TestDeployedContractContents(
 		t,
@@ -86,7 +122,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 
 	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
@@ -102,7 +138,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderNonce+1,
 		//the transfer should get back to the sender as the tx failed
 		expectedBalance)
-	destinationAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
+	destinationAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	assert.False(t, vm.AccountExists(accnts, destinationAddressBytes))
 }
