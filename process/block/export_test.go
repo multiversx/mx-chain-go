@@ -44,8 +44,8 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint
 	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(header *block.Header) ([]data.HeaderHandler, error) {
-	return sp.getProcessedMetaBlocksFromPool(header)
+func (sp *shardProcessor) GetProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
+	return sp.getProcessedMetaBlocksFromHeader(header)
 }
 
 func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
@@ -151,6 +151,10 @@ func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
 
 func (bp *baseProcessor) LastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
 	return bp.lastNotarizedHdrForShard(shardId)
+}
+
+func (bp *baseProcessor) RemoveLastNotarized() {
+	bp.removeLastNotarized()
 }
 
 func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
@@ -267,8 +271,8 @@ func (sp *shardProcessor) DisplayLogInfo(
 	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
 }
 
-func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, []byte, error) {
-	return sp.getHighestHdrForOwnShardFromMetachain(round)
+func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+	return sp.getHighestHdrForOwnShardFromMetachain(processedHdrs)
 }
 
 func (sp *shardProcessor) RestoreMetaBlockIntoPool(

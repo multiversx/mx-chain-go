@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
@@ -102,6 +103,7 @@ func (ef *ElrondNodeFacade) IsNodeRunning() bool {
 	return ef.node.IsRunning()
 }
 
+// RestAPIServerDebugMode return true is debug mode for Rest API is enabled
 func (ef *ElrondNodeFacade) RestAPIServerDebugMode() bool {
 	return ef.restAPIServerDebugMode
 }
@@ -253,6 +255,11 @@ func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	}
 
 	return hbStatus, nil
+}
+
+// StatusMetrics will return the node's status metrics
+func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
+	return ef.apiResolver.StatusMetrics()
 }
 
 // GetVmValue retrieves data from existing SC trie

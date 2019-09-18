@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
@@ -12,6 +13,7 @@ type BootstrapperMock struct {
 	ShouldSyncCalled                func() bool
 	StartSyncCalled                 func()
 	StopSyncCalled                  func()
+	SetStatusHandlerCalled          func(handler core.AppStatusHandler) error
 }
 
 func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
@@ -46,6 +48,10 @@ func (boot *BootstrapperMock) StartSync() {
 
 func (boot *BootstrapperMock) StopSync() {
 	boot.StopSyncCalled()
+}
+
+func (boot *BootstrapperMock) SetStatusHandler(handler core.AppStatusHandler) error {
+	return boot.SetStatusHandlerCalled(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
