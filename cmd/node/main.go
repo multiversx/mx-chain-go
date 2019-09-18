@@ -558,7 +558,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
+	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
@@ -567,10 +567,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		"GenesisTimeStamp", startTime.Unix(),
 	)
 
+	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	for _, flag := range ctx.App.Flags {
+		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
+		if flagValue != "" {
+			sessionInfoFileOutput += fmt.Sprintf("%s = %v\n", flag.GetName(), flagValue)
+		}
+	}
+
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
 	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
 
-	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
 	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
