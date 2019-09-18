@@ -42,7 +42,7 @@ func TestNewEvictionWaitingList_NilDMarshalizer(t *testing.T) {
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
 }
 
-func TestEvictionCache_Add(t *testing.T) {
+func TestEvictionWaitingList_Add(t *testing.T) {
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
 	hashes := [][]byte{
@@ -58,7 +58,7 @@ func TestEvictionCache_Add(t *testing.T) {
 	assert.Equal(t, hashes, ec.cache[string(root)])
 }
 
-func TestEvictionCache_AddMultiple(t *testing.T) {
+func TestEvictionWaitingList_AddMultiple(t *testing.T) {
 	cacheSize := 2
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
@@ -94,7 +94,7 @@ func TestEvictionCache_AddMultiple(t *testing.T) {
 
 }
 
-func TestEvictionCache_Evict(t *testing.T) {
+func TestEvictionWaitingList_Evict(t *testing.T) {
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
 	expectedHashes := [][]byte{
@@ -111,7 +111,7 @@ func TestEvictionCache_Evict(t *testing.T) {
 	assert.Equal(t, expectedHashes, hashes)
 }
 
-func TestEvictionCache_EvictFromDB(t *testing.T) {
+func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	cacheSize := 2
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
@@ -141,7 +141,7 @@ func TestEvictionCache_EvictFromDB(t *testing.T) {
 	assert.Nil(t, val)
 }
 
-func TestEvictionCache_Rollback(t *testing.T) {
+func TestEvictionWaitingList_Rollback(t *testing.T) {
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
 	h1 := [][]byte{
@@ -164,7 +164,7 @@ func TestEvictionCache_Rollback(t *testing.T) {
 	assert.Equal(t, h2, ec.cache[string(root2)])
 }
 
-func TestEvictionCache_RollbackFromDB(t *testing.T) {
+func TestEvictionWaitingList_RollbackFromDB(t *testing.T) {
 	cacheSize := 2
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
