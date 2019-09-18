@@ -33,3 +33,6 @@ var ErrEmptyNode = errors.New("the node is empty")
 
 // ErrNilNode is raised when we reach a nil node
 var ErrNilNode = errors.New("the node is nil")
+
+// ErrInvalidCacheSize is raised when the given size for the cache is invalid
+var ErrInvalidCacheSize = errors.New("cache size is invalid")
