@@ -114,7 +114,7 @@ type TransactionVerifier interface {
 	IsTransactionValid(tx data.TransactionHandler) error
 }
 
-// UnsignedTxHandler creates and verifies unsigned transactions for current round
+// TransactionFeeHandler processes the transaction fee
 type TransactionFeeHandler interface {
 	ProcessTransactionFee(cost *big.Int)
 	IsInterfaceNil() bool
@@ -125,12 +125,15 @@ type SpecialAddressHandler interface {
 	SetElrondCommunityAddress(elrond []byte)
 	ElrondCommunityAddress() []byte
 	SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
-	ConsensusRewardAddresses() []string
+	ConsensusShardRewardData() *data.ConsensusRewardData
+	SetMetaConsensusData(rewardAddresses []string, round uint64, epoch uint32)
+	ClearMetaConsensusData()
+	ConsensusMetaRewardData() []*data.ConsensusRewardData
 	LeaderAddress() []byte
 	BurnAddress() []byte
 	ShardIdForAddress([]byte) (uint32, error)
-	Round() uint64
 	Epoch() uint32
+	Round() uint64
 	IsInterfaceNil() bool
 }
 

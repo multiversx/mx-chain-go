@@ -189,17 +189,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
-	// give transaction coordinator the consensus group validators addresses where to send the rewards.
-	consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
-		headerHandler.GetPrevRandSeed(),
-		headerHandler.GetRound(),
-		sp.shardCoordinator.SelfId(),
-	)
+	err = sp.setShardConsensusData(headerHandler)
 	if err != nil {
 		return err
 	}
 
-	sp.SetConsensusData(consensusAddresses, headerHandler.GetRound())
 	sp.txCoordinator.CreateBlockStarted()
 	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalMetaHdrs := sp.requestMetaHeaders(header)
@@ -250,6 +244,13 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
+	processedMetaHdrs, err := sp.getProcessedMetaBlocksFromPool(body, header.MetaBlockHashes)
+
+	err = sp.setMetaConsensusData(processedMetaHdrs)
+	if err != nil {
+		return err
+	}
+
 	err = sp.txCoordinator.ProcessBlockTransaction(body, header.Round, haveTime)
 	if err != nil {
 		return err
@@ -263,6 +264,44 @@ func (sp *shardProcessor) ProcessBlock(
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (sp *shardProcessor) setShardConsensusData(headerHandler data.HeaderHandler) error {
+	// give transaction coordinator the consensus group validators addresses where to send the rewards.
+	consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
+		headerHandler.GetPrevRandSeed(),
+		headerHandler.GetRound(),
+		sp.shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
+	sp.SetConsensusData(consensusAddresses, headerHandler.GetRound())
+
+	return nil
+}
+
+func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.HeaderHandler) error {
+	sp.specialAddressHandler.ClearMetaConsensusData()
+
+	// for every finalized metablock header, reward the metachain consensus group members with accounts in shard
+	for _, metaBlock := range finalizedMetaBlocks {
+		round := metaBlock.GetRound()
+		epoch := metaBlock.GetEpoch()
+		consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
+			metaBlock.GetPrevRandSeed(),
+			round,
+			metaBlock.GetShardID(),
+		)
+		if err != nil {
+			return err
+		}
+
+		sp.specialAddressHandler.SetMetaConsensusData(consensusAddresses, round, epoch)
 	}
 
 	return nil
@@ -661,7 +700,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.LogIfError(errNotCritical)
 	}
 
-	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body, header)
+	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body, header.MetaBlockHashes)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -817,12 +856,15 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 }
 
 // getProcessedMetaBlocksFromPool returns all the meta blocks fully processed
-func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getProcessedMetaBlocksFromPool(
+	body block.Body,
+	usedMetaBlockHashes [][]byte,
+) ([]data.HeaderHandler, error) {
 	if body == nil {
 		return nil, process.ErrNilTxBlockBody
 	}
-	if header == nil {
-		return nil, process.ErrNilBlockHeader
+	if usedMetaBlockHashes == nil {
+		return nil, process.ErrNilMetaBlockHashes
 	}
 
 	miniBlockHashes := make(map[int][]byte, 0)
@@ -844,7 +886,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
-	for _, metaBlockKey := range header.MetaBlockHashes {
+	for _, metaBlockKey := range usedMetaBlockHashes {
 		metaBlock, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
 		if metaBlock == nil {
 			log.Debug(process.ErrNilMetaBlockHeader.Error())
@@ -1394,15 +1436,20 @@ func (sp *shardProcessor) createMiniBlocks(
 		log.Info(err.Error())
 	}
 
+	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(block.Body(destMeMiniBlocks), usedMetaHdrsHashes)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	err = sp.setMetaConsensusData(processedMetaHdrs)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug(fmt.Sprintf("processed %d miniblocks and %d txs with destination in self shard\n", len(destMeMiniBlocks), txs))
 
 	if len(destMeMiniBlocks) > 0 {
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
-	}
-
-	if !haveTime() {
-		log.Info(fmt.Sprintf("time is up added %d transactions\n", txs))
-		return miniBlocks, nil
 	}
 
 	maxTxSpaceRemained := int32(maxItemsInBlock) - int32(txs)
