@@ -101,6 +101,75 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	verifyRewards(t, nodesMap, mapRewardsForAddress, nbTxsForLeaderAddress, gasPrice, gasLimit)
 }
 
+func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodesPerShard := 4
+	nbMetaNodes := 2
+	nbShards := 2
+	consensusGroupSize := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+	)
+
+	for _, nodes := range nodesMap {
+		integrationTests.DisplayAndStartNodes(nodes)
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	round := uint64(1)
+	nonce := uint64(1)
+	nbBlocksProduced := 7
+
+	randomness := generateInitialRandomness(uint32(nbShards))
+	var headers map[uint32]data.HeaderHandler
+	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
+	mapRewardsForAddress := make(map[string]uint32)
+	nbTxsForLeaderAddress := make(map[string]uint32)
+
+	for i := 0; i < nbBlocksProduced; i++ {
+		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+
+		for _, consensusGroup := range consensusNodes {
+			addrRewards := consensusGroup[0].SpecialAddressHandler.ConsensusRewardAddresses()
+			updateExpectedRewards(mapRewardsForAddress, addrRewards)
+		}
+
+		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
+		integrationTests.VerifyNodesHaveHeaders(t, headers, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		round++
+		nonce++
+	}
+
+	time.Sleep(time.Second)
+
+	verifyRewards(t, nodesMap, mapRewardsForAddress, nbTxsForLeaderAddress, 0, 0)
+}
+
+
 func generateIntraShardTransactions(
 	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
 	nbTxsPerShard uint32,
