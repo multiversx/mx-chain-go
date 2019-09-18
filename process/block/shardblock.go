@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-const cleaningTime = 1.0
+const cleaningTime = 1
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {

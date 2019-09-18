@@ -1,7 +1,7 @@
 package poolscleaner
 
 import (
-	"sync"
+	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -17,7 +17,6 @@ type TxPoolsCleaner struct {
 	dataPool         dataRetriever.PoolsHolder
 	addrConverter    state.AddressConverter
 	numRemovedTxs    uint64
-	mutNumRemovedTxs sync.RWMutex
 }
 
 // NewTxsPoolsCleaner will return a new transaction pools cleaner
@@ -33,7 +32,7 @@ func NewTxsPoolsCleaner(
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
 	transactionPool := dataPool.Transactions()
@@ -80,6 +79,8 @@ func (tpc *TxPoolsCleaner) Clean(haveTime func() bool) error {
 
 			tx, ok := obj.(*transaction.Transaction)
 			if !ok {
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
+				txsPool.Remove(key)
 				continue
 			}
 
@@ -87,14 +88,14 @@ func (tpc *TxPoolsCleaner) Clean(haveTime func() bool) error {
 			addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
 			if err != nil {
 				txsPool.Remove(key)
-				tpc.incrementNumRemovedTxs()
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
 				continue
 			}
 
 			accountHandler, err := tpc.accounts.GetExistingAccount(addr)
 			if err != nil {
 				txsPool.Remove(key)
-				tpc.incrementNumRemovedTxs()
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
 				continue
 			}
 
@@ -103,7 +104,7 @@ func (tpc *TxPoolsCleaner) Clean(haveTime func() bool) error {
 			lowerNonceInTx := txNonce < accountNonce
 			if lowerNonceInTx {
 				txsPool.Remove(key)
-				tpc.incrementNumRemovedTxs()
+				atomic.AddUint64(&tpc.numRemovedTxs, 1)
 			}
 		}
 	}
@@ -111,16 +112,7 @@ func (tpc *TxPoolsCleaner) Clean(haveTime func() bool) error {
 	return nil
 }
 
-func (tpc *TxPoolsCleaner) incrementNumRemovedTxs() {
-	tpc.mutNumRemovedTxs.Lock()
-	tpc.numRemovedTxs++
-	tpc.mutNumRemovedTxs.Unlock()
-}
-
 // NumRemovedTxs will return the number of removed txs from pools
 func (tpc *TxPoolsCleaner) NumRemovedTxs() uint64 {
-	tpc.mutNumRemovedTxs.Lock()
-	defer tpc.mutNumRemovedTxs.Unlock()
-
-	return tpc.numRemovedTxs
+	return atomic.LoadUint64(&tpc.numRemovedTxs)
 }
