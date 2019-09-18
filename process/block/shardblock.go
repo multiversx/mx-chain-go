@@ -219,7 +219,9 @@ func (sp *shardProcessor) ProcessBlock(
 		sp.allNeededMetaHdrsFound = true
 		unreceivedMetaHdrs := len(sp.requestedMetaHdrsHashes)
 		sp.mutRequestedMetaHdrsHashes.Unlock()
-		log.Info(fmt.Sprintf("received %d missing meta headers\n", int(requestedMetaHdrs)-unreceivedMetaHdrs))
+		if requestedMetaHdrs > 0 {
+			log.Info(fmt.Sprintf("received %d missing meta headers\n", int(requestedMetaHdrs)-unreceivedMetaHdrs))
+		}
 		if err != nil {
 			return err
 		}
@@ -650,9 +652,9 @@ func (sp *shardProcessor) CommitBlock(
 		log.LogIfError(errNotCritical)
 	}
 
-	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(body, header)
-	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
+	processedMetaHdrs, err := sp.getProcessedMetaBlocksFromPool(header)
+	if err != nil {
+		return err
 	}
 
 	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -822,56 +824,40 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 }
 
 // getProcessedMetaBlocksFromPool returns all the meta blocks fully processed
-func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
-	if body == nil {
-		return nil, process.ErrNilTxBlockBody
-	}
+func (sp *shardProcessor) getProcessedMetaBlocksFromPool(header *block.Header) ([]data.HeaderHandler, error) {
 	if header == nil {
 		return nil, process.ErrNilBlockHeader
 	}
 
 	miniBlockHashes := make(map[int][]byte, 0)
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-		if miniBlock.SenderShardID == sp.shardCoordinator.SelfId() {
-			continue
-		}
-
-		mbHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, miniBlock)
-		if err != nil {
-			log.Debug(err.Error())
-			continue
-		}
-
-		miniBlockHashes[i] = mbHash
+	for i := 0; i < len(header.MiniBlockHeaders); i++ {
+		miniBlockHashes[i] = header.MiniBlockHeaders[i].Hash
 	}
 
 	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
 	for _, metaBlockKey := range header.MetaBlockHashes {
-		metaBlock, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
-		if metaBlock == nil {
-			log.Debug(process.ErrNilMetaBlockHeader.Error())
-			continue
+		obj, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
+		if obj == nil {
+			return nil, process.ErrNilMetaBlockHeader
 		}
 
-		hdr, ok := metaBlock.(*block.MetaBlock)
+		metaBlock, ok := obj.(*block.MetaBlock)
 		if !ok {
-			log.Debug(process.ErrWrongTypeAssertion.Error())
-			continue
+			return nil, process.ErrWrongTypeAssertion
 		}
 
-		log.Debug(fmt.Sprintf("meta header nonce: %d\n", hdr.Nonce))
+		log.Debug(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
 
-		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
 			_, ok := crossMiniBlockHashes[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
 
-			hdr.SetMiniBlockProcessed(miniBlockHashes[key], true)
+			metaBlock.SetMiniBlockProcessed(miniBlockHashes[key], true)
 			delete(miniBlockHashes, key)
 		}
 
@@ -879,14 +865,14 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(body block.Body, header
 
 		processedAll := true
 		for key := range crossMiniBlockHashes {
-			if !hdr.GetMiniBlockProcessed([]byte(key)) {
+			if !metaBlock.GetMiniBlockProcessed([]byte(key)) {
 				processedAll = false
 				break
 			}
 		}
 
 		if processedAll {
-			processedMetaHdrs = append(processedMetaHdrs, hdr)
+			processedMetaHdrs = append(processedMetaHdrs, metaBlock)
 		}
 	}
 
@@ -1006,6 +992,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		if lenReqMetaHdrsHashes == 0 {
 			requestedBlockHeaders := sp.requestFinalMissingHeaders()
 			if requestedBlockHeaders == 0 {
+				log.Info(fmt.Sprintf("received all final meta headers\n"))
 				areFinalAttestingHdrsInCache = true
 			} else {
 				log.Info(fmt.Sprintf("requested %d missing final meta headers\n", requestedBlockHeaders))
@@ -1061,8 +1048,11 @@ func (sp *shardProcessor) requestFinalMissingHeaders() uint32 {
 }
 
 func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint32) {
+	_ = process.EmptyChannel(sp.chRcvAllMetaHdrs)
+
 	sp.mutRequestedMetaHdrsHashes.Lock()
 
+	sp.requestedMetaHdrsHashes = make(map[string]bool)
 	sp.allNeededMetaHdrsFound = true
 
 	if len(header.MetaBlockHashes) == 0 {
@@ -1073,7 +1063,6 @@ func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint
 	missingHeaderHashes := sp.computeMissingHeaders(header)
 
 	requestedBlockHeaders := uint32(0)
-	sp.requestedMetaHdrsHashes = make(map[string]bool)
 	for _, hash := range missingHeaderHashes {
 		requestedBlockHeaders++
 		sp.requestedMetaHdrsHashes[string(hash)] = true
@@ -1088,10 +1077,6 @@ func (sp *shardProcessor) requestMetaHeaders(header *block.Header) (uint32, uint
 		if requestedFinalBlockHeaders > 0 {
 			sp.allNeededMetaHdrsFound = false
 		}
-	}
-
-	if !sp.allNeededMetaHdrsFound {
-		process.EmptyChannel(sp.chRcvAllMetaHdrs)
 	}
 
 	sp.mutRequestedMetaHdrsHashes.Unlock()

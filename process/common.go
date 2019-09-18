@@ -12,9 +12,15 @@ import (
 )
 
 // EmptyChannel empties the given channel
-func EmptyChannel(ch chan bool) {
-	for len(ch) > 0 {
-		<-ch
+func EmptyChannel(ch chan bool) int {
+	readsCnt := 0
+	for {
+		select {
+		case <-ch:
+			readsCnt++
+		default:
+			return readsCnt
+		}
 	}
 }
 

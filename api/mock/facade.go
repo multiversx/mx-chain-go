@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
@@ -28,6 +29,7 @@ type Facade struct {
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	StatusMetricsHandler                           func() external.StatusMetricsHandler
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -128,6 +130,11 @@ func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, val
 
 func (f *Facade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
 	return f.GetDataValueHandler(address, funcName, argsBuff...)
+}
+
+// StatusMetrics is the mock implementation for the StatusMetrics
+func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
+	return f.StatusMetricsHandler()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
