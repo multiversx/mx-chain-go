@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -42,7 +43,7 @@ func TestDeployAgarioContract(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+	destinationAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -76,7 +77,8 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+
+	scAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
@@ -134,7 +136,8 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+
+	scAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
@@ -218,7 +221,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+
+	scAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	senderNonce++
 
@@ -328,6 +332,40 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	assert.Equal(t, computedBalance, balanceOfSC)
 }
 
+func TestAgarioInvalidCodeShouldNotGenerateAccount(t *testing.T) {
+	scCode := []byte("wrong smart contract code")
+
+	senderAddressBytes := []byte("12345678901234567890123456789012")
+	senderNonce := uint64(11)
+	senderBalance := big.NewInt(100000000)
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(1000000)
+
+	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	assert.Equal(t, 0, accnts.JournalLen())
+
+	tx := &transaction.Transaction{
+		Nonce:    senderNonce,
+		Value:    big.NewInt(0),
+		SndAddr:  senderAddressBytes,
+		RcvAddr:  vm.CreateEmptyAddress().Bytes(),
+		Data:     string(scCode) + "@" + hex.EncodeToString(factory.IELEVirtualMachine),
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+
+	// tx is not processed due to the invalid sc code
+	err := txProc.ProcessTransaction(tx, round)
+	assert.NotNil(t, err)
+
+	scAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
+
+	ah, err := accnts.GetExistingAccount(state.NewAddress(scAddressBytes))
+	assert.Nil(t, ah)
+	assert.Equal(t, state.ErrAccNotFound, err)
+}
+
 func BenchmarkAgarioJoinGame(b *testing.B) {
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(b, err)
@@ -352,7 +390,8 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+
+	scAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	defaultUserNonce := uint64(10)
 	defaultUserBalance := big.NewInt(10000000000)

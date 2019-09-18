@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"math/big"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -20,7 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
 )
@@ -288,4 +290,35 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 	shardAccnt, _ := accnt.(*state.Account)
 
 	return shardAccnt.Balance
+}
+
+func CreateScAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+	base := hashFromAddressAndNonce(creatorAddress, creatorNonce)
+	prefixMask := createPrefixMask(vmType)
+	suffixMask := createSuffixMask(creatorAddress)
+
+	copy(base[:hooks.NumInitCharactersForScAddress], prefixMask)
+	copy(base[len(base)-hooks.VMTypeLen:], suffixMask)
+
+	return base, nil
+}
+
+func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {
+	buffNonce := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
+	adrAndNonce := append(creatorAddress, buffNonce...)
+	scAddress := keccak.Keccak{}.Compute(string(adrAndNonce))
+
+	return scAddress
+}
+
+func createPrefixMask(vmType []byte) []byte {
+	prefixMask := make([]byte, hooks.NumInitCharactersForScAddress-hooks.VMTypeLen)
+	prefixMask = append(prefixMask, vmType...)
+
+	return prefixMask
+}
+
+func createSuffixMask(creatorAddress []byte) []byte {
+	return creatorAddress[len(creatorAddress)-hooks.VMTypeLen:]
 }

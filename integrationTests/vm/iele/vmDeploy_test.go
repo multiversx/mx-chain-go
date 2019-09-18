@@ -50,7 +50,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		expectedBalance)
-	destinationAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+	destinationAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	vm.TestDeployedContractContents(
 		t,
@@ -102,7 +102,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderNonce+1,
 		//the transfer should get back to the sender as the tx failed
 		expectedBalance)
-	destinationAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+	destinationAddressBytes, _ := vm.CreateScAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	assert.False(t, vm.AccountExists(accnts, destinationAddressBytes))
 }
