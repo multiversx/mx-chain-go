@@ -812,3 +812,35 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaGood(t *testing.T) {
 
 	assert.Equal(t, highestNonce, base.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
 }
+
+func TestBaseProcessor_RemoveLastNotarizedShouldNotDeleteTheLastRecord(t *testing.T) {
+	t.Parallel()
+
+	nrShards := uint32(5)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(nrShards)
+	base := blproc.NewBaseProcessor(shardCoordinator)
+	hasher := mock.HasherMock{}
+	base.SetHasher(hasher)
+	marshalizer := &mock.MarshalizerMock{}
+	base.SetMarshalizer(marshalizer)
+	genesisBlcks := createGenesisBlocks(shardCoordinator)
+	_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
+
+	for i := uint32(0); i < nrShards; i++ {
+		base.AddLastNotarizedHdr(i, &block.Header{Nonce: 1})
+	}
+
+	base.RemoveLastNotarized()
+
+	for i := uint32(0); i < nrShards; i++ {
+		hdr := base.LastNotarizedHdrForShard(i)
+		assert.Equal(t, genesisBlcks[i], hdr)
+	}
+
+	base.RemoveLastNotarized()
+
+	for i := uint32(0); i < nrShards; i++ {
+		hdr := base.LastNotarizedHdrForShard(i)
+		assert.Equal(t, genesisBlcks[i], hdr)
+	}
+}
