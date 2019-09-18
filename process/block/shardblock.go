@@ -684,9 +684,9 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	log.Info("shardBlock with nonce %d is the highest notarized by metachain for shard %d\n",
+	log.Info(fmt.Sprintf("shardBlock with nonce %d is the highest block notarized by metachain for shard id %d\n",
 		sp.forkDetector.GetHighestFinalBlockNonce(),
-		sp.shardCoordinator.SelfId())
+		sp.shardCoordinator.SelfId()))
 
 	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
