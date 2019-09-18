@@ -71,6 +71,9 @@ func (sh *SpecialAddressHandlerMock) ElrondCommunityAddress() []byte {
 
 func (sh *SpecialAddressHandlerMock) LeaderAddress() []byte {
 	if sh.LeaderAddressCalled == nil {
+		if sh.shardConsensusData != nil && len(sh.shardConsensusData.Addresses) > 0 {
+			return []byte(sh.shardConsensusData.Addresses[0])
+		}
 		return []byte("leader0000000000000000000000000000")
 	}
 
