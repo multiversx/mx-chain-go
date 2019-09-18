@@ -73,6 +73,9 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		}
 	}
 
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+
 	fmt.Println("Generating transactions...")
 	integrationTests.GenerateAndDisseminateTxs(
 		proposerNode,
@@ -84,9 +87,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
-
-	fmt.Println("Minting sender addresses...")
-	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
 
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
@@ -178,8 +179,7 @@ func DoConsensusSigningOnBlock(
 	// clear signature, as we need to compute it below
 	blockHeader.SetSignature(nil)
 	blockHeader.SetPubKeysBitmap(nil)
-	blockHeaderBytes, _ := TestMarshalizer.Marshal(blockHeader)
-	blockHeaderHash := TestHasher.Compute(string(blockHeaderBytes))
+	blockHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, blockHeader)
 
 	var msig crypto.MultiSigner
 	msigProposer, _ := consensusNodes[0].MultiSigner.Create(pubKeys, 0)
@@ -257,8 +257,7 @@ func VerifyNodesHaveHeaders(
 
 	// all nodes in metachain have the block headers in pool as interceptor validates them
 	for shHeader, header := range headers {
-		headerBytes, _ := TestMarshalizer.Marshal(header)
-		headerHash := TestHasher.Compute(string(headerBytes))
+		headerHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, header)
 
 		for _, metaNode := range nodesMap[sharding.MetachainShardId] {
 			if shHeader == sharding.MetachainShardId {

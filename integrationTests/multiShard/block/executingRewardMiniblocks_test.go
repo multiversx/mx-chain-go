@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExecuteBlocksWithOnlyRewards(t *testing.T) {
+func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -57,45 +57,23 @@ func TestExecuteBlocksWithOnlyRewards(t *testing.T) {
 		}
 	}()
 
-	randomness := generateInitialRandomness(uint32(nbShards))
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	valToTransfer := big.NewInt(100)
+	nbTxsPerShard := uint32(100)
+	mintValue := big.NewInt(1000000)
+
+	generateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
+
 	round := uint64(1)
 	nonce := uint64(1)
 	nbBlocksProduced := 7
-	nbTxsPerShard := 100
-	mintValue := big.NewInt(1000000)
 
+	randomness := generateInitialRandomness(uint32(nbShards))
 	var headers map[uint32]data.HeaderHandler
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForAddress := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
-
-	rewardValue := 1000
-	gasPrice := uint64(10)
-	gasLimit := uint64(100)
-	feePerTxForLeader := gasPrice * gasLimit / 2
-	valToTransfer := big.NewInt(100)
-
-	sendersPrivateKeys := integrationTests.CreateAndSendIntraShardTransactions(
-		nodesMap,
-		nbTxsPerShard,
-		gasPrice,
-		gasLimit,
-		valToTransfer,
-	)
-
-	for shardId, nodes := range nodesMap {
-		if shardId == sharding.MetachainShardId {
-			continue
-		}
-
-		fmt.Println("Minting sender addresses...")
-		integrationTests.CreateMintingForSenders(
-			nodes,
-			shardId,
-			sendersPrivateKeys[shardId],
-			mintValue,
-		)
-	}
 
 	for i := 0; i < nbBlocksProduced; i++ {
 		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
@@ -103,11 +81,11 @@ func TestExecuteBlocksWithOnlyRewards(t *testing.T) {
 		for shardId, consensusGroup := range consensusNodes {
 			addrRewards := consensusGroup[0].SpecialAddressHandler.ConsensusRewardAddresses()
 			updateExpectedRewards(mapRewardsForAddress, addrRewards)
-			nbTxs := transactionsFromHeaderInShard(t, headers, shardId)
+			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
 
 			// without metachain nodes for now
 			if len(addrRewards) > 0 {
-				updateNbTransactionsProposed(t, nbTxsForLeaderAddress, addrRewards[0], nbTxs)
+				updateNumberTransactionsProposed(t, nbTxsForLeaderAddress, addrRewards[0], nbTxs)
 			}
 		}
 
@@ -120,20 +98,47 @@ func TestExecuteBlocksWithOnlyRewards(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	for address, nbRewards := range mapRewardsForAddress {
-		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(address))
-		shard := nodesMap[0][0].ShardCoordinator.ComputeId(addrContainer)
+	verifyRewards(t, nodesMap, mapRewardsForAddress, nbTxsForLeaderAddress, gasPrice, gasLimit)
+}
 
-		for _, shardNode := range nodesMap[shard] {
-			acc, err := shardNode.AccntState.GetExistingAccount(addrContainer)
-			assert.Nil(t, err)
+func generateIntraShardTransactions(
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+	nbTxsPerShard uint32,
+	mintValue *big.Int,
+	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
+) {
+	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
+	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
 
-			nbProposedTxs := nbTxsForLeaderAddress[address]
-			expectedBalance := int64(nbRewards)*int64(rewardValue) + int64(nbProposedTxs)*int64(feePerTxForLeader)
-			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
-			assert.Equal(t, big.NewInt(expectedBalance), acc.(*state.Account).Balance)
+	for shardId, nodes := range nodesMap {
+		if shardId == sharding.MetachainShardId {
+			continue
 		}
+
+		sendersPrivateKeys[shardId], receiversPublicKeys[shardId] = integrationTests.CreateSendersAndReceiversInShard(
+			nodes[0],
+			nbTxsPerShard,
+		)
+
+		fmt.Println("Minting sender addresses...")
+		integrationTests.CreateMintingForSenders(
+			nodes,
+			shardId,
+			sendersPrivateKeys[shardId],
+			mintValue,
+		)
 	}
+
+	integrationTests.CreateAndSendTransactions(
+		nodesMap,
+		sendersPrivateKeys,
+		receiversPublicKeys,
+		gasPrice,
+		gasLimit,
+		valToTransfer,
+	)
 }
 
 func getBlockProposersIndexes(
@@ -145,7 +150,7 @@ func getBlockProposersIndexes(
 
 	for sh, testNodeList := range nodesMap {
 		for k, testNode := range testNodeList {
-			if reflect.DeepEqual(consensusMap[sh][0], testNode) {
+			if consensusMap[sh][0] == testNode {
 				indexProposer[sh] = k
 			}
 		}
@@ -166,7 +171,7 @@ func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
 	return randomness
 }
 
-func transactionsFromHeaderInShard(t *testing.T, headers map[uint32]data.HeaderHandler, shardId uint32) uint32 {
+func getTransactionsFromHeaderInShard(t *testing.T, headers map[uint32]data.HeaderHandler, shardId uint32) uint32 {
 	if shardId == sharding.MetachainShardId {
 		return 0
 	}
@@ -196,16 +201,12 @@ func updateExpectedRewards(rewardsForAddress map[string]uint32, addresses []stri
 		if addresses[i] == "" {
 			continue
 		}
-		currentRewards, ok := rewardsForAddress[addresses[i]]
-		if !ok {
-			currentRewards = 0
-		}
 
-		rewardsForAddress[addresses[i]] = currentRewards + 1
+		rewardsForAddress[addresses[i]]++
 	}
 }
 
-func updateNbTransactionsProposed(
+func updateNumberTransactionsProposed(
 	t *testing.T,
 	transactionsForLeader map[string]uint32,
 	addressProposer string,
@@ -215,10 +216,34 @@ func updateNbTransactionsProposed(
 		assert.Error(t, errors.New("invalid address"))
 	}
 
-	proposedTransactions, ok := transactionsForLeader[addressProposer]
-	if !ok {
-		proposedTransactions = 0
-	}
+	transactionsForLeader[addressProposer] += nbTransactions
+}
 
-	transactionsForLeader[addressProposer] = proposedTransactions + nbTransactions
+func verifyRewards(
+	t *testing.T,
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+	mapRewardsForAddress map[string]uint32,
+	nbTxsForLeaderAddress map[string]uint32,
+	gasPrice uint64,
+	gasLimit uint64,
+) {
+
+	// TODO: rewards and fee percentage should be read from protocol config
+	rewardValue := 1000
+	feePerTxForLeader := gasPrice * gasLimit / 2
+
+	for address, nbRewards := range mapRewardsForAddress {
+		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(address))
+		shard := nodesMap[0][0].ShardCoordinator.ComputeId(addrContainer)
+
+		for _, shardNode := range nodesMap[shard] {
+			acc, err := shardNode.AccntState.GetExistingAccount(addrContainer)
+			assert.Nil(t, err)
+
+			nbProposedTxs := nbTxsForLeaderAddress[address]
+			expectedBalance := int64(nbRewards)*int64(rewardValue) + int64(nbProposedTxs)*int64(feePerTxForLeader)
+			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
+			assert.Equal(t, big.NewInt(expectedBalance), acc.(*state.Account).Balance)
+		}
+	}
 }

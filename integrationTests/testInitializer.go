@@ -845,38 +845,44 @@ func GenerateSkAndPkInShard(
 	return sk, pk, keyGen
 }
 
-// CreateAndSendIntraShardTransactions Creates and sends intra shard transactions, returning the senders private keys
-func CreateAndSendIntraShardTransactions(
+// CreateSendersAndReceiversInShard creates given number of sender private key and receiver public key pairs,
+// with account in same shard as given node
+func CreateSendersAndReceiversInShard(
+	nodeInShard *TestProcessorNode,
+	nbSenderReceiverPairs uint32,
+) ([]crypto.PrivateKey, []crypto.PublicKey) {
+	shardId := nodeInShard.ShardCoordinator.SelfId()
+	receiversPublicKeys := make([]crypto.PublicKey, nbSenderReceiverPairs)
+	sendersPrivateKeys := make([]crypto.PrivateKey, nbSenderReceiverPairs)
+
+	for i := uint32(0); i < nbSenderReceiverPairs; i++ {
+		sendersPrivateKeys[i], _, _ = GenerateSkAndPkInShard(nodeInShard.ShardCoordinator, shardId)
+		_, receiversPublicKeys[i], _ = GenerateSkAndPkInShard(nodeInShard.ShardCoordinator, shardId)
+	}
+
+	return sendersPrivateKeys, receiversPublicKeys
+}
+
+// CreateAndSendTransactions creates and sends transactions between given senders and receivers.
+func CreateAndSendTransactions(
 	nodes map[uint32][]*TestProcessorNode,
-	nbTxsPerShard int,
+	sendersPrivKeysMap map[uint32][]crypto.PrivateKey,
+	receiversPubKeysMap map[uint32][]crypto.PublicKey,
 	gasPricePerTx uint64,
 	gasLimitPerTx uint64,
 	valueToTransfer *big.Int,
-) map[uint32][]crypto.PrivateKey {
-	sendersPrivKeysMap := make(map[uint32][]crypto.PrivateKey)
-	receiversPubKeysMap := make(map[uint32][]crypto.PublicKey)
-
+) {
 	for shardId := range nodes {
 		if shardId == sharding.MetachainShardId {
 			continue
 		}
 
-		nodeInShard := nodes[0][0]
-		shardId := nodeInShard.ShardCoordinator.SelfId()
-		receiversPublicKeys := make([]crypto.PublicKey, nbTxsPerShard)
-		sendersPrivateKeys := make([]crypto.PrivateKey, nbTxsPerShard)
-
-		for i := 0; i < nbTxsPerShard; i++ {
-			sendersPrivateKeys[i], _, _ = GenerateSkAndPkInShard(nodeInShard.ShardCoordinator, shardId)
-			_, receiversPublicKeys[i], _ = GenerateSkAndPkInShard(nodeInShard.ShardCoordinator, shardId)
-		}
-		sendersPrivKeysMap[shardId] = sendersPrivateKeys
-		receiversPubKeysMap[shardId] = receiversPublicKeys
+		nodeInShard := nodes[shardId][0]
 
 		fmt.Println("Generating transactions...")
 		GenerateAndDisseminateTxs(
 			nodeInShard,
-			sendersPrivateKeys,
+			sendersPrivKeysMap[shardId],
 			receiversPubKeysMap,
 			valueToTransfer,
 			gasPricePerTx,
@@ -886,8 +892,6 @@ func CreateAndSendIntraShardTransactions(
 
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
-
-	return sendersPrivKeysMap
 }
 
 // CreateMintingForSenders creates account with balances for every node in a given shard
