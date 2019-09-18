@@ -1688,6 +1688,13 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 		return &hdr1
 	}
 
+	finalHeaders := []data.HeaderHandler{
+		&hdr2,
+	}
+	finalHeadersHashes := [][]byte{
+		hash2,
+	}
+
 	pools := createMockPools()
 	pools.HeadersCalled = func() storage.Cacher {
 		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
@@ -1697,7 +1704,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 	marshalizer := &mock.MarshalizerMock{}
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
-	forkDetector, _ := sync.NewBasicForkDetector(rounder)
+	forkDetector, _ := sync.NewShardForkDetector(rounder)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
@@ -1718,7 +1725,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
-	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHNotarized, finalHeaders, finalHeadersHashes)
 
 	shouldSync := bs.ShouldSync()
 	assert.True(t, shouldSync)
@@ -1749,6 +1756,13 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 		return &hdr2
 	}
 
+	finalHeaders := []data.HeaderHandler{
+		&hdr2,
+	}
+	finalHeadersHashes := [][]byte{
+		hash2,
+	}
+
 	pools := createMockPools()
 	pools.HeadersCalled = func() storage.Cacher {
 		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
@@ -1758,7 +1772,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	marshalizer := &mock.MarshalizerMock{}
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
-	forkDetector, _ := sync.NewBasicForkDetector(rounder)
+	forkDetector, _ := sync.NewShardForkDetector(rounder)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
@@ -1779,7 +1793,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
-	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHReceived, nil, nil)
+	_ = forkDetector.AddHeader(&hdr2, hash2, process.BHNotarized, finalHeaders, finalHeadersHashes)
 
 	shouldSync := bs.ShouldSync()
 	assert.True(t, shouldSync)
@@ -1788,7 +1802,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	if shouldSync && bs.IsForkDetected() {
 		forkDetector.RemoveHeaders(hdr1.GetNonce(), hash1)
 		bs.ReceivedHeaders(hash2)
-		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, nil, nil)
+		_ = forkDetector.AddHeader(&hdr2, hash2, process.BHProcessed, finalHeaders, finalHeadersHashes)
 	}
 
 	shouldSync = bs.ShouldSync()

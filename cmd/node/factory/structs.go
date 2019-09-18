@@ -465,7 +465,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	forkDetector, err := processSync.NewBasicForkDetector(rounder)
+	forkDetector, err := newForkDetector(rounder, args.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -1352,6 +1352,20 @@ func createInMemoryShardCoordinatorAndAccount(
 	)
 
 	return newShardCoordinator, accounts, nil
+}
+
+func newForkDetector(
+	rounder consensus.Rounder,
+	shardCoordinator sharding.Coordinator,
+) (process.ForkDetector, error) {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return processSync.NewShardForkDetector(rounder)
+	}
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return processSync.NewMetaForkDetector(rounder)
+	}
+
+	return nil, errors.New("could not create fork detector")
 }
 
 func newBlockProcessorAndTracker(

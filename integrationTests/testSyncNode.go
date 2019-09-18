@@ -65,8 +65,6 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
-	tpn.ForkDetector, _ = sync.NewBasicForkDetector(tpn.Rounder)
-
 	tpn.BlockTracker = &mock.BlocksTrackerMock{
 		AddBlockCalled: func(headerHandler data.HeaderHandler) {
 		},
@@ -79,6 +77,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder)
 		tpn.BlockProcessor, err = block.NewMetaProcessor(
 			&mock.ServiceContainerMock{},
 			tpn.AccntState,
@@ -93,6 +92,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			TestUint64Converter,
 		)
 	} else {
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
 		tpn.BlockProcessor, err = block.NewShardProcessor(
 			nil,
 			tpn.ShardDataPool,

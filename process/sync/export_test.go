@@ -31,7 +31,7 @@ func (boot *MetaBootstrap) ForkChoice() error {
 	return boot.forkChoice()
 }
 
-func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
+func (bfd *baseForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
@@ -47,43 +47,43 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
-func (bfd *basicForkDetector) LastCheckpointNonce() uint64 {
+func (bfd *baseForkDetector) LastCheckpointNonce() uint64 {
 	return bfd.lastCheckpoint().nonce
 }
 
-func (bfd *basicForkDetector) LastCheckpointRound() uint64 {
+func (bfd *baseForkDetector) LastCheckpointRound() uint64 {
 	return bfd.lastCheckpoint().round
 }
 
-func (bfd *basicForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
+func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
 	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round})
 }
 
-func (bfd *basicForkDetector) FinalCheckpointNonce() uint64 {
+func (bfd *baseForkDetector) FinalCheckpointNonce() uint64 {
 	return bfd.finalCheckpoint().nonce
 }
 
-func (bfd *basicForkDetector) FinalCheckpointRound() uint64 {
+func (bfd *baseForkDetector) FinalCheckpointRound() uint64 {
 	return bfd.finalCheckpoint().round
 }
 
-func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
-	return bfd.checkBlockValidity(header, state)
+func (bfd *baseForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
+	return bfd.checkBlockBasicValidity(header, state)
 }
 
-func (bfd *basicForkDetector) RemovePastHeaders() {
+func (bfd *baseForkDetector) RemovePastHeaders() {
 	bfd.removePastHeaders()
 }
 
-func (bfd *basicForkDetector) RemoveInvalidHeaders() {
+func (bfd *baseForkDetector) RemoveInvalidHeaders() {
 	bfd.removeInvalidHeaders()
 }
 
-func (bfd *basicForkDetector) ComputeProbableHighestNonce() uint64 {
+func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
-func (bfd *basicForkDetector) GetProbableHighestNonce(headersInfo []*headerInfo) uint64 {
+func (bfd *baseForkDetector) GetProbableHighestNonce(headersInfo []*headerInfo) uint64 {
 	return bfd.getProbableHighestNonce(headersInfo)
 }
 
