@@ -2,6 +2,7 @@ package poolscleaner
 
 import (
 	"sync/atomic"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -17,6 +18,7 @@ type TxPoolsCleaner struct {
 	dataPool         dataRetriever.PoolsHolder
 	addrConverter    state.AddressConverter
 	numRemovedTxs    uint64
+	canDoClean       chan struct{}
 }
 
 // NewTxsPoolsCleaner will return a new transaction pools cleaner
@@ -43,22 +45,42 @@ func NewTxsPoolsCleaner(
 		return nil, process.ErrNilAddressConverter
 	}
 
+	canDoClean := make(chan struct{}, 1)
+
 	return &TxPoolsCleaner{
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
 		dataPool:         dataPool,
 		addrConverter:    addrConverter,
 		numRemovedTxs:    0,
+		canDoClean:       canDoClean,
 	}, nil
 }
 
 // Clean will check if in pools exits transactions with nonce low that transaction sender account nonce
 // and if tx have low nonce will be removed from pools
-func (tpc *TxPoolsCleaner) Clean(haveTime func() bool) error {
-	if haveTime == nil {
-		return process.ErrNilHaveTimeHandler
+func (tpc *TxPoolsCleaner) Clean(duration time.Duration) (bool, error) {
+	if duration == 0 {
+		return false, process.ErrZeroCleaningTime
 	}
 
+	select {
+	case tpc.canDoClean <- struct{}{}:
+		startTime := time.Now()
+		haveTime := func() bool {
+			return time.Now().Sub(startTime) < duration
+		}
+
+		tpc.cleanPools(haveTime)
+		<-tpc.canDoClean
+
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
+func (tpc *TxPoolsCleaner) cleanPools(haveTime func() bool) {
 	shardId := tpc.shardCoordinator.SelfId()
 	transactions := tpc.dataPool.Transactions()
 	numOfShards := tpc.shardCoordinator.NumberOfShards()
@@ -69,7 +91,7 @@ func (tpc *TxPoolsCleaner) Clean(haveTime func() bool) error {
 
 		for _, key := range txsPool.Keys() {
 			if !haveTime() {
-				return nil
+				return
 			}
 
 			obj, ok := txsPool.Peek(key)
@@ -108,11 +130,17 @@ func (tpc *TxPoolsCleaner) Clean(haveTime func() bool) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 // NumRemovedTxs will return the number of removed txs from pools
 func (tpc *TxPoolsCleaner) NumRemovedTxs() uint64 {
 	return atomic.LoadUint64(&tpc.numRemovedTxs)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tpc *TxPoolsCleaner) IsInterfaceNil() bool {
+	if tpc == nil {
+		return true
+	}
+	return false
 }

@@ -187,7 +187,7 @@ func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 	t.Parallel()
 
-	cleaningTimeNumSeconds := 1.0
+	cleaningTime := time.Second
 	nonce := uint64(1)
 	balance := big.NewInt(1)
 	accounts := getAccAdapter(nonce, balance)
@@ -196,13 +196,9 @@ func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
-	startTime := time.Now()
-	haveTime := func() bool {
-		return time.Now().Sub(startTime).Seconds() < cleaningTimeNumSeconds
-	}
-
-	err := txsPoolsCleaner.Clean(haveTime)
+	itRan, err := txsPoolsCleaner.Clean(cleaningTime)
 	assert.Nil(t, err)
+	assert.Equal(t, true, itRan)
 
 	numRemovedTxs := txsPoolsCleaner.NumRemovedTxs()
 	assert.Equal(t, uint64(1), numRemovedTxs)
@@ -211,7 +207,8 @@ func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 	t.Parallel()
 
-	cleanDurationSeconds := 2.0
+	numRemovedTxsExpected := uint64(3)
+	cleanDuration := 2 * time.Second
 	accounts := &mock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
@@ -222,22 +219,19 @@ func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
-	startTime := time.Now()
-	haveTime := func() bool {
-		return time.Now().Sub(startTime).Seconds() < cleanDurationSeconds
-	}
-
-	err := txsPoolsCleaner.Clean(haveTime)
+	itRan, err := txsPoolsCleaner.Clean(cleanDuration)
 	assert.Nil(t, err)
+	assert.Equal(t, true, itRan)
 
 	numRemovedTxs := txsPoolsCleaner.NumRemovedTxs()
-	assert.Equal(t, uint64(2), numRemovedTxs)
+	assert.Equal(t, numRemovedTxsExpected, numRemovedTxs)
 }
 
 func TestTxPoolsCleaner_CleanLowerAccountNonceShouldRemoveTx(t *testing.T) {
 	t.Parallel()
 
-	cleanDurationSeconds := 2.0
+	numRemovedTxsExpected := uint64(3)
+	cleanDuration := 2 * time.Second
 	nonce := uint64(11)
 	balance := big.NewInt(1)
 	accounts := getAccAdapter(nonce, balance)
@@ -246,16 +240,12 @@ func TestTxPoolsCleaner_CleanLowerAccountNonceShouldRemoveTx(t *testing.T) {
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
-	startTime := time.Now()
-	haveTime := func() bool {
-		return time.Now().Sub(startTime).Seconds() < cleanDurationSeconds
-	}
-
-	err := txsPoolsCleaner.Clean(haveTime)
+	itRan, err := txsPoolsCleaner.Clean(cleanDuration)
 	assert.Nil(t, err)
+	assert.Equal(t, true, itRan)
 
 	numRemovedTxs := txsPoolsCleaner.NumRemovedTxs()
-	assert.Equal(t, uint64(2), numRemovedTxs)
+	assert.Equal(t, numRemovedTxsExpected, numRemovedTxs)
 }
 
 func TestTxPoolsCleaner_CleanNilHaveTimeShouldErr(t *testing.T) {
@@ -269,6 +259,30 @@ func TestTxPoolsCleaner_CleanNilHaveTimeShouldErr(t *testing.T) {
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
-	err := txsPoolsCleaner.Clean(nil)
-	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
+	itRan, err := txsPoolsCleaner.Clean(0)
+	assert.Equal(t, process.ErrZeroCleaningTime, err)
+	assert.Equal(t, false, itRan)
+}
+
+func TestTxPoolsCleaner_CleanWillDoNothingIfIsCalledMultipleTime(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	balance := big.NewInt(1)
+	accounts := getAccAdapter(nonce, balance)
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	tdp := initDataPoolWithFourTransactions()
+	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
+	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
+
+	go func() {
+		_, _ = txsPoolsCleaner.Clean(time.Second)
+	}()
+	time.Sleep(time.Millisecond)
+	go func() {
+		itRan, _ := txsPoolsCleaner.Clean(time.Second)
+		assert.Equal(t, false, itRan)
+	}()
+
+	time.Sleep(2 * time.Second)
 }

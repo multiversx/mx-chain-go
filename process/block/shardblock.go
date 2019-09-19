@@ -14,13 +14,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/poolscleaner"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-const cleaningTime = 1
+const cleaningTime = time.Second
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -95,14 +94,18 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
+	if arguments.TxsPoolsCleaner == nil || arguments.TxsPoolsCleaner.IsInterfaceNil() {
+		return nil, process.ErrNilTxsPoolsCleaner
+	}
+
 	sp := shardProcessor{
-		core:          arguments.Core,
-		baseProcessor: base,
-		dataPool:      arguments.DataPool,
-		blocksTracker: arguments.BlocksTracker,
-		txCoordinator: arguments.TxCoordinator,
-		txCounter:     NewTransactionCounter(),
-		txsPoolsCleaner: poolscleaner.NewNilPoolsCleaner(),
+		core:            arguments.Core,
+		baseProcessor:   base,
+		dataPool:        arguments.DataPool,
+		blocksTracker:   arguments.BlocksTracker,
+		txCoordinator:   arguments.TxCoordinator,
+		txCounter:       NewTransactionCounter(),
+		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
@@ -716,16 +719,9 @@ func (sp *shardProcessor) CommitBlock(
 
 func (sp *shardProcessor) cleanTxsPools() {
 	go func() {
-		startTime := time.Now()
-		haveTime := func() bool {
-			return time.Now().Sub(startTime).Seconds() < cleaningTime
-		}
-
-		errW := sp.txsPoolsCleaner.Clean(haveTime)
-		log.LogIfError(errW)
-
-		numRemovedTxs := sp.txsPoolsCleaner.NumRemovedTxs()
-		log.Info(fmt.Sprintf("Total txs removed from pools with clean mechanism  %d", numRemovedTxs))
+		_, err := sp.txsPoolsCleaner.Clean(cleaningTime)
+		log.LogIfError(err)
+		log.Info(fmt.Sprintf("Total txs removed from pools cleaner %d", sp.txsPoolsCleaner.NumRemovedTxs()))
 	}()
 }
 

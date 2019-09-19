@@ -361,6 +361,7 @@ type TxValidatorHandler interface {
 
 // PoolsCleaner define the functionality that is needed for a pools cleaner
 type PoolsCleaner interface {
-	Clean(haveTime func() bool) error
+	Clean(duration time.Duration) (bool, error)
 	NumRemovedTxs() uint64
+	IsInterfaceNil() bool
 }

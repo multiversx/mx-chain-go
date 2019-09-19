@@ -1504,6 +1504,16 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
+	poolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(
+		state.AccountsAdapter,
+		shardCoordinator,
+		data.Datapool,
+		state.AddressConverter,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:         state.AccountsAdapter,
 		ForkDetector:     forkDetector,
@@ -1521,6 +1531,7 @@ func newShardBlockProcessorAndTracker(
 		DataPool:         data.Datapool,
 		BlocksTracker:    blockTracker,
 		TxCoordinator:    txCoordinator,
+		TxsPoolsCleaner:  poolsCleaner,
 	}
 
 	blockProcessor, err := block.NewShardProcessor(arguments)
@@ -1529,21 +1540,6 @@ func newShardBlockProcessorAndTracker(
 	}
 
 	err = blockProcessor.SetAppStatusHandler(core.StatusHandler)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	poolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(
-		state.AccountsAdapter,
-		shardCoordinator,
-		data.Datapool,
-		state.AddressConverter,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = blockProcessor.SetPoolsCleaner(poolsCleaner)
 	if err != nil {
 		return nil, nil, err
 	}
