@@ -618,7 +618,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 				return err
 			}
 
-			fmt.Printf("Created SC addess %s \n", hex.EncodeToString(outAcc.Address))
+			fmt.Printf("Created SC address %s \n", hex.EncodeToString(outAcc.Address))
 		}
 
 		// change nonce only if there is a change
