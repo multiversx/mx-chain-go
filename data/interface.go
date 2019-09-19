@@ -110,6 +110,5 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Add([]byte, [][]byte) error
 	Evict([]byte) ([][]byte, error)
-	Rollback([]byte) error
 	IsInterfaceNil() bool
 }

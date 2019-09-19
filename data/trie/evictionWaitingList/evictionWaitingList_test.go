@@ -16,12 +16,14 @@ func getDefaultParameters() (int, storage.Persister, marshal.Marshalizer) {
 }
 
 func TestNewEvictionWaitingList(t *testing.T) {
+	t.Parallel()
 	ec, err := NewEvictionWaitingList(getDefaultParameters())
 	assert.Nil(t, err)
 	assert.NotNil(t, ec)
 }
 
 func TestNewEvictionWaitingList_InvalidCacheSize(t *testing.T) {
+	t.Parallel()
 	_, db, marsh := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(0, db, marsh)
 	assert.Nil(t, ec)
@@ -29,6 +31,7 @@ func TestNewEvictionWaitingList_InvalidCacheSize(t *testing.T) {
 }
 
 func TestNewEvictionWaitingList_NilDatabase(t *testing.T) {
+	t.Parallel()
 	size, _, marsh := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(size, nil, marsh)
 	assert.Nil(t, ec)
@@ -36,6 +39,7 @@ func TestNewEvictionWaitingList_NilDatabase(t *testing.T) {
 }
 
 func TestNewEvictionWaitingList_NilDMarshalizer(t *testing.T) {
+	t.Parallel()
 	size, db, _ := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(size, db, nil)
 	assert.Nil(t, ec)
@@ -43,6 +47,7 @@ func TestNewEvictionWaitingList_NilDMarshalizer(t *testing.T) {
 }
 
 func TestEvictionWaitingList_Add(t *testing.T) {
+	t.Parallel()
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
 	hashes := [][]byte{
@@ -51,7 +56,7 @@ func TestEvictionWaitingList_Add(t *testing.T) {
 	}
 	root := []byte("root")
 
-	err := ec.Add(root, hashes)
+	err := ec.Put(root, hashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(ec.cache))
@@ -59,6 +64,8 @@ func TestEvictionWaitingList_Add(t *testing.T) {
 }
 
 func TestEvictionWaitingList_AddMultiple(t *testing.T) {
+	t.Parallel()
+
 	cacheSize := 2
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
@@ -75,7 +82,7 @@ func TestEvictionWaitingList_AddMultiple(t *testing.T) {
 	}
 
 	for i := range roots {
-		err := ec.Add(roots[i], hashes)
+		err := ec.Put(roots[i], hashes)
 		assert.Nil(t, err)
 	}
 
@@ -95,6 +102,7 @@ func TestEvictionWaitingList_AddMultiple(t *testing.T) {
 }
 
 func TestEvictionWaitingList_Evict(t *testing.T) {
+	t.Parallel()
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
 	expectedHashes := [][]byte{
@@ -103,7 +111,7 @@ func TestEvictionWaitingList_Evict(t *testing.T) {
 	}
 	root1 := []byte("root1")
 
-	_ = ec.Add(root1, expectedHashes)
+	_ = ec.Put(root1, expectedHashes)
 
 	hashes, err := ec.Evict([]byte("root1"))
 	assert.Nil(t, err)
@@ -112,6 +120,8 @@ func TestEvictionWaitingList_Evict(t *testing.T) {
 }
 
 func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
+	t.Parallel()
+
 	cacheSize := 2
 	_, db, marsh := getDefaultParameters()
 	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
@@ -127,7 +137,7 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	}
 
 	for i := range roots {
-		_ = ec.Add(roots[i], hashes)
+		_ = ec.Put(roots[i], hashes)
 	}
 
 	val, _ := ec.db.Get(roots[2])
@@ -136,58 +146,6 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	vals, err := ec.Evict(roots[2])
 	assert.Nil(t, err)
 	assert.Equal(t, hashes, vals)
-
-	val, _ = ec.db.Get(roots[2])
-	assert.Nil(t, val)
-}
-
-func TestEvictionWaitingList_Rollback(t *testing.T) {
-	ec, _ := NewEvictionWaitingList(getDefaultParameters())
-
-	h1 := [][]byte{
-		[]byte("hash1"),
-		[]byte("hash2"),
-	}
-	h2 := [][]byte{
-		[]byte("hash3"),
-		[]byte("hash4"),
-	}
-	root1 := []byte("root1")
-	root2 := []byte("root2")
-
-	_ = ec.Add(root1, h1)
-	_ = ec.Add(root2, h2)
-
-	err := ec.Rollback(root1)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(ec.cache))
-	assert.Equal(t, h2, ec.cache[string(root2)])
-}
-
-func TestEvictionWaitingList_RollbackFromDB(t *testing.T) {
-	cacheSize := 2
-	_, db, marsh := getDefaultParameters()
-	ec, _ := NewEvictionWaitingList(cacheSize, db, marsh)
-
-	hashes := [][]byte{
-		[]byte("hash0"),
-		[]byte("hash1"),
-	}
-	roots := [][]byte{
-		[]byte("root0"),
-		[]byte("root1"),
-		[]byte("root2"),
-	}
-
-	for i := range roots {
-		_ = ec.Add(roots[i], hashes)
-	}
-
-	val, _ := ec.db.Get(roots[2])
-	assert.NotNil(t, val)
-
-	err := ec.Rollback(roots[2])
-	assert.Nil(t, err)
 
 	val, _ = ec.db.Get(roots[2])
 	assert.Nil(t, val)

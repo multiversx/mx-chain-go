@@ -36,8 +36,8 @@ func NewEvictionWaitingList(size int, db storage.Persister, marshalizer marshal.
 	}, nil
 }
 
-// Add adds the given hashes to the eviction waiting list, in the position given by the root hash
-func (ec *evictionWaitingList) Add(rootHash []byte, hashes [][]byte) error {
+// Put stores the given hashes in the eviction waiting list, in the position given by the root hash
+func (ec *evictionWaitingList) Put(rootHash []byte, hashes [][]byte) error {
 	if len(ec.cache) < ec.cacheSize {
 		ec.cache[string(rootHash)] = hashes
 		return nil
@@ -56,7 +56,7 @@ func (ec *evictionWaitingList) Add(rootHash []byte, hashes [][]byte) error {
 	return nil
 }
 
-// Evict returns all the hashes from the position given by the root hash
+// Evict returns and removes from the waiting list all the hashes from the position given by the root hash
 func (ec *evictionWaitingList) Evict(rootHash []byte) ([][]byte, error) {
 	hashes := ec.cache[string(rootHash)]
 	if hashes != nil {
@@ -80,22 +80,6 @@ func (ec *evictionWaitingList) Evict(rootHash []byte) ([][]byte, error) {
 	}
 
 	return hashes, nil
-}
-
-// Rollback clears the hashes from the position given by the root hash
-func (ec *evictionWaitingList) Rollback(rootHash []byte) error {
-	hashes := ec.cache[string(rootHash)]
-	if hashes != nil {
-		delete(ec.cache, string(rootHash))
-		return nil
-	}
-
-	err := ec.db.Remove(rootHash)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
