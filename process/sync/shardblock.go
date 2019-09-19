@@ -187,7 +187,13 @@ func (boot *ShardBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64
 		highestOwnHdrFromMetaChain = &block.Header{}
 	}
 
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, highestOwnHdrFromMetaChain, highestShardHdrHashFromMeta)
+	ownHdrFromMeta := make([]data.HeaderHandler, 0)
+	ownHdrFromMeta = append(ownHdrFromMeta, highestOwnHdrFromMetaChain)
+
+	ownHdrHashesFromMeta := make([][]byte, 0)
+	ownHdrHashesFromMeta = append(ownHdrHashesFromMeta, highestShardHdrHashFromMeta)
+
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, ownHdrFromMeta, ownHdrHashesFromMeta)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}

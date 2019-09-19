@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"math"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -63,8 +64,8 @@ func (bfd *basicForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
-	finalHeader data.HeaderHandler,
-	finalHeaderHash []byte,
+	finalHeaders []data.HeaderHandler,
+	finalHeadersHashes [][]byte,
 ) error {
 
 	if header == nil || header.IsInterfaceNil() {
@@ -80,19 +81,8 @@ func (bfd *basicForkDetector) AddHeader(
 	}
 
 	if state == process.BHProcessed {
-		// create a check point and remove all the past headers
-		if finalHeader == nil || finalHeader.IsInterfaceNil() {
-			bfd.setFinalCheckpoint(bfd.lastCheckpoint())
-		} else if finalHeader.GetNonce() > bfd.GetHighestFinalBlockNonce() {
-			bfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeader.GetNonce(), round: finalHeader.GetRound()})
-			bfd.append(&headerInfo{
-				nonce: finalHeader.GetNonce(),
-				round: finalHeader.GetRound(),
-				hash:  finalHeaderHash,
-				state: process.BHNotarized,
-			})
-		}
-
+		// add final header(s), add check point and remove all the past checkpoints/headers
+		bfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
 		bfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
 		bfd.removePastOrInvalidRecords()
 	}
@@ -109,6 +99,29 @@ func (bfd *basicForkDetector) AddHeader(
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
 	return nil
+}
+
+func (bfd *basicForkDetector) addFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
+	if finalHeaders == nil {
+		bfd.setFinalCheckpoint(bfd.lastCheckpoint())
+		return
+	}
+
+	for i := 0; i < len(finalHeaders); i++ {
+		isFinalHeaderNonceHigherThanCurrent := finalHeaders[i].GetNonce() > bfd.GetHighestFinalBlockNonce()
+		if isFinalHeaderNonceHigherThanCurrent {
+			if i == 0 {
+				bfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeaders[i].GetNonce(), round: finalHeaders[i].GetRound()})
+			}
+
+			bfd.append(&headerInfo{
+				nonce: finalHeaders[i].GetNonce(),
+				round: finalHeaders[i].GetRound(),
+				hash:  finalHeadersHashes[i],
+				state: process.BHNotarized,
+			})
+		}
+	}
 }
 
 func (bfd *basicForkDetector) removePastOrInvalidRecords() {
@@ -355,13 +368,26 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 				continue
 			}
 			if hdrInfos[i].state == process.BHNotarized {
-				lowestRoundInForkNonce = 0
-				forkHeaderHash = hdrInfos[i].hash
+				if lowestRoundInForkNonce > 0 {
+					lowestRoundInForkNonce = 0
+					forkHeaderHash = hdrInfos[i].hash
+					continue
+				}
+
+				if lowestRoundInForkNonce == 0 && bytes.Compare(hdrInfos[i].hash, forkHeaderHash) < 0 {
+					forkHeaderHash = hdrInfos[i].hash
+				}
+
 				continue
 			}
 
 			if hdrInfos[i].round < lowestRoundInForkNonce {
 				lowestRoundInForkNonce = hdrInfos[i].round
+				forkHeaderHash = hdrInfos[i].hash
+				continue
+			}
+
+			if hdrInfos[i].round == lowestRoundInForkNonce && bytes.Compare(hdrInfos[i].hash, forkHeaderHash) < 0 {
 				forkHeaderHash = hdrInfos[i].hash
 			}
 		}
@@ -371,7 +397,10 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64, []byte) {
 			continue
 		}
 
-		if selfHdrInfo.round <= lowestRoundInForkNonce {
+		shouldSignalFork := selfHdrInfo.round > lowestRoundInForkNonce ||
+			(selfHdrInfo.round == lowestRoundInForkNonce && strings.Compare(string(selfHdrInfo.hash), string(forkHeaderHash)) > 0)
+
+		if !shouldSignalFork {
 			// keep it clean so next time this position will be processed faster
 			delete(bfd.headers, nonce)
 			bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
