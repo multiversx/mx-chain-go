@@ -17,6 +17,7 @@ func getDefaultParameters() (int, storage.Persister, marshal.Marshalizer) {
 
 func TestNewEvictionWaitingList(t *testing.T) {
 	t.Parallel()
+
 	ec, err := NewEvictionWaitingList(getDefaultParameters())
 	assert.Nil(t, err)
 	assert.NotNil(t, ec)
@@ -24,6 +25,7 @@ func TestNewEvictionWaitingList(t *testing.T) {
 
 func TestNewEvictionWaitingList_InvalidCacheSize(t *testing.T) {
 	t.Parallel()
+
 	_, db, marsh := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(0, db, marsh)
 	assert.Nil(t, ec)
@@ -32,6 +34,7 @@ func TestNewEvictionWaitingList_InvalidCacheSize(t *testing.T) {
 
 func TestNewEvictionWaitingList_NilDatabase(t *testing.T) {
 	t.Parallel()
+
 	size, _, marsh := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(size, nil, marsh)
 	assert.Nil(t, ec)
@@ -40,14 +43,16 @@ func TestNewEvictionWaitingList_NilDatabase(t *testing.T) {
 
 func TestNewEvictionWaitingList_NilDMarshalizer(t *testing.T) {
 	t.Parallel()
+
 	size, db, _ := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(size, db, nil)
 	assert.Nil(t, ec)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
 }
 
-func TestEvictionWaitingList_Add(t *testing.T) {
+func TestEvictionWaitingList_Put(t *testing.T) {
 	t.Parallel()
+
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
 	hashes := [][]byte{
@@ -63,7 +68,7 @@ func TestEvictionWaitingList_Add(t *testing.T) {
 	assert.Equal(t, hashes, ec.cache[string(root)])
 }
 
-func TestEvictionWaitingList_AddMultiple(t *testing.T) {
+func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	t.Parallel()
 
 	cacheSize := 2
@@ -103,6 +108,7 @@ func TestEvictionWaitingList_AddMultiple(t *testing.T) {
 
 func TestEvictionWaitingList_Evict(t *testing.T) {
 	t.Parallel()
+
 	ec, _ := NewEvictionWaitingList(getDefaultParameters())
 
 	expectedHashes := [][]byte{
