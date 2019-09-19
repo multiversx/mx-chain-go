@@ -707,7 +707,7 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 func GenerateAndDisseminateTxs(
 	n *TestProcessorNode,
 	senders []crypto.PrivateKey,
-	receiversPrivateKeys map[uint32][]crypto.PrivateKey,
+	receiversPublicKeysMap map[uint32][]crypto.PublicKey,
 	valToTransfer *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
@@ -716,9 +716,9 @@ func GenerateAndDisseminateTxs(
 	for i := 0; i < len(senders); i++ {
 		senderKey := senders[i]
 		incrementalNonce := make([]uint64, len(senders))
-		for _, recvPrivateKeys := range receiversPrivateKeys {
-			receiverKey := recvPrivateKeys[i]
-			tx := generateTransferTx(incrementalNonce[i], senderKey, receiverKey, valToTransfer, gasPrice, gasLimit)
+		for _, shardReceiversPublicKeys := range receiversPublicKeysMap {
+			receiverPubKey := shardReceiversPublicKeys[i]
+			tx := generateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
 			_, _ = n.SendTransaction(tx)
 			incrementalNonce[i]++
 		}
@@ -737,25 +737,26 @@ type txArgs struct {
 
 func generateTransferTx(
 	nonce uint64,
-	sender crypto.PrivateKey,
-	receiver crypto.PrivateKey,
+	senderPrivateKey crypto.PrivateKey,
+	receiverPublicKey crypto.PublicKey,
 	valToTransfer *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
 ) *transaction.Transaction {
 
+	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
 	tx := transaction.Transaction{
 		Nonce:    nonce,
 		Value:    valToTransfer,
-		RcvAddr:  skToPk(receiver),
-		SndAddr:  skToPk(sender),
+		RcvAddr:  receiverPubKeyBytes,
+		SndAddr:  skToPk(senderPrivateKey),
 		Data:     "",
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
 	txBuff, _ := TestMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
-	tx.Signature, _ = signer.Sign(sender, txBuff)
+	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
 	return &tx
 }
@@ -783,6 +784,14 @@ func generateTx(
 func skToPk(sk crypto.PrivateKey) []byte {
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	return pkBuff
+}
+
+// TestPublicKeyHasBalance checks if the account corresponding to the given public key has the expected balance
+func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.PublicKey, expectedBalance *big.Int) {
+	pkBuff, _ := pk.ToByteArray()
+	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+	account, _ := n.AccntState.GetExistingAccount(addr)
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
 
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
@@ -819,6 +828,11 @@ func GenerateSkAndPkInShard(
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 
+	if shardId == sharding.MetachainShardId {
+		// for metachain generate in shard 0
+		shardId = 0
+	}
+
 	for {
 		pkBytes, _ := pk.ToByteArray()
 		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
@@ -829,6 +843,55 @@ func GenerateSkAndPkInShard(
 	}
 
 	return sk, pk, keyGen
+}
+
+// CreateSendersAndReceiversInShard creates given number of sender private key and receiver public key pairs,
+// with account in same shard as given node
+func CreateSendersAndReceiversInShard(
+	nodeInShard *TestProcessorNode,
+	nbSenderReceiverPairs uint32,
+) ([]crypto.PrivateKey, []crypto.PublicKey) {
+	shardId := nodeInShard.ShardCoordinator.SelfId()
+	receiversPublicKeys := make([]crypto.PublicKey, nbSenderReceiverPairs)
+	sendersPrivateKeys := make([]crypto.PrivateKey, nbSenderReceiverPairs)
+
+	for i := uint32(0); i < nbSenderReceiverPairs; i++ {
+		sendersPrivateKeys[i], _, _ = GenerateSkAndPkInShard(nodeInShard.ShardCoordinator, shardId)
+		_, receiversPublicKeys[i], _ = GenerateSkAndPkInShard(nodeInShard.ShardCoordinator, shardId)
+	}
+
+	return sendersPrivateKeys, receiversPublicKeys
+}
+
+// CreateAndSendTransactions creates and sends transactions between given senders and receivers.
+func CreateAndSendTransactions(
+	nodes map[uint32][]*TestProcessorNode,
+	sendersPrivKeysMap map[uint32][]crypto.PrivateKey,
+	receiversPubKeysMap map[uint32][]crypto.PublicKey,
+	gasPricePerTx uint64,
+	gasLimitPerTx uint64,
+	valueToTransfer *big.Int,
+) {
+	for shardId := range nodes {
+		if shardId == sharding.MetachainShardId {
+			continue
+		}
+
+		nodeInShard := nodes[shardId][0]
+
+		fmt.Println("Generating transactions...")
+		GenerateAndDisseminateTxs(
+			nodeInShard,
+			sendersPrivKeysMap[shardId],
+			receiversPubKeysMap,
+			valueToTransfer,
+			gasPricePerTx,
+			gasLimitPerTx,
+		)
+	}
+
+	fmt.Println("Delaying for disseminating transactions...")
+	time.Sleep(time.Second * 5)
 }
 
 // CreateMintingForSenders creates account with balances for every node in a given shard
@@ -966,7 +1029,7 @@ func requestMissingRewardTxs(n *TestProcessorNode, shardResolver uint32, neededD
 }
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
-func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, ) dataRetriever.PoolsHolder {
+func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
 	return CreateTestShardDataPool(&mock.ShardedDataStub{
@@ -1174,13 +1237,18 @@ func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 }
 
 // GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
-func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
+func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) map[uint32][]sharding.Validator {
 	validatorsMap := make(map[uint32][]sharding.Validator)
 
 	for shardId, shardNodesPks := range pubKeysMap {
 		shardValidators := make([]sharding.Validator, 0)
+		shardCoordinator, _ := sharding.NewMultiShardCoordinator(nbShards, shardId)
 		for i := 0; i < len(shardNodesPks); i++ {
-			address := []byte(shardNodesPks[i][:32])
+			_, pk, _ := GenerateSkAndPkInShard(shardCoordinator, shardId)
+			address, err := pk.ToByteArray()
+			if err != nil {
+				return nil
+			}
 			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), address)
 			shardValidators = append(shardValidators, v)
 		}
