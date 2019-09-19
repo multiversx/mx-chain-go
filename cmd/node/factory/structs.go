@@ -1454,6 +1454,7 @@ func newShardBlockProcessorAndTracker(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
 		MaxTxsToRequest,
 	)
@@ -1554,7 +1555,10 @@ func newMetaBlockProcessorAndTracker(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
-	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
+	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
+		resolversFinder,
+		factory.ShardHeadersForMetachainTopic,
+		factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, nil, err
 	}

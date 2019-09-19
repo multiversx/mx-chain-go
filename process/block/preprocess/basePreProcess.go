@@ -71,19 +71,19 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 	return nil
 }
 
-func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBlockPool storage.Cacher) ([]byte, error) {
-	miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, miniBlock)
-	if err != nil {
-		return nil, err
-	}
+func (bpp *basePreProcess) restoreMiniBlock(
+	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
+	miniBlockPool storage.Cacher,
+) []byte {
 
-	var restoredHash []byte
 	miniBlockPool.Put(miniBlockHash, miniBlock)
+	//TODO: Analyze what is the scope of this check and return besides tests. Refactor this method
 	if miniBlock.SenderShardID != bpp.shardCoordinator.SelfId() {
-		restoredHash = miniBlockHash
+		return miniBlockHash
 	}
 
-	return restoredHash, nil
+	return nil
 }
 
 func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {

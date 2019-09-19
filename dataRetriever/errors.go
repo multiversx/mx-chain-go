@@ -179,8 +179,11 @@ var ErrEmptyScrRequestTopic = errors.New("empty smart contract result request to
 // ErrEmptyMiniBlockRequestTopic signals that an empty miniblock topic has been provided
 var ErrEmptyMiniBlockRequestTopic = errors.New("empty miniblock request topic")
 
-// ErrEmptyHeaderRequestTopic signals that an empty transaction topic has been provided
-var ErrEmptyHeaderRequestTopic = errors.New("empty header request topic")
+// ErrEmptyShardHeaderRequestTopic signals that an empty shard header topic has been provided
+var ErrEmptyShardHeaderRequestTopic = errors.New("empty shard header request topic")
+
+// ErrEmptyMetaHeaderRequestTopic signals that an empty meta header topic has been provided
+var ErrEmptyMetaHeaderRequestTopic = errors.New("empty meta header request topic")
 
 // ErrInvalidMaxTxRequest signals that max tx request is too small
 var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")

@@ -36,6 +36,9 @@ func (err ErrSignedBlock) Error() string {
 		err.CurrentNonce)
 }
 
+// ErrRollBackBehindFinalHeader signals that a roll back behind final header has been attempted
+var ErrRollBackBehindFinalHeader = errors.New("roll back behind final header is not permitted")
+
 // ErrRandomSeedNotValid signals that the random seed is not valid
 var ErrRandomSeedNotValid = errors.New("random seed is not valid")
 

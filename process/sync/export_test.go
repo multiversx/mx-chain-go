@@ -23,12 +23,12 @@ func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
 }
 
-func (boot *ShardBootstrap) ForkChoice() error {
-	return boot.forkChoice()
+func (boot *ShardBootstrap) ForkChoice(revertUsingForkNonce bool) error {
+	return boot.forkChoice(revertUsingForkNonce)
 }
 
-func (boot *MetaBootstrap) ForkChoice() error {
-	return boot.forkChoice()
+func (boot *MetaBootstrap) ForkChoice(revertUsingForkNonce bool) error {
+	return boot.forkChoice(revertUsingForkNonce)
 }
 
 func (bfd *baseForkDetector) GetHeaders(nonce uint64) []*headerInfo {
@@ -75,8 +75,8 @@ func (bfd *baseForkDetector) RemovePastHeaders() {
 	bfd.removePastHeaders()
 }
 
-func (bfd *baseForkDetector) RemoveInvalidHeaders() {
-	bfd.removeInvalidHeaders()
+func (bfd *baseForkDetector) RemoveInvalidReceivedHeaders() {
+	bfd.removeInvalidReceivedHeaders()
 }
 
 func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {

@@ -2,6 +2,8 @@ package sync
 
 import (
 	"bytes"
+	"math"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -40,7 +42,7 @@ type baseForkDetector struct {
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
 	bfd.removePastHeaders()
-	bfd.removeInvalidHeaders()
+	bfd.removeInvalidReceivedHeaders()
 	bfd.removePastCheckpoints()
 }
 
@@ -88,7 +90,7 @@ func (bfd *baseForkDetector) removePastHeaders() {
 	bfd.mutHeaders.Unlock()
 }
 
-func (bfd *baseForkDetector) removeInvalidHeaders() {
+func (bfd *baseForkDetector) removeInvalidReceivedHeaders() {
 	finalCheckpointRound := bfd.finalCheckpoint().round
 	finalCheckpointNonce := bfd.finalCheckpoint().nonce
 
@@ -100,9 +102,12 @@ func (bfd *baseForkDetector) removeInvalidHeaders() {
 		for i := 0; i < len(hdrInfos); i++ {
 			roundDif := int64(hdrInfos[i].round) - int64(finalCheckpointRound)
 			nonceDif := int64(hdrInfos[i].nonce) - int64(finalCheckpointNonce)
-			if roundDif >= nonceDif {
-				validHdrInfos = append(validHdrInfos, hdrInfos[i])
+			isReceivedHeaderInvalid := hdrInfos[i].state == process.BHReceived && roundDif < nonceDif
+			if isReceivedHeaderInvalid {
+				continue
 			}
+
+			validHdrInfos = append(validHdrInfos, hdrInfos[i])
 		}
 		if validHdrInfos == nil {
 			delete(bfd.headers, nonce)
@@ -174,10 +179,7 @@ func (bfd *baseForkDetector) getProbableHighestNonce(headersInfo []*headerInfo) 
 
 // RemoveHeaders removes all the stored headers with a given nonce
 func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
-	checkpointNonce := bfd.lastCheckpoint().nonce
-	if nonce == checkpointNonce {
-		bfd.removeCheckpointWithNonce(checkpointNonce)
-	}
+	bfd.removeCheckpointWithNonce(nonce)
 
 	var preservedHdrInfos []*headerInfo
 
@@ -343,4 +345,99 @@ func (bfd *baseForkDetector) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// CheckFork method checks if the node could be on the fork
+func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
+	var (
+		lowestForkNonce        uint64
+		hashOfLowestForkNonce  []byte
+		lowestRoundInForkNonce uint64
+		forkHeaderHash         []byte
+		selfHdrInfo            *headerInfo
+	)
+
+	lowestForkNonce = math.MaxUint64
+	hashOfLowestForkNonce = nil
+	forkDetected := false
+
+	bfd.mutHeaders.Lock()
+	for nonce, hdrInfos := range bfd.headers {
+		if len(hdrInfos) == 1 {
+			continue
+		}
+
+		selfHdrInfo = nil
+		lowestRoundInForkNonce = math.MaxUint64
+		forkHeaderHash = nil
+
+		for i := 0; i < len(hdrInfos); i++ {
+			// Proposed blocks received do not count for fork choice, as they are not valid until the consensus
+			// is achieved. They should be received afterwards through sync mechanism.
+			if hdrInfos[i].state == process.BHProposed {
+				continue
+			}
+
+			if hdrInfos[i].state == process.BHProcessed {
+				selfHdrInfo = hdrInfos[i]
+				continue
+			}
+
+			if hdrInfos[i].state == process.BHNotarized {
+				if lowestRoundInForkNonce > 0 {
+					lowestRoundInForkNonce = 0
+					forkHeaderHash = hdrInfos[i].hash
+					continue
+				}
+
+				hasHeaderLowerHashForNonceAndRound := lowestRoundInForkNonce == 0 &&
+					bytes.Compare(hdrInfos[i].hash, forkHeaderHash) < 0
+				if hasHeaderLowerHashForNonceAndRound {
+					forkHeaderHash = hdrInfos[i].hash
+				}
+
+				continue
+			}
+
+			if hdrInfos[i].state == process.BHReceived {
+				if hdrInfos[i].round < lowestRoundInForkNonce {
+					lowestRoundInForkNonce = hdrInfos[i].round
+					forkHeaderHash = hdrInfos[i].hash
+					continue
+				}
+
+				hasHeaderLowerHashForNonceAndRound := hdrInfos[i].round == lowestRoundInForkNonce &&
+					bytes.Compare(hdrInfos[i].hash, forkHeaderHash) < 0
+				if hasHeaderLowerHashForNonceAndRound {
+					forkHeaderHash = hdrInfos[i].hash
+				}
+
+				continue
+			}
+		}
+
+		if selfHdrInfo == nil {
+			// if current nonce has not been processed yet, then skip and check the next one.
+			continue
+		}
+
+		hasHeaderHigherHashForNonceAndRound := selfHdrInfo.round == lowestRoundInForkNonce &&
+			strings.Compare(string(selfHdrInfo.hash), string(forkHeaderHash)) > 0
+		shouldSignalFork := selfHdrInfo.round > lowestRoundInForkNonce || hasHeaderHigherHashForNonceAndRound
+		if !shouldSignalFork {
+			// keep it clean so next time this position will be processed faster
+			delete(bfd.headers, nonce)
+			bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
+			continue
+		}
+
+		forkDetected = true
+		if nonce < lowestForkNonce {
+			lowestForkNonce = nonce
+			hashOfLowestForkNonce = forkHeaderHash
+		}
+	}
+	bfd.mutHeaders.Unlock()
+
+	return forkDetected, lowestForkNonce, hashOfLowestForkNonce
 }

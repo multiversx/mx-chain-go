@@ -2146,7 +2146,7 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	err := bs.ForkChoice()
+	err := bs.ForkChoice(false)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
@@ -2183,7 +2183,7 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := bs.ForkChoice()
+	err := bs.ForkChoice(false)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
@@ -2241,8 +2241,8 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 		}
 	}
 
-	err := bs.ForkChoice()
-	assert.Equal(t, reflect.TypeOf(&sync.ErrSignedBlock{}), reflect.TypeOf(err))
+	err := bs.ForkChoice(false)
+	assert.Equal(t, sync.ErrRollBackBehindFinalHeader, err)
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
@@ -2397,11 +2397,11 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		hdrHash = i
 	}
 
-	err := bs.ForkChoice()
+	err := bs.ForkChoice(true)
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
-	assert.True(t, remFlags.flagHdrRemovedFromStorage)
+	assert.False(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
 	assert.Equal(t, blkc.GetCurrentBlockBody(), prevTxBlockBody)
@@ -2562,11 +2562,11 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		hdrHash = nil
 	}
 
-	err := bs.ForkChoice()
+	err := bs.ForkChoice(true)
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
-	assert.True(t, remFlags.flagHdrRemovedFromStorage)
+	assert.False(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
 	assert.Nil(t, blkc.GetCurrentBlockBody())

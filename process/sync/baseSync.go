@@ -485,9 +485,9 @@ func (boot *baseBootstrap) cleanCachesOnRollback(
 
 	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
-	_ = headerStore.Remove(hash)
-	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
-	_ = headerNonceHashStore.Remove(nonceToByteSlice)
+	//_ = headerStore.Remove(hash)
+	//nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
+	//_ = headerNonceHashStore.Remove(nonceToByteSlice)
 }
 
 // checkBootstrapNilParameters will check the imput parameters for nil values

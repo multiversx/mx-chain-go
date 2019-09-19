@@ -428,6 +428,8 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
 func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
+	sp.removeLastNotarized()
+
 	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
@@ -456,8 +458,6 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	if err != nil {
 		return err
 	}
-
-	sp.removeLastNotarized()
 
 	return nil
 }
@@ -684,13 +684,13 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	log.Info(fmt.Sprintf("shardBlock with nonce %d is the highest block notarized by metachain for shard id %d\n",
+	log.Info(fmt.Sprintf("shardBlock with nonce %d is the highest block notarized by metachain for shard %d\n",
 		sp.forkDetector.GetHighestFinalBlockNonce(),
 		sp.shardCoordinator.SelfId()))
 
 	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
-	hdrsToAttestFinality := uint32(header.Nonce - finalHeaders[0].GetNonce())
+	hdrsToAttestFinality := uint32(header.Nonce - sp.forkDetector.GetHighestFinalBlockNonce() + 1)
 	sp.removeNotarizedHdrsBehindFinal(hdrsToAttestFinality)
 
 	err = chainHandler.SetCurrentBlockBody(body)
@@ -775,7 +775,12 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 
 		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			//TODO: Request shard header after hash on go routine
+			go sp.onRequestHeaderHandler(shardInfo.ShardId, shardInfo.HeaderHash)
+
+			log.Info(fmt.Sprintf("requested missing shard header with hash %s for shard %d\n",
+				core.ToB64(shardInfo.HeaderHash),
+				shardInfo.ShardId))
+
 			return nil, err
 		}
 
