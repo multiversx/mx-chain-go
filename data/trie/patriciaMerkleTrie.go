@@ -6,8 +6,11 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
 
 const (
@@ -15,16 +18,18 @@ const (
 	leaf
 	branch
 )
+const evictionCacheSize = 100
 
 var emptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
-	root            node
-	db              data.DBWriteCacher
-	dbEvictionQueue []data.DBWriteCacher
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
-	mutOperation    sync.RWMutex
+	root                  node
+	db                    data.DBWriteCacher
+	dbEvictionWaitingList data.DBRemoveCacher
+	oldHashes             [][]byte
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	mutOperation          sync.RWMutex
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -32,6 +37,7 @@ func NewTrie(
 	db data.DBWriteCacher,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
+	evictionDb storage.Persister,
 ) (*patriciaMerkleTrie, error) {
 	if db == nil || db.IsInterfaceNil() {
 		return nil, ErrNilDatabase
@@ -43,11 +49,17 @@ func NewTrie(
 		return nil, ErrNilHasher
 	}
 
+	evictionWaitList, err := evictionWaitingList.NewEvictionWaitingList(evictionCacheSize, evictionDb, msh)
+	if err != nil {
+		return nil, err
+	}
+
 	return &patriciaMerkleTrie{
-		db:              db,
-		dbEvictionQueue: make([]data.DBWriteCacher, 0),
-		marshalizer:     msh,
-		hasher:          hsh,
+		db:                    db,
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		marshalizer:           msh,
+		hasher:                hsh,
 	}, nil
 }
 
@@ -242,11 +254,11 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher)
+	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New())
 	if err != nil {
 		return nil, err
 	}
-	newTr.dbEvictionQueue = tr.dbEvictionQueue
+	newTr.dbEvictionWaitingList = tr.dbEvictionWaitingList
 
 	if emptyTrie(root) {
 		return newTr, nil
@@ -271,11 +283,11 @@ func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher)
+	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New())
 	if err != nil {
 		return nil, err
 	}
-	clonedTrie.dbEvictionQueue = tr.dbEvictionQueue
+	clonedTrie.dbEvictionWaitingList = tr.dbEvictionWaitingList
 
 	if tr.root == nil {
 		return clonedTrie, nil

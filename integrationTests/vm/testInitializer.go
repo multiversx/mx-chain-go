@@ -62,7 +62,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 	store := CreateMemUnit()
 
-	tr, _ := trie.NewTrie(store, marsh, testHasher)
+	tr, _ := trie.NewTrie(store, marsh, testHasher, memorydb.New())
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb

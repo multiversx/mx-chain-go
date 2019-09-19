@@ -1,7 +1,7 @@
 package evictionWaitingList
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -19,13 +19,13 @@ type evictionWaitingList struct {
 // NewEvictionWaitingList creates a new instance of evictionWaitingList
 func NewEvictionWaitingList(size int, db storage.Persister, marshalizer marshal.Marshalizer) (*evictionWaitingList, error) {
 	if size < 1 {
-		return nil, trie.ErrInvalidCacheSize
+		return nil, data.ErrInvalidCacheSize
 	}
 	if db == nil || db.IsInterfaceNil() {
-		return nil, trie.ErrNilDatabase
+		return nil, data.ErrNilDatabase
 	}
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
-		return nil, trie.ErrNilMarshalizer
+		return nil, data.ErrNilMarshalizer
 	}
 
 	return &evictionWaitingList{

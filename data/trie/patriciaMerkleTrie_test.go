@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,12 +22,12 @@ func emptyTrie() data.Trie {
 	return tr
 }
 
-func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashing.Hasher) {
-	db, _ := mock.NewMemDbMock()
+func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashing.Hasher, storage.Persister) {
+	db := mock.NewMemDbMock()
 	marshalizer := &mock.ProtobufMarshalizerMock{}
 	hasher := &mock.KeccakMock{}
 
-	return db, marshalizer, hasher
+	return db, marshalizer, hasher, mock.NewMemDbMock()
 }
 
 func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
@@ -54,8 +55,8 @@ func initTrie() data.Trie {
 
 func TestNewTrieWithNilDB(t *testing.T) {
 	t.Parallel()
-	_, marshalizer, hasher := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher)
+	_, marshalizer, hasher, evictionDB := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, evictionDB)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilDatabase, err)
@@ -63,8 +64,8 @@ func TestNewTrieWithNilDB(t *testing.T) {
 
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
-	db, _, hasher := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, nil, hasher)
+	db, _, hasher, evictionDB := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, nil, hasher, evictionDB)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -72,11 +73,20 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
-	db, marshalizer, _ := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, nil)
+	db, marshalizer, _, evictionDB := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, marshalizer, nil, evictionDB)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
+}
+
+func TestNewTrieWithNilEvictionDB(t *testing.T) {
+	t.Parallel()
+	db, marshalizer, hasher, _ := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, marshalizer, hasher, nil)
+
+	assert.Nil(t, tr)
+	assert.Equal(t, trie.ErrNilDatabase, err)
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {

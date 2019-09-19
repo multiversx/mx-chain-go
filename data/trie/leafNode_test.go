@@ -127,7 +127,7 @@ func TestLeafNode_hashNodeNilNode(t *testing.T) {
 
 func TestLeafNode_commit(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -147,7 +147,7 @@ func TestLeafNode_commit(t *testing.T) {
 func TestLeafNode_commitEmptyNode(t *testing.T) {
 	t.Parallel()
 	ln := &leafNode{}
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
 	err := ln.commit(0, db, marsh, hasher)
@@ -157,7 +157,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 func TestLeafNode_commitNilNode(t *testing.T) {
 	t.Parallel()
 	var ln *leafNode
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
 	err := ln.commit(0, db, marsh, hasher)
@@ -199,7 +199,7 @@ func TestLeafNode_getEncodedNodeNil(t *testing.T) {
 
 func TestLeafNode_resolveCollapsed(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -214,7 +214,7 @@ func TestLeafNode_isCollapsed(t *testing.T) {
 
 func TestLeafNode_tryGet(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -226,7 +226,7 @@ func TestLeafNode_tryGet(t *testing.T) {
 
 func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -238,7 +238,7 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 
 func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := &leafNode{}
 	marsh, _ := getTestMarshAndHasher()
 
@@ -250,7 +250,7 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 
 func TestLeafNode_tryGetNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	var ln *leafNode
 	marsh, _ := getTestMarshAndHasher()
 
@@ -262,7 +262,7 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 
 func TestLeafNode_getNext(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 	key := []byte{100, 111, 103}
@@ -275,7 +275,7 @@ func TestLeafNode_getNext(t *testing.T) {
 
 func TestLeafNode_getNextWrongKey(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 	key := []byte{2, 100, 111, 103}
@@ -288,7 +288,7 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 
 func TestLeafNode_getNextNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	var ln *leafNode
 	marsh, _ := getTestMarshAndHasher()
 	key := []byte{2, 100, 111, 103}
@@ -301,7 +301,7 @@ func TestLeafNode_getNextNilNode(t *testing.T) {
 
 func TestLeafNode_insertAtSameKey(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 
 	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
@@ -316,7 +316,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 
 func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := newLeafNode([]byte{2, 100, 111, 103}, []byte{100, 111, 103})
 	node := newLeafNode([]byte{3, 4, 5}, []byte{3, 4, 5})
 	marsh, _ := getTestMarshAndHasher()
@@ -331,7 +331,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 
 func TestLeafNode_insertInNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	var ln *leafNode
 	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
@@ -344,7 +344,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 
 func TestLeafNode_deletePresent(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -356,7 +356,7 @@ func TestLeafNode_deletePresent(t *testing.T) {
 
 func TestLeafNode_deleteNotPresent(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 

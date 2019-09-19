@@ -15,11 +15,11 @@ type MemDbMock struct {
 }
 
 // NewMemDbMock creates a new memorydb object
-func NewMemDbMock() (*MemDbMock, error) {
+func NewMemDbMock() *MemDbMock {
 	return &MemDbMock{
 		db:   make(map[string][]byte),
 		mutx: sync.RWMutex{},
-	}, nil
+	}
 }
 
 // Put adds the value to the (key, val) storage medium
@@ -47,13 +47,16 @@ func (s *MemDbMock) Get(key []byte) ([]byte, error) {
 }
 
 // Has returns true if the given key is present in the persistence medium, false otherwise
-func (s *MemDbMock) Has(key []byte) (bool, error) {
+func (s *MemDbMock) Has(key []byte) error {
 	s.mutx.RLock()
 	defer s.mutx.RUnlock()
 
 	_, ok := s.db[string(key)]
+	if !ok {
+		return errors.New("key not present")
+	}
 
-	return ok, nil
+	return nil
 }
 
 // Init initializes the storage medium and prepares it for usage

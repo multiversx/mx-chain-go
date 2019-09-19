@@ -177,7 +177,7 @@ func createAccountsDB() *state.AccountsDB {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 
-	tr, _ := trie.NewTrie(store, testMarshalizer, hasher)
+	tr, _ := trie.NewTrie(store, testMarshalizer, hasher, memorydb.New())
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)
