@@ -42,8 +42,8 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 
 	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
-	ah, err := accnts.GetExistingAccount(state.NewAddress(scAddressBytes))
-	assert.Nil(t, ah)
+	scAccount, err := accnts.GetExistingAccount(state.NewAddress(scAddressBytes))
+	assert.Nil(t, scAccount)
 	assert.Equal(t, state.ErrAccNotFound, err)
 }
 
