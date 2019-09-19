@@ -28,7 +28,7 @@ func TestDeployAgarioContract(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -42,7 +42,7 @@ func TestDeployAgarioContract(t *testing.T) {
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+	destinationAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -63,7 +63,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -76,7 +76,8 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
@@ -121,7 +122,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -134,7 +135,8 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
@@ -218,7 +220,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	senderNonce++
 
@@ -339,7 +342,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 	gasPrice := uint64(0)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(b, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(b, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		b,
 		senderAddressBytes,
@@ -352,7 +355,8 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000100755c2c6488582220f44d2a8f68ac56be130766023132")
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	defaultUserNonce := uint64(10)
 	defaultUserBalance := big.NewInt(10000000000)
