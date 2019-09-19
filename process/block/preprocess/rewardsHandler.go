@@ -136,16 +136,6 @@ func (rtxh *rewardsHandler) AddIntermediateTransactions(txs []data.TransactionHa
 	return nil
 }
 
-func (rtxh *rewardsHandler) getShardIdsFromAddress(addr []byte) (uint32, error) {
-	address, err := rtxh.adrConv.CreateAddressFromPublicKeyBytes(addr)
-	if err != nil {
-		return rtxh.shardCoordinator.NumberOfShards(), err
-	}
-	shardId := rtxh.shardCoordinator.ComputeId(address)
-
-	return shardId, nil
-}
-
 // CreateAllInterMiniBlocks creates miniblocks from process transactions
 func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
 	rtxh.mutGenRewardTxs.Lock()
@@ -379,13 +369,13 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 
 	for _, metaConsensusSet := range metaRewardsData {
 		for _, address := range metaConsensusSet.Addresses {
-			addr, err := rtxh.adrConv.CreateAddressFromPublicKeyBytes([]byte(address))
+			shardId, err := rtxh.address.ShardIdForAddress([]byte(address))
 			if err != nil {
 				log.Error(err.Error())
 				continue
 			}
 
-			if rtxh.shardCoordinator.ComputeId(addr) != rtxh.shardCoordinator.SelfId() {
+			if shardId != rtxh.shardCoordinator.SelfId() {
 				continue
 			}
 

@@ -864,7 +864,8 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromPool(
 		return nil, process.ErrNilTxBlockBody
 	}
 	if usedMetaBlockHashes == nil {
-		return nil, process.ErrNilMetaBlockHashes
+		// not an error, it can happen that no metablock header is used.
+		return make([]data.HeaderHandler, 0), nil
 	}
 
 	miniBlockHashes := make(map[int][]byte, 0)

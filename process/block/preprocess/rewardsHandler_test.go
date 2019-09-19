@@ -367,9 +367,10 @@ func TestRewardsHandler_CreateAllInterMiniBlocksOK(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
-		&mock.SpecialAddressHandlerMock{
-			AdrConv:          &mock.AddressConverterMock{},
-			ShardCoordinator: shardCoordinator},
+		mock.NewSpecialAddressHandlerMock(
+			&mock.AddressConverterMock{},
+			shardCoordinator,
+		),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		shardCoordinator,

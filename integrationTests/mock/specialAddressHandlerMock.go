@@ -18,6 +18,26 @@ type SpecialAddressHandlerMock struct {
 	metaConsensusData  []*data.ConsensusRewardData
 }
 
+func NewSpecialAddressHandlerMock(
+	addrConv state.AddressConverter,
+	shardCoordinator sharding.Coordinator,
+) *SpecialAddressHandlerMock {
+	return &SpecialAddressHandlerMock{
+		ElrondCommunityAddressCalled: nil,
+		LeaderAddressCalled:          nil,
+		BurnAddressCalled:            nil,
+		ShardIdForAddressCalled:      nil,
+		AdrConv:                      addrConv,
+		ShardCoordinator:             shardCoordinator,
+		shardConsensusData: &data.ConsensusRewardData{
+			Round:     0,
+			Epoch:     0,
+			Addresses: nil,
+		},
+		metaConsensusData: make([]*data.ConsensusRewardData, 0),
+	}
+}
+
 func (sh *SpecialAddressHandlerMock) SetElrondCommunityAddress(elrond []byte) {
 }
 
@@ -81,10 +101,16 @@ func (sh *SpecialAddressHandlerMock) LeaderAddress() []byte {
 }
 
 func (sh *SpecialAddressHandlerMock) Round() uint64 {
+	if sh.shardConsensusData == nil {
+		return 0
+	}
 	return sh.shardConsensusData.Round
 }
 
 func (sh *SpecialAddressHandlerMock) Epoch() uint32 {
+	if sh.shardConsensusData == nil {
+		return 0
+	}
 	return sh.shardConsensusData.Epoch
 }
 

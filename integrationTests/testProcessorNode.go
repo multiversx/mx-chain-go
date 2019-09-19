@@ -190,10 +190,10 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
-	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{
-		ShardCoordinator: tpn.ShardCoordinator,
-		AdrConv:          TestAddressConverter,
-	}
+	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+	)
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
@@ -342,7 +342,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	rewardsInter, _ := tpn.InterimProcContainer.Get(dataBlock.RewardsBlock)
 	rewardsHandler, _ := rewardsInter.(process.TransactionFeeHandler)
-	internalTxProducer,_:= rewardsInter.(process.InternalTransactionProducer)
+	internalTxProducer, _ := rewardsInter.(process.InternalTransactionProducer)
 
 	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
 		tpn.AccntState,

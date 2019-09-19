@@ -339,10 +339,10 @@ func createNetNode(
 		testMarshalizer,
 		testHasher,
 		testAddressConverter,
-		&mock.SpecialAddressHandlerMock{
-			ShardCoordinator: shardCoordinator,
-			AdrConv:          testAddressConverter,
-		},
+		mock.NewSpecialAddressHandlerMock(
+			testAddressConverter,
+			shardCoordinator,
+		),
 		store,
 		dPool,
 	)
@@ -425,10 +425,10 @@ func createNetNode(
 		accntAdapter,
 		shardCoordinator,
 		nodesCoordinator,
-		&mock.SpecialAddressHandlerMock{
-			ShardCoordinator: shardCoordinator,
-			AdrConv:          testAddressConverter,
-		},
+		mock.NewSpecialAddressHandlerMock(
+			testAddressConverter,
+			shardCoordinator,
+		),
 		&mock.ForkDetectorMock{
 			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
 				return nil
@@ -768,10 +768,10 @@ func createMetaNetNode(
 		},
 		shardCoordinator,
 		nodesCoordinator,
-		&mock.SpecialAddressHandlerMock{
-			ShardCoordinator: shardCoordinator,
-			AdrConv:          testAddressConverter,
-		},
+		mock.NewSpecialAddressHandlerMock(
+			testAddressConverter,
+			shardCoordinator,
+		),
 		testHasher,
 		testMarshalizer,
 		store,
