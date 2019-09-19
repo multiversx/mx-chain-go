@@ -389,8 +389,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			TestUint64Converter,
 		)
 	} else {
-		arguments := block.ArgsShardProcessor{
-			ArgsBaseProcessor: &block.ArgsBaseProcessor{
+		arguments := block.ArgShardProcessor{
+			ArgBaseProcessor: &block.ArgBaseProcessor{
 				Accounts:         tpn.AccntState,
 				ForkDetector:     tpn.ForkDetector,
 				Hasher:           TestHasher,

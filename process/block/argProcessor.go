@@ -12,9 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ArgsBaseProcessor holds all dependencies required by the process data factory in order to create
+// ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
-type ArgsBaseProcessor struct {
+type ArgBaseProcessor struct {
 	Accounts         state.AccountsAdapter
 	ForkDetector     process.ForkDetector
 	Hasher           hashing.Hasher
@@ -27,10 +27,10 @@ type ArgsBaseProcessor struct {
 	Core             serviceContainer.Core
 }
 
-// ArgsShardProcessor holds all dependencies required by the process data factory in order to create
+// ArgShardProcessor holds all dependencies required by the process data factory in order to create
 // new instances of shard processor
-type ArgsShardProcessor struct {
-	*ArgsBaseProcessor
+type ArgShardProcessor struct {
+	*ArgBaseProcessor
 	DataPool      dataRetriever.PoolsHolder
 	BlocksTracker process.BlocksTracker
 	TxCoordinator process.TransactionCoordinator

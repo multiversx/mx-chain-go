@@ -54,8 +54,8 @@ func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
 
-	arguments := ArgsShardProcessor{
-		ArgsBaseProcessor: &ArgsBaseProcessor{
+	arguments := ArgShardProcessor{
+		ArgBaseProcessor: &ArgBaseProcessor{
 			Accounts:         &mock.AccountsStub{},
 			ForkDetector:     &mock.ForkDetectorMock{},
 			Hasher:           &mock.HasherMock{},

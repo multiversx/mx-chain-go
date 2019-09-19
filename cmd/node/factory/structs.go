@@ -1503,7 +1503,7 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	argumentsBaseProcessor := block.ArgsBaseProcessor{
+	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:         state.AccountsAdapter,
 		ForkDetector:     forkDetector,
 		Hasher:           core.Hasher,
@@ -1515,12 +1515,13 @@ func newShardBlockProcessorAndTracker(
 		RequestHandler:   requestHandler,
 		Core:             coreServiceContainer,
 	}
-	arguments := block.ArgsShardProcessor{
-		ArgsBaseProcessor: &argumentsBaseProcessor,
-		DataPool:          data.Datapool,
-		BlocksTracker:     blockTracker,
-		TxCoordinator:     txCoordinator,
+	arguments := block.ArgShardProcessor{
+		ArgBaseProcessor: &argumentsBaseProcessor,
+		DataPool:         data.Datapool,
+		BlocksTracker:    blockTracker,
+		TxCoordinator:    txCoordinator,
 	}
+
 	blockProcessor, err := block.NewShardProcessor(arguments)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())

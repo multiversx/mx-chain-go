@@ -40,7 +40,7 @@ type shardProcessor struct {
 }
 
 // NewShardProcessor creates a new shardProcessor object
-func NewShardProcessor(arguments ArgsShardProcessor) (*shardProcessor, error) {
+func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	err := checkProcessorNilParameters(
 		arguments.Accounts,
