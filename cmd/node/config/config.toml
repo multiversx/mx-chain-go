@@ -138,6 +138,13 @@
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
+[EvictionWaitingListDB]
+    FilePath = "EvictionWaitingList"
+    Type = "LvlDBSerial"
+    BatchDelaySeconds = 30
+    MaxBatchSize = 1
+    MaxOpenFiles = 10
+
 [BadBlocksCache]
     Size = 1000
     Type = "LRU"
