@@ -10,12 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -44,44 +40,30 @@ type shardProcessor struct {
 }
 
 // NewShardProcessor creates a new shardProcessor object
-func NewShardProcessor(
-	core serviceContainer.Core,
-	dataPool dataRetriever.PoolsHolder,
-	store dataRetriever.StorageService,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	accounts state.AccountsAdapter,
-	shardCoordinator sharding.Coordinator,
-	forkDetector process.ForkDetector,
-	blocksTracker process.BlocksTracker,
-	startHeaders map[uint32]data.HeaderHandler,
-	requestHandler process.RequestHandler,
-	txCoordinator process.TransactionCoordinator,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) (*shardProcessor, error) {
+func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	err := checkProcessorNilParameters(
-		accounts,
-		forkDetector,
-		hasher,
-		marshalizer,
-		store,
-		shardCoordinator,
-		uint64Converter)
+		arguments.Accounts,
+		arguments.ForkDetector,
+		arguments.Hasher,
+		arguments.Marshalizer,
+		arguments.Store,
+		arguments.ShardCoordinator,
+		arguments.Uint64Converter)
 	if err != nil {
 		return nil, err
 	}
 
-	if dataPool == nil || dataPool.IsInterfaceNil() {
+	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if blocksTracker == nil || blocksTracker.IsInterfaceNil() {
+	if arguments.BlocksTracker == nil || arguments.BlocksTracker.IsInterfaceNil() {
 		return nil, process.ErrNilBlocksTracker
 	}
-	if requestHandler == nil || requestHandler.IsInterfaceNil() {
+	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
-	if txCoordinator == nil || txCoordinator.IsInterfaceNil() {
+	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionCoordinator
 	}
 
@@ -91,28 +73,28 @@ func NewShardProcessor(
 	}
 
 	base := &baseProcessor{
-		accounts:                      accounts,
+		accounts:                      arguments.Accounts,
 		blockSizeThrottler:            blockSizeThrottler,
-		forkDetector:                  forkDetector,
-		hasher:                        hasher,
-		marshalizer:                   marshalizer,
-		store:                         store,
-		shardCoordinator:              shardCoordinator,
-		uint64Converter:               uint64Converter,
-		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.Hasher,
+		marshalizer:                   arguments.Marshalizer,
+		store:                         arguments.Store,
+		shardCoordinator:              arguments.ShardCoordinator,
+		uint64Converter:               arguments.Uint64Converter,
+		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 	}
-	err = base.setLastNotarizedHeadersSlice(startHeaders)
+	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
 	sp := shardProcessor{
-		core:          core,
+		core:          arguments.Core,
 		baseProcessor: base,
-		dataPool:      dataPool,
-		blocksTracker: blocksTracker,
-		txCoordinator: txCoordinator,
+		dataPool:      arguments.DataPool,
+		blocksTracker: arguments.BlocksTracker,
+		txCoordinator: arguments.TxCoordinator,
 		txCounter:     NewTransactionCounter(),
 	}
 
@@ -131,7 +113,7 @@ func NewShardProcessor(
 		return nil, process.ErrNilMetaBlockPool
 	}
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
-	sp.onRequestHeaderHandler = requestHandler.RequestHeader
+	sp.onRequestHeaderHandler = arguments.RequestHandler.RequestHeader
 
 	sp.metaBlockFinality = process.MetaBlockFinality
 	sp.allNeededMetaHdrsFound = true
