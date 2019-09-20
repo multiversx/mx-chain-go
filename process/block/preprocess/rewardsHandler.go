@@ -440,10 +440,10 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 	rtxh.mut.Lock()
 
 	rewardTxPool := make(map[string]data.TransactionHandler)
-	for txHash, txInfo := range rtxh.rewardTxsForBlock {
+	for txHash, info := range rtxh.rewardTxsForBlock {
 
-		senderShard := txInfo.ShardId
-		receiverShard, err := rtxh.address.ShardIdForAddress(txInfo.RcvAddr)
+		senderShard := info.ShardId
+		receiverShard, err := rtxh.address.ShardIdForAddress(info.RcvAddr)
 		if err != nil {
 			continue
 		}
@@ -453,7 +453,7 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 		if senderShard != rtxh.shardCoordinator.SelfId() {
 			continue
 		}
-		rewardTxPool[txHash] = txInfo
+		rewardTxPool[txHash] = info
 	}
 	rtxh.mut.Unlock()
 

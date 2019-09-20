@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/opentracing/opentracing-go/log"
 	"math/big"
 	"testing"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/opentracing/opentracing-go/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -162,7 +162,9 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 			shardRewardsData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
 			if shardRewardsData == nil {
 				log.Error(errors.New("nil shard rewards data"))
+				shardRewardsData = &data.ConsensusRewardData{}
 			}
+
 			addrRewards := shardRewardsData.Addresses
 			updateExpectedRewards(mapRewardsForAddress, addrRewards)
 		}
