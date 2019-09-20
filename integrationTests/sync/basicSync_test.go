@@ -157,7 +157,8 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	updateRound(nodes, round)
 
-	time.Sleep(3 * stepDelay)
+	stepDelayForkResolving := 3 * stepDelay
+	time.Sleep(stepDelayForkResolving)
 
 	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
 	testAllNodesHaveSameLastBlock(t, nodes)
