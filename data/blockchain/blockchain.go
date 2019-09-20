@@ -159,12 +159,12 @@ func (bc *BlockChain) SetLocalHeight(height int64) {
 	bc.localHeight = height
 }
 
-// GetNetworkHeight sets the percieved height of the network chain
+// GetNetworkHeight sets the perceived height of the network chain
 func (bc *BlockChain) GetNetworkHeight() int64 {
 	return bc.localHeight
 }
 
-// SetNetworkHeight sets the percieved height of the network chain
+// SetNetworkHeight sets the perceived height of the network chain
 func (bc *BlockChain) SetNetworkHeight(height int64) {
 	bc.localHeight = height
 }

@@ -214,6 +214,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		}
 	} else {
 		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+			tpn.AccntState,
 			tpn.ShardCoordinator,
 			tpn.Messenger,
 			tpn.Storage,
@@ -351,7 +352,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -388,21 +389,25 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			TestUint64Converter,
 		)
 	} else {
-		tpn.BlockProcessor, err = block.NewShardProcessor(
-			nil,
-			tpn.ShardDataPool,
-			tpn.Storage,
-			TestHasher,
-			TestMarshalizer,
-			tpn.AccntState,
-			tpn.ShardCoordinator,
-			tpn.ForkDetector,
-			tpn.BlockTracker,
-			tpn.GenesisBlocks,
-			tpn.RequestHandler,
-			tpn.TxCoordinator,
-			TestUint64Converter,
-		)
+		arguments := block.ArgShardProcessor{
+			ArgBaseProcessor: &block.ArgBaseProcessor{
+				Accounts:         tpn.AccntState,
+				ForkDetector:     tpn.ForkDetector,
+				Hasher:           TestHasher,
+				Marshalizer:      TestMarshalizer,
+				Store:            tpn.Storage,
+				ShardCoordinator: tpn.ShardCoordinator,
+				Uint64Converter:  TestUint64Converter,
+				StartHeaders:     tpn.GenesisBlocks,
+				RequestHandler:   tpn.RequestHandler,
+				Core:             nil,
+			},
+			DataPool:      tpn.ShardDataPool,
+			BlocksTracker: tpn.BlockTracker,
+			TxCoordinator: tpn.TxCoordinator,
+		}
+
+		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
 	}
 
 	if err != nil {

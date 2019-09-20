@@ -22,6 +22,7 @@ import (
 const numGoRoutinesInTxInterceptors = 100
 
 type interceptorsContainerFactory struct {
+	accounts            state.AccountsAdapter
 	shardCoordinator      sharding.Coordinator
 	messenger             process.TopicHandler
 	store                 dataRetriever.StorageService
@@ -39,6 +40,7 @@ type interceptorsContainerFactory struct {
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
+	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
@@ -51,7 +53,9 @@ func NewInterceptorsContainerFactory(
 	addrConverter state.AddressConverter,
 	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
-
+	if accounts == nil || accounts.IsInterfaceNil() {
+		return nil, process.ErrNilAccountsAdapter
+	}
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -86,6 +90,20 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilChronologyValidator
 	}
 
+	return &interceptorsContainerFactory{
+		accounts:            accounts,
+		shardCoordinator:    shardCoordinator,
+		messenger:           messenger,
+		store:               store,
+		marshalizer:         marshalizer,
+		hasher:              hasher,
+		keyGen:              keyGen,
+		singleSigner:        singleSigner,
+		multiSigner:         multiSigner,
+		dataPool:            dataPool,
+		addrConverter:       addrConverter,
+		chronologyValidator: chronologyValidator,
+	}, nil
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
 		Hasher:           hasher,
@@ -248,6 +266,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedTx,
 	)
+	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}

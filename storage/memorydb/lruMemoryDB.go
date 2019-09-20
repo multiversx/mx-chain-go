@@ -41,7 +41,7 @@ func (l *lruDB) Get(key []byte) ([]byte, error) {
 	return mrsVal, nil
 }
 
-// Has returns true if the given key is present in the persistance medium, false otherwise
+// Has returns true if the given key is present in the persistence medium, false otherwise
 func (l *lruDB) Has(key []byte) error {
 	has := l.cacher.Has(key)
 	if has {

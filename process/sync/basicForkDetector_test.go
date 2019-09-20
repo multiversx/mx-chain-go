@@ -286,6 +286,79 @@ func TestBasicForkDetector_CheckForkHeaderProcessedShouldReturnFalseWhenLowestRo
 	assert.Equal(t, 1, len(hInfos))
 }
 
+func TestBasicForkDetector_CheckForkHeaderProcessedShouldReturnFalseWhenEqualRoundWithLowerHash(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewBasicForkDetector(rounderMock)
+	rounderMock.RoundIndex = 5
+	_ = bfd.AddHeader(
+		&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
+		[]byte("hash1"),
+		process.BHProcessed,
+		nil,
+		nil)
+	_ = bfd.AddHeader(
+		&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
+		[]byte("hash2"),
+		process.BHReceived,
+		nil,
+		nil)
+	_ = bfd.AddHeader(
+		&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
+		[]byte("hash3"),
+		process.BHReceived,
+		nil,
+		nil)
+
+	hInfos := bfd.GetHeaders(1)
+	assert.Equal(t, 3, len(hInfos))
+
+	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
+	assert.False(t, forkDetected)
+	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
+	assert.Nil(t, forkHash)
+
+	hInfos = bfd.GetHeaders(1)
+	assert.Equal(t, 1, len(hInfos))
+	assert.Equal(t, []byte("hash1"), hInfos[0].Hash())
+}
+
+func TestBasicForkDetector_CheckForkHeaderProcessedShouldReturnTrueWhenEqualRoundWithHigherHash(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewBasicForkDetector(rounderMock)
+	rounderMock.RoundIndex = 5
+	_ = bfd.AddHeader(
+		&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
+		[]byte("hash2"),
+		process.BHProcessed,
+		nil,
+		nil)
+	_ = bfd.AddHeader(
+		&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
+		[]byte("hash3"),
+		process.BHReceived,
+		nil,
+		nil)
+	_ = bfd.AddHeader(
+		&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
+		[]byte("hash1"),
+		process.BHReceived,
+		nil,
+		nil)
+
+	hInfos := bfd.GetHeaders(1)
+	assert.Equal(t, 3, len(hInfos))
+
+	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
+	assert.True(t, forkDetected)
+	assert.Equal(t, uint64(1), lowestForkNonce)
+	assert.Equal(t, []byte("hash1"), forkHash)
+
+	hInfos = bfd.GetHeaders(1)
+	assert.Equal(t, 3, len(hInfos))
+}
+
 func TestBasicForkDetector_CheckForkShouldNotConsiderProposedBlocks(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}

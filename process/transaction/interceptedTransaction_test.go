@@ -541,3 +541,93 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 	assert.Equal(t, uint32(1), txIntercepted.RcvShard())
 	assert.Equal(t, uint32(1), txIntercepted.SndShard())
 }
+
+func TestNewInterceptedTransaction_GetNonce(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     nonce,
+		Value:     big.NewInt(2),
+		Data:      "data",
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	txi, _ := createInterceptedTxFromPlainTx(tx)
+
+	result := txi.Nonce()
+	assert.Equal(t, nonce, result)
+}
+
+func TestNewInterceptedTransaction_SenderShardId(t *testing.T) {
+	t.Parallel()
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(2),
+		Data:      "data",
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	txi, _ := createInterceptedTxFromPlainTx(tx)
+
+	result := txi.SenderShardId()
+	assert.Equal(t, senderShard, result)
+}
+
+func TestNewInterceptedTransaction_GetTotalValue(t *testing.T) {
+	t.Parallel()
+
+	txValue := big.NewInt(2)
+	gasPrice := uint64(3)
+	gasLimit := uint64(4)
+	val := big.NewInt(0)
+	val = val.Mul(big.NewInt(int64(gasPrice)), big.NewInt(int64(gasLimit)))
+	expectedValue := big.NewInt(0)
+	expectedValue.Add(txValue, val)
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     0,
+		Value:     txValue,
+		Data:      "data",
+		GasLimit:  gasPrice,
+		GasPrice:  gasLimit,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	txi, _ := createInterceptedTxFromPlainTx(tx)
+
+	result := txi.TotalValue()
+	assert.Equal(t, expectedValue, result)
+}
+
+func TestNewInterceptedTransaction_GetSenderAddress(t *testing.T) {
+	t.Parallel()
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(2),
+		Data:      "data",
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	txi, _ := createInterceptedTxFromPlainTx(tx)
+
+	result := txi.SenderAddress()
+	assert.NotNil(t, result)
+}

@@ -1160,6 +1160,7 @@ func newShardInterceptorAndResolverContainerFactory(
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
+		state.AccountsAdapter,
 		shardCoordinator,
 		network.NetMessenger,
 		data.Store,
@@ -1502,21 +1503,26 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	blockProcessor, err := block.NewShardProcessor(
-		coreServiceContainer,
-		data.Datapool,
-		data.Store,
-		core.Hasher,
-		core.Marshalizer,
-		state.AccountsAdapter,
-		shardCoordinator,
-		forkDetector,
-		blockTracker,
-		shardsGenesisBlocks,
-		requestHandler,
-		txCoordinator,
-		core.Uint64ByteSliceConverter,
-	)
+	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Accounts:         state.AccountsAdapter,
+		ForkDetector:     forkDetector,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.Marshalizer,
+		Store:            data.Store,
+		ShardCoordinator: shardCoordinator,
+		Uint64Converter:  core.Uint64ByteSliceConverter,
+		StartHeaders:     shardsGenesisBlocks,
+		RequestHandler:   requestHandler,
+		Core:             coreServiceContainer,
+	}
+	arguments := block.ArgShardProcessor{
+		ArgBaseProcessor: &argumentsBaseProcessor,
+		DataPool:         data.Datapool,
+		BlocksTracker:    blockTracker,
+		TxCoordinator:    txCoordinator,
+	}
+
+	blockProcessor, err := block.NewShardProcessor(arguments)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
