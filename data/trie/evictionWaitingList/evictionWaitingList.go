@@ -8,7 +8,7 @@ import (
 
 // evictionWaitingList is a structure that caches keys that need to be removed from a certain database.
 // If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
-// cacher and db will overwrite the previous values
+// cacher and db will overwrite the previous values. This structure is not concurrent safe.
 type evictionWaitingList struct {
 	cache       map[string][][]byte
 	cacheSize   int
@@ -36,19 +36,19 @@ func NewEvictionWaitingList(size int, db storage.Persister, marshalizer marshal.
 	}, nil
 }
 
-// Add adds the given hashes to the eviction waiting list, in the position given by the root hash
-func (ec *evictionWaitingList) Add(rootHash []byte, hashes [][]byte) error {
-	if len(ec.cache) < ec.cacheSize {
-		ec.cache[string(rootHash)] = hashes
+// Put stores the given hashes in the eviction waiting list, in the position given by the root hash
+func (ewl *evictionWaitingList) Put(rootHash []byte, hashes [][]byte) error {
+	if len(ewl.cache) < ewl.cacheSize {
+		ewl.cache[string(rootHash)] = hashes
 		return nil
 	}
 
-	marshalizedHashes, err := ec.marshalizer.Marshal(hashes)
+	marshalizedHashes, err := ewl.marshalizer.Marshal(hashes)
 	if err != nil {
 		return err
 	}
 
-	err = ec.db.Put(rootHash, marshalizedHashes)
+	err = ewl.db.Put(rootHash, marshalizedHashes)
 	if err != nil {
 		return err
 	}
@@ -56,25 +56,25 @@ func (ec *evictionWaitingList) Add(rootHash []byte, hashes [][]byte) error {
 	return nil
 }
 
-// Evict returns all the hashes from the position given by the root hash
-func (ec *evictionWaitingList) Evict(rootHash []byte) ([][]byte, error) {
-	hashes := ec.cache[string(rootHash)]
-	if hashes != nil {
-		delete(ec.cache, string(rootHash))
+// Evict returns and removes from the waiting list all the hashes from the position given by the root hash
+func (ewl *evictionWaitingList) Evict(rootHash []byte) ([][]byte, error) {
+	hashes, ok := ewl.cache[string(rootHash)]
+	if ok {
+		delete(ewl.cache, string(rootHash))
 		return hashes, nil
 	}
 
-	marshalizedHashes, err := ec.db.Get(rootHash)
+	marshalizedHashes, err := ewl.db.Get(rootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ec.marshalizer.Unmarshal(&hashes, marshalizedHashes)
+	err = ewl.marshalizer.Unmarshal(&hashes, marshalizedHashes)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ec.db.Remove(rootHash)
+	err = ewl.db.Remove(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -82,25 +82,9 @@ func (ec *evictionWaitingList) Evict(rootHash []byte) ([][]byte, error) {
 	return hashes, nil
 }
 
-// Rollback clears the hashes from the position given by the root hash
-func (ec *evictionWaitingList) Rollback(rootHash []byte) error {
-	hashes := ec.cache[string(rootHash)]
-	if hashes != nil {
-		delete(ec.cache, string(rootHash))
-		return nil
-	}
-
-	err := ec.db.Remove(rootHash)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
-func (ec *evictionWaitingList) IsInterfaceNil() bool {
-	if ec == nil {
+func (ewl *evictionWaitingList) IsInterfaceNil() bool {
+	if ewl == nil {
 		return true
 	}
 	return false

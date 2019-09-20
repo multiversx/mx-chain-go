@@ -108,8 +108,7 @@ type DBWriteCacher interface {
 
 // DBRemoveCacher is used to cache keys that will be deleted from the database
 type DBRemoveCacher interface {
-	Add([]byte, [][]byte) error
+	Put([]byte, [][]byte) error
 	Evict([]byte) ([][]byte, error)
-	Rollback([]byte) error
 	IsInterfaceNil() bool
 }
