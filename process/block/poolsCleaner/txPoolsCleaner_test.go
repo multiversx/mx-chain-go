@@ -1,4 +1,4 @@
-package poolscleaner_test
+package poolsCleaner_test
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/poolscleaner"
+	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
@@ -102,7 +102,7 @@ func TestNewTxsPoolsCleaner_NilAccountsShouldErr(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPool([]byte("test"))
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(nil, shardCoordinator, tdp, addrConverter)
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(nil, shardCoordinator, tdp, addrConverter)
 
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -116,7 +116,7 @@ func TestNewTxsPoolsCleaner_NilShardCoordinatorShouldErr(t *testing.T) {
 	accounts := getAccAdapter(nonce, balance)
 	tdp := initDataPool([]byte("test"))
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(accounts, nil, tdp, addrConverter)
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(accounts, nil, tdp, addrConverter)
 
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -130,7 +130,7 @@ func TestNewTxsPoolsCleaner_NilDataPoolShouldErr(t *testing.T) {
 	accounts := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, nil, addrConverter)
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, nil, addrConverter)
 
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -149,7 +149,7 @@ func TestNewTxsPoolsCleaner_NilTransactionPoolShouldErr(t *testing.T) {
 		},
 	}
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
@@ -163,7 +163,7 @@ func TestNewTxsPoolsCleaner_NilAddressConverterShouldErr(t *testing.T) {
 	accounts := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPool([]byte("test"))
-	txsPoolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, nil)
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, nil)
 
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -178,7 +178,7 @@ func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPool([]byte("test"))
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
 	assert.NotNil(t, txsPoolsCleaner)
 	assert.Nil(t, err)
@@ -187,16 +187,16 @@ func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 func TestTxPoolsCleaner_CleanNilSenderAddrShouldRemoveTx(t *testing.T) {
 	t.Parallel()
 
-	cleaningTime := time.Second
+	maxCleanTime := time.Second
 	nonce := uint64(1)
 	balance := big.NewInt(1)
 	accounts := getAccAdapter(nonce, balance)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
+	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
-	itRan, err := txsPoolsCleaner.Clean(cleaningTime)
+	itRan, err := txsPoolsCleaner.Clean(maxCleanTime)
 	assert.Nil(t, err)
 	assert.Equal(t, true, itRan)
 
@@ -217,7 +217,7 @@ func TestTxPoolsCleaner_CleanAccountNotExistsShouldRemoveTx(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
+	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
 	itRan, err := txsPoolsCleaner.Clean(cleanDuration)
 	assert.Nil(t, err)
@@ -238,7 +238,7 @@ func TestTxPoolsCleaner_CleanLowerAccountNonceShouldRemoveTx(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
+	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
 	itRan, err := txsPoolsCleaner.Clean(cleanDuration)
 	assert.Nil(t, err)
@@ -257,10 +257,10 @@ func TestTxPoolsCleaner_CleanNilHaveTimeShouldErr(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
+	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
 	itRan, err := txsPoolsCleaner.Clean(0)
-	assert.Equal(t, process.ErrZeroCleaningTime, err)
+	assert.Equal(t, process.ErrZeroMaxCleanTime, err)
 	assert.Equal(t, false, itRan)
 }
 
@@ -273,7 +273,7 @@ func TestTxPoolsCleaner_CleanWillDoNothingIfIsCalledMultipleTime(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	tdp := initDataPoolWithFourTransactions()
 	addrConverter, _ := addressConverters.NewPlainAddressConverter(32, "0x")
-	txsPoolsCleaner, _ := poolscleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
+	txsPoolsCleaner, _ := poolsCleaner.NewTxsPoolsCleaner(accounts, shardCoordinator, tdp, addrConverter)
 
 	go func() {
 		_, _ = txsPoolsCleaner.Clean(time.Second)

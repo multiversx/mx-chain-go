@@ -53,7 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/poolscleaner"
+	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -1504,7 +1504,7 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	poolsCleaner, err := poolscleaner.NewTxsPoolsCleaner(
+	txPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
 		state.AccountsAdapter,
 		shardCoordinator,
 		data.Datapool,
@@ -1531,7 +1531,7 @@ func newShardBlockProcessorAndTracker(
 		DataPool:         data.Datapool,
 		BlocksTracker:    blockTracker,
 		TxCoordinator:    txCoordinator,
-		TxsPoolsCleaner:  poolsCleaner,
+		TxsPoolsCleaner:  txPoolsCleaner,
 	}
 
 	blockProcessor, err := block.NewShardProcessor(arguments)

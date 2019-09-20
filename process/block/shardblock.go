@@ -1,7 +1,6 @@
 package block
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -19,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-const cleaningTime = time.Second
+const maxCleanTime = time.Second
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -128,16 +127,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp.allNeededMetaHdrsFound = true
 
 	return &sp, nil
-}
-
-// SetPoolsCleaner will set pool cleaner
-func (sp *shardProcessor) SetPoolsCleaner(poolsCleaner process.PoolsCleaner) error {
-	if poolsCleaner == nil {
-		return errors.New("nil pools cleaner")
-	}
-	sp.txsPoolsCleaner = poolsCleaner
-
-	return nil
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -700,7 +689,7 @@ func (sp *shardProcessor) CommitBlock(
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler)
 
-	sp.cleanTxsPools()
+	go sp.cleanTxsPools()
 
 	// write data to log
 	go sp.txCounter.displayLogInfo(
@@ -718,11 +707,9 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 func (sp *shardProcessor) cleanTxsPools() {
-	go func() {
-		_, err := sp.txsPoolsCleaner.Clean(cleaningTime)
-		log.LogIfError(err)
-		log.Info(fmt.Sprintf("Total txs removed from pools cleaner %d", sp.txsPoolsCleaner.NumRemovedTxs()))
-	}()
+	_, err := sp.txsPoolsCleaner.Clean(maxCleanTime)
+	log.LogIfError(err)
+	log.Info(fmt.Sprintf("Total txs removed from pools cleaner %d", sp.txsPoolsCleaner.NumRemovedTxs()))
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain

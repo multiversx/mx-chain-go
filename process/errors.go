@@ -430,5 +430,5 @@ var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wr
 // ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
 var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
 
-// ErrZeroCleaningTime signal that cleaning time for pools its less or equals with 0
-var ErrZeroCleaningTime = errors.New("cleaning time is equal or less than zero")
+// ErrZeroMaxCleanTime signal that cleaning time for pools its less or equals with 0
+var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")

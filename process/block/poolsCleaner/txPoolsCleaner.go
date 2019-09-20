@@ -1,4 +1,4 @@
-package poolscleaner
+package poolsCleaner
 
 import (
 	"sync/atomic"
@@ -61,7 +61,7 @@ func NewTxsPoolsCleaner(
 // and if tx have low nonce will be removed from pools
 func (tpc *TxPoolsCleaner) Clean(duration time.Duration) (bool, error) {
 	if duration == 0 {
-		return false, process.ErrZeroCleaningTime
+		return false, process.ErrZeroMaxCleanTime
 	}
 
 	select {
