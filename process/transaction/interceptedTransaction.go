@@ -91,7 +91,12 @@ func NewInterceptedTransaction(
 func (inTx *InterceptedTransaction) CheckValidity() error {
 	err := inTx.integrity()
 	if err != nil {
-		return nil, err
+		return err
+	}
+
+	err = inTx.verifySig()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -100,6 +105,7 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 	inTx.hash = inTx.hasher.Compute(string(txBuff))
 
+	var err error
 	inTx.sndAddr, err = inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
 	if err != nil {
 		return process.ErrInvalidSndAddr
@@ -167,14 +173,9 @@ func (inTx *InterceptedTransaction) verifySig() error {
 	return nil
 }
 
-// RcvShard returns the receiver shard
-func (inTx *InterceptedTransaction) RcvShard() uint32 {
+// ReceiverShardId returns the receiver shard id
+func (inTx *InterceptedTransaction) ReceiverShardId() uint32 {
 	return inTx.rcvShard
-}
-
-// SndShard returns the sender shard
-func (inTx *InterceptedTransaction) SndShard() uint32 {
-	return inTx.sndShard
 }
 
 // IsForMyShard returns true if this transaction is meant to be processed by the node from this shard

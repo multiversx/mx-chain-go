@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -260,7 +261,7 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 
 	txi, err := createInterceptedTxFromPlainTx(tx)
 
-	assert.NotNil(t, txi)
+	assert.False(t, check.IfNil(txi))
 	assert.Nil(t, err)
 	assert.Equal(t, tx, txi.Transaction())
 }
@@ -483,8 +484,8 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 
 	txi, _ := createInterceptedTxFromPlainTx(tx)
 
-	assert.Equal(t, senderShard, txi.SndShard())
-	assert.Equal(t, recvShard, txi.RcvShard())
+	assert.Equal(t, senderShard, txi.SenderShardId())
+	assert.Equal(t, recvShard, txi.ReceiverShardId())
 	assert.False(t, txi.IsForMyShard())
 	assert.Equal(t, tx, txi.Transaction())
 }
@@ -538,11 +539,11 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 	)
 
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), txIntercepted.RcvShard())
-	assert.Equal(t, uint32(1), txIntercepted.SndShard())
+	assert.Equal(t, uint32(1), txIntercepted.ReceiverShardId())
+	assert.Equal(t, uint32(1), txIntercepted.SenderShardId())
 }
 
-func TestNewInterceptedTransaction_GetNonce(t *testing.T) {
+func TestInterceptedTransaction_GetNonce(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(1)
@@ -564,7 +565,7 @@ func TestNewInterceptedTransaction_GetNonce(t *testing.T) {
 	assert.Equal(t, nonce, result)
 }
 
-func TestNewInterceptedTransaction_SenderShardId(t *testing.T) {
+func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 	t.Parallel()
 
 	tx := &dataTransaction.Transaction{
@@ -584,7 +585,7 @@ func TestNewInterceptedTransaction_SenderShardId(t *testing.T) {
 	assert.Equal(t, senderShard, result)
 }
 
-func TestNewInterceptedTransaction_GetTotalValue(t *testing.T) {
+func TestInterceptedTransaction_GetTotalValue(t *testing.T) {
 	t.Parallel()
 
 	txValue := big.NewInt(2)
@@ -612,7 +613,7 @@ func TestNewInterceptedTransaction_GetTotalValue(t *testing.T) {
 	assert.Equal(t, expectedValue, result)
 }
 
-func TestNewInterceptedTransaction_GetSenderAddress(t *testing.T) {
+func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 	t.Parallel()
 
 	tx := &dataTransaction.Transaction{
@@ -630,4 +631,14 @@ func TestNewInterceptedTransaction_GetSenderAddress(t *testing.T) {
 
 	result := txi.SenderAddress()
 	assert.NotNil(t, result)
+}
+
+//------- IsInterfaceNil
+
+func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var txi *transaction.InterceptedTransaction
+
+	assert.True(t, check.IfNil(txi))
 }

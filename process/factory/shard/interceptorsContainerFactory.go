@@ -22,7 +22,7 @@ import (
 const numGoRoutinesInTxInterceptors = 100
 
 type interceptorsContainerFactory struct {
-	accounts            state.AccountsAdapter
+	accounts              state.AccountsAdapter
 	shardCoordinator      sharding.Coordinator
 	messenger             process.TopicHandler
 	store                 dataRetriever.StorageService
@@ -90,20 +90,6 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilChronologyValidator
 	}
 
-	return &interceptorsContainerFactory{
-		accounts:            accounts,
-		shardCoordinator:    shardCoordinator,
-		messenger:           messenger,
-		store:               store,
-		marshalizer:         marshalizer,
-		hasher:              hasher,
-		keyGen:              keyGen,
-		singleSigner:        singleSigner,
-		multiSigner:         multiSigner,
-		dataPool:            dataPool,
-		addrConverter:       addrConverter,
-		chronologyValidator: chronologyValidator,
-	}, nil
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
 		Hasher:           hasher,
@@ -114,6 +100,7 @@ func NewInterceptorsContainerFactory(
 	}
 
 	icf := &interceptorsContainerFactory{
+		accounts:              accounts,
 		shardCoordinator:      shardCoordinator,
 		messenger:             messenger,
 		store:                 store,
@@ -254,8 +241,14 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
+	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: icf.dataPool.Transactions(),
+		TxValidator:      txValidator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -266,10 +259,6 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedTx,
 	)
-	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
-	if err != nil {
-		return nil, err
-	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		icf.marshalizer,

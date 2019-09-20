@@ -10,6 +10,7 @@ import (
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
 	shardedDataCache dataRetriever.ShardedDataCacherNotifier
+	txValidator      process.TxValidator
 }
 
 // NewTxInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -20,15 +21,29 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 	if check.IfNil(argument.ShardedDataCache) {
 		return nil, process.ErrNilDataPoolHolder
 	}
+	if check.IfNil(argument.TxValidator) {
+		return nil, process.ErrNilTxValidator
+	}
 
 	return &TxInterceptorProcessor{
 		shardedDataCache: argument.ShardedDataCache,
+		txValidator:      argument.TxValidator,
 	}, nil
 }
 
 // Validate checks if the intercepted data can be processed
 func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error {
-	//TODO implement tx checking logic here (will be done in a future PR)
+	interceptedTx, ok := data.(InterceptedTransactionHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	//TODO change the IsTxValidForProcessing to output error
+	isTxValid := txip.txValidator.IsTxValidForProcessing(interceptedTx)
+	if !isTxValid {
+		return process.ErrTxNotValid
+	}
+
 	return nil
 }
 
@@ -39,7 +54,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 		return process.ErrWrongTypeAssertion
 	}
 
-	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SndShard(), interceptedTx.RcvShard())
+	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SenderShardId(), interceptedTx.ReceiverShardId())
 	txip.shardedDataCache.AddData(
 		interceptedTx.Hash(),
 		interceptedTx.Transaction(),

@@ -432,3 +432,9 @@ var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
+
+// ErrNilTxValidator signals that a nil tx validator has been provided
+var ErrNilTxValidator = errors.New("nil transaction validator")
+
+// ErrTxNotValid signals that a tx is not valid
+var ErrTxNotValid = errors.New("transaction is not valid")

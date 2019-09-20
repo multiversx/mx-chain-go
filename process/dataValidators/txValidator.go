@@ -12,15 +12,15 @@ import (
 
 var log = logger.DefaultLogger()
 
-// TxValidator represents a tx handler validator that doesn't check the validity of provided txHandler
-type TxValidator struct {
+// txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
+type txValidator struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
 	rejectedTxs      uint64
 }
 
 // NewTxValidator creates a new nil tx handler validator instance
-func NewTxValidator(accounts state.AccountsAdapter, shardCoordinator sharding.Coordinator) (*TxValidator, error) {
+func NewTxValidator(accounts state.AccountsAdapter, shardCoordinator sharding.Coordinator) (*txValidator, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
@@ -28,7 +28,7 @@ func NewTxValidator(accounts state.AccountsAdapter, shardCoordinator sharding.Co
 		return nil, process.ErrNilShardCoordinator
 	}
 
-	return &TxValidator{
+	return &txValidator{
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
 		rejectedTxs:      uint64(0),
@@ -36,7 +36,7 @@ func NewTxValidator(accounts state.AccountsAdapter, shardCoordinator sharding.Co
 }
 
 // IsTxValidForProcessing will filter transactions that needs to be added in pools
-func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorHandler) bool {
+func (tv *txValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorHandler) bool {
 	shardId := tv.shardCoordinator.SelfId()
 	txShardId := interceptedTx.SenderShardId()
 	senderIsInAnotherShard := shardId != txShardId
@@ -78,12 +78,12 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 }
 
 // NumRejectedTxs will return number of rejected transaction
-func (tv *TxValidator) NumRejectedTxs() uint64 {
+func (tv *txValidator) NumRejectedTxs() uint64 {
 	return tv.rejectedTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tv *TxValidator) IsInterfaceNil() bool {
+func (tv *txValidator) IsInterfaceNil() bool {
 	if tv == nil {
 		return true
 	}

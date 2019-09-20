@@ -1,26 +1,46 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+)
 
 type InterceptedTxHandlerStub struct {
-	SndShardCalled    func() uint32
-	RcvShardCalled    func() uint32
-	HashCalled        func() []byte
-	TransactionCalled func() data.TransactionHandler
+	SenderShardIdCalled   func() uint32
+	ReceiverShardIdCalled func() uint32
+	NonceCalled           func() uint64
+	SenderAddressCalled   func() state.AddressContainer
+	TotalValueCalled      func() *big.Int
+	HashCalled            func() []byte
+	TransactionCalled     func() data.TransactionHandler
 }
 
-func (itxhs *InterceptedTxHandlerStub) SndShard() uint32 {
-	return itxhs.SndShardCalled()
+func (iths *InterceptedTxHandlerStub) SenderShardId() uint32 {
+	return iths.SenderShardIdCalled()
 }
 
-func (itxhs *InterceptedTxHandlerStub) RcvShard() uint32 {
-	return itxhs.RcvShardCalled()
+func (iths *InterceptedTxHandlerStub) ReceiverShardId() uint32 {
+	return iths.ReceiverShardIdCalled()
 }
 
-func (itxhs *InterceptedTxHandlerStub) Hash() []byte {
-	return itxhs.HashCalled()
+func (iths *InterceptedTxHandlerStub) Nonce() uint64 {
+	return iths.NonceCalled()
 }
 
-func (itxhs *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {
-	return itxhs.TransactionCalled()
+func (iths *InterceptedTxHandlerStub) SenderAddress() state.AddressContainer {
+	return iths.SenderAddressCalled()
+}
+
+func (iths *InterceptedTxHandlerStub) TotalValue() *big.Int {
+	return iths.TotalValueCalled()
+}
+
+func (iths *InterceptedTxHandlerStub) Hash() []byte {
+	return iths.HashCalled()
+}
+
+func (iths *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {
+	return iths.TransactionCalled()
 }
