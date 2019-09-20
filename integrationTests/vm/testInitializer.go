@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -153,6 +154,36 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(
 	return txProcessor, blockChainHook
 }
 
+func CreateTxProcessorWithOneSCExecutorArwenVM(
+	accnts state.AccountsAdapter,
+) (process.TransactionProcessor, vmcommon.BlockchainHook) {
+
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+	cryptoHook := hooks.NewVMCryptoHook()
+	vm, _ := arwen.NewArwenVM(blockChainHook, cryptoHook, []byte{9, 9})
+
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return vm, nil
+		}}
+
+	argsParser, _ := smartContract.NewAtArgumentParser()
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
+		vmContainer,
+		argsParser,
+		testHasher,
+		testMarshalizer,
+		accnts,
+		blockChainHook,
+		addrConv,
+		oneShardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
+
+	return txProcessor, blockChainHook
+}
+
 func CreateTxProcessorWithOneSCExecutorWASMVM(
 	accnts state.AccountsAdapter,
 	config string,
@@ -255,6 +286,22 @@ func CreatePreparedTxProcessorAndAccountsWithWASMVM(
 	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorWASMVM(accnts, config)
+	assert.NotNil(tb, txProcessor)
+
+	return txProcessor, accnts, blockchainHook
+}
+
+func CreatePreparedTxProcessorAndAccountsWithArwenVM(
+	tb testing.TB,
+	senderNonce uint64,
+	senderAddressBytes []byte,
+	senderBalance *big.Int,
+) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
+
+	accnts := CreateInMemoryShardAccountsDB()
+	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+
+	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorArwenVM(accnts)
 	assert.NotNil(tb, txProcessor)
 
 	return txProcessor, accnts, blockchainHook
