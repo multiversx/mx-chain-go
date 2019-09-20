@@ -771,7 +771,11 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 		ownShIdHdr = append(ownShIdHdr, ownHdr)
 	}
 
-	return ownShIdHdr, errFound
+	if errFound != nil {
+		return nil, errFound
+	}
+
+	return ownShIdHdr, nil
 }
 
 // getProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
