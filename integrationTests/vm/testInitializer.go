@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -123,15 +124,14 @@ func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecuti
 	return vm, blockChainHook
 }
 
-func CreateTxProcessorWithOneSCExecutorIeleVM(
+func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
 ) (process.TransactionProcessor, vmcommon.BlockchainHook) {
 
-	vm, blockChainHook := CreateVMAndBlockchainHook(accnts)
-	vmContainer := &mock.VMContainerMock{
-		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-			return vm, nil
-		}}
+	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv)
+	vmContainer, _ := vmFactory.Create()
 
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
@@ -193,7 +193,7 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 	return accnt != nil
 }
 
-func CreatePreparedTxProcessorAndAccountsWithIeleVM(
+func CreatePreparedTxProcessorAndAccountsWithVMs(
 	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
@@ -203,7 +203,7 @@ func CreatePreparedTxProcessorAndAccountsWithIeleVM(
 	accnts := CreateInMemoryShardAccountsDB()
 	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorIeleVM(accnts)
+	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorWithVMs(accnts)
 	assert.NotNil(tb, txProcessor)
 
 	return txProcessor, accnts, blockchainHook

@@ -22,3 +22,6 @@ var InternalTestingVM = []byte{0, 0}
 
 // IELEVirtualMachine is a byte array identifier for the smart contract address created for IELE VM
 var IELEVirtualMachine = []byte{1, 0}
+
+// ArwenVirtualMachine is a byte array identifier for the smart contract address created for Arwen VM
+var ArwenVirtualMachine = []byte{5, 0}

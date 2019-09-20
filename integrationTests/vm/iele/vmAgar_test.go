@@ -28,7 +28,7 @@ func TestDeployAgarioContract(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -63,7 +63,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -122,7 +122,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -207,7 +207,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	gasPrice := uint64(0)
 	gasLimit := uint64(100000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -342,7 +342,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 	gasPrice := uint64(0)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(b, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(b, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		b,
 		senderAddressBytes,
