@@ -154,7 +154,7 @@ func (boot *MetaBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64,
 	if shardId == sharding.MetachainShardId {
 		errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 		if errNotCritical != nil {
-			log.Info(errNotCritical.Error())
+			log.Debug(errNotCritical.Error())
 		}
 
 		return
@@ -417,7 +417,9 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
 			boot.forkNonce,
 			core.ToB64(boot.forkHash)))
+
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
+
 		err := boot.forkChoice(true)
 		if err != nil {
 			log.Info(err.Error())
@@ -626,7 +628,7 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 		return err
 	}
 
-	boot.cleanCachesOnRollback(header, headerStore, headerNonceHashStore)
+	boot.cleanCachesAndStorageOnRollback(header, headerStore, headerNonceHashStore)
 	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(header, nil)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())

@@ -89,6 +89,10 @@ const (
 
 var log = logger.DefaultLogger()
 
+//TODO: Extract all others error messages from this file in some defined errors
+// ErrCreateForkDetector signals that a fork detector could not be created
+var ErrCreateForkDetector = errors.New("could not create fork detector")
+
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
 	NetMessenger p2p.Messenger
@@ -1365,7 +1369,7 @@ func newForkDetector(
 		return processSync.NewMetaForkDetector(rounder)
 	}
 
-	return nil, errors.New("could not create fork detector")
+	return nil, ErrCreateForkDetector
 }
 
 func newBlockProcessorAndTracker(

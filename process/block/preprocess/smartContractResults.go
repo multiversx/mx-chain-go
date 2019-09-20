@@ -159,10 +159,10 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
 
-			//err = scr.storage.GetStorer(dataRetriever.UnsignedTransactionUnit).Remove([]byte(txHash))
-			//if err != nil {
-			//	return scrRestored, miniBlockHashes, err
-			//}
+			err = scr.storage.GetStorer(dataRetriever.UnsignedTransactionUnit).Remove([]byte(txHash))
+			if err != nil {
+				return scrRestored, miniBlockHashes, err
+			}
 		}
 
 		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
@@ -172,10 +172,10 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 
 		restoredHash := scr.restoreMiniBlock(miniBlock, miniBlockHash, miniBlockPool)
 
-		//err = scr.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
-		//if err != nil {
-		//	return scrRestored, miniBlockHashes, err
-		//}
+		err = scr.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
+		if err != nil {
+			return scrRestored, miniBlockHashes, err
+		}
 
 		miniBlockHashes[i] = restoredHash
 		scrRestored += len(miniBlock.TxHashes)

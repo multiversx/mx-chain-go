@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -122,7 +121,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (process.Bootstrapper, e
 		tpn.BlockChain,
 		tpn.Rounder,
 		tpn.BlockProcessor,
-		node.WaitTime,
+		tpn.Rounder.TimeDuration(),
 		TestHasher,
 		TestMarshalizer,
 		tpn.ForkDetector,
@@ -145,7 +144,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (process.Bootstrappe
 		tpn.BlockChain,
 		tpn.Rounder,
 		tpn.BlockProcessor,
-		node.WaitTime,
+		tpn.Rounder.TimeDuration(),
 		TestHasher,
 		TestMarshalizer,
 		tpn.ForkDetector,

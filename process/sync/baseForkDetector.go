@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+const MinForkRound = uint64(0)
+
 type headerInfo struct {
 	nonce uint64
 	round uint64
@@ -383,37 +385,10 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 				continue
 			}
 
-			if hdrInfos[i].state == process.BHNotarized {
-				if lowestRoundInForkNonce > 0 {
-					lowestRoundInForkNonce = 0
-					forkHeaderHash = hdrInfos[i].hash
-					continue
-				}
-
-				hasHeaderLowerHashForNonceAndRound := lowestRoundInForkNonce == 0 &&
-					bytes.Compare(hdrInfos[i].hash, forkHeaderHash) < 0
-				if hasHeaderLowerHashForNonceAndRound {
-					forkHeaderHash = hdrInfos[i].hash
-				}
-
-				continue
-			}
-
-			if hdrInfos[i].state == process.BHReceived {
-				if hdrInfos[i].round < lowestRoundInForkNonce {
-					lowestRoundInForkNonce = hdrInfos[i].round
-					forkHeaderHash = hdrInfos[i].hash
-					continue
-				}
-
-				hasHeaderLowerHashForNonceAndRound := hdrInfos[i].round == lowestRoundInForkNonce &&
-					bytes.Compare(hdrInfos[i].hash, forkHeaderHash) < 0
-				if hasHeaderLowerHashForNonceAndRound {
-					forkHeaderHash = hdrInfos[i].hash
-				}
-
-				continue
-			}
+			forkHeaderHash, lowestRoundInForkNonce = bfd.computeForkInfo(
+				hdrInfos[i],
+				forkHeaderHash,
+				lowestRoundInForkNonce)
 		}
 
 		if selfHdrInfo == nil {
@@ -421,23 +396,57 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 			continue
 		}
 
-		hasHeaderHigherHashForNonceAndRound := selfHdrInfo.round == lowestRoundInForkNonce &&
-			strings.Compare(string(selfHdrInfo.hash), string(forkHeaderHash)) > 0
-		shouldSignalFork := selfHdrInfo.round > lowestRoundInForkNonce || hasHeaderHigherHashForNonceAndRound
-		if !shouldSignalFork {
-			// keep it clean so next time this position will be processed faster
-			delete(bfd.headers, nonce)
-			bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
+		if bfd.shouldSignalFork(selfHdrInfo, forkHeaderHash, lowestRoundInForkNonce) {
+			forkDetected = true
+			if nonce < lowestForkNonce {
+				lowestForkNonce = nonce
+				hashOfLowestForkNonce = forkHeaderHash
+			}
 			continue
 		}
 
-		forkDetected = true
-		if nonce < lowestForkNonce {
-			lowestForkNonce = nonce
-			hashOfLowestForkNonce = forkHeaderHash
-		}
+		// keep it clean so next time this position will be processed faster
+		delete(bfd.headers, nonce)
+		bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
 	}
 	bfd.mutHeaders.Unlock()
 
 	return forkDetected, lowestForkNonce, hashOfLowestForkNonce
+}
+
+func (bfd *baseForkDetector) computeForkInfo(
+	headerInfo *headerInfo,
+	lastForkHash []byte,
+	lastForkRound uint64,
+) ([]byte, uint64) {
+
+	currentForkRound := headerInfo.round
+	if headerInfo.state == process.BHNotarized {
+		currentForkRound = MinForkRound
+	}
+
+	if currentForkRound < lastForkRound {
+		return headerInfo.hash, currentForkRound
+	}
+
+	lowerHashForSameRound := currentForkRound == lastForkRound &&
+		bytes.Compare(headerInfo.hash, lastForkHash) < 0
+	if lowerHashForSameRound {
+		return headerInfo.hash, currentForkRound
+	}
+
+	return lastForkHash, lastForkRound
+}
+
+func (bfd *baseForkDetector) shouldSignalFork(
+	headerInfo *headerInfo,
+	lastForkHash []byte,
+	lastForkRound uint64,
+) bool {
+
+	higherHashForSameRound := headerInfo.round == lastForkRound &&
+		strings.Compare(string(headerInfo.hash), string(lastForkHash)) > 0
+	shouldSignalFork := headerInfo.round > lastForkRound || higherHashForSameRound
+
+	return shouldSignalFork
 }

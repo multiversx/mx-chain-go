@@ -195,7 +195,7 @@ func (boot *ShardBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64
 
 	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, ownHdrFromMeta, ownHdrHashesFromMeta)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug(errNotCritical.Error())
 	}
 
 }
@@ -637,7 +637,9 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
 			boot.forkNonce,
 			core.ToB64(boot.forkHash)))
+
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
+
 		err := boot.forkChoice(true)
 		if err != nil {
 			log.Info(err.Error())
@@ -934,7 +936,7 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 		return err
 	}
 
-	boot.cleanCachesOnRollback(header, headerStore, headerNonceHashStore)
+	boot.cleanCachesAndStorageOnRollback(header, headerStore, headerNonceHashStore)
 	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(header, body)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())

@@ -143,6 +143,7 @@ func (rrh *ResolverRequestHandler) RequestMiniBlock(shardId uint32, miniblockHas
 
 // RequestHeader method asks for header from the connected peers
 func (rrh *ResolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
+	//TODO: Refactor this class and create specific methods for requesting shard or meta data
 	var topic string
 	if shardId == sharding.MetachainShardId {
 		topic = rrh.metaHdrRequestTopic

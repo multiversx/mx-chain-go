@@ -336,7 +336,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 
 	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug(err.Error())
 	}
 
 	hash := boot.requestedHeaderHash()
@@ -474,18 +474,18 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 		return nil
 	}
 
-	boot.headers.Remove(hash)
+	//TODO: boot.headers.Remove(hash) should not be called, just to have a restore point if it is needed later
 	return hash
 }
 
-func (boot *baseBootstrap) cleanCachesOnRollback(
+func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(
 	header data.HeaderHandler,
 	headerStore storage.Storer,
 	headerNonceHashStore storage.Storer) {
 
 	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
-	//_ = headerStore.Remove(hash)
+	_ = headerStore.Remove(hash)
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
 	_ = headerNonceHashStore.Remove(nonceToByteSlice)
 }

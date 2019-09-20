@@ -690,8 +690,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
-	hdrsToAttestFinality := uint32(header.Nonce - sp.forkDetector.GetHighestFinalBlockNonce() + 1)
-	sp.removeNotarizedHdrsBehindFinal(hdrsToAttestFinality)
+	hdrsToAttestPreviousFinal := uint32(header.Nonce-sp.forkDetector.GetHighestFinalBlockNonce()) + 1
+	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -767,6 +767,7 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) ([]data.HeaderHandler, error) {
 	ownShIdHdr := make([]data.HeaderHandler, 0)
 
+	var errFound error
 	// search for own shard id in shardInfo from metaHeaders
 	for _, shardInfo := range hdr.ShardInfo {
 		if shardInfo.ShardId != shardId {
@@ -781,13 +782,14 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 				core.ToB64(shardInfo.HeaderHash),
 				shardInfo.ShardId))
 
-			return nil, err
+			errFound = err
+			continue
 		}
 
 		ownShIdHdr = append(ownShIdHdr, ownHdr)
 	}
 
-	return ownShIdHdr, nil
+	return ownShIdHdr, errFound
 }
 
 // getProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
