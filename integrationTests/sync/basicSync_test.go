@@ -15,6 +15,7 @@ import (
 
 var stepDelay = time.Second
 var delayP2pBootstrap = time.Second * 2
+var stepSync = time.Second * 2
 
 func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	if testing.Short() {
@@ -76,14 +77,14 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 
-		time.Sleep(stepDelay)
+		time.Sleep(stepSync)
 
 		round = integrationTests.IncrementAndPrintRound(round)
 		updateRound(nodes, round)
 		nonce++
 	}
 
-	time.Sleep(stepDelay)
+	time.Sleep(stepSync)
 
 	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
 }
@@ -139,12 +140,14 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 
-		time.Sleep(stepDelay)
+		time.Sleep(stepSync)
 
 		round = integrationTests.IncrementAndPrintRound(round)
 		updateRound(nodes, round)
 		nonce++
 	}
+
+	time.Sleep(stepSync)
 
 	pubKeysVariant1 := []byte("1")
 	pubKeysVariant2 := []byte("2")
@@ -157,7 +160,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	updateRound(nodes, round)
 
-	stepDelayForkResolving := 3 * stepDelay
+	stepDelayForkResolving := 4 * stepDelay
 	time.Sleep(stepDelayForkResolving)
 
 	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
