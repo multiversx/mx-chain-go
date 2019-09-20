@@ -86,6 +86,7 @@ func NewNetworkMessenger(
 		libp2p.DefaultSecurity,
 		libp2p.ConnectionManager(conMgr),
 		libp2p.DefaultTransports,
+		//TODO investigate if the DisableRelay is really needed and why
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 	}
