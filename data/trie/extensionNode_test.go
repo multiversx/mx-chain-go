@@ -464,7 +464,7 @@ func TestExtensionNode_insert(t *testing.T) {
 	node := newLeafNode([]byte{100, 15, 5, 6}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := en.insert(node, db, marsh)
+	dirty, newNode, _, err := en.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	val, _ := newNode.tryGet([]byte{100, 15, 5, 6}, db, marsh)
@@ -480,7 +480,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	_ = en.setHash(marsh, hasher)
 	_ = en.commit(0, db, marsh, hasher)
 
-	dirty, newNode, err := collapsedEn.insert(node, db, marsh)
+	dirty, newNode, _, err := collapsedEn.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	val, _ := newNode.tryGet([]byte{100, 15, 5, 6}, db, marsh)
@@ -494,7 +494,7 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := en.insert(node, db, marsh)
+	dirty, newNode, _, err := en.insert(node, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, newNode)
@@ -509,7 +509,7 @@ func TestExtensionNode_delete(t *testing.T) {
 	val, _ := en.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)
 	assert.Equal(t, []byte("dog"), val)
 
-	dirty, _, err := en.delete([]byte{100, 2, 100, 111, 103}, db, marsh)
+	dirty, _, _, err := en.delete([]byte{100, 2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	val, _ = en.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)
@@ -522,7 +522,7 @@ func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := en.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, newNode, _, err := en.delete([]byte{100, 111, 103}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrEmptyNode, err)
 	assert.Nil(t, newNode)
@@ -534,7 +534,7 @@ func TestExtensionNode_deleteNilNode(t *testing.T) {
 	var en *extensionNode
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := en.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, newNode, _, err := en.delete([]byte{100, 111, 103}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, newNode)
@@ -546,7 +546,7 @@ func TestExtensionNode_deleteEmptykey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := en.delete([]byte{}, db, marsh)
+	dirty, newNode, _, err := en.delete([]byte{}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newNode)
@@ -563,7 +563,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	val, _ := en.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)
 	assert.Equal(t, []byte("dog"), val)
 
-	dirty, newNode, err := collapsedEn.delete([]byte{100, 2, 100, 111, 103}, db, marsh)
+	dirty, newNode, _, err := collapsedEn.delete([]byte{100, 2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	val, _ = newNode.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)

@@ -322,7 +322,6 @@ func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
 	root2, _ := tr2.Root()
 
 	assert.Equal(t, root2, root1)
-
 }
 
 func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {

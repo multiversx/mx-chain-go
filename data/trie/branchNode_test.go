@@ -337,6 +337,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	_ = bn.commit(0, db, marsh, hasher)
 	resolved := newLeafNode([]byte("dog"), []byte("dog"))
 	resolved.dirty = false
+	resolved.hash = bn.EncodedChildren[2]
 
 	err := collapsedBn.resolveCollapsed(2, db, marsh)
 	assert.Nil(t, err)
@@ -521,7 +522,7 @@ func TestBranchNode_insert(t *testing.T) {
 	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.insert(node, db, marsh)
+	dirty, newBn, _, err := bn.insert(node, db, marsh)
 	bn.children[0] = newLeafNode([]byte{2, 3}, []byte("dogs"))
 	assert.True(t, dirty)
 	assert.Nil(t, err)
@@ -535,7 +536,7 @@ func TestBranchNode_insertEmptyKey(t *testing.T) {
 	node := newLeafNode([]byte{}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.insert(node, db, marsh)
+	dirty, newBn, _, err := bn.insert(node, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
@@ -548,7 +549,7 @@ func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
 	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.insert(node, db, marsh)
+	dirty, newBn, _, err := bn.insert(node, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, newBn)
@@ -563,7 +564,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	_ = bn.setHash(marsh, hasher)
 	_ = bn.commit(0, db, marsh, hasher)
 
-	dirty, newBn, err := collapsedBn.insert(node, db, marsh)
+	dirty, newBn, _, err := collapsedBn.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	val, _ := newBn.tryGet([]byte{2, 100, 111, 103}, db, marsh)
@@ -577,7 +578,7 @@ func TestBranchNode_insertInNilNode(t *testing.T) {
 	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.insert(node, db, marsh)
+	dirty, newBn, _, err := bn.insert(node, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, newBn)
@@ -595,7 +596,7 @@ func TestBranchNode_delete(t *testing.T) {
 	expectedBn := newBranchNode()
 	expectedBn.children = children
 
-	dirty, newBn, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -610,7 +611,7 @@ func TestBranchNode_deleteEmptyNode(t *testing.T) {
 	bn := newBranchNode()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrEmptyNode, err)
 	assert.Nil(t, newBn)
@@ -622,7 +623,7 @@ func TestBranchNode_deleteNilNode(t *testing.T) {
 	var bn *branchNode
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, newBn)
@@ -634,7 +635,7 @@ func TestBranchNode_deleteEmptykey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.delete([]byte{}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
@@ -648,7 +649,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	_ = bn.setHash(marsh, hasher)
 	_ = bn.commit(0, db, marsh, hasher)
 
-	dirty, newBn, err := collapsedBn.delete([]byte{2, 100, 111, 103}, db, marsh)
+	dirty, newBn, _, err := collapsedBn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -669,7 +670,7 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	bn.children = children
 	ln := newLeafNode([]byte{2, 100, 111, 103}, []byte("dog"))
 
-	dirty, newBn, err := bn.delete([]byte{6, 100, 111, 101}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{6, 100, 111, 101}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newBn)

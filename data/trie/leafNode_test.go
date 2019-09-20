@@ -307,7 +307,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := ln.insert(node, db, marsh)
+	dirty, newNode, _, err := ln.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	val, _ := newNode.tryGet([]byte{100, 111, 103}, db, marsh)
@@ -321,7 +321,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	node := newLeafNode([]byte{3, 4, 5}, []byte{3, 4, 5})
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := ln.insert(node, db, marsh)
+	dirty, newNode, _, err := ln.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	val, _ := newNode.tryGet([]byte{3, 4, 5}, db, marsh)
@@ -336,7 +336,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := ln.insert(node, db, marsh)
+	dirty, newNode, _, err := ln.insert(node, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, newNode)
@@ -348,7 +348,7 @@ func TestLeafNode_deletePresent(t *testing.T) {
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := ln.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, newNode, _, err := ln.delete([]byte{100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Nil(t, newNode)
@@ -360,7 +360,7 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := ln.delete([]byte{1, 2, 3}, db, marsh)
+	dirty, newNode, _, err := ln.delete([]byte{1, 2, 3}, db, marsh)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newNode)

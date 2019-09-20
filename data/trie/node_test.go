@@ -142,7 +142,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn()
-	bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -161,7 +161,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	en, collapsedEn := getEnAndCollapsedEn()
-	en.commit(0, db, marsh, hasher)
+	_ = en.commit(0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -180,7 +180,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
-	ln.commit(0, db, marsh, hasher)
+	_ = ln.commit(0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -199,7 +199,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn()
 
-	bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(collapsedBn, 2, db, marsh)
 	assert.Nil(t, err)
@@ -212,7 +212,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	en, collapsedEn := getEnAndCollapsedEn()
 
-	en.commit(0, db, marsh, hasher)
+	_ = en.commit(0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(collapsedEn, 0, db, marsh)
 	assert.Nil(t, err)
@@ -225,7 +225,7 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
 
-	ln.commit(0, db, marsh, hasher)
+	_ = ln.commit(0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(ln, 0, db, marsh)
 	assert.Nil(t, err)
@@ -259,7 +259,7 @@ func TestNode_hasValidHash(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, ok)
 
-	bn.setHash(marsh, hasher)
+	_ = bn.setHash(marsh, hasher)
 	bn.dirty = false
 
 	ok, err = hasValidHash(bn)
@@ -384,6 +384,7 @@ func TestNode_childPosOutOfRange(t *testing.T) {
 
 func TestMarshalingAndUnmarshalingWithCapnp(t *testing.T) {
 	_, collapsedBn := getBnAndCollapsedBn()
+	collapsedBn.dirty = false
 	marsh := marshal.CapnpMarshalizer{}
 	bn := newBranchNode()
 
@@ -428,4 +429,112 @@ func TestPrefixLen(t *testing.T) {
 	for i := range test {
 		assert.Equal(t, test[i].length, prefixLen(test[i].a, test[i].b))
 	}
+}
+
+func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
+	t.Parallel()
+
+	msh, hsh := getTestMarshAndHasher()
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
+
+	tr := &patriciaMerkleTrie{
+		db:                    mock.NewMemDbMock(),
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
+		marshalizer:           msh,
+		hasher:                hsh,
+	}
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	rootHash, _ := tr.Root()
+	rootKey := []byte{6, 4, 6, 15, 6}
+	nextNode, _, _ := tr.root.getNext(rootKey, tr.db, tr.marshalizer)
+
+	_ = tr.Commit()
+
+	tr.root = &extensionNode{
+		CollapsedEn: protobuf.CollapsedEn{
+			Key:          rootKey,
+			EncodedChild: nextNode.getHash(),
+		},
+		child: nil,
+		hash:  rootHash,
+		dirty: false,
+	}
+	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
+
+	assert.Equal(t, 3, len(tr.oldHashes))
+}
+
+func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
+	t.Parallel()
+
+	msh, hsh := getTestMarshAndHasher()
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
+
+	tr := &patriciaMerkleTrie{
+		db:                    mock.NewMemDbMock(),
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
+		marshalizer:           msh,
+		hasher:                hsh,
+	}
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	_ = tr.Commit()
+
+	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
+	_ = tr.Commit()
+
+	assert.Equal(t, 0, len(tr.oldHashes))
+	assert.Equal(t, 0, len(tr.oldRoot))
+}
+
+func TestTrieDatabasePruning(t *testing.T) {
+	t.Parallel()
+
+	msh, hsh := getTestMarshAndHasher()
+	size := 5
+	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
+
+	tr := &patriciaMerkleTrie{
+		db:                    mock.NewMemDbMock(),
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
+		marshalizer:           msh,
+
+		hasher: hsh,
+	}
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+
+	nodeKey := []byte{6, 4, 6, 15, 6, 5, 16}
+	n := tr.root
+	rootHash, _ := tr.Root()
+
+	for i := 0; i < 2; i++ {
+		n, nodeKey, _ = n.getNext(nodeKey, tr.db, tr.marshalizer)
+	}
+	nodeHash := n.getHash()
+
+	_ = tr.Update([]byte("doe"), []byte("doee"))
+	_ = tr.Commit()
+	err := tr.Prune(rootHash)
+	assert.Nil(t, err)
+
+	encNode, err := tr.db.Get(nodeHash)
+	assert.Nil(t, encNode)
+	assert.NotNil(t, err)
 }

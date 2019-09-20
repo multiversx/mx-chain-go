@@ -23,13 +23,15 @@ const evictionCacheSize = 100
 var emptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
-	root                  node
-	db                    data.DBWriteCacher
+	root         node
+	db           data.DBWriteCacher
+	marshalizer  marshal.Marshalizer
+	hasher       hashing.Hasher
+	mutOperation sync.RWMutex
+
 	dbEvictionWaitingList data.DBRemoveCacher
 	oldHashes             [][]byte
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
-	mutOperation          sync.RWMutex
+	oldRoot               []byte
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -58,6 +60,7 @@ func NewTrie(
 		db:                    db,
 		dbEvictionWaitingList: evictionWaitList,
 		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
 		marshalizer:           msh,
 		hasher:                hsh,
 	}, nil
@@ -91,20 +94,32 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.root = newLeafNode(hexKey, value)
 			return nil
 		}
-		_, newRoot, err := tr.root.insert(node, tr.db, tr.marshalizer)
+
+		if !tr.root.isDirty() {
+			tr.oldRoot = tr.root.getHash()
+		}
+
+		_, newRoot, tempCache, err := tr.root.insert(node, tr.db, tr.marshalizer)
 		if err != nil {
 			return err
 		}
 		tr.root = newRoot
+		tr.oldHashes = append(tr.oldHashes, tempCache...)
 	} else {
 		if tr.root == nil {
 			return nil
 		}
-		_, newRoot, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
+
+		if !tr.root.isDirty() {
+			tr.oldRoot = tr.root.getHash()
+		}
+
+		_, newRoot, tempCache, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
 		if err != nil {
 			return err
 		}
 		tr.root = newRoot
+		tr.oldHashes = append(tr.oldHashes, tempCache...)
 	}
 	return nil
 }
@@ -114,15 +129,22 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	tempCache := make([][]byte, 0)
 	hexKey := keyBytesToHex(key)
 	if tr.root == nil {
 		return nil
 	}
-	_, newRoot, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
+
+	if !tr.root.isDirty() {
+		tr.oldRoot = tr.root.getHash()
+	}
+
+	_, newRoot, tempCache, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
 	if err != nil {
 		return err
 	}
 	tr.root = newRoot
+	tr.oldHashes = append(tr.oldHashes, tempCache...)
 	return nil
 }
 
@@ -242,6 +264,16 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
+
+	if len(tr.oldHashes) > 0 {
+		err := tr.dbEvictionWaitingList.Put(tr.oldRoot, tr.oldHashes)
+		if err != nil {
+			return err
+		}
+		tr.oldRoot = make([]byte, 0)
+		tr.oldHashes = make([][]byte, 0)
+	}
+
 	err = tr.root.commit(0, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
@@ -274,6 +306,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		return nil, err
 	}
 
+	newRoot.setGivenHash(root)
 	newTr.root = newRoot
 	return newTr, nil
 }
@@ -327,4 +360,27 @@ func emptyTrie(root []byte) bool {
 		return true
 	}
 	return false
+}
+
+// Rollback invalidates the hashes that correspond to the given root hash from the eviction waiting list
+func (tr *patriciaMerkleTrie) Rollback(rootHash []byte) error {
+	_, err := tr.dbEvictionWaitingList.Evict(rootHash)
+	return err
+}
+
+// Prune removes from the database all the old hashes that correspond to the given root hash
+func (tr *patriciaMerkleTrie) Prune(rootHash []byte) error {
+	hashes, err := tr.dbEvictionWaitingList.Evict(rootHash)
+	if err != nil {
+		return err
+	}
+
+	for i := range hashes {
+		err := tr.db.Remove(hashes[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

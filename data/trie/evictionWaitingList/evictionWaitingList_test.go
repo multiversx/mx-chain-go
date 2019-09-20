@@ -3,8 +3,8 @@ package evictionWaitingList
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -29,7 +29,7 @@ func TestNewEvictionWaitingList_InvalidCacheSize(t *testing.T) {
 	_, db, marsh := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(0, db, marsh)
 	assert.Nil(t, ec)
-	assert.Equal(t, trie.ErrInvalidCacheSize, err)
+	assert.Equal(t, data.ErrInvalidCacheSize, err)
 }
 
 func TestNewEvictionWaitingList_NilDatabase(t *testing.T) {
@@ -38,7 +38,7 @@ func TestNewEvictionWaitingList_NilDatabase(t *testing.T) {
 	size, _, marsh := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(size, nil, marsh)
 	assert.Nil(t, ec)
-	assert.Equal(t, trie.ErrNilDatabase, err)
+	assert.Equal(t, data.ErrNilDatabase, err)
 }
 
 func TestNewEvictionWaitingList_NilDMarshalizer(t *testing.T) {
@@ -47,7 +47,7 @@ func TestNewEvictionWaitingList_NilDMarshalizer(t *testing.T) {
 	size, db, _ := getDefaultParameters()
 	ec, err := NewEvictionWaitingList(size, db, nil)
 	assert.Nil(t, ec)
-	assert.Equal(t, trie.ErrNilMarshalizer, err)
+	assert.Equal(t, data.ErrNilMarshalizer, err)
 }
 
 func TestEvictionWaitingList_Put(t *testing.T) {
