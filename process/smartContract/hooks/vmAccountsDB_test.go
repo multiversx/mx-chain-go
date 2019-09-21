@@ -1,6 +1,9 @@
 package hooks_test
 
 import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -14,7 +17,10 @@ import (
 func TestNewVMAccountsDB_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := hooks.NewVMAccountsDB(nil, mock.NewAddressConverterFake(32, ""))
+	vadb, err := hooks.NewVMAccountsDB(
+		nil,
+		mock.NewAddressConverterFake(32, ""),
+	)
 
 	assert.Nil(t, vadb)
 	assert.Equal(t, state.ErrNilAccountsAdapter, err)
@@ -23,7 +29,10 @@ func TestNewVMAccountsDB_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewVMAccountsDB_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := hooks.NewVMAccountsDB(mock.NewAccountsStub(), nil)
+	vadb, err := hooks.NewVMAccountsDB(
+		mock.NewAccountsStub(),
+		nil,
+	)
 
 	assert.Nil(t, vadb)
 	assert.Equal(t, state.ErrNilAddressConverter, err)
@@ -32,7 +41,10 @@ func TestNewVMAccountsDB_NilAddressConverterShouldErr(t *testing.T) {
 func TestNewVMAccountsDB_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	vadb, err := hooks.NewVMAccountsDB(mock.NewAccountsStub(), mock.NewAddressConverterFake(32, ""))
+	vadb, err := hooks.NewVMAccountsDB(
+		mock.NewAccountsStub(),
+		mock.NewAddressConverterFake(32, ""),
+	)
 
 	assert.NotNil(t, vadb)
 	assert.Nil(t, err)
@@ -48,7 +60,8 @@ func TestVMAccountsDB_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	accountsExists, err := vadb.AccountExists(make([]byte, 0))
 
@@ -63,7 +76,8 @@ func TestVMAccountsDB_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	accountsExists, err := vadb.AccountExists(make([]byte, 0))
 
@@ -78,7 +92,8 @@ func TestVMAccountsDB_AccountExistsDoesExistsRetTrueAndNil(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	accountsExists, err := vadb.AccountExists(make([]byte, 0))
 
@@ -95,7 +110,8 @@ func TestVMAccountsDB_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	balance, err := vadb.GetBalance(make([]byte, 0))
 
@@ -111,7 +127,8 @@ func TestVMAccountsDB_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	balance, err := vadb.GetBalance(make([]byte, 0))
 
@@ -130,7 +147,8 @@ func TestVMAccountsDB_GetBalanceShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	balance, err := vadb.GetBalance(make([]byte, 0))
 
@@ -148,12 +166,13 @@ func TestVMAccountsDB_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	nonce, err := vadb.GetNonce(make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
-	assert.Nil(t, nonce)
+	assert.Equal(t, nonce, uint64(0))
 }
 
 func TestVMAccountsDB_GetNonceShouldWork(t *testing.T) {
@@ -167,12 +186,13 @@ func TestVMAccountsDB_GetNonceShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	nonce, err := vadb.GetNonce(make([]byte, 0))
 
 	assert.Nil(t, err)
-	assert.Equal(t, accnt.Nonce, nonce.Uint64())
+	assert.Equal(t, accnt.Nonce, nonce)
 }
 
 //------- GetStorageData
@@ -185,7 +205,8 @@ func TestVMAccountsDB_GetStorageAccountErrorsShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	value, err := vadb.GetStorageData(make([]byte, 0), make([]byte, 0))
 
@@ -205,7 +226,8 @@ func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	value, err := vadb.GetStorageData(make([]byte, 0), variableIdentifier)
 
@@ -223,7 +245,8 @@ func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *testing.T)
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	isEmpty, err := vadb.IsCodeEmpty(make([]byte, 0))
 
@@ -240,7 +263,8 @@ func TestVMAccountsDB_IsCodeEmptyShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	isEmpty, err := vadb.IsCodeEmpty(make([]byte, 0))
 
@@ -258,7 +282,8 @@ func TestVMAccountsDB_GetCodeAccountErrorsShouldErr(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	retrievedCode, err := vadb.GetCode(make([]byte, 0))
 
@@ -277,7 +302,8 @@ func TestVMAccountsDB_GetCodeShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
-	}, mock.NewAddressConverterFake(32, ""))
+	}, mock.NewAddressConverterFake(32, ""),
+	)
 
 	retrievedCode, err := vadb.GetCode(make([]byte, 0))
 
@@ -288,7 +314,10 @@ func TestVMAccountsDB_GetCodeShouldWork(t *testing.T) {
 func TestVMAccountsDB_CleanFakeAccounts(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+	vadb, _ := hooks.NewVMAccountsDB(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+	)
 
 	address := []byte("test")
 	vadb.AddTempAccount(address, big.NewInt(10), 10)
@@ -301,7 +330,10 @@ func TestVMAccountsDB_CleanFakeAccounts(t *testing.T) {
 func TestVMAccountsDB_CreateAndGetFakeAccounts(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+	vadb, _ := hooks.NewVMAccountsDB(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+	)
 
 	address := []byte("test")
 	nonce := uint64(10)
@@ -315,7 +347,10 @@ func TestVMAccountsDB_CreateAndGetFakeAccounts(t *testing.T) {
 func TestVMAccountsDB_GetNonceFromFakeAccount(t *testing.T) {
 	t.Parallel()
 
-	vadb, _ := hooks.NewVMAccountsDB(&mock.AccountsStub{}, &mock.AddressConverterMock{})
+	vadb, _ := hooks.NewVMAccountsDB(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+	)
 
 	address := []byte("test")
 	nonce := uint64(10)
@@ -323,5 +358,112 @@ func TestVMAccountsDB_GetNonceFromFakeAccount(t *testing.T) {
 
 	getNonce, err := vadb.GetNonce(address)
 	assert.Nil(t, err)
-	assert.Equal(t, nonce, getNonce.Uint64())
+	assert.Equal(t, nonce, getNonce)
+}
+
+func TestVMAccountsDB_NewAddressLengthNoGood(t *testing.T) {
+	t.Parallel()
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	acnts := &mock.AccountsStub{}
+	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+		return &state.Account{
+			Nonce:    0,
+			Balance:  nil,
+			CodeHash: nil,
+			RootHash: nil,
+		}, nil
+	}
+	vadb, _ := hooks.NewVMAccountsDB(acnts, adrConv)
+
+	address := []byte("test")
+	nonce := uint64(10)
+
+	scAddress, err := vadb.NewAddress(address, nonce, []byte("00"))
+	assert.Equal(t, hooks.ErrAddressLengthNotCorrect, err)
+	assert.Nil(t, scAddress)
+
+	address = []byte("1234567890123456789012345678901234567890")
+	scAddress, err = vadb.NewAddress(address, nonce, []byte("00"))
+	assert.Equal(t, hooks.ErrAddressLengthNotCorrect, err)
+	assert.Nil(t, scAddress)
+}
+
+func TestVMAccountsDB_NewAddressShardIdIncorrect(t *testing.T) {
+	t.Parallel()
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	acnts := &mock.AccountsStub{}
+	testErr := errors.New("testErr")
+	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+		return nil, testErr
+	}
+	vadb, _ := hooks.NewVMAccountsDB(acnts, adrConv)
+
+	address := []byte("012345678901234567890123456789ff")
+	nonce := uint64(10)
+
+	scAddress, err := vadb.NewAddress(address, nonce, []byte("00"))
+	assert.Equal(t, testErr, err)
+	assert.Nil(t, scAddress)
+}
+
+func TestVMAccountsDB_NewAddressVMTypeTooLong(t *testing.T) {
+	t.Parallel()
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	acnts := &mock.AccountsStub{}
+	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+		return &state.Account{
+			Nonce:    0,
+			Balance:  nil,
+			CodeHash: nil,
+			RootHash: nil,
+		}, nil
+	}
+	vadb, _ := hooks.NewVMAccountsDB(acnts, adrConv)
+
+	address := []byte("01234567890123456789012345678900")
+	nonce := uint64(10)
+
+	vmType := []byte("010")
+	scAddress, err := vadb.NewAddress(address, nonce, vmType)
+	assert.Equal(t, hooks.ErrVMTypeLengthIsNotCorrect, err)
+	assert.Nil(t, scAddress)
+}
+
+func TestVMAccountsDB_NewAddress(t *testing.T) {
+	t.Parallel()
+
+	adrConv := mock.NewAddressConverterFake(32, "")
+	acnts := &mock.AccountsStub{}
+	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+		return &state.Account{
+			Nonce:    0,
+			Balance:  nil,
+			CodeHash: nil,
+			RootHash: nil,
+		}, nil
+	}
+	vadb, _ := hooks.NewVMAccountsDB(acnts, adrConv)
+
+	address := []byte("01234567890123456789012345678900")
+	nonce := uint64(10)
+
+	vmType := []byte("11")
+	scAddress1, err := vadb.NewAddress(address, nonce, vmType)
+	assert.Nil(t, err)
+
+	for i := 0; i < 8; i++ {
+		assert.Equal(t, scAddress1[i], uint8(0))
+	}
+	assert.True(t, bytes.Equal(vmType, scAddress1[8:10]))
+
+	nonce++
+	scAddress2, err := vadb.NewAddress(address, nonce, []byte("00"))
+	assert.Nil(t, err)
+
+	assert.False(t, bytes.Equal(scAddress1, scAddress2))
+
+	fmt.Printf("%s \n%s \n", hex.EncodeToString(scAddress1), hex.EncodeToString(scAddress2))
 }

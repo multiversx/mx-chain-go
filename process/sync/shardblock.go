@@ -12,12 +12,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -133,6 +133,8 @@ func NewShardBootstrap(
 
 	boot.chStopSync = make(chan bool)
 
+	boot.statusHandler = statusHandler.NewNilStatusHandler()
+
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
 
@@ -185,9 +187,15 @@ func (boot *ShardBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64
 		highestOwnHdrFromMetaChain = &block.Header{}
 	}
 
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, highestOwnHdrFromMetaChain, highestShardHdrHashFromMeta)
+	ownHdrFromMeta := make([]data.HeaderHandler, 0)
+	ownHdrFromMeta = append(ownHdrFromMeta, highestOwnHdrFromMetaChain)
+
+	ownHdrHashesFromMeta := make([][]byte, 0)
+	ownHdrHashesFromMeta = append(ownHdrHashesFromMeta, highestShardHdrHashFromMeta)
+
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, ownHdrFromMeta, ownHdrHashesFromMeta)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug(errNotCritical.Error())
 	}
 
 }
@@ -593,7 +601,7 @@ func (boot *ShardBootstrap) syncBlocks() {
 	}
 }
 
-func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error, isProcessingError bool) {
+func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 	if err == process.ErrTimeIsOut {
 		boot.requestsWithTimeout++
 	}
@@ -601,26 +609,15 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error, i
 	shouldRollBack := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	if shouldRollBack {
 		boot.requestsWithTimeout = 0
-		hash := boot.removeHeaderFromPools(hdr)
-		boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
-		errNotCritical := boot.forkChoice()
-		if errNotCritical != nil {
-			log.Info(errNotCritical.Error())
-		}
-	}
 
-	// The below section of code fixed a situation when all peers would have replaced in their headerNonceHash pool a
-	// good/used header in their blockchain construction, with a wrong/unused header on which they didn't construct,
-	// but which came after a late broadcast from a valid proposer.
-	if err != process.ErrTimeIsOut && isProcessingError &&
-		boot.forkDetector.GetHighestFinalBlockNonce() < hdr.Nonce-1 {
-		prevHdr, errNotCritical := boot.getHeaderWithHashRequestingIfMissing(hdr.GetPrevHash())
+		if hdr != nil {
+			hash := boot.removeHeaderFromPools(hdr)
+			boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
+		}
+
+		errNotCritical := boot.forkChoice(false)
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
-		} else {
-			syncMap := &dataPool.ShardIdHashSyncMap{}
-			syncMap.Store(prevHdr.GetShardID(), hdr.GetPrevHash())
-			boot.headersNonces.Merge(prevHdr.GetNonce(), syncMap)
 		}
 	}
 }
@@ -640,7 +637,10 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
 			boot.forkNonce,
 			core.ToB64(boot.forkHash)))
-		err := boot.forkChoice()
+
+		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
+
+		err := boot.forkChoice(true)
 		if err != nil {
 			log.Info(err.Error())
 		}
@@ -655,6 +655,12 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	var hdr *block.Header
 	var err error
 
+	defer func() {
+		if err != nil {
+			boot.doJobOnSyncBlockFail(hdr, err)
+		}
+	}()
+
 	if boot.isForkDetected {
 		hdr, err = boot.getHeaderWithHashRequestingIfMissing(boot.forkHash)
 	} else {
@@ -665,13 +671,6 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		boot.forkDetector.ResetProbableHighestNonceIfNeeded()
 		return err
 	}
-
-	isProcessingError := false
-	defer func() {
-		if err != nil {
-			boot.doJobOnSyncBlockFail(hdr, err, isProcessingError)
-		}
-	}()
 
 	miniBlockHashes := make([][]byte, 0)
 	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
@@ -697,7 +696,6 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	timeBefore := time.Now()
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 	if err != nil {
-		isProcessingError = true
 		return err
 	}
 	timeAfter := time.Now()
@@ -750,7 +748,7 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 		boot.headers,
 		boot.headersNonces)
 	if err != nil {
-		process.EmptyChannel(boot.chRcvHdrNonce)
+		_ = process.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
 		err := boot.waitForHeaderNonce()
 		if err != nil {
@@ -773,9 +771,9 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
 // it will be requested from network
 func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (*block.Header, error) {
-	hdr, err := process.GetShardHeaderFromPool(hash, boot.headers)
+	hdr, err := process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
 	if err != nil {
-		process.EmptyChannel(boot.chRcvHdrHash)
+		_ = process.EmptyChannel(boot.chRcvHdrHash)
 		boot.requestHeaderWithHash(hash)
 		err := boot.waitForHeaderHash()
 		if err != nil {
@@ -817,7 +815,7 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 func (boot *ShardBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interface{}, error) {
 	miniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
 	if miniBlocks == nil {
-		process.EmptyChannel(boot.chRcvMiniBlocks)
+		_ = process.EmptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocks(hashes)
 		err := boot.waitForMiniBlocks()
 		if err != nil {
@@ -844,39 +842,33 @@ func (boot *ShardBootstrap) waitForMiniBlocks() error {
 }
 
 // forkChoice decides if rollback must be called
-func (boot *ShardBootstrap) forkChoice() error {
+func (boot *ShardBootstrap) forkChoice(revertUsingForkNonce bool) error {
 	log.Info("starting fork choice\n")
-	isForkResolved := false
-	for !isForkResolved {
+	for {
 		header, err := boot.getCurrentHeader()
 		if err != nil {
 			return err
 		}
 
-		msg := fmt.Sprintf("roll back to header with nonce %d and hash %s",
-			header.GetNonce()-1, core.ToB64(header.GetPrevHash()))
-
-		isSigned := isSigned(header)
-		if isSigned {
-			msg = fmt.Sprintf("%s from a signed block, as the highest final block nonce is %d",
-				msg,
-				boot.forkDetector.GetHighestFinalBlockNonce())
-			canRevertBlock := header.GetNonce() > boot.forkDetector.GetHighestFinalBlockNonce()
-			if !canRevertBlock {
-				return &ErrSignedBlock{CurrentNonce: header.GetNonce()}
-			}
+		if !revertUsingForkNonce && header.Nonce <= boot.forkDetector.GetHighestFinalBlockNonce() {
+			return ErrRollBackBehindFinalHeader
 		}
 
-		log.Info(msg + "\n")
+		log.Info(fmt.Sprintf("roll back to header with nonce %d and hash %s as the highest final block nonce is %d\n",
+			header.Nonce-1,
+			core.ToB64(header.GetPrevHash()),
+			boot.forkDetector.GetHighestFinalBlockNonce()))
 
 		err = boot.rollback(header)
 		if err != nil {
 			return err
 		}
 
-		if header.GetNonce() <= boot.forkNonce {
-			isForkResolved = true
+		if revertUsingForkNonce && header.Nonce > boot.forkNonce {
+			continue
 		}
+
+		break
 	}
 
 	log.Info("ending fork choice\n")
@@ -944,7 +936,7 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 		return err
 	}
 
-	boot.cleanCachesOnRollback(header, headerStore, headerNonceHashStore)
+	boot.cleanCachesAndStorageOnRollback(header, headerStore, headerNonceHashStore)
 	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(header, body)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())

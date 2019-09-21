@@ -9,7 +9,7 @@ import (
 
 /*
 This implementation follows the modified BLS scheme presented here (curve notation changed in this file as compared to
-the link, so curves G0, G1 in link are refered to as G1, G2 in this file):
+the link, so curves G0, G1 in link are referred to as G1, G2 in this file):
 https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
 
 In addition to the common BLS single signature, for aggregation of multiple signatures it requires another hashing
