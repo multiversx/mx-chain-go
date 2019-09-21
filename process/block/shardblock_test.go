@@ -520,6 +520,8 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 			return 0
 		},
 	}
+
+	randSeed := []byte("rand seed")
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{
 		Nonce:         1,
@@ -663,6 +665,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 
+	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
 	blkc := &blockchain.BlockChain{
@@ -702,7 +705,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		Signature:        []byte("signature"),
 		PubKeysBitmap:    []byte("00110"),
 		ShardId:          0,
-		RootHash:         []byte("rootHashX"),
+		RootHash:         []byte("rootHash"),
 		MiniBlockHeaders: mbHdrs,
 	}
 
@@ -743,6 +746,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	t.Parallel()
 
+	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
 	blkc := &blockchain.BlockChain{
@@ -1355,7 +1359,7 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 func TestShardProcessor_RequestFinalMissingHeaders(t *testing.T) {
 	t.Parallel()
 
-	tdp := mock.NewPoolsHolderFake()
+	tdp := mock.NewPoolsHolderMock()
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -4183,7 +4187,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = poolFake
+	arguments.DataPool = poolMock
 	arguments.Store = storer
 	arguments.ShardCoordinator = shardC
 	arguments.StartHeaders = createGenesisBlocks(shardC)

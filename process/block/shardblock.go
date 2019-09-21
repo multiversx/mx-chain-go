@@ -49,8 +49,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		arguments.Marshalizer,
 		arguments.Store,
 		arguments.ShardCoordinator,
-		arguments.nodesCoordinator,
-		arguments.specialAddressHandler,
+		arguments.NodesCoordinator,
+		arguments.SpecialAddressHandler,
 		arguments.Uint64Converter)
 	if err != nil {
 		return nil, err
@@ -82,8 +82,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		marshalizer:                   arguments.Marshalizer,
 		store:                         arguments.Store,
 		shardCoordinator:              arguments.ShardCoordinator,
-		nodesCoordinator:              arguments.nodesCoordinator,
-		specialAddressHandler:         arguments.specialAddressHandler,
+		nodesCoordinator:              arguments.NodesCoordinator,
+		specialAddressHandler:         arguments.SpecialAddressHandler,
 		uint64Converter:               arguments.Uint64Converter,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),

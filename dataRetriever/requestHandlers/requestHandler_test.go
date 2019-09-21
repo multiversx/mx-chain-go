@@ -122,7 +122,7 @@ func TestNewShardResolverRequestHandlerMBTopicEmpty(t *testing.T) {
 func TestNewShardResolverRequestHandlerShardHdrTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic", "", "topic", 1)
+	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic", "topic", "", "topic", 1)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyShardHeaderRequestTopic, err)

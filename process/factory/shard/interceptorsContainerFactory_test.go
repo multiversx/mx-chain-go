@@ -86,6 +86,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 	icf, err := shard.NewInterceptorsContainerFactory(
 		nil,
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
 		&mock.TopicHandlerStub{},
 		createStore(),
 		&mock.MarshalizerMock{},
@@ -95,7 +96,6 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
-		&mock.ChronologyValidatorStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -128,6 +128,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 	t.Parallel()
 
 	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&mock.TopicHandlerStub{},

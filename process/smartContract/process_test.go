@@ -247,7 +247,6 @@ func TestNewSmartContractProcessor(t *testing.T) {
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 	)
 
@@ -267,7 +266,6 @@ func TestScProcessor_ComputeTransactionTypeNil(t *testing.T) {
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 	)
@@ -291,7 +289,6 @@ func TestScProcessor_ComputeTransactionTypeNilTx(t *testing.T) {
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 	)
@@ -322,7 +319,9 @@ func TestScProcessor_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 		&mock.TemporaryAccountsHandlerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.IntermediateTransactionHandlerMock{})
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
+	)
 
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -1885,7 +1884,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	_, err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
+	err = sc.ProcessSCOutputAccounts(outputAccounts, tx)
 	assert.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")

@@ -116,7 +116,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				Store:            tpn.Storage,
 				ShardCoordinator: tpn.ShardCoordinator,
 				NodesCoordinator: tpn.NodesCoordinator,
-				NodesCoordinator: tpn.SpecialAddressHandler,
+				SpecialAddressHandler: tpn.SpecialAddressHandler,
 				Uint64Converter:  TestUint64Converter,
 				StartHeaders:     tpn.GenesisBlocks,
 				RequestHandler:   tpn.RequestHandler,
