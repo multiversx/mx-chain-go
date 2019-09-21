@@ -3,14 +3,12 @@ package dataValidators
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/prometheus/common/log"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
-
-var log = logger.DefaultLogger()
 
 // TxValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type TxValidator struct {

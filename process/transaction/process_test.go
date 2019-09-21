@@ -435,7 +435,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 	acnt1.Nonce = 6
 
 	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1)
-	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
+	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
 func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
@@ -698,7 +698,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
-	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
 func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
