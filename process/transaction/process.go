@@ -265,11 +265,15 @@ func (txProc *txProcessor) checkTxValues(tx *transaction.Transaction, acntSnd st
 		return nil
 	}
 
-	if acntSnd.GetNonce() < tx.Nonce {
+	//if acntSnd.GetNonce() < tx.Nonce {
+	//	return process.ErrHigherNonceInTransaction
+	//}
+	//if acntSnd.GetNonce() > tx.Nonce {
+	//	return process.ErrLowerNonceInTransaction
+	//}
+
+	if tx.Value == nil {
 		return process.ErrHigherNonceInTransaction
-	}
-	if acntSnd.GetNonce() > tx.Nonce {
-		return process.ErrLowerNonceInTransaction
 	}
 
 	cost := big.NewInt(0)
