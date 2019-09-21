@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +45,7 @@ func deploySmartContract(t *testing.T, nodeToProcess *testNode, roundNumber uint
 		vm.CreateEmptyAddress().Bytes(),
 		senderNonce,
 		big.NewInt(0),
-		scCode,
+		scCode+"@"+hex.EncodeToString(factory.InternalTestingVM),
 		initialValueForInternalVariable,
 	)
 
@@ -88,13 +89,11 @@ func haveTime() time.Duration {
 // 1. Node in first shard deploys a smart contract -> we also make sure that the resulting smart contract address falls
 // within the same shard
 // 2. The same account within the first shard calls the smart contract, we make sure the smart contract is updated and
-// the gas is substracted from the caller's balance
+// the gas is subtracted from the caller's balance
 func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	fmt.Println("Step 1. Setup nodes...")
 
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
@@ -125,7 +124,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShard1, generalRoundNumber, senderAddressBytes, senderNonce)
 
-	// Test that the gas for deploying the smart contract was substracted from the sender's account
+	// Test that the gas for deploying the smart contract was subtracted from the sender's account
 	acc, _ := proposerNodeShard1.node.GetAccount(hex.EncodeToString(senderAddressBytes))
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(senderMintingValue, big.NewInt(opGas*1))
@@ -135,8 +134,8 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 
 	generalRoundNumber++
 
-	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	// setting the sc deployment address (printed by the transaction processor)
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Now that the SC is deployed, we test a call from an account located in the first shard
 	addValue := uint64(100)
@@ -155,9 +154,9 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	_, err = proposerNodeShard1.accntState.Commit()
 	assert.Nil(t, err)
 
-	// Test again that the gas for calling the smart contract was substracted from the sender's account
+	// Test again that the gas for calling the smart contract was subtracted from the sender's account
 	acc, _ = proposerNodeShard1.node.GetAccount(hex.EncodeToString(senderAddressBytes))
-	// Substract the gas price another time
+	// Subtract the gas price another time
 	expectedValue.Sub(expectedValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
 	senderNonce++
@@ -169,13 +168,11 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 // Test within a network of two shards the following situation
 // 1. Node in first shard deploys a smart contract -> we also make sure that the resulting smart contract address falls within the same shard
 // 2. Another account within the second shard calls the smart contract, we make sure the smart contract is updated and the gas
-//  is substracted from the caller's balance at the end
+//  is subtracted from the caller's balance at the end
 func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecondShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	fmt.Println("Step 1. Setup nodes...")
 
 	generalRoundNumber := uint64(1)
 	senderShard := uint32(0)
@@ -211,18 +208,19 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShard1, generalRoundNumber, senderAddressBytes, senderNonce)
 
-	// Test that the gas for deploying the smart contract was substracted from the sender's account
+	// Test that the gas for deploying the smart contract was subtracted from the sender's account
 	acc, _ := proposerNodeShard1.node.GetAccount(hex.EncodeToString(senderAddressBytes))
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
 	assert.Equal(t, expectedValue, acc.Balance)
+
 	senderNonce++
 	assert.Equal(t, senderNonce, acc.Nonce)
 
 	generalRoundNumber++
 
-	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	// setting the sc deployment address (printed by the transaction processor)
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Now that the SC is deployed, we test a call from an account located in the second shard
 	addValue := uint64(100)
@@ -242,9 +240,8 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	_, err = proposerNodeShard2.accntState.Commit()
 	assert.Nil(t, err)
 
-	// Test again that the gas for calling the smart contract was substracted from the sender's account
+	// Test again that the gas for calling the smart contract was subtracted from the sender's account
 	acc, _ = proposerNodeShard2.node.GetAccount(hex.EncodeToString(secondShardAddressBytes))
-
 	afterFee := big.NewInt(0).Sub(mintingValue, big.NewInt(0).SetUint64(contractCallTx.GasLimit*contractCallTx.GasPrice))
 	assert.Equal(t, afterFee, acc.Balance)
 	receiverNonce++
@@ -268,13 +265,11 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 // Test within a network of two shards the following situation
 // 1. Node in first shard deploys a smart contract -> we also make sure that the resulting smart contract address falls within the same shard
 // 2. Another account within the second shard calls the smart contract, we make sure the smart contract is updated and the gas
-//  is substracted from the caller's balance at the end
+//  is subtracted from the caller's balance at the end
 func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecondShardWithSCResults(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	fmt.Println("Step 1. Setup nodes...")
 
 	generalRoundNumber := uint64(1)
 	scShard := uint32(0)
@@ -310,7 +305,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	// should deploy smart contract -> we process a block containing only the sc deployment tx
 	deploySmartContract(t, proposerNodeShardSC, generalRoundNumber, scAccountAddressBytes, accNonce)
 
-	// Test that the gas for deploying the smart contract was substracted from the sender's account
+	// Test that the gas for deploying the smart contract was subtracted from the sender's account
 	acc, _ := proposerNodeShardSC.node.GetAccount(hex.EncodeToString(scAccountAddressBytes))
 	expectedValue := big.NewInt(0)
 	expectedValue.Sub(mintingValue, big.NewInt(opGas*1))
@@ -320,8 +315,8 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 
 	generalRoundNumber++
 
-	// setting the sc deployment address (printed by the transaction processer)
-	scDeploymentAdddress, _ := hex.DecodeString("ca26d3e6152af91949295cc89f419413e08aa04ba2d5e1ed2b199b2ca8aabc2a")
+	// setting the sc deployment address (printed by the transaction processor)
+	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Update the SC account balance so we can call withdraw function
 	createMintingForSenders(nodes[0], scShard, [][]byte{scDeploymentAdddress}, mintingValue)
@@ -391,7 +386,7 @@ func processAndTestSmartContractCallInSender(
 	_, err = proposerNodeShardAccount.accntState.Commit()
 	assert.Nil(t, err)
 
-	// Test again that the gas for calling the smart contract was substracted from the sender's account
+	// Test again that the gas for calling the smart contract was subtracted from the sender's account
 	acc, _ := proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
 	afterFee := big.NewInt(0).Sub(mintingValue, big.NewInt(0).SetUint64(contractCallTx.GasLimit*contractCallTx.GasPrice))
 	assert.Equal(t, afterFee, acc.Balance)
@@ -452,7 +447,7 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 	// After execution, the first account that started the interaction with the smart contract should have:
 	//  - Initial balance + withdraw value - fees
 	// TODO: Fees and gas should be taken into consideration when the fees are implemented - now we have extra money
-	//  from the gas returned since the gas was not substracted in the first place
+	//  from the gas returned since the gas was not subtracted in the first place
 	finalValue := big.NewInt(0).Add(mintingValue, big.NewInt(int64(withdrawValue-1)))
 	acc, _ := proposerNodeShardAccount.node.GetAccount(hex.EncodeToString(accountShardAddressBytes))
 	assert.Equal(t, finalValue, acc.Balance)

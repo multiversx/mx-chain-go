@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +28,7 @@ func TestDeployAgarioContract(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -35,13 +36,13 @@ func TestDeployAgarioContract(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
 
-	destinationAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+	destinationAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	vm.TestDeployedContractContents(
 		t,
 		destinationAddressBytes,
@@ -62,7 +63,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -70,12 +71,13 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
@@ -120,7 +122,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -128,12 +130,13 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	userAddress := []byte("10000000000000000000000000000000")
 	userNonce := uint64(10)
@@ -212,12 +215,13 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	senderNonce++
 
@@ -338,7 +342,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 	gasPrice := uint64(0)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, _ := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(b, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(b, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		b,
 		senderAddressBytes,
@@ -346,12 +350,13 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode),
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
 		round,
 		txProc,
 		accnts,
 	)
-	scAddressBytes, _ := hex.DecodeString("000000000000000000002ad210b548f26776b8859b1fabdf8298d9ce0d973132")
+
+	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
 	defaultUserNonce := uint64(10)
 	defaultUserBalance := big.NewInt(10000000000)
