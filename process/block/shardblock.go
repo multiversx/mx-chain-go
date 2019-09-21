@@ -226,7 +226,7 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
-	processedMetaHdrs, err := sp.getProcessedMetaBlocksFromHeader(header.MetaBlockHashes)
+	processedMetaHdrs, err := sp.getProcessedMetaBlocks(body, header.MetaBlockHashes)
 	if err != nil {
 		return err
 	}
@@ -844,14 +844,85 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 	return ownShIdHdr, nil
 }
 
+// getProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
+func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
+	if header == nil {
+		return nil, process.ErrNilBlockHeader
+	}
+
+	miniBlockHashes := make(map[int][]byte, 0)
+	for i := 0; i < len(header.MiniBlockHeaders); i++ {
+		miniBlockHashes[i] = header.MiniBlockHeaders[i].Hash
+	}
+
+	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
+
+	processedMetaHdrs := make([]data.HeaderHandler, 0)
+	for _, metaBlockKey := range header.MetaBlockHashes {
+		obj, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
+		if obj == nil {
+			return nil, process.ErrNilMetaBlockHeader
+		}
+
+		metaBlock, ok := obj.(*block.MetaBlock)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		log.Debug(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
+
+		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		for key := range miniBlockHashes {
+			_, ok := crossMiniBlockHashes[string(miniBlockHashes[key])]
+			if !ok {
+				continue
+			}
+
+			metaBlock.SetMiniBlockProcessed(miniBlockHashes[key], true)
+			delete(miniBlockHashes, key)
+		}
+
+		log.Debug(fmt.Sprintf("cross mini blocks in meta header: %d\n", len(crossMiniBlockHashes)))
+
+		processedAll := true
+		for key := range crossMiniBlockHashes {
+			if !metaBlock.GetMiniBlockProcessed([]byte(key)) {
+				processedAll = false
+				break
+			}
+		}
+
+		if processedAll {
+			processedMetaHdrs = append(processedMetaHdrs, metaBlock)
+		}
+	}
+
+	return processedMetaHdrs, nil
+}
+
 // getProcessedMetaBlocks returns all the meta blocks fully processed
 func (sp *shardProcessor) getProcessedMetaBlocks(
-	miniBlockHashes [][]byte,
+	usedMiniBlocks []*block.MiniBlock,
 	usedMetaBlockHashes [][]byte,
 ) ([]data.HeaderHandler, error) {
-	if miniBlockHashes == nil || if usedMetaBlockHashes == nil {
+	if usedMiniBlocks == nil || usedMetaBlockHashes == nil {
 		// not an error, it can happen that no metablock header or no miniblock is used.
 		return make([]data.HeaderHandler, 0), nil
+	}
+
+	miniBlockHashes := make(map[int][]byte, 0)
+	for i := 0; i < len(usedMiniBlocks); i++ {
+		miniBlock := usedMiniBlocks[i]
+		if miniBlock.SenderShardID == sp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		mbHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, miniBlock)
+		if err != nil {
+			log.Debug(err.Error())
+			continue
+		}
+		miniBlockHashes[i] = mbHash
 	}
 
 	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
@@ -1404,7 +1475,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		log.Info(err.Error())
 	}
 
-	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromPool(block.Body(destMeMiniBlocks), usedMetaHdrsHashes)
+	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocks(destMeMiniBlocks, usedMetaHdrsHashes)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}

@@ -438,7 +438,7 @@ func createNetNode(
 			Store:            store,
 			ShardCoordinator: shardCoordinator,
 			NodesCoordinator: nodesCoordinator,
-			mock.NewSpecialAddressHandlerMock(
+			SpecialAddressHandler: mock.NewSpecialAddressHandlerMock(
 				testAddressConverter,
 				shardCoordinator,
 			),

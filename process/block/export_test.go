@@ -45,6 +45,7 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint
 }
 
 func (sp *shardProcessor) GetProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
+
 	return sp.getProcessedMetaBlocksFromHeader(header)
 }
 
