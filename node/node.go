@@ -38,9 +38,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-// WaitTime defines the time in milliseconds until node waits the requested info from the network
-const WaitTime = 2000 * time.Millisecond
-
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
@@ -387,7 +384,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.blkc,
 		rounder,
 		n.blockProcessor,
-		WaitTime,
+		n.rounder.TimeDuration(),
 		n.hasher,
 		n.marshalizer,
 		n.forkDetector,
@@ -410,7 +407,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.blkc,
 		rounder,
 		n.blockProcessor,
-		WaitTime,
+		n.rounder.TimeDuration(),
 		n.hasher,
 		n.marshalizer,
 		n.forkDetector,

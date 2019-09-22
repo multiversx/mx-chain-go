@@ -89,6 +89,10 @@ const (
 
 var log = logger.DefaultLogger()
 
+//TODO: Extract all others error messages from this file in some defined errors
+// ErrCreateForkDetector signals that a fork detector could not be created
+var ErrCreateForkDetector = errors.New("could not create fork detector")
+
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
 	NetMessenger p2p.Messenger
@@ -465,7 +469,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	forkDetector, err := processSync.NewBasicForkDetector(rounder)
+	forkDetector, err := newForkDetector(rounder, args.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -1354,6 +1358,20 @@ func createInMemoryShardCoordinatorAndAccount(
 	return newShardCoordinator, accounts, nil
 }
 
+func newForkDetector(
+	rounder consensus.Rounder,
+	shardCoordinator sharding.Coordinator,
+) (process.ForkDetector, error) {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return processSync.NewShardForkDetector(rounder)
+	}
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return processSync.NewMetaForkDetector(rounder)
+	}
+
+	return nil, ErrCreateForkDetector
+}
+
 func newBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
@@ -1440,6 +1458,7 @@ func newShardBlockProcessorAndTracker(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
 		MaxTxsToRequest,
 	)
@@ -1545,7 +1564,10 @@ func newMetaBlockProcessorAndTracker(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
-	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
+	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
+		resolversFinder,
+		factory.ShardHeadersForMetachainTopic,
+		factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, nil, err
 	}

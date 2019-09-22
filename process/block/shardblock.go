@@ -410,6 +410,8 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
 func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
+	sp.removeLastNotarized()
+
 	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
@@ -438,8 +440,6 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	if err != nil {
 		return err
 	}
-
-	sp.removeLastNotarized()
 
 	return nil
 }
@@ -623,7 +623,10 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	finalHeaders, finalHeadersHashes := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
+	finalHeaders, finalHeadersHashes, err := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
+	if err != nil {
+		return err
+	}
 
 	err = sp.saveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	if err != nil {
@@ -663,10 +666,14 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
+	log.Info(fmt.Sprintf("shardBlock with nonce %d is the highest block notarized by metachain for shard %d\n",
+		sp.forkDetector.GetHighestFinalBlockNonce(),
+		sp.shardCoordinator.SelfId()))
+
 	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
-	hdrsToAttestFinality := uint32(header.Nonce - finalHeaders[0].GetNonce())
-	sp.removeNotarizedHdrsBehindFinal(hdrsToAttestFinality)
+	hdrsToAttestPreviousFinal := uint32(header.Nonce-sp.forkDetector.GetHighestFinalBlockNonce()) + 1
+	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -698,7 +705,10 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
-func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
+	processedHdrs []data.HeaderHandler,
+) ([]data.HeaderHandler, [][]byte, error) {
+
 	ownShIdHdrs := make([]data.HeaderHandler, 0)
 
 	sort.Slice(processedHdrs, func(i, j int) bool {
@@ -708,10 +718,14 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(processedHdrs []
 	for i := 0; i < len(processedHdrs); i++ {
 		hdr, ok := processedHdrs[i].(*block.MetaBlock)
 		if !ok {
-			continue
+			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
-		hdrs := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
+		hdrs, err := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
 	}
 
@@ -729,12 +743,13 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(processedHdrs []
 		ownShIdHdrsHashes = append(ownShIdHdrsHashes, hash)
 	}
 
-	return ownShIdHdrs, ownShIdHdrsHashes
+	return ownShIdHdrs, ownShIdHdrsHashes, nil
 }
 
-func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) []data.HeaderHandler {
+func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) ([]data.HeaderHandler, error) {
 	ownShIdHdr := make([]data.HeaderHandler, 0)
 
+	var errFound error
 	// search for own shard id in shardInfo from metaHeaders
 	for _, shardInfo := range hdr.ShardInfo {
 		if shardInfo.ShardId != shardId {
@@ -743,13 +758,24 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 
 		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
+			go sp.onRequestHeaderHandler(shardInfo.ShardId, shardInfo.HeaderHash)
+
+			log.Info(fmt.Sprintf("requested missing shard header with hash %s for shard %d\n",
+				core.ToB64(shardInfo.HeaderHash),
+				shardInfo.ShardId))
+
+			errFound = err
 			continue
 		}
 
 		ownShIdHdr = append(ownShIdHdr, ownHdr)
 	}
 
-	return ownShIdHdr
+	if errFound != nil {
+		return nil, errFound
+	}
+
+	return ownShIdHdr, nil
 }
 
 // getProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
