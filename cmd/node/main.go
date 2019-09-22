@@ -859,8 +859,9 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
-		appStatusHandler.SetUInt64Value(core.MetricTotalMem, memStats.TotalMemory())
-		appStatusHandler.SetUInt64Value(core.MetricMemoryUsedByNode, memStats.UsedMemory())
+		appStatusHandler.SetUInt64Value(core.MetricMemTotal, memStats.TotalMemory())
+		appStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, memStats.MemoryUsedByGolang())
+		appStatusHandler.SetUInt64Value(core.MetricMemUsedSystem, memStats.MemoryUsedBySystem())
 	})
 }
 

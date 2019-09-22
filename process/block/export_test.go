@@ -276,7 +276,7 @@ func (sp *shardProcessor) DisplayLogInfo(
 	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
 }
 
-func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte, error) {
 	return sp.getHighestHdrForOwnShardFromMetachain(processedHdrs)
 }
 

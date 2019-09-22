@@ -34,7 +34,7 @@ func TestPresenterStatusHandler_GetTotalMem(t *testing.T) {
 
 	totalMem := uint64(8000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricTotalMem, totalMem)
+	presenterStatusHandler.SetUInt64Value(core.MetricMemTotal, totalMem)
 	result := presenterStatusHandler.GetTotalMem()
 
 	assert.Equal(t, totalMem, result)
@@ -45,7 +45,7 @@ func TestPresenterStatusHandler_GetMemUsedByNode(t *testing.T) {
 
 	memUsedByNode := uint64(500)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricMemoryUsedByNode, memUsedByNode)
+	presenterStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, memUsedByNode)
 	result := presenterStatusHandler.GetMemUsedByNode()
 
 	assert.Equal(t, memUsedByNode, result)
