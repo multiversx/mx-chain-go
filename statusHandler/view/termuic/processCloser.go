@@ -6,7 +6,7 @@ import (
 	"syscall"
 )
 
-// StopApplication is used to stop aplication when Ctrl+C is pressed
+// StopApplication is used to stop application when Ctrl+C is pressed
 func StopApplication() {
 	if p, err := os.FindProcess(os.Getpid()); err != nil {
 		return

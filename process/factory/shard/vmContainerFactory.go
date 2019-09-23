@@ -52,7 +52,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
-	err = container.Add([]byte(factory.IELEVirtualMachine), vm)
+	err = container.Add(factory.IELEVirtualMachine, vm)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +61,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
-
-	ieleVM := endpoint.NewElrondIeleVM(vmf.vmAccountsDB, vmf.cryptoHook, endpoint.ElrondTestnet)
+	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
 	return ieleVM, nil
 }
 
