@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -565,6 +566,13 @@ func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 			}
 
 			return retMap, nil
+		},
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}
 		},
 	}
 	rtp, _ := NewRewardTxPreprocessor(
