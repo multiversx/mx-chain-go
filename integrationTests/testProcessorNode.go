@@ -252,6 +252,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
+			factory.HeadersTopic,
 			factory.ShardHeadersForMetachainTopic,
 		)
 	} else {
@@ -272,6 +273,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
 			factory.MiniBlocksTopic,
+			factory.HeadersTopic,
 			factory.MetachainBlocksTopic,
 			100,
 		)
