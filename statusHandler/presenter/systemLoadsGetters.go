@@ -14,12 +14,12 @@ func (psh *PresenterStatusHandler) GetMemLoadPercent() uint64 {
 
 // GetTotalMem will return how much memory does the computer have
 func (psh *PresenterStatusHandler) GetTotalMem() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricTotalMem)
+	return psh.getFromCacheAsUint64(core.MetricMemTotal)
 }
 
 // GetMemUsedByNode will return how many memory node uses
 func (psh *PresenterStatusHandler) GetMemUsedByNode() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricMemoryUsedByNode)
+	return psh.getFromCacheAsUint64(core.MetricMemUsedGolang)
 }
 
 // GetNetworkRecvPercent will return network receive percent

@@ -148,9 +148,9 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
-	isTxValid := txi.txValidator.IsTxValidForProcessing(tx.Transaction())
+	isTxValid := txi.txValidator.IsTxValidForProcessing(tx)
 	if !isTxValid {
-		log.Debug(fmt.Sprintf("intercepted tx with hash %s is not valid", hex.EncodeToString(tx.hash)))
+		log.Debug(fmt.Sprintf("intercepted tx with hash %s is not valid, total rejected txs %d", hex.EncodeToString(tx.hash), txi.txValidator.NumRejectedTxs()))
 		return
 	}
 

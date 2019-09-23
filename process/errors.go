@@ -465,3 +465,12 @@ var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 
 // ErrNilSpecialAddressHandler signals that special address handler is nil
 var ErrNilSpecialAddressHandler = errors.New("nil special address handler")
+
+// ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
+var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
+
+// ErrVMTypeLengthInvalid signals that vm type length is too long
+var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
+
+// ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
+var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")

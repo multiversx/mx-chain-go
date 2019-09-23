@@ -69,6 +69,8 @@ type baseBootstrap struct {
 
 	requestedHashes process.RequiredDataPool
 
+	statusHandler core.AppStatusHandler
+
 	chStopSync chan bool
 	waitTime   time.Duration
 
@@ -335,7 +337,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 
 	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug(err.Error())
 	}
 
 	hash := boot.requestedHeaderHash()
@@ -378,6 +380,16 @@ func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(isSyncing
 	boot.mutSyncStateListeners.Lock()
 	boot.syncStateListeners = append(boot.syncStateListeners, syncStateListener)
 	boot.mutSyncStateListeners.Unlock()
+}
+
+// SetStatusHandler will set the instance of the AppStatusHandler
+func (boot *baseBootstrap) SetStatusHandler(handler core.AppStatusHandler) error {
+	if handler == nil || handler.IsInterfaceNil() {
+		return process.ErrNilAppStatusHandler
+	}
+	boot.statusHandler = handler
+
+	return nil
 }
 
 func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
@@ -446,6 +458,14 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.roundIndex = boot.rounder.Index()
 
+	var result uint64
+	if isNodeSynchronized {
+		result = uint64(0)
+	} else {
+		result = uint64(1)
+	}
+	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
+
 	return !isNodeSynchronized
 }
 
@@ -458,11 +478,11 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 		return nil
 	}
 
-	boot.headers.Remove(hash)
+	//TODO: boot.headers.Remove(hash) should not be called, just to have a restore point if it is needed later
 	return hash
 }
 
-func (boot *baseBootstrap) cleanCachesOnRollback(
+func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(
 	header data.HeaderHandler,
 	headerStore storage.Storer,
 	headerNonceHashStore storage.Storer) {
