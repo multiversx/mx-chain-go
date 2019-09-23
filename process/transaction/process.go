@@ -273,7 +273,7 @@ func (txProc *txProcessor) checkTxValues(tx *transaction.Transaction, acntSnd st
 	//}
 
 	if tx.Value == nil {
-		return process.ErrHigherNonceInTransaction
+		return process.ErrTxValueNil
 	}
 
 	cost := big.NewInt(0)

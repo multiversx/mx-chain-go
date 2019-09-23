@@ -479,7 +479,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		)
 
 		if err != nil {
-			log.Debug(err.Error())
+			log.Info(err.Error())
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
 				log.Error(err.Error())

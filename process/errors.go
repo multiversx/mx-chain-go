@@ -426,3 +426,6 @@ var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
+
+// ErrTxValueNil signals that tx value is nil
+var ErrTxValueNil = errors.New("tx value is nil")
