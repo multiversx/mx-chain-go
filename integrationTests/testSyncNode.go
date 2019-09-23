@@ -105,9 +105,10 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				RequestHandler:   tpn.RequestHandler,
 				Core:             nil,
 			},
-			DataPool:      tpn.ShardDataPool,
-			BlocksTracker: tpn.BlockTracker,
-			TxCoordinator: tpn.TxCoordinator,
+			DataPool:        tpn.ShardDataPool,
+			BlocksTracker:   tpn.BlockTracker,
+			TxCoordinator:   tpn.TxCoordinator,
+			TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
