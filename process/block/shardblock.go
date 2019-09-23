@@ -944,17 +944,17 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 		log.Info(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		for hash := range crossMiniBlockHashes {
+			processedMBs[hash] = metaBlock.GetMiniBlockProcessed([]byte(hash))
+		}
+
 		for key := range miniBlockHashes {
-
-			hash := miniBlockHashes[key]
-			processedMBs[string(hash)] = metaBlock.GetMiniBlockProcessed(hash)
-
-			_, ok = crossMiniBlockHashes[string(miniBlockHashes[key])]
+				_, ok = crossMiniBlockHashes[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
 
-			processedMBs[string(hash)] = true
+			processedMBs[string(miniBlockHashes[key])] = true
 
 			delete(miniBlockHashes, key)
 		}
