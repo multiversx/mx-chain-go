@@ -868,8 +868,8 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
-
-		log.Debug(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
+		// todo: change to debug after test
+		log.Info(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
@@ -929,6 +929,8 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
 	for _, metaBlockKey := range usedMetaBlockHashes {
+		processedMBs := make(map[string]bool)
+
 		obj, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
 		if obj == nil {
 			return nil, process.ErrNilMetaBlockHeader
@@ -938,17 +940,22 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
-
-		log.Debug(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
+		// todo: change to debug after test
+		log.Info(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
+
+			hash := miniBlockHashes[key]
+			processedMBs[string(hash)] = metaBlock.GetMiniBlockProcessed(hash)
+
 			_, ok = crossMiniBlockHashes[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
 
-			metaBlock.SetMiniBlockProcessed(miniBlockHashes[key], true)
+			processedMBs[string(hash)] = true
+
 			delete(miniBlockHashes, key)
 		}
 
@@ -956,7 +963,7 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 
 		processedAll := true
 		for key := range crossMiniBlockHashes {
-			if !metaBlock.GetMiniBlockProcessed([]byte(key)) {
+			if !processedMBs[key] {
 				processedAll = false
 				break
 			}
@@ -1014,7 +1021,8 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 		sp.dataPool.MetaBlocks().Remove(headerHash)
 		sp.dataPool.HeadersNonces().Remove(hdr.GetNonce(), sharding.MetachainShardId)
 
-		log.Debug(fmt.Sprintf("metaBlock with round %d nonce %d and hash %s has been processed completely and removed from pool\n",
+		// todo: change to debug after test
+		log.Info(fmt.Sprintf("metaBlock with round %d nonce %d and hash %s has been processed completely and removed from pool\n",
 			hdr.GetRound(),
 			hdr.GetNonce(),
 			core.ToB64(headerHash)))
