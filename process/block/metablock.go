@@ -294,6 +294,8 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 
 // RestoreBlockIntoPools restores the block into associated pools
 func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
+	mp.removeLastNotarized()
+
 	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilMetaBlockHeader
 	}
@@ -322,15 +324,13 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	for _, hdrHash := range hdrHashes {
 		buff, err := mp.store.Get(dataRetriever.BlockHeaderUnit, hdrHash)
 		if err != nil {
-			log.Error(err.Error())
-			continue
+			return err
 		}
 
 		hdr := block.Header{}
 		err = mp.marshalizer.Unmarshal(&hdr, buff)
 		if err != nil {
-			log.Error(err.Error())
-			continue
+			return err
 		}
 
 		headerPool.Put(hdrHash, &hdr)
@@ -340,19 +340,17 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 
 		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove(hdrHash)
 		if err != nil {
-			log.Error(err.Error())
+			return err
 		}
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(hdr.Nonce)
 		err = mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if err != nil {
-			log.Error(err.Error())
+			return err
 		}
 
 		mp.headersCounter.subtractRestoredMBHeaders(len(hdr.MiniBlockHeaders))
 	}
-
-	mp.removeLastNotarized()
 
 	return nil
 }
@@ -514,11 +512,11 @@ func (mp *metaProcessor) CommitBlock(
 
 	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug(errNotCritical.Error())
 	}
 
-	hdrsToAttestFinality := mp.nextKValidity
-	mp.removeNotarizedHdrsBehindFinal(hdrsToAttestFinality)
+	hdrsToAttestPreviousFinal := mp.nextKValidity + 1
+	mp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
