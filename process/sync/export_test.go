@@ -23,15 +23,15 @@ func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
 }
 
-func (boot *ShardBootstrap) ForkChoice() error {
-	return boot.forkChoice()
+func (boot *ShardBootstrap) ForkChoice(revertUsingForkNonce bool) error {
+	return boot.forkChoice(revertUsingForkNonce)
 }
 
-func (boot *MetaBootstrap) ForkChoice() error {
-	return boot.forkChoice()
+func (boot *MetaBootstrap) ForkChoice(revertUsingForkNonce bool) error {
+	return boot.forkChoice(revertUsingForkNonce)
 }
 
-func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
+func (bfd *baseForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
@@ -47,43 +47,43 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
-func (bfd *basicForkDetector) LastCheckpointNonce() uint64 {
+func (bfd *baseForkDetector) LastCheckpointNonce() uint64 {
 	return bfd.lastCheckpoint().nonce
 }
 
-func (bfd *basicForkDetector) LastCheckpointRound() uint64 {
+func (bfd *baseForkDetector) LastCheckpointRound() uint64 {
 	return bfd.lastCheckpoint().round
 }
 
-func (bfd *basicForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
+func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64) {
 	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round})
 }
 
-func (bfd *basicForkDetector) FinalCheckpointNonce() uint64 {
+func (bfd *baseForkDetector) FinalCheckpointNonce() uint64 {
 	return bfd.finalCheckpoint().nonce
 }
 
-func (bfd *basicForkDetector) FinalCheckpointRound() uint64 {
+func (bfd *baseForkDetector) FinalCheckpointRound() uint64 {
 	return bfd.finalCheckpoint().round
 }
 
-func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
-	return bfd.checkBlockValidity(header, state)
+func (bfd *baseForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
+	return bfd.checkBlockBasicValidity(header, state)
 }
 
-func (bfd *basicForkDetector) RemovePastHeaders() {
+func (bfd *baseForkDetector) RemovePastHeaders() {
 	bfd.removePastHeaders()
 }
 
-func (bfd *basicForkDetector) RemoveInvalidHeaders() {
-	bfd.removeInvalidHeaders()
+func (bfd *baseForkDetector) RemoveInvalidReceivedHeaders() {
+	bfd.removeInvalidReceivedHeaders()
 }
 
-func (bfd *basicForkDetector) ComputeProbableHighestNonce() uint64 {
+func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
-func (bfd *basicForkDetector) GetProbableHighestNonce(headersInfo []*headerInfo) uint64 {
+func (bfd *baseForkDetector) GetProbableHighestNonce(headersInfo []*headerInfo) uint64 {
 	return bfd.getProbableHighestNonce(headersInfo)
 }
 
@@ -222,6 +222,7 @@ type StorageBootstrapperMock struct {
 	GetNonceWithLastNotarizedCalled func(currentNonce uint64) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64)
 	ApplyNotarizedBlocksCalled      func(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error
 	CleanupNotarizedStorageCalled   func(lastNotarized map[uint32]uint64)
+	AddHeaderToForkDetectorCalled   func(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
 }
 
 func (sbm *StorageBootstrapperMock) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
@@ -258,4 +259,16 @@ func (sbm *StorageBootstrapperMock) applyNotarizedBlocks(
 
 func (sbm *StorageBootstrapperMock) cleanupNotarizedStorage(lastNotarized map[uint32]uint64) {
 	sbm.CleanupNotarizedStorageCalled(lastNotarized)
+}
+
+func (sbm *StorageBootstrapperMock) addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
+	sbm.AddHeaderToForkDetectorCalled(shardId, nonce, lastNotarizedMeta)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
+	if sbm == nil {
+		return true
+	}
+	return false
 }

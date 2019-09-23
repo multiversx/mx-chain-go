@@ -103,8 +103,8 @@ func (bst *blockSizeThrottle) ComputeMaxItems() {
 }
 
 func (bst *blockSizeThrottle) getMaxItemsWhenSucceed(lastActionMaxItems uint32) uint32 {
-	if lastActionMaxItems == process.MaxItemsInBlock {
-		return lastActionMaxItems
+	if lastActionMaxItems >= process.MaxItemsInBlock {
+		return process.MaxItemsInBlock
 	}
 
 	noOfMaxItemsUsedWithoutSucceed := bst.getCloserAboveMaxItemsUsedWithoutSucceed(lastActionMaxItems)
@@ -127,8 +127,8 @@ func (bst *blockSizeThrottle) getCloserAboveMaxItemsUsedWithoutSucceed(currentMa
 }
 
 func (bst *blockSizeThrottle) getMaxItemsWhenNotSucceed(lastActionMaxItems uint32) uint32 {
-	if lastActionMaxItems == 0 {
-		return lastActionMaxItems
+	if lastActionMaxItems <= process.MinItemsInBlock {
+		return process.MinItemsInBlock
 	}
 
 	noOfMaxItemsUsedWithSucceed := bst.getCloserBelowMaxItemsUsedWithSucceed(lastActionMaxItems)
@@ -147,5 +147,13 @@ func (bst *blockSizeThrottle) getCloserBelowMaxItemsUsedWithSucceed(currentMaxIt
 		}
 	}
 
-	return 0
+	return process.MinItemsInBlock
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bst *blockSizeThrottle) IsInterfaceNil() bool {
+	if bst == nil {
+		return true
+	}
+	return false
 }

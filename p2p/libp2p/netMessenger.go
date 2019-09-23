@@ -17,7 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-const durationBetweenSends = time.Duration(time.Microsecond * 10)
+const durationBetweenSends = time.Microsecond * 10
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
@@ -71,10 +71,10 @@ func NewNetworkMessenger(
 	if p2pPrivKey == nil {
 		return nil, p2p.ErrNilP2PprivateKey
 	}
-	if outgoingPLB == nil {
+	if outgoingPLB == nil || outgoingPLB.IsInterfaceNil() {
 		return nil, p2p.ErrNilChannelLoadBalancer
 	}
-	if peerDiscoverer == nil {
+	if peerDiscoverer == nil || peerDiscoverer.IsInterfaceNil() {
 		return nil, p2p.ErrNilPeerDiscoverer
 	}
 
@@ -86,6 +86,9 @@ func NewNetworkMessenger(
 		libp2p.DefaultSecurity,
 		libp2p.ConnectionManager(conMgr),
 		libp2p.DefaultTransports,
+		//TODO investigate if the DisableRelay is really needed and why
+		libp2p.DisableRelay(),
+		libp2p.NATPortMap(),
 	}
 
 	h, err := libp2p.New(ctx, opts...)
@@ -394,7 +397,7 @@ func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 
 // RegisterMessageProcessor registers a message process on a topic
 func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	if handler == nil {
+	if handler == nil || handler.IsInterfaceNil() {
 		return p2p.ErrNilValidator
 	}
 
@@ -481,4 +484,12 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}(message)
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (netMes *networkMessenger) IsInterfaceNil() bool {
+	if netMes == nil {
+		return true
+	}
+	return false
 }

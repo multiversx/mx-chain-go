@@ -30,19 +30,19 @@ func NewTxBlockBodyInterceptor(
 	shardCoordinator sharding.Coordinator,
 ) (*TxBlockBodyInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if cache == nil {
+	if cache == nil || cache.IsInterfaceNil() {
 		return nil, process.ErrNilCacher
 	}
-	if storer == nil {
+	if storer == nil || storer.IsInterfaceNil() {
 		return nil, process.ErrNilBlockBodyStorage
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -108,4 +108,12 @@ func (tbbi *TxBlockBodyInterceptor) processBlockBody(txBlockBody *block.Intercep
 
 		tbbi.cache.HasOrAdd(tbbi.hasher.Compute(string(mbBytes)), miniblock)
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tbbi *TxBlockBodyInterceptor) IsInterfaceNil() bool {
+	if tbbi == nil {
+		return true
+	}
+	return false
 }

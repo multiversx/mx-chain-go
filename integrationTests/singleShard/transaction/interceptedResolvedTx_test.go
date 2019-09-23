@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -47,6 +48,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	buffPk1, _ := nRequester.OwnAccount.SkTxSign.GeneratePublic().ToByteArray()
 
+	valMinting := big.NewInt(100000)
+	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{nRequester}, 0, []crypto.PrivateKey{nRequester.OwnAccount.SkTxSign}, valMinting)
 	//Step 1. Generate a signed transaction
 	tx := transaction.Transaction{
 		Nonce:   0,

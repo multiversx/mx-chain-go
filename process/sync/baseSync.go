@@ -69,6 +69,8 @@ type baseBootstrap struct {
 
 	requestedHashes process.RequiredDataPool
 
+	statusHandler core.AppStatusHandler
+
 	chStopSync chan bool
 	waitTime   time.Duration
 
@@ -166,7 +168,7 @@ func (boot *baseBootstrap) loadBlocks(
 	}
 
 	for i := validNonce - blockFinality; i <= validNonce; i++ {
-		boot.addHeaderToForkDetector(shardId, i)
+		boot.storageBootstrapper.addHeaderToForkDetector(shardId, i, lastNotarized[sharding.MetachainShardId])
 	}
 
 	return nil
@@ -214,20 +216,6 @@ func (boot *baseBootstrap) applyBlock(shardId uint32, nonce uint64) error {
 	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
 
 	return nil
-}
-
-func (boot *baseBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64) {
-	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-		return
-	}
-
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-		return
-	}
 }
 
 func (boot *baseBootstrap) cleanupStorage(
@@ -348,7 +336,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 
 	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug(err.Error())
 	}
 
 	hash := boot.requestedHeaderHash()
@@ -391,6 +379,16 @@ func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(isSyncing
 	boot.mutSyncStateListeners.Lock()
 	boot.syncStateListeners = append(boot.syncStateListeners, syncStateListener)
 	boot.mutSyncStateListeners.Unlock()
+}
+
+// SetStatusHandler will set the instance of the AppStatusHandler
+func (boot *baseBootstrap) SetStatusHandler(handler core.AppStatusHandler) error {
+	if handler == nil || handler.IsInterfaceNil() {
+		return process.ErrNilAppStatusHandler
+	}
+	boot.statusHandler = handler
+
+	return nil
 }
 
 func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
@@ -456,6 +454,14 @@ func (boot *baseBootstrap) ShouldSync() bool {
 
 	boot.roundIndex = boot.rounder.Index()
 
+	var result uint64
+	if isNodeSynchronized {
+		result = uint64(0)
+	} else {
+		result = uint64(1)
+	}
+	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
+
 	return !isNodeSynchronized
 }
 
@@ -468,11 +474,11 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 		return nil
 	}
 
-	boot.headers.Remove(hash)
+	//TODO: boot.headers.Remove(hash) should not be called, just to have a restore point if it is needed later
 	return hash
 }
 
-func (boot *baseBootstrap) cleanCachesOnRollback(
+func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(
 	header data.HeaderHandler,
 	headerStore storage.Storer,
 	headerNonceHashStore storage.Storer) {
@@ -497,34 +503,34 @@ func checkBootstrapNilParameters(
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
 ) error {
-	if blkc == nil {
+	if blkc == nil || blkc.IsInterfaceNil() {
 		return process.ErrNilBlockChain
 	}
-	if rounder == nil {
+	if rounder == nil || rounder.IsInterfaceNil() {
 		return process.ErrNilRounder
 	}
-	if blkExecutor == nil {
+	if blkExecutor == nil || blkExecutor.IsInterfaceNil() {
 		return process.ErrNilBlockExecutor
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if forkDetector == nil {
+	if forkDetector == nil || forkDetector.IsInterfaceNil() {
 		return process.ErrNilForkDetector
 	}
-	if resolversFinder == nil {
+	if resolversFinder == nil || resolversFinder.IsInterfaceNil() {
 		return process.ErrNilResolverContainer
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return process.ErrNilAccountsAdapter
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return process.ErrNilStore
 	}
 

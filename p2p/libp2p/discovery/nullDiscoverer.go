@@ -20,7 +20,7 @@ func (nd *NullDiscoverer) Bootstrap() error {
 	return nil
 }
 
-// Name returns the name of the mdns peer discovery implementation
+// Name returns a message which says no peer discovery mechanism is used
 func (nd *NullDiscoverer) Name() string {
 	return nullName
 }
@@ -28,4 +28,12 @@ func (nd *NullDiscoverer) Name() string {
 // ApplyContext is an empty func as the context is not required
 func (nd *NullDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (nd *NullDiscoverer) IsInterfaceNil() bool {
+	if nd == nil {
+		return true
+	}
+	return false
 }

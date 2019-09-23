@@ -8,12 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
+
+var stepDelay = time.Second
 
 func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	if testing.Short() {
@@ -35,13 +38,13 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	_ = n.Node.P2PBootstrap()
 
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	//set the account's nonce to startingNonce
 	_ = n.SetAccountNonce(startingNonce)
 	noOfTx := 8000
 
-	time.Sleep(time.Second)
+	time.Sleep(stepDelay)
 
 	wg := sync.WaitGroup{}
 	wg.Add(noOfTx)
@@ -77,6 +80,11 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		transactions = append(transactions, val.(*transaction.Transaction))
 		wg.Done()
 	})
+
+	shardId := uint32(0)
+	senderPrivateKeys := []crypto.PrivateKey{n.OwnAccount.SkTxSign}
+	mintingValue := big.NewInt(100000)
+	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{n}, shardId, senderPrivateKeys, mintingValue)
 
 	err := n.Node.GenerateAndSendBulkTransactions(
 		integrationTests.CreateRandomHexString(64),

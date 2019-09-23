@@ -22,18 +22,8 @@ func NewPeerDiscovererCreator(pConfig config.P2PConfig) *peerDiscovererCreator {
 // CreatePeerDiscoverer generates an implementation of PeerDiscoverer by parsing the p2pConfig struct
 // Errors if config is badly formatted
 func (pdc *peerDiscovererCreator) CreatePeerDiscoverer() (p2p.PeerDiscoverer, error) {
-	isMoreThanOneEnabled := pdc.p2pConfig.MdnsPeerDiscovery.Enabled && pdc.p2pConfig.KadDhtPeerDiscovery.Enabled
-
-	if isMoreThanOneEnabled {
-		return nil, p2p.ErrMoreThanOnePeerDiscoveryActive
-	}
-
 	if pdc.p2pConfig.KadDhtPeerDiscovery.Enabled {
 		return pdc.createKadDhtPeerDiscoverer()
-	}
-
-	if pdc.p2pConfig.MdnsPeerDiscovery.Enabled {
-		return pdc.createMdnsPeerDiscoverer()
 	}
 
 	return discovery.NewNullDiscoverer(), nil
@@ -51,13 +41,10 @@ func (pdc *peerDiscovererCreator) createKadDhtPeerDiscoverer() (p2p.PeerDiscover
 	), nil
 }
 
-func (pdc *peerDiscovererCreator) createMdnsPeerDiscoverer() (p2p.PeerDiscoverer, error) {
-	if pdc.p2pConfig.MdnsPeerDiscovery.RefreshIntervalInSec <= 0 {
-		return nil, p2p.ErrNegativeOrZeroPeersRefreshInterval
+// IsInterfaceNil returns true if there is no value under the interface
+func (pdc *peerDiscovererCreator) IsInterfaceNil() bool {
+	if pdc == nil {
+		return true
 	}
-
-	return discovery.NewMdnsPeerDiscoverer(
-		time.Second*time.Duration(pdc.p2pConfig.MdnsPeerDiscovery.RefreshIntervalInSec),
-		pdc.p2pConfig.MdnsPeerDiscovery.ServiceTag,
-	), nil
+	return false
 }

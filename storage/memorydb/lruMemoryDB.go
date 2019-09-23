@@ -41,7 +41,7 @@ func (l *lruDB) Get(key []byte) ([]byte, error) {
 	return mrsVal, nil
 }
 
-// Has returns true if the given key is present in the persistance medium, false otherwise
+// Has returns true if the given key is present in the persistence medium, false otherwise
 func (l *lruDB) Has(key []byte) error {
 	has := l.cacher.Has(key)
 	if has {
@@ -72,4 +72,12 @@ func (l *lruDB) Remove(key []byte) error {
 func (l *lruDB) Destroy() error {
 	l.cacher.Clear()
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (l *lruDB) IsInterfaceNil() bool {
+	if l == nil {
+		return true
+	}
+	return false
 }

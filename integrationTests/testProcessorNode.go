@@ -92,6 +92,8 @@ type TestProcessorNode struct {
 	BlockTracker       process.BlocksTracker
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
+	Bootstrapper       process.Bootstrapper
+	Rounder            *mock.RounderMock
 
 	//Node is used to call the functionality already implemented in it
 	Node         *node.Node
@@ -103,7 +105,7 @@ type TestProcessorNode struct {
 	CounterMetaRcv int32
 }
 
-// NewTestProcessorNode returns a new TestProcessorNode instance
+// NewTestProcessorNode returns a new TestProcessorNode instance without sync capabilities
 func NewTestProcessorNode(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
@@ -142,6 +144,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
+	tpn.initRounder()
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
 	tpn.initChainHandler()
@@ -169,6 +172,10 @@ func (tpn *TestProcessorNode) initDataPools() {
 	} else {
 		tpn.ShardDataPool = CreateTestShardDataPool(nil)
 	}
+}
+
+func (tpn *TestProcessorNode) initRounder() {
+	tpn.Rounder = &mock.RounderMock{}
 }
 
 func (tpn *TestProcessorNode) initStorage() {
@@ -207,6 +214,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		}
 	} else {
 		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+			tpn.AccntState,
 			tpn.ShardCoordinator,
 			tpn.Messenger,
 			tpn.Storage,
@@ -228,7 +236,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 }
 
 func (tpn *TestProcessorNode) initResolvers() {
-	dataPacker, _ := partitioning.NewSizeDataPacker(TestMarshalizer)
+	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
@@ -244,6 +252,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
+			factory.HeadersTopic,
 			factory.ShardHeadersForMetachainTopic,
 		)
 	} else {
@@ -264,6 +273,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
 			factory.MiniBlocksTopic,
+			factory.HeadersTopic,
 			factory.MetachainBlocksTopic,
 			100,
 		)
@@ -344,7 +354,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -381,21 +391,25 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			TestUint64Converter,
 		)
 	} else {
-		tpn.BlockProcessor, err = block.NewShardProcessor(
-			nil,
-			tpn.ShardDataPool,
-			tpn.Storage,
-			TestHasher,
-			TestMarshalizer,
-			tpn.AccntState,
-			tpn.ShardCoordinator,
-			tpn.ForkDetector,
-			tpn.BlockTracker,
-			tpn.GenesisBlocks,
-			tpn.RequestHandler,
-			tpn.TxCoordinator,
-			TestUint64Converter,
-		)
+		arguments := block.ArgShardProcessor{
+			ArgBaseProcessor: &block.ArgBaseProcessor{
+				Accounts:         tpn.AccntState,
+				ForkDetector:     tpn.ForkDetector,
+				Hasher:           TestHasher,
+				Marshalizer:      TestMarshalizer,
+				Store:            tpn.Storage,
+				ShardCoordinator: tpn.ShardCoordinator,
+				Uint64Converter:  TestUint64Converter,
+				StartHeaders:     tpn.GenesisBlocks,
+				RequestHandler:   tpn.RequestHandler,
+				Core:             nil,
+			},
+			DataPool:      tpn.ShardDataPool,
+			BlocksTracker: tpn.BlockTracker,
+			TxCoordinator: tpn.TxCoordinator,
+		}
+
+		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
 	}
 
 	if err != nil {
@@ -497,6 +511,17 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 }
 
+// StartSync calls Bootstrapper.StartSync. Errors if bootstrapper is not set
+func (tpn *TestProcessorNode) StartSync() error {
+	if tpn.Bootstrapper == nil {
+		return errors.New("no bootstrapper available")
+	}
+
+	tpn.Bootstrapper.StartSync()
+
+	return nil
+}
+
 // LoadTxSignSkBytes alters the already generated sk/pk pair
 func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 	tpn.OwnAccount.LoadTxSignSkBytes(skBytes)
@@ -504,7 +529,14 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
-	haveTime := func() bool { return true }
+	startTime := time.Now()
+	maxTime := time.Second
+
+	haveTime := func() bool {
+		elapsedTime := time.Since(startTime)
+		remainingTime := maxTime - elapsedTime
+		return remainingTime > 0
+	}
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
 	if err != nil {
@@ -519,7 +551,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
-	blockHeader.SetPubKeysBitmap(make([]byte, 0))
+	blockHeader.SetPubKeysBitmap([]byte{1})
 	sig, _ := TestMultiSig.AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()

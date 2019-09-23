@@ -73,6 +73,7 @@ type DBConfig struct {
 	Type              DBType
 	BatchDelaySeconds int
 	MaxBatchSize      int
+	MaxOpenFiles      int
 }
 
 // BloomConfig holds the configurable elements of a bloom filter
@@ -82,7 +83,7 @@ type BloomConfig struct {
 }
 
 // Unit represents a storer's data bank
-// holding the cache, persistance unit and bloom filter
+// holding the cache, persistence unit and bloom filter
 type Unit struct {
 	lock        sync.RWMutex
 	batcher     storage.Batcher
@@ -91,7 +92,7 @@ type Unit struct {
 	bloomFilter storage.BloomFilter
 }
 
-// Put adds data to both cache and persistance medium and updates the bloom filter
+// Put adds data to both cache and persistence medium and updates the bloom filter
 func (s *Unit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -138,7 +139,7 @@ func (s *Unit) Get(key []byte) ([]byte, error) {
 				return nil, err
 			}
 
-			// if found in persistance unit, add it in cache
+			// if found in persistence unit, add it in cache
 			s.cacher.Put(key, v)
 		} else {
 			return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
@@ -185,7 +186,7 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) error {
 			//add it to the cache
 			s.cacher.Put(key, value)
 
-			// add it also to the persistance unit
+			// add it also to the persistence unit
 			err = s.persister.Put(key, value)
 			if err != nil {
 				//revert adding to the cache
@@ -209,7 +210,7 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) error {
 	return nil
 }
 
-// Remove removes the data associated to the given key from both cache and persistance medium
+// Remove removes the data associated to the given key from both cache and persistence medium
 func (s *Unit) Remove(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -238,13 +239,21 @@ func (s *Unit) DestroyUnit() error {
 	return s.persister.Destroy()
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *Unit) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}
+
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
 func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
-	if p == nil {
+	if p == nil || p.IsInterfaceNil() {
 		return nil, storage.ErrNilPersister
 	}
-	if c == nil {
+	if c == nil || c.IsInterfaceNil() {
 		return nil, storage.ErrNilCacher
 	}
 
@@ -265,13 +274,13 @@ func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
 // NewStorageUnitWithBloomFilter is the constructor for the storage unit, creating a new storage unit
 // from the given cacher, persister and bloom filter.
 func NewStorageUnitWithBloomFilter(c storage.Cacher, p storage.Persister, b storage.BloomFilter) (*Unit, error) {
-	if p == nil {
+	if p == nil || p.IsInterfaceNil() {
 		return nil, storage.ErrNilPersister
 	}
-	if c == nil {
+	if c == nil || c.IsInterfaceNil() {
 		return nil, storage.ErrNilCacher
 	}
-	if b == nil {
+	if b == nil || b.IsInterfaceNil() {
 		return nil, storage.ErrNilBloomFilter
 	}
 
@@ -307,7 +316,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		return nil, err
 	}
 
-	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize)
+	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +352,7 @@ func NewShardedStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloom
 	}
 
 	filePath := fmt.Sprintf("%s%d", dbConf.FilePath, shardId)
-	db, err = NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize)
+	db, err = NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -387,15 +396,15 @@ func NewCache(cacheType CacheType, size uint32, shards uint32) (storage.Cacher, 
 }
 
 // NewDB creates a new database from database config
-func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int) (storage.Persister, error) {
+func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (storage.Persister, error) {
 	var db storage.Persister
 	var err error
 
 	switch dbType {
 	case LvlDB:
-		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize)
+		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	case LvlDbSerial:
-		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize)
+		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	case BadgerDB:
 		db, err = badgerdb.NewDB(path, batchDelaySeconds, maxBatchSize)
 	case BoltDB:

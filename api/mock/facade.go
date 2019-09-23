@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
@@ -23,9 +24,12 @@ type Facade struct {
 	GenerateTransactionHandler                     func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
 	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
+	CreateTransactionHandler                       func(nonce uint64, value *big.Int, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
+	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) ([]byte, error)
+	StatusMetricsHandler                           func() external.StatusMetricsHandler
 }
 
 // IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
@@ -83,6 +87,22 @@ func (f *Facade) GenerateTransaction(sender string, receiver string, value *big.
 	return f.GenerateTransactionHandler(sender, receiver, value, code)
 }
 
+// CreateTransaction is  mock implementation of a handler's CreateTransaction method
+func (f *Facade) CreateTransaction(
+	nonce uint64,
+	value *big.Int,
+	receiverHex string,
+	senderHex string,
+	gasPrice uint64,
+	gasLimit uint64,
+	data string,
+	signatureHex string,
+	challenge string,
+) (*transaction.Transaction, error) {
+
+	return f.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, challenge)
+}
+
 // GetTransaction is the mock implementation of a handler's GetTransaction method
 func (f *Facade) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return f.GetTransactionHandler(hash)
@@ -91,6 +111,11 @@ func (f *Facade) GetTransaction(hash string) (*transaction.Transaction, error) {
 // SendTransaction is the mock implementation of a handler's SendTransaction method
 func (f *Facade) SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error) {
 	return f.SendTransactionHandler(nonce, sender, receiver, value, gasPrice, gasLimit, code, signature)
+}
+
+// SendBulkTransactions is the mock implementation of a handler's SendBulkTransactions method
+func (f *Facade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
+	return f.SendBulkTransactionsHandler(txs)
 }
 
 // GenerateAndSendBulkTransactions is the mock implementation of a handler's GenerateAndSendBulkTransactions method
@@ -105,6 +130,19 @@ func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, val
 
 func (f *Facade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
 	return f.GetDataValueHandler(address, funcName, argsBuff...)
+}
+
+// StatusMetrics is the mock implementation for the StatusMetrics
+func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
+	return f.StatusMetricsHandler()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (f *Facade) IsInterfaceNil() bool {
+	if f == nil {
+		return true
+	}
+	return false
 }
 
 // WrongFacade is a struct that can be used as a wrong implementation of the node router handler

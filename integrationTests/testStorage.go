@@ -1,4 +1,4 @@
-package storage
+package integrationTests
 
 import (
 	"bytes"
@@ -8,49 +8,76 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
-	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/stretchr/testify/assert"
 )
 
 const batchDelaySeconds = 10
 const maxBatchSize = 30000
+const maxOpenFiles = 10
 
-var testMarshalizer = &marshal.JsonMarshalizer{}
-var testHasher = sha256.Sha256{}
-var rcvAddr = make([]byte, 32)
-var sndAddr = make([]byte, 32)
-var sig = make([]byte, 64)
-var maxWritten = uint64(0)
-var mapRemovedKeys = sync.Map{}
+// TestStorage represents a container type of class used in integration tests for storage
+type TestStorage struct {
+	rcvAddr        []byte
+	sndAddr        []byte
+	sig            []byte
+	nbTxs          int
+	mapRemovedKeys sync.Map
+	maxWritten     *uint64
+}
 
-func createStoredData(nonce uint64) ([]byte, []byte) {
+// NewTestStorage return an object of type TestStorage
+func NewTestStorage() TestStorage {
+	testStorage := new(TestStorage)
+
+	testStorage.rcvAddr = make([]byte, 32)
+	testStorage.sndAddr = make([]byte, 32)
+	testStorage.sig = make([]byte, 64)
+
+	_, _ = rand.Reader.Read(testStorage.rcvAddr)
+	_, _ = rand.Reader.Read(testStorage.sndAddr)
+	_, _ = rand.Reader.Read(testStorage.sig)
+
+	return *testStorage
+}
+
+// InitAdditionalFieldsForStorageOperations init additional structure fields to can do storage operations
+func (ts *TestStorage) InitAdditionalFieldsForStorageOperations(nbTxsWrite int, mapRemovedKeys sync.Map, maxWritten *uint64) {
+	if ts == nil {
+		return
+	}
+
+	ts.nbTxs = nbTxsWrite
+	ts.mapRemovedKeys = mapRemovedKeys
+	ts.maxWritten = maxWritten
+}
+
+// CreateStoredData creates stored data
+func (ts *TestStorage) CreateStoredData(nonce uint64) ([]byte, []byte) {
 	tx := &transaction.Transaction{
 		Nonce:     nonce,
 		GasLimit:  0,
 		GasPrice:  0,
-		RcvAddr:   rcvAddr,
-		SndAddr:   sndAddr,
-		Signature: sig,
+		RcvAddr:   ts.rcvAddr,
+		SndAddr:   ts.sndAddr,
+		Signature: ts.sig,
 		Value:     big.NewInt(1),
 	}
-	txBuff, _ := testMarshalizer.Marshal(tx)
-	txHash := testHasher.Compute(string(txBuff))
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	txHash := TestHasher.Compute(string(txBuff))
 
 	return txHash, txBuff
 }
 
-func createStorageLevelDB() storage.Storer {
-	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize)
+// CreateStorageLevelDB creates a storage levelDB
+func (ts *TestStorage) CreateStorageLevelDB() storage.Storer {
+	db, _ := leveldb.NewDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,
@@ -60,8 +87,9 @@ func createStorageLevelDB() storage.Storer {
 	return store
 }
 
-func createStorageLevelDBSerial() storage.Storer {
-	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize)
+// CreateStorageLevelDBSerial creates a storage levelDB serial
+func (ts *TestStorage) CreateStorageLevelDBSerial() storage.Storer {
+	db, _ := leveldb.NewSerialDB("Transactions", batchDelaySeconds, maxBatchSize, maxOpenFiles)
 	cacher, _ := lrucache.NewCache(50000)
 	store, _ := storageUnit.NewStorageUnit(
 		cacher,
@@ -71,8 +99,8 @@ func createStorageLevelDBSerial() storage.Storer {
 	return store
 }
 
-func writeMultipleWithNotif(
-	nbTxsWrite int,
+// WriteMultipleWithNotif write multiple data in storage without notification
+func (ts *TestStorage) WriteMultipleWithNotif(
 	store storage.Storer,
 	wg *sync.WaitGroup,
 	chWriteDone chan struct{},
@@ -85,7 +113,7 @@ func writeMultipleWithNotif(
 	initTime := time.Now()
 	startTime := time.Now()
 
-	for counter := 1; counter <= nbTxsWrite; counter++ {
+	for counter := 1; counter <= ts.nbTxs; counter++ {
 		if counter%written == 0 {
 			var memStats runtime.MemStats
 			runtime.ReadMemStats(&memStats)
@@ -112,7 +140,7 @@ func writeMultipleWithNotif(
 			startTime = time.Now()
 		}
 
-		key, val := createStoredData(uint64(counter))
+		key, val := ts.CreateStoredData(uint64(counter))
 		errPut := store.Put(key, val)
 		if errPut != nil {
 			fmt.Print(errPut.Error())
@@ -120,7 +148,7 @@ func writeMultipleWithNotif(
 			return
 		}
 
-		atomic.StoreUint64(&maxWritten, uint64(counter))
+		atomic.StoreUint64(ts.maxWritten, uint64(counter))
 	}
 
 	fmt.Println("Done Writing!")
@@ -130,8 +158,8 @@ func writeMultipleWithNotif(
 	}
 }
 
-func removeMultiple(
-	nbTxs int,
+// RemoveMultiple remove multiple data from storage
+func (ts *TestStorage) RemoveMultiple(
 	store storage.Storer,
 	wg *sync.WaitGroup,
 	chEndRemove chan struct{},
@@ -148,16 +176,16 @@ func removeMultiple(
 			//remove happen less often than writes
 		}
 
-		if atomic.LoadUint64(&maxWritten) == 0 {
+		if atomic.LoadUint64(ts.maxWritten) == 0 {
 			//not written yet
 			continue
 		}
 
-		maxWrittenUint64 := atomic.LoadUint64(&maxWritten)
+		maxWrittenUint64 := atomic.LoadUint64(ts.maxWritten)
 		maxWrittenBigInt := big.NewInt(0).SetUint64(maxWrittenUint64)
 		existingNonce, _ := rand.Int(rand.Reader, maxWrittenBigInt)
-		key, _ := createStoredData(existingNonce.Uint64())
-		mapRemovedKeys.Store(string(key), struct{}{})
+		key, _ := ts.CreateStoredData(existingNonce.Uint64())
+		ts.mapRemovedKeys.Store(string(key), struct{}{})
 
 		errRemove := store.Remove(key)
 		if errRemove != nil {
@@ -166,15 +194,15 @@ func removeMultiple(
 			return
 		}
 
-		if maxWrittenUint64 == uint64(nbTxs) {
+		if maxWrittenUint64 == uint64(ts.nbTxs) {
 			fmt.Println("Done Removing!")
 			return
 		}
 	}
 }
 
-func readMultiple(
-	nbTxs int,
+// ReadMultiple  read multiple data from storage
+func (ts *TestStorage) ReadMultiple(
 	store storage.Storer,
 	wg *sync.WaitGroup,
 	chStartTrigger chan struct{},
@@ -190,9 +218,9 @@ func readMultiple(
 	maxRoutines := make(chan struct{}, 5000)
 	actualRead := uint64(0)
 	wgRead := &sync.WaitGroup{}
-	wgRead.Add(nbTxs)
+	wgRead.Add(ts.nbTxs)
 
-	for cnt := 1; cnt <= nbTxs; cnt++ {
+	for cnt := 1; cnt <= ts.nbTxs; cnt++ {
 		maxRoutines <- struct{}{}
 		go func(count uint64) {
 			defer func() {
@@ -203,7 +231,7 @@ func readMultiple(
 			var maxWrittenUint64 uint64
 
 			for {
-				maxWrittenUint64 = atomic.LoadUint64(&maxWritten)
+				maxWrittenUint64 = atomic.LoadUint64(ts.maxWritten)
 				if count <= maxWrittenUint64 {
 					break
 				}
@@ -211,9 +239,9 @@ func readMultiple(
 				<-time.After(time.Microsecond)
 			}
 
-			key, val := createStoredData(count)
+			key, val := ts.CreateStoredData(count)
 			v, errGet := store.Get(key)
-			_, ok := mapRemovedKeys.Load(string(key))
+			_, ok := ts.mapRemovedKeys.Load(string(key))
 			if !ok && errGet != nil {
 				fmt.Printf("Not getting tx with nonce %d\n", count)
 				atomic.AddInt32(errors, 1)
@@ -257,81 +285,4 @@ func readMultiple(
 	}
 	wgRead.Wait()
 	fmt.Println("Done Reading!")
-}
-
-func TestWriteContinously(t *testing.T) {
-	t.Skip("this is not a short test")
-	_, _ = rand.Reader.Read(rcvAddr)
-	_, _ = rand.Reader.Read(sndAddr)
-	_, _ = rand.Reader.Read(sig)
-	nbTxsWrite := 1000000
-	store := createStorageLevelDB()
-
-	defer func() {
-		_ = store.DestroyUnit()
-	}()
-
-	startTime := time.Now()
-	for i := 1; i <= nbTxsWrite; i++ {
-		written := 10000
-		if i%written == 0 {
-			endTime := time.Now()
-			diff := endTime.Sub(startTime)
-			fmt.Printf("Written %d, total %d in %f s\n", written, i, diff.Seconds())
-			startTime = time.Now()
-		}
-
-		key, val := createStoredData(uint64(i))
-		err := store.Put(key, val)
-
-		assert.Nil(t, err)
-	}
-}
-
-func TestWriteReadDeleteLevelDB(t *testing.T) {
-	t.Skip("this is not a short test")
-	wg := &sync.WaitGroup{}
-	errors := int32(0)
-	_, _ = rand.Reader.Read(rcvAddr)
-	_, _ = rand.Reader.Read(sndAddr)
-	_, _ = rand.Reader.Read(sig)
-	store := createStorageLevelDB()
-	nbTxsWrite := 1000000
-	wg.Add(3)
-	chWriteDone := make(chan struct{})
-
-	defer func() {
-		_ = store.DestroyUnit()
-	}()
-
-	go writeMultipleWithNotif(nbTxsWrite, store, wg, chWriteDone, 2, &errors)
-	go removeMultiple(nbTxsWrite, store, wg, chWriteDone, &errors)
-	go readMultiple(nbTxsWrite, store, wg, chWriteDone, &errors)
-	wg.Wait()
-
-	assert.Equal(t, int32(0), errors)
-}
-
-func TestWriteReadDeleteLevelDBSerial(t *testing.T) {
-	t.Skip("this is not a short test")
-	wg := &sync.WaitGroup{}
-	errors := int32(0)
-	_, _ = rand.Reader.Read(rcvAddr)
-	_, _ = rand.Reader.Read(sndAddr)
-	_, _ = rand.Reader.Read(sig)
-	store := createStorageLevelDBSerial()
-	nbTxsWrite := 1000000
-	wg.Add(3)
-	chWriteDone := make(chan struct{})
-
-	defer func() {
-		_ = store.DestroyUnit()
-	}()
-
-	go writeMultipleWithNotif(nbTxsWrite, store, wg, chWriteDone, 2, &errors)
-	go removeMultiple(nbTxsWrite, store, wg, chWriteDone, &errors)
-	go readMultiple(nbTxsWrite, store, wg, chWriteDone, &errors)
-	wg.Wait()
-
-	assert.Equal(t, int32(0), errors)
 }

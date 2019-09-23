@@ -40,7 +40,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -63,7 +63,7 @@ func TestGenerateAndSendBulkTransactions_NilSingleSignerShouldErr(t *testing.T) 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -86,7 +86,7 @@ func TestGenerateAndSendBulkTransactions_NilShardCoordinatorShouldErr(t *testing
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithAccountsAdapter(accAdapter),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -106,7 +106,7 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSignPrivKey(sk),
 		node.WithTxSignPubKey(pk),
@@ -115,75 +115,6 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
 	assert.Equal(t, node.ErrNilAddressConverter, err)
-}
-
-func TestGenerateAndSendBulkTransactions_NilTransactionPoolShouldErr(t *testing.T) {
-	marshalizer := &mock.MarshalizerFake{}
-	accAdapter := getAccAdapter(big.NewInt(0))
-	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	keyGen := &mock.KeyGenMock{}
-	sk, pk := keyGen.GeneratePair()
-	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return nil
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer),
-		node.WithAddressConverter(addrConverter),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(sk),
-		node.WithTxSignPubKey(pk),
-		node.WithTxSingleSigner(singleSigner),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataPool(dataPool),
-	)
-
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
-	assert.Equal(t, node.ErrNilTransactionPool, err)
-}
-
-func TestGenerateAndSendBulkTransactions_TooManyTransactionsInPoolShouldErr(t *testing.T) {
-	marshalizer := &mock.MarshalizerFake{}
-	accAdapter := getAccAdapter(big.NewInt(0))
-	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	keyGen := &mock.KeyGenMock{}
-	sk, pk := keyGen.GeneratePair()
-	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						LenCalled: func() int {
-							return 70000
-						},
-					}
-				},
-			}
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithMarshalizer(marshalizer),
-		node.WithAddressConverter(addrConverter),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSignPrivKey(sk),
-		node.WithTxSignPubKey(pk),
-		node.WithTxSingleSigner(singleSigner),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataPool(dataPool),
-		node.WithTxStorageSize(100000),
-		node.WithMessenger(&mock.MessengerStub{
-			BroadcastOnChannelCalled: func(channel string, topic string, buff []byte) {
-			},
-		}),
-	)
-
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
-	assert.Equal(t, node.ErrTooManyTransactionsInPool, err)
 }
 
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
@@ -214,24 +145,6 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "trying to set nil private key"))
-}
-
-func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
-	accAdapter := getAccAdapter(big.NewInt(0))
-	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	keyGen := &mock.KeyGenMock{}
-	sk, _ := keyGen.GeneratePair()
-	singleSigner := &mock.SinglesignMock{}
-	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accAdapter),
-		node.WithAddressConverter(addrConverter),
-		node.WithTxSignPrivKey(sk),
-		node.WithSingleSigner(singleSigner),
-	)
-
-	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
-	assert.NotNil(t, err)
-	assert.Equal(t, "trying to set nil public key", err.Error())
 }
 
 func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *testing.T) {
@@ -392,7 +305,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	sk, pk := keyGen.GeneratePair()
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
-		node.WithHasher(mock.HasherMock{}),
+		node.WithHasher(&mock.HasherMock{}),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSignPrivKey(sk),

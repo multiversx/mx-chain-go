@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,7 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -52,60 +55,6 @@ type StatisticsResponse struct {
 
 func init() {
 	gin.SetMode(gin.TestMode)
-}
-
-func TestStatus_FailsWithoutFacade(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-	defer func() {
-		r := recover()
-		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
-	}()
-	req, _ := http.NewRequest("GET", "/node/status", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-}
-
-func TestStatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/node/status", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	statusRsp := StatusResponse{}
-	loadResponse(resp.Body, &statusRsp)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
-}
-
-func TestStatus_ReturnsCorrectResponseOnStart(t *testing.T) {
-	t.Parallel()
-	facade := mock.Facade{}
-	facade.Running = true
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/node/status", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	statusRsp := StatusResponse{}
-	loadResponse(resp.Body, &statusRsp)
-	assert.True(t, statusRsp.Running)
-}
-
-func TestStatus_ReturnsCorrectResponseOnStop(t *testing.T) {
-	t.Parallel()
-	facade := mock.Facade{}
-	ws := startNodeServer(&facade)
-
-	facade.Running = false
-	req2, _ := http.NewRequest("GET", "/node/status", nil)
-	resp2 := httptest.NewRecorder()
-	ws.ServeHTTP(resp2, req2)
-
-	statusRsp2 := StatusResponse{}
-	loadResponse(resp2.Body, &statusRsp2)
-	assert.False(t, statusRsp2.Running)
 }
 
 func TestStartNode_FailsWithoutFacade(t *testing.T) {
@@ -376,7 +325,7 @@ func TestHeartbeatstatus(t *testing.T) {
 			TimeStamp:       time.Now(),
 			MaxInactiveTime: heartbeat.Duration{Duration: 0},
 			IsActive:        true,
-			ShardID:         uint32(0),
+			ReceivedShardID: uint32(0),
 		},
 	}
 	facade := mock.Facade{
@@ -440,6 +389,30 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	loadResponse(resp.Body, &statisticsRsp)
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
+}
+
+func TestStatusMetrics_ShouldDisplayMetrics(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := "test-details-key"
+	value := "test-details-value"
+	statusMetricsProvider.SetStringValue(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/status", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
+	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

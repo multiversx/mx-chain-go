@@ -4,15 +4,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/libp2p/go-libp2p-kad-dht"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 )
 
-var peerDiscoveryTimeout = time.Duration(time.Second * 10)
+var peerDiscoveryTimeout = 10 * time.Second
 var noOfQueries = 1
 
 const kadDhtName = "kad-dht discovery"
+
+var log = logger.DefaultLogger()
 
 // KadDhtDiscoverer is the kad-dht discovery type implementation
 type KadDhtDiscoverer struct {
@@ -86,7 +89,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 	cfg := dht.BootstrapConfig{
 		Period:  kdd.refreshInterval,
 		Queries: noOfQueries,
-		Timeout: time.Duration(peerDiscoveryTimeout),
+		Timeout: peerDiscoveryTimeout,
 	}
 
 	ctx := kdd.contextProvider.Context()
@@ -154,7 +157,7 @@ func (kdd *KadDhtDiscoverer) Name() string {
 
 // ApplyContext sets the context in which this discoverer is to be run
 func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error {
-	if ctxProvider == nil {
+	if ctxProvider == nil || ctxProvider.IsInterfaceNil() {
 		return p2p.ErrNilContextProvider
 	}
 
@@ -171,4 +174,12 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
 	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
+	if kdd == nil {
+		return true
+	}
+	return false
 }

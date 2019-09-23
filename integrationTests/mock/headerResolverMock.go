@@ -30,3 +30,11 @@ func (hrm *HeaderResolverMock) RequestDataFromNonce(nonce uint64) error {
 	}
 	return hrm.RequestDataFromNonceCalled(nonce)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hrm *HeaderResolverMock) IsInterfaceNil() bool {
+	if hrm == nil {
+		return true
+	}
+	return false
+}

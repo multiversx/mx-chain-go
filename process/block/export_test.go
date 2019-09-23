@@ -1,6 +1,7 @@
 package block
 
 import (
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -43,8 +44,8 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint
 	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
-	return sp.getProcessedMetaBlocksFromPool(body, header)
+func (sp *shardProcessor) GetProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
+	return sp.getProcessedMetaBlocksFromHeader(header)
 }
 
 func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
@@ -52,21 +53,25 @@ func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
-	shardProcessor, err := NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		genesisBlocks,
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
+
+	arguments := ArgShardProcessor{
+		ArgBaseProcessor: &ArgBaseProcessor{
+			Accounts:         &mock.AccountsStub{},
+			ForkDetector:     &mock.ForkDetectorMock{},
+			Hasher:           &mock.HasherMock{},
+			Marshalizer:      &mock.MarshalizerMock{},
+			Store:            &mock.ChainStorerMock{},
+			ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+			Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:     genesisBlocks,
+			RequestHandler:   &mock.RequestHandlerMock{},
+			Core:             &mock.ServiceContainerMock{},
+		},
+		DataPool:      tdp,
+		BlocksTracker: &mock.BlocksTrackerMock{},
+		TxCoordinator: &mock.TransactionCoordinatorMock{},
+	}
+	shardProcessor, err := NewShardProcessor(arguments)
 	return shardProcessor, err
 }
 
@@ -93,10 +98,6 @@ func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, u
 
 func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
 	return mp.removeBlockInfoFromPool(header)
-}
-
-func (mp *metaProcessor) DisplayMetaBlock(header *block.MetaBlock) {
-	mp.displayMetaBlock(header)
 }
 
 func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
@@ -156,6 +157,10 @@ func (bp *baseProcessor) LastNotarizedHdrForShard(shardId uint32) data.HeaderHan
 	return bp.lastNotarizedHdrForShard(shardId)
 }
 
+func (bp *baseProcessor) RemoveLastNotarized() {
+	bp.removeLastNotarized()
+}
+
 func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
 	bp.marshalizer = marshal
 }
@@ -192,6 +197,14 @@ func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 
 func (mp *metaProcessor) ChRcvAllHdrs() chan bool {
 	return mp.chRcvAllHdrs
+}
+
+func (mp *metaProcessor) UpdateShardsHeadersNonce(key uint32, value uint64) {
+	mp.updateShardHeadersNonce(key, value)
+}
+
+func (mp *metaProcessor) GetShardsHeadersNonce() *sync.Map {
+	return mp.shardsHeadersNonce
 }
 
 func NewBaseProcessor(shardCord sharding.Coordinator) *baseProcessor {
@@ -262,12 +275,12 @@ func (sp *shardProcessor) DisplayLogInfo(
 	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
 }
 
-func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, []byte, error) {
-	return sp.getHighestHdrForOwnShardFromMetachain(round)
+func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte, error) {
+	return sp.getHighestHdrForOwnShardFromMetachain(processedHdrs)
 }
 
 func (sp *shardProcessor) RestoreMetaBlockIntoPool(
-	miniBlockHashes map[int][][]byte,
+	miniBlockHashes map[string]uint32,
 	metaBlockHashes [][]byte,
 ) error {
 	return sp.restoreMetaBlockIntoPool(miniBlockHashes, metaBlockHashes)

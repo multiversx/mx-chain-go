@@ -57,3 +57,11 @@ func (cs *CacherStub) Len() int {
 func (cs *CacherStub) RegisterHandler(handler func(key []byte)) {
 	cs.RegisterHandlerCalled(handler)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (cs *CacherStub) IsInterfaceNil() bool {
+	if cs == nil {
+		return true
+	}
+	return false
+}

@@ -16,3 +16,11 @@ func (mhs *MessageHandlerStub) ConnectedPeersOnTopic(topic string) []p2p.PeerID 
 func (mhs *MessageHandlerStub) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
 	return mhs.SendToConnectedPeerCalled(topic, buff, peerID)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mhs *MessageHandlerStub) IsInterfaceNil() bool {
+	if mhs == nil {
+		return true
+	}
+	return false
+}

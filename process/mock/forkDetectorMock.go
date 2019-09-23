@@ -6,7 +6,7 @@ import (
 )
 
 type ForkDetectorMock struct {
-	AddHeaderCalled                         func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error
+	AddHeaderCalled                         func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
 	RemoveHeadersCalled                     func(nonce uint64, hash []byte)
 	CheckForkCalled                         func() (bool, uint64, []byte)
 	GetHighestFinalBlockNonceCalled         func() uint64
@@ -14,8 +14,8 @@ type ForkDetectorMock struct {
 	ResetProbableHighestNonceIfNeededCalled func()
 }
 
-func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
-	return fdm.AddHeaderCalled(header, hash, state, finalHeader, finalHeaderHash)
+func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+	return fdm.AddHeaderCalled(header, hash, state, finalHeaders, finalHeadersHashes)
 }
 
 func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {
@@ -36,4 +36,12 @@ func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
 
 func (fdm *ForkDetectorMock) ResetProbableHighestNonceIfNeeded() {
 	fdm.ResetProbableHighestNonceIfNeededCalled()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (fdm *ForkDetectorMock) IsInterfaceNil() bool {
+	if fdm == nil {
+		return true
+	}
+	return false
 }

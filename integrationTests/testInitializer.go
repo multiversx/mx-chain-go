@@ -278,10 +278,12 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 }
 
 // CreateIeleVMAndBlockchainHook creates a new instance of a iele VM
-func CreateIeleVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
+func CreateIeleVMAndBlockchainHook(
+	accnts state.AccountsAdapter,
+) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, TestAddressConverter)
 	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(blockChainHook, cryptoHook, endpoint.ElrondTestnet)
+	vm := endpoint.NewElrondIeleVM(procFactory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 
 	return vm, blockChainHook
 }
@@ -460,6 +462,7 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 			continue
 		}
 
+		n.OwnAccount.Balance = big.NewInt(0).Set(value)
 		MintAddress(targetNode.AccntState, n.OwnAccount.PkTxSignBytes, value)
 	}
 }
@@ -829,6 +832,19 @@ func CreateMintingForSenders(
 	}
 }
 
+// CreateMintingFromAddresses creates account with balances for given address
+func CreateMintingFromAddresses(
+	nodes []*TestProcessorNode,
+	addresses [][]byte,
+	value *big.Int,
+) {
+	for _, n := range nodes {
+		for _, address := range addresses {
+			MintAddress(n.AccntState, address, value)
+		}
+	}
+}
+
 // ProposeBlockSignalsEmptyBlock proposes and broadcasts a block
 func ProposeBlockSignalsEmptyBlock(
 	node *TestProcessorNode,
@@ -945,10 +961,10 @@ func CreateResolversDataPool(
 	senderShardID uint32,
 	recvShardId uint32,
 	shardCoordinator sharding.Coordinator,
-) (dataRetriever.PoolsHolder, [][]byte) {
+) (dataRetriever.PoolsHolder, [][]byte, [][]byte) {
 
 	txHashes := make([][]byte, maxTxs)
-
+	txsSndAddr := make([][]byte, 0)
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 
 	for i := 0; i < maxTxs; i++ {
@@ -956,9 +972,10 @@ func CreateResolversDataPool(
 		cacherIdentifier := process.ShardCacherIdentifier(1, 0)
 		txPool.AddData(txHash, tx, cacherIdentifier)
 		txHashes[i] = txHash
+		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
 
-	return CreateTestShardDataPool(txPool), txHashes
+	return CreateTestShardDataPool(txPool), txHashes, txsSndAddr
 }
 
 func generateValidTx(
@@ -1028,7 +1045,6 @@ func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrS
 // ProposeAndSyncBlocks proposes and syncs blocks until all transaction pools are empty
 func ProposeAndSyncBlocks(
 	t *testing.T,
-	numInTxs int,
 	nodes []*TestProcessorNode,
 	idxProposers []int,
 	round uint64,
@@ -1036,7 +1052,8 @@ func ProposeAndSyncBlocks(
 ) (uint64, uint64) {
 
 	// if there are many transactions, they might not fit into the block body in only one round
-	for numTxsInPool := numInTxs; numTxsInPool != 0; {
+	for {
+		numTxsInPool := 0
 		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 		for _, idProposer := range idxProposers {
@@ -1050,6 +1067,10 @@ func ProposeAndSyncBlocks(
 			if numTxsInPool > 0 {
 				break
 			}
+		}
+
+		if numTxsInPool == 0 {
+			break
 		}
 	}
 
@@ -1082,4 +1103,16 @@ func ProposeAndSyncOneBlock(
 	nonce++
 
 	return round, nonce
+}
+
+// WaitForBootstrapAndShowConnected will delay a given duration in order to wait for bootstraping  and print the
+// number of peers that each node is connected to
+func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapingTime time.Duration) {
+	fmt.Printf("Waiting %v for peer discovery...\n", durationBootstrapingTime)
+	time.Sleep(durationBootstrapingTime)
+
+	fmt.Println("Connected peers:")
+	for _, peer := range peers {
+		fmt.Printf("Peer %s is connected to %d peers\n", peer.ID().Pretty(), len(peer.ConnectedPeers()))
+	}
 }

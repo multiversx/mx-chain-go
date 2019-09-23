@@ -17,6 +17,7 @@ import (
 )
 
 type interceptorsContainerFactory struct {
+	accounts            state.AccountsAdapter
 	shardCoordinator    sharding.Coordinator
 	messenger           process.TopicHandler
 	store               dataRetriever.StorageService
@@ -32,6 +33,7 @@ type interceptorsContainerFactory struct {
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
+	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
@@ -44,42 +46,45 @@ func NewInterceptorsContainerFactory(
 	addrConverter state.AddressConverter,
 	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
-
-	if shardCoordinator == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
+		return nil, process.ErrNilAccountsAdapter
+	}
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 	if messenger == nil {
 		return nil, process.ErrNilMessenger
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilBlockChain
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if keyGen == nil {
+	if keyGen == nil || keyGen.IsInterfaceNil() {
 		return nil, process.ErrNilKeyGen
 	}
-	if singleSigner == nil {
+	if singleSigner == nil || singleSigner.IsInterfaceNil() {
 		return nil, process.ErrNilSingleSigner
 	}
-	if multiSigner == nil {
+	if multiSigner == nil || multiSigner.IsInterfaceNil() {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if dataPool == nil {
+	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if addrConverter == nil {
+	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if chronologyValidator == nil {
+	if chronologyValidator == nil || chronologyValidator.IsInterfaceNil() {
 		return nil, process.ErrNilChronologyValidator
 	}
 
 	return &interceptorsContainerFactory{
+		accounts:            accounts,
 		shardCoordinator:    shardCoordinator,
 		messenger:           messenger,
 		store:               store,
@@ -211,8 +216,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	//TODO implement other TxHandlerProcessValidator that will check the tx nonce against account's nonce
-	txValidator, err := dataValidators.NewNilTxValidator()
+	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -418,4 +422,12 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	}
 
 	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (icf *interceptorsContainerFactory) IsInterfaceNil() bool {
+	if icf == nil {
+		return true
+	}
+	return false
 }

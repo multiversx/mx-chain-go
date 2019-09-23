@@ -26,6 +26,7 @@ type InterceptedTransaction struct {
 	rcvShard                 uint32
 	sndShard                 uint32
 	isAddressedToOtherShards bool
+	sndAddr                  state.AddressContainer
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -42,22 +43,22 @@ func NewInterceptedTransaction(
 	if txBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if keyGen == nil {
+	if keyGen == nil || keyGen.IsInterfaceNil() {
 		return nil, process.ErrNilKeyGen
 	}
-	if signer == nil {
+	if signer == nil || signer.IsInterfaceNil() {
 		return nil, process.ErrNilSingleSigner
 	}
-	if addrConv == nil {
+	if addrConv == nil || addrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -104,7 +105,7 @@ func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte,
 	}
 	inTx.hash = inTx.hasher.Compute(string(txBuffWithSig))
 
-	sndAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
+	inTx.sndAddr, err = inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
 	if err != nil {
 		return nil, process.ErrInvalidSndAddr
 	}
@@ -114,7 +115,7 @@ func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte,
 		return nil, process.ErrInvalidRcvAddr
 	}
 
-	inTx.sndShard = inTx.coordinator.ComputeId(sndAddr)
+	inTx.sndShard = inTx.coordinator.ComputeId(inTx.sndAddr)
 	emptyAddr := make([]byte, len(rcvAddr.Bytes()))
 	inTx.rcvShard = inTx.coordinator.ComputeId(rcvAddr)
 	if bytes.Equal(rcvAddr.Bytes(), emptyAddr) {
@@ -190,4 +191,32 @@ func (inTx *InterceptedTransaction) Transaction() *transaction.Transaction {
 // Hash gets the hash of this transaction
 func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
+}
+
+// SenderShardId returns the transaction sender shard id
+func (inTx *InterceptedTransaction) SenderShardId() uint32 {
+	return inTx.sndShard
+}
+
+// Nonce returns the transaction nonce
+func (inTx *InterceptedTransaction) Nonce() uint64 {
+	return inTx.tx.Nonce
+}
+
+// SenderAddress returns the transaction sender address
+func (inTx *InterceptedTransaction) SenderAddress() state.AddressContainer {
+	return inTx.sndAddr
+}
+
+// TotalValue returns the maximum cost of transaction
+// totalValue = txValue + gasPrice*gasLimit
+func (inTx *InterceptedTransaction) TotalValue() *big.Int {
+	result := big.NewInt(0).Set(inTx.tx.Value)
+	gasPrice := big.NewInt(int64(inTx.tx.GasPrice))
+	gasLimit := big.NewInt(int64(inTx.tx.GasLimit))
+	mulTxCost := big.NewInt(0)
+	mulTxCost = mulTxCost.Mul(gasPrice, gasLimit)
+	result = result.Add(result, mulTxCost)
+
+	return result
 }

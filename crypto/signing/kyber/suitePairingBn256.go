@@ -76,3 +76,11 @@ func (s *suitePairingBn256) CreateKeyPair(stream cipher.Stream) (crypto.Scalar, 
 func (s *suitePairingBn256) GetUnderlyingSuite() interface{} {
 	return s.suite
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *suitePairingBn256) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
+}

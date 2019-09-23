@@ -686,7 +686,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		accounts,
 		mdp,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 				return nil
 			},
 		},
@@ -802,7 +802,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	forkDetectorAddCalled := false
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			if header == hdr {
 				forkDetectorAddCalled = true
 				return nil
@@ -942,31 +942,6 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	header := createMetaBlockHeader()
 	err := mp.RemoveBlockInfoFromPool(header)
 	assert.Nil(t, err)
-}
-
-//------- ComputeNewNoncePrevHash
-
-func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
-	t.Parallel()
-
-	mdp := initMetaDataPool()
-	hasher := mock.HasherMock{}
-	hdr := createMetaBlockHeader()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initStore(),
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-	hdr.PrevHash = hasher.Compute("prev hash")
-	mp.DisplayMetaBlock(hdr)
 }
 
 func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
@@ -2439,4 +2414,61 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 	dcdHdr = mp.DecodeBlockHeader(message)
 	assert.Equal(t, hdr, dcdHdr)
 	assert.Equal(t, []byte("A"), dcdHdr.GetSignature())
+}
+
+func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mdp := initMetaDataPool()
+	marshalizerMock := &mock.MarshalizerMock{}
+	mp, err := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
+		&mock.AccountsStub{},
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.HasherStub{},
+		marshalizerMock,
+		&mock.ChainStorerMock{},
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+	if err != nil {
+		assert.NotNil(t, err)
+	}
+
+	numberOfShards := uint32(4)
+	type DataForMap struct {
+		shardId     uint32
+		HeaderNonce uint64
+	}
+	testData := []DataForMap{
+		{uint32(0), uint64(100)},
+		{uint32(1), uint64(200)},
+		{uint32(2), uint64(300)},
+		{uint32(3), uint64(400)},
+		{uint32(0), uint64(400)},
+	}
+
+	for i := range testData {
+		mp.UpdateShardsHeadersNonce(testData[i].shardId, testData[i].HeaderNonce)
+	}
+
+	shardsHeadersNonce := mp.GetShardsHeadersNonce()
+
+	mapDates := make([]uint64, 0)
+
+	//Get all data from map and put then in a slice
+	for i := uint32(0); i < numberOfShards; i++ {
+		mapDataI, _ := shardsHeadersNonce.Load(i)
+		mapDates = append(mapDates, mapDataI.(uint64))
+
+	}
+
+	//Check data from map is stored correctly
+	expectedData := []uint64{400, 200, 300, 400}
+	for i := 0; i < int(numberOfShards); i++ {
+		assert.Equal(t, expectedData[i], mapDates[i])
+	}
 }

@@ -47,7 +47,7 @@ func (inTxBlkBdy *InterceptedTxBlockBody) IntegrityAndValidity(coordinator shard
 
 // Integrity checks the integrity of the state block wrapper
 func (inTxBlkBdy *InterceptedTxBlockBody) Integrity(coordinator sharding.Coordinator) error {
-	if coordinator == nil {
+	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
 
@@ -82,4 +82,12 @@ func (inTxBlkBdy *InterceptedTxBlockBody) validityCheck() error {
 	// TODO: update with validity checks
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (inTxBlkBdy *InterceptedTxBlockBody) IsInterfaceNil() bool {
+	if inTxBlkBdy == nil {
+		return true
+	}
+	return false
 }

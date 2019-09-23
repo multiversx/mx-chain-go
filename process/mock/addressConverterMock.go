@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
@@ -54,4 +55,12 @@ func (acm *AddressConverterMock) PrepareAddressBytes(addressBytes []byte) ([]byt
 
 func (acm *AddressConverterMock) AddressLen() int {
 	return 32
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (acm *AddressConverterMock) IsInterfaceNil() bool {
+	if acm == nil {
+		return true
+	}
+	return false
 }

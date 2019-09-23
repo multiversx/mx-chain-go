@@ -39,28 +39,28 @@ func NewTxInterceptor(
 	shardCoordinator sharding.Coordinator,
 ) (*TxInterceptor, error) {
 
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if txPool == nil {
+	if txPool == nil || txPool.IsInterfaceNil() {
 		return nil, process.ErrNilTxDataPool
 	}
-	if txValidator == nil {
+	if txValidator == nil || txValidator.IsInterfaceNil() {
 		return nil, process.ErrNilTxHandlerValidator
 	}
-	if addrConverter == nil {
+	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if singleSigner == nil {
+	if singleSigner == nil || singleSigner.IsInterfaceNil() {
 		return nil, process.ErrNilSingleSigner
 	}
-	if keyGen == nil {
+	if keyGen == nil || keyGen.IsInterfaceNil() {
 		return nil, process.ErrNilKeyGen
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -81,7 +81,7 @@ func NewTxInterceptor(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	if message == nil {
+	if message == nil || message.IsInterfaceNil() {
 		return process.ErrNilMessage
 	}
 
@@ -148,9 +148,9 @@ func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte))
 }
 
 func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
-	isTxValid := txi.txValidator.IsTxValidForProcessing(tx.Transaction())
+	isTxValid := txi.txValidator.IsTxValidForProcessing(tx)
 	if !isTxValid {
-		log.Debug(fmt.Sprintf("intercepted tx with hash %s is not valid", hex.EncodeToString(tx.hash)))
+		log.Debug(fmt.Sprintf("intercepted tx with hash %s is not valid, total rejected txs %d", hex.EncodeToString(tx.hash), txi.txValidator.NumRejectedTxs()))
 		return
 	}
 
@@ -160,4 +160,12 @@ func (txi *TxInterceptor) processTransaction(tx *InterceptedTransaction) {
 		tx.Transaction(),
 		cacherIdentifier,
 	)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txi *TxInterceptor) IsInterfaceNil() bool {
+	if txi == nil {
+		return true
+	}
+	return false
 }

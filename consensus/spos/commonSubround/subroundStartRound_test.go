@@ -319,7 +319,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenShouldSyncRetur
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextConsensusGroupErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	validatorGroupSelector := &mock.ValidatorGroupSelectorMock{}
 	err := errors.New("error")
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {
 		return nil, err
@@ -336,7 +336,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	validatorGroupSelector := &mock.ValidatorGroupSelectorMock{}
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {
 		return make([]consensus.Validator, 0), nil
 	}
@@ -423,7 +423,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	validatorGroupSelector := &mock.ValidatorGroupSelectorMock{}
 
 	err := errors.New("error")
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte) ([]consensus.Validator, error) {

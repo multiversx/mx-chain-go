@@ -44,10 +44,10 @@ type basePreProcess struct {
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
-	if miniBlockPool == nil {
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return process.ErrNilMiniBlockPool
 	}
-	if txPool == nil {
+	if txPool == nil || txPool.IsInterfaceNil() {
 		return process.ErrNilTransactionPool
 	}
 
@@ -71,19 +71,19 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 	return nil
 }
 
-func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBlockPool storage.Cacher) ([]byte, error) {
-	miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, miniBlock)
-	if err != nil {
-		return nil, err
-	}
+func (bpp *basePreProcess) restoreMiniBlock(
+	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
+	miniBlockPool storage.Cacher,
+) []byte {
 
-	var restoredHash []byte
 	miniBlockPool.Put(miniBlockHash, miniBlock)
+	//TODO: Analyze what is the scope of this check and return besides tests. Refactor this method
 	if miniBlock.SenderShardID != bpp.shardCoordinator.SelfId() {
-		restoredHash = miniBlockHash
+		return miniBlockHash
 	}
 
-	return restoredHash, nil
+	return nil
 }
 
 func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
@@ -177,11 +177,10 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	chRcvAllTxs chan bool,
 	currType block.Type,
 	txPool dataRetriever.ShardedDataCacherNotifier,
-) map[uint32]*txsHashesInfo {
-	missingTxsForShard := make(map[uint32]*txsHashesInfo, 0)
+) map[uint32][]*txsHashesInfo {
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, 0)
 	forBlock.mutTxsForBlock.Lock()
 
-	forBlock.missingTxs = 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		if miniBlock.Type != currType {
@@ -199,7 +198,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 				txHash,
 				txPool)
 
-			if tx == nil {
+			if tx == nil || tx.IsInterfaceNil() {
 				txHashes = append(txHashes, txHash)
 				forBlock.missingTxs++
 			} else {
@@ -208,15 +207,9 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 
 		if len(txHashes) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = &txsHashesInfo{
-				txHashes:        txHashes,
-				receiverShardID: miniBlock.ReceiverShardID,
-			}
+			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID],
+				&txsHashesInfo{txHashes: txHashes, receiverShardID: miniBlock.ReceiverShardID})
 		}
-	}
-
-	if forBlock.missingTxs > 0 {
-		process.EmptyChannel(chRcvAllTxs)
 	}
 
 	forBlock.mutTxsForBlock.Unlock()

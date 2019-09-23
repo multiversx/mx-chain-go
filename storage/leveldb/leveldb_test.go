@@ -10,16 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int) (p *leveldb.DB) {
+func createLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.DB) {
 	dir, err := ioutil.TempDir("", "leveldb_temp")
-	lvdb, err := leveldb.NewDB(dir, batchDelaySeconds, maxBatchSize)
+	lvdb, err := leveldb.NewDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
 	return lvdb
 }
 
 func TestDB_InitNoError(t *testing.T) {
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Init()
 
@@ -28,7 +28,7 @@ func TestDB_InitNoError(t *testing.T) {
 
 func TestDB_PutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Put(key, val)
 
@@ -37,7 +37,7 @@ func TestDB_PutNoError(t *testing.T) {
 
 func TestDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createLevelDb(t, 1, 100)
+	ldb := createLevelDb(t, 1, 100, 10)
 
 	err := ldb.Put(key, val)
 	assert.Nil(t, err)
@@ -48,7 +48,7 @@ func TestDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 
 func TestDB_GetOKAfterPutWithTimeout(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createLevelDb(t, 1, 100)
+	ldb := createLevelDb(t, 1, 100, 10)
 
 	err := ldb.Put(key, val)
 	assert.Nil(t, err)
@@ -60,8 +60,8 @@ func TestDB_GetOKAfterPutWithTimeout(t *testing.T) {
 }
 
 func TestDB_GetErrorOnFail(t *testing.T) {
-	ldb := createLevelDb(t, 1, 100)
-	ldb.Close()
+	ldb := createLevelDb(t, 1, 100, 10)
+	_ = ldb.Close()
 
 	v, err := ldb.Get([]byte("key"))
 	assert.Nil(t, v)
@@ -70,7 +70,7 @@ func TestDB_GetErrorOnFail(t *testing.T) {
 
 func TestDB_RemoveBeforeTimeoutOK(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createLevelDb(t, 1, 100)
+	ldb := createLevelDb(t, 1, 100, 10)
 
 	err := ldb.Put(key, val)
 	assert.Nil(t, err)
@@ -85,7 +85,7 @@ func TestDB_RemoveBeforeTimeoutOK(t *testing.T) {
 
 func TestDB_RemoveAfterTimeoutOK(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
-	ldb := createLevelDb(t, 1, 100)
+	ldb := createLevelDb(t, 1, 100, 10)
 
 	err := ldb.Put(key, val)
 	assert.Nil(t, err)
@@ -100,7 +100,7 @@ func TestDB_RemoveAfterTimeoutOK(t *testing.T) {
 
 func TestDB_GetPresent(t *testing.T) {
 	key, val := []byte("key1"), []byte("value1")
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Put(key, val)
 
@@ -114,7 +114,7 @@ func TestDB_GetPresent(t *testing.T) {
 
 func TestDB_GetNotPresent(t *testing.T) {
 	key := []byte("key2")
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	v, err := ldb.Get(key)
 
@@ -123,7 +123,7 @@ func TestDB_GetNotPresent(t *testing.T) {
 
 func TestDB_HasPresent(t *testing.T) {
 	key, val := []byte("key3"), []byte("value3")
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Put(key, val)
 
@@ -136,7 +136,7 @@ func TestDB_HasPresent(t *testing.T) {
 
 func TestDB_HasNotPresent(t *testing.T) {
 	key := []byte("key4")
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Has(key)
 
@@ -146,7 +146,7 @@ func TestDB_HasNotPresent(t *testing.T) {
 
 func TestDB_RemovePresent(t *testing.T) {
 	key, val := []byte("key5"), []byte("value5")
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Put(key, val)
 
@@ -164,7 +164,7 @@ func TestDB_RemovePresent(t *testing.T) {
 
 func TestDB_RemoveNotPresent(t *testing.T) {
 	key := []byte("key6")
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Remove(key)
 
@@ -172,7 +172,7 @@ func TestDB_RemoveNotPresent(t *testing.T) {
 }
 
 func TestDB_Close(t *testing.T) {
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Close()
 
@@ -180,7 +180,7 @@ func TestDB_Close(t *testing.T) {
 }
 
 func TestDB_Destroy(t *testing.T) {
-	ldb := createLevelDb(t, 10, 1)
+	ldb := createLevelDb(t, 10, 1, 10)
 
 	err := ldb.Destroy()
 

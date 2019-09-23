@@ -7,8 +7,10 @@ import (
 )
 
 type SposWorkerMock struct {
-	AddReceivedMessageCallCalled func(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.
-					Message) bool)
+	AddReceivedMessageCallCalled func(
+		messageType consensus.MessageType,
+		receivedMessageCall func(cnsDta *consensus.Message) bool,
+	)
 	RemoveAllReceivedMessagesCallsCalled   func()
 	ProcessReceivedMessageCalled           func(message p2p.MessageP2P) error
 	SendConsensusMessageCalled             func(cnsDta *consensus.Message) bool
@@ -55,4 +57,12 @@ func (sposWorkerMock *SposWorkerMock) ExecuteStoredMessages() {
 
 func (sposWorkerMock *SposWorkerMock) BroadcastUnnotarisedBlocks() {
 	sposWorkerMock.BroadcastUnnotarisedBlocksCalled()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sposWorkerMock *SposWorkerMock) IsInterfaceNil() bool {
+	if sposWorkerMock == nil {
+		return true
+	}
+	return false
 }

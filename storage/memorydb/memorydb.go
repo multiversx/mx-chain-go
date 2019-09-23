@@ -46,7 +46,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	return val, nil
 }
 
-// Has returns true if the given key is present in the persistance medium, false otherwise
+// Has returns true if the given key is present in the persistence medium, false otherwise
 func (s *DB) Has(key []byte) error {
 	s.mutx.RLock()
 	defer s.mutx.RUnlock()
@@ -89,4 +89,12 @@ func (s *DB) Destroy() error {
 	s.db = make(map[string][]byte)
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *DB) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }

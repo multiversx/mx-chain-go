@@ -15,7 +15,7 @@ type kyberScalar struct {
 // Equal tests if receiver is equal with the scalar s given as parameter.
 // Both scalars need to be derived from the same Group
 func (sc *kyberScalar) Equal(s crypto.Scalar) (bool, error) {
-	if s == nil {
+	if s == nil || s.IsInterfaceNil() {
 		return false, crypto.ErrNilParam
 	}
 
@@ -32,7 +32,7 @@ func (sc *kyberScalar) Equal(s crypto.Scalar) (bool, error) {
 
 // Set sets the receiver to Scalar s given as parameter
 func (sc *kyberScalar) Set(s crypto.Scalar) error {
-	if s == nil {
+	if s == nil || s.IsInterfaceNil() {
 		return crypto.ErrNilParam
 	}
 
@@ -70,7 +70,7 @@ func (sc *kyberScalar) Zero() crypto.Scalar {
 
 // Add returns the modular sum of receiver with scalar s given as parameter
 func (sc *kyberScalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil {
+	if s == nil || s.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -88,7 +88,7 @@ func (sc *kyberScalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Sub returns the modular difference between receiver and scalar s given as parameter
 func (sc *kyberScalar) Sub(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil {
+	if s == nil || s.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -124,7 +124,7 @@ func (sc *kyberScalar) One() crypto.Scalar {
 
 // Mul returns the modular product of receiver with scalar s given as parameter
 func (sc *kyberScalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil {
+	if s == nil || s.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -142,7 +142,7 @@ func (sc *kyberScalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Div returns the modular division between receiver and scalar s given as parameter
 func (sc *kyberScalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil {
+	if s == nil || s.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -160,7 +160,7 @@ func (sc *kyberScalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
 
 // Inv returns the modular inverse of scalar s given as parameter
 func (sc *kyberScalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
-	if s == nil {
+	if s == nil || s.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -214,4 +214,12 @@ func (sc *kyberScalar) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary decodes a scalar from its byte array representation and sets the receiver to this value
 func (sc *kyberScalar) UnmarshalBinary(s []byte) error {
 	return sc.Scalar.UnmarshalBinary(s)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sc *kyberScalar) IsInterfaceNil() bool {
+	if sc == nil {
+		return true
+	}
+	return false
 }

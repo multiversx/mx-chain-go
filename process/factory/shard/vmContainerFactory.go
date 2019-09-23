@@ -22,10 +22,10 @@ func NewVMContainerFactory(
 	accounts state.AccountsAdapter,
 	addressConverter state.AddressConverter,
 ) (*vmContainerFactory, error) {
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addressConverter == nil {
+	if addressConverter == nil || addressConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
 
@@ -52,7 +52,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
-	err = container.Add([]byte(factory.IELEVirtualMachine), vm)
+	err = container.Add(factory.IELEVirtualMachine, vm)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +61,19 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
-
-	ieleVM := endpoint.NewElrondIeleVM(vmf.vmAccountsDB, vmf.cryptoHook, endpoint.ElrondTestnet)
+	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
 	return ieleVM, nil
 }
 
 // VMAccountsDB returns the created vmAccountsDB
 func (vmf *vmContainerFactory) VMAccountsDB() *hooks.VMAccountsDB {
 	return vmf.vmAccountsDB
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vmf *vmContainerFactory) IsInterfaceNil() bool {
+	if vmf == nil {
+		return true
+	}
+	return false
 }

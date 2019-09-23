@@ -22,7 +22,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	rounderMock := &mock.RounderMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	validatorGroupSelector := &mock.ValidatorGroupSelectorMock{}
 
 	return &ConsensusCore{
 		blockChain:             blockChain,

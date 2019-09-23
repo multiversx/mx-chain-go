@@ -2,20 +2,22 @@ package storage
 
 // Persister provides storage of data services in a database like construct
 type Persister interface {
-	// Put add the value to the (key, val) persistance medium
+	// Put add the value to the (key, val) persistence medium
 	Put(key, val []byte) error
 	// Get gets the value associated to the key
 	Get(key []byte) ([]byte, error)
-	// Has returns true if the given key is present in the persistance medium
+	// Has returns true if the given key is present in the persistence medium
 	Has(key []byte) error
-	// Init initializes the persistance medium and prepares it for usage
+	// Init initializes the persistence medium and prepares it for usage
 	Init() error
-	// Close closes the files/resources associated to the persistance medium
+	// Close closes the files/resources associated to the persistence medium
 	Close() error
 	// Remove removes the data associated to the given key
 	Remove(key []byte) error
-	// Destroy removes the persistance medium stored data
+	// Destroy removes the persistence medium stored data
 	Destroy() error
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // Batcher allows to batch the data first then write the batch to the persister in one go
@@ -26,6 +28,8 @@ type Batcher interface {
 	Delete(key []byte) error
 	// Reset clears the contents of the batch
 	Reset()
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // Cacher provides caching services
@@ -56,6 +60,8 @@ type Cacher interface {
 	Len() int
 	// RegisterHandler registers a new handler to be called when a new data is added
 	RegisterHandler(func(key []byte))
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // BloomFilter provides services for filtering database requests
@@ -67,6 +73,8 @@ type BloomFilter interface {
 	MayContain([]byte) bool
 	//Clear sets all the bits from the filter to 0
 	Clear()
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // Storer provides storage services in a two layered storage construct, where the first layer is
@@ -79,4 +87,5 @@ type Storer interface {
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error
+	IsInterfaceNil() bool
 }

@@ -97,7 +97,7 @@ func (s *DB) createBatch() storage.Batcher {
 	return NewBatch(s)
 }
 
-// Has returns true if the given key is present in the persistance medium
+// Has returns true if the given key is present in the persistence medium
 func (s *DB) Has(key []byte) error {
 	return s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(s.parentFolder))
@@ -139,4 +139,12 @@ func (s *DB) Destroy() error {
 	_ = s.db.Close()
 	err := os.RemoveAll(s.path)
 	return err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *DB) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }

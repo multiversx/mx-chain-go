@@ -68,7 +68,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)
@@ -148,29 +148,23 @@ func runMultipleRoundsOfTheGame(
 				strconv.Itoa(currentRound),
 				hardCodedScResultingAddress,
 			)
-			newBalance := big.NewInt(0)
-			newBalance = newBalance.Sub(player.Balance, topUpValue)
-			player.Balance = player.Balance.Set(newBalance)
 		}
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckJoinGame(t, nodes, players, topUpValue, idxProposers[0], hardCodedScResultingAddress)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i].Address.Bytes(), withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
-			newBalance := big.NewInt(0)
-			newBalance = newBalance.Add(players[i].Balance, withdrawValues[i])
-			players[i].Balance = players[i].Balance.Set(newBalance)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
 		}
 
 		// waiting to disseminate transactions
 		time.Sleep(stepDelay)
 
-		round, nonce = integrationTests.ProposeAndSyncBlocks(t, len(players), nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
 			hardCodedScResultingAddress, idxProposers[0])

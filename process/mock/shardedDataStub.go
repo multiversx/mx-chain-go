@@ -66,3 +66,11 @@ func (sd *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, cacheId string
 func (sd *ShardedDataStub) CreateShardStore(cacheId string) {
 	sd.CreateShardStoreCalled(cacheId)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sd *ShardedDataStub) IsInterfaceNil() bool {
+	if sd == nil {
+		return true
+	}
+	return false
+}

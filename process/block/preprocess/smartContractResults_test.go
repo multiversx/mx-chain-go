@@ -579,7 +579,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *te
 
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
-		SenderShardID:   0,
+		SenderShardID:   1,
 		TxHashes:        txHashes,
 		Type:            block.SmartContractResultBlock,
 	}
@@ -747,6 +747,13 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		tx := smartContractResult.SmartContractResult{}
 		par["txHash"], _ = json.Marshal(tx)
 		return par, nil
+	}
+	scrstorage.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			RemoveCalled: func(key []byte) error {
+				return nil
+			},
+		}
 	}
 
 	dataPool := mock.NewPoolsHolderFake()

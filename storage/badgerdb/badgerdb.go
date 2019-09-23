@@ -31,7 +31,7 @@ type DB struct {
 // NewDB is a constructor for the badger persister
 // It creates the files in the location given as parameter
 func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err error) {
-	opts := badger.DefaultOptions
+	opts := badger.DefaultOptions(path)
 	opts.Dir = path
 	opts.ValueDir = path
 	opts.ValueLogLoadingMode = options.FileIO
@@ -150,7 +150,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
-// Has returns true if the given key is present in the persistance medium
+// Has returns true if the given key is present in the persistence medium
 func (s *DB) Has(key []byte) error {
 	err := s.db.View(func(txn *badger.Txn) error {
 		_, err := txn.Get(key)
@@ -206,4 +206,12 @@ func (s *DB) Destroy() error {
 	err = os.RemoveAll(s.path)
 
 	return err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *DB) IsInterfaceNil() bool {
+	if s == nil {
+		return true
+	}
+	return false
 }

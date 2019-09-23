@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -36,10 +37,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
@@ -491,6 +494,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	var appStatusHandlers []core.AppStatusHandler
+	var views []factoryViews.Viewer
 
 	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
 	if usePrometheusBool {
@@ -498,22 +502,36 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
 
+	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
+
 	useTermui := !ctx.GlobalBool(useLogView.Name)
 	if useTermui {
-		termuiStatusHandler := statusHandler.NewTermuiStatusHandler()
-		err = termuiStatusHandler.StartTermuiConsole()
+
+		views, err = factory.CreateViews(presenterStatusHandler)
 		if err != nil {
 			return err
 		}
 
-		termuiConsole := termuiStatusHandler.Termui()
-		err = log.ChangePrinterHookWriter(termuiConsole)
-		if err != nil {
-			return err
+		writer, ok := presenterStatusHandler.(io.Writer)
+		if ok {
+			err = log.ChangePrinterHookWriter(writer)
+			if err != nil {
+				return err
+			}
 		}
 
-		appStatusHandlers = append(appStatusHandlers, termuiStatusHandler)
+		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
+		if ok {
+			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
+		}
 	}
+
+	if views == nil {
+		log.Warn("No views for current node")
+	}
+
+	statusMetrics := statusHandler.NewStatusMetrics()
+	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
 	if len(appStatusHandlers) > 0 {
 		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
@@ -525,14 +543,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricShardId, uint64(shardCoordinator.SelfId()))
-	coreComponents.StatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricRoundTime, nodesConfig.RoundDuration/milisecondsInSecond)
-	coreComponents.StatusHandler.SetStringValue(core.MetricAppVersion, version)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountConsensus, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountLeader, 0)
-	coreComponents.StatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, 0)
+	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -547,19 +558,27 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	output := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%s\n",
+	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
-		"OsVersion", "TestOs",
+		"GenesisTimeStamp", startTime.Unix(),
 	)
+
+	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	for _, flag := range ctx.App.Flags {
+		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
+		if flagValue != "" {
+			sessionInfoFileOutput += fmt.Sprintf("%s = %v\n", flag.GetName(), flagValue)
+		}
+	}
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
 	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
 
-	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(output), os.ModePerm)
+	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
 	networkComponents, err := factory.NetworkComponentsFactory(p2pConfig, log, coreComponents)
@@ -620,12 +639,15 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(stateComponents.AccountsAdapter, stateComponents.AddressConverter)
+	vmAccountsDB, err := hooks.NewVMAccountsDB(
+		stateComponents.AccountsAdapter,
+		stateComponents.AddressConverter,
+	)
 	if err != nil {
 		return err
 	}
 
-	apiResolver, err := createApiResolver(vmAccountsDB)
+	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
 	if err != nil {
 		return err
 	}
@@ -637,7 +659,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		processComponents,
 	)
 	if err != nil {
-		log.Info("Error creating status polling: ", err)
+		return err
 	}
 
 	updateMachineStatisticsDurationSec := 1
@@ -689,6 +711,44 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func initMetrics(
+	appStatusHandler core.AppStatusHandler,
+	pubKey crypto.PublicKey,
+	nodeType core.NodeType,
+	shardCoordinator sharding.Coordinator,
+	nodesConfig *sharding.NodesSetup,
+	version string,
+) {
+	shardId := uint64(shardCoordinator.SelfId())
+	roundDuration := nodesConfig.RoundDuration
+	isSyncing := uint64(1)
+	initUint := uint64(0)
+	initString := ""
+
+	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
+	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
+	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/milisecondsInSecond)
+	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountLeader, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, initUint)
+	appStatusHandler.SetStringValue(core.MetricConsensusState, initString)
+	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, initString)
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, initString)
+	appStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
+	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, initString)
+	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 }
 
 func startStatusPolling(
@@ -799,7 +859,9 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
-		appStatusHandler.SetUInt64Value(core.MetricTotalMem, memStats.TotalMemory())
+		appStatusHandler.SetUInt64Value(core.MetricMemTotal, memStats.TotalMemory())
+		appStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, memStats.MemoryUsedByGolang())
+		appStatusHandler.SetUInt64Value(core.MetricMemUsedSystem, memStats.MemoryUsedBySystem())
 	})
 }
 
@@ -1059,15 +1121,11 @@ func createNode(
 		err = nd.ApplyOptions(
 			node.WithInitialNodesBalances(state.InBalanceForShard),
 			node.WithDataPool(data.Datapool),
-			node.WithActiveMetachain(nodesConfig.MetaChainActive))
+		)
 		if err != nil {
 			return nil, errors.New("error creating node: " + err.Error())
 		}
 		err = nd.CreateShardedStores()
-		if err != nil {
-			return nil, err
-		}
-		err = nd.CreateShardGenesisBlock()
 		if err != nil {
 			return nil, err
 		}
@@ -1076,10 +1134,6 @@ func createNode(
 		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
-		}
-		err = nd.CreateMetaGenesisBlock()
-		if err != nil {
-			return nil, err
 		}
 	}
 	return nd, nil
@@ -1158,15 +1212,15 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook) (facade.ApiResolver, error) {
+func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(vmAccountsDB, cryptoHook, endpoint.ElrondTestnet)
+	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
 
 	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scDataGetter)
+	return external.NewNodeApiResolver(scDataGetter, statusMetrics)
 }

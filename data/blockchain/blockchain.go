@@ -30,7 +30,7 @@ func NewBlockChain(
 	badBlocksCache storage.Cacher,
 ) (*BlockChain, error) {
 
-	if badBlocksCache == nil {
+	if badBlocksCache == nil || badBlocksCache.IsInterfaceNil() {
 		return nil, ErrBadBlocksCacheNil
 	}
 
@@ -66,7 +66,7 @@ func (bc *BlockChain) GetGenesisHeader() data.HeaderHandler {
 
 // SetGenesisHeader sets the genesis block header pointer
 func (bc *BlockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
-	if genesisBlock == nil {
+	if genesisBlock == nil || genesisBlock.IsInterfaceNil() {
 		bc.GenesisHeader = nil
 		return nil
 	}
@@ -99,7 +99,7 @@ func (bc *BlockChain) GetCurrentBlockHeader() data.HeaderHandler {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	if header == nil {
+	if header == nil || header.IsInterfaceNil() {
 		bc.CurrentBlockHeader = nil
 		return nil
 	}
@@ -136,7 +136,7 @@ func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
 
 // SetCurrentBlockBody sets the tx block body pointer
 func (bc *BlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
-	if body == nil {
+	if body == nil || body.IsInterfaceNil() {
 		bc.CurrentBlockBody = nil
 		return nil
 	}
@@ -159,12 +159,12 @@ func (bc *BlockChain) SetLocalHeight(height int64) {
 	bc.localHeight = height
 }
 
-// GetNetworkHeight sets the percieved height of the network chain
+// GetNetworkHeight sets the perceived height of the network chain
 func (bc *BlockChain) GetNetworkHeight() int64 {
 	return bc.localHeight
 }
 
-// SetNetworkHeight sets the percieved height of the network chain
+// SetNetworkHeight sets the perceived height of the network chain
 func (bc *BlockChain) SetNetworkHeight(height int64) {
 	bc.localHeight = height
 }
@@ -177,4 +177,12 @@ func (bc *BlockChain) HasBadBlock(blockHash []byte) bool {
 // PutBadBlock adds the given serialized block to the bad block cache, blacklisting it
 func (bc *BlockChain) PutBadBlock(blockHash []byte) {
 	bc.badBlocks.Put(blockHash, struct{}{})
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bc *BlockChain) IsInterfaceNil() bool {
+	if bc == nil {
+		return true
+	}
+	return false
 }

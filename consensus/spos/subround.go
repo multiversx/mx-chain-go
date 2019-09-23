@@ -159,3 +159,11 @@ func (sr *Subround) EndTime() int64 {
 func (sr *Subround) Name() string {
 	return sr.name
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sr *Subround) IsInterfaceNil() bool {
+	if sr == nil {
+		return true
+	}
+	return false
+}

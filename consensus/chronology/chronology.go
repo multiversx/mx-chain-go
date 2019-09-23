@@ -67,11 +67,11 @@ func checkNewChronologyParams(
 	syncTimer ntp.SyncTimer,
 ) error {
 
-	if rounder == nil {
+	if rounder == nil || rounder.IsInterfaceNil() {
 		return ErrNilRounder
 	}
 
-	if syncTimer == nil {
+	if syncTimer == nil || syncTimer.IsInterfaceNil() {
 		return ErrNilSyncTimer
 	}
 
@@ -167,6 +167,7 @@ func (chr *chronology) initRound() {
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
 		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRound, uint64(chr.rounder.Index()))
+		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, uint64(chr.rounder.TimeStamp().Unix()))
 	}
 
 	chr.mutSubrounds.RUnlock()
@@ -190,4 +191,12 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 	}
 
 	return chr.subroundHandlers[index]
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (chr *chronology) IsInterfaceNil() bool {
+	if chr == nil {
+		return true
+	}
+	return false
 }

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -46,25 +48,25 @@ func NewTransactionPreprocessor(
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
 ) (*transactions, error) {
 
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil {
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if txDataPool == nil {
+	if txDataPool == nil || txDataPool.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionPool
 	}
-	if store == nil {
+	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilTxStorage
 	}
-	if txProcessor == nil {
+	if txProcessor == nil || txProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil {
+	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil {
+	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestTransaction == nil {
@@ -124,10 +126,10 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 
 // RemoveTxBlockFromPools removes transactions and miniblocks from associated pools
 func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
-	if body == nil {
+	if body == nil || body.IsInterfaceNil() {
 		return process.ErrNilTxBlockBody
 	}
-	if miniBlockPool == nil {
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
 		return process.ErrNilMiniBlockPool
 	}
 
@@ -167,7 +169,14 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			}
 		}
 
-		restoredHash, err := txs.restoreMiniBlock(miniBlock, miniBlockPool)
+		miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+		if err != nil {
+			return txsRestored, miniBlockHashes, err
+		}
+
+		restoredHash := txs.restoreMiniBlock(miniBlock, miniBlockHash, miniBlockPool)
+
+		err = txs.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
 		if err != nil {
 			return txsRestored, miniBlockHashes, err
 		}
@@ -252,7 +261,10 @@ func (txs *transactions) receivedTransaction(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
+	_ = process.EmptyChannel(txs.chRcvAllTxs)
+
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.missingTxs = 0
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 }
@@ -263,24 +275,32 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	for senderShardID, txsHashesInfo := range missingTxsForShards {
-		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: txsHashesInfo.receiverShardID}
-		for _, txHash := range txsHashesInfo.txHashes {
-			txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	for senderShardID, mbsTxHashes := range missingTxsForShards {
+		for _, mbTxHashes := range mbsTxHashes {
+			txs.setMissingTxsForShard(senderShardID, mbTxHashes)
 		}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	for senderShardID, txsHashesInfo := range missingTxsForShards {
-		requestedTxs += len(txsHashesInfo.txHashes)
-		txs.onRequestTransaction(senderShardID, txsHashesInfo.txHashes)
+	for senderShardID, mbsTxHashes := range missingTxsForShards {
+		for _, mbTxHashes := range mbsTxHashes {
+			requestedTxs += len(mbTxHashes.txHashes)
+			txs.onRequestTransaction(senderShardID, mbTxHashes.txHashes)
+		}
 	}
 
 	return requestedTxs
 }
 
+func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
+	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
+	for _, txHash := range mbTxHashes.txHashes {
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	}
+}
+
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
-func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
+func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32][]*txsHashesInfo {
 	missingTxsForShard := txs.computeExistingAndMissing(body, &txs.txsForCurrBlock, txs.chRcvAllTxs, block.TxBlock, txs.txPool)
 
 	return missingTxsForShard
@@ -336,7 +356,7 @@ func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]b
 			txHash,
 			txs.txPool)
 
-		if tx == nil {
+		if tx == nil || tx.IsInterfaceNil() {
 			missingTransactions = append(missingTransactions, txHash)
 		}
 	}
@@ -383,8 +403,6 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 //TODO move this constant to txFeeHandler
 const minGasLimitForTx = uint64(5)
 
-const numZerosForSCAddress = 10
-
 //TODO move this to smart contract address calculation component
 func isSmartContractAddress(rcvAddress []byte) bool {
 	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
@@ -392,7 +410,8 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 		return true
 	}
 
-	isSCAddress := bytes.Equal(rcvAddress[:(numZerosForSCAddress-1)], make([]byte, numZerosForSCAddress-1))
+	isSCAddress := bytes.Equal(rcvAddress[:(hooks.NumInitCharactersForScAddress-hooks.VMTypeLen)],
+		make([]byte, hooks.NumInitCharactersForScAddress-hooks.VMTypeLen))
 	if isSCAddress {
 		return true
 	}
@@ -614,4 +633,12 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandl
 	txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
 	return txPool
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (txs *transactions) IsInterfaceNil() bool {
+	if txs == nil {
+		return true
+	}
+	return false
 }

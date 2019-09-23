@@ -63,6 +63,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -86,6 +88,10 @@ const (
 )
 
 var log = logger.DefaultLogger()
+
+//TODO: Extract all others error messages from this file in some defined errors
+// ErrCreateForkDetector signals that a fork detector could not be created
+var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
@@ -463,19 +469,23 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	forkDetector, err := processSync.NewBasicForkDetector(rounder)
+	forkDetector, err := newForkDetector(rounder, args.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	shardsGenesisBlocks, err := generateGenesisHeadersForInit(
+	shardsGenesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
+		args.core,
+		args.state,
+		args.shardCoordinator,
 		args.nodesConfig,
 		args.genesisConfig,
-		args.shardCoordinator,
-		args.state.AddressConverter,
-		args.core.Hasher,
-		args.core.Marshalizer,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = prepareGenesisBlock(args, shardsGenesisBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -502,6 +512,41 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockProcessor:        blockProcessor,
 		BlockTracker:          blockTracker,
 	}, nil
+}
+
+func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlock, ok := shardsGenesisBlocks[args.shardCoordinator.SelfId()]
+	if !ok {
+		return errors.New("genesis block does not exists")
+	}
+
+	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	err = args.data.Blkc.SetGenesisHeader(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	args.data.Blkc.SetGenesisHeaderHash(genesisBlockHash)
+
+	marshalizedBlock, err := args.core.Marshalizer.Marshal(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
+		log.LogIfError(errNotCritical)
+
+	} else {
+		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
+		log.LogIfError(errNotCritical)
+	}
+
+	return nil
 }
 
 type seedRandReader struct {
@@ -549,6 +594,43 @@ func (*nullChronologyValidator) ValidateReceivedBlock(shardID uint32, epoch uint
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (ncv *nullChronologyValidator) IsInterfaceNil() bool {
+	if ncv == nil {
+		return true
+	}
+	return false
+}
+
+// CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler
+func CreateStatusHandlerPresenter() view.Presenter {
+	presenterStatusHandlerFactory := factoryViews.NewPresenterFactory()
+
+	return presenterStatusHandlerFactory.Create()
+}
+
+// CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
+func CreateViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
+	viewsFactory, err := factoryViews.NewViewsFactory(presenter)
+	if err != nil {
+		return nil, err
+	}
+
+	views, err := viewsFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range views {
+		err = v.Start()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return views, nil
+}
+
 func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	switch cfg.Hasher.Type {
 	case "sha256":
@@ -563,7 +645,7 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 	switch cfg.Marshalizer.Type {
 	case "json":
-		return marshal.JsonMarshalizer{}, nil
+		return &marshal.JsonMarshalizer{}, nil
 	}
 
 	return nil, errors.New("no marshalizer provided in config file")
@@ -1082,6 +1164,7 @@ func newShardInterceptorAndResolverContainerFactory(
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
+		state.AccountsAdapter,
 		shardCoordinator,
 		network.NetMessenger,
 		data.Store,
@@ -1098,7 +1181,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		return nil, nil, err
 	}
 
-	dataPacker, err := partitioning.NewSizeDataPacker(core.Marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1154,13 +1237,12 @@ func newMetaInterceptorAndResolverContainerFactory(
 	return interceptorContainerFactory, resolversContainerFactory, nil
 }
 
-func generateGenesisHeadersForInit(
+func generateGenesisHeadersAndApplyInitialBalances(
+	coreComponents *Core,
+	stateComponents *State,
+	shardCoordinator sharding.Coordinator,
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
-	shardCoordinator sharding.Coordinator,
-	addressConverter state.AddressConverter,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
 ) (map[uint32]data.HeaderHandler, error) {
 	//TODO change this rudimentary startup for metachain nodes
 	// Talk between Adrian, Robert and Iulian, did not want it to be discarded:
@@ -1178,27 +1260,25 @@ func generateGenesisHeadersForInit(
 	shardsGenesisBlocks := make(map[uint32]data.HeaderHandler)
 
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		newShardCoordinator, err := sharding.NewMultiShardCoordinator(shardCoordinator.NumberOfShards(), shardId)
+		isCurrentShard := shardId == shardCoordinator.SelfId()
+		if isCurrentShard {
+			continue
+		}
+
+		newShardCoordinator, account, err := createInMemoryShardCoordinatorAndAccount(
+			coreComponents,
+			shardCoordinator.NumberOfShards(),
+			shardId,
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
-		if err != nil {
-			return nil, err
-		}
-
-		accounts := generateInMemoryAccountsAdapter(accountFactory, hasher, marshalizer)
-		initialBalances, err := genesisConfig.InitialNodesBalances(newShardCoordinator, addressConverter)
-		if err != nil {
-			return nil, err
-		}
-
-		genesisBlock, err := genesis.CreateShardGenesisBlockFromInitialBalances(
-			accounts,
+		genesisBlock, err := createGenesisBlockAndApplyInitialBalances(
+			account,
 			newShardCoordinator,
-			addressConverter,
-			initialBalances,
+			stateComponents.AddressConverter,
+			genesisConfig,
 			uint64(nodesSetup.StartTime),
 		)
 		if err != nil {
@@ -1208,16 +1288,88 @@ func generateGenesisHeadersForInit(
 		shardsGenesisBlocks[shardId] = genesisBlock
 	}
 
-	if nodesSetup.IsMetaChainActive() {
-		genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
-		if err != nil {
-			return nil, err
-		}
-
-		shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
+	genesisBlockForCurrentShard, err := createGenesisBlockAndApplyInitialBalances(
+		stateComponents.AccountsAdapter,
+		shardCoordinator,
+		stateComponents.AddressConverter,
+		genesisConfig,
+		uint64(nodesSetup.StartTime),
+	)
+	if err != nil {
+		return nil, err
 	}
 
+	shardsGenesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
+
+	genesisBlock, err := genesis.CreateMetaGenesisBlock(uint64(nodesSetup.StartTime), nodesSetup.InitialNodesPubKeys())
+	if err != nil {
+		return nil, err
+	}
+
+	shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
+
 	return shardsGenesisBlocks, nil
+}
+
+func createGenesisBlockAndApplyInitialBalances(
+	accounts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
+	addressConverter state.AddressConverter,
+	genesisConfig *sharding.Genesis,
+	startTime uint64,
+) (data.HeaderHandler, error) {
+
+	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	return genesis.CreateShardGenesisBlockFromInitialBalances(
+		accounts,
+		shardCoordinator,
+		addressConverter,
+		initialBalances,
+		startTime,
+	)
+}
+
+func createInMemoryShardCoordinatorAndAccount(
+	coreComponents *Core,
+	numOfShards uint32,
+	shardId uint32,
+) (sharding.Coordinator, state.AccountsAdapter, error) {
+
+	newShardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, shardId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accountFactory, err := factoryState.NewAccountFactoryCreator(newShardCoordinator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accounts := generateInMemoryAccountsAdapter(
+		accountFactory,
+		coreComponents.Hasher,
+		coreComponents.Marshalizer,
+	)
+
+	return newShardCoordinator, accounts, nil
+}
+
+func newForkDetector(
+	rounder consensus.Rounder,
+	shardCoordinator sharding.Coordinator,
+) (process.ForkDetector, error) {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return processSync.NewShardForkDetector(rounder)
+	}
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return processSync.NewMetaForkDetector(rounder)
+	}
+
+	return nil, ErrCreateForkDetector
 }
 
 func newBlockProcessorAndTracker(
@@ -1306,6 +1458,7 @@ func newShardBlockProcessorAndTracker(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
 		MaxTxsToRequest,
 	)
@@ -1369,21 +1522,26 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	blockProcessor, err := block.NewShardProcessor(
-		coreServiceContainer,
-		data.Datapool,
-		data.Store,
-		core.Hasher,
-		core.Marshalizer,
-		state.AccountsAdapter,
-		shardCoordinator,
-		forkDetector,
-		blockTracker,
-		shardsGenesisBlocks,
-		requestHandler,
-		txCoordinator,
-		core.Uint64ByteSliceConverter,
-	)
+	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Accounts:         state.AccountsAdapter,
+		ForkDetector:     forkDetector,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.Marshalizer,
+		Store:            data.Store,
+		ShardCoordinator: shardCoordinator,
+		Uint64Converter:  core.Uint64ByteSliceConverter,
+		StartHeaders:     shardsGenesisBlocks,
+		RequestHandler:   requestHandler,
+		Core:             coreServiceContainer,
+	}
+	arguments := block.ArgShardProcessor{
+		ArgBaseProcessor: &argumentsBaseProcessor,
+		DataPool:         data.Datapool,
+		BlocksTracker:    blockTracker,
+		TxCoordinator:    txCoordinator,
+	}
+
+	blockProcessor, err := block.NewShardProcessor(arguments)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
@@ -1406,7 +1564,10 @@ func newMetaBlockProcessorAndTracker(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
-	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(resolversFinder, factory.ShardHeadersForMetachainTopic)
+	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
+		resolversFinder,
+		factory.ShardHeadersForMetachainTopic,
+		factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1433,6 +1594,11 @@ func newMetaBlockProcessorAndTracker(
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
+	err = metaProcessor.SetAppStatusHandler(core.StatusHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return metaProcessor, blockTracker, nil
 }
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
@@ -1449,6 +1615,7 @@ func getDBFromConfig(cfg config.DBConfig, uniquePath string) storageUnit.DBConfi
 		Type:              storageUnit.DBType(cfg.Type),
 		MaxBatchSize:      cfg.MaxBatchSize,
 		BatchDelaySeconds: cfg.BatchDelaySeconds,
+		MaxOpenFiles:      cfg.MaxOpenFiles,
 	}
 }
 

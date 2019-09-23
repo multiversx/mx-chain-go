@@ -21,7 +21,7 @@ import (
 // WithMessenger sets up the messenger option for the Node
 func WithMessenger(mes P2PMessenger) Option {
 	return func(n *Node) error {
-		if mes == nil {
+		if mes == nil || mes.IsInterfaceNil() {
 			return ErrNilMessenger
 		}
 		n.messenger = mes
@@ -32,7 +32,7 @@ func WithMessenger(mes P2PMessenger) Option {
 // WithMarshalizer sets up the marshalizer option for the Node
 func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 	return func(n *Node) error {
-		if marshalizer == nil {
+		if marshalizer == nil || marshalizer.IsInterfaceNil() {
 			return ErrNilMarshalizer
 		}
 		n.marshalizer = marshalizer
@@ -43,7 +43,7 @@ func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 // WithHasher sets up the hasher option for the Node
 func WithHasher(hasher hashing.Hasher) Option {
 	return func(n *Node) error {
-		if hasher == nil {
+		if hasher == nil || hasher.IsInterfaceNil() {
 			return ErrNilHasher
 		}
 		n.hasher = hasher
@@ -54,7 +54,7 @@ func WithHasher(hasher hashing.Hasher) Option {
 // WithAccountsAdapter sets up the accounts adapter option for the Node
 func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	return func(n *Node) error {
-		if accounts == nil {
+		if accounts == nil || accounts.IsInterfaceNil() {
 			return ErrNilAccountsAdapter
 		}
 		n.accounts = accounts
@@ -65,7 +65,7 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 // WithAddressConverter sets up the address converter adapter option for the Node
 func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	return func(n *Node) error {
-		if addrConverter == nil {
+		if addrConverter == nil || addrConverter.IsInterfaceNil() {
 			return ErrNilAddressConverter
 		}
 		n.addrConverter = addrConverter
@@ -76,7 +76,7 @@ func WithAddressConverter(addrConverter state.AddressConverter) Option {
 // WithBlockChain sets up the blockchain option for the Node
 func WithBlockChain(blkc data.ChainHandler) Option {
 	return func(n *Node) error {
-		if blkc == nil {
+		if blkc == nil || blkc.IsInterfaceNil() {
 			return ErrNilBlockchain
 		}
 		n.blkc = blkc
@@ -87,7 +87,7 @@ func WithBlockChain(blkc data.ChainHandler) Option {
 // WithDataStore sets up the storage options for the Node
 func WithDataStore(store dataRetriever.StorageService) Option {
 	return func(n *Node) error {
-		if store == nil {
+		if store == nil || store.IsInterfaceNil() {
 			return ErrNilStore
 		}
 		n.store = store
@@ -98,7 +98,7 @@ func WithDataStore(store dataRetriever.StorageService) Option {
 // WithTxSignPrivKey sets up the single sign private key option for the Node
 func WithTxSignPrivKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
-		if sk == nil {
+		if sk == nil || sk.IsInterfaceNil() {
 			return ErrNilPrivateKey
 		}
 		n.txSignPrivKey = sk
@@ -109,7 +109,7 @@ func WithTxSignPrivKey(sk crypto.PrivateKey) Option {
 // WithPubKey sets up the multi sign pub key option for the Node
 func WithPubKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
-		if pk == nil {
+		if pk == nil || pk.IsInterfaceNil() {
 			return ErrNilPublicKey
 		}
 		n.pubKey = pk
@@ -120,7 +120,7 @@ func WithPubKey(pk crypto.PublicKey) Option {
 // WithPrivKey sets up the multi sign private key option for the Node
 func WithPrivKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
-		if sk == nil {
+		if sk == nil || sk.IsInterfaceNil() {
 			return ErrNilPrivateKey
 		}
 		n.privKey = sk
@@ -131,7 +131,7 @@ func WithPrivKey(sk crypto.PrivateKey) Option {
 // WithKeyGen sets up the single sign key generator option for the Node
 func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
-		if keyGen == nil {
+		if keyGen == nil || keyGen.IsInterfaceNil() {
 			return ErrNilSingleSignKeyGen
 		}
 		n.keyGen = keyGen
@@ -150,7 +150,7 @@ func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 // WithTxSignPubKey sets up the single sign public key option for the Node
 func WithTxSignPubKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
-		if pk == nil {
+		if pk == nil || pk.IsInterfaceNil() {
 			return ErrNilPublicKey
 		}
 
@@ -184,7 +184,7 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 // WithSyncer sets up the syncTimer option for the Node
 func WithSyncer(syncer ntp.SyncTimer) Option {
 	return func(n *Node) error {
-		if syncer == nil {
+		if syncer == nil || syncer.IsInterfaceNil() {
 			return ErrNilSyncTimer
 		}
 		n.syncTimer = syncer
@@ -195,7 +195,7 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 // WithRounder sets up the rounder option for the Node
 func WithRounder(rounder consensus.Rounder) Option {
 	return func(n *Node) error {
-		if rounder == nil {
+		if rounder == nil || rounder.IsInterfaceNil() {
 			return ErrNilRounder
 		}
 		n.rounder = rounder
@@ -206,7 +206,7 @@ func WithRounder(rounder consensus.Rounder) Option {
 // WithBlockProcessor sets up the block processor option for the Node
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
-		if blockProcessor == nil {
+		if blockProcessor == nil || blockProcessor.IsInterfaceNil() {
 			return ErrNilBlockProcessor
 		}
 		n.blockProcessor = blockProcessor
@@ -217,7 +217,7 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 // WithBlockTracker sets up the block tracker option for the Node
 func WithBlockTracker(blockTracker process.BlocksTracker) Option {
 	return func(n *Node) error {
-		if blockTracker == nil {
+		if blockTracker == nil || blockTracker.IsInterfaceNil() {
 			return ErrNilBlockTracker
 		}
 		n.blockTracker = blockTracker
@@ -236,7 +236,7 @@ func WithGenesisTime(genesisTime time.Time) Option {
 // WithDataPool sets up the data pools option for the Node
 func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	return func(n *Node) error {
-		if dataPool == nil {
+		if dataPool == nil || dataPool.IsInterfaceNil() {
 			return ErrNilDataPool
 		}
 		n.dataPool = dataPool
@@ -247,7 +247,7 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 // WithMetaDataPool sets up the data pools option for the Node
 func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
 	return func(n *Node) error {
-		if dataPool == nil {
+		if dataPool == nil || dataPool.IsInterfaceNil() {
 			return ErrNilDataPool
 		}
 		n.metaDataPool = dataPool
@@ -258,7 +258,7 @@ func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
 // WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {
-		if shardCoordinator == nil {
+		if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 			return ErrNilShardCoordinator
 		}
 		n.shardCoordinator = shardCoordinator
@@ -269,7 +269,7 @@ func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 // WithUint64ByteSliceConverter sets up the uint64 <-> []byte converter
 func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConverter) Option {
 	return func(n *Node) error {
-		if converter == nil {
+		if converter == nil || converter.IsInterfaceNil() {
 			return ErrNilUint64ByteSliceConverter
 		}
 		n.uint64ByteSliceConverter = converter
@@ -291,7 +291,7 @@ func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 // WithSingleSigner sets up a singleSigner option for the Node
 func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
-		if singleSigner == nil {
+		if singleSigner == nil || singleSigner.IsInterfaceNil() {
 			return ErrNilSingleSig
 		}
 		n.singleSigner = singleSigner
@@ -302,7 +302,7 @@ func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
 // WithTxSingleSigner sets up a txSingleSigner option for the Node
 func WithTxSingleSigner(txSingleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
-		if txSingleSigner == nil {
+		if txSingleSigner == nil || txSingleSigner.IsInterfaceNil() {
 			return ErrNilSingleSig
 		}
 		n.txSingleSigner = txSingleSigner
@@ -313,7 +313,7 @@ func WithTxSingleSigner(txSingleSigner crypto.SingleSigner) Option {
 // WithMultiSigner sets up the multiSigner option for the Node
 func WithMultiSigner(multiSigner crypto.MultiSigner) Option {
 	return func(n *Node) error {
-		if multiSigner == nil {
+		if multiSigner == nil || multiSigner.IsInterfaceNil() {
 			return ErrNilMultiSig
 		}
 		n.multiSigner = multiSigner
@@ -324,7 +324,7 @@ func WithMultiSigner(multiSigner crypto.MultiSigner) Option {
 // WithForkDetector sets up the multiSigner option for the Node
 func WithForkDetector(forkDetector process.ForkDetector) Option {
 	return func(n *Node) error {
-		if forkDetector == nil {
+		if forkDetector == nil || forkDetector.IsInterfaceNil() {
 			return ErrNilForkDetector
 		}
 		n.forkDetector = forkDetector
@@ -335,7 +335,7 @@ func WithForkDetector(forkDetector process.ForkDetector) Option {
 // WithInterceptorsContainer sets up the interceptors container option for the Node
 func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContainer) Option {
 	return func(n *Node) error {
-		if interceptorsContainer == nil {
+		if interceptorsContainer == nil || interceptorsContainer.IsInterfaceNil() {
 			return ErrNilInterceptorsContainer
 		}
 		n.interceptorsContainer = interceptorsContainer
@@ -346,19 +346,10 @@ func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContain
 // WithResolversFinder sets up the resolvers finder option for the Node
 func WithResolversFinder(resolversFinder dataRetriever.ResolversFinder) Option {
 	return func(n *Node) error {
-		if resolversFinder == nil {
+		if resolversFinder == nil || resolversFinder.IsInterfaceNil() {
 			return ErrNilResolversFinder
 		}
 		n.resolversFinder = resolversFinder
-		return nil
-	}
-}
-
-// WithActiveMetachain sets up the flag that tells the node that metachain shard is active
-// TODO - remove this when finishing metachain testing as it will always be enabled
-func WithActiveMetachain(flag bool) Option {
-	return func(n *Node) error {
-		n.isMetachainActive = flag
 		return nil
 	}
 }
@@ -390,10 +381,11 @@ func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 // WithAppStatusHandler sets up which handler will monitor the status of the node
 func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 	return func(n *Node) error {
-		if aph != nil {
-			n.appStatusHandler = aph
-			return nil
+		if aph == nil || aph.IsInterfaceNil() {
+			return ErrNilStatusHandler
+
 		}
-		return ErrNilStatusHandler
+		n.appStatusHandler = aph
+		return nil
 	}
 }

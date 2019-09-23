@@ -9,7 +9,7 @@ import (
 
 /*
 This implementation follows the modified BLS scheme presented here (curve notation changed in this file as compared to
-the link, so curves G0, G1 in link are refered to as G1, G2 in this file):
+the link, so curves G0, G1 in link are referred to as G1, G2 in this file):
 https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html
 
 In addition to the common BLS single signature, for aggregation of multiple signatures it requires another hashing
@@ -50,7 +50,7 @@ func NewBLSMultisig(
 	keyGen crypto.KeyGenerator,
 	ownIndex uint16) (*blsMultiSigner, error) {
 
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, crypto.ErrNilHasher
 	}
 
@@ -58,7 +58,7 @@ func NewBLSMultisig(
 		return nil, crypto.ErrWrongSizeHasher
 	}
 
-	if privKey == nil {
+	if privKey == nil || privKey.IsInterfaceNil() {
 		return nil, crypto.ErrNilPrivateKey
 	}
 
@@ -66,7 +66,7 @@ func NewBLSMultisig(
 		return nil, crypto.ErrNoPublicKeySet
 	}
 
-	if keyGen == nil {
+	if keyGen == nil || keyGen.IsInterfaceNil() {
 		return nil, crypto.ErrNilKeyGenerator
 	}
 
@@ -330,6 +330,14 @@ func (bms *blsMultiSigner) Verify(message []byte, bitmap []byte) error {
 	return bms.llSigner.VerifyAggregatedSig(bms.keyGen.Suite(), aggPointsBytes, bms.data.aggSig, message)
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (bms *blsMultiSigner) IsInterfaceNil() bool {
+	if bms == nil {
+		return true
+	}
+	return false
+}
+
 func aggregatePublicKeys(
 	lls crypto.LowLevelSignerBLS,
 	suite crypto.Suite,
@@ -361,7 +369,7 @@ func aggregatePublicKeys(
 
 // scalarMulPk returns the result of multiplying a scalar given as a bytes array, with a BLS public key (point)
 func scalarMulPk(suite crypto.Suite, scalarBytes []byte, pk crypto.Point) (crypto.Point, error) {
-	if pk == nil {
+	if pk == nil || pk.IsInterfaceNil() {
 		return nil, crypto.ErrNilParam
 	}
 
@@ -387,11 +395,11 @@ func scalarMulSig(lls crypto.LowLevelSignerBLS, suite crypto.Suite, scalarBytes 
 
 // hashPublicKeyPoint hashes a BLS public key (point) into a byte array (32 bytes length)
 func hashPublicKeyPoint(hasher hashing.Hasher, pubKeyPoint crypto.Point) ([]byte, error) {
-	if hasher == nil {
+	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, crypto.ErrNilHasher
 	}
 
-	if pubKeyPoint == nil {
+	if pubKeyPoint == nil || pubKeyPoint.IsInterfaceNil() {
 		return nil, crypto.ErrNilPublicKeyPoint
 	}
 
@@ -411,7 +419,7 @@ func hashPublicKeyPoint(hasher hashing.Hasher, pubKeyPoint crypto.Point) ([]byte
 
 // createScalar creates crypto.Scalar from a byte array
 func createScalar(suite crypto.Suite, scalarBytes []byte) (crypto.Scalar, error) {
-	if suite == nil {
+	if suite == nil || suite.IsInterfaceNil() {
 		return nil, crypto.ErrNilSuite
 	}
 
