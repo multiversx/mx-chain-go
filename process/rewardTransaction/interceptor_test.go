@@ -1,4 +1,4 @@
-package rewardTransaction
+package rewardTransaction_test
 
 import (
 	"encoding/json"
@@ -10,13 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewRewardTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rti, err := NewRewardTxInterceptor(
+	rti, err := rewardTransaction.NewRewardTxInterceptor(
 		nil,
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -31,7 +32,7 @@ func TestNewRewardTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewRewardTxInterceptor_NilRewardTxPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rti, err := NewRewardTxInterceptor(
+	rti, err := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.StorerStub{},
@@ -46,7 +47,7 @@ func TestNewRewardTxInterceptor_NilRewardTxPoolShouldErr(t *testing.T) {
 func TestNewRewardTxInterceptor_NilRewardTxStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rti, err := NewRewardTxInterceptor(
+	rti, err := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{},
 		nil,
@@ -61,7 +62,7 @@ func TestNewRewardTxInterceptor_NilRewardTxStorerShouldErr(t *testing.T) {
 func TestNewRewardTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rti, err := NewRewardTxInterceptor(
+	rti, err := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -76,7 +77,7 @@ func TestNewRewardTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 func TestNewRewardTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rti, err := NewRewardTxInterceptor(
+	rti, err := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -91,7 +92,7 @@ func TestNewRewardTxInterceptor_NilHasherShouldErr(t *testing.T) {
 func TestNewRewardTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rti, err := NewRewardTxInterceptor(
+	rti, err := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -106,7 +107,7 @@ func TestNewRewardTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewRewardTxInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rti, err := NewRewardTxInterceptor(
+	rti, err := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -122,7 +123,7 @@ func TestNewRewardTxInterceptor_OkValsShouldWork(t *testing.T) {
 func TestRewardTxInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rti, _ := NewRewardTxInterceptor(
+	rti, _ := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -137,7 +138,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testin
 func TestRewardTxInterceptor_ProcessReceivedMessageNilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rti, _ := NewRewardTxInterceptor(
+	rti, _ := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -157,7 +158,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageIntraShardShouldWork(t *testi
 	t.Parallel()
 
 	wasCalled := false
-	rti, _ := NewRewardTxInterceptor(
+	rti, _ := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{
 			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
@@ -176,7 +177,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageIntraShardShouldWork(t *testi
 		RcvAddr: []byte("rcvr1"),
 		ShardId: 0,
 	}
-	rewardTxBytes1, _ := rti.marshalizer.Marshal(rewardTx1)
+	rewardTxBytes1, _ := rti.Marshalizer().Marshal(rewardTx1)
 
 	rewardTx2 := rewardTx.RewardTx{
 		Round:   0,
@@ -185,7 +186,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageIntraShardShouldWork(t *testi
 		RcvAddr: []byte("rcvr2"),
 		ShardId: 0,
 	}
-	rewardTxBytes2, _ := rti.marshalizer.Marshal(rewardTx2)
+	rewardTxBytes2, _ := rti.Marshalizer().Marshal(rewardTx2)
 
 	var rewardTxsSlice [][]byte
 	rewardTxsSlice = append(rewardTxsSlice, rewardTxBytes1, rewardTxBytes2)
@@ -209,7 +210,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageCrossShardShouldNotAdd(t *tes
 	shardCoord.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		return uint32(1)
 	}
-	rti, _ := NewRewardTxInterceptor(
+	rti, _ := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{
 			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
@@ -228,7 +229,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageCrossShardShouldNotAdd(t *tes
 		RcvAddr: []byte("rcvr1"),
 		ShardId: 1,
 	}
-	rewardTxBytes1, _ := rti.marshalizer.Marshal(rewardTx1)
+	rewardTxBytes1, _ := rti.Marshalizer().Marshal(rewardTx1)
 
 	rewardTx2 := rewardTx.RewardTx{
 		Round:   0,
@@ -237,7 +238,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageCrossShardShouldNotAdd(t *tes
 		RcvAddr: []byte("rcvr2"),
 		ShardId: 1,
 	}
-	rewardTxBytes2, _ := rti.marshalizer.Marshal(rewardTx2)
+	rewardTxBytes2, _ := rti.Marshalizer().Marshal(rewardTx2)
 
 	var rewardTxsSlice [][]byte
 	rewardTxsSlice = append(rewardTxsSlice, rewardTxBytes1, rewardTxBytes2)
@@ -257,7 +258,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageCrossShardShouldNotAdd(t *tes
 func TestRewardTxInterceptor_SetBroadcastCallback(t *testing.T) {
 	t.Parallel()
 
-	rti, _ := NewRewardTxInterceptor(
+	rti, _ := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -272,6 +273,6 @@ func TestRewardTxInterceptor_SetBroadcastCallback(t *testing.T) {
 		return
 	})
 
-	rti.broadcastCallbackHandler(bytesToSend)
+	rti.BroadcastCallbackHandler(bytesToSend)
 	assert.Equal(t, bytesToSend, bytesToReceive)
 }

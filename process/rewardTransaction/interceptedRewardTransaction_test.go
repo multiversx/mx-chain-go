@@ -1,4 +1,4 @@
-package rewardTransaction
+package rewardTransaction_test
 
 import (
 	"math/big"
@@ -8,13 +8,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewInterceptedRewardTransaction_NilTxBuffShouldErr(t *testing.T) {
 	t.Parallel()
 
-	irt, err := NewInterceptedRewardTransaction(
+	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -29,7 +30,7 @@ func TestNewInterceptedRewardTransaction_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txBuff := []byte("tx")
-	irt, err := NewInterceptedRewardTransaction(
+	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		nil,
 		&mock.HasherMock{},
@@ -44,7 +45,7 @@ func TestNewInterceptedRewardTransaction_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txBuff := []byte("tx")
-	irt, err := NewInterceptedRewardTransaction(
+	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		&mock.MarshalizerMock{},
 		nil,
@@ -59,7 +60,7 @@ func TestNewInterceptedRewardTransaction_NilAddressConverterShouldErr(t *testing
 	t.Parallel()
 
 	txBuff := []byte("tx")
-	irt, err := NewInterceptedRewardTransaction(
+	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -74,7 +75,7 @@ func TestNewInterceptedRewardTransaction_NilShardCoordinatorShouldErr(t *testing
 	t.Parallel()
 
 	txBuff := []byte("tx")
-	irt, err := NewInterceptedRewardTransaction(
+	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -98,7 +99,7 @@ func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	txBuff, _ := marshalizer.Marshal(rewTx)
-	irt, err := NewInterceptedRewardTransaction(
+	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
@@ -128,7 +129,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	}
 
 	txBuff, _ := marshalizer.Marshal(rewTx)
-	irt, err := NewInterceptedRewardTransaction(
+	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
@@ -143,6 +144,6 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	assert.Equal(t, &rewTx, irt.RewardTransaction())
 	assert.False(t, irt.IsAddressedToOtherShards())
 
-	txHash := irt.hasher.Compute(string(txBuff))
+	txHash := irt.Hasher().Compute(string(txBuff))
 	assert.Equal(t, txHash, irt.Hash())
 }
