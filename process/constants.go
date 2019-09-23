@@ -34,7 +34,8 @@ const ShardBlockFinality = 1
 const MetaBlockFinality = 1
 const MaxHeaderRequestsAllowed = 10
 const MaxItemsInBlock = 15000
+const MinItemsInBlock = 1000
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
 const MaxGasLimitPerMiniBlock = uint64(100000)
-const MaxRequestsWithTimeoutAllowed = 5
+const MaxRequestsWithTimeoutAllowed = 10
