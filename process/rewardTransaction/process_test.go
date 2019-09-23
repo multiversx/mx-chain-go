@@ -1,0 +1,286 @@
+package rewardTransaction
+
+import (
+	"errors"
+	"math/big"
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestNewRewardTxProcessorNilAccountsDbShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, err := NewRewardTxProcessor(
+		nil,
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+}
+
+func TestNewRewardTxProcessorNilAddressConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, err := NewRewardTxProcessor(
+		&mock.AccountsStub{},
+		nil,
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilAddressConverter, err)
+}
+
+func TestNewRewardTxProcessorNilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, err := NewRewardTxProcessor(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		nil,
+		&mock.IntermediateTransactionHandlerMock{})
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewRewardTxProcessorNilRewardTxForwarderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, err := NewRewardTxProcessor(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		nil)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilIntermediateTransactionHandler, err)
+}
+
+func TestNewRewardTxProcessorOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	rtp, err := NewRewardTxProcessor(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	assert.NotNil(t, rtp)
+	assert.Nil(t, err)
+	assert.False(t, rtp.IsInterfaceNil())
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionNilTxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, _ := NewRewardTxProcessor(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	err := rtp.ProcessRewardTransaction(nil)
+	assert.Equal(t, process.ErrNilRewardTransaction, err)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionNilTxValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, _ := NewRewardTxProcessor(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	rwdTx := rewardTx.RewardTx{Value: nil}
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Equal(t, process.ErrNilValueFromRewardTransaction, err)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionCannotCreateAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("cannot create address")
+	rtp, _ := NewRewardTxProcessor(
+		&mock.AccountsStub{},
+		&mock.AddressConverterStub{
+			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
+				return nil, expectedErr
+			},
+		},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   new(big.Int).SetInt64(100),
+		RcvAddr: []byte("rcvr"),
+		ShardId: 0,
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldNotExecute(t *testing.T) {
+	t.Parallel()
+
+	getAccountWithJournalWasCalled := false
+	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
+	shardCoord.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return uint32(5)
+	}
+	rtp, _ := NewRewardTxProcessor(
+		&mock.AccountsStub{
+			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+				getAccountWithJournalWasCalled = true
+				return nil, nil
+			},
+		},
+		&mock.AddressConverterMock{},
+		shardCoord,
+		&mock.IntermediateTransactionHandlerMock{})
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   new(big.Int).SetInt64(100),
+		RcvAddr: []byte("rcvr"),
+		ShardId: 0,
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Nil(t, err)
+	// account should not be requested as the address is not in node's shard
+	assert.False(t, getAccountWithJournalWasCalled)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("cannot get account")
+	rtp, _ := NewRewardTxProcessor(
+		&mock.AccountsStub{
+			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+				return nil, expectedErr
+			},
+		},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   new(big.Int).SetInt64(100),
+		RcvAddr: []byte("rcvr"),
+		ShardId: 0,
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionCannotAddIntermediateTxsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("cannot add intermediate transactions")
+	rtp, _ := NewRewardTxProcessor(
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{
+			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+				return expectedErr
+			},
+		})
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   new(big.Int).SetInt64(100),
+		RcvAddr: []byte("rcvr"),
+		ShardId: 0,
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	accountsDb := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+			return mock.NewAccountWrapMock(addressContainer, &mock.AccountTrackerStub{}), nil
+		},
+	}
+
+	rtp, _ := NewRewardTxProcessor(
+		accountsDb,
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   new(big.Int).SetInt64(100),
+		RcvAddr: []byte("rcvr"),
+		ShardId: 0,
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
+	t.Parallel()
+
+	journalizeWasCalled := false
+	saveAccountWasCalled := false
+
+	accountsDb := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+			ats := &mock.AccountTrackerStub{
+				JournalizeCalled: func(entry state.JournalEntry) {
+					journalizeWasCalled = true
+				},
+				SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+					saveAccountWasCalled = true
+					return nil
+				},
+			}
+			return state.NewAccount(addressContainer, ats)
+		},
+	}
+
+	rtp, _ := NewRewardTxProcessor(
+		accountsDb,
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.IntermediateTransactionHandlerMock{})
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   new(big.Int).SetInt64(100),
+		RcvAddr: []byte("rcvr"),
+		ShardId: 0,
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Nil(t, err)
+	assert.True(t, journalizeWasCalled)
+	assert.True(t, saveAccountWasCalled)
+}
