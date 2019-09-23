@@ -58,19 +58,19 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		expectedBalance)
 }
 
-func TestVmDeployWithFibbonacciAndExecute(t *testing.T) {
-	runWASMVMBenchmark(t, "./fib_arwen.wasm", 100, 32)
+func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
+	runWASMVMBenchmark(b, "./fib_arwen.wasm", 100, 32)
 }
 
-func TestVmDeployWithCPUCalculateAndExecute(t *testing.T) {
-	runWASMVMBenchmark(t, "./cpucalculate_arwen.wasm", 100, 8000)
+func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
+	runWASMVMBenchmark(b, "./cpucalculate_arwen.wasm", 100, 8000)
 }
 
-func TestVmDeployWithStringConcatAndExecute(t *testing.T) {
-	runWASMVMBenchmark(t, "./stringconcat_arwen.wasm", 100, 10000)
+func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
+	runWASMVMBenchmark(b, "./stringconcat_arwen.wasm", 100, 10000)
 }
 
-func runWASMVMBenchmark(t *testing.T, fileSC string, numRun int, testingValue uint64) {
+func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue uint64) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(100000000)
@@ -80,29 +80,30 @@ func runWASMVMBenchmark(t *testing.T, fileSC string, numRun int, testingValue ui
 	transferOnCalls := big.NewInt(1)
 
 	scCode, err := ioutil.ReadFile(fileSC)
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 
 	scCodeString := hex.EncodeToString(scCode)
 
-	tx := vm.CreateTx(
-		t,
-		ownerAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
-		ownerNonce,
-		transferOnCalls,
-		gasPrice,
-		gasLimit,
-		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
-	)
+	tx := &transaction.Transaction{
+		Nonce:     ownerNonce,
+		Value:     transferOnCalls,
+		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		SndAddr:   ownerAddressBytes,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Signature: nil,
+		Challenge: nil,
+	}
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(tb, ownerNonce, ownerAddressBytes, ownerBalance)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	err = txProc.ProcessTransaction(tx, round)
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 
 	_, err = accnts.Commit()
-	assert.Nil(t, err)
+	assert.Nil(tb, err)
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
@@ -125,10 +126,10 @@ func runWASMVMBenchmark(t *testing.T, fileSC string, numRun int, testingValue ui
 		err = txProc.ProcessTransaction(tx, round)
 		elapsedTime := time.Since(startTime)
 		fmt.Printf("time elapsed full process %s \n", elapsedTime.String())
-		assert.Nil(t, err)
+		assert.Nil(tb, err)
 
 		_, err = accnts.Commit()
-		assert.Nil(t, err)
+		assert.Nil(tb, err)
 
 		aliceNonce++
 	}
