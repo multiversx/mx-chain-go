@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-var durationMsgRecieved = 2 * time.Second
+var durationMsgReceived = 2 * time.Second
 
 // RunTest will test if all the peers receive a message
 func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
@@ -74,7 +74,7 @@ func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
 	select {
 	case <-chanDone:
 		return true
-	case <-time.After(durationMsgRecieved):
+	case <-time.After(durationMsgReceived):
 		fmt.Printf("timeout fetching all messages. Got %d from %d\n",
 			atomic.LoadInt32(&msgReceived), len(peers))
 		return false

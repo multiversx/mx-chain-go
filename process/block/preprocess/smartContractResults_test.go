@@ -748,6 +748,13 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		par["txHash"], _ = json.Marshal(tx)
 		return par, nil
 	}
+	scrstorage.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			RemoveCalled: func(key []byte) error {
+				return nil
+			},
+		}
+	}
 
 	dataPool := mock.NewPoolsHolderMock()
 

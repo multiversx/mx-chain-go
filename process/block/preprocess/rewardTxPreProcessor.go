@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -161,7 +162,14 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 			rtp.rewardTxPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		restoredHash, err := rtp.restoreMiniBlock(miniBlock, miniBlockPool)
+		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
+		if err != nil {
+			return rewardTxsRestored, miniBlockHashes, err
+		}
+
+		restoredHash := rtp.restoreMiniBlock(miniBlock, miniBlockHash, miniBlockPool)
+
+		err = rtp.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
 		if err != nil {
 			return rewardTxsRestored, miniBlockHashes, err
 		}
@@ -291,25 +299,33 @@ func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body block.Body) int {
 	missingRewardTxsForShards := rtp.computeMissingAndExistingRewardTxsForShards(body)
 
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
-	for senderShardID, rewardTxHashesInfo := range missingRewardTxsForShards {
-		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: rewardTxHashesInfo.receiverShardID}
-		for _, txHash := range rewardTxHashesInfo.txHashes {
-			rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	for senderShardID, rewardTxHashes := range missingRewardTxsForShards {
+		for _, txHash := range rewardTxHashes {
+			rtp.setMissingTxsForShard(senderShardID, txHash)
 		}
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 
-	for senderShardID, scrHashesInfo := range missingRewardTxsForShards {
-		requestedRewardTxs += len(scrHashesInfo.txHashes)
-		rtp.onRequestRewardTx(senderShardID, scrHashesInfo.txHashes)
+	for senderShardID, mbsRewardTxHashes := range missingRewardTxsForShards {
+		for _, mbRewardTxHashes := range mbsRewardTxHashes {
+			requestedRewardTxs += len(mbRewardTxHashes.txHashes)
+			rtp.onRequestRewardTx(senderShardID, mbRewardTxHashes.txHashes)
+		}
 	}
 
 	return requestedRewardTxs
 }
 
+func (rtp *rewardTxPreprocessor) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
+	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
+	for _, txHash := range mbTxHashes.txHashes {
+		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	}
+}
+
 // computeMissingAndExistingRewardTxsForShards calculates what reward transactions are available and what are missing
 // from block.Body
-func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
+func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body block.Body) map[uint32][]*txsHashesInfo {
 	rewardTxs := block.Body{}
 	for _, mb := range body {
 		if mb.Type != block.RewardsBlock {
@@ -322,7 +338,7 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		rewardTxs = append(rewardTxs, mb)
 	}
 
-	missingTxsForShard := rtp.computeExistingAndMissing(
+	missingTxsForShards := rtp.computeExistingAndMissing(
 		rewardTxs,
 		&rtp.rewardTxsForBlock,
 		rtp.chReceivedAllRewardTxs,
@@ -330,7 +346,7 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		rtp.rewardTxPool,
 	)
 
-	return missingTxsForShard
+	return missingTxsForShards
 }
 
 // processRewardTransaction processes a reward transaction, if the transactions has an error it removes it from pool
