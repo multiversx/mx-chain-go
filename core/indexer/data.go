@@ -32,6 +32,7 @@ type Transaction struct {
 //  plus some extra information for ease of search and filter
 type Block struct {
 	Nonce         uint64        `json:"nonce"`
+	Round         uint64        `json:"round"`
 	ShardID       uint32        `json:"shardId"`
 	Hash          string        `json:"hash"`
 	Proposer      string        `json:"proposer"`
@@ -42,6 +43,11 @@ type Block struct {
 	TxCount       uint32        `json:"txCount"`
 	StateRootHash string        `json:"stateRootHash"`
 	PrevHash      string        `json:"prevHash"`
+}
+
+// SignersIndexes is a structure containing block signers
+type SignersIndexes struct {
+	SignersIndexes []uint64 `json:"signersIndexes"`
 }
 
 // TPS is a structure containing all the fields that need to

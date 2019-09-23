@@ -1,12 +1,14 @@
 package commonSubround
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -22,6 +24,7 @@ type SubroundStartRound struct {
 	broadcastUnnotarisedBlocks    func()
 
 	appStatusHandler core.AppStatusHandler
+	indexer          indexer.Indexer
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
@@ -48,6 +51,7 @@ func NewSubroundStartRound(
 		executeStoredMessages,
 		broadcastUnnotarisedBlocks,
 		statusHandler.NewNilStatusHandler(),
+		nil,
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -83,6 +87,11 @@ func (sr *SubroundStartRound) SetAppStatusHandler(ash core.AppStatusHandler) err
 
 	sr.appStatusHandler = ash
 	return nil
+}
+
+// SetIndexer method set indexer
+func (sr *SubroundStartRound) SetIndexer(indexer indexer.Indexer) {
+	sr.indexer = indexer
 }
 
 // doStartRoundJob method does the job of the subround StartRound
@@ -147,6 +156,8 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	pubKeys := sr.ConsensusGroup()
 
+	sr.indexRoundIfNeeded(pubKeys)
+
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, not in the consensus group\n",
@@ -193,6 +204,26 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	go sr.executeStoredMessages()
 
 	return true
+}
+
+func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
+	if sr.indexer == nil || sr.IsInterfaceNil() {
+		return
+	}
+
+	validatorsPubKeys := sr.NodesCoordinator().GetValidatorsPubKeys()
+	shardId := sr.ShardCoordinator().SelfId()
+	signersIndexes := make([]uint64, 0)
+
+	for _, pubKey := range pubKeys {
+		for index, value := range validatorsPubKeys[shardId] {
+			if bytes.Equal([]byte(pubKey), value) {
+				signersIndexes = append(signersIndexes, uint64(index))
+			}
+		}
+	}
+
+	sr.indexer.SaveRoundInfo(sr.Rounder().Index(), signersIndexes)
 }
 
 func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

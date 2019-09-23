@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -19,6 +20,7 @@ func GetSubroundsFactory(
 	worker spos.WorkerHandler,
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
+	indexer indexer.Indexer,
 ) (spos.SubroundsFactory, error) {
 
 	switch consensusType {
@@ -29,6 +31,8 @@ func GetSubroundsFactory(
 		}
 
 		err = subRoundFactoryBls.SetAppStatusHandler(appStatusHandler)
+
+		subRoundFactoryBls.SetIndexer(indexer)
 		if err != nil {
 			return nil, err
 		}
@@ -44,6 +48,8 @@ func GetSubroundsFactory(
 		if err != nil {
 			return nil, err
 		}
+
+		subRoundFactoryBn.SetIndexer(indexer)
 
 		return subRoundFactoryBn, nil
 	}

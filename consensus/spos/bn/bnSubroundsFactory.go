@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -17,6 +18,7 @@ type factory struct {
 	worker         spos.WorkerHandler
 
 	appStatusHandler core.AppStatusHandler
+	indexer          indexer.Indexer
 }
 
 // NewSubroundsFactory creates a new factory for BN subrounds
@@ -75,6 +77,11 @@ func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 	fct.appStatusHandler = ash
 	return nil
+}
+
+// SetIndexer method set indexer
+func (fct *factory) SetIndexer(indexer indexer.Indexer) {
+	fct.indexer = indexer
 }
 
 // GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns
@@ -160,6 +167,8 @@ func (fct *factory) generateStartRoundSubround() error {
 	if err != nil {
 		return err
 	}
+
+	subroundStartRound.SetIndexer(fct.indexer)
 
 	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
 

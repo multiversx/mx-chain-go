@@ -640,6 +640,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	var elasticIndexer indexer.Indexer
+	if coreServiceContainer == nil || coreServiceContainer.IsInterfaceNil() {
+		elasticIndexer = nil
+	} else {
+		elasticIndexer = coreServiceContainer.Indexer()
+	}
+
 	currentNode, err := createNode(
 		generalConfig,
 		nodesConfig,
@@ -657,6 +664,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		networkComponents,
 		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
 		version,
+		elasticIndexer,
 	)
 	if err != nil {
 		return err
@@ -1144,6 +1152,7 @@ func createNode(
 	network *factory.Network,
 	bootstrapRoundIndex uint64,
 	version string,
+	indexer indexer.Indexer,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1184,6 +1193,7 @@ func createNode(
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(core.StatusHandler),
+		node.WithIndexer(indexer),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
