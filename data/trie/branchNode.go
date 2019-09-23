@@ -58,8 +58,8 @@ func branchNodeCapnToGo(src capnp.BranchNodeCapn, dest *branchNode) *branchNode 
 		} else {
 			dest.EncodedChildren[i] = child
 		}
-
 	}
+
 	return dest
 }
 
@@ -374,25 +374,25 @@ func (bn *branchNode) getNext(key []byte, db data.DBWriteCacher, marshalizer mar
 func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 	if len(n.Key) == 0 {
-		return false, nil, nil, ErrValueTooShort
+		return false, nil, [][]byte{}, ErrValueTooShort
 	}
 	childPos := n.Key[firstByte]
 	if childPosOutOfRange(childPos) {
-		return false, nil, nil, ErrChildPosOutOfRange
+		return false, nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 	n.Key = n.Key[1:]
 	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
 	if err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 
 	if bn.children[childPos] != nil {
 		dirty, newNode, oldHashes, err := bn.children[childPos].insert(n, db, marshalizer)
 		if !dirty || err != nil {
-			return false, bn, nil, err
+			return false, bn, [][]byte{}, err
 		}
 
 		if !bn.dirty {
@@ -408,7 +408,7 @@ func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer mar
 	}
 	bn.children[childPos] = newLeafNode(n.Key, n.Value)
 
-	var oldHash [][]byte
+	oldHash := make([][]byte, 0)
 	if !bn.dirty {
 		oldHash = append(oldHash, bn.hash)
 	}
@@ -421,24 +421,24 @@ func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer mar
 func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 	if len(key) == 0 {
-		return false, nil, nil, ErrValueTooShort
+		return false, nil, [][]byte{}, ErrValueTooShort
 	}
 	childPos := key[firstByte]
 	if childPosOutOfRange(childPos) {
-		return false, nil, nil, ErrChildPosOutOfRange
+		return false, nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 	key = key[1:]
 	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
 	if err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 
 	dirty, newNode, oldHashes, err := bn.children[childPos].delete(key, db, marshalizer)
 	if !dirty || err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 
 	if !bn.dirty {
@@ -456,7 +456,7 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher, marshalizer mars
 	if nrOfChildren == 1 {
 		err = resolveIfCollapsed(bn, byte(pos), db, marshalizer)
 		if err != nil {
-			return false, nil, nil, err
+			return false, nil, [][]byte{}, err
 		}
 
 		newNode := bn.children[pos].reduceNode(pos)

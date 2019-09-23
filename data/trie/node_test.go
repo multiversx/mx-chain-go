@@ -488,10 +488,14 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-
 	_ = tr.Commit()
+	root, _ := tr.Root()
 
 	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
+
+	assert.Equal(t, 3, len(tr.oldHashes))
+	assert.Equal(t, root, tr.oldRoot)
+
 	_ = tr.Commit()
 
 	assert.Equal(t, 0, len(tr.oldHashes))
@@ -520,21 +524,25 @@ func TestTrieDatabasePruning(t *testing.T) {
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_ = tr.Commit()
 
-	nodeKey := []byte{6, 4, 6, 15, 6, 5, 16}
+	key := []byte{6, 4, 6, 15, 6, 7, 16}
+	oldHashes := make([][]byte, 0)
 	n := tr.root
 	rootHash, _ := tr.Root()
+	oldHashes = append(oldHashes, rootHash)
 
-	for i := 0; i < 2; i++ {
-		n, nodeKey, _ = n.getNext(nodeKey, tr.db, tr.marshalizer)
+	for i := 0; i < 3; i++ {
+		n, key, _ = n.getNext(key, tr.db, tr.marshalizer)
+		oldHashes = append(oldHashes, n.getHash())
 	}
-	nodeHash := n.getHash()
 
-	_ = tr.Update([]byte("doe"), []byte("doee"))
+	_ = tr.Update([]byte("dog"), []byte("doee"))
 	_ = tr.Commit()
 	err := tr.Prune(rootHash)
 	assert.Nil(t, err)
 
-	encNode, err := tr.db.Get(nodeHash)
-	assert.Nil(t, encNode)
-	assert.NotNil(t, err)
+	for i := range oldHashes {
+		encNode, err := tr.db.Get(oldHashes[i])
+		assert.Nil(t, encNode)
+		assert.NotNil(t, err)
+	}
 }

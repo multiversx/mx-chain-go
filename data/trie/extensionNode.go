@@ -280,11 +280,11 @@ func (en *extensionNode) getNext(key []byte, db data.DBWriteCacher, marshalizer 
 func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 	keyMatchLen := prefixLen(n.Key, en.Key)
 
@@ -294,7 +294,7 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 		n.Key = n.Key[keyMatchLen:]
 		dirty, newNode, oldHashes, err := en.child.insert(n, db, marshalizer)
 		if !dirty || err != nil {
-			return false, nil, nil, err
+			return false, nil, [][]byte{}, err
 		}
 
 		if !en.dirty {
@@ -304,7 +304,7 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 		return true, newExtensionNode(en.Key, newNode), oldHashes, nil
 	}
 
-	var oldHash [][]byte
+	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
 	}
@@ -314,7 +314,7 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 	oldChildPos := en.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
-		return false, nil, nil, ErrChildPosOutOfRange
+		return false, nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 
 	followingExtensionNode := newExtensionNode(en.Key[keyMatchLen+1:], en.child)
@@ -335,23 +335,23 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 func (en *extensionNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 	if len(key) == 0 {
-		return false, nil, nil, ErrValueTooShort
+		return false, nil, [][]byte{}, ErrValueTooShort
 	}
 	keyMatchLen := prefixLen(key, en.Key)
 	if keyMatchLen < len(en.Key) {
-		return false, en, nil, nil
+		return false, en, [][]byte{}, nil
 	}
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
-		return false, nil, nil, err
+		return false, nil, [][]byte{}, err
 	}
 
 	dirty, newNode, oldHashes, err := en.child.delete(key[len(en.Key):], db, marshalizer)
 	if !dirty || err != nil {
-		return false, en, nil, err
+		return false, en, [][]byte{}, err
 	}
 
 	if !en.dirty {

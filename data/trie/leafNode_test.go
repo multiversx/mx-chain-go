@@ -87,6 +87,16 @@ func TestLeafNode_setHashNilNode(t *testing.T) {
 	assert.Nil(t, ln)
 }
 
+func TestLeafNode_setGivenHash(t *testing.T) {
+	t.Parallel()
+	ln := &leafNode{}
+	expectedHash := []byte("node hash")
+
+	ln.setGivenHash(expectedHash)
+
+	assert.Equal(t, expectedHash, ln.hash)
+}
+
 func TestLeafNode_hashChildren(t *testing.T) {
 	t.Parallel()
 	ln := getLn()
@@ -329,6 +339,70 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	assert.IsType(t, &branchNode{}, newNode)
 }
 
+func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	ln := getLn()
+	marsh, hasher := getTestMarshAndHasher()
+	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
+	_ = ln.commit(0, db, marsh, hasher)
+	lnHash := ln.getHash()
+
+	dirty, _, oldHashes, err := ln.insert(node, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{lnHash}, oldHashes)
+}
+
+func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	marsh, hasher := getTestMarshAndHasher()
+	ln := newLeafNode([]byte{1, 2, 3}, []byte("dog"))
+	node := newLeafNode([]byte{4, 5, 6}, []byte("dogs"))
+	_ = ln.commit(0, db, marsh, hasher)
+	lnHash := ln.getHash()
+
+	dirty, _, oldHashes, err := ln.insert(node, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{lnHash}, oldHashes)
+}
+
+func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	ln := getLn()
+	marsh, _ := getTestMarshAndHasher()
+	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
+
+	dirty, _, oldHashes, err := ln.insert(node, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{}, oldHashes)
+}
+
+func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	marsh, _ := getTestMarshAndHasher()
+	ln := newLeafNode([]byte{1, 2, 3}, []byte("dog"))
+	node := newLeafNode([]byte{4, 5, 6}, []byte("dogs"))
+
+	dirty, _, oldHashes, err := ln.insert(node, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{}, oldHashes)
+}
+
 func TestLeafNode_insertInNilNode(t *testing.T) {
 	t.Parallel()
 	db := mock.NewMemDbMock()
@@ -352,6 +426,51 @@ func TestLeafNode_deletePresent(t *testing.T) {
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Nil(t, newNode)
+}
+
+func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	ln := getLn()
+	marsh, hasher := getTestMarshAndHasher()
+	_ = ln.commit(0, db, marsh, hasher)
+	lnHash := ln.getHash()
+
+	dirty, _, oldHashes, err := ln.delete([]byte{100, 111, 103}, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{lnHash}, oldHashes)
+}
+
+func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	marsh, hasher := getTestMarshAndHasher()
+	ln := getLn()
+	_ = ln.commit(0, db, marsh, hasher)
+
+	dirty, _, oldHashes, err := ln.delete([]byte{1, 2, 3}, db, marsh)
+
+	assert.False(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{}, oldHashes)
+}
+
+func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	marsh, _ := getTestMarshAndHasher()
+	ln := getLn()
+
+	dirty, _, oldHashes, err := ln.delete([]byte{100, 111, 103}, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{}, oldHashes)
 }
 
 func TestLeafNode_deleteNotPresent(t *testing.T) {

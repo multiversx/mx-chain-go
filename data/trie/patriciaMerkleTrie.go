@@ -50,6 +50,9 @@ func NewTrie(
 	if hsh == nil || hsh.IsInterfaceNil() {
 		return nil, ErrNilHasher
 	}
+	if evictionDb == nil || evictionDb.IsInterfaceNil() {
+		return nil, ErrNilDatabase
+	}
 
 	evictionWaitList, err := evictionWaitingList.NewEvictionWaitingList(evictionCacheSize, evictionDb, msh)
 	if err != nil {
@@ -99,12 +102,12 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, tempCache, err := tr.root.insert(node, tr.db, tr.marshalizer)
+		_, newRoot, oldHashes, err := tr.root.insert(node, tr.db, tr.marshalizer)
 		if err != nil {
 			return err
 		}
 		tr.root = newRoot
-		tr.oldHashes = append(tr.oldHashes, tempCache...)
+		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 	} else {
 		if tr.root == nil {
 			return nil
@@ -114,13 +117,14 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, tempCache, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
+		_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
 		if err != nil {
 			return err
 		}
 		tr.root = newRoot
-		tr.oldHashes = append(tr.oldHashes, tempCache...)
+		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 	}
+
 	return nil
 }
 
@@ -129,7 +133,6 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	tempCache := make([][]byte, 0)
 	hexKey := keyBytesToHex(key)
 	if tr.root == nil {
 		return nil
@@ -139,12 +142,13 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, tempCache, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
+	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
 	if err != nil {
 		return err
 	}
 	tr.root = newRoot
-	tr.oldHashes = append(tr.oldHashes, tempCache...)
+	tr.oldHashes = append(tr.oldHashes, oldHashes...)
+
 	return nil
 }
 
@@ -265,7 +269,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
-	if len(tr.oldHashes) > 0 {
+	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
 		err := tr.dbEvictionWaitingList.Put(tr.oldRoot, tr.oldHashes)
 		if err != nil {
 			return err

@@ -427,6 +427,42 @@ func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
 	assert.Equal(t, originalRoot, clonedTrie)
 }
 
+func TestPatriciaMerkleTrie_Rollback(t *testing.T) {
+	t.Parallel()
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	_ = tr.Commit()
+
+	err := tr.Rollback(rootHash)
+	assert.Nil(t, err)
+
+	err = tr.Prune(rootHash)
+	assert.NotNil(t, err)
+}
+
+func TestPatriciaMerkleTrie_Prune(t *testing.T) {
+	t.Parallel()
+	db, marsh, hashser, evictionDb := getDefaultTrieParameters()
+	tr, _ := trie.NewTrie(db, marsh, hashser, evictionDb)
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	_ = tr.Commit()
+
+	_ = tr.Prune(rootHash)
+	val, err := db.Get(rootHash)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}
