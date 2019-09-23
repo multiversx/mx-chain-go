@@ -67,6 +67,7 @@ type InterceptedData interface {
 	CheckValidity() error
 	IsForMyShard() bool
 	IsInterfaceNil() bool
+	Hash() []byte
 }
 
 // InterceptorProcessor further validates and saves received data

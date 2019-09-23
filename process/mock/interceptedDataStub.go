@@ -3,6 +3,11 @@ package mock
 type InterceptedDataStub struct {
 	CheckValidityCalled func() error
 	IsForMyShardCalled  func() bool
+	HashCalled          func() []byte
+}
+
+func (ids *InterceptedDataStub) Hash() []byte {
+	return ids.HashCalled()
 }
 
 func (ids *InterceptedDataStub) CheckValidity() error {

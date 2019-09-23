@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -16,6 +17,9 @@ type InterceptedDataType string
 
 // InterceptedTx is the type for intercepted transaction
 const InterceptedTx InterceptedDataType = "intercepted transaction"
+
+// InterceptedUnsignedTx is the type for intercepted unsigned transaction (smart contract results)
+const InterceptedUnsignedTx InterceptedDataType = "intercepted unsigned transaction"
 
 type interceptedDataFactory struct {
 	marshalizer         marshal.Marshalizer
@@ -73,6 +77,8 @@ func (idf *interceptedDataFactory) Create(buff []byte) (process.InterceptedData,
 	switch idf.interceptedDataType {
 	case InterceptedTx:
 		return idf.createInterceptedTx(buff)
+	case InterceptedUnsignedTx:
+		return idf.createInterceptedUnsignedTx(buff)
 
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
@@ -86,6 +92,16 @@ func (idf *interceptedDataFactory) createInterceptedTx(buff []byte) (process.Int
 		idf.hasher,
 		idf.keyGen,
 		idf.singleSigner,
+		idf.addrConverter,
+		idf.shardCoordinator,
+	)
+}
+
+func (idf *interceptedDataFactory) createInterceptedUnsignedTx(buff []byte) (process.InterceptedData, error) {
+	return unsigned.NewInterceptedUnsignedTransaction(
+		buff,
+		idf.marshalizer,
+		idf.hasher,
 		idf.addrConverter,
 		idf.shardCoordinator,
 	)
