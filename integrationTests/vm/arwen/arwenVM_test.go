@@ -177,9 +177,10 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	bob := []byte("12345678901234567890123456789222")
 	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
 
+	initAlice := big.NewInt(100000)
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
-		Value:     big.NewInt(100000),
+		Value:     initAlice,
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  0,
@@ -200,15 +201,17 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	aliceNonce++
 
 	start = time.Now()
-	for i := 0; i < 10000; i++ {
+	nrTxs := 10000
+
+	for i := 0; i < nrTxs; i++ {
 		tx = &transaction.Transaction{
 			Nonce:     aliceNonce,
-			Value:     big.NewInt(5),
+			Value:     big.NewInt(0),
 			RcvAddr:   scAddress,
 			SndAddr:   alice,
 			GasPrice:  0,
 			GasLimit:  5000,
-			Data:      "transfer@" + string(bob) + "@5",
+			Data:      "transfer@" + hex.EncodeToString(bob) + "@" + transferOnCalls.String(),
 			Signature: nil,
 			Challenge: nil,
 		}
@@ -223,5 +226,10 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	assert.Nil(t, err)
 
 	elapsedTime = time.Since(start)
-	fmt.Printf("time elapsed to process 10000 ERC20 transfers %s \n", elapsedTime.String())
+	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", nrTxs, elapsedTime.String())
+
+	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(nrTxs)*transferOnCalls.Int64()))
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "do_balance", alice).Uint64())
+	finalBob := big.NewInt(int64(nrTxs) * transferOnCalls.Int64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "do_balance", bob).Uint64())
 }

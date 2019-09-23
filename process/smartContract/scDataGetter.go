@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
@@ -15,22 +16,31 @@ var maxGasValue = big.NewInt(math.MaxInt64)
 
 // scDataGetter can execute Get functions over SC to fetch stored values
 type scDataGetter struct {
-	vm       vmcommon.VMExecutionHandler
-	mutRunSc sync.Mutex
+	vmContainer process.VirtualMachinesContainer
+	mutRunSc    sync.Mutex
 }
 
 // NewSCDataGetter returns a new instance of scDataGetter
 func NewSCDataGetter(
-	vm vmcommon.VMExecutionHandler,
+	vmContainer process.VirtualMachinesContainer,
 ) (*scDataGetter, error) {
 
-	if vm == nil {
+	if vmContainer == nil || vmContainer.IsInterfaceNil() {
 		return nil, process.ErrNoVM
 	}
 
 	return &scDataGetter{
-		vm: vm,
+		vmContainer: vmContainer,
 	}, nil
+}
+
+func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecutionHandler, error) {
+	vmType := scAddress[hooks.NumInitCharactersForScAddress-hooks.VMTypeLen : hooks.NumInitCharactersForScAddress]
+	vm, err := scdg.vmContainer.Get(vmType)
+	if err != nil {
+		return nil, err
+	}
+	return vm, nil
 }
 
 // Get returns the value as byte slice of the invoked func
@@ -45,8 +55,13 @@ func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte)
 	scdg.mutRunSc.Lock()
 	defer scdg.mutRunSc.Unlock()
 
+	vm, err := scdg.getVMFromAddress(scAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	vmInput := scdg.createVMCallInput(scAddress, funcName, args...)
-	vmOutput, err := scdg.vm.RunSmartContractCall(vmInput)
+	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
 	}

@@ -185,7 +185,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	// VM is formally verified and the output is correct
 	crossTxs, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err

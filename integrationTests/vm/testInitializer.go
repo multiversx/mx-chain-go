@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -22,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -114,21 +112,18 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 	return vm
 }
 
-func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
+func CreateVMsContainerAndBlockchainHook(accnts state.AccountsAdapter) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
-	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
-	//Uncomment this to enable trace printing of the vm
-	//vm.SetTracePretty()
 
-	return vm, blockChainHook
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv)
+	vmContainer, _ := vmFactory.Create()
+
+	return vmContainer, blockChainHook
 }
 
 func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
 ) (process.TransactionProcessor, vmcommon.BlockchainHook) {
-
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 
 	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv)
 	vmContainer, _ := vmFactory.Create()
@@ -140,14 +135,14 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		testHasher,
 		testMarshalizer,
 		accnts,
-		blockChainHook,
+		vmFactory.VMAccountsDB(),
 		addrConv,
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 	txProcessor, _ := transaction.NewTxProcessor(accnts, testHasher, addrConv, testMarshalizer, oneShardCoordinator, scProcessor)
 
-	return txProcessor, blockChainHook
+	return txProcessor, vmFactory.VMAccountsDB()
 }
 
 func TestDeployedContractContents(
@@ -288,4 +283,12 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 	shardAccnt, _ := accnt.(*state.Account)
 
 	return shardAccnt.Balance
+}
+
+func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
+	vmContainer, _ := CreateVMsContainerAndBlockchainHook(accnts)
+	scgd, _ := smartContract.NewSCDataGetter(vmContainer)
+
+	returnedVals, _ := scgd.Get(scAddressBytes, funcName, args...)
+	return big.NewInt(0).SetBytes(returnedVals)
 }
