@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -32,6 +33,21 @@ type SmartContractResultProcessor interface {
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
 	IsInterfaceNil() bool
+}
+
+// TxValidator can determine if a provided transaction handler is valid or not from the process point of view
+type TxValidator interface {
+	IsTxValidForProcessing(txHandler TxValidatorHandler) bool
+	NumRejectedTxs() uint64
+	IsInterfaceNil() bool
+}
+
+// TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
+type TxValidatorHandler interface {
+	SenderShardId() uint32
+	Nonce() uint64
+	SenderAddress() state.AddressContainer
+	TotalValue() *big.Int
 }
 
 // HeaderValidator can determine if a provided header handler is valid or not from the process point of view
@@ -190,13 +206,14 @@ type Bootstrapper interface {
 	ShouldSync() bool
 	StopSync()
 	StartSync()
+	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error
+	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
 	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() (forkDetected bool, nonce uint64, hash []byte)
 	GetHighestFinalBlockNonce() uint64

@@ -27,6 +27,7 @@ type InterceptedTransaction struct {
 	rcvShard     uint32
 	sndShard     uint32
 	isForMyShard bool
+	sndAddr      state.AddressContainer
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -104,7 +105,8 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 	inTx.hash = inTx.hasher.Compute(string(txBuff))
 
-	sndAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
+	var err error
+	inTx.sndAddr, err = inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
 	if err != nil {
 		return process.ErrInvalidSndAddr
 	}
@@ -114,7 +116,7 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 		return process.ErrInvalidRcvAddr
 	}
 
-	inTx.sndShard = inTx.coordinator.ComputeId(sndAddr)
+	inTx.sndShard = inTx.coordinator.ComputeId(inTx.sndAddr)
 	emptyAddr := make([]byte, len(rcvAddr.Bytes()))
 	inTx.rcvShard = inTx.coordinator.ComputeId(rcvAddr)
 	if bytes.Equal(rcvAddr.Bytes(), emptyAddr) {
@@ -171,14 +173,9 @@ func (inTx *InterceptedTransaction) verifySig() error {
 	return nil
 }
 
-// RcvShard returns the receiver shard
-func (inTx *InterceptedTransaction) RcvShard() uint32 {
+// ReceiverShardId returns the receiver shard id
+func (inTx *InterceptedTransaction) ReceiverShardId() uint32 {
 	return inTx.rcvShard
-}
-
-// SndShard returns the sender shard
-func (inTx *InterceptedTransaction) SndShard() uint32 {
-	return inTx.sndShard
 }
 
 // IsForMyShard returns true if this transaction is meant to be processed by the node from this shard
@@ -194,6 +191,34 @@ func (inTx *InterceptedTransaction) Transaction() data.TransactionHandler {
 // Hash gets the hash of this transaction
 func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
+}
+
+// SenderShardId returns the transaction sender shard id
+func (inTx *InterceptedTransaction) SenderShardId() uint32 {
+	return inTx.sndShard
+}
+
+// Nonce returns the transaction nonce
+func (inTx *InterceptedTransaction) Nonce() uint64 {
+	return inTx.tx.Nonce
+}
+
+// SenderAddress returns the transaction sender address
+func (inTx *InterceptedTransaction) SenderAddress() state.AddressContainer {
+	return inTx.sndAddr
+}
+
+// TotalValue returns the maximum cost of transaction
+// totalValue = txValue + gasPrice*gasLimit
+func (inTx *InterceptedTransaction) TotalValue() *big.Int {
+	result := big.NewInt(0).Set(inTx.tx.Value)
+	gasPrice := big.NewInt(int64(inTx.tx.GasPrice))
+	gasLimit := big.NewInt(int64(inTx.tx.GasLimit))
+	mulTxCost := big.NewInt(0)
+	mulTxCost = mulTxCost.Mul(gasPrice, gasLimit)
+	result = result.Add(result, mulTxCost)
+
+	return result
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

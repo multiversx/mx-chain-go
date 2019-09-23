@@ -179,7 +179,7 @@ func TestInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T) {
 
 //------- IsInterfaceNil
 
-func TestIsInterfaceNil_NotInstantiatedShouldRetTrue(t *testing.T) {
+func TestInterceptedDataFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	idf, _ := factory.NewInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)

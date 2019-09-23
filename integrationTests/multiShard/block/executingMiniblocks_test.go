@@ -60,7 +60,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	receiversPrivateKeys := make(map[uint32][]crypto.PrivateKey)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
 		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
-
 		//receivers in same shard with the sender
 		sk, _, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 		receiversPrivateKeys[senderShard] = append(receiversPrivateKeys[senderShard], sk)
@@ -71,13 +70,13 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		}
 	}
 
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+
 	fmt.Println("Generating transactions...")
 	integrationTests.GenerateAndDisseminateTxs(proposerNode, sendersPrivateKeys, receiversPrivateKeys, valToTransferPerTx)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
-
-	fmt.Println("Minting sender addresses...")
-	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
 
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++

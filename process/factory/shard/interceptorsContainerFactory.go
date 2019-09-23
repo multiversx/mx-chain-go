@@ -22,6 +22,7 @@ import (
 const numGoRoutinesInTxInterceptors = 100
 
 type interceptorsContainerFactory struct {
+	accounts              state.AccountsAdapter
 	shardCoordinator      sharding.Coordinator
 	messenger             process.TopicHandler
 	store                 dataRetriever.StorageService
@@ -39,6 +40,7 @@ type interceptorsContainerFactory struct {
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
+	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
@@ -51,7 +53,9 @@ func NewInterceptorsContainerFactory(
 	addrConverter state.AddressConverter,
 	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
-
+	if accounts == nil || accounts.IsInterfaceNil() {
+		return nil, process.ErrNilAccountsAdapter
+	}
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -96,6 +100,7 @@ func NewInterceptorsContainerFactory(
 	}
 
 	icf := &interceptorsContainerFactory{
+		accounts:              accounts,
 		shardCoordinator:      shardCoordinator,
 		messenger:             messenger,
 		store:                 store,
@@ -236,8 +241,14 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
+	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: icf.dataPool.Transactions(),
+		TxValidator:      txValidator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -248,9 +259,6 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedTx,
 	)
-	if err != nil {
-		return nil, err
-	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		icf.marshalizer,

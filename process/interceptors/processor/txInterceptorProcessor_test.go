@@ -14,6 +14,7 @@ import (
 func createDefaultArgument() *processor.ArgTxInterceptorProcessor {
 	return &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: &mock.ShardedDataStub{},
+		TxValidator:      &mock.TxValidatorStub{},
 	}
 }
 
@@ -29,10 +30,23 @@ func TestNewTxInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 func TestNewTxInterceptorProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txip, err := processor.NewTxInterceptorProcessor(&processor.ArgTxInterceptorProcessor{})
+	arg := createDefaultArgument()
+	arg.ShardedDataCache = nil
+	txip, err := processor.NewTxInterceptorProcessor(arg)
 
 	assert.Nil(t, txip)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
+}
+
+func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArgument()
+	arg.TxValidator = nil
+	txip, err := processor.NewTxInterceptorProcessor(arg)
+
+	assert.Nil(t, txip)
+	assert.Equal(t, process.ErrNilTxValidator, err)
 }
 
 func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
@@ -46,12 +60,52 @@ func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
 
 //------- Validate
 
-func TestTxInterceptorProcessor_ValidateShouldRetTrue(t *testing.T) {
+func TestTxInterceptorProcessor_ValidateNilTxShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txip, _ := processor.NewTxInterceptorProcessor(createDefaultArgument())
 
 	err := txip.Validate(nil)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArgument()
+	arg.TxValidator = &mock.TxValidatorStub{
+		IsTxValidForProcessingCalled: func(txValidatorHandler process.TxValidatorHandler) bool {
+			return false
+		},
+	}
+	txip, _ := processor.NewTxInterceptorProcessor(arg)
+
+	txInterceptedData := &struct {
+		mock.InterceptedDataStub
+		mock.InterceptedTxHandlerStub
+	}{}
+	err := txip.Validate(txInterceptedData)
+
+	assert.Equal(t, process.ErrTxNotValid, err)
+}
+
+func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArgument()
+	arg.TxValidator = &mock.TxValidatorStub{
+		IsTxValidForProcessingCalled: func(txValidatorHandler process.TxValidatorHandler) bool {
+			return true
+		},
+	}
+	txip, _ := processor.NewTxInterceptorProcessor(arg)
+
+	txInterceptedData := &struct {
+		mock.InterceptedDataStub
+		mock.InterceptedTxHandlerStub
+	}{}
+	err := txip.Validate(txInterceptedData)
 
 	assert.Nil(t, err)
 }
@@ -78,10 +132,10 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	}{
 		InterceptedDataStub: mock.InterceptedDataStub{},
 		InterceptedTxHandlerStub: mock.InterceptedTxHandlerStub{
-			SndShardCalled: func() uint32 {
+			SenderShardIdCalled: func() uint32 {
 				return 0
 			},
-			RcvShardCalled: func() uint32 {
+			ReceiverShardIdCalled: func() uint32 {
 				return 0
 			},
 			HashCalled: func() []byte {
@@ -108,11 +162,10 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 //------- IsInterfaceNil
 
-func TestIsInterfaceNil_NotInstantiatedShouldRetTrue(t *testing.T) {
+func TestTxInterceptorProcessor_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	txip, _ := processor.NewTxInterceptorProcessor(createDefaultArgument())
-	txip = nil
+	var txip *processor.TxInterceptorProcessor
 
 	assert.True(t, check.IfNil(txip))
 }
