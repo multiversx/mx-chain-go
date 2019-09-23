@@ -38,7 +38,7 @@ func NewTxsPoolsCleaner(
 		return nil, process.ErrNilDataPoolHolder
 	}
 	transactionPool := dataPool.Transactions()
-	if transactionPool == nil {
+	if transactionPool == nil || transactionPool.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionPool
 	}
 	if addrConverter == nil || addrConverter.IsInterfaceNil() {
