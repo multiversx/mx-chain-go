@@ -59,15 +59,15 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 }
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./fib_arwen.wasm", 100, 32)
+	runWASMVMBenchmark(b, "./fib_arwen.wasm", b.N, 32)
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./cpucalculate_arwen.wasm", 100, 8000)
+	runWASMVMBenchmark(b, "./cpucalculate_arwen.wasm", b.N, 8000)
 }
 
 func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./stringconcat_arwen.wasm", 100, 10000)
+	runWASMVMBenchmark(b, "./stringconcat_arwen.wasm", b.N, 10000)
 }
 
 func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue uint64) {

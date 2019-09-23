@@ -35,7 +35,7 @@ func NewSCDataGetter(
 }
 
 func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecutionHandler, error) {
-	vmType := scAddress[hooks.NumInitCharactersForScAddress-hooks.VMTypeLen : hooks.NumInitCharactersForScAddress]
+	vmType := hooks.VMTypeFromAddressBytes(scAddress)
 	vm, err := scdg.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
