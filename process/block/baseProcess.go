@@ -255,12 +255,12 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 	return nil
 }
 
-func (bp *baseProcessor) removeNotarizedHdrsBehindFinal(hdrsToAttestFinality uint32) {
+func (bp *baseProcessor) removeNotarizedHdrsBehindPreviousFinal(hdrsToPreservedBehindFinal uint32) {
 	bp.mutNotarizedHdrs.Lock()
 	for shardId := range bp.notarizedHdrs {
 		notarizedHdrsCount := uint32(len(bp.notarizedHdrs[shardId]))
-		if notarizedHdrsCount > hdrsToAttestFinality {
-			finalIndex := notarizedHdrsCount - 1 - hdrsToAttestFinality
+		if notarizedHdrsCount > hdrsToPreservedBehindFinal {
+			finalIndex := notarizedHdrsCount - 1 - hdrsToPreservedBehindFinal
 			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][finalIndex:]
 		}
 	}
@@ -271,7 +271,7 @@ func (bp *baseProcessor) removeLastNotarized() {
 	bp.mutNotarizedHdrs.Lock()
 	for shardId := range bp.notarizedHdrs {
 		notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
-		if notarizedHdrsCount > 0 {
+		if notarizedHdrsCount > 1 {
 			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][:notarizedHdrsCount-1]
 		}
 	}

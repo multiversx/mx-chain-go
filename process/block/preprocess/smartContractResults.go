@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -157,9 +158,21 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 			}
 
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
+
+			err = scr.storage.GetStorer(dataRetriever.UnsignedTransactionUnit).Remove([]byte(txHash))
+			if err != nil {
+				return scrRestored, miniBlockHashes, err
+			}
 		}
 
-		restoredHash, err := scr.restoreMiniBlock(miniBlock, miniBlockPool)
+		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
+		if err != nil {
+			return scrRestored, miniBlockHashes, err
+		}
+
+		restoredHash := scr.restoreMiniBlock(miniBlock, miniBlockHash, miniBlockPool)
+
+		err = scr.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
 		if err != nil {
 			return scrRestored, miniBlockHashes, err
 		}

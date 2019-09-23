@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -168,7 +169,14 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			}
 		}
 
-		restoredHash, err := txs.restoreMiniBlock(miniBlock, miniBlockPool)
+		miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+		if err != nil {
+			return txsRestored, miniBlockHashes, err
+		}
+
+		restoredHash := txs.restoreMiniBlock(miniBlock, miniBlockHash, miniBlockPool)
+
+		err = txs.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
 		if err != nil {
 			return txsRestored, miniBlockHashes, err
 		}
