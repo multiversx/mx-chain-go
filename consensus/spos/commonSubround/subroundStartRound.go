@@ -211,7 +211,7 @@ func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		return
 	}
 
-	validatorsPubKeys := sr.NodesCoordinator().GetValidatorsPubKeys()
+	validatorsPubKeys := sr.NodesCoordinator().GetAllValidatorsPublicKeys()
 	shardId := sr.ShardCoordinator().SelfId()
 	signersIndexes := make([]uint64, 0)
 

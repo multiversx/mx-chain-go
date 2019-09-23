@@ -670,6 +670,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
+	}
+
 	vmAccountsDB, err := hooks.NewVMAccountsDB(stateComponents.AccountsAdapter, stateComponents.AddressConverter)
 	if err != nil {
 		return err
@@ -739,6 +743,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
+	if elasticIndexer == nil || elasticIndexer.IsInterfaceNil() {
+		return
+	}
+
+	validatorsPubKeys := coordinator.GetAllValidatorsPublicKeys()
+
+	if validatorsPubKeys != nil {
+		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
+	}
 }
 
 func initMetrics(

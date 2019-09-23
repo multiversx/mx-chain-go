@@ -276,6 +276,7 @@ func TestElasticIndexer_getSerializedElasticBlockAndHeaderHash(t *testing.T) {
 
 	elasticBlock := indexer.Block{
 		Nonce:         header.Nonce,
+		Round:         header.Round,
 		ShardID:       header.ShardId,
 		Hash:          hex.EncodeToString(headerHash),
 		Proposer:      hex.EncodeToString([]byte("mock proposer")),

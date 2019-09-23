@@ -20,6 +20,14 @@ func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	panic("implement me")
 }
 
+func (im *IndexerMock) SaveRoundInfo(round int64, signersIndexes []uint64) {
+	panic("implement me")
+}
+
+func (im *IndexerMock) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
+	panic("implement me")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (im *IndexerMock) IsInterfaceNil() bool {
 	if im == nil {

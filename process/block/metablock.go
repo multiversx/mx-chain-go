@@ -132,9 +132,6 @@ func NewMetaProcessor(
 
 	mp.shardsHeadersNonce = &sync.Map{}
 
-	// TODO move this call from here in another place it's not ok to call this on constructor method
-	mp.indexValidatorsListIfNeeded()
-
 	return &mp, nil
 }
 
@@ -268,18 +265,6 @@ func (mp *metaProcessor) indexBlock(metaBlock *block.MetaBlock, headerPool map[s
 	}
 
 	//TODO: maybe index metablocks also?
-}
-
-func (mp *metaProcessor) indexValidatorsListIfNeeded() {
-	if mp.core == nil || mp.core.Indexer() == nil {
-		return
-	}
-
-	validatorsPubKeys := mp.nodesCoordinator.GetValidatorsPubKeys()
-
-	if validatorsPubKeys != nil {
-		go mp.core.Indexer().SaveValidatorsPubKeys(validatorsPubKeys)
-	}
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
