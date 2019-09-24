@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -11,19 +12,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
+	interceptors2 "github.com/ElrondNetwork/elrond-go/process/interceptors"
+	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const numGoRoutinesInMetaInterceptors = 100
+
 type interceptorsContainerFactory struct {
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	store               dataRetriever.StorageService
-	dataPool            dataRetriever.MetaPoolsHolder
-	shardCoordinator    sharding.Coordinator
-	messenger           process.TopicHandler
-	multiSigner         crypto.MultiSigner
-	chronologyValidator process.ChronologyValidator
-	tpsBenchmark        *statistics.TpsBenchmark
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	store                 dataRetriever.StorageService
+	dataPool              dataRetriever.MetaPoolsHolder
+	shardCoordinator      sharding.Coordinator
+	messenger             process.TopicHandler
+	multiSigner           crypto.MultiSigner
+	chronologyValidator   process.ChronologyValidator
+	tpsBenchmark          *statistics.TpsBenchmark
+	argInterceptorFactory *interceptorFactory.ArgMetaInterceptedDataFactory
+	globalThrottler       process.InterceptorThrottler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -63,16 +71,33 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilChronologyValidator
 	}
 
-	return &interceptorsContainerFactory{
-		shardCoordinator:    shardCoordinator,
-		messenger:           messenger,
-		store:               store,
-		marshalizer:         marshalizer,
-		hasher:              hasher,
-		multiSigner:         multiSigner,
-		dataPool:            dataPool,
-		chronologyValidator: chronologyValidator,
-	}, nil
+	argInterceptorFactory := &interceptorFactory.ArgMetaInterceptedDataFactory{
+		Marshalizer:         marshalizer,
+		Hasher:              hasher,
+		ShardCoordinator:    shardCoordinator,
+		ChronologyValidator: chronologyValidator,
+		MultiSigVerifier:    multiSigner,
+	}
+
+	icf := &interceptorsContainerFactory{
+		shardCoordinator:      shardCoordinator,
+		messenger:             messenger,
+		store:                 store,
+		marshalizer:           marshalizer,
+		hasher:                hasher,
+		multiSigner:           multiSigner,
+		dataPool:              dataPool,
+		chronologyValidator:   chronologyValidator,
+		argInterceptorFactory: argInterceptorFactory,
+	}
+
+	var err error
+	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutinesInMetaInterceptors)
+	if err != nil {
+		return nil, err
+	}
+
+	return icf, nil
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
@@ -179,15 +204,26 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 		return nil, err
 	}
 
-	interceptor, err := interceptors.NewHeaderInterceptor(
-		icf.marshalizer,
-		icf.dataPool.ShardHeaders(),
-		icf.dataPool.HeadersNonces(),
-		hdrValidator,
-		icf.multiSigner,
-		icf.hasher,
-		icf.shardCoordinator,
-		icf.chronologyValidator,
+	hdrFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
+		icf.argInterceptorFactory,
+		interceptorFactory.InterceptedShardHeader,
+	)
+
+	argProcessor := &processor.ArgHdrInterceptorProcessor{
+		Headers:       icf.dataPool.ShardHeaders(),
+		HeadersNonces: icf.dataPool.HeadersNonces(),
+		HdrValidator:  hdrValidator,
+	}
+	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO rename interceptors2 when process/block/interceptors are no longer required
+	interceptor, err := interceptors2.NewSingleDataInterceptor(
+		hdrFactory,
+		hdrProcessor,
+		icf.globalThrottler,
 	)
 	if err != nil {
 		return nil, err

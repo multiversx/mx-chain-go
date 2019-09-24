@@ -79,9 +79,6 @@ var ErrNilSignature = errors.New("nil signature")
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
 
-// ErrNilMiniBlockHeaders signals that an operation has been attempted with a nil mini-block
-var ErrNilMiniBlockHeaders = errors.New("nil mini block headers")
-
 // ErrNilTxHashes signals that an operation has been atempted with nil transaction hashes
 var ErrNilTxHashes = errors.New("nil transaction hashes")
 
@@ -180,9 +177,6 @@ var ErrNilSingleSigner = errors.New("nil single signer")
 
 // ErrNilMultiSigVerifier signals that a nil multi-signature verifier is used
 var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
-
-// ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
-var ErrInvalidBlockBodyType = errors.New("invalid block body type")
 
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
@@ -435,6 +429,9 @@ var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wr
 
 // ErrNilTxValidator signals that a nil tx validator has been provided
 var ErrNilTxValidator = errors.New("nil transaction validator")
+
+// ErrNilHdrValidator signals that a nil header validator has been provided
+var ErrNilHdrValidator = errors.New("nil header validator")
 
 // ErrTxNotValid signals that a tx is not valid
 var ErrTxNotValid = errors.New("transaction is not valid")

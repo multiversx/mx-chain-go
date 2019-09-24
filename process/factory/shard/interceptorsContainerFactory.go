@@ -34,7 +34,7 @@ type interceptorsContainerFactory struct {
 	dataPool              dataRetriever.PoolsHolder
 	addrConverter         state.AddressConverter
 	chronologyValidator   process.ChronologyValidator
-	argInterceptorFactory *interceptorFactory.ArgInterceptedDataFactory
+	argInterceptorFactory *interceptorFactory.ArgShardInterceptedDataFactory
 	globalTxThrottler     process.InterceptorThrottler
 }
 
@@ -90,13 +90,17 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilChronologyValidator
 	}
 
-	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Marshalizer:      marshalizer,
-		Hasher:           hasher,
-		KeyGen:           keyGen,
-		Signer:           singleSigner,
-		AddrConv:         addrConverter,
-		ShardCoordinator: shardCoordinator,
+	argInterceptorFactory := &interceptorFactory.ArgShardInterceptedDataFactory{
+		ArgMetaInterceptedDataFactory: &interceptorFactory.ArgMetaInterceptedDataFactory{
+			Marshalizer:         marshalizer,
+			Hasher:              hasher,
+			ShardCoordinator:    shardCoordinator,
+			MultiSigVerifier:    multiSigner,
+			ChronologyValidator: chronologyValidator,
+		},
+		KeyGen:   keyGen,
+		Signer:   singleSigner,
+		AddrConv: addrConverter,
 	}
 
 	icf := &interceptorsContainerFactory{
@@ -255,7 +259,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedDataFactory(
+	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedTx,
 	)
@@ -337,21 +341,32 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		return nil, nil, err
 	}
 
+	hdrFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
+		icf.argInterceptorFactory,
+		interceptorFactory.InterceptedShardHeader,
+	)
+
+	argProcessor := &processor.ArgHdrInterceptorProcessor{
+		Headers:       icf.dataPool.Headers(),
+		HeadersNonces: icf.dataPool.HeadersNonces(),
+		HdrValidator:  hdrValidator,
+	}
+	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	//only one intrashard header topic
-	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	interceptor, err := blockInterceptors.NewHeaderInterceptor(
-		icf.marshalizer,
-		icf.dataPool.Headers(),
-		icf.dataPool.HeadersNonces(),
-		hdrValidator,
-		icf.multiSigner,
-		icf.hasher,
-		icf.shardCoordinator,
-		icf.chronologyValidator,
+	interceptor, err := interceptors.NewSingleDataInterceptor(
+		hdrFactory,
+		hdrProcessor,
+		icf.globalTxThrottler,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err

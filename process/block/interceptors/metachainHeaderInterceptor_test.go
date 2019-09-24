@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -15,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+var durTimeout = time.Second
 
 //------- NewMetachainHeaderInterceptor
 
@@ -297,8 +298,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 	metachainHeaders := &mock.CacherStub{}
 	metachainHeadersNonces := &mock.Uint64SyncMapCacherStub{}
 	headerValidator := &mock.HeaderValidatorStub{
-		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
-			return true
+		HeaderValidForProcessingCalled: func(headerHandler process.HdrValidatorHandler) error {
+			return nil
 		},
 	}
 	multisigner := mock.NewMultiSigner()
@@ -388,8 +389,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd
 	metachainHeaders := &mock.CacherStub{}
 	metachainHeadersNonces := &mock.Uint64SyncMapCacherStub{}
 	headerValidator := &mock.HeaderValidatorStub{
-		IsHeaderValidForProcessingCalled: func(headerHandler data.HeaderHandler) bool {
-			return false
+		HeaderValidForProcessingCalled: func(headerHandler process.HdrValidatorHandler) error {
+			return errors.New("")
 		},
 	}
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(

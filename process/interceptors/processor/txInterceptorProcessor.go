@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// TxInterceptorProcessor is the interceptor used for intercepting transactions
+// TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
 	shardedDataCache dataRetriever.ShardedDataCacherNotifier

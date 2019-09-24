@@ -5,16 +5,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ArgInterceptedDataFactory holds all dependencies required by the intercepted data factory in order to create
+// ArgShardInterceptedDataFactory holds all dependencies required by the shard intercepted data factory in order to create
 // new instances
-type ArgInterceptedDataFactory struct {
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	KeyGen           crypto.KeyGenerator
-	Signer           crypto.SingleSigner
-	AddrConv         state.AddressConverter
-	ShardCoordinator sharding.Coordinator
+type ArgShardInterceptedDataFactory struct {
+	*ArgMetaInterceptedDataFactory
+	KeyGen   crypto.KeyGenerator
+	Signer   crypto.SingleSigner
+	AddrConv state.AddressConverter
+}
+
+// ArgMetaInterceptedDataFactory holds all dependencies required by the meta intercepted data factory in order to create
+// new instances
+type ArgMetaInterceptedDataFactory struct {
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	ShardCoordinator    sharding.Coordinator
+	MultiSigVerifier    crypto.MultiSigVerifier
+	ChronologyValidator process.ChronologyValidator
 }

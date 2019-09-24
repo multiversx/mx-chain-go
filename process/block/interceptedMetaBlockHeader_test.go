@@ -34,7 +34,7 @@ func TestInterceptedMetaHeader_GetHeaderShouldReturnHeader(t *testing.T) {
 
 	hdr := createTestInterceptedMetaHeader()
 
-	assert.True(t, hdr.GetMetaHeader() == hdr.MetaBlock)
+	assert.True(t, hdr.HeaderHandler() == hdr.MetaBlock)
 }
 
 func TestInterceptedMetaHeader_GetterSetterHash(t *testing.T) {

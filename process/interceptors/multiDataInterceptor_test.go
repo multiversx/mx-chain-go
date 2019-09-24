@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -79,7 +80,7 @@ func TestNewMultiDataInterceptor(t *testing.T) {
 		&mock.InterceptorThrottlerStub{},
 	)
 
-	assert.NotNil(t, mdi)
+	assert.False(t, check.IfNil(mdi))
 	assert.Nil(t, err)
 }
 
@@ -386,4 +387,14 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	assert.Equal(t, int32(2), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+}
+
+//------- IsInterfaceNil
+
+func TestMultiDataInterceptor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var mdi *interceptors.MultiDataInterceptor
+
+	assert.True(t, check.IfNil(mdi))
 }

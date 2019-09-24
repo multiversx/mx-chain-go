@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -264,4 +265,14 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+}
+
+//------- IsInterfaceNil
+
+func TestSingleDataInterceptor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var sdi *interceptors.SingleDataInterceptor
+
+	assert.True(t, check.IfNil(sdi))
 }
