@@ -7,10 +7,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 h1:HD8gA2tkBy
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/ElrondNetwork/arwen-wasm-vm v0.0.5 h1:614hDrHOY5uE8BKCWO7N+UhBIFIsV+1HkumPo6SbedI=
-github.com/ElrondNetwork/arwen-wasm-vm v0.0.5/go.mod h1:isKhYkFpi9BToKlcBhMbsG+gaZdVZ+nLrcH5NzlgsQ0=
-github.com/ElrondNetwork/arwen-wasm-vm v0.0.6 h1:5IocQGCW5sFiKaz0jExS6SEcx6Rdq0IMsSAulm/k/Xs=
-github.com/ElrondNetwork/arwen-wasm-vm v0.0.6/go.mod h1:uGYpcjg8Oa3tkdS7Yc9sHUgEIPSnmHoDFdodgiZ0iyU=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.7 h1:azT+0Bv5RKiXpPfeuxx4YExCy6u2nzF2S4/sXLLxarU=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.7/go.mod h1:uGYpcjg8Oa3tkdS7Yc9sHUgEIPSnmHoDFdodgiZ0iyU=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
 github.com/ElrondNetwork/elrond-vm v0.0.19 h1:9E8spYj9K1DHdF0Osgj1dZUJfKhfBiLBx1xWWfE/HAM=
@@ -20,6 +18,7 @@ github.com/ElrondNetwork/elrond-vm-common v0.0.7/go.mod h1:VqCCN0cX0e4D/KDc7MGNV
 github.com/ElrondNetwork/elrond-vm-common v0.0.8 h1:YyJ55gYeCL3e2v+06ZLJrwzkOXPvuSvLm7pBL1qD0Rk=
 github.com/ElrondNetwork/elrond-vm-common v0.0.8/go.mod h1:VqCCN0cX0e4D/KDc7MGNV9ElrOsfnjuJnGvcODVjzbk=
 github.com/ElrondNetwork/elrond-vm-util v0.0.3/go.mod h1:/gz1QHx7ndQnjQDAEEhpiiaezbyl/woTI6apOsWrN10=
+github.com/ElrondNetwork/go-ext-wasm v0.0.0-20190923181727-2aed5e4238f5 h1:XUFbny/dhk55M2RCLTrwCFjcUUwufPvrejxN3The5Sg=
 github.com/ElrondNetwork/go-ext-wasm v0.0.0-20190923181727-2aed5e4238f5/go.mod h1:+OQYLOaYAxbnkA5WWbiya03JsQng7wg8jKwlJNyQb68=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/StackExchange/wmi v0.0.0-20170410192909-ea383cf3ba6e h1:IHXQQIpxASe3m0Jtcd3XongL+lxHNd5nUmvHxJARUmg=
@@ -443,10 +442,6 @@ github.com/ugorji/go/codec v0.0.0-20181209151446-772ced7fd4c2 h1:EICbibRW4JNKMcY
 github.com/ugorji/go/codec v0.0.0-20181209151446-772ced7fd4c2/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/urfave/cli v1.20.0 h1:fDqGv3UG/4jbVl/QkFwEdddtEDjh/5Ov6X+0B/3bPaw=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
-github.com/wasmerio/go-ext-wasm v0.0.0-20190716093451-605a12aad995 h1:hH06i5qSlTVs6oVdC3oBUFa5PsNnZM1VkDAz0xvuZxo=
-github.com/wasmerio/go-ext-wasm v0.0.0-20190716093451-605a12aad995/go.mod h1:B0C/D0a2vNos7Y3IxQhMpGOY9PCuCKfLvfry33a1cKA=
-github.com/wasmerio/go-ext-wasm v0.0.0-20190918183203-113dbac8ec1a h1:zorRzeHd4hUpQtn/NTQ9UoOgR4W5PMaMU5F0w40MoVc=
-github.com/wasmerio/go-ext-wasm v0.0.0-20190918183203-113dbac8ec1a/go.mod h1:B0C/D0a2vNos7Y3IxQhMpGOY9PCuCKfLvfry33a1cKA=
 github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc h1:BCPnHtcboadS0DvysUuJXZ4lWVv5Bh5i7+tbIyi+ck4=
 github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc/go.mod h1:r45hJU7yEoA81k6MWNhpMj/kms0n14dkzkxYHoB96UM=
 github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 h1:EKhdznlJHPMoKr0XTrX+IlJs1LH3lyx2nfr1dOlZ79k=
