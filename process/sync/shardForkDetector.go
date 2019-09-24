@@ -54,6 +54,11 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
+	err = sfd.checkShardBlockValidity(header, state)
+	if err != nil {
+		return err
+	}
+
 	if state == process.BHProcessed {
 		sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
 		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
@@ -92,4 +97,18 @@ func (sfd *shardForkDetector) addFinalHeaders(finalHeaders []data.HeaderHandler,
 			})
 		}
 	}
+}
+
+func (sfd *shardForkDetector) checkShardBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
+	isSyncing := state == process.BHReceived && sfd.ProbableHighestNonce()-header.GetNonce() > process.MaxNoncesDifference
+	if state == process.BHProcessed || isSyncing {
+		return nil
+	}
+
+	roundTooOld := int64(header.GetRound()) < sfd.rounder.Index()-process.ShardBlockFinality
+	if roundTooOld {
+		return ErrLowerRoundInBlock
+	}
+
+	return nil
 }

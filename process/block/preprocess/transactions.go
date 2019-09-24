@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -34,6 +35,9 @@ type transactions struct {
 	storage              dataRetriever.StorageService
 	txProcessor          process.TransactionProcessor
 	accounts             state.AccountsAdapter
+	orderedTxs           map[string][]*transaction.Transaction
+	orderedTxHashes      map[string][][]byte
+	mutOrderedTxs        sync.RWMutex
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -92,6 +96,8 @@ func NewTransactionPreprocessor(
 	txs.txPool.RegisterHandler(txs.receivedTransaction)
 
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
+	txs.orderedTxs = make(map[string][]*transaction.Transaction)
+	txs.orderedTxHashes = make(map[string][][]byte)
 
 	return &txs, nil
 }
@@ -142,8 +148,7 @@ func (txs *transactions) RemoveTxBlockFromPools(body block.Body, miniBlockPool s
 func (txs *transactions) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockPool storage.Cacher,
-) (int, map[int][]byte, error) {
-	miniBlockHashes := make(map[int][]byte)
+) (int, error) {
 	txsRestored := 0
 
 	for i := 0; i < len(body); i++ {
@@ -151,41 +156,40 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			return txsRestored, miniBlockHashes, err
+			return txsRestored, err
 		}
 
 		for txHash, txBuff := range txsBuff {
 			tx := transaction.Transaction{}
 			err = txs.marshalizer.Unmarshal(&tx, txBuff)
 			if err != nil {
-				return txsRestored, miniBlockHashes, err
+				return txsRestored, err
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
 
 			err = txs.storage.GetStorer(dataRetriever.TransactionUnit).Remove([]byte(txHash))
 			if err != nil {
-				return txsRestored, miniBlockHashes, err
+				return txsRestored, err
 			}
 		}
 
 		miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
 		if err != nil {
-			return txsRestored, miniBlockHashes, err
+			return txsRestored, err
 		}
 
-		restoredHash := txs.restoreMiniBlock(miniBlock, miniBlockHash, miniBlockPool)
+		miniBlockPool.Put(miniBlockHash, miniBlock)
 
 		err = txs.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
 		if err != nil {
-			return txsRestored, miniBlockHashes, err
+			return txsRestored, err
 		}
 
-		miniBlockHashes[i] = restoredHash
 		txsRestored += len(miniBlock.TxHashes)
 	}
 
-	return txsRestored, miniBlockHashes, nil
+	return txsRestored, nil
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
@@ -267,6 +271,11 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.txsForCurrBlock.missingTxs = 0
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
+
+	txs.mutOrderedTxs.Lock()
+	txs.orderedTxs = make(map[string][]*transaction.Transaction)
+	txs.orderedTxHashes = make(map[string][][]byte)
+	txs.mutOrderedTxs.Unlock()
 }
 
 // RequestBlockTransactions request for transactions if missing from a block.Body
@@ -424,8 +433,27 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txStore := txs.txPool.ShardDataStore(strCache)
 
+	var (
+		err             error
+		orderedTxs      []*transaction.Transaction
+		orderedTxHashes [][]byte
+	)
+
 	timeBefore := time.Now()
-	orderedTxes, orderedTxHashes, err := SortTxByNonce(txStore)
+
+	txs.mutOrderedTxs.RLock()
+	alreadyOrdered := len(txs.orderedTxs[strCache]) > 0
+	txs.mutOrderedTxs.RUnlock()
+
+	if alreadyOrdered {
+		txs.mutOrderedTxs.RLock()
+		orderedTxs = txs.orderedTxs[strCache]
+		orderedTxHashes = txs.orderedTxHashes[strCache]
+		txs.mutOrderedTxs.RUnlock()
+	} else {
+		orderedTxs, orderedTxHashes, err = SortTxByNonce(txStore)
+	}
+
 	timeAfter := time.Now()
 
 	if err != nil {
@@ -434,22 +462,29 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	}
 
 	if !haveTime() {
-		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+	defer func() {
+		txs.mutOrderedTxs.Lock()
+		txs.orderedTxs[strCache] = orderedTxs
+		txs.orderedTxHashes[strCache] = orderedTxHashes
+		txs.mutOrderedTxs.Unlock()
+	}()
+
+	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
 
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = sndShardId
 	miniBlock.ReceiverShardID = dstShardId
 	miniBlock.TxHashes = make([][]byte, 0)
 	miniBlock.Type = block.TxBlock
-	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
+	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxs), miniBlock.ReceiverShardID))
 
 	addedTxs := 0
 	addedGasLimitPerCrossShardMiniblock := uint64(0)
-	for index := range orderedTxes {
+	for index := range orderedTxs {
 		if !haveTime() {
 			break
 		}
@@ -459,8 +494,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		}
 
 		currTxGasLimit := minGasLimitForTx
-		if isSmartContractAddress(orderedTxes[index].RcvAddr) {
-			currTxGasLimit = orderedTxes[index].GasLimit
+		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
+			currTxGasLimit = orderedTxs[index].GasLimit
 		}
 
 		if addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock {
@@ -472,7 +507,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		// execute transaction to change the trie root hash
 		err := txs.processAndRemoveBadTransaction(
 			orderedTxHashes[index],
-			orderedTxes[index],
+			orderedTxs[index],
 			round,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
@@ -492,7 +527,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
-			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxs)))
 			return miniBlock, nil
 		}
 	}

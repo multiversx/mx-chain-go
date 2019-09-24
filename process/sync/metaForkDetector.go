@@ -54,7 +54,7 @@ func (mfd *metaForkDetector) AddHeader(
 		return err
 	}
 
-	err = mfd.checkMetaBlockValidity(header)
+	err = mfd.checkMetaBlockValidity(header, state)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,12 @@ func (mfd *metaForkDetector) AddHeader(
 	return nil
 }
 
-func (mfd *metaForkDetector) checkMetaBlockValidity(header data.HeaderHandler) error {
+func (mfd *metaForkDetector) checkMetaBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
+	isSyncing := state == process.BHReceived && mfd.ProbableHighestNonce()-header.GetNonce() > process.MaxNoncesDifference
+	if state == process.BHProcessed || isSyncing {
+		return nil
+	}
+
 	roundTooOld := int64(header.GetRound()) < mfd.rounder.Index()-process.MetaBlockFinality
 	if roundTooOld {
 		return ErrLowerRoundInBlock

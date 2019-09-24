@@ -493,7 +493,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	hdr.ShardInfo = make([]block.ShardData, 0)
 	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
 
-	assert.Equal(t, process.ErrRootStateMissmatch, err)
+	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
 }
 
@@ -689,6 +689,9 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 				return nil
 			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
 		},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.HasherStub{},
@@ -809,6 +812,9 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			}
 
 			return errors.New("should have not got here")
+		},
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 0
 		},
 	}
 	hasher := &mock.HasherStub{}
@@ -1880,7 +1886,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
 	_, err := mp.CheckShardHeadersValidity(metaHdr)
-	assert.Equal(t, process.ErrWrongNonceInBlock, err)
+	assert.Equal(t, process.ErrWrongNonceInOtherChainBlock, err)
 
 	shDataCurr = block.ShardData{ShardId: 0, HeaderHash: currHash}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
@@ -1948,7 +1954,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Nil(t, highestNonceHdrs)
-	assert.Equal(t, process.ErrWrongNonceInBlock, err)
+	assert.Equal(t, process.ErrWrongNonceInOtherChainBlock, err)
 }
 
 func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T) {
@@ -2192,12 +2198,12 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	currHdr.Nonce = 0
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+	assert.Equal(t, err, process.ErrWrongNonceInOtherChainBlock)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRootStateMissmatch)
+	assert.Equal(t, err, process.ErrRootStateDoesNotMatchInOtherChainBlock)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
@@ -2214,19 +2220,20 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.Round = currHdr.Round - 1
 	currHdr.Nonce = prevHdr.Nonce + 2
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+	assert.Equal(t, err, process.ErrWrongNonceInOtherChainBlock)
 
 	currHdr.Nonce = prevHdr.Nonce + 1
-	prevHdr.RandSeed = []byte("randomwrong")
-	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRandSeedMismatch)
-
-	prevHdr.RandSeed = currRandSeed
 	currHdr.PrevHash = []byte("wronghash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
 	assert.Equal(t, err, process.ErrHashDoesNotMatchInOtherChainBlock)
 
+	prevHdr.RandSeed = []byte("randomwrong")
+	currHdr.PrevHash, _ = mp.ComputeHeaderHash(prevHdr)
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrRandSeedDoesNotMatchInOtherChainBlock)
+
 	currHdr.PrevHash = prevHash
+	prevHdr.RandSeed = currRandSeed
 	prevHdr.RootHash = []byte("prevRootHash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
 	assert.Nil(t, err)

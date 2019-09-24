@@ -714,7 +714,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	sp, _ := blproc.NewShardProcessor(arguments)
 	// should return err
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
-	assert.Equal(t, process.ErrRootStateMissmatch, err)
+	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
 }
 
@@ -1603,7 +1603,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
-		return 0
+			return 0
 		},
 	}
 	arguments.BlocksTracker = &mock.BlocksTrackerMock{
@@ -3169,12 +3169,12 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	currHdr.Nonce = 0
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+	assert.Equal(t, err, process.ErrWrongNonceInOtherChainBlock)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRootStateMissmatch)
+	assert.Equal(t, err, process.ErrRootStateDoesNotMatchInOtherChainBlock)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
@@ -3191,19 +3191,20 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.Round = currHdr.Round - 1
 	currHdr.Nonce = prevHdr.Nonce + 2
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInBlock)
+	assert.Equal(t, err, process.ErrWrongNonceInOtherChainBlock)
 
 	currHdr.Nonce = prevHdr.Nonce + 1
-	prevHdr.RandSeed = []byte("randomwrong")
-	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRandSeedMismatch)
-
-	prevHdr.RandSeed = currRandSeed
 	currHdr.PrevHash = []byte("wronghash")
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
 	assert.Equal(t, err, process.ErrHashDoesNotMatchInOtherChainBlock)
 
+	prevHdr.RandSeed = []byte("randomwrong")
+	currHdr.PrevHash, _ = sp.ComputeHeaderHash(prevHdr)
+	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrRandSeedDoesNotMatchInOtherChainBlock)
+
 	currHdr.PrevHash = prevHash
+	prevHdr.RandSeed = currRandSeed
 	prevHdr.RootHash = []byte("prevRootHash")
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
 	assert.Nil(t, err)
@@ -3895,7 +3896,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 
 	arguments := CreateMockArgumentsMultiShard()
 	sp, _ := blproc.NewShardProcessor(arguments)
-	hdrs,_,_ := sp.GetHighestHdrForOwnShardFromMetachain(nil)
+	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(nil)
 
 	assert.NotNil(t, hdrs)
 	assert.Equal(t, uint64(0), hdrs[0].GetNonce())

@@ -140,6 +140,14 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
+		if err == process.ErrBlockHashDoesNotMatch {
+			log.Info(fmt.Sprintf("requested missing meta header with hash %s for shard %d\n",
+				core.ToB64(headerHandler.GetPrevHash()),
+				headerHandler.GetShardID()))
+
+			go mp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
+		}
+
 		return err
 	}
 
@@ -211,7 +219,7 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	if !mp.verifyStateRoot(header.GetRootHash()) {
-		err = process.ErrRootStateMissmatch
+		err = process.ErrRootStateDoesNotMatch
 		return err
 	}
 
@@ -515,6 +523,10 @@ func (mp *metaProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
+	log.Info(fmt.Sprintf("meta block with nonce %d is the highest final block in shard %d\n",
+		mp.forkDetector.GetHighestFinalBlockNonce(),
+		mp.shardCoordinator.SelfId()))
+
 	hdrsToAttestPreviousFinal := mp.nextKValidity + 1
 	mp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
@@ -706,7 +718,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 	}
 
 	//TODO: change this to look at the pool where values are saved by prevHash. can be done after resolver is done
-	_, _, sortedHdrPerShard, err := mp.getOrderedHdrs(header.GetRound())
+	sortedHdrPerShard, err := mp.getFinalityAttestingHeaders(highestNonceHdrs, process.ShardBlockFinality)
 	if err != nil {
 		return err
 	}
@@ -744,6 +756,56 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 	}
 
 	return nil
+}
+
+func (mp *metaProcessor) getFinalityAttestingHeaders(
+	highestNonceHdrs map[uint32]data.HeaderHandler,
+	finality uint64,
+) (map[uint32][]*block.Header, error) {
+
+	hdrStore := mp.dataPool.ShardHeaders()
+	if hdrStore == nil {
+		return nil, process.ErrNilCacher
+	}
+
+	headersMap := make(map[uint32][]*block.Header)
+	// get keys and arrange them into shards
+	for _, key := range hdrStore.Keys() {
+		val, _ := hdrStore.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(*block.Header)
+		if !ok {
+			continue
+		}
+
+		if highestNonceHdrs[hdr.ShardId] == nil {
+			continue
+		}
+
+		if highestNonceHdrs[hdr.ShardId].GetNonce() >= hdr.GetNonce() ||
+			highestNonceHdrs[hdr.ShardId].GetNonce()+finality < hdr.GetNonce() {
+			continue
+		}
+
+		headersMap[hdr.ShardId] = append(headersMap[hdr.ShardId], hdr)
+	}
+
+	// sort headers for each shard
+	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
+		hdrsForShard := headersMap[shardId]
+		if len(hdrsForShard) <= 1 {
+			continue
+		}
+
+		sort.Slice(hdrsForShard, func(i, j int) bool {
+			return hdrsForShard[i].GetNonce() < hdrsForShard[j].GetNonce()
+		})
+	}
+
+	return headersMap, nil
 }
 
 func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {

@@ -143,6 +143,14 @@ func (sp *shardProcessor) ProcessBlock(
 
 	err := sp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
+		if err == process.ErrBlockHashDoesNotMatch {
+			log.Info(fmt.Sprintf("requested missing shard header with hash %s for shard %d\n",
+				core.ToB64(headerHandler.GetPrevHash()),
+				headerHandler.GetShardID()))
+
+			go sp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
+		}
+
 		return err
 	}
 
@@ -231,7 +239,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
-		err = process.ErrRootStateMissmatch
+		err = process.ErrRootStateDoesNotMatch
 		return err
 	}
 
@@ -437,7 +445,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return process.ErrWrongTypeAssertion
 	}
 
-	restoredTxNr, _, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
+	restoredTxNr, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 	if err != nil {
 		return err
@@ -674,7 +682,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	log.Info(fmt.Sprintf("shardBlock with nonce %d is the highest block notarized by metachain for shard %d\n",
+	log.Info(fmt.Sprintf("shard block with nonce %d is the highest final block in shard %d\n",
 		sp.forkDetector.GetHighestFinalBlockNonce(),
 		sp.shardCoordinator.SelfId()))
 
