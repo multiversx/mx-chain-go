@@ -7,8 +7,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 h1:HD8gA2tkBy
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/ElrondNetwork/arwen-wasm-vm v0.0.7 h1:azT+0Bv5RKiXpPfeuxx4YExCy6u2nzF2S4/sXLLxarU=
-github.com/ElrondNetwork/arwen-wasm-vm v0.0.7/go.mod h1:uGYpcjg8Oa3tkdS7Yc9sHUgEIPSnmHoDFdodgiZ0iyU=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.8 h1:Va5y2E3SD+SF+cOWxTpT6MJYNmrd+LE1qUs8VdEzXvU=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.8/go.mod h1:uGYpcjg8Oa3tkdS7Yc9sHUgEIPSnmHoDFdodgiZ0iyU=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
 github.com/ElrondNetwork/elrond-vm v0.0.19 h1:9E8spYj9K1DHdF0Osgj1dZUJfKhfBiLBx1xWWfE/HAM=
