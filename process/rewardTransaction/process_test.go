@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewRewardTxProcessorNilAccountsDbShouldErr(t *testing.T) {
+func TestNewRewardTxProcessor_NilAccountsDbShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
@@ -27,7 +27,7 @@ func TestNewRewardTxProcessorNilAccountsDbShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewRewardTxProcessorNilAddressConverterShouldErr(t *testing.T) {
+func TestNewRewardTxProcessor_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
@@ -40,7 +40,7 @@ func TestNewRewardTxProcessorNilAddressConverterShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
-func TestNewRewardTxProcessorNilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewRewardTxProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
@@ -53,7 +53,7 @@ func TestNewRewardTxProcessorNilShardCoordinatorShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewRewardTxProcessorNilRewardTxForwarderShouldErr(t *testing.T) {
+func TestNewRewardTxProcessor_NilRewardTxForwarderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
@@ -66,7 +66,7 @@ func TestNewRewardTxProcessorNilRewardTxForwarderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilIntermediateTransactionHandler, err)
 }
 
-func TestNewRewardTxProcessorOkValsShouldWork(t *testing.T) {
+func TestNewRewardTxProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(

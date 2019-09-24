@@ -526,6 +526,7 @@ func TestRewardsHandler_CreateBlockStartedShouldCreateProtocolReward(t *testing.
 	)
 
 	assert.Nil(t, th.protocolRewards)
+
 	th.CreateBlockStarted()
 	assert.NotNil(t, th.protocolRewards)
 }
