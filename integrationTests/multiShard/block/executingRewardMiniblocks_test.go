@@ -73,7 +73,8 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	randomness := generateInitialRandomness(uint32(nbShards))
 	var headers map[uint32]data.HeaderHandler
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
-	mapRewardsForAddress := make(map[string]uint32)
+	mapRewardsForShardAddresses := make(map[string]uint32)
+	mapRewardsForMetachainAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
@@ -82,14 +83,14 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		for shardId, consensusGroup := range consensusNodes {
 			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
 			addrRewards := shardRewardData.Addresses
-			updateExpectedRewards(mapRewardsForAddress, addrRewards)
+			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
-
-			// without metachain nodes for now
 			if len(addrRewards) > 0 {
 				updateNumberTransactionsProposed(t, nbTxsForLeaderAddress, addrRewards[0], nbTxs)
 			}
 		}
+
+		updateRewardsForMetachain(mapRewardsForMetachainAddresses, consensusNodes[0][0])
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.VerifyNodesHaveHeaders(t, headers, nodesMap)
@@ -100,7 +101,8 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	verifyRewards(t, nodesMap, mapRewardsForAddress, nbTxsForLeaderAddress, gasPrice, gasLimit)
+	verifyRewardsForShards(t, nodesMap, mapRewardsForShardAddresses, nbTxsForLeaderAddress, gasPrice, gasLimit)
+	verifyRewardsForMetachain(t, mapRewardsForMetachainAddresses, nodesMap)
 }
 
 func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
@@ -148,7 +150,8 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	randomness := generateInitialRandomness(uint32(nbShards))
 	var headers map[uint32]data.HeaderHandler
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
-	mapRewardsForAddress := make(map[string]uint32)
+	mapRewardsForShardAddresses := make(map[string]uint32)
+	mapRewardsForMetachainAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
@@ -166,8 +169,10 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 			}
 
 			addrRewards := shardRewardsData.Addresses
-			updateExpectedRewards(mapRewardsForAddress, addrRewards)
+			updateExpectedRewards(mapRewardsForShardAddresses, addrRewards)
 		}
+
+		updateRewardsForMetachain(mapRewardsForMetachainAddresses, consensusNodes[0][0])
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.VerifyNodesHaveHeaders(t, headers, nodesMap)
@@ -178,7 +183,8 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	verifyRewards(t, nodesMap, mapRewardsForAddress, nbTxsForLeaderAddress, 0, 0)
+	verifyRewardsForShards(t, nodesMap, mapRewardsForShardAddresses, nbTxsForLeaderAddress, 0, 0)
+	verifyRewardsForMetachain(t, mapRewardsForMetachainAddresses, nodesMap)
 }
 
 func generateIntraShardTransactions(
@@ -299,7 +305,37 @@ func updateNumberTransactionsProposed(
 	transactionsForLeader[addressProposer] += nbTransactions
 }
 
-func verifyRewards(
+func updateRewardsForMetachain(rewardsMap map[string]uint32, consensusNode *integrationTests.TestProcessorNode) {
+	metaRewardDataSlice := consensusNode.SpecialAddressHandler.ConsensusMetaRewardData()
+	if len(metaRewardDataSlice) > 0 {
+		for _, metaRewardData := range metaRewardDataSlice {
+			for _, addr := range metaRewardData.Addresses {
+				rewardsMap[addr]++
+			}
+		}
+	}
+}
+
+func verifyRewardsForMetachain(
+	t *testing.T,
+	mapRewardsForMeta map[string]uint32,
+	nodes map[uint32][]*integrationTests.TestProcessorNode,
+) {
+
+	// TODO this should be read from protocol config
+	rewardValue := uint32(1000)
+
+	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
+		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(metaAddr))
+		acc, err := nodes[0][0].AccntState.GetExistingAccount(addrContainer)
+		assert.Nil(t, err)
+
+		expectedBalance := big.NewInt(int64(numOfTimesRewarded * rewardValue))
+		assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
+	}
+}
+
+func verifyRewardsForShards(
 	t *testing.T,
 	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
 	mapRewardsForAddress map[string]uint32,
