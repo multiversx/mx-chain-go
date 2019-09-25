@@ -91,6 +91,7 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 
 func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	_, collapsedBn := getBnAndCollapsedBn()
@@ -435,6 +436,7 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 	t.Parallel()
 
 	msh, hsh := getTestMarshAndHasher()
+	evictionCacheSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
 
 	tr := &patriciaMerkleTrie{
@@ -474,6 +476,7 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 	t.Parallel()
 
 	msh, hsh := getTestMarshAndHasher()
+	evictionCacheSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
 
 	tr := &patriciaMerkleTrie{

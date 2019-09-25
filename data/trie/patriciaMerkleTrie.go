@@ -18,7 +18,6 @@ const (
 	leaf
 	branch
 )
-const evictionCacheSize = 100
 
 var emptyTrieHash = make([]byte, 32)
 
@@ -40,6 +39,7 @@ func NewTrie(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	evictionDb storage.Persister,
+	evictionCacheSize int,
 ) (*patriciaMerkleTrie, error) {
 	if db == nil || db.IsInterfaceNil() {
 		return nil, ErrNilDatabase
@@ -52,6 +52,9 @@ func NewTrie(
 	}
 	if evictionDb == nil || evictionDb.IsInterfaceNil() {
 		return nil, ErrNilDatabase
+	}
+	if evictionCacheSize < 1 {
+		return nil, data.ErrInvalidCacheSize
 	}
 
 	evictionWaitList, err := evictionWaitingList.NewEvictionWaitingList(evictionCacheSize, evictionDb, msh)
@@ -290,7 +293,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New())
+	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize())
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +323,7 @@ func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New())
+	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize())
 	if err != nil {
 		return nil, err
 	}

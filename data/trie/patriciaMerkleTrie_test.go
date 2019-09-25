@@ -1,6 +1,9 @@
 package trie_test
 
 import (
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -22,12 +25,12 @@ func emptyTrie() data.Trie {
 	return tr
 }
 
-func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashing.Hasher, storage.Persister) {
+func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashing.Hasher, storage.Persister, int) {
 	db := mock.NewMemDbMock()
 	marshalizer := &mock.ProtobufMarshalizerMock{}
 	hasher := &mock.KeccakMock{}
 
-	return db, marshalizer, hasher, mock.NewMemDbMock()
+	return db, marshalizer, hasher, mock.NewMemDbMock(), 100
 }
 
 func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
@@ -55,8 +58,8 @@ func initTrie() data.Trie {
 
 func TestNewTrieWithNilDB(t *testing.T) {
 	t.Parallel()
-	_, marshalizer, hasher, evictionDB := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, evictionDB)
+	_, marshalizer, hasher, evictionDB, evictionCacheSize := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, evictionDB, evictionCacheSize)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilDatabase, err)
@@ -64,8 +67,8 @@ func TestNewTrieWithNilDB(t *testing.T) {
 
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
-	db, _, hasher, evictionDB := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, nil, hasher, evictionDB)
+	db, _, hasher, evictionDB, evictionCacheSize := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, nil, hasher, evictionDB, evictionCacheSize)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -73,8 +76,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
-	db, marshalizer, _, evictionDB := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, nil, evictionDB)
+	db, marshalizer, _, evictionDB, evictionCacheSize := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, marshalizer, nil, evictionDB, evictionCacheSize)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -82,8 +85,8 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 
 func TestNewTrieWithNilEvictionDB(t *testing.T) {
 	t.Parallel()
-	db, marshalizer, hasher, _ := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, hasher, nil)
+	db, marshalizer, hasher, _, evictionCacheSize := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, marshalizer, hasher, nil, evictionCacheSize)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilDatabase, err)
@@ -439,14 +442,29 @@ func TestPatriciaMerkleTrie_Rollback(t *testing.T) {
 	err := tr.Rollback(rootHash)
 	assert.Nil(t, err)
 
+}
+
+func TestPatriciaMerkleTrie_PruneAfterRollbackShouldFail(t *testing.T) {
+	t.Parallel()
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	_ = tr.Commit()
+
+	err := tr.Rollback(rootHash)
+	assert.Nil(t, err)
+
+	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash)))
 	err = tr.Prune(rootHash)
-	assert.NotNil(t, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	t.Parallel()
-	db, marsh, hashser, evictionDb := getDefaultTrieParameters()
-	tr, _ := trie.NewTrie(db, marsh, hashser, evictionDb)
+	db, marsh, hashser, evictionDb, evictionCacheSize := getDefaultTrieParameters()
+	tr, _ := trie.NewTrie(db, marsh, hashser, evictionDb, evictionCacheSize)
 
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
@@ -458,9 +476,11 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Commit()
 
 	_ = tr.Prune(rootHash)
+
+	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash)))
 	val, err := db.Get(rootHash)
 	assert.Nil(t, val)
-	assert.NotNil(t, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

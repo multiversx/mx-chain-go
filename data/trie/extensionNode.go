@@ -329,6 +329,7 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 	if keyMatchLen == 0 {
 		return true, branch, oldHash, nil
 	}
+
 	return true, newExtensionNode(en.Key[:keyMatchLen], branch), oldHash, nil
 }
 
