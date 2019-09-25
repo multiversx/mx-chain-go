@@ -54,6 +54,11 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
+	err = sfd.shouldAddBlockInForkDetector(header, state, process.ShardBlockFinality)
+	if err != nil {
+		return err
+	}
+
 	if state == process.BHProcessed {
 		sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
 		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
