@@ -404,7 +404,12 @@ func TestExtensionNode_tryGet(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
 
-	key := []byte{100, 2, 100, 111, 103}
+	enKey := []byte{100}
+	bnKey := []byte{2}
+	lnKey := []byte("dog")
+	key := append(enKey, bnKey...)
+	key = append(key, lnKey...)
+
 	val, err := en.tryGet(key, db, marsh)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
@@ -430,7 +435,7 @@ func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
 
-	key := []byte{103, 100, 111}
+	key := []byte("gdo")
 	val, err := en.tryGet(key, db, marsh)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
@@ -445,7 +450,12 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	_ = en.setHash(marsh, hasher)
 	_ = en.commit(0, db, marsh, hasher)
 
-	key := []byte{100, 2, 100, 111, 103}
+	enKey := []byte{100}
+	bnKey := []byte{2}
+	lnKey := []byte("dog")
+	key := append(enKey, bnKey...)
+	key = append(key, lnKey...)
+
 	val, err := collapsedEn.tryGet(key, db, marsh)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
@@ -458,7 +468,7 @@ func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 	marsh, _ := getTestMarshAndHasher()
 
-	key := []byte{100, 111, 103}
+	key := []byte("dog")
 	val, err := en.tryGet(key, db, marsh)
 	assert.Equal(t, ErrEmptyNode, err)
 	assert.Nil(t, val)
@@ -471,7 +481,7 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 	var en *extensionNode
 	marsh, _ := getTestMarshAndHasher()
 
-	key := []byte{100, 111, 103}
+	key := []byte("dog")
 	val, err := en.tryGet(key, db, marsh)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, val)
@@ -484,11 +494,16 @@ func TestExtensionNode_getNext(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
 	nextNode, _ := getBnAndCollapsedBn()
-	key := []byte{100, 2, 100, 111, 103}
 
-	node, key, err := en.getNext(key, db, marsh)
+	enKey := []byte{100}
+	bnKey := []byte{2}
+	lnKey := []byte("dog")
+	key := append(enKey, bnKey...)
+	key = append(key, lnKey...)
+
+	node, newKey, err := en.getNext(key, db, marsh)
 	assert.Equal(t, nextNode, node)
-	assert.Equal(t, []byte{2, 100, 111, 103}, key)
+	assert.Equal(t, key[1:], newKey)
 	assert.Nil(t, err)
 }
 
@@ -498,7 +513,10 @@ func TestExtensionNode_getNextWrongKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
-	key := []byte{2, 100, 111, 103}
+
+	bnKey := []byte{2}
+	lnKey := []byte("dog")
+	key := append(bnKey, lnKey...)
 
 	node, key, err := en.getNext(key, db, marsh)
 	assert.Nil(t, node)
@@ -511,13 +529,15 @@ func TestExtensionNode_insert(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
-	node := newLeafNode([]byte{100, 15, 5, 6}, []byte("dogs"))
+
+	key := []byte{100, 15, 5, 6}
+	node := newLeafNode(key, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, _, err := en.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ := newNode.tryGet([]byte{100, 15, 5, 6}, db, marsh)
+	val, _ := newNode.tryGet(key, db, marsh)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -526,7 +546,9 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	node := newLeafNode([]byte{100, 15, 5, 6}, []byte("dogs"))
+
+	key := []byte{100, 15, 5, 6}
+	node := newLeafNode(key, []byte("dogs"))
 	marsh, hasher := getTestMarshAndHasher()
 	_ = en.setHash(marsh, hasher)
 	_ = en.commit(0, db, marsh, hasher)
@@ -534,7 +556,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	dirty, newNode, _, err := collapsedEn.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ := newNode.tryGet([]byte{100, 15, 5, 6}, db, marsh)
+	val, _ := newNode.tryGet(key, db, marsh)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -544,11 +566,14 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
-	node := newLeafNode([]byte{100, 11, 12}, []byte("dogs"))
 
-	_ = en.commit(5, db, marsh, hasher)
+	enKey := []byte{100}
+	key := append(enKey, []byte{11, 12}...)
+	node := newLeafNode(key, []byte("dogs"))
+
+	_ = en.commit(0, db, marsh, hasher)
 	enHash := en.getHash()
-	bn, _, _ := en.getNext([]byte{100}, db, marsh)
+	bn, _, _ := en.getNext(enKey, db, marsh)
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash, enHash}
 
@@ -565,8 +590,11 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
-	en := newExtensionNode([]byte{1}, bn)
-	node := newLeafNode([]byte{11, 12}, []byte("dogs"))
+	enKey := []byte{1}
+	en := newExtensionNode(enKey, bn)
+
+	nodeKey := []byte{11, 12}
+	node := newLeafNode(nodeKey, []byte("dogs"))
 
 	_ = en.commit(0, db, marsh, hasher)
 	expectedHashes := [][]byte{en.getHash()}
@@ -584,7 +612,8 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
-	node := newLeafNode([]byte{100, 11, 12}, []byte("dogs"))
+	nodeKey := []byte{100, 11, 12}
+	node := newLeafNode(nodeKey, []byte("dogs"))
 
 	dirty, _, oldHashes, err := en.insert(node, db, marsh)
 
@@ -599,8 +628,12 @@ func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
-	en := newExtensionNode([]byte{1}, bn)
-	node := newLeafNode([]byte{11, 12}, []byte("dogs"))
+
+	enKey := []byte{1}
+	en := newExtensionNode(enKey, bn)
+
+	nodeKey := []byte{11, 12}
+	node := newLeafNode(nodeKey, []byte("dogs"))
 
 	dirty, _, oldHashes, err := en.insert(node, db, marsh)
 
@@ -614,7 +647,8 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	var en *extensionNode
-	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
+	nodeKey := []byte{0, 2, 3}
+	node := newLeafNode(nodeKey, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, _, err := en.insert(node, db, marsh)
@@ -629,14 +663,15 @@ func TestExtensionNode_delete(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
+	key := []byte{100, 2, 100, 111, 103}
 
-	val, _ := en.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)
+	val, _ := en.tryGet(key, db, marsh)
 	assert.Equal(t, []byte("dog"), val)
 
-	dirty, _, _, err := en.delete([]byte{100, 2, 100, 111, 103}, db, marsh)
+	dirty, _, _, err := en.delete(key, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ = en.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)
+	val, _ = en.tryGet(key, db, marsh)
 	assert.Nil(t, val)
 }
 
@@ -646,14 +681,20 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
-	lnKey := []byte{100, 2, 100, 111, 103}
+
+	enKey := []byte{100}
+	bnKey := []byte{2}
+	lnKey := []byte("dog")
+	key := append(enKey, bnKey...)
+	key = append(key, lnKey...)
+	lnPathKey := key
 
 	_ = en.commit(0, db, marsh, hasher)
-	bn, _, _ := en.getNext(lnKey, db, marsh)
-	ln, _, _ := bn.getNext([]byte{2, 100, 111, 103}, db, marsh)
+	bn, key, _ := en.getNext(key, db, marsh)
+	ln, _, _ := bn.getNext(key, db, marsh)
 	expectedHashes := [][]byte{ln.getHash(), bn.getHash(), en.getHash()}
 
-	dirty, _, oldHashes, err := en.delete(lnKey, db, marsh)
+	dirty, _, oldHashes, err := en.delete(lnPathKey, db, marsh)
 
 	assert.True(t, dirty)
 	assert.Nil(t, err)
@@ -682,7 +723,7 @@ func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, _, err := en.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, newNode, _, err := en.delete([]byte("dog"), db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrEmptyNode, err)
 	assert.Nil(t, newNode)
@@ -695,7 +736,7 @@ func TestExtensionNode_deleteNilNode(t *testing.T) {
 	var en *extensionNode
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, _, err := en.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, newNode, _, err := en.delete([]byte("dog"), db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, newNode)
@@ -723,13 +764,19 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	_ = en.setHash(marsh, hasher)
 	_ = en.commit(0, db, marsh, hasher)
 
-	val, _ := en.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)
+	enKey := []byte{100}
+	bnKey := []byte{2}
+	lnKey := []byte("dog")
+	key := append(enKey, bnKey...)
+	key = append(key, lnKey...)
+
+	val, _ := en.tryGet(key, db, marsh)
 	assert.Equal(t, []byte("dog"), val)
 
-	dirty, newNode, _, err := collapsedEn.delete([]byte{100, 2, 100, 111, 103}, db, marsh)
+	dirty, newNode, _, err := collapsedEn.delete(key, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ = newNode.tryGet([]byte{100, 2, 100, 111, 103}, db, marsh)
+	val, _ = newNode.tryGet(key, db, marsh)
 	assert.Nil(t, val)
 }
 

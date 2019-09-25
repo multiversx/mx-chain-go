@@ -84,7 +84,7 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 	t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
-	ln := newLeafNode([]byte{100, 111, 103}, []byte("dog"))
+	ln := newLeafNode([]byte("dog"), []byte("dog"))
 
 	encNode, _ := marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -211,10 +211,11 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn()
+	childPos := byte(2)
 
 	_ = bn.commit(0, db, marsh, hasher)
 
-	err := resolveIfCollapsed(collapsedBn, 2, db, marsh)
+	err := resolveIfCollapsed(collapsedBn, childPos, db, marsh)
 	assert.Nil(t, err)
 	assert.False(t, collapsedBn.isCollapsed())
 }
@@ -351,9 +352,10 @@ func TestNode_decodeNodeInvalidNode(t *testing.T) {
 
 	marsh, _ := getTestMarshAndHasher()
 	ln := getLn()
+	invalidNode := byte(6)
 
 	encNode, _ := marsh.Marshal(ln)
-	encNode = append(encNode, 6)
+	encNode = append(encNode, invalidNode)
 
 	node, err := decodeNode(encNode, marsh)
 	assert.Nil(t, node)

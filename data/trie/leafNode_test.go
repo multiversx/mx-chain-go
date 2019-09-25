@@ -249,7 +249,7 @@ func TestLeafNode_tryGet(t *testing.T) {
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
-	key := []byte{100, 111, 103}
+	key := []byte("dog")
 	val, err := ln.tryGet(key, db, marsh)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
@@ -262,8 +262,8 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
-	key := []byte{1, 2, 3}
-	val, err := ln.tryGet(key, db, marsh)
+	wrongKey := []byte{1, 2, 3}
+	val, err := ln.tryGet(wrongKey, db, marsh)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 }
@@ -275,7 +275,7 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 	marsh, _ := getTestMarshAndHasher()
 
-	key := []byte{100, 111, 103}
+	key := []byte("dog")
 	val, err := ln.tryGet(key, db, marsh)
 	assert.Equal(t, ErrEmptyNode, err)
 	assert.Nil(t, val)
@@ -288,7 +288,7 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	var ln *leafNode
 	marsh, _ := getTestMarshAndHasher()
 
-	key := []byte{100, 111, 103}
+	key := []byte("dog")
 	val, err := ln.tryGet(key, db, marsh)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, val)
@@ -300,7 +300,7 @@ func TestLeafNode_getNext(t *testing.T) {
 	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
-	key := []byte{100, 111, 103}
+	key := []byte("dog")
 
 	node, key, err := ln.getNext(key, db, marsh)
 	assert.Nil(t, node)
@@ -314,9 +314,9 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
-	key := []byte{2, 100, 111, 103}
+	wrongKey := []byte{2, 100, 111, 103}
 
-	node, key, err := ln.getNext(key, db, marsh)
+	node, key, err := ln.getNext(wrongKey, db, marsh)
 	assert.Nil(t, node)
 	assert.Nil(t, key)
 	assert.Equal(t, ErrNodeNotFound, err)
@@ -328,7 +328,7 @@ func TestLeafNode_getNextNilNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	var ln *leafNode
 	marsh, _ := getTestMarshAndHasher()
-	key := []byte{2, 100, 111, 103}
+	key := []byte("dog")
 
 	node, key, err := ln.getNext(key, db, marsh)
 	assert.Nil(t, node)
@@ -341,30 +341,37 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	ln := getLn()
+	key := []byte("dog")
+	expectedVal := []byte("dogs")
 
-	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
+	node := newLeafNode(key, expectedVal)
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, _, err := ln.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ := newNode.tryGet([]byte{100, 111, 103}, db, marsh)
-	assert.Equal(t, []byte("dogs"), val)
+	val, _ := newNode.tryGet(key, db, marsh)
+	assert.Equal(t, expectedVal, val)
 }
 
 func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	t.Parallel()
 
 	db := mock.NewMemDbMock()
-	ln := newLeafNode([]byte{2, 100, 111, 103}, []byte{100, 111, 103})
-	node := newLeafNode([]byte{3, 4, 5}, []byte{3, 4, 5})
+
+	lnKey := []byte{2, 100, 111, 103}
+	ln := newLeafNode(lnKey, []byte("dog"))
+
+	nodeKey := []byte{3, 4, 5}
+	nodeVal := []byte{3, 4, 5}
+	node := newLeafNode(nodeKey, nodeVal)
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, _, err := ln.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
-	val, _ := newNode.tryGet([]byte{3, 4, 5}, db, marsh)
-	assert.Equal(t, []byte{3, 4, 5}, val)
+	val, _ := newNode.tryGet(nodeKey, db, marsh)
+	assert.Equal(t, nodeVal, val)
 	assert.IsType(t, &branchNode{}, newNode)
 }
 
@@ -374,7 +381,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, hasher := getTestMarshAndHasher()
-	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
+	node := newLeafNode([]byte("dog"), []byte("dogs"))
 	_ = ln.commit(0, db, marsh, hasher)
 	lnHash := ln.getHash()
 
@@ -408,7 +415,7 @@ func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
-	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
+	node := newLeafNode([]byte("dog"), []byte("dogs"))
 
 	dirty, _, oldHashes, err := ln.insert(node, db, marsh)
 
@@ -437,7 +444,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	var ln *leafNode
-	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
+	node := newLeafNode([]byte("dog"), []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newNode, _, err := ln.insert(node, db, marsh)
@@ -453,7 +460,7 @@ func TestLeafNode_deletePresent(t *testing.T) {
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, _, err := ln.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, newNode, _, err := ln.delete([]byte("dog"), db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Nil(t, newNode)
@@ -468,7 +475,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	_ = ln.commit(0, db, marsh, hasher)
 	lnHash := ln.getHash()
 
-	dirty, _, oldHashes, err := ln.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db, marsh)
 
 	assert.True(t, dirty)
 	assert.Nil(t, err)
@@ -483,7 +490,8 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 	ln := getLn()
 	_ = ln.commit(0, db, marsh, hasher)
 
-	dirty, _, oldHashes, err := ln.delete([]byte{1, 2, 3}, db, marsh)
+	wrongKey := []byte{1, 2, 3}
+	dirty, _, oldHashes, err := ln.delete(wrongKey, db, marsh)
 
 	assert.False(t, dirty)
 	assert.Nil(t, err)
@@ -497,7 +505,7 @@ func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
 	marsh, _ := getTestMarshAndHasher()
 	ln := getLn()
 
-	dirty, _, oldHashes, err := ln.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db, marsh)
 
 	assert.True(t, dirty)
 	assert.Nil(t, err)
@@ -511,7 +519,8 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, _, err := ln.delete([]byte{1, 2, 3}, db, marsh)
+	wrongKey := []byte{1, 2, 3}
+	dirty, newNode, _, err := ln.delete(wrongKey, db, marsh)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newNode)
