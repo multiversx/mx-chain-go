@@ -100,9 +100,9 @@ func (inUTx *InterceptedUnsignedTransaction) processFields(uTxBuffWithSig []byte
 	inUTx.rcvShard = inUTx.coordinator.ComputeId(rcvAddr)
 	inUTx.sndShard = inUTx.coordinator.ComputeId(inUTx.sndAddr)
 
-	isMyShardRecv := inUTx.rcvShard == inUTx.coordinator.SelfId()
-	isMyShardSender := inUTx.sndShard == inUTx.coordinator.SelfId()
-	inUTx.isForCurrentShard = isMyShardRecv || isMyShardSender
+	isForCurrentShardRecv := inUTx.rcvShard == inUTx.coordinator.SelfId()
+	isForCurrentShardSender := inUTx.sndShard == inUTx.coordinator.SelfId()
+	inUTx.isForCurrentShard = isForCurrentShardRecv || isForCurrentShardSender
 
 	return nil
 }

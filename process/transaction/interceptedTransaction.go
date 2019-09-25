@@ -123,9 +123,9 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 		inTx.rcvShard = inTx.sndShard
 	}
 
-	isMyShardRecv := inTx.rcvShard == inTx.coordinator.SelfId()
-	isMyShardSender := inTx.sndShard == inTx.coordinator.SelfId()
-	inTx.isForCurrentShard = isMyShardRecv || isMyShardSender
+	isForCurrentShardRecv := inTx.rcvShard == inTx.coordinator.SelfId()
+	isForCurrentShardSender := inTx.sndShard == inTx.coordinator.SelfId()
+	inTx.isForCurrentShard = isForCurrentShardRecv || isForCurrentShardSender
 
 	return nil
 }
