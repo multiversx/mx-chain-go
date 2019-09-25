@@ -198,11 +198,11 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	// special case with genesis nonce - 0
 	if currHdr.GetNonce() == 0 {
 		if prevHdr.GetNonce() != 0 {
-			return process.ErrWrongNonceInOtherChainBlock
+			return process.ErrWrongNonceInBlock
 		}
 		// block with nonce 0 was already saved
 		if prevHdr.GetRootHash() != nil {
-			return process.ErrRootStateDoesNotMatchInOtherChainBlock
+			return process.ErrRootStateDoesNotMatch
 		}
 		return nil
 	}
@@ -210,16 +210,15 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() >= currHdr.GetRound() {
-		log.Info(fmt.Sprintf("round does not match in other chain: local block round is %d and node received block with round %d\n",
-			prevHdr.GetRound(), currHdr.GetRound()))
-		return process.ErrLowerRoundInOtherChainBlock
+		log.Info(fmt.Sprintf("round does not match in shard %d: local block round is %d and node received block with round %d\n",
+			currHdr.GetShardID(), prevHdr.GetRound(), currHdr.GetRound()))
+		return process.ErrLowerRoundInBlock
 	}
 
 	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
-		log.Info(fmt.Sprintf("nonce does not match in other chain: local block nonce is %d and node received block with nonce %d\n",
-			prevHdr.GetNonce(),
-			currHdr.GetNonce()))
-		return process.ErrWrongNonceInOtherChainBlock
+		log.Info(fmt.Sprintf("nonce does not match in shard %d: local block nonce is %d and node received block with nonce %d\n",
+			currHdr.GetShardID(), prevHdr.GetNonce(), currHdr.GetNonce()))
+		return process.ErrWrongNonceInBlock
 	}
 
 	prevHeaderHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, prevHdr)
@@ -228,17 +227,15 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		log.Info(fmt.Sprintf("hash does not match in other chain: local block hash is %s and node received block with previous hash %s\n",
-			core.ToB64(prevHeaderHash),
-			core.ToB64(currHdr.GetPrevHash())))
-		return process.ErrHashDoesNotMatchInOtherChainBlock
+		log.Info(fmt.Sprintf("block hash does not match in shard %d: local block hash is %s and node received block with previous hash %s\n",
+			currHdr.GetShardID(), core.ToB64(prevHeaderHash), core.ToB64(currHdr.GetPrevHash())))
+		return process.ErrBlockHashDoesNotMatch
 	}
 
 	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		log.Info(fmt.Sprintf("random seed does not match: local block random seed is %s and node received block with previous random seed %s\n",
-			core.ToB64(prevHdr.GetRandSeed()),
-			core.ToB64(currHdr.GetPrevRandSeed())))
-		return process.ErrRandSeedDoesNotMatchInOtherChainBlock
+		log.Info(fmt.Sprintf("random seed does not match in shard %d: local block random seed is %s and node received block with previous random seed %s\n",
+			currHdr.GetShardID(), core.ToB64(prevHdr.GetRandSeed()), core.ToB64(currHdr.GetPrevRandSeed())))
+		return process.ErrRandSeedDoesNotMatch
 	}
 
 	return nil

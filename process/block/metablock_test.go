@@ -1886,7 +1886,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
 	_, err := mp.CheckShardHeadersValidity(metaHdr)
-	assert.Equal(t, process.ErrWrongNonceInOtherChainBlock, err)
+	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	shDataCurr = block.ShardData{ShardId: 0, HeaderHash: currHash}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
@@ -1954,7 +1954,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Nil(t, highestNonceHdrs)
-	assert.Equal(t, process.ErrWrongNonceInOtherChainBlock, err)
+	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
 
 func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T) {
@@ -2198,12 +2198,12 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	currHdr.Nonce = 0
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInOtherChainBlock)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRootStateDoesNotMatchInOtherChainBlock)
+	assert.Equal(t, err, process.ErrRootStateDoesNotMatch)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
@@ -2215,22 +2215,22 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.Nonce = 45
 	prevHdr.Round = currHdr.Round + 1
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrLowerRoundInOtherChainBlock)
+	assert.Equal(t, err, process.ErrLowerRoundInBlock)
 
 	prevHdr.Round = currHdr.Round - 1
 	currHdr.Nonce = prevHdr.Nonce + 2
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInOtherChainBlock)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
 
 	currHdr.Nonce = prevHdr.Nonce + 1
 	currHdr.PrevHash = []byte("wronghash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrHashDoesNotMatchInOtherChainBlock)
+	assert.Equal(t, err, process.ErrBlockHashDoesNotMatch)
 
 	prevHdr.RandSeed = []byte("randomwrong")
 	currHdr.PrevHash, _ = mp.ComputeHeaderHash(prevHdr)
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRandSeedDoesNotMatchInOtherChainBlock)
+	assert.Equal(t, err, process.ErrRandSeedDoesNotMatch)
 
 	currHdr.PrevHash = prevHash
 	prevHdr.RandSeed = currRandSeed

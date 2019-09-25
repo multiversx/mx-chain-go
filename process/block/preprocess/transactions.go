@@ -429,31 +429,19 @@ func isSmartContractAddress(rcvAddress []byte) bool {
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
-func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
-	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-	txStore := txs.txPool.ShardDataStore(strCache)
+func (txs *transactions) CreateAndProcessMiniBlock(
+	sndShardId uint32,
+	dstShardId uint32,
+	spaceRemained int,
+	haveTime func() bool,
+	round uint64,
+) (*block.MiniBlock, error) {
 
-	var (
-		err             error
-		orderedTxs      []*transaction.Transaction
-		orderedTxHashes [][]byte
-	)
+	var orderedTxs []*transaction.Transaction
+	var orderedTxHashes [][]byte
 
 	timeBefore := time.Now()
-
-	txs.mutOrderedTxs.RLock()
-	alreadyOrdered := len(txs.orderedTxs[strCache]) > 0
-	txs.mutOrderedTxs.RUnlock()
-
-	if alreadyOrdered {
-		txs.mutOrderedTxs.RLock()
-		orderedTxs = txs.orderedTxs[strCache]
-		orderedTxHashes = txs.orderedTxHashes[strCache]
-		txs.mutOrderedTxs.RUnlock()
-	} else {
-		orderedTxs, orderedTxHashes, err = SortTxByNonce(txStore)
-	}
-
+	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(sndShardId, dstShardId)
 	timeAfter := time.Now()
 
 	if err != nil {
@@ -465,13 +453,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
 		return nil, process.ErrTimeIsOut
 	}
-
-	defer func() {
-		txs.mutOrderedTxs.Lock()
-		txs.orderedTxs[strCache] = orderedTxs
-		txs.orderedTxHashes[strCache] = orderedTxHashes
-		txs.mutOrderedTxs.Unlock()
-	}()
 
 	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
 
@@ -533,6 +514,34 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 	}
 
 	return miniBlock, nil
+}
+
+func (txs *transactions) computeOrderedTxs(
+	sndShardId uint32,
+	dstShardId uint32,
+) ([]*transaction.Transaction, [][]byte, error) {
+
+	var err error
+
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+	txStore := txs.txPool.ShardDataStore(strCache)
+
+	txs.mutOrderedTxs.RLock()
+	orderedTxs := txs.orderedTxs[strCache]
+	orderedTxHashes := txs.orderedTxHashes[strCache]
+	txs.mutOrderedTxs.RUnlock()
+
+	alreadyOrdered := len(orderedTxs) > 0
+	if !alreadyOrdered {
+		orderedTxs, orderedTxHashes, err = SortTxByNonce(txStore)
+
+		txs.mutOrderedTxs.Lock()
+		txs.orderedTxs[strCache] = orderedTxs
+		txs.orderedTxHashes[strCache] = orderedTxHashes
+		txs.mutOrderedTxs.Unlock()
+	}
+
+	return orderedTxs, orderedTxHashes, err
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock

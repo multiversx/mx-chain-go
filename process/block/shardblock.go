@@ -369,8 +369,11 @@ func (sp *shardProcessor) getFinalityAttestingHeaders(
 			continue
 		}
 
-		if hdr.GetNonce() <= highestNonceHdr.GetNonce() ||
-			hdr.GetNonce() > highestNonceHdr.GetNonce()+finality {
+		isHdrNonceLowerOrEqualThanHighestNonce := hdr.GetNonce() <= highestNonceHdr.GetNonce()
+		isHdrNonceHigherThanFinalNonce := hdr.GetNonce() > highestNonceHdr.GetNonce()+finality
+
+		if isHdrNonceLowerOrEqualThanHighestNonce ||
+			isHdrNonceHigherThanFinalNonce {
 			continue
 		}
 

@@ -97,8 +97,8 @@ var ErrWrongNonceInOtherChainBlock = errors.New("wrong nonce in other chain bloc
 // ErrBlockHashDoesNotMatch signals that header hash does not match with the previous one
 var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
 
-// ErrHashDoesNotMatchInOtherChainBlock signals that header hash does not match with the previous one
-var ErrHashDoesNotMatchInOtherChainBlock = errors.New("block hash does not match in other chain block")
+// ErrBlockHashDoesNotMatchInOtherChainBlock signals that header hash does not match with the previous one
+var ErrBlockHashDoesNotMatchInOtherChainBlock = errors.New("block hash does not match in other chain block")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")

@@ -762,66 +762,78 @@ func TestBasicForkDetector_GetProbableHighestNonce(t *testing.T) {
 	assert.Equal(t, uint64(3), bfd.GetProbableHighestNonce(hInfos))
 }
 
-func TestShardForkDetector_CheckShardBlockValidityShouldWork(t *testing.T) {
+func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
-	bfd, _ := sync.NewShardForkDetector(rounderMock)
+	sfd, _ := sync.NewShardForkDetector(rounderMock)
 
 	hdr := &block.Header{Nonce: 1, Round: 1}
-	err := bfd.CheckShardBlockValidity(hdr, process.BHProcessed)
+	err := sfd.ShouldAddBlockInForkDetector(hdr, process.BHProcessed, process.ShardBlockFinality)
 	assert.Nil(t, err)
 
-	bfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
-	err = bfd.CheckShardBlockValidity(hdr, process.BHReceived)
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
 	assert.Nil(t, err)
 
-	bfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference)
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference)
 	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality)
-	err = bfd.CheckShardBlockValidity(hdr, process.BHReceived)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
 	assert.Nil(t, err)
 
-	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality - 1)
-	err = bfd.CheckShardBlockValidity(hdr, process.BHReceived)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
-
-	bfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
-	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality - 1)
-	err = bfd.CheckShardBlockValidity(hdr, process.BHProposed)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
-
-	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality)
-	err = bfd.CheckShardBlockValidity(hdr, process.BHProposed)
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
 	assert.Nil(t, err)
 }
 
-func TestMetaForkDetector_CheckMetaBlockValidityShouldWork(t *testing.T) {
+func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock)
+	hdr := &block.Header{Nonce: 1, Round: 1}
+
+	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality - 1)
+	err := sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+}
+
+func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
 	mfd, _ := sync.NewMetaForkDetector(rounderMock)
 
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
-	err := mfd.CheckMetaBlockValidity(hdr, process.BHProcessed)
+	err := mfd.ShouldAddBlockInForkDetector(hdr, process.BHProcessed, process.MetaBlockFinality)
 	assert.Nil(t, err)
 
 	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
-	err = mfd.CheckMetaBlockValidity(hdr, process.BHReceived)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
 	assert.Nil(t, err)
 
 	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference)
 	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality)
-	err = mfd.CheckMetaBlockValidity(hdr, process.BHReceived)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
 	assert.Nil(t, err)
 
+	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
+	assert.Nil(t, err)
+}
+
+func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	mfd, _ := sync.NewMetaForkDetector(rounderMock)
+	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
+
 	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality - 1)
-	err = mfd.CheckMetaBlockValidity(hdr, process.BHReceived)
+	err := mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
 	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
 
 	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
-	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality - 1)
-	err = mfd.CheckMetaBlockValidity(hdr, process.BHProposed)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
 	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
-
-	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality)
-	err = mfd.CheckMetaBlockValidity(hdr, process.BHProposed)
-	assert.Nil(t, err)
 }

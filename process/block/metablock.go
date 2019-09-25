@@ -785,8 +785,11 @@ func (mp *metaProcessor) getFinalityAttestingHeaders(
 			continue
 		}
 
-		if hdr.GetNonce() <= highestNonceHdrs[hdr.ShardId].GetNonce() ||
-			hdr.GetNonce() > highestNonceHdrs[hdr.ShardId].GetNonce()+finality {
+		isHdrNonceLowerOrEqualThanHighestNonce := hdr.GetNonce() <= highestNonceHdrs[hdr.ShardId].GetNonce()
+		isHdrNonceHigherThanFinalNonce := hdr.GetNonce() > highestNonceHdrs[hdr.ShardId].GetNonce()+finality
+
+		if isHdrNonceLowerOrEqualThanHighestNonce ||
+			isHdrNonceHigherThanFinalNonce {
 			continue
 		}
 

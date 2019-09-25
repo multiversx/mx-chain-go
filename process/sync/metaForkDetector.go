@@ -54,7 +54,7 @@ func (mfd *metaForkDetector) AddHeader(
 		return err
 	}
 
-	err = mfd.checkMetaBlockValidity(header, state)
+	err = mfd.shouldAddBlockInForkDetector(header, state, process.MetaBlockFinality)
 	if err != nil {
 		return err
 	}
@@ -75,21 +75,6 @@ func (mfd *metaForkDetector) AddHeader(
 	probableHighestNonce := mfd.computeProbableHighestNonce()
 	mfd.setLastBlockRound(uint64(mfd.rounder.Index()))
 	mfd.setProbableHighestNonce(probableHighestNonce)
-
-	return nil
-}
-
-func (mfd *metaForkDetector) checkMetaBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
-	noncesDifference := int64(mfd.ProbableHighestNonce()) - int64(header.GetNonce())
-	isSyncing := state == process.BHReceived && noncesDifference > process.MaxNoncesDifference
-	if state == process.BHProcessed || isSyncing {
-		return nil
-	}
-
-	roundTooOld := int64(header.GetRound()) < mfd.rounder.Index()-process.MetaBlockFinality
-	if roundTooOld {
-		return ErrLowerRoundInBlock
-	}
 
 	return nil
 }

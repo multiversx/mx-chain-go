@@ -3169,12 +3169,12 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	currHdr.Nonce = 0
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInOtherChainBlock)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRootStateDoesNotMatchInOtherChainBlock)
+	assert.Equal(t, err, process.ErrRootStateDoesNotMatch)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
@@ -3186,22 +3186,22 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.Nonce = 45
 	prevHdr.Round = currHdr.Round + 1
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrLowerRoundInOtherChainBlock)
+	assert.Equal(t, err, process.ErrLowerRoundInBlock)
 
 	prevHdr.Round = currHdr.Round - 1
 	currHdr.Nonce = prevHdr.Nonce + 2
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrWrongNonceInOtherChainBlock)
+	assert.Equal(t, err, process.ErrWrongNonceInBlock)
 
 	currHdr.Nonce = prevHdr.Nonce + 1
 	currHdr.PrevHash = []byte("wronghash")
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrHashDoesNotMatchInOtherChainBlock)
+	assert.Equal(t, err, process.ErrBlockHashDoesNotMatch)
 
 	prevHdr.RandSeed = []byte("randomwrong")
 	currHdr.PrevHash, _ = sp.ComputeHeaderHash(prevHdr)
 	err = sp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRandSeedDoesNotMatchInOtherChainBlock)
+	assert.Equal(t, err, process.ErrRandSeedDoesNotMatch)
 
 	currHdr.PrevHash = prevHash
 	prevHdr.RandSeed = currRandSeed
