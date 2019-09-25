@@ -198,8 +198,9 @@ func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB,
 		accountFactory, _ = factory.NewAccountFactoryCreator(shardCoordinator)
 	}
 
+	evictionCacheSize := 100
 	store := CreateMemUnit()
-	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher)
+	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher, memorydb.New(), evictionCacheSize)
 	adb, _ := state.NewAccountsDB(tr, TestHasher, TestMarshalizer, accountFactory)
 
 	return adb, tr, store
@@ -430,7 +431,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
-	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher)
+	evictionCacheSize := 100
+	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher, memorydb.New(), evictionCacheSize)
 	return tr
 }
 

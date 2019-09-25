@@ -176,8 +176,9 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 func createAccountsDB() *state.AccountsDB {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
+	evictionCacheSize := 100
 
-	tr, _ := trie.NewTrie(store, testMarshalizer, hasher)
+	tr, _ := trie.NewTrie(store, testMarshalizer, hasher, memorydb.New(), evictionCacheSize)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)

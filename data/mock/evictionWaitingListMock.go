@@ -1,4 +1,4 @@
-package evictionWaitingList
+package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"

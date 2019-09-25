@@ -6,8 +6,11 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
 
 const (
@@ -19,12 +22,15 @@ const (
 var emptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
-	root            node
-	db              data.DBWriteCacher
-	dbEvictionQueue []data.DBWriteCacher
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
-	mutOperation    sync.RWMutex
+	root         node
+	db           data.DBWriteCacher
+	marshalizer  marshal.Marshalizer
+	hasher       hashing.Hasher
+	mutOperation sync.RWMutex
+
+	dbEvictionWaitingList data.DBRemoveCacher
+	oldHashes             [][]byte
+	oldRoot               []byte
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -32,6 +38,8 @@ func NewTrie(
 	db data.DBWriteCacher,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
+	evictionDb storage.Persister,
+	evictionCacheSize int,
 ) (*patriciaMerkleTrie, error) {
 	if db == nil || db.IsInterfaceNil() {
 		return nil, ErrNilDatabase
@@ -42,12 +50,25 @@ func NewTrie(
 	if hsh == nil || hsh.IsInterfaceNil() {
 		return nil, ErrNilHasher
 	}
+	if evictionDb == nil || evictionDb.IsInterfaceNil() {
+		return nil, ErrNilDatabase
+	}
+	if evictionCacheSize < 1 {
+		return nil, data.ErrInvalidCacheSize
+	}
+
+	evictionWaitList, err := evictionWaitingList.NewEvictionWaitingList(evictionCacheSize, evictionDb, msh)
+	if err != nil {
+		return nil, err
+	}
 
 	return &patriciaMerkleTrie{
-		db:              db,
-		dbEvictionQueue: make([]data.DBWriteCacher, 0),
-		marshalizer:     msh,
-		hasher:          hsh,
+		db:                    db,
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
+		marshalizer:           msh,
+		hasher:                hsh,
 	}, nil
 }
 
@@ -79,21 +100,34 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.root = newLeafNode(hexKey, value)
 			return nil
 		}
-		_, newRoot, err := tr.root.insert(node, tr.db, tr.marshalizer)
+
+		if !tr.root.isDirty() {
+			tr.oldRoot = tr.root.getHash()
+		}
+
+		_, newRoot, oldHashes, err := tr.root.insert(node, tr.db, tr.marshalizer)
 		if err != nil {
 			return err
 		}
 		tr.root = newRoot
+		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 	} else {
 		if tr.root == nil {
 			return nil
 		}
-		_, newRoot, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
+
+		if !tr.root.isDirty() {
+			tr.oldRoot = tr.root.getHash()
+		}
+
+		_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
 		if err != nil {
 			return err
 		}
 		tr.root = newRoot
+		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 	}
+
 	return nil
 }
 
@@ -106,11 +140,18 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 	if tr.root == nil {
 		return nil
 	}
-	_, newRoot, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
+
+	if !tr.root.isDirty() {
+		tr.oldRoot = tr.root.getHash()
+	}
+
+	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
 	if err != nil {
 		return err
 	}
 	tr.root = newRoot
+	tr.oldHashes = append(tr.oldHashes, oldHashes...)
+
 	return nil
 }
 
@@ -230,6 +271,16 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
+
+	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
+		err := tr.dbEvictionWaitingList.Put(tr.oldRoot, tr.oldHashes)
+		if err != nil {
+			return err
+		}
+		tr.oldRoot = make([]byte, 0)
+		tr.oldHashes = make([][]byte, 0)
+	}
+
 	err = tr.root.commit(0, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
@@ -242,11 +293,11 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher)
+	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize())
 	if err != nil {
 		return nil, err
 	}
-	newTr.dbEvictionQueue = tr.dbEvictionQueue
+	newTr.dbEvictionWaitingList = tr.dbEvictionWaitingList
 
 	if emptyTrie(root) {
 		return newTr, nil
@@ -262,6 +313,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		return nil, err
 	}
 
+	newRoot.setGivenHash(root)
 	newTr.root = newRoot
 	return newTr, nil
 }
@@ -271,11 +323,11 @@ func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher)
+	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize())
 	if err != nil {
 		return nil, err
 	}
-	clonedTrie.dbEvictionQueue = tr.dbEvictionQueue
+	clonedTrie.dbEvictionWaitingList = tr.dbEvictionWaitingList
 
 	if tr.root == nil {
 		return clonedTrie, nil
@@ -315,4 +367,27 @@ func emptyTrie(root []byte) bool {
 		return true
 	}
 	return false
+}
+
+// Rollback invalidates the hashes that correspond to the given root hash from the eviction waiting list
+func (tr *patriciaMerkleTrie) Rollback(rootHash []byte) error {
+	_, err := tr.dbEvictionWaitingList.Evict(rootHash)
+	return err
+}
+
+// Prune removes from the database all the old hashes that correspond to the given root hash
+func (tr *patriciaMerkleTrie) Prune(rootHash []byte) error {
+	hashes, err := tr.dbEvictionWaitingList.Evict(rootHash)
+	if err != nil {
+		return err
+	}
+
+	for i := range hashes {
+		err := tr.db.Remove(hashes[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

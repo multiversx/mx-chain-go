@@ -18,6 +18,7 @@ const hexTerminator = 16
 type node interface {
 	getHash() []byte
 	setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	setGivenHash([]byte)
 	setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error)
 	setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) // a collapsed node is a node that instead of the children holds the children hashes
@@ -31,8 +32,8 @@ type node interface {
 	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	tryGet(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) ([]byte, error)
 	getNext(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error)
-	insert(n *leafNode, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
-	delete(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
+	insert(n *leafNode, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error)
+	delete(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error)
 	reduceNode(pos int) node
 	isEmptyOrNil() error
 	print(writer io.Writer, index int)
@@ -184,18 +185,18 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
 }
 
 func getEmptyNodeOfType(t byte) (node, error) {
-	var decNode node
 	switch t {
 	case extension:
-		decNode = &extensionNode{}
+		return &extensionNode{}, nil
 	case leaf:
-		decNode = &leafNode{}
+		return &leafNode{}, nil
 	case branch:
-		decNode = newBranchNode()
+		decNode := newBranchNode()
+		decNode.dirty = false
+		return decNode, nil
 	default:
 		return nil, ErrInvalidNode
 	}
-	return decNode, nil
 }
 
 func childPosOutOfRange(pos byte) bool {

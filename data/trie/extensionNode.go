@@ -69,6 +69,10 @@ func (en *extensionNode) getHash() []byte {
 	return en.hash
 }
 
+func (en *extensionNode) setGivenHash(hash []byte) {
+	en.hash = hash
+}
+
 func (en *extensionNode) isDirty() bool {
 	return en.dirty
 }
@@ -216,6 +220,7 @@ func (en *extensionNode) resolveCollapsed(pos byte, db data.DBWriteCacher, marsh
 	if err != nil {
 		return err
 	}
+	child.setGivenHash(en.EncodedChild)
 	en.child = child
 	return nil
 }
@@ -272,14 +277,14 @@ func (en *extensionNode) getNext(key []byte, db data.DBWriteCacher, marshalizer 
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return false, nil, err
+		return false, nil, [][]byte{}, err
 	}
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
-		return false, nil, err
+		return false, nil, [][]byte{}, err
 	}
 	keyMatchLen := prefixLen(n.Key, en.Key)
 
@@ -287,18 +292,29 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
 		n.Key = n.Key[keyMatchLen:]
-		dirty, newNode, err := en.child.insert(n, db, marshalizer)
+		dirty, newNode, oldHashes, err := en.child.insert(n, db, marshalizer)
 		if !dirty || err != nil {
-			return false, nil, err
+			return false, nil, [][]byte{}, err
 		}
-		return true, newExtensionNode(en.Key, newNode), nil
+
+		if !en.dirty {
+			oldHashes = append(oldHashes, en.hash)
+		}
+
+		return true, newExtensionNode(en.Key, newNode), oldHashes, nil
 	}
+
+	oldHash := make([][]byte, 0)
+	if !en.dirty {
+		oldHash = append(oldHash, en.hash)
+	}
+
 	// Otherwise branch out at the index where they differ.
 	branch := newBranchNode()
 	oldChildPos := en.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
-		return false, nil, ErrChildPosOutOfRange
+		return false, nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 
 	followingExtensionNode := newExtensionNode(en.Key[keyMatchLen+1:], en.child)
@@ -311,40 +327,45 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 	branch.children[newChildPos] = n
 
 	if keyMatchLen == 0 {
-		return true, branch, nil
+		return true, branch, oldHash, nil
 	}
-	return true, newExtensionNode(en.Key[:keyMatchLen], branch), nil
+
+	return true, newExtensionNode(en.Key[:keyMatchLen], branch), oldHash, nil
 }
 
-func (en *extensionNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+func (en *extensionNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return false, nil, err
+		return false, nil, [][]byte{}, err
 	}
 	if len(key) == 0 {
-		return false, nil, ErrValueTooShort
+		return false, nil, [][]byte{}, ErrValueTooShort
 	}
 	keyMatchLen := prefixLen(key, en.Key)
 	if keyMatchLen < len(en.Key) {
-		return false, en, nil
+		return false, en, [][]byte{}, nil
 	}
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
-		return false, nil, err
+		return false, nil, [][]byte{}, err
 	}
 
-	dirty, newNode, err := en.child.delete(key[len(en.Key):], db, marshalizer)
+	dirty, newNode, oldHashes, err := en.child.delete(key[len(en.Key):], db, marshalizer)
 	if !dirty || err != nil {
-		return false, en, err
+		return false, en, [][]byte{}, err
+	}
+
+	if !en.dirty {
+		oldHashes = append(oldHashes, en.hash)
 	}
 
 	switch newNode := newNode.(type) {
 	case *leafNode:
-		return true, newLeafNode(concat(en.Key, newNode.Key...), newNode.Value), nil
+		return true, newLeafNode(concat(en.Key, newNode.Key...), newNode.Value), oldHashes, nil
 	case *extensionNode:
-		return true, newExtensionNode(concat(en.Key, newNode.Key...), newNode.child), nil
+		return true, newExtensionNode(concat(en.Key, newNode.Key...), newNode.child), oldHashes, nil
 	default:
-		return true, newExtensionNode(en.Key, newNode), nil
+		return true, newExtensionNode(en.Key, newNode), oldHashes, nil
 	}
 }
 

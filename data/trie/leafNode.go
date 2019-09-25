@@ -68,6 +68,10 @@ func (ln *leafNode) getHash() []byte {
 	return ln.hash
 }
 
+func (ln *leafNode) setGivenHash(hash []byte) {
+	ln.hash = hash
+}
+
 func (ln *leafNode) isDirty() bool {
 	return ln.dirty
 }
@@ -176,16 +180,22 @@ func (ln *leafNode) getNext(key []byte, dbw data.DBWriteCacher, marshalizer mars
 	return nil, nil, ErrNodeNotFound
 }
 
-func (ln *leafNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+func (ln *leafNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return false, nil, err
+		return false, nil, [][]byte{}, err
 	}
+
+	oldHash := make([][]byte, 0)
+	if !ln.dirty {
+		oldHash = append(oldHash, ln.hash)
+	}
+
 	if bytes.Equal(n.Key, ln.Key) {
 		ln.Value = n.Value
 		ln.dirty = true
 		ln.hash = nil
-		return true, ln, nil
+		return true, ln, oldHash, nil
 	}
 
 	keyMatchLen := prefixLen(n.Key, ln.Key)
@@ -193,24 +203,29 @@ func (ln *leafNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marsh
 	oldChildPos := ln.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
-		return false, nil, ErrChildPosOutOfRange
+		return false, nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 
 	branch.children[oldChildPos] = newLeafNode(ln.Key[keyMatchLen+1:], ln.Value)
 	branch.children[newChildPos] = newLeafNode(n.Key[keyMatchLen+1:], n.Value)
 
 	if keyMatchLen == 0 {
-		return true, branch, nil
+		return true, branch, oldHash, nil
 	}
-	return true, newExtensionNode(ln.Key[:keyMatchLen], branch), nil
+	return true, newExtensionNode(ln.Key[:keyMatchLen], branch), oldHash, nil
 }
 
-func (ln *leafNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+func (ln *leafNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
 	keyMatchLen := prefixLen(key, ln.Key)
 	if keyMatchLen == len(key) {
-		return true, nil, nil
+		oldHash := make([][]byte, 0)
+		if !ln.dirty {
+			oldHash = append(oldHash, ln.hash)
+		}
+
+		return true, nil, oldHash, nil
 	}
-	return false, ln, nil
+	return false, ln, [][]byte{}, nil
 }
 
 func (ln *leafNode) reduceNode(pos int) node {

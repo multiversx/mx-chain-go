@@ -56,6 +56,12 @@ type NTPConfig struct {
 	Version int
 }
 
+// EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
+type EvictionWaitingListConfig struct {
+	Size uint     `json:"size"`
+	DB   DBConfig `json:"db"`
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -71,6 +77,7 @@ type Config struct {
 	PeerDataStorage  StorageConfig
 
 	AccountsTrieStorage StorageConfig
+	EvictionWaitingList EvictionWaitingListConfig
 	BadBlocksCache      CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig

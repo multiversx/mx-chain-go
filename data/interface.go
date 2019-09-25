@@ -96,6 +96,8 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
+	Rollback(rootHash []byte) error
+	Prune(rootHash []byte) error
 	IsInterfaceNil() bool
 }
 
@@ -103,6 +105,7 @@ type Trie interface {
 type DBWriteCacher interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
+	Remove(key []byte) error
 	IsInterfaceNil() bool
 }
 
@@ -110,5 +113,6 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Put([]byte, [][]byte) error
 	Evict([]byte) ([][]byte, error)
+	GetSize() int
 	IsInterfaceNil() bool
 }

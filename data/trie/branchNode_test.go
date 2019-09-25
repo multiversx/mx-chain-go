@@ -110,11 +110,14 @@ func TestBranchNode_setHash(t *testing.T) {
 }
 
 func TestBranchNode_setRootHash(t *testing.T) {
-	db, _ := mock.NewMemDbMock()
-	marsh, hsh := getTestMarshAndHasher()
+	t.Parallel()
 
-	tr1, _ := NewTrie(db, marsh, hsh)
-	tr2, _ := NewTrie(db, marsh, hsh)
+	db := mock.NewMemDbMock()
+	marsh, hsh := getTestMarshAndHasher()
+	cacheSize := 100
+
+	tr1, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
+	tr2, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
 
 	for i := 0; i < 100000; i++ {
 		val := hsh.Compute(string(i))
@@ -170,7 +173,17 @@ func TestBranchNode_setHashCollapsedNode(t *testing.T) {
 	err := collapsedBn.setHash(marsh, hasher)
 	assert.Nil(t, err)
 	assert.Equal(t, hash, collapsedBn.hash)
+}
 
+func TestBranchNode_setGivenHash(t *testing.T) {
+	t.Parallel()
+
+	bn := &branchNode{}
+	expectedHash := []byte("node hash")
+
+	bn.setGivenHash(expectedHash)
+
+	assert.Equal(t, expectedHash, bn.hash)
 }
 
 func TestBranchNode_hashChildren(t *testing.T) {
@@ -257,7 +270,7 @@ func TestBranchNode_hashNodeNilNode(t *testing.T) {
 
 func TestBranchNode_commit(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -277,7 +290,7 @@ func TestBranchNode_commit(t *testing.T) {
 func TestBranchNode_commitEmptyNode(t *testing.T) {
 	t.Parallel()
 	bn := newBranchNode()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
 	err := bn.commit(0, db, marsh, hasher)
@@ -287,7 +300,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 func TestBranchNode_commitNilNode(t *testing.T) {
 	t.Parallel()
 	var bn *branchNode
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
 	err := bn.commit(0, db, marsh, hasher)
@@ -329,7 +342,7 @@ func TestBranchNode_getEncodedNodeNil(t *testing.T) {
 
 func TestBranchNode_resolveCollapsed(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -337,6 +350,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	_ = bn.commit(0, db, marsh, hasher)
 	resolved := newLeafNode([]byte("dog"), []byte("dog"))
 	resolved.dirty = false
+	resolved.hash = bn.EncodedChildren[2]
 
 	err := collapsedBn.resolveCollapsed(2, db, marsh)
 	assert.Nil(t, err)
@@ -345,7 +359,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 
 func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn := newBranchNode()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -355,7 +369,7 @@ func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
 
 func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	var bn *branchNode
 	marsh, _ := getTestMarshAndHasher()
 
@@ -365,7 +379,7 @@ func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
 
 func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -386,7 +400,7 @@ func TestBranchNode_isCollapsed(t *testing.T) {
 
 func TestBranchNode_tryGet(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -398,7 +412,7 @@ func TestBranchNode_tryGet(t *testing.T) {
 
 func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -410,7 +424,7 @@ func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 
 func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -422,7 +436,7 @@ func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 
 func TestBranchNode_tryGetNilChild(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -434,7 +448,7 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 
 func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	_ = bn.setHash(marsh, hasher)
@@ -448,7 +462,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 
 func TestBranchNode_tryGetEmptyNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn := newBranchNode()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -460,7 +474,7 @@ func TestBranchNode_tryGetEmptyNode(t *testing.T) {
 
 func TestBranchNode_tryGetNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	var bn *branchNode
 	marsh, _ := getTestMarshAndHasher()
 
@@ -472,7 +486,7 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 
 func TestBranchNode_getNext(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	nextNode := newLeafNode([]byte("dog"), []byte("dog"))
@@ -490,7 +504,7 @@ func TestBranchNode_getNext(t *testing.T) {
 
 func TestBranchNode_getNextWrongKey(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 	key := []byte{100, 111, 103}
@@ -503,7 +517,7 @@ func TestBranchNode_getNextWrongKey(t *testing.T) {
 
 func TestBranchNode_getNextNilChild(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 	key := []byte{4, 100, 111, 103}
@@ -516,12 +530,12 @@ func TestBranchNode_getNextNilChild(t *testing.T) {
 
 func TestBranchNode_insert(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.insert(node, db, marsh)
+	dirty, newBn, _, err := bn.insert(node, db, marsh)
 	bn.children[0] = newLeafNode([]byte{2, 3}, []byte("dogs"))
 	assert.True(t, dirty)
 	assert.Nil(t, err)
@@ -530,12 +544,12 @@ func TestBranchNode_insert(t *testing.T) {
 
 func TestBranchNode_insertEmptyKey(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	node := newLeafNode([]byte{}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.insert(node, db, marsh)
+	dirty, newBn, _, err := bn.insert(node, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
@@ -543,12 +557,12 @@ func TestBranchNode_insertEmptyKey(t *testing.T) {
 
 func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	node := newLeafNode([]byte{100, 111, 103}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.insert(node, db, marsh)
+	dirty, newBn, _, err := bn.insert(node, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, newBn)
@@ -556,28 +570,98 @@ func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
 
 func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn()
 	node := newLeafNode([]byte{2, 100, 111, 103}, []byte("dogs"))
 	marsh, hasher := getTestMarshAndHasher()
 	_ = bn.setHash(marsh, hasher)
 	_ = bn.commit(0, db, marsh, hasher)
 
-	dirty, newBn, err := collapsedBn.insert(node, db, marsh)
+	dirty, newBn, _, err := collapsedBn.insert(node, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	val, _ := newBn.tryGet([]byte{2, 100, 111, 103}, db, marsh)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
+func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, hasher := getTestMarshAndHasher()
+	node := newLeafNode([]byte{2, 100, 111, 103}, []byte("dogs"))
+
+	_ = bn.commit(0, db, marsh, hasher)
+	bnHash := bn.getHash()
+	ln, _, _ := bn.getNext([]byte{2, 100, 111, 103}, db, marsh)
+	lnHash := ln.getHash()
+	expectedHashes := [][]byte{lnHash, bnHash}
+
+	dirty, _, oldHashes, err := bn.insert(node, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedHashes, oldHashes)
+}
+
+func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, hasher := getTestMarshAndHasher()
+	node := newLeafNode([]byte{11, 100, 111, 103}, []byte("dogs"))
+
+	_ = bn.commit(0, db, marsh, hasher)
+	bnHash := bn.getHash()
+	expectedHashes := [][]byte{bnHash}
+
+	dirty, _, oldHashes, err := bn.insert(node, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedHashes, oldHashes)
+}
+
+func TestBranchNode_insertInDirtyBnOnNilPos(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	node := newLeafNode([]byte{11, 100, 111, 103}, []byte("dogs"))
+
+	dirty, _, oldHashes, err := bn.insert(node, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{}, oldHashes)
+}
+
+func TestBranchNode_insertInDirtyBnOnExistingPos(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	node := newLeafNode([]byte{2, 100, 111, 103}, []byte("dogs"))
+
+	dirty, _, oldHashes, err := bn.insert(node, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{}, oldHashes)
+}
+
 func TestBranchNode_insertInNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	var bn *branchNode
 	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.insert(node, db, marsh)
+	dirty, newBn, _, err := bn.insert(node, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, newBn)
@@ -585,7 +669,7 @@ func TestBranchNode_insertInNilNode(t *testing.T) {
 
 func TestBranchNode_delete(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -595,7 +679,7 @@ func TestBranchNode_delete(t *testing.T) {
 	expectedBn := newBranchNode()
 	expectedBn.children = children
 
-	dirty, newBn, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -604,13 +688,49 @@ func TestBranchNode_delete(t *testing.T) {
 	assert.Equal(t, expectedBn.getHash(), newBn.getHash())
 }
 
+func TestBranchNode_deleteFromStoredBn(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, hasher := getTestMarshAndHasher()
+	lnKey := []byte{2, 100, 111, 103}
+
+	_ = bn.commit(0, db, marsh, hasher)
+	bnHash := bn.getHash()
+	ln, _, _ := bn.getNext(lnKey, db, marsh)
+	lnHash := ln.getHash()
+	expectedHashes := [][]byte{lnHash, bnHash}
+
+	dirty, _, oldHashes, err := bn.delete(lnKey, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedHashes, oldHashes)
+}
+
+func TestBranchNode_deleteFromDirtyBn(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	lnKey := []byte{2, 100, 111, 103}
+
+	dirty, _, oldHashes, err := bn.delete(lnKey, db, marsh)
+
+	assert.True(t, dirty)
+	assert.Nil(t, err)
+	assert.Equal(t, [][]byte{}, oldHashes)
+}
+
 func TestBranchNode_deleteEmptyNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn := newBranchNode()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrEmptyNode, err)
 	assert.Nil(t, newBn)
@@ -618,11 +738,11 @@ func TestBranchNode_deleteEmptyNode(t *testing.T) {
 
 func TestBranchNode_deleteNilNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	var bn *branchNode
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
 	assert.Nil(t, newBn)
@@ -630,11 +750,11 @@ func TestBranchNode_deleteNilNode(t *testing.T) {
 
 func TestBranchNode_deleteEmptykey(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := bn.delete([]byte{}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
@@ -642,13 +762,13 @@ func TestBranchNode_deleteEmptykey(t *testing.T) {
 
 func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	_ = bn.setHash(marsh, hasher)
 	_ = bn.commit(0, db, marsh, hasher)
 
-	dirty, newBn, err := collapsedBn.delete([]byte{2, 100, 111, 103}, db, marsh)
+	dirty, newBn, _, err := collapsedBn.delete([]byte{2, 100, 111, 103}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -659,7 +779,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 
 func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	t.Parallel()
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	marsh, _ := getTestMarshAndHasher()
 
 	var children [nrOfChildren]node
@@ -669,7 +789,7 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	bn.children = children
 	ln := newLeafNode([]byte{2, 100, 111, 103}, []byte("dog"))
 
-	dirty, newBn, err := bn.delete([]byte{6, 100, 111, 101}, db, marsh)
+	dirty, newBn, _, err := bn.delete([]byte{6, 100, 111, 101}, db, marsh)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newBn)
@@ -788,9 +908,10 @@ func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 }
 
 func newEmptyTrie() data.Trie {
-	db, _ := mock.NewMemDbMock()
+	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
-	tr, _ := NewTrie(db, marsh, hsh)
+	cacheSize := 100
+	tr, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
 	return tr
 }
 

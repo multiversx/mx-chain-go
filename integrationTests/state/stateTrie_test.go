@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -260,7 +261,9 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
-	tr1, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, hasher)
+	evictionCacheSize := 100
+
+	tr1, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, hasher, memorydb.New(), evictionCacheSize)
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -316,7 +319,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	assert.Nil(t, err)
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
-	tr, _ := trie.NewTrie(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	tr, _ := trie.NewTrie(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), 100)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	//reloading a new trie to test if data is inside
@@ -997,7 +1000,8 @@ func createAccounts(
 ) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
-	tr, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	evictionCacheSize := 100
+	tr, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionCacheSize)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	addr := make([]state.AddressContainer, nrOfAccounts)
