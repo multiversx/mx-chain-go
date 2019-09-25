@@ -90,12 +90,12 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
-	vm, err = vmf.createArwenVM()
+	currVm, err = vmf.createArwenVM()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(factory.ArwenVirtualMachine, vm)
+	err = container.Add(factory.ArwenVirtualMachine, currVm)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, erro
 
 func (vmf *vmContainerFactory) createHeraBinaryenVM() (vmcommon.VMExecutionHandler, error) {
 	config := vm.WASMLibLocation() + ",engine=binaryen"
-	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
+	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWBinaryenVirtualMachine)
 	return wasmVM, err
 }
 
@@ -122,7 +122,7 @@ func (vmf *vmContainerFactory) createHeraWABTVM() (vmcommon.VMExecutionHandler, 
 
 func (vmf *vmContainerFactory) createHeraWAVMVM() (vmcommon.VMExecutionHandler, error) {
 	config := vm.WASMLibLocation() + ",engine=wavm"
-	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
+	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWAVMVirtualMachine)
 	return wasmVM, err
 }
 
