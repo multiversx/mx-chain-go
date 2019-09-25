@@ -97,7 +97,7 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 	}
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(tb, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.HeraWAVMVirtualMachine)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.HeraWAVMVirtualMachine)
 
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(tb, err)
@@ -145,7 +145,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	scCodeString := hex.EncodeToString(scCode)
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.HeraWABTVirtualMachine)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.HeraWABTVirtualMachine)
 
 	fmt.Println(hex.EncodeToString(scAddress))
 	tx := vm.CreateDeployTx(
