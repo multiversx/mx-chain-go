@@ -38,7 +38,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -81,9 +80,9 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	VmProcessor            vmcommon.VMExecutionHandler
-	VmDataGetter           vmcommon.VMExecutionHandler
-	BlockchainHook         vmcommon.BlockchainHook
+	VmProcessors           process.VirtualMachinesContainer
+	VmDataGetter           process.VirtualMachinesContainer
+	BlockchainHook         *hooks.VMAccountsDB
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            process.SmartContractProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
@@ -295,22 +294,17 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
-	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
-	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
-
-	vmContainer := &mock.VMContainerMock{
-		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-			return tpn.VmProcessor, nil
-		}}
+	tpn.VmProcessors, tpn.BlockchainHook = CreateVMContainerAndBlockchainHook(tpn.AccntState)
+	tpn.VmDataGetter, _ = CreateVMContainerAndBlockchainHook(tpn.AccntState)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
-		vmContainer,
+		tpn.VmProcessors,
 		tpn.ArgsParser,
 		TestHasher,
 		TestMarshalizer,
 		tpn.AccntState,
-		tpn.BlockchainHook.(*hooks.VMAccountsDB),
+		tpn.BlockchainHook,
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,

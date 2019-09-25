@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +19,11 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	accnts, destinationAddressBytes, expectedValueForVar := deploySmartContract(t)
 
 	mockVM := vm.CreateOneSCExecutorMockVM(accnts)
-	scgd, _ := smartContract.NewSCDataGetter(mockVM)
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
+		}}
+	scgd, _ := smartContract.NewSCDataGetter(vmContainer)
 
 	functionName := "Get"
 	returnedVals, err := scgd.Get(destinationAddressBytes, functionName)

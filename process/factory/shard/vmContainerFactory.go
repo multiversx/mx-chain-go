@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -57,12 +58,27 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
+	vm, err = vmf.createArwenVM()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.ArwenVirtualMachine, vm)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
 	return ieleVM, nil
+}
+
+func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
+	arwenVM, err := arwen.NewArwenVM(vmf.vmAccountsDB, vmf.cryptoHook, factory.ArwenVirtualMachine)
+	return arwenVM, err
 }
 
 // VMAccountsDB returns the created vmAccountsDB
