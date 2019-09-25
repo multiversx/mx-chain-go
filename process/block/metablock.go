@@ -509,7 +509,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	log.Info(fmt.Sprintf("metaBlock with nonce %d and hash %s has been committed successfully\n",
+	log.Info(fmt.Sprintf("meta block with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
 		core.ToB64(headerHash)))
 
