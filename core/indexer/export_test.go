@@ -42,8 +42,8 @@ func NewTestElasticIndexer(
 	return ElasticIndexer{indexer}
 }
 
-func (ei *ElasticIndexer) GetSerializedElasticBlockAndHeaderHash(header data.HeaderHandler) ([]byte, []byte) {
-	return ei.getSerializedElasticBlockAndHeaderHash(header)
+func (ei *ElasticIndexer) GetSerializedElasticBlockAndHeaderHash(header data.HeaderHandler, signersIndexes []uint64) ([]byte, []byte) {
+	return ei.getSerializedElasticBlockAndHeaderHash(header, signersIndexes)
 }
 
 func (ei *ElasticIndexer) BuildTransactionBulks(

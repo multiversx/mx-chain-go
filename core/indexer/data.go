@@ -31,18 +31,19 @@ type Transaction struct {
 //  to be saved for a block. It has all the default fields
 //  plus some extra information for ease of search and filter
 type Block struct {
-	Nonce         uint64        `json:"nonce"`
-	Round         uint64        `json:"round"`
-	ShardID       uint32        `json:"shardId"`
-	Hash          string        `json:"hash"`
-	Proposer      string        `json:"proposer"`
-	Validators    []string      `json:"validators"`
-	PubKeyBitmap  string        `json:"pubKeyBitmap"`
-	Size          int64         `json:"size"`
-	Timestamp     time.Duration `json:"timestamp"`
-	TxCount       uint32        `json:"txCount"`
-	StateRootHash string        `json:"stateRootHash"`
-	PrevHash      string        `json:"prevHash"`
+	Nonce          uint64        `json:"nonce"`
+	Round          uint64        `json:"round"`
+	ShardID        uint32        `json:"shardId"`
+	Hash           string        `json:"hash"`
+	Proposer       string        `json:"proposer"`
+	Validators     []string      `json:"validators"`
+	PubKeyBitmap   string        `json:"pubKeyBitmap"`
+	Size           int64         `json:"size"`
+	Timestamp      time.Duration `json:"timestamp"`
+	TxCount        uint32        `json:"txCount"`
+	StateRootHash  string        `json:"stateRootHash"`
+	PrevHash       string        `json:"prevHash"`
+	SignersIndexes []uint64      `json:"signersIndexes"`
 }
 
 // RoundInfo is a structure containing block signers and shard id

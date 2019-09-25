@@ -268,7 +268,7 @@ func TestElasticIndexer_getSerializedElasticBlockAndHeaderHash(t *testing.T) {
 	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, log, &indexer.Options{})
 	header := newTestBlockHeader()
 
-	serializedBlock, headerHash := ei.GetSerializedElasticBlockAndHeaderHash(header)
+	serializedBlock, headerHash := ei.GetSerializedElasticBlockAndHeaderHash(header, nil)
 
 	h, _ := marshalizer.Marshal(header)
 	expectedHeaderHash := hasher.Compute(string(h))

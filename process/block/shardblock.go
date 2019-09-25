@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -429,7 +430,23 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		txPool[hash] = tx
 	}
 
-	go sp.core.Indexer().SaveBlock(body, header, txPool)
+	shardId := sp.shardCoordinator.SelfId()
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(header.GetPrevRandSeed(), header.GetRound(), shardId)
+	if err != nil {
+		return
+	}
+	validatorsPubKeys := sp.nodesCoordinator.GetAllValidatorsPublicKeys()
+	signersIndexes := make([]uint64, 0)
+
+	for _, pubKey := range pubKeys {
+		for index, value := range validatorsPubKeys[shardId] {
+			if bytes.Equal([]byte(pubKey), value) {
+				signersIndexes = append(signersIndexes, uint64(index))
+			}
+		}
+	}
+
+	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools

@@ -212,6 +212,7 @@ func (ei *elasticIndexer) SaveBlock(
 	bodyHandler data.BodyHandler,
 	headerhandler data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
+	signersIndexes []uint64,
 ) {
 
 	if headerhandler == nil || headerhandler.IsInterfaceNil() {
@@ -225,7 +226,7 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	go ei.saveHeader(headerhandler)
+	go ei.saveHeader(headerhandler, signersIndexes)
 
 	if len(body) == 0 {
 		ei.logger.Warn(ErrNoMiniblocks.Error())
@@ -303,7 +304,7 @@ func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][
 	}
 }
 
-func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler) ([]byte, []byte) {
+func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler, signersIndexes []uint64) ([]byte, []byte) {
 	h, err := ei.marshalizer.Marshal(header)
 	if err != nil {
 		ei.logger.Warn("could not marshal header")
@@ -319,12 +320,13 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.Hea
 		// TODO: We should add functionality for proposer and validators
 		Proposer: hex.EncodeToString([]byte("mock proposer")),
 		//Validators: "mock validators",
-		PubKeyBitmap:  hex.EncodeToString(header.GetPubKeysBitmap()),
-		Size:          int64(len(h)),
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		TxCount:       header.GetTxCount(),
-		StateRootHash: hex.EncodeToString(header.GetRootHash()),
-		PrevHash:      hex.EncodeToString(header.GetPrevHash()),
+		PubKeyBitmap:   hex.EncodeToString(header.GetPubKeysBitmap()),
+		Size:           int64(len(h)),
+		Timestamp:      time.Duration(header.GetTimeStamp()),
+		TxCount:        header.GetTxCount(),
+		StateRootHash:  hex.EncodeToString(header.GetRootHash()),
+		PrevHash:       hex.EncodeToString(header.GetPrevHash()),
+		SignersIndexes: signersIndexes,
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)
@@ -336,10 +338,10 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.Hea
 	return serializedBlock, headerHash
 }
 
-func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
+func (ei *elasticIndexer) saveHeader(header data.HeaderHandler, signersIndexes []uint64) {
 	var buff bytes.Buffer
 
-	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header)
+	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header, signersIndexes)
 
 	buff.Grow(len(serializedBlock))
 	buff.Write(serializedBlock)
