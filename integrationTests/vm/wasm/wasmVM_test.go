@@ -193,8 +193,13 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	elapsedTime := time.Since(start)
 	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", nrTxs, elapsedTime.String())
 
-	//finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(nrTxs)*transferOnCalls.Int64()))
-	//assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "balance", alice).Uint64())
-	//finalBob := big.NewInt(int64(nrTxs) * transferOnCalls.Int64())
-	//assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "balance", bob).Uint64())
+	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(nrTxs)*transferOnCalls.Int64()))
+	vmValueBytes := vm.GetBytesValueFromSC(accnts, scAddress, "balance", alice)
+	transformedValue := big.NewInt(0).SetBytes(vmValueBytes)
+	assert.Equal(t, finalAlice.Uint64(), transformedValue.Uint64())
+
+	finalBob := big.NewInt(int64(nrTxs) * transferOnCalls.Int64())
+	vmValueBytes = vm.GetBytesValueFromSC(accnts, scAddress, "balance", bob)
+	transformedValue = big.NewInt(0).SetBytes(vmValueBytes)
+	assert.Equal(t, finalBob.Uint64(), transformedValue.Uint64())
 }
