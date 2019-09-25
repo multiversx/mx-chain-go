@@ -3,6 +3,8 @@ package termuic
 import (
 	"os"
 	"os/signal"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -16,6 +18,10 @@ import (
 //refreshInterval is used for a ticker that refresh termui console at a specific interval
 const refreshInterval = time.Second
 
+// numOfTicksBeforeRedrawing represents the number of ticks which have to pass until a fake resize will be made
+// in order to clean the unwanted appeared characters
+const numOfTicksBeforeRedrawing = 10
+
 var log = logger.DefaultLogger()
 
 // TermuiConsole data where is store data from handler
@@ -23,6 +29,7 @@ type TermuiConsole struct {
 	presenter     view.Presenter
 	consoleRender TermuiRender
 	grid          *termuiRenders.DrawableContainer
+	mutRefresh    *sync.RWMutex
 }
 
 //NewTermuiConsole method is used to return a new TermuiConsole structure
@@ -32,7 +39,8 @@ func NewTermuiConsole(presenter view.Presenter) (*TermuiConsole, error) {
 	}
 
 	tc := TermuiConsole{
-		presenter: presenter,
+		presenter:  presenter,
+		mutRefresh: &sync.RWMutex{},
 	}
 
 	return &tc, nil
@@ -75,14 +83,12 @@ func (tc *TermuiConsole) eventLoop() {
 	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM)
 
 	tc.consoleRender.RefreshData()
+	ticksCounter := uint32(0)
 
 	for {
 		select {
 		case <-time.After(refreshInterval):
-			tc.consoleRender.RefreshData()
-			ui.Clear()
-			ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
-
+			tc.doChanges(&ticksCounter)
 		case <-sigTerm:
 			ui.Clear()
 			return
@@ -95,14 +101,43 @@ func (tc *TermuiConsole) eventLoop() {
 func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 	switch e.ID {
 	case "<Resize>":
-		payload := e.Payload.(ui.Resize)
-		tc.grid.SetRectangle(0, 0, payload.Width, payload.Height)
-		ui.Clear()
-		ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
-
+		tc.doResizeEvent(e)
 	case "<C-c>":
 		ui.Close()
 		StopApplication()
 		return
 	}
+}
+
+func (tc *TermuiConsole) doChanges(counter *uint32) {
+	atomic.AddUint32(counter, 1)
+	if atomic.LoadUint32(counter) > numOfTicksBeforeRedrawing {
+		tc.doFakeResize()
+		atomic.StoreUint32(counter, 0)
+	} else {
+		tc.refreshWindow()
+	}
+}
+
+func (tc *TermuiConsole) doResizeEvent(e ui.Event) {
+	payload := e.Payload.(ui.Resize)
+	tc.doResize(payload.Width, payload.Height)
+}
+
+func (tc *TermuiConsole) doFakeResize() {
+	tc.doResize(ui.TerminalDimensions())
+}
+
+func (tc *TermuiConsole) doResize(width int, height int) {
+	tc.grid.SetRectangle(0, 0, width, height)
+	tc.refreshWindow()
+}
+
+func (tc *TermuiConsole) refreshWindow() {
+	tc.mutRefresh.Lock()
+	defer tc.mutRefresh.Unlock()
+
+	tc.consoleRender.RefreshData()
+	ui.Clear()
+	ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
 }

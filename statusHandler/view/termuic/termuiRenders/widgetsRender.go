@@ -273,10 +273,15 @@ func (wr *WidgetsRender) prepareListWithLogsForDisplay() {
 	wr.lLog.WrapText = true
 }
 
-func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
+func (wr *WidgetsRender) prepareLogLines(logData []string, maxSize int) []string {
 	logDataLen := len(logData)
-	if logDataLen > size {
-		return logData[logDataLen-size : logDataLen]
+	maxSize = maxSize - 2 // decrease 2 units as the total maxSize of the log list includes also the header and the footer
+	if maxSize < 0 {
+		maxSize = 0
+	}
+
+	if logDataLen > maxSize {
+		return logData[(logDataLen - maxSize):logDataLen]
 	}
 
 	return logData
