@@ -22,6 +22,8 @@ github.com/ElrondNetwork/go-ext-wasm v0.0.2 h1:ofGBMny3hjgGU4758u7oCoeu090DISmRc
 github.com/ElrondNetwork/go-ext-wasm v0.0.2/go.mod h1:+OQYLOaYAxbnkA5WWbiya03JsQng7wg8jKwlJNyQb68=
 github.com/ElrondNetwork/hera v1.0.7 h1:+rTstWQvolQ1TIlOrG/X6oLfKJECKsSoPkAMPEOuEZA=
 github.com/ElrondNetwork/hera v1.0.7/go.mod h1:pee5iZWbIqFIFODHqCpkqMFcIOWyKPILK+maNC+j0Yo=
+github.com/ElrondNetwork/hera v1.0.10 h1:dSZF1cSPekpImNyV7iDz2u6pNJOzg9GTsvCR2+wDdy8=
+github.com/ElrondNetwork/hera v1.0.10/go.mod h1:pee5iZWbIqFIFODHqCpkqMFcIOWyKPILK+maNC+j0Yo=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/StackExchange/wmi v0.0.0-20170410192909-ea383cf3ba6e h1:IHXQQIpxASe3m0Jtcd3XongL+lxHNd5nUmvHxJARUmg=
 github.com/StackExchange/wmi v0.0.0-20170410192909-ea383cf3ba6e/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
