@@ -89,3 +89,8 @@ func (ewl *evictionWaitingList) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+// GetSize returns the size of the cache
+func (ewl *evictionWaitingList) GetSize() int {
+	return ewl.cacheSize
+}

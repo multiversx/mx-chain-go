@@ -89,6 +89,7 @@ func TestLeafNode_setHashNilNode(t *testing.T) {
 
 func TestLeafNode_setGivenHash(t *testing.T) {
 	t.Parallel()
+
 	ln := &leafNode{}
 	expectedHash := []byte("node hash")
 

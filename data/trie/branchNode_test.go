@@ -110,11 +110,14 @@ func TestBranchNode_setHash(t *testing.T) {
 }
 
 func TestBranchNode_setRootHash(t *testing.T) {
+	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
+	cacheSize := 100
 
-	tr1, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock())
-	tr2, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock())
+	tr1, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
+	tr2, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
 
 	for i := 0; i < 100000; i++ {
 		val := hsh.Compute(string(i))
@@ -174,6 +177,7 @@ func TestBranchNode_setHashCollapsedNode(t *testing.T) {
 
 func TestBranchNode_setGivenHash(t *testing.T) {
 	t.Parallel()
+
 	bn := &branchNode{}
 	expectedHash := []byte("node hash")
 
@@ -906,7 +910,8 @@ func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 func newEmptyTrie() data.Trie {
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
-	tr, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock())
+	cacheSize := 100
+	tr, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
 	return tr
 }
 
