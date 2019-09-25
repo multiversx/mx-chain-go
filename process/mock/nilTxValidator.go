@@ -1,4 +1,4 @@
-package dataValidators
+package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process"

@@ -336,11 +336,12 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 
 	assert.Equal(t, senderShard, txi.SenderShardId())
 	assert.Equal(t, recvShard, txi.ReceiverShardId())
-	assert.False(t, txi.IsForMyShard())
+	assert.False(t, txi.IsForCurrentShard())
 	assert.Equal(t, tx, txi.Transaction())
 	assert.Equal(t, expectedHash, txi.Hash())
 	assert.Equal(t, nonce, txi.Nonce())
 	assert.Equal(t, value, txi.TotalValue())
+	assert.Equal(t, senderAddress, txi.SenderAddress().Bytes())
 }
 
 //------- IsInterfaceNil

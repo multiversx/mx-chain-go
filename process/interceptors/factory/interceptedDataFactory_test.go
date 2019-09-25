@@ -78,6 +78,7 @@ func TestNewInterceptedDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.Marshalizer = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -89,6 +90,7 @@ func TestNewInterceptedDataFactory_NilHasherShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.Hasher = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -100,6 +102,7 @@ func TestNewInterceptedDataFactory_NilKeygenShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.KeyGen = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -111,6 +114,7 @@ func TestNewInterceptedDataFactory_NilSignerShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.Signer = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -122,6 +126,7 @@ func TestNewInterceptedDataFactory_NilAddressConverterShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.AddrConv = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -133,6 +138,7 @@ func TestNewInterceptedDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.ShardCoordinator = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -168,7 +174,6 @@ func TestInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	emptyTx := &dataTransaction.Transaction{}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
-
 	idf, _ := factory.NewInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 
 	instance, err := idf.Create(emptyTxBuff)
@@ -185,7 +190,6 @@ func TestInterceptedDataFactory_CreateInterceptedUnsignedTxShouldWork(t *testing
 	marshalizer := &mock.MarshalizerMock{}
 	emptyTx := &smartContractResult.SmartContractResult{}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
-
 	idf, _ := factory.NewInterceptedDataFactory(createMockArgument(), factory.InterceptedUnsignedTx)
 
 	instance, err := idf.Create(emptyTxBuff)

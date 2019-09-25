@@ -16,18 +16,18 @@ import (
 
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedTransaction struct {
-	tx           *transaction.Transaction
-	marshalizer  marshal.Marshalizer
-	hasher       hashing.Hasher
-	keyGen       crypto.KeyGenerator
-	singleSigner crypto.SingleSigner
-	addrConv     state.AddressConverter
-	coordinator  sharding.Coordinator
-	hash         []byte
-	rcvShard     uint32
-	sndShard     uint32
-	isForMyShard bool
-	sndAddr      state.AddressContainer
+	tx                *transaction.Transaction
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	keyGen            crypto.KeyGenerator
+	singleSigner      crypto.SingleSigner
+	addrConv          state.AddressConverter
+	coordinator       sharding.Coordinator
+	hash              []byte
+	rcvShard          uint32
+	sndShard          uint32
+	isForCurrentShard bool
+	sndAddr           state.AddressContainer
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -125,7 +125,7 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 
 	isMyShardRecv := inTx.rcvShard == inTx.coordinator.SelfId()
 	isMyShardSender := inTx.sndShard == inTx.coordinator.SelfId()
-	inTx.isForMyShard = isMyShardRecv || isMyShardSender
+	inTx.isForCurrentShard = isMyShardRecv || isMyShardSender
 
 	return nil
 }
@@ -178,9 +178,9 @@ func (inTx *InterceptedTransaction) ReceiverShardId() uint32 {
 	return inTx.rcvShard
 }
 
-// IsForMyShard returns true if this transaction is meant to be processed by the node from this shard
-func (inTx *InterceptedTransaction) IsForMyShard() bool {
-	return inTx.isForMyShard
+// IsForCurrentShard returns true if this transaction is meant to be processed by the node from this shard
+func (inTx *InterceptedTransaction) IsForCurrentShard() bool {
+	return inTx.isForCurrentShard
 }
 
 // Transaction returns the transaction pointer that actually holds the data

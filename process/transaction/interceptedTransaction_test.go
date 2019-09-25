@@ -486,7 +486,7 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 
 	assert.Equal(t, senderShard, txi.SenderShardId())
 	assert.Equal(t, recvShard, txi.ReceiverShardId())
-	assert.False(t, txi.IsForMyShard())
+	assert.False(t, txi.IsForCurrentShard())
 	assert.Equal(t, tx, txi.Transaction())
 }
 
