@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -29,6 +30,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	startSyncingBlocks(nodes)
 
 	round := uint64(0)
+	idxNonceShard := 0
 	idxNonceMeta := 1
 	nonces := []*uint64{new(uint64), new(uint64)}
 
@@ -36,7 +38,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	updateRound(nodes, round)
 	incrementNonces(nonces)
 
-	numRoundsBlocksAreProposedCorrectly := 2
+	numRoundsBlocksAreProposedCorrectly := 3
 	proposeAndSyncBlocks(
 		nodes,
 		&round,
@@ -44,6 +46,14 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 		nonces,
 		numRoundsBlocksAreProposedCorrectly,
 	)
+
+	shardIdToRollbackLastBlock := uint32(0)
+	manualRollback(nodes, shardIdToRollbackLastBlock, 3)
+	resetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 2)
+	emptyDataPools(nodes, shardIdToRollbackLastBlock)
+
+	//revert also the nonce, so the same block nonce will be used when shard will propose the next block
+	atomic.AddUint64(nonces[idxNonceShard], ^uint64(0))
 
 	numRoundsBlocksAreProposedOnlyByMeta := 2
 	proposeAndSyncBlocks(

@@ -14,6 +14,7 @@ type BootstrapperMock struct {
 	StartSyncCalled                 func()
 	StopSyncCalled                  func()
 	SetStatusHandlerCalled          func(handler core.AppStatusHandler) error
+	ManualRollbackCalled            func() error
 }
 
 func (boot *BootstrapperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
@@ -52,6 +53,10 @@ func (boot *BootstrapperMock) StopSync() {
 
 func (boot *BootstrapperMock) SetStatusHandler(handler core.AppStatusHandler) error {
 	return boot.SetStatusHandlerCalled(handler)
+}
+
+func (boot *BootstrapperMock) ManualRollback() error {
+	return boot.ManualRollbackCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

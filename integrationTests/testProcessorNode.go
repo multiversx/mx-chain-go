@@ -92,7 +92,7 @@ type TestProcessorNode struct {
 	BlockTracker       process.BlocksTracker
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
-	Bootstrapper       process.Bootstrapper
+	Bootstrapper       TestBootstrapper
 	Rounder            *mock.RounderMock
 
 	//Node is used to call the functionality already implemented in it
@@ -252,8 +252,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
-			factory.HeadersTopic,
 			factory.ShardHeadersForMetachainTopic,
+			factory.MetachainBlocksTopic,
 		)
 	} else {
 		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(

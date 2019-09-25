@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -106,5 +107,76 @@ func proposeBlocks(
 	for idx, proposer := range idxProposers {
 		crtNonce := atomic.LoadUint64(nonces[idx])
 		integrationTests.ProposeBlock(nodes, []int{proposer}, crtRound, crtNonce)
+	}
+}
+
+func manualRollback(nodes []*integrationTests.TestProcessorNode, shardId uint32, targetNonce uint64) {
+	for idx, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardId {
+			continue
+		}
+
+		if n.BlockChain.GetCurrentBlockHeader().GetNonce() != targetNonce {
+			continue
+		}
+
+		oldNonce := n.BlockChain.GetCurrentBlockHeader().GetNonce()
+		err := n.Bootstrapper.ManualRollback()
+		if err != nil {
+			fmt.Println(err)
+		}
+		newNonce := n.BlockChain.GetCurrentBlockHeader().GetNonce()
+		fmt.Printf("Node's id %d had nonce %d, now is %d\n", idx, oldNonce, newNonce)
+	}
+}
+
+func emptyDataPools(nodes []*integrationTests.TestProcessorNode, shardId uint32) {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardId {
+			continue
+		}
+
+		emptyNodeDataPool(n)
+	}
+}
+
+func emptyNodeDataPool(node *integrationTests.TestProcessorNode) {
+	if node.ShardDataPool != nil {
+		emptyShardDataPool(node.ShardDataPool)
+	}
+
+	if node.MetaDataPool != nil {
+		emptyMetaDataPool(node.MetaDataPool)
+	}
+}
+
+func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
+	sdp.HeadersNonces().Clear()
+	sdp.Headers().Clear()
+	sdp.UnsignedTransactions().Clear()
+	sdp.Transactions().Clear()
+	sdp.MetaBlocks().Clear()
+	sdp.MiniBlocks().Clear()
+	sdp.PeerChangesBlocks().Clear()
+}
+
+func emptyMetaDataPool(holder dataRetriever.MetaPoolsHolder) {
+	holder.HeadersNonces().Clear()
+	holder.MetaChainBlocks().Clear()
+	holder.MiniBlockHashes().Clear()
+	holder.ShardHeaders().Clear()
+}
+
+func resetHighestProbableNonce(nodes []*integrationTests.TestProcessorNode, shardId uint32, targetNonce uint64) {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != shardId {
+			continue
+		}
+
+		if n.BlockChain.GetCurrentBlockHeader().GetNonce() != targetNonce {
+			continue
+		}
+
+		n.Bootstrapper.SetProbableHighestNonce(targetNonce)
 	}
 }
