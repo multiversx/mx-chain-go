@@ -324,7 +324,7 @@ func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress [
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000,
-		Data:     "topUp",
+		Data:     "topUp@0",
 	}
 }
 
