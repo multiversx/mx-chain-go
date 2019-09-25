@@ -265,3 +265,8 @@ func (vadb *VMAccountsDB) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+// VMTypeFromAddressBytes gets VM type from scAddress
+func VMTypeFromAddressBytes(scAddress []byte) []byte {
+	return scAddress[NumInitCharactersForScAddress-VMTypeLen : NumInitCharactersForScAddress]
+}

@@ -37,14 +37,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
-	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -639,15 +636,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(
+	apiResolver, err := createApiResolver(
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
+		statusMetrics,
 	)
-	if err != nil {
-		return err
-	}
-
-	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
 	if err != nil {
 		return err
 	}
@@ -1212,12 +1205,18 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
-	//TODO replace this with a vm factory
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
+func createApiResolver(accounts state.AccountsAdapter, converter state.AddressConverter, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
+	vmFactory, err := shard.NewVMContainerFactory(accounts, converter)
+	if err != nil {
+		return nil, err
+	}
 
-	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	scDataGetter, err := smartContract.NewSCDataGetter(vmContainer)
 	if err != nil {
 		return nil, err
 	}

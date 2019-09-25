@@ -8,10 +8,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +26,7 @@ func TestDeployAgarioContract(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -63,7 +61,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -86,7 +84,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	_, _ = accnts.Commit()
 
 	//balanceOf should return 0 for userAddress
-	assert.Equal(t, big.NewInt(0), getIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, big.NewInt(0), vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
 
 	transfer := big.NewInt(123456)
 	data := "topUp"
@@ -108,7 +106,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	assert.Equal(t, transfer, getIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, transfer, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
 }
 
 func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
@@ -122,7 +120,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -145,7 +143,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	_, _ = accnts.Commit()
 
 	//balanceOf should return 0 for userAddress
-	assert.Equal(t, big.NewInt(0), getIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, big.NewInt(0), vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
 
 	transfer := big.NewInt(123456)
 	data := "topUp"
@@ -168,7 +166,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	assert.Equal(t, transfer, getIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, transfer, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
 
 	//withdraw
 	withdraw := big.NewInt(49999)
@@ -193,7 +191,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 
 	newValue := big.NewInt(0).Set(transfer)
 	newValue.Sub(newValue, withdraw)
-	assert.Equal(t, newValue, getIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, newValue, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
 }
 
 func TestAgarioContractJoinGameReward(t *testing.T) {
@@ -207,7 +205,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	gasPrice := uint64(0)
 	gasLimit := uint64(100000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -247,7 +245,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 
 	for i := 0; i < noOfUsers; i++ {
 		//balanceOf should return 0 for userAddress
-		balanceOfUser := getIntValueFromSC(accnts, scAddressBytes, "balanceOf", usersAddresses[i])
+		balanceOfUser := vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", usersAddresses[i])
 		fmt.Printf("balance of user %s: %v\n", hex.EncodeToString(usersAddresses[i]), balanceOfUser)
 		assert.Equal(t, big.NewInt(0), balanceOfUser)
 	}
@@ -342,7 +340,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 	gasPrice := uint64(0)
 	gasLimit := uint64(1000000)
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(b, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(b, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		b,
 		senderAddressBytes,
@@ -385,12 +383,4 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		b.StartTimer()
 		_ = txProc.ProcessTransaction(txRun, round)
 	}
-}
-
-func getIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	ieleVM, _ := vm.CreateVMAndBlockchainHook(accnts)
-	scgd, _ := smartContract.NewSCDataGetter(ieleVM)
-
-	returnedVals, _ := scgd.Get(scAddressBytes, funcName, args...)
-	return big.NewInt(0).SetBytes(returnedVals)
 }

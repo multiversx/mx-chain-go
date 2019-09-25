@@ -29,7 +29,7 @@ func TestNewSCDataGetter_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	scdg, err := smartContract.NewSCDataGetter(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 	)
 
 	assert.NotNil(t, scdg)
@@ -42,7 +42,7 @@ func TestScDataGetter_GetNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	scdg, _ := smartContract.NewSCDataGetter(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 	)
 
 	output, err := scdg.Get(nil, "function")
@@ -55,7 +55,7 @@ func TestScDataGetter_GetEmptyFunctionShouldErr(t *testing.T) {
 	t.Parallel()
 
 	scdg, _ := smartContract.NewSCDataGetter(
-		&mock.VMExecutionHandlerStub{},
+		&mock.VMContainerMock{},
 	)
 
 	output, err := scdg.Get([]byte("sc address"), "")
@@ -72,20 +72,26 @@ func TestScDataGetter_GetShouldReceiveAddrFuncAndArgs(t *testing.T) {
 	addressBytes := []byte("address bytes")
 
 	wasCalled := false
-	scdg, _ := smartContract.NewSCDataGetter(
-		&mock.VMExecutionHandlerStub{
-			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				wasCalled = true
-				assert.Equal(t, 2, len(input.Arguments))
-				for idx, arg := range args {
-					assert.Equal(t, arg, input.Arguments[idx].Bytes())
-				}
-				assert.Equal(t, addressBytes, input.CallerAddr)
-				assert.Equal(t, funcName, input.Function)
 
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-				}, nil
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			wasCalled = true
+			assert.Equal(t, 2, len(input.Arguments))
+			for idx, arg := range args {
+				assert.Equal(t, arg, input.Arguments[idx].Bytes())
+			}
+			assert.Equal(t, addressBytes, input.CallerAddr)
+			assert.Equal(t, funcName, input.Function)
+
+			return &vmcommon.VMOutput{
+				ReturnCode: vmcommon.Ok,
+			}, nil
+		},
+	}
+	scdg, _ := smartContract.NewSCDataGetter(
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
 			},
 		},
 	)
@@ -98,13 +104,19 @@ func TestScDataGetter_GetReturnsDataShouldRet(t *testing.T) {
 	t.Parallel()
 
 	data := []*big.Int{big.NewInt(90), big.NewInt(91)}
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			return &vmcommon.VMOutput{
+				ReturnCode: vmcommon.Ok,
+				ReturnData: data,
+			}, nil
+		},
+	}
+
 	scdg, _ := smartContract.NewSCDataGetter(
-		&mock.VMExecutionHandlerStub{
-			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-					ReturnData: data,
-				}, nil
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
 			},
 		},
 	)
@@ -118,12 +130,17 @@ func TestScDataGetter_GetReturnsDataShouldRet(t *testing.T) {
 func TestScDataGetter_GetReturnsNotOkCodeShouldErr(t *testing.T) {
 	t.Parallel()
 
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			return &vmcommon.VMOutput{
+				ReturnCode: vmcommon.OutOfGas,
+			}, nil
+		},
+	}
 	scdg, _ := smartContract.NewSCDataGetter(
-		&mock.VMExecutionHandlerStub{
-			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.OutOfGas,
-				}, nil
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
 			},
 		},
 	)
@@ -139,21 +156,25 @@ func TestScDataGetter_GetShouldCallRunScSequentially(t *testing.T) {
 	t.Parallel()
 
 	running := int32(0)
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			atomic.AddInt32(&running, 1)
+			time.Sleep(time.Millisecond)
 
+			val := atomic.LoadInt32(&running)
+			assert.Equal(t, int32(1), val)
+
+			atomic.AddInt32(&running, -1)
+
+			return &vmcommon.VMOutput{
+				ReturnCode: vmcommon.Ok,
+			}, nil
+		},
+	}
 	scdg, _ := smartContract.NewSCDataGetter(
-		&mock.VMExecutionHandlerStub{
-			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				atomic.AddInt32(&running, 1)
-				time.Sleep(time.Millisecond)
-
-				val := atomic.LoadInt32(&running)
-				assert.Equal(t, int32(1), val)
-
-				atomic.AddInt32(&running, -1)
-
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-				}, nil
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
 			},
 		},
 	)
@@ -163,7 +184,7 @@ func TestScDataGetter_GetShouldCallRunScSequentially(t *testing.T) {
 	wg.Add(noOfGoRoutines)
 	for i := 0; i < noOfGoRoutines; i++ {
 		go func() {
-			_, _ = scdg.Get([]byte("address"), "function")
+			_, _ = scdg.Get([]byte("addressaddressaddress"), "function")
 			wg.Done()
 		}()
 	}

@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	vm "github.com/ElrondNetwork/elrond-go/core/libLocator"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -89,6 +90,16 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
+	vm, err = vmf.createArwenVM()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.ArwenVirtualMachine, vm)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -113,6 +124,11 @@ func (vmf *vmContainerFactory) createHeraWAVMVM() (vmcommon.VMExecutionHandler, 
 	config := vm.WASMLibLocation() + ",engine=wavm"
 	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
 	return wasmVM, err
+}
+
+func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
+	arwenVM, err := arwen.NewArwenVM(vmf.vmAccountsDB, vmf.cryptoHook, factory.ArwenVirtualMachine)
+	return arwenVM, err
 }
 
 // VMAccountsDB returns the created vmAccountsDB
