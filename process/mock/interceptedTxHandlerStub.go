@@ -13,7 +13,6 @@ type InterceptedTxHandlerStub struct {
 	NonceCalled           func() uint64
 	SenderAddressCalled   func() state.AddressContainer
 	TotalValueCalled      func() *big.Int
-	HashCalled            func() []byte
 	TransactionCalled     func() data.TransactionHandler
 }
 
@@ -35,10 +34,6 @@ func (iths *InterceptedTxHandlerStub) SenderAddress() state.AddressContainer {
 
 func (iths *InterceptedTxHandlerStub) TotalValue() *big.Int {
 	return iths.TotalValueCalled()
-}
-
-func (iths *InterceptedTxHandlerStub) Hash() []byte {
-	return iths.HashCalled()
 }
 
 func (iths *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {

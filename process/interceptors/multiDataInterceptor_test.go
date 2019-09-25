@@ -205,7 +205,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsForMyShardCalled: func() bool {
+		IsForCurrentShardCalled: func() bool {
 			return true
 		},
 	}
@@ -270,7 +270,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 		CheckValidityCalled: func() error {
 			return errExpected
 		},
-		IsForMyShardCalled: func() bool {
+		IsForCurrentShardCalled: func() bool {
 			return true
 		},
 	}
@@ -314,7 +314,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsForMyShardCalled: func() bool {
+		IsForCurrentShardCalled: func() bool {
 			return false
 		},
 	}
@@ -358,7 +358,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsForMyShardCalled: func() bool {
+		IsForCurrentShardCalled: func() bool {
 			return true
 		},
 	}

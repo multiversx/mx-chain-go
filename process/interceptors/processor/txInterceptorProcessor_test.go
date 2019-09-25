@@ -130,16 +130,17 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 		mock.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{},
+		InterceptedDataStub: mock.InterceptedDataStub{
+			HashCalled: func() []byte {
+				return make([]byte, 0)
+			},
+		},
 		InterceptedTxHandlerStub: mock.InterceptedTxHandlerStub{
 			SenderShardIdCalled: func() uint32 {
 				return 0
 			},
 			ReceiverShardIdCalled: func() uint32 {
 				return 0
-			},
-			HashCalled: func() []byte {
-				return make([]byte, 0)
 			},
 			TransactionCalled: func() data.TransactionHandler {
 				return nil

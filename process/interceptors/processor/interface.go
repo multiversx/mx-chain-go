@@ -15,6 +15,5 @@ type InterceptedTransactionHandler interface {
 	Nonce() uint64
 	SenderAddress() state.AddressContainer
 	TotalValue() *big.Int
-	Hash() []byte
 	Transaction() data.TransactionHandler
 }

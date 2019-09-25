@@ -7,12 +7,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,6 +78,7 @@ func TestNewInterceptedDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.Marshalizer = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -87,6 +90,7 @@ func TestNewInterceptedDataFactory_NilHasherShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.Hasher = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -98,6 +102,7 @@ func TestNewInterceptedDataFactory_NilKeygenShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.KeyGen = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -109,6 +114,7 @@ func TestNewInterceptedDataFactory_NilSignerShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.Signer = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -120,6 +126,7 @@ func TestNewInterceptedDataFactory_NilAddressConverterShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.AddrConv = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -131,6 +138,7 @@ func TestNewInterceptedDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.ShardCoordinator = nil
+
 	idf, err := factory.NewInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, idf)
@@ -166,7 +174,6 @@ func TestInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	emptyTx := &dataTransaction.Transaction{}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
-
 	idf, _ := factory.NewInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 
 	instance, err := idf.Create(emptyTxBuff)
@@ -174,6 +181,22 @@ func TestInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T) {
 	assert.NotNil(t, instance)
 	assert.Nil(t, err)
 	_, ok := instance.(*transaction.InterceptedTransaction)
+	assert.True(t, ok)
+}
+
+func TestInterceptedDataFactory_CreateInterceptedUnsignedTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	emptyTx := &smartContractResult.SmartContractResult{}
+	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
+	idf, _ := factory.NewInterceptedDataFactory(createMockArgument(), factory.InterceptedUnsignedTx)
+
+	instance, err := idf.Create(emptyTxBuff)
+
+	assert.NotNil(t, instance)
+	assert.Nil(t, err)
+	_, ok := instance.(*unsigned.InterceptedUnsignedTransaction)
 	assert.True(t, ok)
 }
 
