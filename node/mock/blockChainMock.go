@@ -117,7 +117,7 @@ func (bc *BlockChainMock) SetLocalHeight(height int64) {
 	}
 }
 
-// GetNetworkHeight sets the percieved height of the network chain
+// GetNetworkHeight sets the perceived height of the network chain
 func (bc *BlockChainMock) GetNetworkHeight() int64 {
 	if bc.GetNetworkHeightCalled != nil {
 		return bc.GetNetworkHeightCalled()
@@ -125,7 +125,7 @@ func (bc *BlockChainMock) GetNetworkHeight() int64 {
 	return 0
 }
 
-// SetNetworkHeight sets the percieved height of the network chain
+// SetNetworkHeight sets the perceived height of the network chain
 func (bc *BlockChainMock) SetNetworkHeight(height int64) {
 	if bc.SetNetworkHeightCalled != nil {
 		bc.SetNetworkHeightCalled(height)

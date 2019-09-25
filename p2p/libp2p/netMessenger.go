@@ -17,7 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-const durationBetweenSends = time.Duration(time.Microsecond * 10)
+const durationBetweenSends = time.Microsecond * 10
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
@@ -86,6 +86,9 @@ func NewNetworkMessenger(
 		libp2p.DefaultSecurity,
 		libp2p.ConnectionManager(conMgr),
 		libp2p.DefaultTransports,
+		//TODO investigate if the DisableRelay is really needed and why
+		libp2p.DisableRelay(),
+		libp2p.NATPortMap(),
 	}
 
 	h, err := libp2p.New(ctx, opts...)

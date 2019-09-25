@@ -150,7 +150,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
-// Has returns true if the given key is present in the persistance medium
+// Has returns true if the given key is present in the persistence medium
 func (s *DB) Has(key []byte) error {
 	err := s.db.View(func(txn *badger.Txn) error {
 		_, err := txn.Get(key)
