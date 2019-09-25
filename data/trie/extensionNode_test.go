@@ -23,6 +23,7 @@ func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 
 func TestExtensionNode_newExtensionNode(t *testing.T) {
 	t.Parallel()
+
 	bn, _ := getBnAndCollapsedBn()
 	expectedEn := &extensionNode{
 		CollapsedEn: protobuf.CollapsedEn{
@@ -39,12 +40,14 @@ func TestExtensionNode_newExtensionNode(t *testing.T) {
 
 func TestExtensionNode_getHash(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{hash: []byte("test hash")}
 	assert.Equal(t, en.hash, en.getHash())
 }
 
 func TestExtensionNode_isDirty(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{dirty: true}
 	assert.Equal(t, true, en.isDirty())
 
@@ -54,6 +57,7 @@ func TestExtensionNode_isDirty(t *testing.T) {
 
 func TestExtensionNode_getCollapsed(t *testing.T) {
 	t.Parallel()
+
 	en, collapsedEn := getEnAndCollapsedEn()
 	collapsedEn.dirty = true
 	marsh, hasher := getTestMarshAndHasher()
@@ -65,6 +69,7 @@ func TestExtensionNode_getCollapsed(t *testing.T) {
 
 func TestExtensionNode_getCollapsedEmptyNode(t *testing.T) {
 	t.Parallel()
+
 	marsh, hasher := getTestMarshAndHasher()
 	en := &extensionNode{}
 
@@ -75,6 +80,7 @@ func TestExtensionNode_getCollapsedEmptyNode(t *testing.T) {
 
 func TestExtensionNode_getCollapsedNilNode(t *testing.T) {
 	t.Parallel()
+
 	marsh, hasher := getTestMarshAndHasher()
 	var en *extensionNode
 
@@ -85,6 +91,7 @@ func TestExtensionNode_getCollapsedNilNode(t *testing.T) {
 
 func TestExtensionNode_getCollapsedCollapsedNode(t *testing.T) {
 	t.Parallel()
+
 	_, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -95,6 +102,7 @@ func TestExtensionNode_getCollapsedCollapsedNode(t *testing.T) {
 
 func TestExtensionNode_setHash(t *testing.T) {
 	t.Parallel()
+
 	en, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -107,6 +115,7 @@ func TestExtensionNode_setHash(t *testing.T) {
 
 func TestExtensionNode_setHashEmptyNode(t *testing.T) {
 	t.Parallel()
+
 	marsh, hasher := getTestMarshAndHasher()
 	en := &extensionNode{}
 
@@ -117,6 +126,7 @@ func TestExtensionNode_setHashEmptyNode(t *testing.T) {
 
 func TestExtensionNode_setHashNilNode(t *testing.T) {
 	t.Parallel()
+
 	marsh, hasher := getTestMarshAndHasher()
 	var en *extensionNode
 
@@ -127,6 +137,7 @@ func TestExtensionNode_setHashNilNode(t *testing.T) {
 
 func TestExtensionNode_setHashCollapsedNode(t *testing.T) {
 	t.Parallel()
+
 	_, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -139,6 +150,7 @@ func TestExtensionNode_setHashCollapsedNode(t *testing.T) {
 
 func TestExtensionNode_setGivenHash(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{}
 	expectedHash := []byte("node hash")
 
@@ -149,6 +161,7 @@ func TestExtensionNode_setGivenHash(t *testing.T) {
 
 func TestExtensionNode_hashChildren(t *testing.T) {
 	t.Parallel()
+
 	en, _ := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -163,6 +176,7 @@ func TestExtensionNode_hashChildren(t *testing.T) {
 
 func TestExtensionNode_hashChildrenEmptyNode(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{}
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -172,6 +186,7 @@ func TestExtensionNode_hashChildrenEmptyNode(t *testing.T) {
 
 func TestExtensionNode_hashChildrenNilNode(t *testing.T) {
 	t.Parallel()
+
 	var en *extensionNode
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -181,6 +196,7 @@ func TestExtensionNode_hashChildrenNilNode(t *testing.T) {
 
 func TestExtensionNode_hashChildrenCollapsedNode(t *testing.T) {
 	t.Parallel()
+
 	_, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -193,6 +209,7 @@ func TestExtensionNode_hashChildrenCollapsedNode(t *testing.T) {
 
 func TestExtensionNode_hashNode(t *testing.T) {
 	t.Parallel()
+
 	_, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -204,6 +221,7 @@ func TestExtensionNode_hashNode(t *testing.T) {
 
 func TestExtensionNode_hashNodeEmptyNode(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{}
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -214,6 +232,7 @@ func TestExtensionNode_hashNodeEmptyNode(t *testing.T) {
 
 func TestExtensionNode_hashNodeNilNode(t *testing.T) {
 	t.Parallel()
+
 	var en *extensionNode
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -224,6 +243,7 @@ func TestExtensionNode_hashNodeNilNode(t *testing.T) {
 
 func TestExtensionNode_commit(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
@@ -244,6 +264,7 @@ func TestExtensionNode_commit(t *testing.T) {
 
 func TestExtensionNode_commitEmptyNode(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{}
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
@@ -254,6 +275,7 @@ func TestExtensionNode_commitEmptyNode(t *testing.T) {
 
 func TestExtensionNode_commitNilNode(t *testing.T) {
 	t.Parallel()
+
 	var en *extensionNode
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
@@ -264,6 +286,7 @@ func TestExtensionNode_commitNilNode(t *testing.T) {
 
 func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	_, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
@@ -286,6 +309,7 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 
 func TestExtensionNode_getEncodedNode(t *testing.T) {
 	t.Parallel()
+
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -299,6 +323,7 @@ func TestExtensionNode_getEncodedNode(t *testing.T) {
 
 func TestExtensionNode_getEncodedNodeEmpty(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{}
 	marsh, _ := getTestMarshAndHasher()
 
@@ -309,6 +334,7 @@ func TestExtensionNode_getEncodedNodeEmpty(t *testing.T) {
 
 func TestExtensionNode_getEncodedNodeNil(t *testing.T) {
 	t.Parallel()
+
 	var en *extensionNode
 	marsh, _ := getTestMarshAndHasher()
 
@@ -319,6 +345,7 @@ func TestExtensionNode_getEncodedNodeNil(t *testing.T) {
 
 func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
@@ -338,6 +365,7 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 
 func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en := &extensionNode{}
 	marsh, _ := getTestMarshAndHasher()
@@ -348,6 +376,7 @@ func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
 
 func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	var en *extensionNode
 	marsh, _ := getTestMarshAndHasher()
@@ -358,6 +387,7 @@ func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
 
 func TestExtensionNode_isCollapsed(t *testing.T) {
 	t.Parallel()
+
 	en, collapsedEn := getEnAndCollapsedEn()
 
 	assert.True(t, collapsedEn.isCollapsed())
@@ -369,6 +399,7 @@ func TestExtensionNode_isCollapsed(t *testing.T) {
 
 func TestExtensionNode_tryGet(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
@@ -381,6 +412,7 @@ func TestExtensionNode_tryGet(t *testing.T) {
 
 func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
@@ -393,6 +425,7 @@ func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
 
 func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
@@ -405,6 +438,7 @@ func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 
 func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
@@ -419,6 +453,7 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 
 func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en := &extensionNode{}
 	marsh, _ := getTestMarshAndHasher()
@@ -431,6 +466,7 @@ func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
 
 func TestExtensionNode_tryGetNilNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	var en *extensionNode
 	marsh, _ := getTestMarshAndHasher()
@@ -443,6 +479,7 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 
 func TestExtensionNode_getNext(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
@@ -457,6 +494,7 @@ func TestExtensionNode_getNext(t *testing.T) {
 
 func TestExtensionNode_getNextWrongKey(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
@@ -470,6 +508,7 @@ func TestExtensionNode_getNextWrongKey(t *testing.T) {
 
 func TestExtensionNode_insert(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	node := newLeafNode([]byte{100, 15, 5, 6}, []byte("dogs"))
@@ -484,6 +523,7 @@ func TestExtensionNode_insert(t *testing.T) {
 
 func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	node := newLeafNode([]byte{100, 15, 5, 6}, []byte("dogs"))
@@ -571,6 +611,7 @@ func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 
 func TestExtensionNode_insertInNilNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	var en *extensionNode
 	node := newLeafNode([]byte{0, 2, 3}, []byte("dogs"))
@@ -584,6 +625,7 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 
 func TestExtensionNode_delete(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
@@ -635,6 +677,7 @@ func TestExtensionNode_deleteFromDirtyEn(t *testing.T) {
 
 func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en := &extensionNode{}
 	marsh, _ := getTestMarshAndHasher()
@@ -647,6 +690,7 @@ func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 
 func TestExtensionNode_deleteNilNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	var en *extensionNode
 	marsh, _ := getTestMarshAndHasher()
@@ -659,6 +703,7 @@ func TestExtensionNode_deleteNilNode(t *testing.T) {
 
 func TestExtensionNode_deleteEmptykey(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
@@ -671,6 +716,7 @@ func TestExtensionNode_deleteEmptykey(t *testing.T) {
 
 func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	t.Parallel()
+
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	marsh, hasher := getTestMarshAndHasher()
@@ -689,6 +735,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 
 func TestExtensionNode_reduceNode(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{100, 111, 103}}}
 	expected := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{2, 100, 111, 103}}, dirty: true}
 	node := en.reduceNode(2)
@@ -697,6 +744,7 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 
 func TestExtensionNode_clone(t *testing.T) {
 	t.Parallel()
+
 	en, _ := getEnAndCollapsedEn()
 	clone := en.clone()
 	assert.False(t, en == clone)
@@ -705,6 +753,7 @@ func TestExtensionNode_clone(t *testing.T) {
 
 func TestExtensionNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
+
 	en := &extensionNode{}
 	assert.Equal(t, ErrEmptyNode, en.isEmptyOrNil())
 
