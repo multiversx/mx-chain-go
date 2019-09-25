@@ -272,3 +272,15 @@ func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func (sfd *shardForkDetector) CheckShardBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
+	return sfd.checkShardBlockValidity(header, state)
+}
+
+func (mfd *metaForkDetector) CheckMetaBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
+	return mfd.checkMetaBlockValidity(header, state)
+}
+
+func (bfd *baseForkDetector) SetProbableHighestNonce(nonce uint64) {
+	bfd.setProbableHighestNonce(nonce)
+}

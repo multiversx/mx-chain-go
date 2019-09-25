@@ -100,7 +100,8 @@ func (sfd *shardForkDetector) addFinalHeaders(finalHeaders []data.HeaderHandler,
 }
 
 func (sfd *shardForkDetector) checkShardBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
-	isSyncing := state == process.BHReceived && sfd.ProbableHighestNonce()-header.GetNonce() > process.MaxNoncesDifference
+	noncesDifference := int64(sfd.ProbableHighestNonce()) - int64(header.GetNonce())
+	isSyncing := state == process.BHReceived && noncesDifference > process.MaxNoncesDifference
 	if state == process.BHProcessed || isSyncing {
 		return nil
 	}

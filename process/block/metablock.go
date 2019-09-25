@@ -763,15 +763,15 @@ func (mp *metaProcessor) getFinalityAttestingHeaders(
 	finality uint64,
 ) (map[uint32][]*block.Header, error) {
 
-	hdrStore := mp.dataPool.ShardHeaders()
-	if hdrStore == nil {
-		return nil, process.ErrNilCacher
+	shardHeadersPool := mp.dataPool.ShardHeaders()
+	if shardHeadersPool == nil {
+		return nil, process.ErrNilShardBlockPool
 	}
 
 	headersMap := make(map[uint32][]*block.Header)
 	// get keys and arrange them into shards
-	for _, key := range hdrStore.Keys() {
-		val, _ := hdrStore.Peek(key)
+	for _, key := range shardHeadersPool.Keys() {
+		val, _ := shardHeadersPool.Peek(key)
 		if val == nil {
 			continue
 		}
@@ -785,8 +785,8 @@ func (mp *metaProcessor) getFinalityAttestingHeaders(
 			continue
 		}
 
-		if highestNonceHdrs[hdr.ShardId].GetNonce() >= hdr.GetNonce() ||
-			highestNonceHdrs[hdr.ShardId].GetNonce()+finality < hdr.GetNonce() {
+		if hdr.GetNonce() <= highestNonceHdrs[hdr.ShardId].GetNonce() ||
+			hdr.GetNonce() > highestNonceHdrs[hdr.ShardId].GetNonce()+finality {
 			continue
 		}
 
@@ -796,13 +796,11 @@ func (mp *metaProcessor) getFinalityAttestingHeaders(
 	// sort headers for each shard
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
 		hdrsForShard := headersMap[shardId]
-		if len(hdrsForShard) <= 1 {
-			continue
+		if len(hdrsForShard) > 1 {
+			sort.Slice(hdrsForShard, func(i, j int) bool {
+				return hdrsForShard[i].GetNonce() < hdrsForShard[j].GetNonce()
+			})
 		}
-
-		sort.Slice(hdrsForShard, func(i, j int) bool {
-			return hdrsForShard[i].GetNonce() < hdrsForShard[j].GetNonce()
-		})
 	}
 
 	return headersMap, nil
@@ -1231,9 +1229,9 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 }
 
 func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
-	hdrStore := mp.dataPool.ShardHeaders()
-	if hdrStore == nil {
-		return nil, nil, nil, process.ErrNilCacher
+	shardBlocksPool := mp.dataPool.ShardHeaders()
+	if shardBlocksPool == nil {
+		return nil, nil, nil, process.ErrNilShardBlockPool
 	}
 
 	hashAndBlockMap := make(map[uint32][]*hashAndHdr, mp.shardCoordinator.NumberOfShards())
@@ -1248,8 +1246,8 @@ func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte
 	}
 
 	// get keys and arrange them into shards
-	for _, key := range hdrStore.Keys() {
-		val, _ := hdrStore.Peek(key)
+	for _, key := range shardBlocksPool.Keys() {
+		val, _ := shardBlocksPool.Peek(key)
 		if val == nil {
 			continue
 		}

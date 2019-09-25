@@ -80,7 +80,8 @@ func (mfd *metaForkDetector) AddHeader(
 }
 
 func (mfd *metaForkDetector) checkMetaBlockValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
-	isSyncing := state == process.BHReceived && mfd.ProbableHighestNonce()-header.GetNonce() > process.MaxNoncesDifference
+	noncesDifference := int64(mfd.ProbableHighestNonce()) - int64(header.GetNonce())
+	isSyncing := state == process.BHReceived && noncesDifference > process.MaxNoncesDifference
 	if state == process.BHProcessed || isSyncing {
 		return nil
 	}

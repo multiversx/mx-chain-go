@@ -294,7 +294,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Head
 		tmpNotedHdr = metaHdr
 	}
 
-	err = sp.checkMetaHdrFinality(tmpNotedHdr, header.Round)
+	err = sp.checkMetaHdrFinality(tmpNotedHdr)
 	if err != nil {
 		return err
 	}
@@ -303,12 +303,12 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header *block.Head
 }
 
 // check if shard headers are final by checking if newer headers were constructed upon them
-func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round uint64) error {
+func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error {
 	if header == nil || header.IsInterfaceNil() {
 		return process.ErrNilBlockHeader
 	}
 
-	sortedMetaHdrs, err := sp.getOrderedMetaBlocks(round)
+	sortedMetaHdrs, err := sp.getFinalityAttestingHeaders(header, process.MetaBlockFinality)
 	if err != nil {
 		return err
 	}
@@ -340,6 +340,50 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler, round 
 	}
 
 	return nil
+}
+
+func (sp *shardProcessor) getFinalityAttestingHeaders(
+	highestNonceHdr data.HeaderHandler,
+	finality uint64,
+) ([]*hashAndHdr, error) {
+
+	if highestNonceHdr == nil || highestNonceHdr.IsInterfaceNil() {
+		return nil, process.ErrNilBlockHeader
+	}
+
+	metaBlockPool := sp.dataPool.MetaBlocks()
+	if metaBlockPool == nil {
+		return nil, process.ErrNilMetaBlockPool
+	}
+
+	orderedMetaBlocks := make([]*hashAndHdr, 0)
+	// get keys and arrange them into shards
+	for _, key := range metaBlockPool.Keys() {
+		val, _ := metaBlockPool.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+
+		if hdr.GetNonce() <= highestNonceHdr.GetNonce() ||
+			hdr.GetNonce() > highestNonceHdr.GetNonce()+finality {
+			continue
+		}
+
+		orderedMetaBlocks = append(orderedMetaBlocks, &hashAndHdr{hdr: hdr, hash: key})
+	}
+
+	if len(orderedMetaBlocks) > 1 {
+		sort.Slice(orderedMetaBlocks, func(i, j int) bool {
+			return orderedMetaBlocks[i].hdr.GetNonce() < orderedMetaBlocks[j].hdr.GetNonce()
+		})
+	}
+
+	return orderedMetaBlocks, nil
 }
 
 // check if header has the same miniblocks as presented in body
@@ -1142,8 +1186,8 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint64, metaHashes 
 }
 
 func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
-	metaBlockCache := sp.dataPool.MetaBlocks()
-	if metaBlockCache == nil {
+	metaBlocksPool := sp.dataPool.MetaBlocks()
+	if metaBlocksPool == nil {
 		return nil, process.ErrNilMetaBlockPool
 	}
 
@@ -1153,8 +1197,8 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, err
 	}
 
 	orderedMetaBlocks := make([]*hashAndHdr, 0)
-	for _, key := range metaBlockCache.Keys() {
-		val, _ := metaBlockCache.Peek(key)
+	for _, key := range metaBlocksPool.Keys() {
+		val, _ := metaBlocksPool.Peek(key)
 		if val == nil {
 			continue
 		}
@@ -1177,9 +1221,11 @@ func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, err
 		orderedMetaBlocks = append(orderedMetaBlocks, &hashAndHdr{hdr: hdr, hash: key})
 	}
 
-	sort.Slice(orderedMetaBlocks, func(i, j int) bool {
-		return orderedMetaBlocks[i].hdr.GetNonce() < orderedMetaBlocks[j].hdr.GetNonce()
-	})
+	if len(orderedMetaBlocks) > 1 {
+		sort.Slice(orderedMetaBlocks, func(i, j int) bool {
+			return orderedMetaBlocks[i].hdr.GetNonce() < orderedMetaBlocks[j].hdr.GetNonce()
+		})
+	}
 
 	return orderedMetaBlocks, nil
 }
