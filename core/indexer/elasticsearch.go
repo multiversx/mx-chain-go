@@ -238,10 +238,10 @@ func (ei *elasticIndexer) SaveBlock(
 }
 
 // SaveRoundInfo will save on elastic search information about round
-func (ei *elasticIndexer) SaveRoundInfo(round int64, signersIndexes []uint64) {
+func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64) {
 	var buff bytes.Buffer
 
-	serializedSignersIndexes, err := ei.marshalizer.Marshal(SignersIndexes{SignersIndexes: signersIndexes})
+	serializedSignersIndexes, err := ei.marshalizer.Marshal(RoundInfo{SignersIndexes: signersIndexes, ShardId: shardId})
 	if err != nil {
 		ei.logger.Warn("could not marshal signers indexes")
 		return

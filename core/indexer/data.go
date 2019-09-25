@@ -45,9 +45,10 @@ type Block struct {
 	PrevHash      string        `json:"prevHash"`
 }
 
-// SignersIndexes is a structure containing block signers
-type SignersIndexes struct {
+// RoundInfo is a structure containing block signers and shard id
+type RoundInfo struct {
 	SignersIndexes []uint64 `json:"signersIndexes"`
+	ShardId        uint32   `json:"shardId"`
 }
 
 // TPS is a structure containing all the fields that need to
