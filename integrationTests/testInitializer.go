@@ -506,10 +506,9 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 	fmt.Println("All shards propose blocks...")
 
 	for idx, n := range nodes {
-		consensusRewardsData := n.SpecialAddressHandler.ConsensusShardRewardData()
 		// set the consensus reward addresses as rewards processor expects at least valid round
 		// otherwise the produced rewards will not be valid on verification
-		n.BlockProcessor.SetConsensusData(consensusRewardsData.Addresses, round)
+		n.BlockProcessor.SetConsensusData([]byte("randomness"), round, 0, n.ShardCoordinator.SelfId())
 
 		if !IsIntInSlice(idx, idxProposers) {
 			continue

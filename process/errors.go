@@ -46,9 +46,6 @@ var ErrNilBlockChain = errors.New("nil block chain")
 // ErrNilMetaBlockHeader signals that an operation has been attempted to or with a nil metablock
 var ErrNilMetaBlockHeader = errors.New("nil metablock header")
 
-// ErrNilMetaBlockHashes signals that a nil array of metablock header hashes was provided
-var ErrNilMetaBlockHashes = errors.New("nil metablock header hashes")
-
 // ErrNilTxBlockBody signals that an operation has been attempted to or with a nil tx block body
 var ErrNilTxBlockBody = errors.New("nil tx block body")
 

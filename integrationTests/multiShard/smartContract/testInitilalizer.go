@@ -344,6 +344,7 @@ func createNetNode(
 		mock.NewSpecialAddressHandlerMock(
 			testAddressConverter,
 			shardCoordinator,
+			nodesCoordinator,
 		),
 		store,
 		dPool,
@@ -441,6 +442,7 @@ func createNetNode(
 			SpecialAddressHandler: mock.NewSpecialAddressHandlerMock(
 				testAddressConverter,
 				shardCoordinator,
+				nodesCoordinator,
 			),
 			Uint64Converter: uint64Converter,
 			StartHeaders:    genesisBlocks,
@@ -777,6 +779,7 @@ func createMetaNetNode(
 		mock.NewSpecialAddressHandlerMock(
 			testAddressConverter,
 			shardCoordinator,
+			nodesCoordinator,
 		),
 		testHasher,
 		testMarshalizer,

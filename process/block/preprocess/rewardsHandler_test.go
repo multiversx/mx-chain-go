@@ -269,7 +269,8 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 	tdp := initDataPool()
 	adrConv := &mock.AddressConverterMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator)
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator, nodesCoordinator)
 	th, err := NewRewardTxHandler(
 		addr,
 		&mock.HasherMock{},
@@ -302,7 +303,8 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testing
 	tdp := initDataPool()
 	adrConv := &mock.AddressConverterMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator)
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator, nodesCoordinator)
 	th, err := NewRewardTxHandler(
 		addr,
 		&mock.HasherMock{},
@@ -337,7 +339,8 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsOK(t *testing.T) {
 	tdp := initDataPool()
 	adrConv := &mock.AddressConverterMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator)
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	addr := mock.NewSpecialAddressHandlerMock(adrConv, shardCoordinator, nodesCoordinator)
 	th, err := NewRewardTxHandler(
 		addr,
 		&mock.HasherMock{},
@@ -365,11 +368,13 @@ func TestRewardsHandler_CreateAllInterMiniBlocksOK(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	tdp := initDataPool()
 	th, err := NewRewardTxHandler(
 		mock.NewSpecialAddressHandlerMock(
 			&mock.AddressConverterMock{},
 			shardCoordinator,
+			nodesCoordinator,
 		),
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -395,19 +400,17 @@ func TestRewardsHandler_CreateAllInterMiniBlocksOK(t *testing.T) {
 func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
 	t.Parallel()
 
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	tdp := initDataPool()
 	specialAddress := &mock.SpecialAddressHandlerMock{
 		AdrConv:          &mock.AddressConverterMock{},
 		ShardCoordinator: shardCoordinator,
+		NodesCoordinator: nodesCoordinator,
 	}
 
-	consensusAddresses := []string{
-		"1000000000000000000000000000000000000000000000000000000000000000",
-		"2000000000000000000000000000000000000000000000000000000000000000",
-	}
-
-	specialAddress.SetConsensusData(consensusAddresses, 0, 0)
+	_ = specialAddress.SetShardConsensusData([]byte("random"), 0, 0, shardCoordinator.SelfId())
+	rewardData := specialAddress.ConsensusShardRewardData()
 
 	th, err := NewRewardTxHandler(
 		specialAddress,
@@ -422,28 +425,23 @@ func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, th)
 
-	txs := []data.TransactionHandler{
-		&rewardTx.RewardTx{
+	txs := make([]data.TransactionHandler, len(rewardData.Addresses))
+	for i := 0; i < len(rewardData.Addresses); i++ {
+		txs[i] = &rewardTx.RewardTx{
 			Round:   0,
 			Epoch:   0,
 			Value:   big.NewInt(1),
-			RcvAddr: []byte(consensusAddresses[0]),
+			RcvAddr: []byte(rewardData.Addresses[i]),
 			ShardId: 0,
-		},
-		&rewardTx.RewardTx{
-			Round:   0,
-			Epoch:   0,
-			Value:   big.NewInt(1),
-			RcvAddr: []byte(consensusAddresses[1]),
-			ShardId: 0,
-		},
+		}
+
 	}
 
 	err = th.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
 	finishedTxs := th.GetAllCurrentFinishedTxs()
-	assert.Equal(t, 2, len(txs))
+	assert.Equal(t, len(txs), len(finishedTxs))
 
 	for _, ftx := range finishedTxs {
 		found := false

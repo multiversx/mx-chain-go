@@ -169,7 +169,12 @@ func (sp *shardProcessor) ProcessBlock(
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
-	err = sp.setShardConsensusData(headerHandler)
+	err = sp.specialAddressHandler.SetShardConsensusData(
+		headerHandler.GetPrevRandSeed(),
+		headerHandler.GetRound(),
+		headerHandler.GetEpoch(),
+		headerHandler.GetShardID(),
+	)
 	if err != nil {
 		return err
 	}
@@ -254,22 +259,6 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *shardProcessor) setShardConsensusData(headerHandler data.HeaderHandler) error {
-	// give transaction coordinator the consensus group validators addresses where to send the rewards.
-	consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
-		headerHandler.GetPrevRandSeed(),
-		headerHandler.GetRound(),
-		sp.shardCoordinator.SelfId(),
-	)
-	if err != nil {
-		return err
-	}
-
-	sp.SetConsensusData(consensusAddresses, headerHandler.GetRound())
-
-	return nil
-}
-
 func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.HeaderHandler) error {
 	sp.specialAddressHandler.ClearMetaConsensusData()
 
@@ -277,24 +266,21 @@ func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.Header
 	for _, metaBlock := range finalizedMetaBlocks {
 		round := metaBlock.GetRound()
 		epoch := metaBlock.GetEpoch()
-		consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
-			metaBlock.GetPrevRandSeed(),
-			round,
-			metaBlock.GetShardID(),
-		)
+		err := sp.specialAddressHandler.SetMetaConsensusData(metaBlock.GetPrevRandSeed(), round, epoch)
 		if err != nil {
 			return err
 		}
-
-		sp.specialAddressHandler.SetMetaConsensusData(consensusAddresses, round, epoch)
 	}
 
 	return nil
 }
 
-// SetConsensusData - sets the reward addresses for the current consensus group
-func (sp *shardProcessor) SetConsensusData(consensusRewardAddresses []string, round uint64) {
-	sp.specialAddressHandler.SetConsensusData(consensusRewardAddresses, round, 0)
+// SetConsensusData - sets the reward data for the current consensus group
+func (sp *shardProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
+	err := sp.specialAddressHandler.SetShardConsensusData(randomness, round, epoch, shardId)
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
@@ -575,7 +561,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
-			_, ok := crossMiniBlockHashes[key]
+			_, ok = crossMiniBlockHashes[key]
 			if !ok {
 				continue
 			}
@@ -949,7 +935,7 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 		}
 
 		for key := range miniBlockHashes {
-				_, ok = crossMiniBlockHashes[string(miniBlockHashes[key])]
+			_, ok = crossMiniBlockHashes[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
