@@ -40,6 +40,7 @@ func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecuti
 	if err != nil {
 		return nil, err
 	}
+
 	return vm, nil
 }
 

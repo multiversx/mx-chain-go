@@ -247,6 +247,26 @@ func CreateTx(
 	return tx
 }
 
+func CreateDeployTx(
+	senderAddressBytes []byte,
+	senderNonce uint64,
+	value *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
+	scCodeAndVMType string,
+) *dataTransaction.Transaction {
+
+	return &dataTransaction.Transaction{
+		Nonce:    senderNonce,
+		Value:    value,
+		SndAddr:  senderAddressBytes,
+		RcvAddr:  CreateEmptyAddress().Bytes(),
+		Data:     scCodeAndVMType,
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+}
+
 func TestAccount(
 	t *testing.T,
 	accnts state.AccountsAdapter,
@@ -290,5 +310,36 @@ func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, func
 	scgd, _ := smartContract.NewSCDataGetter(vmContainer)
 
 	returnedVals, _ := scgd.Get(scAddressBytes, funcName, args...)
+
 	return big.NewInt(0).SetBytes(returnedVals)
+}
+
+func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
+	return &dataTransaction.Transaction{
+		Nonce:    nonce,
+		Value:    value,
+		RcvAddr:  scAddrress,
+		SndAddr:  sndAddress,
+		GasPrice: 0,
+		GasLimit: 5000,
+		Data:     "topUp",
+	}
+}
+
+func CreateTransferTx(
+	nonce uint64,
+	value *big.Int,
+	scAddrress []byte,
+	sndAddress []byte,
+	rcvAddress []byte,
+) *dataTransaction.Transaction {
+	return &dataTransaction.Transaction{
+		Nonce:    nonce,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddrress,
+		SndAddr:  sndAddress,
+		GasPrice: 0,
+		GasLimit: 5000,
+		Data:     "transfer@" + hex.EncodeToString(rcvAddress) + "@" + value.String(),
+	}
 }
