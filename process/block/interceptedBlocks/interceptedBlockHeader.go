@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -26,33 +25,16 @@ type InterceptedHeader struct {
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, error) {
-	if arg == nil {
-		return nil, process.ErrNilArguments
-	}
-	if arg.HdrBuff == nil {
-		return nil, process.ErrNilBuffer
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(arg.Hasher) {
-		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(arg.MultiSigVerifier) {
-		return nil, process.ErrNilMultiSigVerifier
-	}
-	if check.IfNil(arg.ChronologyValidator) {
-		return nil, process.ErrNilChronologyValidator
-	}
-	if check.IfNil(arg.ShardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
+	err := checkArgument(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	hdr := &block.Header{
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 		MetaBlockHashes:  make([][]byte, 0),
 	}
-	err := arg.Marshalizer.Unmarshal(hdr, arg.HdrBuff)
+	err = arg.Marshalizer.Unmarshal(hdr, arg.HdrBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -85,33 +67,19 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	err = inHdr.verifySig()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return inHdr.verifySig()
 }
 
 // integrity checks the integrity of the state block wrapper
 func (inHdr *InterceptedHeader) integrity() error {
-	if inHdr.HeaderHandler().GetPubKeysBitmap() == nil {
-		return process.ErrNilPubKeysBitmap
+	err := checkHeaderHandler(inHdr.HeaderHandler())
+	if err != nil {
+		return err
 	}
-	if inHdr.HeaderHandler().GetPrevHash() == nil {
-		return process.ErrNilPreviousBlockHash
-	}
-	if inHdr.HeaderHandler().GetSignature() == nil {
-		return process.ErrNilSignature
-	}
-	if inHdr.HeaderHandler().GetRootHash() == nil {
-		return process.ErrNilRootHash
-	}
-	if inHdr.HeaderHandler().GetRandSeed() == nil {
-		return process.ErrNilRandSeed
-	}
-	if inHdr.HeaderHandler().GetPrevRandSeed() == nil {
-		return process.ErrNilPrevRandSeed
+
+	err = checkMiniblocks(inHdr.hdr.MiniBlockHeaders, inHdr.shardCoordinator)
+	if err != nil {
+		return err
 	}
 
 	return inHdr.chronologyValidator.ValidateReceivedBlock(

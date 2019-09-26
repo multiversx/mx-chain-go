@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var timeoutDuration = time.Second
+
 //------- NewTxBlockBodyInterceptor
 
 func TestNewTxBlockBodyInterceptor_NilMarshalizerShouldErr(t *testing.T) {

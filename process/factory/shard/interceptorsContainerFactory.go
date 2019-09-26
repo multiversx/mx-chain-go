@@ -172,16 +172,6 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = icf.generatePeerChBlockBodyInterceptor()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.AddMultiple(keys, interceptorSlice)
-	if err != nil {
-		return nil, err
-	}
-
 	keys, interceptorSlice, err = icf.generateMetachainHeaderInterceptor()
 	if err != nil {
 		return nil, err
@@ -436,34 +426,6 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifi
 	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
-//------- PeerChBlocks interceptor
-
-func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([]string, []process.Interceptor, error) {
-	shardC := icf.shardCoordinator
-
-	//only one intrashard peer change blocks topic
-	identifierPeerCh := factory.PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	peerBlockBodyStorer := icf.store.GetStorer(dataRetriever.PeerChangesUnit)
-
-	interceptor, err := blockInterceptors.NewPeerBlockBodyInterceptor(
-		icf.marshalizer,
-		icf.dataPool.PeerChangesBlocks(),
-		peerBlockBodyStorer,
-		icf.hasher,
-		shardC,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	_, err = icf.createTopicAndAssignHandler(identifierPeerCh, interceptor, true)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return []string{identifierPeerCh}, []process.Interceptor{interceptor}, nil
-}
-
 //------- MetachainHeader interceptors
 
 func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([]string, []process.Interceptor, error) {
@@ -475,15 +437,26 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 		return nil, nil, err
 	}
 
-	interceptor, err := blockInterceptors.NewMetachainHeaderInterceptor(
-		icf.marshalizer,
-		icf.dataPool.MetaBlocks(),
-		icf.dataPool.HeadersNonces(),
-		hdrValidator,
-		icf.multiSigner,
-		icf.hasher,
-		icf.shardCoordinator,
-		icf.chronologyValidator,
+	hdrFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
+		icf.argInterceptorFactory,
+		interceptorFactory.InterceptedMetaHeader,
+	)
+
+	argProcessor := &processor.ArgHdrInterceptorProcessor{
+		Headers:       icf.dataPool.MetaBlocks(),
+		HeadersNonces: icf.dataPool.HeadersNonces(),
+		HdrValidator:  hdrValidator,
+	}
+	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	//only one metachain header topic
+	interceptor, err := interceptors.NewSingleDataInterceptor(
+		hdrFactory,
+		hdrProcessor,
+		icf.globalTxThrottler,
 	)
 	if err != nil {
 		return nil, nil, err

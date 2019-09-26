@@ -6,8 +6,11 @@ type InterceptedDataType string
 // InterceptedTx is the type for intercepted transaction
 const InterceptedTx InterceptedDataType = "intercepted transaction"
 
+// InterceptedUnsignedTx is the type for intercepted unsigned transaction (smart contract results)
+const InterceptedUnsignedTx InterceptedDataType = "intercepted unsigned transaction"
+
 // InterceptedShardHeader is the type for intercepted shard header
 const InterceptedShardHeader InterceptedDataType = "intercepted shard header"
 
-// InterceptedUnsignedTx is the type for intercepted unsigned transaction (smart contract results)
-const InterceptedUnsignedTx InterceptedDataType = "intercepted unsigned transaction"
+// InterceptedMetaHeader is the type for intercepted meta header
+const InterceptedMetaHeader InterceptedDataType = "intercepted meta header"
