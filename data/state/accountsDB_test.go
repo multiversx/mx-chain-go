@@ -629,10 +629,14 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	rootHash[0] = 1
 	keyRequired := []byte{65, 66, 67}
 	val := []byte{32, 33, 34}
+
+	trieVal := append(val, keyRequired...)
+	trieVal = append(trieVal, []byte("identifier")...)
+
 	dataTrie := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			if bytes.Equal(key, keyRequired) {
-				return val, nil
+				return trieVal, nil
 			}
 
 			return nil, nil

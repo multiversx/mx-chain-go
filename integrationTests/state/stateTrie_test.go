@@ -737,7 +737,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.DataTrie().Root()
+	rootHash, err = state2.DataTrie().Root()
 	assert.Nil(t, err)
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -749,7 +749,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	assert.NotEqual(t, hrCreated1, hrCreated2)
 
 	//Test 2.2 test whether the datatrie roots match
-	assert.Equal(t, hrRoot1, hrRoot2)
+	assert.NotEqual(t, hrRoot1, hrRoot2)
 
 	//Step 3. Commit
 	rootCommit, err := adb.Commit()
@@ -775,7 +775,6 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	assert.NotEqual(t, hrCreated2p1, hrCreated2)
 
 	//Test 4.2 test whether the datatrie roots match/mismatch
-	assert.Equal(t, hrRoot1, hrRoot2)
 	assert.NotEqual(t, hrRoot2, hrRoot2p1)
 
 	//Step 5. Revert 2-nd account modification
@@ -1068,4 +1067,99 @@ func BenchmarkTxExecution(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		integrationTests.AdbEmulateBalanceTxSafeExecution(acntSrc.(*state.Account), acntDest.(*state.Account), adb, big.NewInt(1))
 	}
+}
+
+func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
+	t.Parallel()
+
+	evictionCacheSize := 100
+	tr, _ := trie.NewTrie(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionCacheSize)
+	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
+
+	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000001")
+	address3, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000002")
+
+	newDefaultAccount(adb, address1)
+	newDefaultAccount(adb, address2)
+	account := newDefaultAccount(adb, address3)
+
+	rootHash1, _ := adb.Commit()
+	_ = account.(*state.Account).SetBalanceWithJournal(big.NewInt(1))
+	rootHash2, _ := adb.Commit()
+	_ = tr.Prune(rootHash1)
+
+	err := adb.RecreateTrie(rootHash2)
+	ok, err := adb.HasAccount(address1)
+	assert.True(t, ok)
+	assert.Nil(t, err)
+}
+
+func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) state.AccountHandler {
+	account, _ := adb.GetAccountWithJournal(address)
+	_ = account.(*state.Account).SetNonceWithJournal(0)
+	_ = account.(*state.Account).SetBalanceWithJournal(big.NewInt(0))
+
+	return account
+}
+
+func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
+	t.Parallel()
+
+	evictionCacheSize := 100
+	tr, _ := trie.NewTrie(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionCacheSize)
+	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
+
+	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000001")
+
+	key1 := []byte("ABC")
+	key2 := []byte("ABD")
+	value1 := []byte("dog")
+	value2 := []byte("puppy")
+
+	state1, _ := adb.GetAccountWithJournal(address1)
+	state1.DataTrieTracker().SaveKeyValue(key1, value1)
+	state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = adb.SaveDataTrie(state1)
+
+	state2, _ := adb.GetAccountWithJournal(address2)
+	state2.DataTrieTracker().SaveKeyValue(key1, value1)
+	state2.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = adb.SaveDataTrie(state2)
+
+	oldRootHash, _ := adb.Commit()
+	state2oldRootHash := state2.GetRootHash()
+
+	state2.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = adb.SaveDataTrie(state2)
+
+	rootHashAfterTrieUpdate, _ := adb.Commit()
+	_ = tr.Prune(oldRootHash)
+	_ = tr.Prune(state2oldRootHash)
+
+	err := adb.RecreateTrie(rootHashAfterTrieUpdate)
+	ok, err := adb.HasAccount(address1)
+	assert.True(t, ok)
+	assert.Nil(t, err)
+
+	collapseTrie(state1, t)
+	collapseTrie(state2, t)
+
+	val, err := state1.DataTrieTracker().RetrieveValue(key1)
+	assert.Nil(t, err)
+	assert.Equal(t, value1, val)
+
+	val, err = state2.DataTrieTracker().RetrieveValue(key2)
+	assert.Nil(t, err)
+	assert.Equal(t, value1, val)
+}
+
+func collapseTrie(state state.AccountHandler, t *testing.T) {
+	stateRootHash := state.GetRootHash()
+	stateTrie := state.DataTrieTracker().DataTrie()
+	stateNewTrie, _ := stateTrie.Recreate(stateRootHash)
+	assert.NotNil(t, stateNewTrie)
+
+	state.DataTrieTracker().SetDataTrie(stateNewTrie)
 }
