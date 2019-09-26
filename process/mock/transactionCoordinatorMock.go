@@ -14,7 +14,7 @@ type TransactionCoordinatorMock struct {
 	RequestBlockTransactionsCalled                       func(body block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
 	SaveBlockDataToStorageCalled                         func(body block.Body) error
-	RestoreBlockDataFromStorageCalled                    func(body block.Body) (int, map[int][][]byte, error)
+	RestoreBlockDataFromStorageCalled                    func(body block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body block.Body) error
 	ProcessBlockTransactionCalled                        func(body block.Body, round uint64, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
@@ -65,9 +65,9 @@ func (tcm *TransactionCoordinatorMock) SaveBlockDataToStorage(body block.Body) e
 	return tcm.SaveBlockDataToStorageCalled(body)
 }
 
-func (tcm *TransactionCoordinatorMock) RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error) {
+func (tcm *TransactionCoordinatorMock) RestoreBlockDataFromStorage(body block.Body) (int, error) {
 	if tcm.RestoreBlockDataFromStorageCalled == nil {
-		return 0, nil, nil
+		return 0, nil
 	}
 
 	return tcm.RestoreBlockDataFromStorageCalled(body)

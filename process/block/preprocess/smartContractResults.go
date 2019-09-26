@@ -130,12 +130,10 @@ func (scr *smartContractResults) RemoveTxBlockFromPools(body block.Body, miniBlo
 func (scr *smartContractResults) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockPool storage.Cacher,
-) (int, map[int][]byte, error) {
+) (int, error) {
 	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
-		return 0, nil, process.ErrNilMiniBlockPool
+		return 0, process.ErrNilMiniBlockPool
 	}
-
-	miniBlockHashes := make(map[int][]byte)
 
 	scrRestored := 0
 	for i := 0; i < len(body); i++ {
@@ -147,41 +145,40 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		scrBuff, err := scr.storage.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			return scrRestored, miniBlockHashes, err
+			return scrRestored, err
 		}
 
 		for txHash, txBuff := range scrBuff {
 			tx := smartContractResult.SmartContractResult{}
 			err = scr.marshalizer.Unmarshal(&tx, txBuff)
 			if err != nil {
-				return scrRestored, miniBlockHashes, err
+				return scrRestored, err
 			}
 
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
 
 			err = scr.storage.GetStorer(dataRetriever.UnsignedTransactionUnit).Remove([]byte(txHash))
 			if err != nil {
-				return scrRestored, miniBlockHashes, err
+				return scrRestored, err
 			}
 		}
 
 		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
 		if err != nil {
-			return scrRestored, miniBlockHashes, err
+			return scrRestored, err
 		}
 
-		restoredHash := scr.restoreMiniBlock(miniBlock, miniBlockHash, miniBlockPool)
+		miniBlockPool.Put(miniBlockHash, miniBlock)
 
 		err = scr.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
 		if err != nil {
-			return scrRestored, miniBlockHashes, err
+			return scrRestored, err
 		}
 
-		miniBlockHashes[i] = restoredHash
 		scrRestored += len(miniBlock.TxHashes)
 	}
 
-	return scrRestored, miniBlockHashes, nil
+	return scrRestored, nil
 }
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state

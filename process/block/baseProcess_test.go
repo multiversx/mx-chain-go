@@ -375,26 +375,19 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
-	hdr.PrevRandSeed = []byte("X")
-	err = bp.CheckBlockValidity(blkc, hdr, body)
-	assert.Equal(t, process.ErrRandSeedMismatch, err)
-
-	hdr.PrevRandSeed = []byte("")
 	hdr.PrevHash = []byte("X")
 	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 
-	hdr.Nonce = 3
-	hdr.PrevHash = []byte("")
-	err = bp.CheckBlockValidity(blkc, hdr, body)
-	assert.Equal(t, process.ErrWrongNonceInBlock, err)
-
-	hdr.Nonce = 2
 	marshalizerMock := mock.MarshalizerMock{}
 	hasherMock := mock.HasherMock{}
 	prevHeader, _ := marshalizerMock.Marshal(blkc.GetCurrentBlockHeader())
 	hdr.PrevHash = hasherMock.Compute(string(prevHeader))
+	hdr.PrevRandSeed = []byte("X")
+	err = bp.CheckBlockValidity(blkc, hdr, body)
+	assert.Equal(t, process.ErrRandSeedDoesNotMatch, err)
 
+	hdr.PrevRandSeed = []byte("")
 	err = bp.CheckBlockValidity(blkc, hdr, body)
 	assert.Nil(t, err)
 }

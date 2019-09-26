@@ -450,3 +450,23 @@ func (bfd *baseForkDetector) shouldSignalFork(
 
 	return shouldSignalFork
 }
+
+func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
+	header data.HeaderHandler,
+	state process.BlockHeaderState,
+	finality int64,
+) error {
+
+	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(header.GetNonce())
+	isSyncing := state == process.BHReceived && noncesDifference > process.MaxNoncesDifference
+	if state == process.BHProcessed || isSyncing {
+		return nil
+	}
+
+	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-finality
+	if roundTooOld {
+		return ErrLowerRoundInBlock
+	}
+
+	return nil
+}
