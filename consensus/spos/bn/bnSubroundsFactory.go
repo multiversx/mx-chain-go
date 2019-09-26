@@ -69,7 +69,7 @@ func checkNewFactoryParams(
 	return nil
 }
 
-// SetAppStatusHandler method set appStatusHandler
+// SetAppStatusHandler method will update the value of the factory's appStatusHandler
 func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	if ash == nil || ash.IsInterfaceNil() {
 		return spos.ErrNilAppStatusHandler
@@ -79,7 +79,7 @@ func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	return nil
 }
 
-// SetIndexer method set indexer
+// SetIndexer method will update the value of the factory's indexer
 func (fct *factory) SetIndexer(indexer indexer.Indexer) {
 	fct.indexer = indexer
 }

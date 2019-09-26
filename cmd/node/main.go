@@ -682,15 +682,14 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-    if shardCoordinator.SelfId() == sharding.MetachainShardId {
-        indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
-    }
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
+	}
 
 	vmAccountsDB, err := hooks.NewVMAccountsDB(
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
 	)
-
 	if err != nil {
 		return err
 	}

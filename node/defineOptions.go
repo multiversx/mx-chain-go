@@ -406,7 +406,6 @@ func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 func WithIndexer(indexer indexer.Indexer) Option {
 	return func(n *Node) error {
 		n.indexer = indexer
-
 		return nil
 	}
 }

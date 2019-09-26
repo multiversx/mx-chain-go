@@ -238,18 +238,18 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 }
 
-// SaveRoundInfo will save on elastic search information about round
+// SaveRoundInfo will save data about a round on elastic search sounds better
 func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64) {
 	var buff bytes.Buffer
 
-	serializedSignersIndexes, err := ei.marshalizer.Marshal(RoundInfo{SignersIndexes: signersIndexes, ShardId: shardId})
+	marshalizedSignersIndexes, err := ei.marshalizer.Marshal(RoundInfo{SignersIndexes: signersIndexes, ShardId: shardId})
 	if err != nil {
 		ei.logger.Warn("could not marshal signers indexes")
 		return
 	}
 
-	buff.Grow(len(serializedSignersIndexes))
-	buff.Write(serializedSignersIndexes)
+	buff.Grow(len(marshalizedSignersIndexes))
+	buff.Write(marshalizedSignersIndexes)
 
 	req := esapi.IndexRequest{
 		Index:      roundIndex,
@@ -271,18 +271,25 @@ func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersInde
 	}
 }
 
-//SaveValidatorsPubKeys will sent all validators public keys to elastic search
+//SaveValidatorsPubKeys will send all validators public keys to elastic search
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
 	var buff bytes.Buffer
 
-	serializedValidatorPubKeys, err := ei.marshalizer.Marshal(validatorsPubKeys)
+	valPubKeys := make(map[uint32][]string, 0)
+	for shardId, shardPubKeys := range validatorsPubKeys {
+		for _, pubKey := range shardPubKeys {
+			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
+		}
+	}
+
+	marshalizedValidatorPubKeys, err := ei.marshalizer.Marshal(valPubKeys)
 	if err != nil {
 		ei.logger.Warn("could not marshal validators public keys")
 		return
 	}
 
-	buff.Grow(len(serializedValidatorPubKeys))
-	buff.Write(serializedValidatorPubKeys)
+	buff.Grow(len(marshalizedValidatorPubKeys))
+	buff.Write(marshalizedValidatorPubKeys)
 
 	req := esapi.IndexRequest{
 		Index:      validatorsIndex,

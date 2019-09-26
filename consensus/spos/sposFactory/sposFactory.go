@@ -31,11 +31,11 @@ func GetSubroundsFactory(
 		}
 
 		err = subRoundFactoryBls.SetAppStatusHandler(appStatusHandler)
-
-		subRoundFactoryBls.SetIndexer(indexer)
 		if err != nil {
 			return nil, err
 		}
+
+		subRoundFactoryBls.SetIndexer(indexer)
 
 		return subRoundFactoryBls, nil
 	case bnConsensusType:
