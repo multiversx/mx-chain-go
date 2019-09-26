@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -35,6 +36,9 @@ type shardProcessor struct {
 	requestedMetaHdrsHashes    map[string]bool
 	currHighestMetaHdrNonce    uint64
 	allNeededMetaHdrsFound     bool
+
+	processedMiniBlocks    map[string][][]byte
+	mutProcessedMiniBlocks sync.RWMutex
 
 	core          serviceContainer.Core
 	txCoordinator process.TransactionCoordinator
@@ -115,6 +119,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	sp.requestedMetaHdrsHashes = make(map[string]bool)
 	sp.usedMetaHdrsHashes = make(map[uint64][][]byte)
+	sp.processedMiniBlocks = make(map[string][][]byte)
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
@@ -533,7 +538,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 
 		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for mbHash := range processedMiniBlocks {
-			metaBlock.SetMiniBlockProcessed([]byte(mbHash), true)
+			sp.addProcessedMiniBlock(metaBlockHash, []byte(mbHash))
 		}
 
 		metaBlockPool.Put(metaBlockHash, &metaBlock)
@@ -577,7 +582,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 				continue
 			}
 
-			hdr.SetMiniBlockProcessed([]byte(key), false)
+			sp.removeProcessedMiniBlock(metaBlockKey, []byte(key))
 		}
 	}
 
@@ -882,7 +887,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 				continue
 			}
 
-			metaBlock.SetMiniBlockProcessed(miniBlockHashes[key], true)
+			sp.addProcessedMiniBlock(metaBlockKey, miniBlockHashes[key])
 			delete(miniBlockHashes, key)
 		}
 
@@ -890,7 +895,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 
 		processedAll := true
 		for key := range crossMiniBlockHashes {
-			if !metaBlock.GetMiniBlockProcessed([]byte(key)) {
+			if !sp.isMiniBlockProcessed(metaBlockKey, []byte(key)) {
 				processedAll = false
 				break
 			}
@@ -1353,8 +1358,10 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		maxMbSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInHeader) - 1
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
+			processedMiniBlocksHashes := sp.getProcessedMiniBlocksHashes(orderedMetaBlocks[i].hash)
 			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				hdr,
+				processedMiniBlocksHashes,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
 				round,
@@ -1586,5 +1593,61 @@ func (sp *shardProcessor) IsInterfaceNil() bool {
 	if sp == nil {
 		return true
 	}
+	return false
+}
+
+func (sp *shardProcessor) addProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
+	sp.mutProcessedMiniBlocks.Lock()
+	sp.processedMiniBlocks[string(metaBlockHash)] = append(sp.processedMiniBlocks[string(metaBlockHash)], miniBlockHash)
+	sp.mutProcessedMiniBlocks.Unlock()
+}
+
+func (sp *shardProcessor) removeProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
+	var preservedMiniBlockHashes [][]byte
+
+	sp.mutProcessedMiniBlocks.RLock()
+	miniBlockHashes, ok := sp.processedMiniBlocks[string(metaBlockHash)]
+	sp.mutProcessedMiniBlocks.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	for _, hash := range miniBlockHashes {
+		if bytes.Equal(hash, miniBlockHash) {
+			continue
+		}
+
+		preservedMiniBlockHashes = append(preservedMiniBlockHashes, hash)
+	}
+
+	sp.mutProcessedMiniBlocks.Lock()
+	sp.processedMiniBlocks[string(metaBlockHash)] = preservedMiniBlockHashes
+	sp.mutProcessedMiniBlocks.Unlock()
+}
+
+func (sp *shardProcessor) getProcessedMiniBlocksHashes(metaBlockHash []byte) [][]byte {
+	sp.mutProcessedMiniBlocks.RLock()
+	processedMiniBlocksHashes := sp.processedMiniBlocks[string(metaBlockHash)]
+	sp.mutProcessedMiniBlocks.RUnlock()
+
+	return processedMiniBlocksHashes
+}
+
+func (sp *shardProcessor) isMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
+	sp.mutProcessedMiniBlocks.RLock()
+	miniBlockHashes, ok := sp.processedMiniBlocks[string(metaBlockHash)]
+	sp.mutProcessedMiniBlocks.RUnlock()
+
+	if !ok {
+		return false
+	}
+
+	for _, hash := range miniBlockHashes {
+		if bytes.Equal(hash, miniBlockHash) {
+			return true
+		}
+	}
+
 	return false
 }
