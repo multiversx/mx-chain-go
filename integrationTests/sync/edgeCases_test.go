@@ -11,9 +11,10 @@ import (
 )
 
 // TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard tests the following scenario:
-// 1. Meta and shard 0 are in sync, shard 0 stops producing blocks
-// 2. Shard 0 resumes producing block, having a new block with nonce 5 in a higher round than notarized by metachain
-// 3. A bootstrapping meta node should be able to pass block with nonce 4
+// 1. Meta and shard 0 are in sync, producing blocks
+// 2. At nonce 3, shard 0 makes a rollback and stops producing blocks for 2 rounds, meta keeps producing blocks
+// 3. Shard 0 resumes creating blocks starting with nonce 3
+// 3. A bootstrapping meta node should be able to pass meta block with nonce 2
 func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
