@@ -39,3 +39,6 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrNilShardCoordinator signals that nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrNilNodesCoordinator signals that nil shard coordinator was provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")

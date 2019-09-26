@@ -116,7 +116,7 @@ type TransactionVerifier interface {
 	IsTransactionValid(tx data.TransactionHandler) error
 }
 
-// UnsignedTxHandler creates and verifies unsigned transactions for current round
+// TransactionFeeHandler processes the transaction fee
 type TransactionFeeHandler interface {
 	ProcessTransactionFee(cost *big.Int)
 	IsInterfaceNil() bool
@@ -124,15 +124,18 @@ type TransactionFeeHandler interface {
 
 // SpecialAddressHandler responds with needed special addresses
 type SpecialAddressHandler interface {
-	SetElrondCommunityAddress(elrond []byte)
+	SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error
+	SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error
+	ConsensusShardRewardData() *data.ConsensusRewardData
+	ConsensusMetaRewardData() []*data.ConsensusRewardData
+	ClearMetaConsensusData()
 	ElrondCommunityAddress() []byte
-	SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
-	ConsensusRewardAddresses() []string
 	LeaderAddress() []byte
 	BurnAddress() []byte
+	SetElrondCommunityAddress(elrond []byte)
 	ShardIdForAddress([]byte) (uint32, error)
-	Round() uint64
 	Epoch() uint32
+	Round() uint64
 	IsInterfaceNil() bool
 }
 
@@ -171,7 +174,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusData(consensusRewardAddresses []string, round uint64)
+	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
 }
 

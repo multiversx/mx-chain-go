@@ -32,9 +32,10 @@ type rewardsHandler struct {
 	store            dataRetriever.StorageService
 	rewardTxPool     dataRetriever.ShardedDataCacherNotifier
 
-	mutGenRewardTxs sync.RWMutex
-	protocolRewards []data.TransactionHandler
-	feeRewards      []data.TransactionHandler
+	mutGenRewardTxs     sync.RWMutex
+	protocolRewards     []data.TransactionHandler
+	protocolRewardsMeta []data.TransactionHandler
+	feeRewards          []data.TransactionHandler
 
 	mut               sync.Mutex
 	accumulatedFees   *big.Int
@@ -135,24 +136,24 @@ func (rtxh *rewardsHandler) AddIntermediateTransactions(txs []data.TransactionHa
 	return nil
 }
 
-func (rtxh *rewardsHandler) getShardIdsFromAddress(addr []byte) (uint32, error) {
-	address, err := rtxh.adrConv.CreateAddressFromPublicKeyBytes(addr)
-	if err != nil {
-		return rtxh.shardCoordinator.NumberOfShards(), err
-	}
-	shardId := rtxh.shardCoordinator.ComputeId(address)
-
-	return shardId, nil
-}
-
 // CreateAllInterMiniBlocks creates miniblocks from process transactions
 func (rtxh *rewardsHandler) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
 	rtxh.mutGenRewardTxs.Lock()
-	calculatedRewardTxs := make([]data.TransactionHandler, 0)
+
 	rtxh.feeRewards = rtxh.createRewardFromFees()
 	rtxh.addTransactionsToPool(rtxh.feeRewards)
+
+	rtxh.protocolRewards = rtxh.createProtocolRewards()
+	rtxh.addTransactionsToPool(rtxh.protocolRewards)
+
+	rtxh.protocolRewardsMeta = rtxh.createProtocolRewardsForMeta()
+	rtxh.addTransactionsToPool(rtxh.protocolRewardsMeta)
+
+	calculatedRewardTxs := make([]data.TransactionHandler, 0)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewards...)
+	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewardsMeta...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
+
 	rtxh.mutGenRewardTxs.Unlock()
 
 	miniBlocks := rtxh.miniblocksFromRewardTxs(calculatedRewardTxs)
@@ -222,8 +223,6 @@ func (rtxh *rewardsHandler) VerifyInterMiniBlocks(body block.Body) error {
 // CreateBlockStarted does the cleanup before creating a new block
 func (rtxh *rewardsHandler) CreateBlockStarted() {
 	rtxh.cleanCachedData()
-	rewardTxs := rtxh.createProtocolRewards()
-	rtxh.addTransactionsToPool(rewardTxs)
 }
 
 // CreateMarshalizedData creates the marshalized data for broadcasting purposes
@@ -270,6 +269,7 @@ func (rtxh *rewardsHandler) cleanCachedData() {
 	rtxh.mutGenRewardTxs.Lock()
 	rtxh.feeRewards = make([]data.TransactionHandler, 0)
 	rtxh.protocolRewards = make([]data.TransactionHandler, 0)
+	rtxh.protocolRewardsMeta = make([]data.TransactionHandler, 0)
 	rtxh.mutGenRewardTxs.Unlock()
 }
 
@@ -345,23 +345,50 @@ func (rtxh *rewardsHandler) createRewardFromFees() []data.TransactionHandler {
 
 // createProtocolRewards creates the protocol reward transactions
 func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
-	consensusRewardAddresses := rtxh.address.ConsensusRewardAddresses()
+	consensusRewardData := rtxh.address.ConsensusShardRewardData()
 
 	consensusRewardTxs := make([]data.TransactionHandler, 0)
-	for _, address := range consensusRewardAddresses {
+	for _, address := range consensusRewardData.Addresses {
 		rTx := &rewardTx.RewardTx{}
 		rTx.Value = rewardValue
 		rTx.RcvAddr = []byte(address)
 		rTx.ShardId = rtxh.shardCoordinator.SelfId()
-		rTx.Epoch = rtxh.address.Epoch()
-		rTx.Round = rtxh.address.Round()
+		rTx.Epoch = consensusRewardData.Epoch
+		rTx.Round = consensusRewardData.Round
 
 		consensusRewardTxs = append(consensusRewardTxs, rTx)
 	}
 
-	rtxh.mutGenRewardTxs.Lock()
-	rtxh.protocolRewards = consensusRewardTxs
-	rtxh.mutGenRewardTxs.Unlock()
+	return consensusRewardTxs
+}
+
+// createProtocolRewardsForMeta creates the protocol reward transactions
+func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHandler {
+	metaRewardsData := rtxh.address.ConsensusMetaRewardData()
+	consensusRewardTxs := make([]data.TransactionHandler, 0)
+
+	for _, metaConsensusSet := range metaRewardsData {
+		for _, address := range metaConsensusSet.Addresses {
+			shardId, err := rtxh.address.ShardIdForAddress([]byte(address))
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			if shardId != rtxh.shardCoordinator.SelfId() {
+				continue
+			}
+
+			rTx := &rewardTx.RewardTx{}
+			rTx.Value = rewardValue
+			rTx.RcvAddr = []byte(address)
+			rTx.ShardId = rtxh.shardCoordinator.SelfId()
+			rTx.Epoch = metaConsensusSet.Epoch
+			rTx.Round = metaConsensusSet.Round
+
+			consensusRewardTxs = append(consensusRewardTxs, rTx)
+		}
+	}
 
 	return consensusRewardTxs
 }
@@ -371,6 +398,7 @@ func (rtxh *rewardsHandler) verifyCreatedRewardsTxs() error {
 	calculatedRewardTxs := make([]data.TransactionHandler, 0)
 	rtxh.mutGenRewardTxs.RLock()
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewards...)
+	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.protocolRewardsMeta...)
 	calculatedRewardTxs = append(calculatedRewardTxs, rtxh.feeRewards...)
 	rtxh.mutGenRewardTxs.RUnlock()
 
@@ -412,10 +440,10 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 	rtxh.mut.Lock()
 
 	rewardTxPool := make(map[string]data.TransactionHandler)
-	for txHash, txInfo := range rtxh.rewardTxsForBlock {
+	for txHash, info := range rtxh.rewardTxsForBlock {
 
-		senderShard := txInfo.ShardId
-		receiverShard, err := rtxh.address.ShardIdForAddress(txInfo.RcvAddr)
+		senderShard := info.ShardId
+		receiverShard, err := rtxh.address.ShardIdForAddress(info.RcvAddr)
 		if err != nil {
 			continue
 		}
@@ -425,7 +453,7 @@ func (rtxh *rewardsHandler) GetAllCurrentFinishedTxs() map[string]data.Transacti
 		if senderShard != rtxh.shardCoordinator.SelfId() {
 			continue
 		}
-		rewardTxPool[txHash] = txInfo
+		rewardTxPool[txHash] = info
 	}
 	rtxh.mut.Unlock()
 

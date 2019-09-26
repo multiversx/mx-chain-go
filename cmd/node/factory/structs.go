@@ -1462,7 +1462,9 @@ func newBlockProcessorAndTracker(
 		communityAddress,
 		burnAddress,
 		state.AddressConverter,
-		shardCoordinator)
+		shardCoordinator,
+		nodesCoordinator,
+	)
 	if err != nil {
 		return nil, nil, err
 	}

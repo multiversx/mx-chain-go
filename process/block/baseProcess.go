@@ -216,6 +216,8 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
+		// todo remove after test
+		log.Info(fmt.Sprintf("local nonce is %d, node received block with nonce %d from other chain", prevHdr.GetNonce(), currHdr.GetNonce()))
 		return process.ErrWrongNonceInBlock
 	}
 

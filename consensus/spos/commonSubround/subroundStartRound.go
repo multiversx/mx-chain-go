@@ -212,7 +212,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	shardId := sr.ShardCoordinator().SelfId()
 
-	nextConsensusGroup, rewardsAddresses, err := sr.GetNextConsensusGroup(
+	nextConsensusGroup, _, err := sr.GetNextConsensusGroup(
 		randomSeed,
 		uint64(sr.RoundIndex),
 		shardId,
@@ -233,7 +233,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	sr.SetConsensusGroup(nextConsensusGroup)
 
-	sr.BlockProcessor().SetConsensusData(rewardsAddresses, uint64(sr.RoundIndex))
+	sr.BlockProcessor().SetConsensusData(randomSeed, uint64(sr.RoundIndex), currentHeader.GetEpoch(), shardId)
 
 	return nil
 }

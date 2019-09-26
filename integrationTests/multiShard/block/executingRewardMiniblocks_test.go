@@ -79,7 +79,8 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
 		for shardId, consensusGroup := range consensusNodes {
-			addrRewards := consensusGroup[0].SpecialAddressHandler.ConsensusRewardAddresses()
+			shardRewardData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
+			addrRewards := shardRewardData.Addresses
 			updateExpectedRewards(mapRewardsForAddress, addrRewards)
 			nbTxs := getTransactionsFromHeaderInShard(t, headers, shardId)
 
@@ -152,8 +153,17 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	for i := 0; i < nbBlocksProduced; i++ {
 		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
-		for _, consensusGroup := range consensusNodes {
-			addrRewards := consensusGroup[0].SpecialAddressHandler.ConsensusRewardAddresses()
+		for shardId, consensusGroup := range consensusNodes {
+			if shardId == sharding.MetachainShardId {
+				continue
+			}
+
+			shardRewardsData := consensusGroup[0].SpecialAddressHandler.ConsensusShardRewardData()
+			if shardRewardsData == nil {
+				shardRewardsData = &data.ConsensusRewardData{}
+			}
+
+			addrRewards := shardRewardsData.Addresses
 			updateExpectedRewards(mapRewardsForAddress, addrRewards)
 		}
 
@@ -168,7 +178,6 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 
 	verifyRewards(t, nodesMap, mapRewardsForAddress, nbTxsForLeaderAddress, 0, 0)
 }
-
 
 func generateIntraShardTransactions(
 	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
