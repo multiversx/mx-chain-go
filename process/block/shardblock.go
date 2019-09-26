@@ -105,6 +105,7 @@ func NewShardProcessor(
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
 		nodesCoordinator:              nodesCoordinator,
+		peerProcessor:                 peerProcessor,
 		specialAddressHandler:         specialAddressHandler,
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
@@ -679,6 +680,11 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMeta.GetNonce()))
+
+	err = sp.updatePeerState(headerHandler)
+	if err != nil {
+		return err
+	}
 
 	_, err = sp.accounts.Commit()
 	if err != nil {
@@ -1500,6 +1506,22 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 	case <-time.After(waitTime):
 		return process.ErrTimeIsOut
 	}
+}
+
+func (sp *shardProcessor) updatePeerState(headerHandler data.HeaderHandler) error {
+	headerStorer := sp.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	buff, err := headerStorer.Get(headerHandler.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
+	prevHeader := &block.Header{}
+	err = sp.marshalizer.Unmarshal(prevHeader, buff)
+	if err != nil {
+		return err
+	}
+
+	return sp.peerProcessor.UpdatePeerState(headerHandler, prevHeader)
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination

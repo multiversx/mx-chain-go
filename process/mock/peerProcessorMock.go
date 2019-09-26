@@ -7,8 +7,9 @@ import (
 
 type PeerProcessorMock struct {
 	LoadInitialStateCalled func(in []*sharding.InitialNode) error
-	UpdatePeerStateCalled func(header, previousHeader data.HeaderHandler) error
-	IsInterfaceNilCalled func() bool
+	UpdatePeerStateCalled  func(header, perviousHeader data.HeaderHandler) error
+	RevertPeerStateCalled  func(header, perviousHeader data.HeaderHandler) error
+	IsInterfaceNilCalled   func() bool
 }
 
 func (pm *PeerProcessorMock) LoadInitialState(in []*sharding.InitialNode) error {
@@ -21,6 +22,13 @@ func (pm *PeerProcessorMock) LoadInitialState(in []*sharding.InitialNode) error 
 func (pm *PeerProcessorMock) UpdatePeerState(header, previousHeader data.HeaderHandler) error {
 	if pm.UpdatePeerStateCalled != nil {
 		return pm.UpdatePeerStateCalled(header, previousHeader)
+	}
+	return nil
+}
+
+func (pm *PeerProcessorMock) RevertPeerState(header, previousHeader data.HeaderHandler) error {
+	if pm.RevertPeerStateCalled != nil {
+		return pm.RevertPeerStateCalled(header, previousHeader)
 	}
 	return nil
 }

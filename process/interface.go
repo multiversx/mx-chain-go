@@ -177,6 +177,7 @@ type BlockProcessor interface {
 type PeerProcessor interface {
 	LoadInitialState(in []*sharding.InitialNode) error
 	UpdatePeerState(header, previousHeader data.HeaderHandler) error
+	RevertPeerState(header, previousHeader data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

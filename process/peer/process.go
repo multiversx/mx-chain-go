@@ -134,6 +134,29 @@ func (p *validatorStatistics) UpdatePeerState(header, previousHeader data.Header
 	return nil
 }
 
+// RevertPeerState takes the current and previous headers and undos the peer state
+//  for all of the consensus members
+func (p *validatorStatistics) RevertPeerState(header, previousHeader data.HeaderHandler) error {
+	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID())
+	if err != nil {
+		return err
+	}
+
+	err  = p.revertValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetShardID())
+	if err != nil {
+		return err
+	}
+
+	if header.GetShardID() == sharding.MetachainShardId {
+		err = p.revertShardDataPeerState(header)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler) error {
 	metaHeader, ok := header.(*block.MetaBlock)
 	if !ok {
@@ -158,6 +181,38 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 		}
 
 		err = p.updateValidatorInfo(shardConsensus, shardHeader.GetPubKeysBitmap(), shardHeader.GetShardID())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *validatorStatistics) revertShardDataPeerState(header data.HeaderHandler) error {
+	metaHeader, ok := header.(*block.MetaBlock)
+	if !ok {
+		return process.ErrInvalidMetaHeader
+	}
+
+	for _, h := range metaHeader.ShardInfo {
+		shardHeaderBytes, err := p.shardHeaderStorage.Get(h.HeaderHash)
+		if err != nil {
+			return err
+		}
+
+		shardHeader := &block.Header{}
+		err = p.marshalizer.Unmarshal(shardHeader, shardHeaderBytes)
+		if err != nil {
+			return err
+		}
+
+		shardConsensus, err := p.nodesCoordinator.ComputeValidatorsGroup(shardHeader.GetPrevRandSeed(), shardHeader.GetRound(), shardHeader.GetShardID())
+		if err != nil {
+			return err
+		}
+
+		err = p.revertValidatorInfo(shardConsensus, shardHeader.GetPubKeysBitmap(), shardHeader.GetShardID())
 		if err != nil {
 			return err
 		}
@@ -248,6 +303,37 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
 		case validatorFail:
 			err = peerAcc.DecreaseValidatorSuccessRateWithJournal()
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *validatorStatistics) revertValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, shardId uint32) error {
+	lenValidators := len(validatorList)
+	for i := 0; i < lenValidators; i++ {
+		peerAcc, err := p.getPeerAccount(validatorList[i].Address(), shardId)
+		if err != nil {
+			return err
+		}
+
+		isLeader := i == 0
+		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
+		actionType :=  p.computeValidatorActionType(isLeader, validatorSigned)
+
+		switch actionType {
+		case leaderSuccess:
+			err = peerAcc.DecreaseLeaderSuccessRateWithJournal()
+		case leaderFail:
+			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
+		case validatorSuccess:
+			err = peerAcc.DecreaseValidatorSuccessRateWithJournal()
+		case validatorFail:
+			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
 		}
 
 		if err != nil {
