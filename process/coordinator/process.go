@@ -358,6 +358,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 // with destination of current shard
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
+	processedMiniBlocksHashes map[string]struct{},
 	maxTxRemaining uint32,
 	maxMbRemaining uint32,
 	round uint64,
@@ -365,7 +366,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 ) (block.MiniBlockSlice, uint32, bool) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
-	nrMBprocessed := 0
+	nrMiniBlocksProcessed := 0
 
 	if hdr == nil || hdr.IsInterfaceNil() {
 		return miniBlocks, nrTxAdded, true
@@ -377,8 +378,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		if hdr.GetMiniBlockProcessed([]byte(key)) {
-			nrMBprocessed++
+		_, ok := processedMiniBlocksHashes[key]
+		if ok {
+			nrMiniBlocksProcessed++
 			continue
 		}
 
@@ -417,7 +419,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
-		nrMBprocessed++
+		nrMiniBlocksProcessed++
 
 		mbOverFlow := uint32(len(miniBlocks)) >= maxMbRemaining
 		if mbOverFlow {
@@ -425,7 +427,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 	}
 
-	allMBsProcessed := nrMBprocessed == len(crossMiniBlockHashes)
+	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
 	return miniBlocks, nrTxAdded, allMBsProcessed
 }
 

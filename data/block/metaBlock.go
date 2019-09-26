@@ -71,7 +71,6 @@ type MetaBlock struct {
 	RandSeed      []byte      `capid:"10"`
 	RootHash      []byte      `capid:"11"`
 	TxCount       uint32      `capid:"12"`
-	processedMBs  map[string]bool
 }
 
 // MetaBlockBody hold the data for metablock body
@@ -433,25 +432,6 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 		}
 	}
 	return hashDst
-}
-
-// GetMiniBlockProcessed verifies if miniblock from header was processed
-func (m *MetaBlock) GetMiniBlockProcessed(hash []byte) bool {
-	if m.processedMBs == nil {
-		m.processedMBs = make(map[string]bool, 0)
-	}
-	if m.processedMBs[string(hash)] {
-		return true
-	}
-	return false
-}
-
-// SetMiniBlockProcessed set that miniblock with hash to processed or not processed
-func (m *MetaBlock) SetMiniBlockProcessed(hash []byte, processed bool) {
-	if m.processedMBs == nil {
-		m.processedMBs = make(map[string]bool, 0)
-	}
-	m.processedMBs[string(hash)] = processed
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.

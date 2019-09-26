@@ -2931,13 +2931,11 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	//check WasMiniBlockProcessed for remaining metablocks
-	metaBlock2Recov, _ := dataPool.MetaBlocks().Get(mb2Hash)
-	assert.True(t, (metaBlock2Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[2]))
-	assert.False(t, (metaBlock2Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[3]))
+	assert.True(t, bp.IsMiniBlockProcessed(mb2Hash, miniblockHashes[2]))
+	assert.False(t, bp.IsMiniBlockProcessed(mb2Hash, miniblockHashes[3]))
 
-	metaBlock3Recov, _ := dataPool.MetaBlocks().Get(mb3Hash)
-	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[4]))
-	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[5]))
+	assert.False(t, bp.IsMiniBlockProcessed(mb3Hash, miniblockHashes[4]))
+	assert.False(t, bp.IsMiniBlockProcessed(mb3Hash, miniblockHashes[5]))
 }
 
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.T) {
@@ -3041,22 +3039,32 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	metablockHash := []byte("meta block hash 1")
 	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)
-	metablockHeader.SetMiniBlockProcessed(metablockHash, true)
 	dataPool.MetaBlocks().Put(
 		metablockHash,
 		metablockHeader,
 	)
 
-	err = sp.RestoreBlockIntoPools(&block.Header{}, body)
+	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		return marshalizerMock.Marshal(metablockHeader)
+	}
+
+	miniBlockHeader := block.MiniBlockHeader{
+		Hash:            miniblockHash,
+		SenderShardID:   miniblock.SenderShardID,
+		ReceiverShardID: miniblock.ReceiverShardID,
+	}
+
+	metaBlockHashes := make([][]byte, 0)
+	metaBlockHashes = append(metaBlockHashes, metablockHash)
+
+	err = sp.RestoreBlockIntoPools(&block.Header{MetaBlockHashes: [][]byte{metablockHash}, MiniBlockHeaders: []block.MiniBlockHeader{miniBlockHeader}}, body)
 
 	miniblockFromPool, _ := dataPool.MiniBlocks().Get(miniblockHash)
 	txFromPool, _ := dataPool.Transactions().SearchFirstData(txHash)
-	metablockFromPool, _ := dataPool.MetaBlocks().Get(metablockHash)
-	metablock := metablockFromPool.(*block.MetaBlock)
 	assert.Nil(t, err)
 	assert.Equal(t, &miniblock, miniblockFromPool)
 	assert.Equal(t, &tx, txFromPool)
-	assert.Equal(t, false, metablock.GetMiniBlockProcessed(miniblockHash))
+	assert.Equal(t, false, sp.IsMiniBlockProcessed(metablockHash, miniblockHash))
 }
 
 func TestShardProcessor_DecodeBlockBody(t *testing.T) {
@@ -3293,7 +3301,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, putCalledNr)
 
@@ -3314,7 +3322,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, putCalledNr)
 
@@ -3336,7 +3344,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, putCalledNr)
 
@@ -3496,7 +3504,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, putCalledNr)
 
@@ -3642,7 +3650,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetablocksFromPool(processedMetaHdrs)
+	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, putCalledNr)
 
@@ -4143,7 +4151,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 		Nonce:     1,
 		ShardInfo: shardInfos,
 	}
-	meta.SetMiniBlockProcessed(testMBHash, true)
+
 	hasher := &mock.HasherStub{}
 
 	metaBytes, _ := marshalizer.Marshal(meta)
@@ -4151,6 +4159,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 		return []byte("cool")
 	}
 	metaHash := hasher.Compute(string(metaBytes))
+	sp.AddProcessedMiniBlock(metaHash, testMBHash)
 	metablockHashes := make([][]byte, 0)
 	metablockHashes = append(metablockHashes, metaHash)
 
@@ -4176,5 +4185,5 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 
 	assert.Equal(t, meta, metaBlockRestored)
 	assert.Nil(t, err)
-	assert.True(t, meta.GetMiniBlockProcessed(testMBHash))
+	assert.True(t, sp.IsMiniBlockProcessed(metaHash, testMBHash))
 }
