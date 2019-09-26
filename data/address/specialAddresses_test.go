@@ -261,7 +261,7 @@ func TestSpecialAddresses_Round(t *testing.T) {
 	_ = addr.SetShardConsensusData([]byte("randomness"), 1, 2, 0)
 	round := addr.Round()
 
-	assert.Equal(t, uint64(0), round)
+	assert.Equal(t, uint64(1), round)
 }
 
 func TestSpecialAddresses_Epoch(t *testing.T) {
