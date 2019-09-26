@@ -2,13 +2,13 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// InterceptedHeader represents the wrapper over HeaderWrapper struct.
-// It implements Newer and Hashed interfaces
+// InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
 	*block.MetaBlock
 	multiSigVerifier    crypto.MultiSigVerifier
@@ -16,7 +16,7 @@ type InterceptedMetaHeader struct {
 	hash                []byte
 }
 
-// NewInterceptedHeader creates a new instance of InterceptedHeader struct
+// NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
 func NewInterceptedMetaHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
 	chronologyValidator process.ChronologyValidator,
@@ -39,8 +39,8 @@ func (imh *InterceptedMetaHeader) Hash() []byte {
 	return imh.hash
 }
 
-// GetMetaHeader returns the MetaBlock pointer that holds the data
-func (imh *InterceptedMetaHeader) GetMetaHeader() *block.MetaBlock {
+// HeaderHandler returns the MetaBlock pointer that holds the data
+func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 	return imh.MetaBlock
 }
 

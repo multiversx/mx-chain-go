@@ -110,13 +110,13 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 }
 
 func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *block.InterceptedMetaHeader) {
-	isHeaderOkForProcessing := mhi.headerValidator.IsHeaderValidForProcessing(metaHdrIntercepted.MetaBlock)
-	if !isHeaderOkForProcessing {
-		log.Debug("intercepted meta block header already processed")
+	err := mhi.headerValidator.HeaderValidForProcessing(metaHdrIntercepted)
+	if err != nil {
+		log.Debug("intercepted meta block header already processed: " + err.Error())
 		return
 	}
 
-	mhi.metachainHeaders.HasOrAdd(metaHdrIntercepted.Hash(), metaHdrIntercepted.GetMetaHeader())
+	mhi.metachainHeaders.HasOrAdd(metaHdrIntercepted.Hash(), metaHdrIntercepted.HeaderHandler())
 
 	syncMap := &dataPool.ShardIdHashSyncMap{}
 	syncMap.Store(sharding.MetachainShardId, metaHdrIntercepted.Hash())

@@ -7,21 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// InterceptedDataType represents a type of intercepted data instantiated by the Create func
-type InterceptedDataType string
-
-// InterceptedTx is the type for intercepted transaction
-const InterceptedTx InterceptedDataType = "intercepted transaction"
-
-// InterceptedUnsignedTx is the type for intercepted unsigned transaction (smart contract results)
-const InterceptedUnsignedTx InterceptedDataType = "intercepted unsigned transaction"
-
-type interceptedDataFactory struct {
+type shardInterceptedDataFactory struct {
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
 	keyGen              crypto.KeyGenerator
@@ -29,14 +21,16 @@ type interceptedDataFactory struct {
 	addrConverter       state.AddressConverter
 	shardCoordinator    sharding.Coordinator
 	interceptedDataType InterceptedDataType
+	multiSigVerifier    crypto.MultiSigVerifier
+	chronologyValidator process.ChronologyValidator
 }
 
-// NewInterceptedDataFactory creates an instance of interceptedDataFactory that can create
-// instances of process.InterceptedData
-func NewInterceptedDataFactory(
-	argument *ArgInterceptedDataFactory,
+// NewShardInterceptedDataFactory creates an instance of interceptedDataFactory that can create
+// instances of process.InterceptedData and is used on shard nodes
+func NewShardInterceptedDataFactory(
+	argument *ArgShardInterceptedDataFactory,
 	dataType InterceptedDataType,
-) (*interceptedDataFactory, error) {
+) (*shardInterceptedDataFactory, error) {
 
 	if argument == nil {
 		return nil, process.ErrNilArguments
@@ -59,8 +53,14 @@ func NewInterceptedDataFactory(
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(argument.MultiSigVerifier) {
+		return nil, process.ErrNilMultiSigVerifier
+	}
+	if check.IfNil(argument.ChronologyValidator) {
+		return nil, process.ErrNilChronologyValidator
+	}
 
-	return &interceptedDataFactory{
+	return &shardInterceptedDataFactory{
 		marshalizer:         argument.Marshalizer,
 		hasher:              argument.Hasher,
 		keyGen:              argument.KeyGen,
@@ -68,48 +68,64 @@ func NewInterceptedDataFactory(
 		addrConverter:       argument.AddrConv,
 		shardCoordinator:    argument.ShardCoordinator,
 		interceptedDataType: dataType,
+		multiSigVerifier:    argument.MultiSigVerifier,
+		chronologyValidator: argument.ChronologyValidator,
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 // The type of the output instance is provided in the constructor
-func (idf *interceptedDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	switch idf.interceptedDataType {
+func (sidf *shardInterceptedDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+	switch sidf.interceptedDataType {
 	case InterceptedTx:
-		return idf.createInterceptedTx(buff)
+		return sidf.createInterceptedTx(buff)
+	case InterceptedShardHeader:
+		return sidf.createInterceptedShardHeader(buff)
 	case InterceptedUnsignedTx:
-		return idf.createInterceptedUnsignedTx(buff)
-
+		return sidf.createInterceptedUnsignedTx(buff)
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
 	}
 }
 
-func (idf *interceptedDataFactory) createInterceptedTx(buff []byte) (process.InterceptedData, error) {
+func (sidf *shardInterceptedDataFactory) createInterceptedTx(buff []byte) (process.InterceptedData, error) {
 	return transaction.NewInterceptedTransaction(
 		buff,
-		idf.marshalizer,
-		idf.hasher,
-		idf.keyGen,
-		idf.singleSigner,
-		idf.addrConverter,
-		idf.shardCoordinator,
+		sidf.marshalizer,
+		sidf.hasher,
+		sidf.keyGen,
+		sidf.singleSigner,
+		sidf.addrConverter,
+		sidf.shardCoordinator,
 	)
 }
 
-func (idf *interceptedDataFactory) createInterceptedUnsignedTx(buff []byte) (process.InterceptedData, error) {
+func (sidf *shardInterceptedDataFactory) createInterceptedShardHeader(buff []byte) (process.InterceptedData, error) {
+	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
+		HdrBuff:             buff,
+		Marshalizer:         sidf.marshalizer,
+		Hasher:              sidf.hasher,
+		MultiSigVerifier:    sidf.multiSigVerifier,
+		ChronologyValidator: sidf.chronologyValidator,
+		ShardCoordinator:    sidf.shardCoordinator,
+	}
+
+	return interceptedBlocks.NewInterceptedHeader(arg)
+}
+
+func (sidf *shardInterceptedDataFactory) createInterceptedUnsignedTx(buff []byte) (process.InterceptedData, error) {
 	return unsigned.NewInterceptedUnsignedTransaction(
 		buff,
-		idf.marshalizer,
-		idf.hasher,
-		idf.addrConverter,
-		idf.shardCoordinator,
+		sidf.marshalizer,
+		sidf.hasher,
+		sidf.addrConverter,
+		sidf.shardCoordinator,
 	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (idf *interceptedDataFactory) IsInterfaceNil() bool {
-	if idf == nil {
+func (sidf *shardInterceptedDataFactory) IsInterfaceNil() bool {
+	if sidf == nil {
 		return true
 	}
 	return false

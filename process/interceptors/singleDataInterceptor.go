@@ -78,3 +78,11 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sdi *SingleDataInterceptor) IsInterfaceNil() bool {
+	if sdi == nil {
+		return true
+	}
+	return false
+}

@@ -222,7 +222,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 	assert.Nil(t, tbbi.ProcessReceivedMessage(msg, nil))
 	select {
 	case <-chanDone:
-	case <-time.After(durTimeout):
+	case <-time.After(timeoutDuration):
 		assert.Fail(t, "timeout while waiting for block to be inserted in the pool")
 	}
 }

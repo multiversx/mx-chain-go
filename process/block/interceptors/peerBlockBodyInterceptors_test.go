@@ -150,7 +150,7 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testi
 	assert.Nil(t, pbbi.ProcessReceivedMessage(msg, nil))
 	select {
 	case <-chanDone:
-	case <-time.After(durTimeout):
+	case <-time.After(timeoutDuration):
 		assert.Fail(t, "timeout while waiting for block to be inserted in the pool")
 	}
 }
@@ -195,6 +195,6 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(
 	select {
 	case <-chanDone:
 		assert.Fail(t, "should have not add block in pool")
-	case <-time.After(durTimeout):
+	case <-time.After(timeoutDuration):
 	}
 }

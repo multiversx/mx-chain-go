@@ -50,9 +50,15 @@ type TxValidatorHandler interface {
 	TotalValue() *big.Int
 }
 
+// HdrValidatorHandler defines the functionality that is needed for a HdrValidator to validate a header
+type HdrValidatorHandler interface {
+	Hash() []byte
+	HeaderHandler() data.HeaderHandler
+}
+
 // HeaderValidator can determine if a provided header handler is valid or not from the process point of view
 type HeaderValidator interface {
-	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool
+	HeaderValidForProcessing(headerHandler HdrValidatorHandler) error
 	IsInterfaceNil() bool
 }
 

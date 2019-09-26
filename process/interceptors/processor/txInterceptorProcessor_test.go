@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createDefaultArgument() *processor.ArgTxInterceptorProcessor {
+func createMockTxArgument() *processor.ArgTxInterceptorProcessor {
 	return &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: &mock.ShardedDataStub{},
 		TxValidator:      &mock.TxValidatorStub{},
@@ -30,7 +30,7 @@ func TestNewTxInterceptorProcessor_NilArgumentShouldErr(t *testing.T) {
 func TestNewTxInterceptorProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createMockTxArgument()
 	arg.ShardedDataCache = nil
 	txip, err := processor.NewTxInterceptorProcessor(arg)
 
@@ -41,7 +41,7 @@ func TestNewTxInterceptorProcessor_NilDataPoolShouldErr(t *testing.T) {
 func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createMockTxArgument()
 	arg.TxValidator = nil
 	txip, err := processor.NewTxInterceptorProcessor(arg)
 
@@ -52,7 +52,7 @@ func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
 func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txip, err := processor.NewTxInterceptorProcessor(createDefaultArgument())
+	txip, err := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
 	assert.False(t, check.IfNil(txip))
 	assert.Nil(t, err)
@@ -63,7 +63,7 @@ func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
 func TestTxInterceptorProcessor_ValidateNilTxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txip, _ := processor.NewTxInterceptorProcessor(createDefaultArgument())
+	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
 	err := txip.Validate(nil)
 
@@ -73,7 +73,7 @@ func TestTxInterceptorProcessor_ValidateNilTxShouldErr(t *testing.T) {
 func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
 		IsTxValidForProcessingCalled: func(txValidatorHandler process.TxValidatorHandler) bool {
 			return false
@@ -93,7 +93,7 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
 		IsTxValidForProcessingCalled: func(txValidatorHandler process.TxValidatorHandler) bool {
 			return true
@@ -115,7 +115,7 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 func TestTxInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txip, _ := processor.NewTxInterceptorProcessor(createDefaultArgument())
+	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
 	err := txip.Save(nil)
 
@@ -147,7 +147,7 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 			},
 		},
 	}
-	arg := createDefaultArgument()
+	arg := createMockTxArgument()
 	shardedDataCache := arg.ShardedDataCache.(*mock.ShardedDataStub)
 	shardedDataCache.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		addedWasCalled = true
