@@ -2,9 +2,9 @@ package preprocess
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -55,7 +55,7 @@ func NewRewardTxPreprocessor(
 		return nil, process.ErrNilStorage
 	}
 	if rewardProcessor == nil || rewardProcessor.IsInterfaceNil() {
-		return nil, process.ErrNilTxProcessor
+		return nil, process.ErrNilRewardsTxProcessor
 	}
 	if rewardProducer == nil || rewardProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilInternalTransactionProducer
@@ -451,7 +451,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	_ func() bool,
-) (block.MiniBlockSlice, error){
+) (block.MiniBlockSlice, error) {
 
 	// always have time for rewards
 	haveTime := func() bool {
