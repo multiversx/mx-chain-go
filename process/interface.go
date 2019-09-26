@@ -55,7 +55,7 @@ type TransactionCoordinator interface {
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
 	SaveBlockDataToStorage(body block.Body) error
-	RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error)
+	RestoreBlockDataFromStorage(body block.Body) (int, error)
 	RemoveBlockDataFromPool(body block.Body) error
 
 	ProcessBlockTransaction(body block.Body, round uint64, haveTime func() time.Duration) error
@@ -98,7 +98,7 @@ type PreProcessor interface {
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
 	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
+	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxBlockToStorage(body block.Body) error
 
 	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error

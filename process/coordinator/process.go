@@ -250,28 +250,25 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 }
 
 // RestoreBlockDataFromStorage restores block data from storage to pool
-func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error) {
+func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (int, error) {
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
 	localMutex := sync.Mutex{}
 	totalRestoredTx := 0
-	restoredMbHashes := make(map[int][][]byte)
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
-			restoredMbs := make(map[int][]byte)
-
 			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
 			}
 
-			restoredTxs, restoredMbs, err := preproc.RestoreTxBlockIntoPools(blockBody, tc.miniBlockPool)
+			restoredTxs, err := preproc.RestoreTxBlockIntoPools(blockBody, tc.miniBlockPool)
 			if err != nil {
 				log.Debug(err.Error())
 
@@ -283,10 +280,6 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 			localMutex.Lock()
 			totalRestoredTx += restoredTxs
 
-			for shId, mbHash := range restoredMbs {
-				restoredMbHashes[shId] = append(restoredMbHashes[shId], mbHash)
-			}
-
 			localMutex.Unlock()
 
 			wg.Done()
@@ -295,7 +288,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 
 	wg.Wait()
 
-	return totalRestoredTx, restoredMbHashes, errFound
+	return totalRestoredTx, errFound
 }
 
 // RemoveBlockDataFromPool deletes block data from pools
