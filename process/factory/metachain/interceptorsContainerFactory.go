@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -12,13 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	interceptors2 "github.com/ElrondNetwork/elrond-go/process/interceptors"
+	processInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const numGoRoutinesInMetaInterceptors = 100
+const numGoRoutines = 100
 
 type interceptorsContainerFactory struct {
 	marshalizer           marshal.Marshalizer
@@ -46,28 +47,28 @@ func NewInterceptorsContainerFactory(
 	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if messenger == nil {
+	if check.IfNil(messenger) {
 		return nil, process.ErrNilMessenger
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStore
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if multiSigner == nil || multiSigner.IsInterfaceNil() {
+	if check.IfNil(multiSigner) {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if dataPool == nil || dataPool.IsInterfaceNil() {
+	if check.IfNil(dataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if chronologyValidator == nil || chronologyValidator.IsInterfaceNil() {
+	if check.IfNil(chronologyValidator) {
 		return nil, process.ErrNilChronologyValidator
 	}
 
@@ -92,7 +93,7 @@ func NewInterceptorsContainerFactory(
 	}
 
 	var err error
-	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutinesInMetaInterceptors)
+	icf.globalThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +221,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 	}
 
 	//TODO rename interceptors2 when process/block/interceptors are no longer required
-	interceptor, err := interceptors2.NewSingleDataInterceptor(
+	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		hdrFactory,
 		hdrProcessor,
 		icf.globalThrottler,

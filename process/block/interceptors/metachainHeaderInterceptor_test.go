@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durTimeout = time.Second
+var timeoutDuration = time.Second
 
 //------- NewMetachainHeaderInterceptor
 
@@ -369,7 +369,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 	assert.Nil(t, mhi.ProcessReceivedMessage(msg, nil))
 	select {
 	case <-chanDone:
-	case <-time.After(durTimeout):
+	case <-time.After(timeoutDuration):
 		assert.Fail(t, "timeout while waiting for block to be inserted in the pool")
 	}
 }
@@ -447,6 +447,6 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd
 	select {
 	case <-chanDone:
 		assert.Fail(t, "should have not add block in pool")
-	case <-time.After(durTimeout):
+	case <-time.After(timeoutDuration):
 	}
 }

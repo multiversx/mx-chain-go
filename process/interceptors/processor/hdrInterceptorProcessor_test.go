@@ -103,7 +103,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 
 	hdrInterceptedData := &struct {
 		mock.InterceptedDataStub
-		mock.HdrValidatorHandlerStub
+		mock.GetHdrHandlerStub
 	}{}
 	err := hip.Validate(hdrInterceptedData)
 
@@ -127,13 +127,14 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	hdrInterceptedData := &struct {
 		mock.InterceptedDataStub
-		mock.HdrValidatorHandlerStub
+		mock.GetHdrHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{},
-		HdrValidatorHandlerStub: mock.HdrValidatorHandlerStub{
+		InterceptedDataStub: mock.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return []byte("hash")
 			},
+		},
+		GetHdrHandlerStub: mock.GetHdrHandlerStub{
 			HeaderHandlerCalled: func() data.HeaderHandler {
 				return &mock.HeaderHandlerStub{}
 			},

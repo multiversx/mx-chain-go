@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	block2 "github.com/ElrondNetwork/elrond-go/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -38,8 +38,8 @@ func createDefaultArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 	return arg
 }
 
-func createMockHeader() *block2.Header {
-	return &block2.Header{
+func createMockHeader() *dataBlock.Header {
+	return &dataBlock.Header{
 		Nonce:            hdrNonce,
 		PrevHash:         []byte("prev hash"),
 		PrevRandSeed:     []byte("prev rand seed"),
@@ -49,7 +49,7 @@ func createMockHeader() *block2.Header {
 		TimeStamp:        0,
 		Round:            hdrRound,
 		Epoch:            hdrEpoch,
-		BlockBodyType:    block2.TxBlock,
+		BlockBodyType:    dataBlock.TxBlock,
 		Signature:        []byte("signature"),
 		MiniBlockHeaders: nil,
 		PeerChanges:      nil,
@@ -172,7 +172,7 @@ func TestNewInterceptedHeader_NotForThisShardShouldWork(t *testing.T) {
 
 	assert.False(t, check.IfNil(inHdr))
 	assert.Nil(t, err)
-	assert.False(t, inHdr.IsForMyShard())
+	assert.False(t, inHdr.IsForCurrentShard())
 }
 
 func TestNewInterceptedHeader_ForThisShardShouldWork(t *testing.T) {
@@ -192,7 +192,7 @@ func TestNewInterceptedHeader_ForThisShardShouldWork(t *testing.T) {
 
 	assert.False(t, check.IfNil(inHdr))
 	assert.Nil(t, err)
-	assert.True(t, inHdr.IsForMyShard())
+	assert.True(t, inHdr.IsForCurrentShard())
 }
 
 func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
@@ -212,7 +212,7 @@ func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 
 	assert.False(t, check.IfNil(inHdr))
 	assert.Nil(t, err)
-	assert.True(t, inHdr.IsForMyShard())
+	assert.True(t, inHdr.IsForCurrentShard())
 }
 
 //------- CheckValidity
@@ -335,7 +335,6 @@ func TestInterceptedHeader_Getters(t *testing.T) {
 	hash := testHasher.Compute(string(arg.HdrBuff))
 
 	assert.Equal(t, hash, inHdr.Hash())
-	assert.Equal(t, hdrShardId, inHdr.Shard())
 }
 
 //------- IsInterfaceNil

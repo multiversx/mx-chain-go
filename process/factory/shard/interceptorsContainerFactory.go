@@ -330,7 +330,7 @@ func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(identifi
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedDataFactory(
+	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedUnsignedTx,
 	)

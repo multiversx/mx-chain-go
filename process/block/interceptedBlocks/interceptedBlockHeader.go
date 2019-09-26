@@ -21,7 +21,7 @@ type InterceptedHeader struct {
 	chronologyValidator process.ChronologyValidator
 	shardCoordinator    sharding.Coordinator
 	hash                []byte
-	isForMyShard        bool
+	isForCurrentShard   bool
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -75,7 +75,7 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 
 	isHeaderForCurrentShard := inHdr.shardCoordinator.SelfId() == inHdr.HeaderHandler().GetShardID()
 	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == sharding.MetachainShardId
-	inHdr.isForMyShard = isHeaderForCurrentShard || isMetachainShardCoordinator
+	inHdr.isForCurrentShard = isHeaderForCurrentShard || isMetachainShardCoordinator
 }
 
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
@@ -127,19 +127,14 @@ func (inHdr *InterceptedHeader) Hash() []byte {
 	return inHdr.hash
 }
 
-// Shard returns the shard ID for which this header is addressed
-func (inHdr *InterceptedHeader) Shard() uint32 {
-	return inHdr.hdr.ShardId
-}
-
 // HeaderHandler returns the HeaderHandler pointer that holds the data
 func (inHdr *InterceptedHeader) HeaderHandler() data.HeaderHandler {
 	return inHdr.hdr
 }
 
-// IsForMyShard returns true if this header is meant to be processed by the node from this shard
-func (inHdr *InterceptedHeader) IsForMyShard() bool {
-	return inHdr.isForMyShard
+// IsForCurrentShard returns true if this header is meant to be processed by the node from this shard
+func (inHdr *InterceptedHeader) IsForCurrentShard() bool {
+	return inHdr.isForCurrentShard
 }
 
 // verifySig verifies a signature

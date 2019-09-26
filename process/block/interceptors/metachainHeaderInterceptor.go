@@ -1,8 +1,6 @@
 package interceptors
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -114,7 +112,7 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 func (mhi *MetachainHeaderInterceptor) processMetaHeader(metaHdrIntercepted *block.InterceptedMetaHeader) {
 	err := mhi.headerValidator.HeaderValidForProcessing(metaHdrIntercepted)
 	if err != nil {
-		log.Debug(fmt.Sprintf("intercepted meta block header already processed: %s", err.Error()))
+		log.Debug("intercepted meta block header already processed: " + err.Error())
 		return
 	}
 

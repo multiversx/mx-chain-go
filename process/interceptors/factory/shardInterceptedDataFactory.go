@@ -13,10 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// InterceptedUnsignedTx is the type for intercepted unsigned transaction (smart contract results)
-const InterceptedUnsignedTx InterceptedDataType = "intercepted unsigned transaction"
-
-
 type shardInterceptedDataFactory struct {
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
@@ -86,7 +82,7 @@ func (sidf *shardInterceptedDataFactory) Create(buff []byte) (process.Intercepte
 	case InterceptedShardHeader:
 		return sidf.createInterceptedShardHeader(buff)
 	case InterceptedUnsignedTx:
-		return idf.createInterceptedUnsignedTx(buff)
+		return sidf.createInterceptedUnsignedTx(buff)
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
 	}
@@ -117,13 +113,13 @@ func (sidf *shardInterceptedDataFactory) createInterceptedShardHeader(buff []byt
 	return interceptedBlocks.NewInterceptedHeader(arg)
 }
 
-func (idf *interceptedDataFactory) createInterceptedUnsignedTx(buff []byte) (process.InterceptedData, error) {
+func (sidf *shardInterceptedDataFactory) createInterceptedUnsignedTx(buff []byte) (process.InterceptedData, error) {
 	return unsigned.NewInterceptedUnsignedTransaction(
 		buff,
-		idf.marshalizer,
-		idf.hasher,
-		idf.addrConverter,
-		idf.shardCoordinator,
+		sidf.marshalizer,
+		sidf.hasher,
+		sidf.addrConverter,
+		sidf.shardCoordinator,
 	)
 }
 

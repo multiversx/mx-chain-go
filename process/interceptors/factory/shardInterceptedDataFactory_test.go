@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -196,6 +198,22 @@ func TestShardInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T)
 	assert.NotNil(t, instance)
 	assert.Nil(t, err)
 	_, ok := instance.(*transaction.InterceptedTransaction)
+	assert.True(t, ok)
+}
+
+func TestShardInterceptedDataFactory_CreateInterceptedUnsignedTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	emptyTx := &smartContractResult.SmartContractResult{}
+	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
+	idf, _ := factory.NewShardInterceptedDataFactory(createMockShardArgument(), factory.InterceptedUnsignedTx)
+
+	instance, err := idf.Create(emptyTxBuff)
+
+	assert.NotNil(t, instance)
+	assert.Nil(t, err)
+	_, ok := instance.(*unsigned.InterceptedUnsignedTransaction)
 	assert.True(t, ok)
 }
 
