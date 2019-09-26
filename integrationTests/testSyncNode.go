@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -72,6 +73,22 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initNode()
 	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
+}
+
+func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
+	for shardId, header := range tpn.GenesisBlocks {
+		buffHeader, _ := TestMarshalizer.Marshal(header)
+		headerHash := TestHasher.Compute(string(buffHeader))
+
+		if shardId == sharding.MetachainShardId {
+			metablockStorer := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+			_ = metablockStorer.Put(headerHash, buffHeader)
+		} else {
+			shardblockStorer := tpn.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+			_ = shardblockStorer.Put(headerHash, buffHeader)
+		}
+	}
 }
 
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
