@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -130,54 +131,54 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterHdrRecv))
 	}
 
-	//fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its hash...")
-	//_, metaHdr, _ := nodes[1].ProposeBlock(1, 1)
-	//metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
-	//metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
-	//for i := 0; i < numMetaNodes; i++ {
-	//	nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash, metaHdr)
-	//}
-	//
-	//for i := 0; i < maxNumRequests; i++ {
-	//	resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
-	//	assert.Nil(t, err)
-	//	_ = resolver.RequestDataFromHash(metaHeaderHash)
-	//
-	//	fmt.Println(integrationTests.MakeDisplayTable(nodes))
-	//
-	//	time.Sleep(time.Second)
-	//}
-	//
-	////all node should have received the meta header
-	//for _, n := range nodes {
-	//	assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterMetaRcv))
-	//}
-	//
-	//fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its nonce...")
-	//_, metaHdr2, _ := nodes[1].ProposeBlock(2, 2)
-	//metaHdr2.SetNonce(64)
-	//metaHeaderBytes2, _ := integrationTests.TestMarshalizer.Marshal(metaHdr2)
-	//metaHeaderHash2 := integrationTests.TestHasher.Compute(string(metaHeaderBytes2))
-	//for i := 0; i < numMetaNodes; i++ {
-	//	nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
-	//
-	//	syncMap := &dataPool.ShardIdHashSyncMap{}
-	//	syncMap.Store(sharding.MetachainShardId, metaHeaderHash2)
-	//	nodes[i+1].MetaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
-	//}
-	//
-	//for i := 0; i < maxNumRequests; i++ {
-	//	resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
-	//	assert.Nil(t, err)
-	//	_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce())
-	//
-	//	fmt.Println(integrationTests.MakeDisplayTable(nodes))
-	//
-	//	time.Sleep(time.Second)
-	//}
-	//
-	////all node should have received the meta header
-	//for _, n := range nodes {
-	//	assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterMetaRcv))
-	//}
+	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its hash...")
+	_, metaHdr, _ := nodes[1].ProposeBlock(1, 1)
+	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
+	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
+	for i := 0; i < numMetaNodes; i++ {
+		nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash, metaHdr)
+	}
+
+	for i := 0; i < maxNumRequests; i++ {
+		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+		assert.Nil(t, err)
+		_ = resolver.RequestDataFromHash(metaHeaderHash)
+
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
+
+		time.Sleep(time.Second)
+	}
+
+	//all node should have received the meta header
+	for _, n := range nodes {
+		assert.Equal(t, int32(1), atomic.LoadInt32(&n.CounterMetaRcv))
+	}
+
+	fmt.Println("Generating meta header, save it in meta datapools and shard 0 node requests it after its nonce...")
+	_, metaHdr2, _ := nodes[1].ProposeBlock(2, 2)
+	metaHdr2.SetNonce(64)
+	metaHeaderBytes2, _ := integrationTests.TestMarshalizer.Marshal(metaHdr2)
+	metaHeaderHash2 := integrationTests.TestHasher.Compute(string(metaHeaderBytes2))
+	for i := 0; i < numMetaNodes; i++ {
+		nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
+
+		syncMap := &dataPool.ShardIdHashSyncMap{}
+		syncMap.Store(sharding.MetachainShardId, metaHeaderHash2)
+		nodes[i+1].MetaDataPool.HeadersNonces().Merge(metaHdr2.GetNonce(), syncMap)
+	}
+
+	for i := 0; i < maxNumRequests; i++ {
+		resolver, err := nodes[0].ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+		assert.Nil(t, err)
+		_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(metaHdr2.GetNonce())
+
+		fmt.Println(integrationTests.MakeDisplayTable(nodes))
+
+		time.Sleep(time.Second)
+	}
+
+	//all node should have received the meta header
+	for _, n := range nodes {
+		assert.Equal(t, int32(2), atomic.LoadInt32(&n.CounterMetaRcv))
+	}
 }
