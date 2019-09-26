@@ -112,7 +112,7 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 func (tc *TermuiConsole) doChanges(counter *uint32) {
 	atomic.AddUint32(counter, 1)
 	if atomic.LoadUint32(counter) > numOfTicksBeforeRedrawing {
-		tc.doFakeResize()
+		tc.doResize(ui.TerminalDimensions())
 		atomic.StoreUint32(counter, 0)
 	} else {
 		tc.refreshWindow()
@@ -122,10 +122,6 @@ func (tc *TermuiConsole) doChanges(counter *uint32) {
 func (tc *TermuiConsole) doResizeEvent(e ui.Event) {
 	payload := e.Payload.(ui.Resize)
 	tc.doResize(payload.Width, payload.Height)
-}
-
-func (tc *TermuiConsole) doFakeResize() {
-	tc.doResize(ui.TerminalDimensions())
 }
 
 func (tc *TermuiConsole) doResize(width int, height int) {

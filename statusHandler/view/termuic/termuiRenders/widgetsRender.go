@@ -276,8 +276,8 @@ func (wr *WidgetsRender) prepareListWithLogsForDisplay() {
 func (wr *WidgetsRender) prepareLogLines(logData []string, maxSize int) []string {
 	logDataLen := len(logData)
 	maxSize = maxSize - 2 // decrease 2 units as the total maxSize of the log list includes also the header and the footer
-	if maxSize < 0 {
-		maxSize = 0
+	if maxSize <= 0 {
+		return []string{} // there isn't place for any log line
 	}
 
 	if logDataLen > maxSize {
