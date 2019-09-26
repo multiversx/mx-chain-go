@@ -56,7 +56,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 
 	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SenderShardId(), interceptedTx.ReceiverShardId())
 	txip.shardedDataCache.AddData(
-		interceptedTx.Hash(),
+		data.Hash(),
 		interceptedTx.Transaction(),
 		cacherIdentifier,
 	)

@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/unsigned"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -263,6 +263,9 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedTx,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		icf.marshalizer,
@@ -270,7 +273,6 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		txProcessor,
 		icf.globalTxThrottler,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -313,16 +315,35 @@ func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]st
 }
 
 func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(identifier string) (process.Interceptor, error) {
-	uTxStorer := icf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	//TODO replace the nil tx validator with white list validator
+	txValidator, err := mock.NewNilTxValidator()
+	if err != nil {
+		return nil, err
+	}
 
-	interceptor, err := unsigned.NewUnsignedTxInterceptor(
+	argProcessor := &processor.ArgTxInterceptorProcessor{
+		ShardedDataCache: icf.dataPool.UnsignedTransactions(),
+		TxValidator:      txValidator,
+	}
+	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	txFactory, err := interceptorFactory.NewInterceptedDataFactory(
+		icf.argInterceptorFactory,
+		interceptorFactory.InterceptedUnsignedTx,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewMultiDataInterceptor(
 		icf.marshalizer,
-		icf.dataPool.UnsignedTransactions(),
-		uTxStorer,
-		icf.addrConverter,
-		icf.hasher,
-		icf.shardCoordinator)
-
+		txFactory,
+		txProcessor,
+		icf.globalTxThrottler,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +429,6 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifi
 		icf.hasher,
 		icf.shardCoordinator,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -435,6 +455,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([
 	if err != nil {
 		return nil, nil, err
 	}
+
 	_, err = icf.createTopicAndAssignHandler(identifierPeerCh, interceptor, true)
 	if err != nil {
 		return nil, nil, err
@@ -467,6 +488,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 	if err != nil {
 		return nil, nil, err
 	}
+
 	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err

@@ -14,15 +14,16 @@ import (
 
 // InterceptedUnsignedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedUnsignedTransaction struct {
-	uTx                      *smartContractResult.SmartContractResult
-	marshalizer              marshal.Marshalizer
-	hasher                   hashing.Hasher
-	addrConv                 state.AddressConverter
-	coordinator              sharding.Coordinator
-	hash                     []byte
-	rcvShard                 uint32
-	sndShard                 uint32
-	isAddressedToOtherShards bool
+	uTx               *smartContractResult.SmartContractResult
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	addrConv          state.AddressConverter
+	coordinator       sharding.Coordinator
+	hash              []byte
+	rcvShard          uint32
+	sndShard          uint32
+	isForCurrentShard bool
+	sndAddr           state.AddressContainer
 }
 
 // NewInterceptedUnsignedTransaction returns a new instance of InterceptedUnsignedTransaction
@@ -69,23 +70,24 @@ func NewInterceptedUnsignedTransaction(
 		return nil, err
 	}
 
-	err = inUTx.integrity()
-	if err != nil {
-		return nil, err
-	}
-
-	err = inUTx.verifyIfNotarized(inUTx.hash)
-	if err != nil {
-		return nil, err
-	}
-
 	return inUTx, nil
+}
+
+// CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
+func (inUTx *InterceptedUnsignedTransaction) CheckValidity() error {
+	err := inUTx.integrity()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (inUTx *InterceptedUnsignedTransaction) processFields(uTxBuffWithSig []byte) error {
 	inUTx.hash = inUTx.hasher.Compute(string(uTxBuffWithSig))
 
-	sndAddr, err := inUTx.addrConv.CreateAddressFromPublicKeyBytes(inUTx.uTx.SndAddr)
+	var err error
+	inUTx.sndAddr, err = inUTx.addrConv.CreateAddressFromPublicKeyBytes(inUTx.uTx.SndAddr)
 	if err != nil {
 		return process.ErrInvalidSndAddr
 	}
@@ -96,10 +98,11 @@ func (inUTx *InterceptedUnsignedTransaction) processFields(uTxBuffWithSig []byte
 	}
 
 	inUTx.rcvShard = inUTx.coordinator.ComputeId(rcvAddr)
-	inUTx.sndShard = inUTx.coordinator.ComputeId(sndAddr)
+	inUTx.sndShard = inUTx.coordinator.ComputeId(inUTx.sndAddr)
 
-	inUTx.isAddressedToOtherShards = inUTx.rcvShard != inUTx.coordinator.SelfId() &&
-		inUTx.sndShard != inUTx.coordinator.SelfId()
+	isForCurrentShardRecv := inUTx.rcvShard == inUTx.coordinator.SelfId()
+	isForCurrentShardSender := inUTx.sndShard == inUTx.coordinator.SelfId()
+	inUTx.isForCurrentShard = isForCurrentShardRecv || isForCurrentShardSender
 
 	return nil
 }
@@ -109,19 +112,15 @@ func (inUTx *InterceptedUnsignedTransaction) integrity() error {
 	if len(inUTx.uTx.RcvAddr) == 0 {
 		return process.ErrNilRcvAddr
 	}
-
 	if len(inUTx.uTx.SndAddr) == 0 {
 		return process.ErrNilSndAddr
 	}
-
 	if inUTx.uTx.Value == nil {
 		return process.ErrNilValue
 	}
-
 	if inUTx.uTx.Value.Cmp(big.NewInt(0)) < 0 {
 		return process.ErrNegativeValue
 	}
-
 	if len(inUTx.uTx.TxHash) == 0 {
 		return process.ErrNilTxHash
 	}
@@ -129,33 +128,51 @@ func (inUTx *InterceptedUnsignedTransaction) integrity() error {
 	return nil
 }
 
-// verifyIfNotarized checks if the uTx was already notarized
-func (inUTx *InterceptedUnsignedTransaction) verifyIfNotarized(uTxBuff []byte) error {
-	// TODO: implement this for flood protection purposes
-	return nil
+// Nonce returns the transaction nonce
+func (inUTx *InterceptedUnsignedTransaction) Nonce() uint64 {
+	return inUTx.uTx.Nonce
 }
 
-// RcvShard returns the receiver shard
-func (inUTx *InterceptedUnsignedTransaction) RcvShard() uint32 {
+// SenderAddress returns the transaction sender address
+func (inUTx *InterceptedUnsignedTransaction) SenderAddress() state.AddressContainer {
+	return inUTx.sndAddr
+}
+
+// ReceiverShardId returns the receiver shard
+func (inUTx *InterceptedUnsignedTransaction) ReceiverShardId() uint32 {
 	return inUTx.rcvShard
 }
 
-// SndShard returns the sender shard
-func (inUTx *InterceptedUnsignedTransaction) SndShard() uint32 {
+// SenderShardId returns the sender shard
+func (inUTx *InterceptedUnsignedTransaction) SenderShardId() uint32 {
 	return inUTx.sndShard
 }
 
-// IsAddressedToOtherShards returns true if this transaction is not meant to be processed by the node from this shard
-func (inUTx *InterceptedUnsignedTransaction) IsAddressedToOtherShards() bool {
-	return inUTx.isAddressedToOtherShards
+// IsForCurrentShard returns true if this transaction is meant to be processed by the node from this shard
+func (inUTx *InterceptedUnsignedTransaction) IsForCurrentShard() bool {
+	return inUTx.isForCurrentShard
 }
 
-// UnsignedTransaction returns the unsigned transaction pointer that actually holds the data
-func (inUTx *InterceptedUnsignedTransaction) UnsignedTransaction() data.TransactionHandler {
+// Transaction returns the transaction pointer that actually holds the data
+func (inUTx *InterceptedUnsignedTransaction) Transaction() data.TransactionHandler {
 	return inUTx.uTx
+}
+
+// TotalValue returns the value of the unsigned transaction
+func (inUTx *InterceptedUnsignedTransaction) TotalValue() *big.Int {
+	copiedVal := big.NewInt(0).Set(inUTx.uTx.Value)
+	return copiedVal
 }
 
 // Hash gets the hash of this transaction
 func (inUTx *InterceptedUnsignedTransaction) Hash() []byte {
 	return inUTx.hash
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (inUTx *InterceptedUnsignedTransaction) IsInterfaceNil() bool {
+	if inUTx == nil {
+		return true
+	}
+	return false
 }

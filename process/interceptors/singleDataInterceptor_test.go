@@ -158,7 +158,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 		CheckValidityCalled: func() error {
 			return errExpected
 		},
-		IsForMyShardCalled: func() bool {
+		IsForCurrentShardCalled: func() bool {
 			return true
 		},
 	}
@@ -198,7 +198,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsForMyShardCalled: func() bool {
+		IsForCurrentShardCalled: func() bool {
 			return false
 		},
 	}
@@ -238,7 +238,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		CheckValidityCalled: func() error {
 			return nil
 		},
-		IsForMyShardCalled: func() bool {
+		IsForCurrentShardCalled: func() bool {
 			return true
 		},
 	}

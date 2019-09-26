@@ -71,8 +71,9 @@ type InterceptedDataFactory interface {
 // InterceptedData represents the interceptor's view of the received data
 type InterceptedData interface {
 	CheckValidity() error
-	IsForMyShard() bool
+	IsForCurrentShard() bool
 	IsInterfaceNil() bool
+	Hash() []byte
 }
 
 // InterceptorProcessor further validates and saves received data
