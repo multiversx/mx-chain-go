@@ -231,7 +231,7 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
-	processedMetaHdrs, err := sp.getProcessedMetaBlocks(body, header.MetaBlockHashes)
+	processedMetaHdrs, err := sp.getProcessedMetaBlocksFromMiniBlocks(body, header.MetaBlockHashes)
 	if err != nil {
 		return err
 	}
@@ -843,51 +843,31 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 
 	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
 
-	processedMetaHdrs := make([]data.HeaderHandler, 0)
+	processedMetaHeaders, usedMbs, err := sp.getProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes, header.MetaBlockHashes)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, metaBlockKey := range header.MetaBlockHashes {
-		obj, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
-		if obj == nil {
+		obj, ok := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
+		if !ok {
 			return nil, process.ErrNilMetaBlockHeader
 		}
 
-		metaBlock, ok := obj.(*block.MetaBlock)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
-		}
-		// todo: change to debug after test
-		log.Info(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
-
+		metaBlock := obj.(*block.MetaBlock)
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
-		for key := range miniBlockHashes {
-			_, ok := crossMiniBlockHashes[string(miniBlockHashes[key])]
-			if !ok {
-				continue
-			}
-
-			metaBlock.SetMiniBlockProcessed(miniBlockHashes[key], true)
-			delete(miniBlockHashes, key)
-		}
-
-		log.Debug(fmt.Sprintf("cross mini blocks in meta header: %d\n", len(crossMiniBlockHashes)))
-
-		processedAll := true
 		for key := range crossMiniBlockHashes {
-			if !metaBlock.GetMiniBlockProcessed([]byte(key)) {
-				processedAll = false
-				break
+			if usedMbs[key] {
+				metaBlock.SetMiniBlockProcessed([]byte(key), true)
 			}
-		}
-
-		if processedAll {
-			processedMetaHdrs = append(processedMetaHdrs, metaBlock)
 		}
 	}
 
-	return processedMetaHdrs, nil
+	return processedMetaHeaders, nil
 }
 
 // getProcessedMetaBlocks returns all the meta blocks fully processed
-func (sp *shardProcessor) getProcessedMetaBlocks(
+func (sp *shardProcessor) getProcessedMetaBlocksFromMiniBlocks(
 	usedMiniBlocks []*block.MiniBlock,
 	usedMetaBlockHashes [][]byte,
 ) ([]data.HeaderHandler, error) {
@@ -912,19 +892,28 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 	}
 
 	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
+	processedMetaBlocks, _, err := sp.getProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes, usedMetaBlockHashes)
+
+	return processedMetaBlocks, err
+}
+
+func (sp *shardProcessor) getProcessedMetaBlocksFromMiniBlockHashes(
+	miniBlockHashes map[int][]byte,
+	usedMetaBlockHashes [][]byte,
+) ([]data.HeaderHandler, map[string]bool, error) {
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
-	for _, metaBlockKey := range usedMetaBlockHashes {
-		processedMBs := make(map[string]bool)
+	processedMBs := make(map[string]bool)
 
+	for _, metaBlockKey := range usedMetaBlockHashes {
 		obj, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
 		if obj == nil {
-			return nil, process.ErrNilMetaBlockHeader
+			return nil, nil, process.ErrNilMetaBlockHeader
 		}
 
 		metaBlock, ok := obj.(*block.MetaBlock)
 		if !ok {
-			return nil, process.ErrWrongTypeAssertion
+			return nil, nil, process.ErrWrongTypeAssertion
 		}
 		// todo: change to debug after test
 		log.Info(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
@@ -960,7 +949,7 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 		}
 	}
 
-	return processedMetaHdrs, nil
+	return processedMetaHdrs, processedMBs, nil
 }
 
 func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
@@ -1469,7 +1458,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		log.Info(err.Error())
 	}
 
-	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocks(destMeMiniBlocks, usedMetaHdrsHashes)
+	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromMiniBlocks(destMeMiniBlocks, usedMetaHdrsHashes)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
