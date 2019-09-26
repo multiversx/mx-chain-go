@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -109,16 +108,13 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	shardHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(hdr)
 	shardHeaderHash := integrationTests.TestHasher.Compute(string(shardHeaderBytes))
 	nodes[0].ShardDataPool.Headers().HasOrAdd(shardHeaderHash, hdr)
-	m := &dataPool.ShardIdHashSyncMap{}
-	m.Store(0, shardHeaderHash)
-	nodes[0].ShardDataPool.HeadersNonces().Merge(1, m)
 
 	maxNumRequests := 5
 	for i := 0; i < maxNumRequests; i++ {
 		for j := 0; j < numMetaNodes; j++ {
 			resolver, err := nodes[j+1].ResolverFinder.CrossShardResolver(factory.ShardHeadersForMetachainTopic, senderShard)
 			assert.Nil(t, err)
-			_ = resolver.(*resolvers.HeaderResolver).RequestDataFromNonce(1)
+			_ = resolver.RequestDataFromHash(shardHeaderHash)
 		}
 
 		fmt.Println(integrationTests.MakeDisplayTable(nodes))
