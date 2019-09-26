@@ -33,7 +33,8 @@ type ArgBaseProcessor struct {
 // new instances of shard processor
 type ArgShardProcessor struct {
 	*ArgBaseProcessor
-	DataPool      dataRetriever.PoolsHolder
-	BlocksTracker process.BlocksTracker
-	TxCoordinator process.TransactionCoordinator
+	DataPool        dataRetriever.PoolsHolder
+	BlocksTracker   process.BlocksTracker
+	TxCoordinator   process.TransactionCoordinator
+	TxsPoolsCleaner process.PoolsCleaner
 }
