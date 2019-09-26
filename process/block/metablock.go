@@ -567,19 +567,37 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 func (mp *metaProcessor) updatePeerState(header *block.MetaBlock) error {
-	metaBlockStore := mp.store.GetStorer(dataRetriever.MetaBlockUnit)
-	buff, err := metaBlockStore.Get(header.GetPrevHash())
-	if err != nil {
-		return err
-	}
-
-	prevMetaHeader := &block.MetaBlock{}
-	err = mp.marshalizer.Unmarshal(prevMetaHeader, buff)
+	prevMetaHeader, err := mp.getPrevHeader(header)
 	if err != nil {
 		return err
 	}
 
 	return mp.peerProcessor.UpdatePeerState(header, prevMetaHeader)
+}
+
+func (mp *metaProcessor) revertPeerState(header *block.MetaBlock) error {
+	prevMetaHeader, err := mp.getPrevHeader(header)
+	if err != nil {
+		return err
+	}
+
+	return mp.peerProcessor.RevertPeerState(header, prevMetaHeader)
+}
+
+func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
+	metaBlockStore := mp.store.GetStorer(dataRetriever.MetaBlockUnit)
+	buff, err := metaBlockStore.Get(header.GetPrevHash())
+	if err != nil {
+		return nil, err
+	}
+
+	prevMetaHeader := &block.MetaBlock{}
+	err = mp.marshalizer.Unmarshal(prevMetaHeader, buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return prevMetaHeader, nil
 }
 
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {

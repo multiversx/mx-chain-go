@@ -1509,19 +1509,38 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 }
 
 func (sp *shardProcessor) updatePeerState(headerHandler data.HeaderHandler) error {
-	headerStorer := sp.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	buff, err := headerStorer.Get(headerHandler.GetPrevHash())
-	if err != nil {
-		return err
-	}
-
-	prevHeader := &block.Header{}
-	err = sp.marshalizer.Unmarshal(prevHeader, buff)
+	prevHeader, err := sp.getPrevHeader(headerHandler)
 	if err != nil {
 		return err
 	}
 
 	return sp.peerProcessor.UpdatePeerState(headerHandler, prevHeader)
+}
+
+func (sp *shardProcessor) revertPeerState(headerHandler data.HeaderHandler) error {
+	prevHeader, err := sp.getPrevHeader(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	return sp.peerProcessor.RevertPeerState(headerHandler, prevHeader)
+}
+
+
+func (sp *shardProcessor) getPrevHeader(headerHandler data.HeaderHandler) (data.HeaderHandler, error) {
+	headerStorer := sp.store.GetStorer(dataRetriever.BlockHeaderUnit)
+	buff, err := headerStorer.Get(headerHandler.GetPrevHash())
+	if err != nil {
+		return nil, err
+	}
+
+	prevHeader := &block.Header{}
+	err = sp.marshalizer.Unmarshal(prevHeader, buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return prevHeader, nil
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
