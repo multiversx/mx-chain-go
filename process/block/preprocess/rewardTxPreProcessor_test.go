@@ -599,9 +599,8 @@ func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 	blockBody = append(blockBody, &mb1)
 	miniBlockPool := mock.NewCacherMock()
 
-	numRestoredTxs, resMap, err := rtp.RestoreTxBlockIntoPools(blockBody, miniBlockPool)
+	numRestoredTxs, err := rtp.RestoreTxBlockIntoPools(blockBody, miniBlockPool)
 	assert.Equal(t, 1, numRestoredTxs)
-	assert.NotNil(t, resMap)
 	assert.Nil(t, err)
 }
 

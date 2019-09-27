@@ -928,6 +928,11 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 			return nil, process.ErrNilMetaBlockHeader
 		}
 
+		metaBlock, ok := obj.(*block.MetaBlock)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range crossMiniBlockHashes {
 			if usedMbs[key] {
@@ -993,7 +998,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromMiniBlockHashes(
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
-			processedMBs[hash] = metaBlock.GetMiniBlockProcessed([]byte(hash))
+			processedMBs[hash] = sp.isMiniBlockProcessed(metaBlockKey, []byte(hash))
 		}
 
 		for key := range miniBlockHashes {
