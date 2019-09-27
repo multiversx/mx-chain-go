@@ -400,3 +400,8 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 
 	return oldHashes
 }
+
+// AddHashesToOldHashes appends the given hashes to the trie's oldHashes variable
+func (tr *patriciaMerkleTrie) AddHashesToOldHashes(hashes [][]byte) {
+	tr.oldHashes = append(tr.oldHashes, hashes...)
+}

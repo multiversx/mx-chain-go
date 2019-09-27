@@ -99,6 +99,7 @@ type Trie interface {
 	Rollback(rootHash []byte) error
 	Prune(rootHash []byte) error
 	ResetOldHashes() [][]byte
+	AddHashesToOldHashes([][]byte)
 	IsInterfaceNil() bool
 }
 

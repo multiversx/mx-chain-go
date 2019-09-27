@@ -9,18 +9,19 @@ import (
 var errNotImplemented = errors.New("not implemented")
 
 type TrieStub struct {
-	GetCalled            func(key []byte) ([]byte, error)
-	UpdateCalled         func(key, value []byte) error
-	DeleteCalled         func(key []byte) error
-	RootCalled           func() ([]byte, error)
-	ProveCalled          func(key []byte) ([][]byte, error)
-	VerifyProofCalled    func(proofs [][]byte, key []byte) (bool, error)
-	CommitCalled         func() error
-	RecreateCalled       func(root []byte) (data.Trie, error)
-	DeepCloneCalled      func() (data.Trie, error)
-	RollbackCalled       func(rootHash []byte) error
-	PruneCalled          func(rootHash []byte) error
-	ResetOldHashesCalled func() [][]byte
+	GetCalled                  func(key []byte) ([]byte, error)
+	UpdateCalled               func(key, value []byte) error
+	DeleteCalled               func(key []byte) error
+	RootCalled                 func() ([]byte, error)
+	ProveCalled                func(key []byte) ([][]byte, error)
+	VerifyProofCalled          func(proofs [][]byte, key []byte) (bool, error)
+	CommitCalled               func() error
+	RecreateCalled             func(root []byte) (data.Trie, error)
+	DeepCloneCalled            func() (data.Trie, error)
+	RollbackCalled             func(rootHash []byte) error
+	PruneCalled                func(rootHash []byte) error
+	ResetOldHashesCalled       func() [][]byte
+	AddHashesToOldHashesCalled func([][]byte)
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -128,4 +129,11 @@ func (ts *TrieStub) ResetOldHashes() [][]byte {
 	}
 
 	return nil
+}
+
+// AddHashesToOldHashes appends the given hashes to the trie's oldHashes variable
+func (ts *TrieStub) AddHashesToOldHashes(hashes [][]byte) {
+	if ts.AddHashesToOldHashesCalled != nil {
+		ts.AddHashesToOldHashesCalled(hashes)
+	}
 }

@@ -549,3 +549,62 @@ func TestTrieDatabasePruning(t *testing.T) {
 		assert.NotNil(t, err)
 	}
 }
+
+func TestTrieResetOldHashes(t *testing.T) {
+	t.Parallel()
+
+	msh, hsh := getTestMarshAndHasher()
+	evictionCacheSize := 100
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
+
+	tr := &patriciaMerkleTrie{
+		db:                    mock.NewMemDbMock(),
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
+		marshalizer:           msh,
+		hasher:                hsh,
+	}
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+
+	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
+
+	expectedHashes := tr.oldHashes
+	hashes := tr.ResetOldHashes()
+	assert.Equal(t, expectedHashes, hashes)
+	assert.Equal(t, 0, len(tr.oldHashes))
+	assert.Equal(t, 0, len(tr.oldRoot))
+}
+
+func TestTrieAddHashesToOldHashes(t *testing.T) {
+	t.Parallel()
+
+	msh, hsh := getTestMarshAndHasher()
+	evictionCacheSize := 100
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
+	hashes := [][]byte{[]byte("one"), []byte("two"), []byte("three")}
+
+	tr := &patriciaMerkleTrie{
+		db:                    mock.NewMemDbMock(),
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
+		marshalizer:           msh,
+		hasher:                hsh,
+	}
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+
+	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
+
+	expectedHLength := len(tr.oldHashes) + len(hashes)
+	tr.AddHashesToOldHashes(hashes)
+	assert.Equal(t, expectedHLength, len(tr.oldHashes))
+}

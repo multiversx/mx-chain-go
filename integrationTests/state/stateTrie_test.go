@@ -1129,16 +1129,14 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveDataTrie(state2)
 
 	oldRootHash, _ := adb.Commit()
-	state2oldRootHash := state2.GetRootHash()
 
 	state2.DataTrieTracker().SaveKeyValue(key1, value2)
 	_ = adb.SaveDataTrie(state2)
 
-	rootHashAfterTrieUpdate, _ := adb.Commit()
+	newRootHash, _ := adb.Commit()
 	_ = tr.Prune(oldRootHash)
-	_ = tr.Prune(state2oldRootHash)
 
-	err := adb.RecreateTrie(rootHashAfterTrieUpdate)
+	err := adb.RecreateTrie(newRootHash)
 	ok, err := adb.HasAccount(address1)
 	assert.True(t, ok)
 	assert.Nil(t, err)
