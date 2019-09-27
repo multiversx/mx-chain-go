@@ -80,13 +80,11 @@ func (sfd *shardForkDetector) AddHeader(
 }
 
 func (sfd *shardForkDetector) addFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
-	finalCheckpointWasSet := false
 	for i := 0; i < len(finalHeaders); i++ {
-		isFinalHeaderNonceHigherThanGenesis := finalHeaders[i].GetNonce() > process.GenesisBlockNonce
-		if isFinalHeaderNonceHigherThanGenesis {
-			if !finalCheckpointWasSet {
+		isFinalHeaderNonceHigherThanCurrent := finalHeaders[i].GetNonce() > sfd.finalCheckpoint().nonce
+		if isFinalHeaderNonceHigherThanCurrent {
+			if i == 0 {
 				sfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeaders[i].GetNonce(), round: finalHeaders[i].GetRound()})
-				finalCheckpointWasSet = true
 			}
 
 			sfd.append(&headerInfo{

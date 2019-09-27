@@ -34,7 +34,6 @@ const MaxHeaderRequestsAllowed = 10
 const MaxItemsInBlock = 15000
 const MinItemsInBlock = 15000
 const MaxNoncesDifference = 5
-const GenesisBlockNonce = 0
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
 const MaxGasLimitPerMiniBlock = uint64(100000)
