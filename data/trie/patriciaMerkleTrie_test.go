@@ -439,9 +439,9 @@ func TestPatriciaMerkleTrie_Rollback(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
-	err := tr.Rollback(rootHash)
+	hashes, err := tr.Rollback(rootHash)
 	assert.Nil(t, err)
-
+	assert.Equal(t, 4, len(hashes))
 }
 
 func TestPatriciaMerkleTrie_PruneAfterRollbackShouldFail(t *testing.T) {
@@ -453,7 +453,7 @@ func TestPatriciaMerkleTrie_PruneAfterRollbackShouldFail(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
-	err := tr.Rollback(rootHash)
+	_, err := tr.Rollback(rootHash)
 	assert.Nil(t, err)
 
 	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash)))

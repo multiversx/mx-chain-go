@@ -370,9 +370,8 @@ func emptyTrie(root []byte) bool {
 }
 
 // Rollback invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (tr *patriciaMerkleTrie) Rollback(rootHash []byte) error {
-	_, err := tr.dbEvictionWaitingList.Evict(rootHash)
-	return err
+func (tr *patriciaMerkleTrie) Rollback(rootHash []byte) ([][]byte, error) {
+	return tr.dbEvictionWaitingList.Evict(rootHash)
 }
 
 // Prune removes from the database all the old hashes that correspond to the given root hash

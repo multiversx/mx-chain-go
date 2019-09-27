@@ -96,7 +96,7 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
-	Rollback(rootHash []byte) error
+	Rollback(rootHash []byte) ([][]byte, error)
 	Prune(rootHash []byte) error
 	IsInterfaceNil() bool
 }
