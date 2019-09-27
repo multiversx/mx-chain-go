@@ -13,6 +13,7 @@ type SpecialAddressHandlerMock struct {
 	ShardIdForAddressCalled      func([]byte) (uint32, error)
 	AdrConv                      state.AddressConverter
 	ShardCoordinator             sharding.Coordinator
+	NodesCoordinator             sharding.NodesCoordinator
 
 	shardConsensusData *data.ConsensusRewardData
 	metaConsensusData  []*data.ConsensusRewardData
@@ -21,6 +22,7 @@ type SpecialAddressHandlerMock struct {
 func NewSpecialAddressHandlerMock(
 	addrConv state.AddressConverter,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 ) *SpecialAddressHandlerMock {
 	return &SpecialAddressHandlerMock{
 		ElrondCommunityAddressCalled: nil,
@@ -29,6 +31,7 @@ func NewSpecialAddressHandlerMock(
 		ShardIdForAddressCalled:      nil,
 		AdrConv:                      addrConv,
 		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
 		shardConsensusData: &data.ConsensusRewardData{
 			Round:     0,
 			Epoch:     0,
@@ -41,28 +44,42 @@ func NewSpecialAddressHandlerMock(
 func (sh *SpecialAddressHandlerMock) SetElrondCommunityAddress(elrond []byte) {
 }
 
-func (sh *SpecialAddressHandlerMock) SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32) {
+func (sh *SpecialAddressHandlerMock) SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) error {
+	addresses, err := sh.NodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, shardId)
+	if err != nil {
+		return err
+	}
+
 	sh.shardConsensusData = &data.ConsensusRewardData{
 		Round:     round,
 		Epoch:     epoch,
-		Addresses: consensusRewardAddresses,
+		Addresses: addresses,
 	}
+
+	return nil
 }
 
 func (sh *SpecialAddressHandlerMock) ConsensusShardRewardData() *data.ConsensusRewardData {
 	return sh.shardConsensusData
 }
 
-func (sh *SpecialAddressHandlerMock) SetMetaConsensusData(rewardAddresses []string, round uint64, epoch uint32) {
+func (sh *SpecialAddressHandlerMock) SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error {
 	if sh.metaConsensusData == nil {
 		sh.metaConsensusData = make([]*data.ConsensusRewardData, 0)
+	}
+
+	addresses, err := sh.NodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, sharding.MetachainShardId)
+	if err != nil {
+		return err
 	}
 
 	sh.metaConsensusData = append(sh.metaConsensusData, &data.ConsensusRewardData{
 		Round:     round,
 		Epoch:     epoch,
-		Addresses: rewardAddresses,
+		Addresses: addresses,
 	})
+
+	return nil
 }
 
 func (sh *SpecialAddressHandlerMock) ClearMetaConsensusData() {

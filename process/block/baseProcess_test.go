@@ -307,6 +307,13 @@ func (wr *wrongBody) IsInterfaceNil() bool {
 }
 
 func CreateMockArguments() blproc.ArgShardProcessor {
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	specialAddressHandler := mock.NewSpecialAddressHandlerMock(
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		nodesCoordinator,
+	)
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: &blproc.ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
@@ -314,9 +321,9 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			Hasher:                &mock.HasherStub{},
 			Marshalizer:           &mock.MarshalizerMock{},
 			Store:                 initStore(),
-			ShardCoordinator:      mock.NewOneShardCoordinatorMock(),
-			NodesCoordinator:      mock.NewNodesCoordinatorMock(),
-			SpecialAddressHandler: &mock.SpecialAddressHandlerMock{},
+			ShardCoordinator:      shardCoordinator,
+			NodesCoordinator:      nodesCoordinator,
+			SpecialAddressHandler: specialAddressHandler,
 			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
 			StartHeaders:          createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 			RequestHandler:        &mock.RequestHandlerMock{},

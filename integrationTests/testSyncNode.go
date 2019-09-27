@@ -57,6 +57,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
 		TestAddressConverter,
 		tpn.ShardCoordinator,
+		tpn.NodesCoordinator,
 	)
 	tpn.initInterceptors()
 	tpn.initResolvers()
@@ -112,18 +113,18 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: &block.ArgBaseProcessor{
-				Accounts:         tpn.AccntState,
-				ForkDetector:     tpn.ForkDetector,
-				Hasher:           TestHasher,
-				Marshalizer:      TestMarshalizer,
-				Store:            tpn.Storage,
-				ShardCoordinator: tpn.ShardCoordinator,
-				NodesCoordinator: tpn.NodesCoordinator,
+				Accounts:              tpn.AccntState,
+				ForkDetector:          tpn.ForkDetector,
+				Hasher:                TestHasher,
+				Marshalizer:           TestMarshalizer,
+				Store:                 tpn.Storage,
+				ShardCoordinator:      tpn.ShardCoordinator,
+				NodesCoordinator:      tpn.NodesCoordinator,
 				SpecialAddressHandler: tpn.SpecialAddressHandler,
-				Uint64Converter:  TestUint64Converter,
-				StartHeaders:     tpn.GenesisBlocks,
-				RequestHandler:   tpn.RequestHandler,
-				Core:             nil,
+				Uint64Converter:       TestUint64Converter,
+				StartHeaders:          tpn.GenesisBlocks,
+				RequestHandler:        tpn.RequestHandler,
+				Core:                  nil,
 			},
 			DataPool:      tpn.ShardDataPool,
 			BlocksTracker: tpn.BlockTracker,

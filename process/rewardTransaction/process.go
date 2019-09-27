@@ -21,7 +21,6 @@ type rewardTxProcessor struct {
 }
 
 // NewRewardTxProcessor creates a rewardTxProcessor instance
-// TODO: add unit tests
 func NewRewardTxProcessor(
 	accountsDB state.AccountsAdapter,
 	adrConv state.AddressConverter,
@@ -36,6 +35,9 @@ func NewRewardTxProcessor(
 	}
 	if coordinator == nil {
 		return nil, process.ErrNilShardCoordinator
+	}
+	if rewardTxForwarder == nil {
+		return nil, process.ErrNilIntermediateTransactionHandler
 	}
 
 	return &rewardTxProcessor{

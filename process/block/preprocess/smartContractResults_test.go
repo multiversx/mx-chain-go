@@ -16,7 +16,7 @@ import (
 )
 
 func haveTime() time.Duration {
-	return time.Duration(2000 * time.Millisecond)
+	return 2000 * time.Millisecond
 }
 
 func haveTimeTrue() bool {
@@ -619,7 +619,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
-		SenderShardID:   0,
+		SenderShardID:   1,
 		TxHashes:        txHashes,
 		Type:            block.SmartContractResultBlock,
 	}
@@ -796,7 +796,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 	miniblockPool := mock.NewCacherMock()
 	scrRestored, miniBlockHashes, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
 
-	assert.Equal(t, miniBlockHashes[0], []uint8([]byte(nil)))
+	assert.Equal(t, miniBlockHashes[0], []byte(nil))
 	assert.Equal(t, scrRestored, 1)
 	assert.Nil(t, err)
 }

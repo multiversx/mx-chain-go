@@ -124,15 +124,15 @@ type TransactionFeeHandler interface {
 
 // SpecialAddressHandler responds with needed special addresses
 type SpecialAddressHandler interface {
-	SetElrondCommunityAddress(elrond []byte)
-	ElrondCommunityAddress() []byte
-	SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
+	SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error
+	SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error
 	ConsensusShardRewardData() *data.ConsensusRewardData
-	SetMetaConsensusData(rewardAddresses []string, round uint64, epoch uint32)
-	ClearMetaConsensusData()
 	ConsensusMetaRewardData() []*data.ConsensusRewardData
+	ClearMetaConsensusData()
+	ElrondCommunityAddress() []byte
 	LeaderAddress() []byte
 	BurnAddress() []byte
+	SetElrondCommunityAddress(elrond []byte)
 	ShardIdForAddress([]byte) (uint32, error)
 	Epoch() uint32
 	Round() uint64
@@ -174,7 +174,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusData(consensusRewardAddresses []string, round uint64)
+	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
 }
 

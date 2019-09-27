@@ -22,7 +22,7 @@ type BlockProcessorMock struct {
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusDataCalled           func([]string)
+	SetConsensusDataCalled           func(randomness []byte, round uint64, epoch uint32, shardId uint32)
 }
 
 // ProcessBlock mocks pocessing a block
@@ -93,9 +93,9 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-func (blProcMock BlockProcessorMock) SetConsensusData(consensusRewardAddresses []string, round uint64) {
+func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	if blProcMock.SetConsensusDataCalled != nil {
-		blProcMock.SetConsensusDataCalled(consensusRewardAddresses)
+		blProcMock.SetConsensusDataCalled(randomness, round, epoch, shardId)
 	}
 }
 

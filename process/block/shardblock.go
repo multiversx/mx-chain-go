@@ -169,7 +169,12 @@ func (sp *shardProcessor) ProcessBlock(
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
-	err = sp.setShardConsensusData(headerHandler)
+	err = sp.specialAddressHandler.SetShardConsensusData(
+		headerHandler.GetPrevRandSeed(),
+		headerHandler.GetRound(),
+		headerHandler.GetEpoch(),
+		headerHandler.GetShardID(),
+	)
 	if err != nil {
 		return err
 	}
@@ -226,7 +231,7 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
-	processedMetaHdrs, err := sp.getProcessedMetaBlocks(body, header.MetaBlockHashes)
+	processedMetaHdrs, err := sp.getProcessedMetaBlocksFromMiniBlocks(body, header.MetaBlockHashes)
 	if err != nil {
 		return err
 	}
@@ -254,22 +259,6 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *shardProcessor) setShardConsensusData(headerHandler data.HeaderHandler) error {
-	// give transaction coordinator the consensus group validators addresses where to send the rewards.
-	consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
-		headerHandler.GetPrevRandSeed(),
-		headerHandler.GetRound(),
-		sp.shardCoordinator.SelfId(),
-	)
-	if err != nil {
-		return err
-	}
-
-	sp.SetConsensusData(consensusAddresses, headerHandler.GetRound())
-
-	return nil
-}
-
 func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.HeaderHandler) error {
 	sp.specialAddressHandler.ClearMetaConsensusData()
 
@@ -277,24 +266,21 @@ func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.Header
 	for _, metaBlock := range finalizedMetaBlocks {
 		round := metaBlock.GetRound()
 		epoch := metaBlock.GetEpoch()
-		consensusAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
-			metaBlock.GetPrevRandSeed(),
-			round,
-			metaBlock.GetShardID(),
-		)
+		err := sp.specialAddressHandler.SetMetaConsensusData(metaBlock.GetPrevRandSeed(), round, epoch)
 		if err != nil {
 			return err
 		}
-
-		sp.specialAddressHandler.SetMetaConsensusData(consensusAddresses, round, epoch)
 	}
 
 	return nil
 }
 
-// SetConsensusData - sets the reward addresses for the current consensus group
-func (sp *shardProcessor) SetConsensusData(consensusRewardAddresses []string, round uint64) {
-	sp.specialAddressHandler.SetConsensusData(consensusRewardAddresses, round, 0)
+// SetConsensusData - sets the reward data for the current consensus group
+func (sp *shardProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
+	err := sp.specialAddressHandler.SetShardConsensusData(randomness, round, epoch, shardId)
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
@@ -575,7 +561,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 
 		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
-			_, ok := crossMiniBlockHashes[key]
+			_, ok = crossMiniBlockHashes[key]
 			if !ok {
 				continue
 			}
@@ -857,51 +843,31 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 
 	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
 
-	processedMetaHdrs := make([]data.HeaderHandler, 0)
+	processedMetaHeaders, usedMbs, err := sp.getProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes, header.MetaBlockHashes)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, metaBlockKey := range header.MetaBlockHashes {
-		obj, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
-		if obj == nil {
+		obj, ok := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
+		if !ok {
 			return nil, process.ErrNilMetaBlockHeader
 		}
 
-		metaBlock, ok := obj.(*block.MetaBlock)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
-		}
-		// todo: change to debug after test
-		log.Info(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
-
+		metaBlock := obj.(*block.MetaBlock)
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
-		for key := range miniBlockHashes {
-			_, ok := crossMiniBlockHashes[string(miniBlockHashes[key])]
-			if !ok {
-				continue
-			}
-
-			metaBlock.SetMiniBlockProcessed(miniBlockHashes[key], true)
-			delete(miniBlockHashes, key)
-		}
-
-		log.Debug(fmt.Sprintf("cross mini blocks in meta header: %d\n", len(crossMiniBlockHashes)))
-
-		processedAll := true
 		for key := range crossMiniBlockHashes {
-			if !metaBlock.GetMiniBlockProcessed([]byte(key)) {
-				processedAll = false
-				break
+			if usedMbs[key] {
+				metaBlock.SetMiniBlockProcessed([]byte(key), true)
 			}
-		}
-
-		if processedAll {
-			processedMetaHdrs = append(processedMetaHdrs, metaBlock)
 		}
 	}
 
-	return processedMetaHdrs, nil
+	return processedMetaHeaders, nil
 }
 
 // getProcessedMetaBlocks returns all the meta blocks fully processed
-func (sp *shardProcessor) getProcessedMetaBlocks(
+func (sp *shardProcessor) getProcessedMetaBlocksFromMiniBlocks(
 	usedMiniBlocks []*block.MiniBlock,
 	usedMetaBlockHashes [][]byte,
 ) ([]data.HeaderHandler, error) {
@@ -926,19 +892,28 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 	}
 
 	log.Debug(fmt.Sprintf("cross mini blocks in body: %d\n", len(miniBlockHashes)))
+	processedMetaBlocks, _, err := sp.getProcessedMetaBlocksFromMiniBlockHashes(miniBlockHashes, usedMetaBlockHashes)
+
+	return processedMetaBlocks, err
+}
+
+func (sp *shardProcessor) getProcessedMetaBlocksFromMiniBlockHashes(
+	miniBlockHashes map[int][]byte,
+	usedMetaBlockHashes [][]byte,
+) ([]data.HeaderHandler, map[string]bool, error) {
 
 	processedMetaHdrs := make([]data.HeaderHandler, 0)
-	for _, metaBlockKey := range usedMetaBlockHashes {
-		processedMBs := make(map[string]bool)
+	processedMBs := make(map[string]bool)
 
+	for _, metaBlockKey := range usedMetaBlockHashes {
 		obj, _ := sp.dataPool.MetaBlocks().Peek(metaBlockKey)
 		if obj == nil {
-			return nil, process.ErrNilMetaBlockHeader
+			return nil, nil, process.ErrNilMetaBlockHeader
 		}
 
 		metaBlock, ok := obj.(*block.MetaBlock)
 		if !ok {
-			return nil, process.ErrWrongTypeAssertion
+			return nil, nil, process.ErrWrongTypeAssertion
 		}
 		// todo: change to debug after test
 		log.Info(fmt.Sprintf("meta header nonce: %d\n", metaBlock.Nonce))
@@ -949,7 +924,7 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 		}
 
 		for key := range miniBlockHashes {
-				_, ok = crossMiniBlockHashes[string(miniBlockHashes[key])]
+			_, ok = crossMiniBlockHashes[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
@@ -974,7 +949,7 @@ func (sp *shardProcessor) getProcessedMetaBlocks(
 		}
 	}
 
-	return processedMetaHdrs, nil
+	return processedMetaHdrs, processedMBs, nil
 }
 
 func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
@@ -1483,7 +1458,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		log.Info(err.Error())
 	}
 
-	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocks(destMeMiniBlocks, usedMetaHdrsHashes)
+	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromMiniBlocks(destMeMiniBlocks, usedMetaHdrsHashes)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
