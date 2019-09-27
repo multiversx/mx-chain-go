@@ -71,21 +71,6 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 	return nil
 }
 
-func (bpp *basePreProcess) restoreMiniBlock(miniBlock *block.MiniBlock, miniBlockPool storage.Cacher) ([]byte, error) {
-	miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, miniBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	var restoredHash []byte
-	miniBlockPool.Put(miniBlockHash, miniBlock)
-	if miniBlock.SenderShardID != bpp.shardCoordinator.SelfId() {
-		restoredHash = miniBlockHash
-	}
-
-	return restoredHash, nil
-}
-
 func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
 	mrsTxs := make([][]byte, 0)
 	for _, txHash := range txHashes {
@@ -177,11 +162,10 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 	chRcvAllTxs chan bool,
 	currType block.Type,
 	txPool dataRetriever.ShardedDataCacherNotifier,
-) map[uint32]*txsHashesInfo {
-	missingTxsForShard := make(map[uint32]*txsHashesInfo, 0)
+) map[uint32][]*txsHashesInfo {
+	missingTxsForShard := make(map[uint32][]*txsHashesInfo, 0)
 	forBlock.mutTxsForBlock.Lock()
 
-	forBlock.missingTxs = 0
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 		if miniBlock.Type != currType {
@@ -208,15 +192,9 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 
 		if len(txHashes) > 0 {
-			missingTxsForShard[miniBlock.SenderShardID] = &txsHashesInfo{
-				txHashes:        txHashes,
-				receiverShardID: miniBlock.ReceiverShardID,
-			}
+			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID],
+				&txsHashesInfo{txHashes: txHashes, receiverShardID: miniBlock.ReceiverShardID})
 		}
-	}
-
-	if forBlock.missingTxs > 0 {
-		process.EmptyChannel(chRcvAllTxs)
 	}
 
 	forBlock.mutTxsForBlock.Unlock()

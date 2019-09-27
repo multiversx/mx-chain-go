@@ -11,13 +11,14 @@ import (
 )
 
 type ResolverRequestHandler struct {
-	resolversFinder dataRetriever.ResolversFinder
-	txRequestTopic  string
-	scrRequestTopic string
-	mbRequestTopic  string
-	hdrRequestTopic string
-	isMetaChain     bool
-	maxTxsToRequest int
+	resolversFinder      dataRetriever.ResolversFinder
+	txRequestTopic       string
+	scrRequestTopic      string
+	mbRequestTopic       string
+	shardHdrRequestTopic string
+	metaHdrRequestTopic  string
+	isMetaChain          bool
+	maxTxsToRequest      int
 }
 
 var log = logger.DefaultLogger()
@@ -28,7 +29,8 @@ func NewShardResolverRequestHandler(
 	txRequestTopic string,
 	scrRequestTopic string,
 	mbRequestTopic string,
-	hdrRequestTopic string,
+	shardHdrRequestTopic string,
+	metaHdrRequestTopic string,
 	maxTxsToRequest int,
 ) (*ResolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
@@ -43,21 +45,25 @@ func NewShardResolverRequestHandler(
 	if len(mbRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockRequestTopic
 	}
-	if len(hdrRequestTopic) == 0 {
-		return nil, dataRetriever.ErrEmptyHeaderRequestTopic
+	if len(shardHdrRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyShardHeaderRequestTopic
+	}
+	if len(metaHdrRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyMetaHeaderRequestTopic
 	}
 	if maxTxsToRequest < 1 {
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
 	}
 
 	rrh := &ResolverRequestHandler{
-		resolversFinder: finder,
-		txRequestTopic:  txRequestTopic,
-		mbRequestTopic:  mbRequestTopic,
-		hdrRequestTopic: hdrRequestTopic,
-		scrRequestTopic: scrRequestTopic,
-		isMetaChain:     false,
-		maxTxsToRequest: maxTxsToRequest,
+		resolversFinder:      finder,
+		txRequestTopic:       txRequestTopic,
+		mbRequestTopic:       mbRequestTopic,
+		shardHdrRequestTopic: shardHdrRequestTopic,
+		metaHdrRequestTopic:  metaHdrRequestTopic,
+		scrRequestTopic:      scrRequestTopic,
+		isMetaChain:          false,
+		maxTxsToRequest:      maxTxsToRequest,
 	}
 
 	return rrh, nil
@@ -66,19 +72,24 @@ func NewShardResolverRequestHandler(
 // NewMetaResolverRequestHandler creates a requestHandler interface implementation with request functions
 func NewMetaResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
-	hdrRequestTopic string,
+	shardHdrRequestTopic string,
+	metaHdrRequestTopic string,
 ) (*ResolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
 	}
-	if len(hdrRequestTopic) == 0 {
-		return nil, dataRetriever.ErrEmptyHeaderRequestTopic
+	if len(shardHdrRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyShardHeaderRequestTopic
+	}
+	if len(metaHdrRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyMetaHeaderRequestTopic
 	}
 
 	rrh := &ResolverRequestHandler{
-		resolversFinder: finder,
-		hdrRequestTopic: hdrRequestTopic,
-		isMetaChain:     true,
+		resolversFinder:      finder,
+		shardHdrRequestTopic: shardHdrRequestTopic,
+		metaHdrRequestTopic:  metaHdrRequestTopic,
+		isMetaChain:          true,
 	}
 
 	return rrh, nil
@@ -132,7 +143,15 @@ func (rrh *ResolverRequestHandler) RequestMiniBlock(shardId uint32, miniblockHas
 
 // RequestHeader method asks for header from the connected peers
 func (rrh *ResolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
-	rrh.requestByHash(shardId, hash, rrh.hdrRequestTopic)
+	//TODO: Refactor this class and create specific methods for requesting shard or meta data
+	var topic string
+	if shardId == sharding.MetachainShardId {
+		topic = rrh.metaHdrRequestTopic
+	} else {
+		topic = rrh.shardHdrRequestTopic
+	}
+
+	rrh.requestByHash(shardId, hash, topic)
 }
 
 func (rrh *ResolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
@@ -162,20 +181,23 @@ func (rrh *ResolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 func (rrh *ResolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
 	var err error
 	var resolver dataRetriever.Resolver
+	var topic string
 	if rrh.isMetaChain {
-		resolver, err = rrh.resolversFinder.CrossShardResolver(rrh.hdrRequestTopic, destShardID)
+		topic = rrh.shardHdrRequestTopic
+		resolver, err = rrh.resolversFinder.CrossShardResolver(topic, destShardID)
 	} else {
-		resolver, err = rrh.resolversFinder.MetaChainResolver(rrh.hdrRequestTopic)
+		topic = rrh.metaHdrRequestTopic
+		resolver, err = rrh.resolversFinder.MetaChainResolver(topic)
 	}
 
 	if err != nil {
-		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
+		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", topic, destShardID))
 		return
 	}
 
 	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
 	if !ok {
-		log.Error(fmt.Sprintf("resolver is not a header resolver to %s topic to shard %d", rrh.hdrRequestTopic, destShardID))
+		log.Error(fmt.Sprintf("resolver is not a header resolver to %s topic to shard %d", topic, destShardID))
 		return
 	}
 

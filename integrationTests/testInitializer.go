@@ -495,7 +495,7 @@ func IncrementAndPrintRound(round uint64) uint64 {
 	return round
 }
 
-// ProposeBlock proposes a block with SC txs for every shard
+// ProposeBlock proposes a block for every shard
 func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
 	fmt.Println("All shards propose blocks...")
 	for idx, n := range nodes {
@@ -834,6 +834,19 @@ func CreateMintingForSenders(
 	}
 }
 
+// CreateMintingFromAddresses creates account with balances for given address
+func CreateMintingFromAddresses(
+	nodes []*TestProcessorNode,
+	addresses [][]byte,
+	value *big.Int,
+) {
+	for _, n := range nodes {
+		for _, address := range addresses {
+			MintAddress(n.AccntState, address, value)
+		}
+	}
+}
+
 // ProposeBlockSignalsEmptyBlock proposes and broadcasts a block
 func ProposeBlockSignalsEmptyBlock(
 	node *TestProcessorNode,
@@ -950,10 +963,10 @@ func CreateResolversDataPool(
 	senderShardID uint32,
 	recvShardId uint32,
 	shardCoordinator sharding.Coordinator,
-) (dataRetriever.PoolsHolder, [][]byte) {
+) (dataRetriever.PoolsHolder, [][]byte, [][]byte) {
 
 	txHashes := make([][]byte, maxTxs)
-
+	txsSndAddr := make([][]byte, 0)
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 
 	for i := 0; i < maxTxs; i++ {
@@ -961,9 +974,10 @@ func CreateResolversDataPool(
 		cacherIdentifier := process.ShardCacherIdentifier(1, 0)
 		txPool.AddData(txHash, tx, cacherIdentifier)
 		txHashes[i] = txHash
+		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
 
-	return CreateTestShardDataPool(txPool), txHashes
+	return CreateTestShardDataPool(txPool), txHashes, txsSndAddr
 }
 
 func generateValidTx(

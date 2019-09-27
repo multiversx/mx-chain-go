@@ -229,6 +229,7 @@ func createNetNode(
 	dataPacker, _ := partitioning.NewSimpleDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+		accntAdapter,
 		shardCoordinator,
 		messenger,
 		store,
@@ -257,7 +258,7 @@ func createNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
-	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.UnsignedTransactionTopic, factory.MiniBlocksTopic, factory.MetachainBlocksTopic, 100)
+	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(resolversFinder, factory.TransactionTopic, factory.UnsignedTransactionTopic, factory.MiniBlocksTopic, factory.HeadersTopic, factory.MetachainBlocksTopic, 100)
 
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
@@ -321,26 +322,32 @@ func createNetNode(
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
-	blockProcessor, _ := block.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		dPool,
-		store,
-		testHasher,
-		testMarshalizer,
-		accntAdapter,
-		shardCoordinator,
-		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
-				return nil
+
+	arguments := block.ArgShardProcessor{
+		ArgBaseProcessor: &block.ArgBaseProcessor{
+			Accounts: accntAdapter,
+			ForkDetector: &mock.ForkDetectorMock{
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+					return nil
+				},
+				GetHighestFinalBlockNonceCalled: func() uint64 {
+					return 0
+				},
+				ProbableHighestNonceCalled: func() uint64 {
+					return 0
+				},
 			},
-			GetHighestFinalBlockNonceCalled: func() uint64 {
-				return 0
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
+			Hasher:           testHasher,
+			Marshalizer:      testMarshalizer,
+			Store:            store,
+			ShardCoordinator: shardCoordinator,
+			Uint64Converter:  uint64Converter,
+			StartHeaders:     genesisBlocks,
+			RequestHandler:   requestHandler,
+			Core:             &mock.ServiceContainerMock{},
 		},
-		&mock.BlocksTrackerMock{
+		DataPool: dPool,
+		BlocksTracker: &mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
 			},
 			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
@@ -350,11 +357,11 @@ func createNetNode(
 				return make([]data.HeaderHandler, 0)
 			},
 		},
-		genesisBlocks,
-		requestHandler,
-		tc,
-		uint64Converter,
-	)
+		TxCoordinator:   tc,
+		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
+	}
+
+	blockProcessor, _ := block.NewShardProcessor(arguments)
 
 	_ = blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
 
@@ -616,7 +623,7 @@ func createMetaNetNode(
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
-	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(resolvers, factory.ShardHeadersForMetachainTopic)
+	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(resolvers, factory.ShardHeadersForMetachainTopic, factory.MetachainBlocksTopic)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blkProc, _ := block.NewMetaProcessor(
@@ -624,7 +631,7 @@ func createMetaNetNode(
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {

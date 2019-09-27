@@ -104,6 +104,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	nodeShardId := uint32(0)
 	txSignPrivKeyShardId := uint32(0)
 	initialNodeAddr := "nodeAddr"
+	valMinting := big.NewInt(20000)
 
 	node := integrationTests.NewTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
 
@@ -121,18 +122,18 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		txRecovered, ok := dataRecovered.(*transaction.Transaction)
 		assert.True(t, ok)
 
-		assert.Equal(t, txRecovered.Nonce, frontendNonce)
-		assert.Equal(t, txRecovered.Value, frontendValue)
+		assert.Equal(t, frontendNonce, txRecovered.Nonce)
+		assert.Equal(t, frontendValue, txRecovered.Value)
 
 		sender, _ := hex.DecodeString(frontendSenderHex)
-		assert.Equal(t, txRecovered.SndAddr, sender)
+		assert.Equal(t, sender, txRecovered.SndAddr)
 
 		receiver, _ := hex.DecodeString(frontendReceiverHex)
-		assert.Equal(t, txRecovered.RcvAddr, receiver)
+		assert.Equal(t, receiver, txRecovered.RcvAddr)
 
 		sig, _ := hex.DecodeString(frontendSignature)
-		assert.Equal(t, txRecovered.Signature, sig)
-		assert.Equal(t, txRecovered.Data, frontendData)
+		assert.Equal(t, sig, txRecovered.Signature)
+		assert.Equal(t, frontendData, txRecovered.Data)
 
 		chDone <- struct{}{}
 	})
@@ -140,6 +141,8 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	rcvAddrBytes, _ := hex.DecodeString(frontendReceiverHex)
 	sndAddrBytes, _ := hex.DecodeString(frontendSenderHex)
 	signatureBytes, _ := hex.DecodeString(frontendSignature)
+
+	integrationTests.MintAddress(node.AccntState, sndAddrBytes, valMinting)
 
 	txHexHash, err = node.SendTransaction(&transaction.Transaction{
 		Nonce:     frontendNonce,
