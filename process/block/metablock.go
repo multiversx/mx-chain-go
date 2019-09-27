@@ -592,14 +592,7 @@ func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 			continue
 		}
 
-		if i > 0 {
-			crossCheckBlockHeight += ", "
-		}
-
-		crossCheckBlockHeight += fmt.Sprintf("%d: %d", i, valueStored)
-	}
-	if len(crossCheckBlockHeight) > 0 { // append a trailing comma for better fetching of data
-		crossCheckBlockHeight += fmt.Sprintf(",")
+		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, valueStored)
 	}
 
 	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
