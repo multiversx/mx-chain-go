@@ -159,17 +159,20 @@ func TestPutNotPresentCacheWithNilBloomFilter(t *testing.T) {
 	assert.Nil(t, err, "expected to find key %s, but not found", key)
 }
 
-func TestPutPresent(t *testing.T) {
+func TestPutPresentShouldOverwriteValue(t *testing.T) {
 	key, val := []byte("key2"), []byte("value2")
 	s := initStorageUnitWithBloomFilter(t, 10)
 	err := s.Put(key, val)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	// put again same value, no error expected
-	err = s.Put(key, val)
-
+	newVal := []byte("value5")
+	err = s.Put(key, newVal)
 	assert.Nil(t, err, "no error expected but got %s", err)
+
+	returnedVal, err := s.Get(key)
+	assert.Nil(t, err)
+	assert.Equal(t, newVal, returnedVal)
 }
 
 func TestPutPresentWithNilBloomFilter(t *testing.T) {

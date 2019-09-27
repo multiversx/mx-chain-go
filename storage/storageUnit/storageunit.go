@@ -97,12 +97,6 @@ func (s *Unit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	// no need to add if already present in cache
-	has := s.cacher.Has(key)
-	if has {
-		return nil
-	}
-
 	s.cacher.Put(key, data)
 
 	err := s.persister.Put(key, data)
@@ -172,6 +166,7 @@ func (s *Unit) Has(key []byte) error {
 // it updates the cache either way
 // it returns if the value was originally found
 func (s *Unit) HasOrAdd(key []byte, value []byte) error {
+	// TODO : refactor this method as not all edge cases seem to be treated
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
