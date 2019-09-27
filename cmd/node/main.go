@@ -41,6 +41,7 @@ import (
 	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
@@ -107,6 +108,13 @@ VERSION:
 		Usage: "The main configuration file to load",
 		Value: "./config/config.toml",
 	}
+	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
+	configurationEconomicsFile = cli.StringFlag{
+		Name:  "configEconomics",
+		Usage: "The economics configuration file to load",
+		Value: "./config/economics.toml",
+	}
+
 	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
 	p2pConfigurationFile = cli.StringFlag{
 		Name:  "p2pconfig",
@@ -289,6 +297,7 @@ func main() {
 		nodesFile,
 		port,
 		configurationFile,
+		configurationEconomicsFile,
 		p2pConfigurationFile,
 		txSignSk,
 		sk,
@@ -364,6 +373,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFileName))
+
+	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
+	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName, log)
+	if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Initialized with config economics from: %s", configurationEconomicsFileName))
 
 	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
 	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
@@ -631,11 +647,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	economicsConfig := &generalConfig.EconomicsConfig
+	economicsData := unsigned.NewEconomicsData(economicsConfig)
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		genesisConfig,
-		economicsConfig,
+		economicsData,
 		nodesConfig,
 		syncer,
 		shardCoordinator,
@@ -976,6 +992,15 @@ func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
 
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
 	cfg := &config.Config{}
+	err := core.LoadTomlFile(cfg, filepath, log)
+	if err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+func loadEconomicsConfig(filepath string, log *logger.Logger) (*config.ConfigEconomics, error) {
+	cfg := &config.ConfigEconomics{}
 	err := core.LoadTomlFile(cfg, filepath, log)
 	if err != nil {
 		return nil, err

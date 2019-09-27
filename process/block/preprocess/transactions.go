@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -34,6 +35,7 @@ type transactions struct {
 	storage              dataRetriever.StorageService
 	txProcessor          process.TransactionProcessor
 	accounts             state.AccountsAdapter
+	economicsFee         unsigned.FeeHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -46,6 +48,7 @@ func NewTransactionPreprocessor(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
+	economicsFee unsigned.FeeHandler,
 ) (*transactions, error) {
 
 	if hasher == nil || hasher.IsInterfaceNil() {
@@ -86,6 +89,7 @@ func NewTransactionPreprocessor(
 		onRequestTransaction: onRequestTransaction,
 		txProcessor:          txProcessor,
 		accounts:             accounts,
+		economicsFee:         economicsFee,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -400,9 +404,6 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	return transactions, txHashes, nil
 }
 
-//TODO move this constant to txFeeHandler
-const minGasLimitForTx = uint64(5)
-
 //TODO move this to smart contract address calculation component
 func isSmartContractAddress(rcvAddress []byte) bool {
 	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
@@ -504,7 +505,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32
 			continue
 		}
 
-		currTxGasLimit := minGasLimitForTx
+		currTxGasLimit := txs.economicsFee.MinGasLimitForTx()
 		if isSmartContractAddress(orderedTxes[index].RcvAddr) {
 			currTxGasLimit = orderedTxes[index].GasLimit
 		}

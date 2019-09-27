@@ -1,6 +1,8 @@
 package shard
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -9,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -26,6 +29,7 @@ type preProcessorsContainerFactory struct {
 	accounts           state.AccountsAdapter
 	requestHandler     process.RequestHandler
 	rewardsProducer    process.InternalTransactionProducer
+	economicsFee       unsigned.FeeHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -43,6 +47,7 @@ func NewPreProcessorsContainerFactory(
 	scResultProcessor process.SmartContractResultProcessor,
 	rewardsTxProcessor process.RewardTransactionProcessor,
 	rewardsProducer process.InternalTransactionProducer,
+	economicsFee unsigned.FeeHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -84,6 +89,9 @@ func NewPreProcessorsContainerFactory(
 	if rewardsProducer == nil || rewardsProducer.IsInterfaceNil() {
 		return nil, process.ErrNilInternalTransactionProducer
 	}
+	if economicsFee == nil {
+		return nil, errors.New("nil economics fee handler")
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:   shardCoordinator,
@@ -99,6 +107,7 @@ func NewPreProcessorsContainerFactory(
 		rewardsTxProcessor: rewardsTxProcessor,
 		requestHandler:     requestHandler,
 		rewardsProducer:    rewardsProducer,
+		economicsFee:       economicsFee,
 	}, nil
 }
 
@@ -149,6 +158,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestTransaction,
+		ppcm.economicsFee,
 	)
 
 	return txPreprocessor, err

@@ -63,6 +63,7 @@ import (
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
@@ -409,7 +410,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 
 type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
-	economicsConfig      *config.EconomicsConfig
+	economicsData        *unsigned.EconomicsData
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
@@ -425,7 +426,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
-	economicsConfig *config.EconomicsConfig,
+	economicsData *unsigned.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
 	shardCoordinator sharding.Coordinator,
@@ -439,7 +440,7 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		genesisConfig:        genesisConfig,
-		economicsConfig:      economicsConfig,
+		economicsData:        economicsData,
 		nodesConfig:          nodesConfig,
 		syncer:               syncer,
 		shardCoordinator:     shardCoordinator,
@@ -511,7 +512,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		args.shardCoordinator,
 		args.nodesCoordinator,
-		args.economicsConfig,
+		args.economicsData,
 		args.data,
 		args.core,
 		args.state,
@@ -1434,7 +1435,7 @@ func newBlockProcessorAndTracker(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	economicsConfig *config.EconomicsConfig,
+	economics *unsigned.EconomicsData,
 	data *Data,
 	core *Core,
 	state *State,
@@ -1444,16 +1445,18 @@ func newBlockProcessorAndTracker(
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
-	if economicsConfig.CommunityAddress == "" || economicsConfig.BurnAddress == "" {
+	communityAddr := economics.CommunityAddress()
+	burnAddr := economics.BurnAddress()
+	if communityAddr == "" || burnAddr == "" {
 		return nil, nil, errors.New("rewards configuration missing")
 	}
 
-	communityAddress, err := hex.DecodeString(economicsConfig.CommunityAddress)
+	communityAddress, err := hex.DecodeString(communityAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	burnAddress, err := hex.DecodeString(economicsConfig.BurnAddress)
+	burnAddress, err := hex.DecodeString(burnAddr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1483,6 +1486,7 @@ func newBlockProcessorAndTracker(
 			shardsGenesisBlocks,
 			nodesConfig,
 			coreServiceContainer,
+			economics,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1515,6 +1519,7 @@ func newShardBlockProcessorAndTracker(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
+	economics *unsigned.EconomicsData,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1539,6 +1544,7 @@ func newShardBlockProcessorAndTracker(
 		specialAddressHandler,
 		data.Store,
 		data.Datapool,
+		economics,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1623,6 +1629,7 @@ func newShardBlockProcessorAndTracker(
 		scProcessor,
 		rewardsTxHandler,
 		txTypeHandler,
+		economics,
 	)
 	if err != nil {
 		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
@@ -1652,6 +1659,7 @@ func newShardBlockProcessorAndTracker(
 		scProcessor,
 		rewardsTxProcessor,
 		internalTransactionProducer,
+		economics,
 	)
 	if err != nil {
 		return nil, nil, err
