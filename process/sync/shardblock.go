@@ -898,6 +898,8 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 	var newRootHash []byte
 
 	if header.GetNonce() > 1 {
+		boot.accounts.Rollback(header.GetRootHash())
+
 		newHeader, err = boot.getPrevHeader(headerStore, header)
 		if err != nil {
 			return err

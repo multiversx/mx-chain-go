@@ -501,6 +501,16 @@ func (adb *AccountsDB) clearJournal() {
 	adb.mutEntries.Unlock()
 }
 
+// PruneTrie removes old values from the trie database
+func (adb *AccountsDB) PruneTrie(rootHash []byte) error {
+	return adb.mainTrie.Prune(rootHash)
+}
+
+// Rollback clears the trie's evictionWaitingList
+func (adb *AccountsDB) Rollback(rootHash []byte) {
+	adb.mainTrie.Rollback(rootHash)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adb *AccountsDB) IsInterfaceNil() bool {
 	if adb == nil {

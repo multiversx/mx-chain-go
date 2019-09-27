@@ -18,7 +18,7 @@ type TrieStub struct {
 	CommitCalled               func() error
 	RecreateCalled             func(root []byte) (data.Trie, error)
 	DeepCloneCalled            func() (data.Trie, error)
-	RollbackCalled             func(rootHash []byte) error
+	RollbackCalled             func(rootHash []byte)
 	PruneCalled                func(rootHash []byte) error
 	ResetOldHashesCalled       func() [][]byte
 	AddHashesToOldHashesCalled func([][]byte)
@@ -105,12 +105,10 @@ func (ts *TrieStub) IsInterfaceNil() bool {
 }
 
 // Rollback invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (ts *TrieStub) Rollback(rootHash []byte) error {
+func (ts *TrieStub) Rollback(rootHash []byte) {
 	if ts.RollbackCalled != nil {
-		return ts.RollbackCalled(rootHash)
+		ts.RollbackCalled(rootHash)
 	}
-
-	return errNotImplemented
 }
 
 // Prune removes from the database all the old hashes that correspond to the given root hash

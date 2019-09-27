@@ -733,6 +733,18 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
+	for i := range finalHeaders {
+		rootHash := finalHeaders[i].GetRootHash()
+		if rootHash == nil {
+			continue
+		}
+
+		errNotCritical := sp.accounts.PruneTrie(rootHash)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+	}
+
 	log.Info(fmt.Sprintf("shard block with nonce %d is the highest final block in shard %d\n",
 		sp.forkDetector.GetHighestFinalBlockNonce(),
 		sp.shardCoordinator.SelfId()))
