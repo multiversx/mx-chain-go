@@ -180,7 +180,7 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 
-		part := fmt.Sprintf("MiniBlock_%d_%d", miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		part := fmt.Sprintf("MiniBlock_%d->%d", miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 
 		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -224,6 +224,12 @@ func DisplayLastNotarized(
 	hasher hashing.Hasher,
 	lastNotarizedHdrForShard data.HeaderHandler,
 	shardId uint32) {
+
+	if lastNotarizedHdrForShard == nil || lastNotarizedHdrForShard.IsInterfaceNil() {
+		log.Error("last notarized header for shard is nil")
+		return
+	}
+
 	lastNotarizedHdrHashForShard, errNotCritical := core.CalculateHash(
 		marshalizer,
 		hasher,

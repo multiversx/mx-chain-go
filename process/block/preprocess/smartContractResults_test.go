@@ -748,6 +748,13 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		par["txHash"], _ = json.Marshal(tx)
 		return par, nil
 	}
+	scrstorage.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			RemoveCalled: func(key []byte) error {
+				return nil
+			},
+		}
+	}
 
 	dataPool := mock.NewPoolsHolderFake()
 
@@ -787,9 +794,8 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 
 	body = append(body, &miniblock)
 	miniblockPool := mock.NewCacherMock()
-	scrRestored, miniBlockHashes, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+	scrRestored, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
 
-	assert.Equal(t, miniBlockHashes[0], []uint8([]byte(nil)))
 	assert.Equal(t, scrRestored, 1)
 	assert.Nil(t, err)
 }
@@ -819,7 +825,7 @@ func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *t
 
 	miniblockPool := storage.Cacher(nil)
 
-	_, _, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+	_, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilMiniBlockPool)

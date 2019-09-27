@@ -112,28 +112,28 @@ func (bp *baseProcessor) checkBlockValidity(
 				return nil
 			}
 
-			log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
+			log.Info(fmt.Sprintf("hash does not match: local block hash is %s and node received block with previous hash %s\n",
 				core.ToB64(chainHandler.GetGenesisHeaderHash()),
 				core.ToB64(headerHandler.GetPrevHash())))
 
 			return process.ErrBlockHashDoesNotMatch
 		}
 
-		log.Info(fmt.Sprintf("nonce not match: local block nonce is 0 and node received block with nonce %d\n",
+		log.Info(fmt.Sprintf("nonce does not match: local block nonce is 0 and node received block with nonce %d\n",
 			headerHandler.GetNonce()))
 
 		return process.ErrWrongNonceInBlock
 	}
 
 	if headerHandler.GetRound() <= currentBlockHeader.GetRound() {
-		log.Info(fmt.Sprintf("round not match: local block round is %d and node received block with round %d\n",
+		log.Info(fmt.Sprintf("round does not match: local block round is %d and node received block with round %d\n",
 			currentBlockHeader.GetRound(), headerHandler.GetRound()))
 
 		return process.ErrLowerRoundInBlock
 	}
 
 	if headerHandler.GetNonce() != currentBlockHeader.GetNonce()+1 {
-		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
+		log.Info(fmt.Sprintf("nonce does not match: local block nonce is %d and node received block with nonce %d\n",
 			currentBlockHeader.GetNonce(), headerHandler.GetNonce()))
 
 		return process.ErrWrongNonceInBlock
@@ -144,18 +144,18 @@ func (bp *baseProcessor) checkBlockValidity(
 		return err
 	}
 
-	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
-		log.Info(fmt.Sprintf("random seed not match: local block random seed is %s and node received block with previous random seed %s\n",
-			core.ToB64(currentBlockHeader.GetRandSeed()), core.ToB64(headerHandler.GetPrevRandSeed())))
-
-		return process.ErrRandSeedMismatch
-	}
-
 	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
-		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
+		log.Info(fmt.Sprintf("hash does not match: local block hash is %s and node received block with previous hash %s\n",
 			core.ToB64(prevHeaderHash), core.ToB64(headerHandler.GetPrevHash())))
 
 		return process.ErrBlockHashDoesNotMatch
+	}
+
+	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
+		log.Info(fmt.Sprintf("random seed does not match: local block random seed is %s and node received block with previous random seed %s\n",
+			core.ToB64(currentBlockHeader.GetRandSeed()), core.ToB64(headerHandler.GetPrevRandSeed())))
+
+		return process.ErrRandSeedDoesNotMatch
 	}
 
 	if bodyHandler != nil {
@@ -202,7 +202,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 		}
 		// block with nonce 0 was already saved
 		if prevHdr.GetRootHash() != nil {
-			return process.ErrRootStateMissmatch
+			return process.ErrRootStateDoesNotMatch
 		}
 		return nil
 	}
@@ -210,10 +210,14 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() >= currHdr.GetRound() {
-		return process.ErrLowerRoundInOtherChainBlock
+		log.Debug(fmt.Sprintf("round does not match in shard %d: local block round is %d and node received block with round %d\n",
+			currHdr.GetShardID(), prevHdr.GetRound(), currHdr.GetRound()))
+		return process.ErrLowerRoundInBlock
 	}
 
 	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
+		log.Debug(fmt.Sprintf("nonce does not match in shard %d: local block nonce is %d and node received block with nonce %d\n",
+			currHdr.GetShardID(), prevHdr.GetNonce(), currHdr.GetNonce()))
 		return process.ErrWrongNonceInBlock
 	}
 
@@ -222,12 +226,16 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 		return err
 	}
 
-	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		return process.ErrRandSeedMismatch
+	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
+		log.Debug(fmt.Sprintf("block hash does not match in shard %d: local block hash is %s and node received block with previous hash %s\n",
+			currHdr.GetShardID(), core.ToB64(prevHeaderHash), core.ToB64(currHdr.GetPrevHash())))
+		return process.ErrBlockHashDoesNotMatch
 	}
 
-	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		return process.ErrHashDoesNotMatchInOtherChainBlock
+	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
+		log.Debug(fmt.Sprintf("random seed does not match in shard %d: local block random seed is %s and node received block with previous random seed %s\n",
+			currHdr.GetShardID(), core.ToB64(prevHdr.GetRandSeed()), core.ToB64(currHdr.GetPrevRandSeed())))
+		return process.ErrRandSeedDoesNotMatch
 	}
 
 	return nil
@@ -255,12 +263,12 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 	return nil
 }
 
-func (bp *baseProcessor) removeNotarizedHdrsBehindFinal(hdrsToAttestFinality uint32) {
+func (bp *baseProcessor) removeNotarizedHdrsBehindPreviousFinal(hdrsToPreservedBehindFinal uint32) {
 	bp.mutNotarizedHdrs.Lock()
 	for shardId := range bp.notarizedHdrs {
 		notarizedHdrsCount := uint32(len(bp.notarizedHdrs[shardId]))
-		if notarizedHdrsCount > hdrsToAttestFinality {
-			finalIndex := notarizedHdrsCount - 1 - hdrsToAttestFinality
+		if notarizedHdrsCount > hdrsToPreservedBehindFinal {
+			finalIndex := notarizedHdrsCount - 1 - hdrsToPreservedBehindFinal
 			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][finalIndex:]
 		}
 	}
@@ -271,7 +279,7 @@ func (bp *baseProcessor) removeLastNotarized() {
 	bp.mutNotarizedHdrs.Lock()
 	for shardId := range bp.notarizedHdrs {
 		notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
-		if notarizedHdrsCount > 0 {
+		if notarizedHdrsCount > 1 {
 			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][:notarizedHdrsCount-1]
 		}
 	}

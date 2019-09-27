@@ -573,7 +573,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -621,7 +621,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	haveTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), maxTxRemaining, maxMbRemaining, 10, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -647,7 +647,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), maxTxRemaining, maxMbRemaining, 10, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -710,7 +710,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, maxTxRemaining, maxMbRemaining, 10, haveTime)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
@@ -1202,10 +1202,9 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	nrTxs, mbs, err := tc.RestoreBlockDataFromStorage(nil)
+	nrTxs, err := tc.RestoreBlockDataFromStorage(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, nrTxs)
-	assert.Equal(t, 0, len(mbs))
 
 	body := block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
@@ -1214,9 +1213,8 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	tc.RequestBlockTransactions(body)
 	err = tc.SaveBlockDataToStorage(body)
 	assert.Nil(t, err)
-	nrTxs, mbs, err = tc.RestoreBlockDataFromStorage(body)
+	nrTxs, err = tc.RestoreBlockDataFromStorage(body)
 	assert.Equal(t, 1, nrTxs)
-	assert.Equal(t, 1, len(mbs))
 	assert.Nil(t, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
@@ -1226,9 +1224,8 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	err = tc.SaveBlockDataToStorage(body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 
-	nrTxs, mbs, err = tc.RestoreBlockDataFromStorage(body)
+	nrTxs, err = tc.RestoreBlockDataFromStorage(body)
 	assert.Equal(t, 1, nrTxs)
-	assert.Equal(t, 1, len(mbs))
 	assert.NotNil(t, err)
 }
 

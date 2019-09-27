@@ -32,8 +32,6 @@ type HeaderHandler interface {
 	SetTxCount(txCount uint32)
 
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
-	GetMiniBlockProcessed(hash []byte) bool
-	SetMiniBlockProcessed(hash []byte, processed bool)
 
 	IsInterfaceNil() bool
 	ItemsInBody() uint32
