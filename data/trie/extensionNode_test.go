@@ -403,15 +403,16 @@ func TestExtensionNode_tryGet(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
+	dogBytes := []byte("dog")
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
-	lnKey := []byte("dog")
+	lnKey := dogBytes
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
 	val, err := en.tryGet(key, db, marsh)
-	assert.Equal(t, []byte("dog"), val)
+	assert.Equal(t, dogBytes, val)
 	assert.Nil(t, err)
 }
 
@@ -663,10 +664,16 @@ func TestExtensionNode_delete(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
-	key := []byte{100, 2, 100, 111, 103}
+	dogBytes := []byte("dog")
+
+	enKey := []byte{100}
+	bnKey := []byte{2}
+	lnKey := dogBytes
+	key := append(enKey, bnKey...)
+	key = append(key, lnKey...)
 
 	val, _ := en.tryGet(key, db, marsh)
-	assert.Equal(t, []byte("dog"), val)
+	assert.Equal(t, dogBytes, val)
 
 	dirty, _, _, err := en.delete(key, db, marsh)
 	assert.True(t, dirty)

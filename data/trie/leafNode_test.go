@@ -314,7 +314,7 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, _ := getTestMarshAndHasher()
-	wrongKey := []byte{2, 100, 111, 103}
+	wrongKey := append([]byte{2}, []byte("dog")...)
 
 	node, key, err := ln.getNext(wrongKey, db, marsh)
 	assert.Nil(t, node)
