@@ -91,8 +91,6 @@ func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
 	arguments.DataPool = initDataPool([]byte("tx_hash1"))
 	arguments.Accounts = initAccountsMock()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
-	arguments.NodesCoordinator = mock.NewNodesCoordinatorMock()
-	arguments.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{}
 	arguments.StartHeaders = createGenesisBlocks(arguments.ShardCoordinator)
 
 	return arguments
@@ -1660,7 +1658,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
-		return 0
+			return 0
 		},
 	}
 	arguments.BlocksTracker = &mock.BlocksTrackerMock{
@@ -3966,7 +3964,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 
 	arguments := CreateMockArgumentsMultiShard()
 	sp, _ := blproc.NewShardProcessor(arguments)
-	hdrs,_,_ := sp.GetHighestHdrForOwnShardFromMetachain(nil)
+	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(nil)
 
 	assert.NotNil(t, hdrs)
 	assert.Equal(t, uint64(0), hdrs[0].GetNonce())

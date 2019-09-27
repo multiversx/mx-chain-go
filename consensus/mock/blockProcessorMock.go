@@ -67,7 +67,7 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-func (blProcMock BlockProcessorMock) SetConsensusData(consensusRewardAddresses []string, round uint64) {
+func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

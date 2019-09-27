@@ -53,7 +53,13 @@ func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
-
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	specialAddressHandler := mock.NewSpecialAddressHandlerMock(
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		nodesCoordinator,
+	)
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: &ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
@@ -61,9 +67,9 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			Hasher:                &mock.HasherMock{},
 			Marshalizer:           &mock.MarshalizerMock{},
 			Store:                 &mock.ChainStorerMock{},
-			ShardCoordinator:      mock.NewMultiShardsCoordinatorMock(3),
-			NodesCoordinator:      mock.NewNodesCoordinatorMock(),
-			SpecialAddressHandler: &mock.SpecialAddressHandlerMock{},
+			ShardCoordinator:      shardCoordinator,
+			NodesCoordinator:      nodesCoordinator,
+			SpecialAddressHandler: specialAddressHandler,
 			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
 			StartHeaders:          genesisBlocks,
 			RequestHandler:        &mock.RequestHandlerMock{},

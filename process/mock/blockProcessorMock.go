@@ -67,7 +67,7 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
-func (blProcMock BlockProcessorMock) SetConsensusData([]string, uint64) {
+func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	panic("implement me")
 }
 

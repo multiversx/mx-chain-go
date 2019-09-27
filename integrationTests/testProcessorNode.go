@@ -190,10 +190,11 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
-	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{
-		ShardCoordinator: tpn.ShardCoordinator,
-		AdrConv:          TestAddressConverter,
-	}
+	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+		tpn.NodesCoordinator,
+	)
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()

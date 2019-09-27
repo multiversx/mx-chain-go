@@ -225,7 +225,7 @@ func (mp *metaProcessor) ProcessBlock(
 }
 
 // SetConsensusData - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusData(consensusRewardAddresses []string, round uint64) {
+func (mp *metaProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	// nothing to do
 }
 
