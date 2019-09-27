@@ -36,6 +36,9 @@ type shardProcessor struct {
 	currHighestMetaHdrNonce    uint64
 	allNeededMetaHdrsFound     bool
 
+	processedMiniBlocks    map[string]map[string]struct{}
+	mutProcessedMiniBlocks sync.RWMutex
+
 	core          serviceContainer.Core
 	txCoordinator process.TransactionCoordinator
 	txCounter     *transactionCounter
@@ -115,6 +118,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	sp.requestedMetaHdrsHashes = make(map[string]bool)
 	sp.usedMetaHdrsHashes = make(map[uint64][][]byte)
+	sp.processedMiniBlocks = make(map[string]map[string]struct{})
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
@@ -533,7 +537,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 
 		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for mbHash := range processedMiniBlocks {
-			metaBlock.SetMiniBlockProcessed([]byte(mbHash), true)
+			sp.addProcessedMiniBlock(metaBlockHash, []byte(mbHash))
 		}
 
 		metaBlockPool.Put(metaBlockHash, &metaBlock)
@@ -577,7 +581,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 				continue
 			}
 
-			hdr.SetMiniBlockProcessed([]byte(key), false)
+			sp.removeProcessedMiniBlock(metaBlockKey, []byte(key))
 		}
 	}
 
@@ -719,7 +723,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	errNotCritical = sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
+	errNotCritical = sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -882,7 +886,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 				continue
 			}
 
-			metaBlock.SetMiniBlockProcessed(miniBlockHashes[key], true)
+			sp.addProcessedMiniBlock(metaBlockKey, miniBlockHashes[key])
 			delete(miniBlockHashes, key)
 		}
 
@@ -890,7 +894,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 
 		processedAll := true
 		for key := range crossMiniBlockHashes {
-			if !metaBlock.GetMiniBlockProcessed([]byte(key)) {
+			if !sp.isMiniBlockProcessed(metaBlockKey, []byte(key)) {
 				processedAll = false
 				break
 			}
@@ -904,7 +908,7 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromHeader(header *block.Header)
 	return processedMetaHdrs, nil
 }
 
-func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
+func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
 	lastNotarizedMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		return err
@@ -947,6 +951,7 @@ func (sp *shardProcessor) removeProcessedMetablocksFromPool(processedMetaHdrs []
 
 		sp.dataPool.MetaBlocks().Remove(headerHash)
 		sp.dataPool.HeadersNonces().Remove(hdr.GetNonce(), sharding.MetachainShardId)
+		sp.removeAllProcessedMiniBlocks(headerHash)
 
 		log.Debug(fmt.Sprintf("metaBlock with round %d nonce %d and hash %s has been processed completely and removed from pool\n",
 			hdr.GetRound(),
@@ -1353,8 +1358,10 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		maxMbSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInHeader) - 1
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
+			processedMiniBlocksHashes := sp.getProcessedMiniBlocksHashes(orderedMetaBlocks[i].hash)
 			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				hdr,
+				processedMiniBlocksHashes,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
 				round,
@@ -1587,4 +1594,59 @@ func (sp *shardProcessor) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (sp *shardProcessor) addProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
+	sp.mutProcessedMiniBlocks.Lock()
+	miniBlocksProcessed, ok := sp.processedMiniBlocks[string(metaBlockHash)]
+	if !ok {
+		miniBlocksProcessed := make(map[string]struct{})
+		miniBlocksProcessed[string(miniBlockHash)] = struct{}{}
+		sp.processedMiniBlocks[string(metaBlockHash)] = miniBlocksProcessed
+		sp.mutProcessedMiniBlocks.Unlock()
+		return
+	}
+
+	miniBlocksProcessed[string(miniBlockHash)] = struct{}{}
+	sp.mutProcessedMiniBlocks.Unlock()
+}
+
+func (sp *shardProcessor) removeProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
+	sp.mutProcessedMiniBlocks.Lock()
+	miniBlocksProcessed, ok := sp.processedMiniBlocks[string(metaBlockHash)]
+	if !ok {
+		sp.mutProcessedMiniBlocks.Unlock()
+		return
+	}
+
+	delete(miniBlocksProcessed, string(miniBlockHash))
+	sp.mutProcessedMiniBlocks.Unlock()
+}
+
+func (sp *shardProcessor) removeAllProcessedMiniBlocks(metaBlockHash []byte) {
+	sp.mutProcessedMiniBlocks.Lock()
+	delete(sp.processedMiniBlocks, string(metaBlockHash))
+	sp.mutProcessedMiniBlocks.Unlock()
+}
+
+func (sp *shardProcessor) getProcessedMiniBlocksHashes(metaBlockHash []byte) map[string]struct{} {
+	sp.mutProcessedMiniBlocks.RLock()
+	processedMiniBlocksHashes := sp.processedMiniBlocks[string(metaBlockHash)]
+	sp.mutProcessedMiniBlocks.RUnlock()
+
+	return processedMiniBlocksHashes
+}
+
+func (sp *shardProcessor) isMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
+	sp.mutProcessedMiniBlocks.RLock()
+	miniBlocksProcessed, ok := sp.processedMiniBlocks[string(metaBlockHash)]
+	if !ok {
+		sp.mutProcessedMiniBlocks.RUnlock()
+		return false
+	}
+
+	_, isProcessed := miniBlocksProcessed[string(miniBlockHash)]
+	sp.mutProcessedMiniBlocks.RUnlock()
+
+	return isProcessed
 }
