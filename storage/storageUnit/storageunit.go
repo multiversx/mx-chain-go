@@ -162,49 +162,6 @@ func (s *Unit) Has(key []byte) error {
 	return storage.ErrKeyNotFound
 }
 
-// HasOrAdd checks if the key is present in the storage and if not adds it.
-// it updates the cache either way
-// it returns if the value was originally found
-func (s *Unit) HasOrAdd(key []byte, value []byte) error {
-	// TODO : refactor this method as not all edge cases seem to be treated
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	has := s.cacher.Has(key)
-	if has {
-		return nil
-	}
-
-	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
-		err := s.persister.Has(key)
-		if err != nil {
-			//add it to the cache
-			s.cacher.Put(key, value)
-
-			// add it also to the persistence unit
-			err = s.persister.Put(key, value)
-			if err != nil {
-				//revert adding to the cache
-				s.cacher.Remove(key)
-			}
-		}
-
-		return err
-	}
-
-	s.cacher.Put(key, value)
-
-	err := s.persister.Put(key, value)
-	if err != nil {
-		s.cacher.Remove(key)
-		return err
-	}
-
-	s.bloomFilter.Add(key)
-
-	return nil
-}
-
 // Remove removes the data associated to the given key from both cache and persistence medium
 func (s *Unit) Remove(key []byte) error {
 	s.lock.Lock()
