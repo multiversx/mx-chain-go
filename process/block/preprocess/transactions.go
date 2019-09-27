@@ -461,7 +461,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	miniBlock.ReceiverShardID = dstShardId
 	miniBlock.TxHashes = make([][]byte, 0)
 	miniBlock.Type = block.TxBlock
-	log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxs), miniBlock.ReceiverShardID))
 
 	addedTxs := 0
 	addedGasLimitPerCrossShardMiniblock := uint64(0)
@@ -534,6 +533,10 @@ func (txs *transactions) computeOrderedTxs(
 	alreadyOrdered := len(orderedTxs) > 0
 	if !alreadyOrdered {
 		orderedTxs, orderedTxHashes, err = SortTxByNonce(txStore)
+		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard %d from shard %d\n",
+			len(orderedTxs),
+			dstShardId,
+			sndShardId))
 
 		txs.mutOrderedTxs.Lock()
 		txs.orderedTxs[strCache] = orderedTxs
