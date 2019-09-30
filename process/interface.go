@@ -428,3 +428,4 @@ type FeeHandler interface {
 type EconomicsAddressesHandler interface {
 	CommunityAddress() string
 	BurnAddress() string
+}
