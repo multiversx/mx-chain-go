@@ -479,15 +479,18 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		}
 	}
 
-	interMBs := tc.processAddedInterimTransactions()
-	if len(interMBs) > 0 {
-		miniBlocks = append(miniBlocks, interMBs...)
+	mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
+	if mbSpaceRemained > 0 {
+		interMBs := tc.processAddedInterimTransactions(uint32(mbSpaceRemained))
+		if len(interMBs) > 0 {
+			miniBlocks = append(miniBlocks, interMBs...)
+		}
 	}
 
 	return miniBlocks
 }
 
-func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
+func (tc *transactionCoordinator) processAddedInterimTransactions(maxMbSpaceRemained uint32) block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
@@ -498,7 +501,12 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 			continue
 		}
 
-		currMbs := interimProc.CreateAllInterMiniBlocks()
+		mbSpaceRemained := int(maxMbSpaceRemained) - len(miniBlocks)
+		if mbSpaceRemained <= 0 {
+			break
+		}
+
+		currMbs := interimProc.CreateAllInterMiniBlocks(uint32(mbSpaceRemained))
 		for _, value := range currMbs {
 			miniBlocks = append(miniBlocks, value)
 		}

@@ -478,7 +478,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}
 
-		if addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock {
+		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
+		if isGasLimitReached {
 			log.Info(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
@@ -528,16 +529,20 @@ func (txs *transactions) computeOrderedTxs(
 	var err error
 
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-	txStore := txs.txPool.ShardDataStore(strCache)
+	txShardPool := txs.txPool.ShardDataStore(strCache)
 
 	txs.mutOrderedTxs.RLock()
 	orderedTxs := txs.orderedTxs[strCache]
 	orderedTxHashes := txs.orderedTxHashes[strCache]
 	txs.mutOrderedTxs.RUnlock()
 
+	if txShardPool == nil || txShardPool.Len() == 0 {
+		return orderedTxs, orderedTxHashes, err
+	}
+
 	alreadyOrdered := len(orderedTxs) > 0
 	if !alreadyOrdered {
-		orderedTxs, orderedTxHashes, err = SortTxByNonce(txStore)
+		orderedTxs, orderedTxHashes, err = SortTxByNonce(txShardPool)
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard %d from shard %d\n",
 			len(orderedTxs),
 			dstShardId,
@@ -587,9 +592,9 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 }
 
 // SortTxByNonce sort transactions according to nonces
-func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
-	if txShardStore == nil {
-		return nil, nil, process.ErrNilCacher
+func SortTxByNonce(txShardPool storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
+	if txShardPool == nil {
+		return nil, nil, process.ErrNilTxDataPool
 	}
 
 	transactions := make([]*transaction.Transaction, 0)
@@ -600,8 +605,8 @@ func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 
 	nonces := make([]uint64, 0)
 
-	for _, key := range txShardStore.Keys() {
-		val, _ := txShardStore.Peek(key)
+	for _, key := range txShardPool.Keys() {
+		val, _ := txShardPool.Peek(key)
 		if val == nil {
 			continue
 		}

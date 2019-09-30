@@ -281,7 +281,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	mbs := irp.CreateAllInterMiniBlocks()
+	mbs := irp.CreateAllInterMiniBlocks(core.MaxMiniBlocksInBlock)
 	assert.Equal(t, 0, len(mbs))
 }
 
@@ -312,7 +312,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	mbs := irp.CreateAllInterMiniBlocks()
+	mbs := irp.CreateAllInterMiniBlocks(core.MaxMiniBlocksInBlock)
 	assert.Equal(t, 1, len(mbs))
 }
 
@@ -353,7 +353,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	mbs := irp.CreateAllInterMiniBlocks()
+	mbs := irp.CreateAllInterMiniBlocks(core.MaxMiniBlocksInBlock)
 	assert.Equal(t, 5, len(mbs[shardCoordinator.SelfId()+1].TxHashes))
 }
 

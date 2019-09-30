@@ -19,7 +19,7 @@
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
-        Size = 100
+        Size = 200
         Type = "LRU"
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"

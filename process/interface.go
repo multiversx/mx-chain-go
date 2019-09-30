@@ -83,7 +83,7 @@ type SmartContractProcessor interface {
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
-	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
+	CreateAllInterMiniBlocks(maxMbSpaceRemained uint32) map[uint32]*block.MiniBlock
 	VerifyInterMiniBlocks(body block.Body) error
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 	SaveCurrentIntermediateTxToStorage() error

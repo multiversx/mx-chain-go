@@ -1322,6 +1322,11 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
+		if len(miniBlocks) >= core.MaxMiniBlocksInBlock {
+			log.Info(fmt.Sprintf("%d max number of mini blocks allowed to be added in one shard block has been reached\n", len(miniBlocks)))
+			break
+		}
+
 		itemsAddedInHeader := uint32(len(usedMetaHdrsHashes) + len(miniBlocks))
 		if itemsAddedInHeader >= maxItemsInBlock {
 			log.Info(fmt.Sprintf("%d max records allowed to be added in shard header has been reached\n", maxItemsInBlock))
@@ -1355,7 +1360,9 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		maxTxSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInBody)
-		maxMbSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInHeader) - 1
+		mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInHeader) - 1
+		mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock - len(miniBlocks))
+		maxMbSpaceRemained := core.Min(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			processedMiniBlocksHashes := sp.getProcessedMiniBlocksHashes(orderedMetaBlocks[i].hash)
@@ -1430,7 +1437,9 @@ func (sp *shardProcessor) createMiniBlocks(
 	}
 
 	maxTxSpaceRemained := int32(maxItemsInBlock) - int32(txs)
-	maxMbSpaceRemained := int32(maxItemsInBlock) - int32(len(destMeMiniBlocks)) - int32(len(usedMetaHdrsHashes))
+	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(len(destMeMiniBlocks)) - int32(len(usedMetaHdrsHashes))
+	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock - len(miniBlocks))
+	maxMbSpaceRemained := core.Min(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 	if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 		mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
@@ -1510,7 +1519,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 	sp.blockSizeThrottler.Add(
 		round,
-		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
+		uint32(core.Max(int32(header.ItemsInBody()), int32(header.ItemsInHeader()))))
 
 	return header, nil
 }

@@ -8,13 +8,13 @@ import (
 )
 
 func TestMaxShouldReturnA(t *testing.T) {
-	a := uint32(11)
-	b := uint32(10)
+	a := int32(11)
+	b := int32(10)
 	assert.Equal(t, a, core.Max(a, b))
 }
 
 func TestMaxShouldReturnB(t *testing.T) {
-	a := uint32(10)
-	b := uint32(11)
+	a := int32(10)
+	b := int32(11)
 	assert.Equal(t, b, core.Max(a, b))
 }
