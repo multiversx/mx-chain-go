@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -29,7 +28,7 @@ type preProcessorsContainerFactory struct {
 	accounts           state.AccountsAdapter
 	requestHandler     process.RequestHandler
 	rewardsProducer    process.InternalTransactionProducer
-	economicsFee       unsigned.FeeHandler
+	economicsFee       process.FeeHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -47,7 +46,7 @@ func NewPreProcessorsContainerFactory(
 	scResultProcessor process.SmartContractResultProcessor,
 	rewardsTxProcessor process.RewardTransactionProcessor,
 	rewardsProducer process.InternalTransactionProducer,
-	economicsFee unsigned.FeeHandler,
+	economicsFee process.FeeHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {

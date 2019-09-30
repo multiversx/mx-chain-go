@@ -1,4 +1,4 @@
-package unsigned
+package economics
 
 import "github.com/ElrondNetwork/elrond-go/config"
 

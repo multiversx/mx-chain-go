@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -35,7 +34,7 @@ type rewardsHandler struct {
 	mut               sync.Mutex
 	accumulatedFees   *big.Int
 	rewardTxsForBlock map[string]*rewardTx.RewardTx
-	economicsRewards  unsigned.RewardsHandler
+	economicsRewards  process.RewardsHandler
 	rewardValue       *big.Int
 }
 
@@ -48,7 +47,7 @@ func NewRewardTxHandler(
 	adrConv state.AddressConverter,
 	store dataRetriever.StorageService,
 	rewardTxPool dataRetriever.ShardedDataCacherNotifier,
-	economicsRewards unsigned.RewardsHandler,
+	economicsRewards process.RewardsHandler,
 ) (*rewardsHandler, error) {
 	if address == nil || address.IsInterfaceNil() {
 		return nil, process.ErrNilSpecialAddressHandler

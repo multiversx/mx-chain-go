@@ -431,6 +431,17 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		&mock.FeeHandlerMock{
+			MinGasPriceCalled: func() uint64 {
+				return 0
+			},
+			MinGasLimitForTxCalled: func() uint64 {
+				return 5
+			},
+			MinTxFeeCalled: func() uint64 {
+				return 0
+			},
+		},
 	)
 
 	return txProcessor

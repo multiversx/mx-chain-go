@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -28,7 +27,7 @@ type txProcessor struct {
 	txFeeHandler     process.TransactionFeeHandler
 	shardCoordinator sharding.Coordinator
 	txTypeHandler    process.TxTypeHandler
-	economicsFee     unsigned.FeeHandler
+	economicsFee     process.FeeHandler
 	mutTxFee         sync.RWMutex
 }
 
@@ -42,7 +41,7 @@ func NewTxProcessor(
 	scProcessor process.SmartContractProcessor,
 	txFeeHandler process.TransactionFeeHandler,
 	txTypeHandler process.TxTypeHandler,
-	economicsFee unsigned.FeeHandler,
+	economicsFee process.FeeHandler,
 ) (*txProcessor, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
