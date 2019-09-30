@@ -431,7 +431,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.clearJournal()
 
 	//Step 3. commit main trie
-	adb.mainTrie.AddHashesToOldHashes(oldHashes)
+	adb.mainTrie.AppendToOldHashes(oldHashes)
 	err := adb.mainTrie.Commit()
 	if err != nil {
 		return nil, err
@@ -506,9 +506,9 @@ func (adb *AccountsDB) PruneTrie(rootHash []byte) error {
 	return adb.mainTrie.Prune(rootHash)
 }
 
-// Rollback clears the trie's evictionWaitingList
-func (adb *AccountsDB) Rollback(rootHash []byte) {
-	adb.mainTrie.Rollback(rootHash)
+// CancelPrune clears the trie's evictionWaitingList
+func (adb *AccountsDB) CancelPrune(rootHash []byte) {
+	adb.mainTrie.CancelPrune(rootHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

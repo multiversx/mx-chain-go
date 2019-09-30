@@ -463,7 +463,7 @@ func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
 	assert.Equal(t, originalRoot, clonedTrie)
 }
 
-func TestPatriciaMerkleTrie_PruneAfterRollbackShouldFail(t *testing.T) {
+func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -473,7 +473,7 @@ func TestPatriciaMerkleTrie_PruneAfterRollbackShouldFail(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
-	tr.Rollback(rootHash)
+	tr.CancelPrune(rootHash)
 
 	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash)))
 	err := tr.Prune(rootHash)

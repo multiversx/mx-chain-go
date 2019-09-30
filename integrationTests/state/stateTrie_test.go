@@ -31,10 +31,14 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	//and then reloading the data trie based on the root hash generated before
 	t.Parallel()
 
+	key1 := []byte("ABC")
+	val1 := []byte("123")
+	key2 := []byte("DEF")
+	val2 := []byte("456")
 	_, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
-	account.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	account.DataTrieTracker().SaveKeyValue([]byte{68, 69, 70}, []byte{35, 36, 37})
+	account.DataTrieTracker().SaveKeyValue(key1, val1)
+	account.DataTrieTracker().SaveKeyValue(key2, val2)
 
 	err := adb.SaveDataTrie(account)
 	assert.Nil(t, err)
@@ -46,13 +50,13 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	//verify data
-	dataRecovered, err := recoveredAccount.DataTrieTracker().RetrieveValue([]byte{65, 66, 67})
+	dataRecovered, err := recoveredAccount.DataTrieTracker().RetrieveValue(key1)
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{32, 33, 34}, dataRecovered)
+	assert.Equal(t, val1, dataRecovered)
 
-	dataRecovered, err = recoveredAccount.DataTrieTracker().RetrieveValue([]byte{68, 69, 70})
+	dataRecovered, err = recoveredAccount.DataTrieTracker().RetrieveValue(key2)
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{35, 36, 37}, dataRecovered)
+	assert.Equal(t, val2, dataRecovered)
 }
 
 func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
@@ -222,8 +226,8 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 
 	err = state2.(*state.Account).SetBalanceWithJournal(balance2)
 	assert.Nil(t, err)
-	key := []byte{65, 66, 67}
-	val := []byte{32, 33, 34}
+	key := []byte("ABC")
+	val := []byte("123")
 	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
 
@@ -304,8 +308,8 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	err = state2.(*state.Account).SetBalanceWithJournal(balance2)
 	assert.Nil(t, err)
-	key := []byte{65, 66, 67}
-	val := []byte{32, 33, 34}
+	key := []byte("ABC")
+	val := []byte("123")
 	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
 
@@ -560,6 +564,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
 	//revert should work
 
+	code := []byte("ABC")
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -573,7 +578,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	err = adb.PutCode(state1, []byte{65, 66, 67})
+	err = adb.PutCode(state1, code)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -584,7 +589,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 
 	state2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
-	err = adb.PutCode(state2, []byte{65, 66, 67})
+	err = adb.PutCode(state2, code)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -626,6 +631,8 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
+	key := []byte("ABC")
+	val := []byte("123")
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -639,7 +646,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	state1.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	state1.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -655,7 +662,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 
 	state2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
-	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -701,6 +708,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
+	key := []byte("ABC")
+	val := []byte("123")
+	newVal := []byte("124")
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -714,7 +724,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetAccountWithJournal(adr1)
 	assert.Nil(t, err)
-	state1.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	state1.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -730,7 +740,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	state2, err := adb.GetAccountWithJournal(adr2)
 	assert.Nil(t, err)
-	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	state2.DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -748,7 +758,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
 	assert.NotEqual(t, hrCreated1, hrCreated2)
 
-	//Test 2.2 test whether the datatrie roots match
+	//Test 2.2 test that the datatrie roots are different
 	assert.NotEqual(t, hrRoot1, hrRoot2)
 
 	//Step 3. Commit
@@ -758,7 +768,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	//Step 4. 2-nd account changes its data
 	snapshotMod := adb.JournalLen()
-	state2.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 35})
+	state2.DataTrieTracker().SaveKeyValue(key, newVal)
 	err = adb.SaveDataTrie(state2)
 	assert.Nil(t, err)
 	rootHash, err = adb.RootHash()

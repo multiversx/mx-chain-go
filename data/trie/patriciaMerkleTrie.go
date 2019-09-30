@@ -369,8 +369,8 @@ func emptyTrie(root []byte) bool {
 	return false
 }
 
-// Rollback invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (tr *patriciaMerkleTrie) Rollback(rootHash []byte) {
+// CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
+func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte) {
 	_, _ = tr.dbEvictionWaitingList.Evict(rootHash)
 }
 
@@ -400,7 +400,7 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	return oldHashes
 }
 
-// AddHashesToOldHashes appends the given hashes to the trie's oldHashes variable
-func (tr *patriciaMerkleTrie) AddHashesToOldHashes(hashes [][]byte) {
+// AppendToOldHashes appends the given hashes to the trie's oldHashes variable
+func (tr *patriciaMerkleTrie) AppendToOldHashes(hashes [][]byte) {
 	tr.oldHashes = append(tr.oldHashes, hashes...)
 }

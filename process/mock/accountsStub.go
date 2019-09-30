@@ -22,7 +22,7 @@ type AccountsStub struct {
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
 	PruneTrieCalled             func(rootHash []byte) error
-	RollbackCalled              func(rootHash []byte)
+	CancelPruneCalled           func(rootHash []byte)
 }
 
 var errNotImplemented = errors.New("not implemented")
@@ -149,9 +149,9 @@ func (aam *AccountsStub) PruneTrie(rootHash []byte) error {
 	return errNotImplemented
 }
 
-func (aam *AccountsStub) Rollback(rootHash []byte) {
-	if aam.RollbackCalled != nil {
-		aam.RollbackCalled(rootHash)
+func (aam *AccountsStub) CancelPrune(rootHash []byte) {
+	if aam.CancelPruneCalled != nil {
+		aam.CancelPruneCalled(rootHash)
 	}
 }
 

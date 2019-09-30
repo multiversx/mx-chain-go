@@ -637,6 +637,6 @@ func TestTrieAddHashesToOldHashes(t *testing.T) {
 	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
 
 	expectedHLength := len(tr.oldHashes) + len(hashes)
-	tr.AddHashesToOldHashes(hashes)
+	tr.AppendToOldHashes(hashes)
 	assert.Equal(t, expectedHLength, len(tr.oldHashes))
 }

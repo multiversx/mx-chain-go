@@ -94,7 +94,7 @@ type AccountsAdapter interface {
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
 	PruneTrie(rootHash []byte) error
-	Rollback(rootHash []byte)
+	CancelPrune(rootHash []byte)
 	IsInterfaceNil() bool
 }
 

@@ -16,7 +16,7 @@ func TestTrackableDataAccountRetrieveValueNilDataTrieShouldErr(t *testing.T) {
 	as := state.NewTrackableDataTrie([]byte("identifier"), nil)
 	assert.NotNil(t, as)
 
-	_, err := as.RetrieveValue([]byte{65, 66, 67})
+	_, err := as.RetrieveValue([]byte("ABC"))
 	assert.NotNil(t, err)
 }
 
@@ -30,7 +30,7 @@ func TestTrackableDataAccountRetrieveValueFoundInDirtyShouldWork(t *testing.T) {
 
 	tdaw.SetDataTrie(&mock.TrieStub{})
 	key := []byte("ABC")
-	val := []byte{32, 33, 34}
+	val := []byte("123")
 
 	trieVal := append(val, key...)
 	trieVal = append(trieVal, identifier...)
@@ -51,9 +51,9 @@ func TestTrackableDataAccountRetrieveValueFoundInOriginalShouldWork(t *testing.T
 	assert.NotNil(t, mdaw)
 
 	originalKey := []byte("ABD")
-	dirtyVal := []byte{32, 33, 34}
+	dirtyVal := []byte("123")
 
-	expectedVal := []byte{35, 36, 37}
+	expectedVal := []byte("456")
 	originalVal := append(expectedVal, originalKey...)
 	originalVal = append(originalVal, identifier...)
 
@@ -160,7 +160,7 @@ func TestTrackableDataAccountClearDataCachesValidDataShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(mdaw.DirtyData()))
 
 	//add something
-	mdaw.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	mdaw.SaveKeyValue([]byte("ABC"), []byte("123"))
 	assert.Equal(t, 1, len(mdaw.DirtyData()))
 
 	//clear
