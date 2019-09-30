@@ -491,7 +491,8 @@ func createNetNode(
 				return make([]data.HeaderHandler, 0)
 			},
 		},
-		TxCoordinator: tc,
+		TxCoordinator:   tc,
+		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
 	blockProcessor, _ := block.NewShardProcessor(arguments)
