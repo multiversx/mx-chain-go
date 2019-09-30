@@ -54,6 +54,11 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
+	err = sfd.shouldAddBlockInForkDetector(header, state, process.ShardBlockFinality)
+	if err != nil {
+		return err
+	}
+
 	if state == process.BHProcessed {
 		sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
 		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
@@ -77,8 +82,8 @@ func (sfd *shardForkDetector) AddHeader(
 func (sfd *shardForkDetector) addFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
 	finalCheckpointWasSet := false
 	for i := 0; i < len(finalHeaders); i++ {
-		isFinalHeaderNonceHigherThanCurrent := finalHeaders[i].GetNonce() > sfd.GetHighestFinalBlockNonce()
-		if isFinalHeaderNonceHigherThanCurrent {
+		isFinalHeaderNonceHigherThanGenesis := finalHeaders[i].GetNonce() > process.GenesisBlockNonce
+		if isFinalHeaderNonceHigherThanGenesis {
 			if !finalCheckpointWasSet {
 				sfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeaders[i].GetNonce(), round: finalHeaders[i].GetRound()})
 				finalCheckpointWasSet = true

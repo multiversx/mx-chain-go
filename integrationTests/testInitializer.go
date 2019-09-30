@@ -501,7 +501,7 @@ func IncrementAndPrintRound(round uint64) uint64 {
 	return round
 }
 
-// ProposeBlock proposes a block with SC txs for every shard
+// ProposeBlock proposes a block for every shard
 func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
 	fmt.Println("All shards propose blocks...")
 
