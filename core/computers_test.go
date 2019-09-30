@@ -18,3 +18,15 @@ func TestMaxShouldReturnB(t *testing.T) {
 	b := int32(11)
 	assert.Equal(t, b, core.Max(a, b))
 }
+
+func TestMinShouldReturnB(t *testing.T) {
+	a := int32(11)
+	b := int32(10)
+	assert.Equal(t, b, core.Min(a, b))
+}
+
+func TestMinShouldReturnA(t *testing.T) {
+	a := int32(10)
+	b := int32(11)
+	assert.Equal(t, a, core.Min(a, b))
+}

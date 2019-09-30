@@ -1360,9 +1360,10 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		maxTxSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInBody)
-		mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInHeader) - 1
-		mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock - len(miniBlocks))
-		maxMbSpaceRemained := core.Min(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
+		maxMbSpaceRemained := sp.getMaxMiniBlocksSpaceRemained(
+			maxItemsInBlock,
+			itemsAddedInHeader+1,
+			uint32(len(miniBlocks)))
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			processedMiniBlocksHashes := sp.getProcessedMiniBlocksHashes(orderedMetaBlocks[i].hash)
@@ -1437,9 +1438,10 @@ func (sp *shardProcessor) createMiniBlocks(
 	}
 
 	maxTxSpaceRemained := int32(maxItemsInBlock) - int32(txs)
-	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(len(destMeMiniBlocks)) - int32(len(usedMetaHdrsHashes))
-	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock - len(miniBlocks))
-	maxMbSpaceRemained := core.Min(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
+	maxMbSpaceRemained := sp.getMaxMiniBlocksSpaceRemained(
+		maxItemsInBlock,
+		uint32(len(destMeMiniBlocks)+len(usedMetaHdrsHashes)),
+		uint32(len(miniBlocks)))
 
 	if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 		mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
@@ -1658,4 +1660,16 @@ func (sp *shardProcessor) isMiniBlockProcessed(metaBlockHash []byte, miniBlockHa
 	sp.mutProcessedMiniBlocks.RUnlock()
 
 	return isProcessed
+}
+
+func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
+	maxItemsInBlock uint32,
+	itemsAddedInBlock uint32,
+	miniBlocksAddedInBlock uint32,
+) int32 {
+	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
+	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
+	maxMbSpaceRemained := core.Min(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
+
+	return maxMbSpaceRemained
 }
