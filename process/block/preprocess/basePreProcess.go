@@ -71,21 +71,6 @@ func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool st
 	return nil
 }
 
-func (bpp *basePreProcess) restoreMiniBlock(
-	miniBlock *block.MiniBlock,
-	miniBlockHash []byte,
-	miniBlockPool storage.Cacher,
-) []byte {
-
-	miniBlockPool.Put(miniBlockHash, miniBlock)
-	//TODO: Analyze what is the scope of this check and return besides tests. Refactor this method
-	if miniBlock.SenderShardID != bpp.shardCoordinator.SelfId() {
-		return miniBlockHash
-	}
-
-	return nil
-}
-
 func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *txsForBlock) ([][]byte, error) {
 	mrsTxs := make([][]byte, 0)
 	for _, txHash := range txHashes {
