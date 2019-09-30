@@ -479,6 +479,9 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 
 		if addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock {
+			log.Info(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
+				len(miniBlock.TxHashes),
+				len(orderedTxs)))
 			continue
 		}
 
@@ -507,7 +510,9 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
-			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxs)))
+			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n",
+				len(miniBlock.TxHashes),
+				len(orderedTxs)))
 			return miniBlock, nil
 		}
 	}
@@ -525,11 +530,9 @@ func (txs *transactions) computeOrderedTxs(
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txStore := txs.txPool.ShardDataStore(strCache)
 
-	txs.mutOrderedTxs.RLock()
+	txs.mutOrderedTxs.Lock()
 	orderedTxs := txs.orderedTxs[strCache]
 	orderedTxHashes := txs.orderedTxHashes[strCache]
-	txs.mutOrderedTxs.RUnlock()
-
 	alreadyOrdered := len(orderedTxs) > 0
 	if !alreadyOrdered {
 		orderedTxs, orderedTxHashes, err = SortTxByNonce(txStore)
@@ -538,11 +541,10 @@ func (txs *transactions) computeOrderedTxs(
 			dstShardId,
 			sndShardId))
 
-		txs.mutOrderedTxs.Lock()
 		txs.orderedTxs[strCache] = orderedTxs
 		txs.orderedTxHashes[strCache] = orderedTxHashes
-		txs.mutOrderedTxs.Unlock()
 	}
+	txs.mutOrderedTxs.Unlock()
 
 	return orderedTxs, orderedTxHashes, err
 }
