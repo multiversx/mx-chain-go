@@ -1,7 +1,6 @@
 package commonSubround
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -211,18 +210,8 @@ func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		return
 	}
 
-	validatorsPubKeys := sr.NodesCoordinator().GetAllValidatorsPublicKeys()
 	shardId := sr.ShardCoordinator().SelfId()
-	signersIndexes := make([]uint64, 0)
-
-	for _, pubKey := range pubKeys {
-		for index, value := range validatorsPubKeys[shardId] {
-			if bytes.Equal([]byte(pubKey), value) {
-				signersIndexes = append(signersIndexes, uint64(index))
-			}
-		}
-	}
-
+	signersIndexes := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys)
 	round := sr.Rounder().Index()
 	go sr.indexer.SaveRoundInfo(round, shardId, signersIndexes, false)
 }
