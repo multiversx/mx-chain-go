@@ -224,7 +224,7 @@ func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	}
 
 	round := sr.Rounder().Index()
-	go sr.indexer.SaveRoundInfo(round, shardId, signersIndexes)
+	go sr.indexer.SaveRoundInfo(round, shardId, signersIndexes, false)
 }
 
 func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

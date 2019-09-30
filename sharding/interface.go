@@ -39,6 +39,7 @@ type NodesCoordinator interface {
 
 // PublicKeysSelector allows retrieval of eligible validators public keys
 type PublicKeysSelector interface {
+	GetValidatorsIndexes(publicKeys []string) []uint64
 	GetAllValidatorsPublicKeys() map[uint32][][]byte
 	GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error)
 	GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32) ([]string, error)

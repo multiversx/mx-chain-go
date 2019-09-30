@@ -31,25 +31,30 @@ type Transaction struct {
 //  to be saved for a block. It has all the default fields
 //  plus some extra information for ease of search and filter
 type Block struct {
-	Nonce          uint64        `json:"nonce"`
-	Round          uint64        `json:"round"`
-	ShardID        uint32        `json:"shardId"`
-	Hash           string        `json:"hash"`
-	Proposer       string        `json:"proposer"`
-	Validators     []string      `json:"validators"`
-	PubKeyBitmap   string        `json:"pubKeyBitmap"`
-	Size           int64         `json:"size"`
-	Timestamp      time.Duration `json:"timestamp"`
-	TxCount        uint32        `json:"txCount"`
-	StateRootHash  string        `json:"stateRootHash"`
-	PrevHash       string        `json:"prevHash"`
-	SignersIndexes []uint64      `json:"signersIndexes"`
+	Nonce         uint64        `json:"nonce"`
+	Round         uint64        `json:"round"`
+	ShardID       uint32        `json:"shardId"`
+	Hash          string        `json:"hash"`
+	Proposer      uint64        `json:"proposer"`
+	Validators    []uint64      `json:"validators"`
+	PubKeyBitmap  string        `json:"pubKeyBitmap"`
+	Size          int64         `json:"size"`
+	Timestamp     time.Duration `json:"timestamp"`
+	TxCount       uint32        `json:"txCount"`
+	StateRootHash string        `json:"stateRootHash"`
+	PrevHash      string        `json:"prevHash"`
+}
+
+//ValidatorsPublicKeys is a structure containing fields for validator public keys
+type ValidatorsPublicKeys struct {
+	PublicKeys []string `json:"publicKeys"`
 }
 
 // RoundInfo is a structure containing block signers and shard id
 type RoundInfo struct {
-	SignersIndexes []uint64 `json:"signersIndexes"`
-	ShardId        uint32   `json:"shardId"`
+	SignersIndexes   []uint64 `json:"signersIndexes"`
+	BlockWasProposed bool     `json:"blockWasProposed"`
+	ShardId          uint32   `json:"shardId"`
 }
 
 // TPS is a structure containing all the fields that need to

@@ -19,7 +19,7 @@ func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	panic("implement me")
 }
 
-func (im *IndexerMock) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64) {
+func (im *IndexerMock) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64, blockWasProposed bool) {
 	panic("implement me")
 }
 

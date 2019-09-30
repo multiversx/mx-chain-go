@@ -239,12 +239,13 @@ func (ei *elasticIndexer) SaveBlock(
 }
 
 // SaveRoundInfo will save data about a round on elastic
-func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64) {
+func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64, blockWasProposed bool) {
 	var buff bytes.Buffer
 
 	roundInfo := RoundInfo{
-		SignersIndexes: signersIndexes,
-		ShardId:        shardId,
+		SignersIndexes:   signersIndexes,
+		BlockWasProposed: blockWasProposed,
+		ShardId:          shardId,
 	}
 
 	marshalizedSignersIndexes, err := ei.marshalizer.Marshal(roundInfo)
@@ -278,16 +279,21 @@ func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersInde
 
 //SaveValidatorsPubKeys will send all validators public keys to elastic search
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
-	var buff bytes.Buffer
-
 	valPubKeys := make(map[uint32][]string, 0)
 	for shardId, shardPubKeys := range validatorsPubKeys {
 		for _, pubKey := range shardPubKeys {
 			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
 		}
-	}
 
-	marshalizedValidatorPubKeys, err := ei.marshalizer.Marshal(valPubKeys)
+		go ei.saveShardValidatorsPubKeys(shardId, valPubKeys[shardId])
+	}
+}
+
+func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string) {
+	var buff bytes.Buffer
+
+	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
+	marshalizedValidatorPubKeys, err := ei.marshalizer.Marshal(shardValPubKeys)
 	if err != nil {
 		ei.logger.Warn("could not marshal validators public keys")
 		return
@@ -298,7 +304,7 @@ func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][
 
 	req := esapi.IndexRequest{
 		Index:      validatorsIndex,
-		DocumentID: "validators_list",
+		DocumentID: strconv.FormatUint(uint64(shardId), 10),
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}
@@ -325,20 +331,18 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.Hea
 
 	headerHash := ei.hasher.Compute(string(h))
 	elasticBlock := Block{
-		Nonce:   header.GetNonce(),
-		Round:   header.GetRound(),
-		ShardID: header.GetShardID(),
-		Hash:    hex.EncodeToString(headerHash),
-		// TODO: We should add functionality for proposer and validators
-		Proposer: hex.EncodeToString([]byte("mock proposer")),
-		//Validators: "mock validators",
-		PubKeyBitmap:   hex.EncodeToString(header.GetPubKeysBitmap()),
-		Size:           int64(len(h)),
-		Timestamp:      time.Duration(header.GetTimeStamp()),
-		TxCount:        header.GetTxCount(),
-		StateRootHash:  hex.EncodeToString(header.GetRootHash()),
-		PrevHash:       hex.EncodeToString(header.GetPrevHash()),
-		SignersIndexes: signersIndexes,
+		Nonce:         header.GetNonce(),
+		Round:         header.GetRound(),
+		ShardID:       header.GetShardID(),
+		Hash:          hex.EncodeToString(headerHash),
+		Proposer:      signersIndexes[0],
+		Validators:    signersIndexes,
+		PubKeyBitmap:  hex.EncodeToString(header.GetPubKeysBitmap()),
+		Size:          int64(len(h)),
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		TxCount:       header.GetTxCount(),
+		StateRootHash: hex.EncodeToString(header.GetRootHash()),
+		PrevHash:      hex.EncodeToString(header.GetPrevHash()),
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)

@@ -1,7 +1,6 @@
 package block
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -509,7 +508,10 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 
 func (sp *shardProcessor) indexBlockIfNeeded(
 	body data.BodyHandler,
-	header data.HeaderHandler) {
+	header data.HeaderHandler,
+	lastBlockBody data.BodyHandler,
+	lastBlockHeader data.HeaderHandler,
+) {
 	if sp.core == nil || sp.core.Indexer() == nil {
 		return
 	}
@@ -530,18 +532,28 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	if err != nil {
 		return
 	}
-	validatorsPubKeys := sp.nodesCoordinator.GetAllValidatorsPublicKeys()
-	signersIndexes := make([]uint64, 0)
 
-	for _, pubKey := range pubKeys {
-		for index, value := range validatorsPubKeys[shardId] {
-			if bytes.Equal([]byte(pubKey), value) {
-				signersIndexes = append(signersIndexes, uint64(index))
-			}
-		}
-	}
+	signersIndexes := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys)
 
 	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
+	go sp.core.Indexer().SaveRoundInfo(int64(header.GetRound()), shardId, signersIndexes, true)
+
+	lastBlockRound := lastBlockHeader.GetRound()
+	currentBlockRound := header.GetRound()
+
+	if lastBlockRound > currentBlockRound-1 {
+		return
+	}
+
+	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
+		publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(lastBlockHeader.GetRandSeed(), i, shardId)
+		if err != nil {
+			continue
+		}
+		signersIndexes = sp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
+		go sp.core.Indexer().SaveRoundInfo(int64(i), shardId, signersIndexes, true)
+	}
+
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -811,6 +823,9 @@ func (sp *shardProcessor) CommitBlock(
 	hdrsToAttestPreviousFinal := uint32(header.Nonce-sp.forkDetector.GetHighestFinalBlockNonce()) + 1
 	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
+	lastBlockBody := chainHandler.GetCurrentBlockBody()
+	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
+
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
@@ -822,7 +837,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-	sp.indexBlockIfNeeded(bodyHandler, headerHandler)
+	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockBody, lastBlockHeader)
 
 	go sp.cleanTxsPools()
 

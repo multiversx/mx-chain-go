@@ -14,6 +14,10 @@ func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys() map[uint32][][]byt
 	return nil
 }
 
+func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string) []uint64 {
+	return nil
+}
+
 func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
 	randomness []byte,
 	round uint64,
