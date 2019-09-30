@@ -48,8 +48,8 @@ func (sp *shardProcessor) GetProcessedMetaBlocksFromHeader(header *block.Header)
 	return sp.getProcessedMetaBlocksFromHeader(header)
 }
 
-func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
-	return sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
+func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
+	return sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
@@ -75,9 +75,10 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			RequestHandler:        &mock.RequestHandlerMock{},
 			Core:                  &mock.ServiceContainerMock{},
 		},
-		DataPool:      tdp,
-		BlocksTracker: &mock.BlocksTrackerMock{},
-		TxCoordinator: &mock.TransactionCoordinatorMock{},
+		DataPool:        tdp,
+		BlocksTracker:   &mock.BlocksTrackerMock{},
+		TxCoordinator:   &mock.TransactionCoordinatorMock{},
+		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 	shardProcessor, err := NewShardProcessor(arguments)
 	return shardProcessor, err
@@ -301,4 +302,12 @@ func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
 	metaHashes [][]byte,
 ) (map[string][]byte, error) {
 	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
+}
+
+func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
+	return sp.isMiniBlockProcessed(metaBlockHash, miniBlockHash)
+}
+
+func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
+	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
 }
