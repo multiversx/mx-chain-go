@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createDefaultArgument() *ArgInterceptedBlockHeader {
+func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 	arg := &ArgInterceptedBlockHeader{
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		MultiSigVerifier: mock.NewMultiSigner(),
@@ -21,6 +21,17 @@ func createDefaultArgument() *ArgInterceptedBlockHeader {
 			},
 		},
 		HdrBuff: []byte("test buffer"),
+	}
+
+	return arg
+}
+
+func createDefaultTxBlockBodyArgument() *ArgInterceptedTxBlockBody {
+	arg := &ArgInterceptedTxBlockBody{
+		Hasher:           mock.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		TxBlockBodyBuff:  []byte("test buffer"),
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
 
 	return arg
@@ -49,88 +60,152 @@ func createDefaultHeaderHandler() *mock.HeaderHandlerStub {
 	}
 }
 
-//-------- checkArgument
+//-------- checkBlockHeaderArgument
 
-func TestCheckArgument_NilArgumentShouldErr(t *testing.T) {
+func TestCheckBlockHeaderArgument_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
 
-	err := checkArgument(nil)
+	err := checkBlockHeaderArgument(nil)
 
 	assert.Equal(t, process.ErrNilArguments, err)
 }
 
-func TestCheckArgument_NilHdrShouldErr(t *testing.T) {
+func TestCheckBlockHeaderArgument_NilHdrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultBlockHeaderArgument()
 	arg.HdrBuff = nil
 
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilBuffer, err)
 }
 
-func TestCheckArgument_NilMarshalizerShouldErr(t *testing.T) {
+func TestCheckBlockHeaderArgument_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultBlockHeaderArgument()
 	arg.Marshalizer = nil
 
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestCheckArgument_NilHasherShouldErr(t *testing.T) {
+func TestCheckBlockHeaderArgument_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultBlockHeaderArgument()
 	arg.Hasher = nil
 
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestCheckArgument_NilMultiSigVerifierShouldErr(t *testing.T) {
+func TestCheckBlockHeaderArgument_NilMultiSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultBlockHeaderArgument()
 	arg.MultiSigVerifier = nil
 
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
 }
 
-func TestCheckArgument_NilChronologyValidatorShouldErr(t *testing.T) {
+func TestCheckBlockHeaderArgument_NilChronologyValidatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultBlockHeaderArgument()
 	arg.ChronologyValidator = nil
 
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilChronologyValidator, err)
 }
 
-func TestCheckArgument_NilShardCoordinatorShouldErr(t *testing.T) {
+func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultBlockHeaderArgument()
 	arg.ShardCoordinator = nil
 
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestCheckArgument_ShouldWork(t *testing.T) {
+func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultBlockHeaderArgument()
 
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Nil(t, err)
+}
+
+//-------- checkTxBlockBodyArgument
+
+func TestCheckTxBlockBodyArgument_NilArgumentShouldErr(t *testing.T) {
+	t.Parallel()
+
+	err := checkTxBlockBodyArgument(nil)
+
+	assert.Equal(t, process.ErrNilArguments, err)
+}
+
+func TestCheckTxBlockBodyArgument_NilHdrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultTxBlockBodyArgument()
+	arg.TxBlockBodyBuff = nil
+
+	err := checkTxBlockBodyArgument(arg)
+
+	assert.Equal(t, process.ErrNilBuffer, err)
+}
+
+func TestCheckTxBlockBodyArgument_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultTxBlockBodyArgument()
+	arg.Marshalizer = nil
+
+	err := checkTxBlockBodyArgument(arg)
+
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestCheckTxBlockBodyArgument_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultTxBlockBodyArgument()
+	arg.Hasher = nil
+
+	err := checkTxBlockBodyArgument(arg)
+
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestCheckTxBlockBodyArgument_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultTxBlockBodyArgument()
+	arg.ShardCoordinator = nil
+
+	err := checkTxBlockBodyArgument(arg)
+
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestCheckTxBlockBodyArgument_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultTxBlockBodyArgument()
+
+	err := checkTxBlockBodyArgument(arg)
 
 	assert.Nil(t, err)
 }

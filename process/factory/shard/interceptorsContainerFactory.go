@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	blockInterceptors "github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -19,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const numGoRoutinesInTxInterceptors = 100
+const numGoRoutines = 100
 
 type interceptorsContainerFactory struct {
 	accounts              state.AccountsAdapter
@@ -120,7 +119,7 @@ func NewInterceptorsContainerFactory(
 	}
 
 	var err error
-	icf.globalTxThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutinesInTxInterceptors)
+	icf.globalTxThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
 	}
@@ -410,14 +409,29 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 }
 
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
-	txBlockBodyStorer := icf.store.GetStorer(dataRetriever.MiniBlockUnit)
+	argProcessor := &processor.ArgTxBodyInterceptorProcessor{
+		Miniblocks:       icf.dataPool.MiniBlocks(),
+		Marshalizer:      icf.marshalizer,
+		Hasher:           icf.hasher,
+		ShardCoordinator: icf.shardCoordinator,
+	}
+	txBlockBodyProcessor, err := processor.NewTxBodyInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, err
+	}
 
-	interceptor, err := blockInterceptors.NewTxBlockBodyInterceptor(
-		icf.marshalizer,
-		icf.dataPool.MiniBlocks(),
-		txBlockBodyStorer,
-		icf.hasher,
-		icf.shardCoordinator,
+	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
+		icf.argInterceptorFactory,
+		interceptorFactory.InterceptedTxBlockBody,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewSingleDataInterceptor(
+		txFactory,
+		txBlockBodyProcessor,
+		icf.globalTxThrottler,
 	)
 	if err != nil {
 		return nil, err

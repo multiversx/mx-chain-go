@@ -251,6 +251,26 @@ func TestShardInterceptedDataFactory_CreateInterceptedMetaHdrShouldWork(t *testi
 	assert.True(t, ok)
 }
 
+func TestShardInterceptedDataFactory_CreateInterceptedTxBlockBodyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	emptyTxBlockBody := make([]*block.MiniBlock, 0)
+	emptyTxBlockBodyBuff, _ := marshalizer.Marshal(emptyTxBlockBody)
+
+	midf, _ := factory.NewShardInterceptedDataFactory(
+		createMockShardArgument(),
+		factory.InterceptedTxBlockBody,
+	)
+
+	instance, err := midf.Create(emptyTxBlockBodyBuff)
+
+	assert.NotNil(t, instance)
+	assert.Nil(t, err)
+	_, ok := instance.(*interceptedBlocks.InterceptedTxBlockBody)
+	assert.True(t, ok)
+}
+
 //------- IsInterfaceNil
 
 func TestShardInterceptedDataFactory_IsInterfaceNil(t *testing.T) {

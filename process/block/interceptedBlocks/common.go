@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-func checkArgument(arg *ArgInterceptedBlockHeader) error {
+func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
 		return process.ErrNilArguments
 	}
@@ -26,6 +26,26 @@ func checkArgument(arg *ArgInterceptedBlockHeader) error {
 	}
 	if check.IfNil(arg.ChronologyValidator) {
 		return process.ErrNilChronologyValidator
+	}
+	if check.IfNil(arg.ShardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+
+	return nil
+}
+
+func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
+	if arg == nil {
+		return process.ErrNilArguments
+	}
+	if arg.TxBlockBodyBuff == nil {
+		return process.ErrNilBuffer
+	}
+	if check.IfNil(arg.Marshalizer) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(arg.Hasher) {
+		return process.ErrNilHasher
 	}
 	if check.IfNil(arg.ShardCoordinator) {
 		return process.ErrNilShardCoordinator

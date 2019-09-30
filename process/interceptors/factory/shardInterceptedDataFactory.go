@@ -85,6 +85,8 @@ func (sidf *shardInterceptedDataFactory) Create(buff []byte) (process.Intercepte
 		return sidf.createInterceptedUnsignedTx(buff)
 	case InterceptedMetaHeader:
 		return sidf.createInterceptedMetaHeader(buff)
+	case InterceptedTxBlockBody:
+		return sidf.createInterceptedTxBlockBody(buff)
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
 	}
@@ -136,6 +138,17 @@ func (sidf *shardInterceptedDataFactory) createInterceptedMetaHeader(buff []byte
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)
+}
+
+func (sidf *shardInterceptedDataFactory) createInterceptedTxBlockBody(buff []byte) (process.InterceptedData, error) {
+	arg := &interceptedBlocks.ArgInterceptedTxBlockBody{
+		TxBlockBodyBuff:  buff,
+		Marshalizer:      sidf.marshalizer,
+		Hasher:           sidf.hasher,
+		ShardCoordinator: sidf.shardCoordinator,
+	}
+
+	return interceptedBlocks.NewInterceptedTxBlockBody(arg)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

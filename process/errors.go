@@ -52,9 +52,6 @@ var ErrNilTxBlockBody = errors.New("nil tx block body")
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
 
-// ErrNilPeerBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilPeerBlockBody = errors.New("nil block body")
-
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
@@ -135,9 +132,6 @@ var ErrNilMessenger = errors.New("nil Messenger")
 
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
-
-// ErrNilMetaHeadersDataPool signals that a nil metachain header pool has been provided
-var ErrNilMetaHeadersDataPool = errors.New("nil meta headers data pool")
 
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
@@ -250,9 +244,6 @@ var ErrNilRequestHandler = errors.New("nil request handler")
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
 
-// ErrCouldNotDecodeUnderlyingBody signals that an InterceptedBlockBody could not be decoded to a block.Body using type assertion
-var ErrCouldNotDecodeUnderlyingBody = errors.New("could not decode InterceptedBlockBody to block.Body")
-
 // ErrWrongTypeInContainer signals that a wrong type of object was found in container
 var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
 
@@ -355,9 +346,6 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
-// ErrNoUnsignedTransactionInMessage signals that message does not contain required data
-var ErrNoUnsignedTransactionInMessage = errors.New("no unsigned transactions in message")
-
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
@@ -400,9 +388,6 @@ var ErrUnknownBlockType = errors.New("block type is unknown")
 // ErrMissingPreProcessor signals that required pre processor is missing
 var ErrMissingPreProcessor = errors.New("pre processor is missing")
 
-// ErrNilHeaderHandlerValidator signals that a nil header handler validator has been provided
-var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator provided")
-
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 
@@ -435,3 +420,7 @@ var ErrNilHdrValidator = errors.New("nil header validator")
 
 // ErrTxNotValid signals that a tx is not valid
 var ErrTxNotValid = errors.New("transaction is not valid")
+
+// ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
+// processed on the current shard
+var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")

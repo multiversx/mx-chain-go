@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -44,27 +45,26 @@ func NewInterceptedTransaction(
 	if txBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if keyGen == nil || keyGen.IsInterfaceNil() {
+	if check.IfNil(keyGen) {
 		return nil, process.ErrNilKeyGen
 	}
-	if signer == nil || signer.IsInterfaceNil() {
+	if check.IfNil(signer) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if addrConv == nil || addrConv.IsInterfaceNil() {
+	if check.IfNil(addrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 
-	tx := &transaction.Transaction{}
-	err := marshalizer.Unmarshal(tx, txBuff)
+	tx, err := createTx(marshalizer, txBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +85,16 @@ func NewInterceptedTransaction(
 	}
 
 	return inTx, nil
+}
+
+func createTx(marshalizer marshal.Marshalizer, txBuff []byte) (*transaction.Transaction, error) {
+	tx := &transaction.Transaction{}
+	err := marshalizer.Unmarshal(tx, txBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
 }
 
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)

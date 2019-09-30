@@ -25,16 +25,12 @@ type InterceptedHeader struct {
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, error) {
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr := &block.Header{
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		MetaBlockHashes:  make([][]byte, 0),
-	}
-	err = arg.Marshalizer.Unmarshal(hdr, arg.HdrBuff)
+	hdr, err := createShardHdr(arg.Marshalizer, arg.HdrBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +48,19 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	return inHdr, nil
 }
 
+func createShardHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.Header, error) {
+	hdr := &block.Header{
+		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
+		MetaBlockHashes:  make([][]byte, 0),
+	}
+	err := marshalizer.Unmarshal(hdr, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return hdr, nil
+}
+
 func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 	inHdr.hash = inHdr.hasher.Compute(string(txBuff))
 
@@ -60,7 +69,7 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 	inHdr.isForCurrentShard = isHeaderForCurrentShard || isMetachainShardCoordinator
 }
 
-// CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
+// CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
 	err := inHdr.integrity()
 	if err != nil {
@@ -70,7 +79,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 	return inHdr.verifySig()
 }
 
-// integrity checks the integrity of the state block wrapper
+// integrity checks the integrity of the header block wrapper
 func (inHdr *InterceptedHeader) integrity() error {
 	err := checkHeaderHandler(inHdr.HeaderHandler())
 	if err != nil {
