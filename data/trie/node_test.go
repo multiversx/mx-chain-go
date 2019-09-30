@@ -468,8 +468,8 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 	t.Parallel()
 
 	msh, hsh := getTestMarshAndHasher()
-	evictionCacheSize := 100
-	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
+	evictionWaitListSize := 100
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
 	tr := &patriciaMerkleTrie{
 		db:                    mock.NewMemDbMock(),
@@ -508,8 +508,8 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 	t.Parallel()
 
 	msh, hsh := getTestMarshAndHasher()
-	evictionCacheSize := 100
-	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
+	evictionWaitListSize := 100
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
 	tr := &patriciaMerkleTrie{
 		db:                    mock.NewMemDbMock(),
@@ -586,8 +586,8 @@ func TestTrieResetOldHashes(t *testing.T) {
 	t.Parallel()
 
 	msh, hsh := getTestMarshAndHasher()
-	evictionCacheSize := 100
-	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
+	evictionWaitListSize := 100
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
 	tr := &patriciaMerkleTrie{
 		db:                    mock.NewMemDbMock(),
@@ -616,8 +616,8 @@ func TestTrieAddHashesToOldHashes(t *testing.T) {
 	t.Parallel()
 
 	msh, hsh := getTestMarshAndHasher()
-	evictionCacheSize := 100
-	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionCacheSize, mock.NewMemDbMock(), msh)
+	evictionWaitListSize := 100
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 	hashes := [][]byte{[]byte("one"), []byte("two"), []byte("three")}
 
 	tr := &patriciaMerkleTrie{

@@ -59,8 +59,8 @@ func initTrie() data.Trie {
 func TestNewTrieWithNilDB(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, evictionDB, evictionCacheSize := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, evictionDB, evictionCacheSize)
+	_, marshalizer, hasher, evictionDB, evictionWaitListSize := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, evictionDB, evictionWaitListSize)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilDatabase, err)
@@ -69,8 +69,8 @@ func TestNewTrieWithNilDB(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	db, _, hasher, evictionDB, evictionCacheSize := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, nil, hasher, evictionDB, evictionCacheSize)
+	db, _, hasher, evictionDB, evictionWaitListSize := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, nil, hasher, evictionDB, evictionWaitListSize)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -79,8 +79,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	db, marshalizer, _, evictionDB, evictionCacheSize := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, nil, evictionDB, evictionCacheSize)
+	db, marshalizer, _, evictionDB, evictionWaitListSize := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, marshalizer, nil, evictionDB, evictionWaitListSize)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -89,8 +89,8 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 func TestNewTrieWithNilEvictionDB(t *testing.T) {
 	t.Parallel()
 
-	db, marshalizer, hasher, _, evictionCacheSize := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, hasher, nil, evictionCacheSize)
+	db, marshalizer, hasher, _, evictionWaitListSize := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, marshalizer, hasher, nil, evictionWaitListSize)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilDatabase, err)
@@ -483,8 +483,8 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	t.Parallel()
 
-	db, marsh, hashser, evictionDb, evictionCacheSize := getDefaultTrieParameters()
-	tr, _ := trie.NewTrie(db, marsh, hashser, evictionDb, evictionCacheSize)
+	db, marsh, hashser, evictionDb, evictionWaitListSize := getDefaultTrieParameters()
+	tr, _ := trie.NewTrie(db, marsh, hashser, evictionDb, evictionWaitListSize)
 
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))

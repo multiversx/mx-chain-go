@@ -39,7 +39,7 @@ func NewTrie(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	evictionDb storage.Persister,
-	evictionCacheSize int,
+	evictionWaitListSize int,
 ) (*patriciaMerkleTrie, error) {
 	if db == nil || db.IsInterfaceNil() {
 		return nil, ErrNilDatabase
@@ -53,11 +53,11 @@ func NewTrie(
 	if evictionDb == nil || evictionDb.IsInterfaceNil() {
 		return nil, ErrNilDatabase
 	}
-	if evictionCacheSize < 1 {
+	if evictionWaitListSize < 1 {
 		return nil, data.ErrInvalidCacheSize
 	}
 
-	evictionWaitList, err := evictionWaitingList.NewEvictionWaitingList(evictionCacheSize, evictionDb, msh)
+	evictionWaitList, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, evictionDb, msh)
 	if err != nil {
 		return nil, err
 	}

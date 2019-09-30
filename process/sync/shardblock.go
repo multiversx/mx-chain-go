@@ -898,12 +898,13 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 	var newRootHash []byte
 
 	if header.GetNonce() > 1 {
-		boot.accounts.CancelPrune(header.GetRootHash())
-
 		newHeader, err = boot.getPrevHeader(headerStore, header)
 		if err != nil {
 			return err
 		}
+
+		// TODO add integration test to see that pruning canceling works as expected
+		boot.accounts.CancelPrune(newHeader.GetRootHash())
 
 		newBody, err = boot.getTxBlockBody(newHeader)
 		if err != nil {

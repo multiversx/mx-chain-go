@@ -265,9 +265,9 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
-	evictionCacheSize := 100
+	evictionWaitListSize := 100
 
-	tr1, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, hasher, memorydb.New(), evictionCacheSize)
+	tr1, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, hasher, memorydb.New(), evictionWaitListSize)
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -879,7 +879,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	fmt.Printf("Original root hash: %s\n", hrOriginal)
 
 	for i := 1; i <= 1000; i++ {
-		err := integrationTests.AdbEmulateBalanceTxExecution(acntSrc.(*state.Account), acntDest.(*state.Account), big.NewInt(int64(i)))
+		err = integrationTests.AdbEmulateBalanceTxExecution(acntSrc.(*state.Account), acntDest.(*state.Account), big.NewInt(int64(i)))
 
 		assert.Nil(t, err)
 	}
@@ -913,7 +913,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 
 	st := time.Now()
 	for i := 1; i <= 1000; i++ {
-		err := integrationTests.AdbEmulateBalanceTxExecution(acntSrc.(*state.Account), acntDest.(*state.Account), big.NewInt(int64(i)))
+		err = integrationTests.AdbEmulateBalanceTxExecution(acntSrc.(*state.Account), acntDest.(*state.Account), big.NewInt(int64(i)))
 		assert.Nil(t, err)
 
 		err = integrationTests.AdbEmulateBalanceTxExecution(acntDest.(*state.Account), acntSrc.(*state.Account), big.NewInt(int64(1000000)))
@@ -1009,8 +1009,8 @@ func createAccounts(
 ) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
-	evictionCacheSize := 100
-	tr, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionCacheSize)
+	evictionWaitListSize := 100
+	tr, _ := trie.NewTrie(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionWaitListSize)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	addr := make([]state.AddressContainer, nrOfAccounts)
@@ -1082,8 +1082,8 @@ func BenchmarkTxExecution(b *testing.B) {
 func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	t.Parallel()
 
-	evictionCacheSize := 100
-	tr, _ := trie.NewTrie(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionCacheSize)
+	evictionWaitListSize := 100
+	tr, _ := trie.NewTrie(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionWaitListSize)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1116,8 +1116,8 @@ func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) st
 func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	t.Parallel()
 
-	evictionCacheSize := 100
-	tr, _ := trie.NewTrie(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionCacheSize)
+	evictionWaitListSize := 100
+	tr, _ := trie.NewTrie(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, memorydb.New(), evictionWaitListSize)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
@@ -1170,4 +1170,8 @@ func collapseTrie(state state.AccountHandler, t *testing.T) {
 	assert.NotNil(t, stateNewTrie)
 
 	state.DataTrieTracker().SetDataTrie(stateNewTrie)
+}
+
+func TestTriePruningAfterAddingEmptyBlocks(t *testing.T) {
+
 }
