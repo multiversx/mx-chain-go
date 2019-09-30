@@ -1,6 +1,8 @@
 package economics
 
-import "github.com/ElrondNetwork/elrond-go/config"
+import (
+	"github.com/ElrondNetwork/elrond-go/config"
+)
 
 // EconomicsData will store information about economics
 type EconomicsData struct {

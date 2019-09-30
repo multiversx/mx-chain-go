@@ -14,8 +14,8 @@
    NodeDisplayName = ""
 
 [Explorer]
-    Enabled = true
-    IndexerURL = "http://localhost"
+   Enabled = false
+   IndexerURL = "http://localhost:9200"
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
