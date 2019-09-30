@@ -558,6 +558,9 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
+	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
+
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
 		"PkAccount", factory.GetPkEncoded(cryptoComponents.TxSignPubKey),
@@ -574,9 +577,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 			sessionInfoFileOutput += fmt.Sprintf("%s = %v\n", flag.GetName(), flagValue)
 		}
 	}
-
-	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
-	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
 
 	err = ioutil.WriteFile(filepath.Join(logDirectory, "session.info"), []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
@@ -749,6 +749,7 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
+	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
 }
 
 func startStatusPolling(
