@@ -1171,7 +1171,3 @@ func collapseTrie(state state.AccountHandler, t *testing.T) {
 
 	state.DataTrieTracker().SetDataTrie(stateNewTrie)
 }
-
-func TestTriePruningAfterAddingEmptyBlocks(t *testing.T) {
-
-}
