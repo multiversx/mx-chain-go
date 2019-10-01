@@ -19,6 +19,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func getRewardValue() uint32 {
+	//TODO: this should be read from protocol config
+	return uint32(1000)
+}
+
 func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -319,9 +324,7 @@ func verifyRewardsForMetachain(
 	mapRewardsForMeta map[string]uint32,
 	nodes map[uint32][]*integrationTests.TestProcessorNode,
 ) {
-
-	// TODO this should be read from protocol config
-	rewardValue := uint32(1000)
+	rewardValue := getRewardValue()
 
 	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
 		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(metaAddr))
@@ -341,9 +344,8 @@ func verifyRewardsForShards(
 	gasPrice uint64,
 	gasLimit uint64,
 ) {
-
-	// TODO: rewards and fee percentage should be read from protocol config
-	rewardValue := 1000
+	rewardValue := getRewardValue()
+	// TODO: fee percentage should be read from protocol config
 	feePerTxForLeader := gasPrice * gasLimit / 2
 
 	for address, nbRewards := range mapRewardsForAddress {
