@@ -15,15 +15,15 @@ import (
 
 // HeaderInterceptor represents an interceptor used for block headers
 type HeaderInterceptor struct {
-	marshalizer      marshal.Marshalizer
-	storer           storage.Storer
-	multiSigVerifier crypto.MultiSigVerifier
-	hasher           hashing.Hasher
-	headers          storage.Cacher
-	headersNonces    dataRetriever.Uint64SyncMapCacher
-	headerValidator  process.HeaderValidator
-	shardCoordinator sharding.Coordinator
-	nodesCoordinator sharding.NodesCoordinator
+	marshalizer         marshal.Marshalizer
+	storer              storage.Storer
+	multiSigVerifier    crypto.MultiSigVerifier
+	hasher              hashing.Hasher
+	chronologyValidator process.ChronologyValidator
+	headers             storage.Cacher
+	headersNonces       dataRetriever.Uint64SyncMapCacher
+	headerValidator     process.HeaderValidator
+	shardCoordinator    sharding.Coordinator
 }
 
 // NewHeaderInterceptor hooks a new interceptor for block headers
@@ -36,7 +36,7 @@ func NewHeaderInterceptor(
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
+	chronologyValidator process.ChronologyValidator,
 ) (*HeaderInterceptor, error) {
 
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
@@ -60,19 +60,19 @@ func NewHeaderInterceptor(
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
-		return nil, process.ErrNilNodesCoordinator
+	if chronologyValidator == nil || chronologyValidator.IsInterfaceNil() {
+		return nil, process.ErrNilChronologyValidator
 	}
 
 	hdrInterceptor := &HeaderInterceptor{
-		marshalizer:      marshalizer,
-		multiSigVerifier: multiSigVerifier,
-		hasher:           hasher,
-		shardCoordinator: shardCoordinator,
-		headers:          headers,
-		headersNonces:    headersNonces,
-		headerValidator:  headerValidator,
-		nodesCoordinator: nodesCoordinator,
+		marshalizer:         marshalizer,
+		multiSigVerifier:    multiSigVerifier,
+		hasher:              hasher,
+		shardCoordinator:    shardCoordinator,
+		chronologyValidator: chronologyValidator,
+		headers:             headers,
+		headersNonces:       headersNonces,
+		headerValidator:     headerValidator,
 	}
 
 	return hdrInterceptor, nil
@@ -88,7 +88,7 @@ func (hi *HeaderInterceptor) ParseReceivedMessage(message p2p.MessageP2P) (*bloc
 		return nil, process.ErrNilDataToProcess
 	}
 
-	hdrIntercepted := block.NewInterceptedHeader(hi.multiSigVerifier, hi.nodesCoordinator, hi.marshalizer, hi.hasher)
+	hdrIntercepted := block.NewInterceptedHeader(hi.multiSigVerifier, hi.chronologyValidator)
 	err := hi.marshalizer.Unmarshal(hdrIntercepted, message.Data())
 	if err != nil {
 		return nil, err

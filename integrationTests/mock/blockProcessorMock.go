@@ -22,7 +22,6 @@ type BlockProcessorMock struct {
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusDataCalled           func(randomness []byte, round uint64, epoch uint32, shardId uint32)
 }
 
 // ProcessBlock mocks pocessing a block
@@ -91,12 +90,6 @@ func (blProcMock BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHa
 
 func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	blProcMock.AddLastNotarizedHdrCalled(shardId, processedHdr)
-}
-
-func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-	if blProcMock.SetConsensusDataCalled != nil {
-		blProcMock.SetConsensusDataCalled(randomness, round, epoch, shardId)
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

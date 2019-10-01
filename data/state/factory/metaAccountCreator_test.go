@@ -6,13 +6,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMetaAccountCreator_CreateAccountNilAddress(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     sharding.MetachainShardId,
+		NrOfShards: 1,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.MetaAccountCreator)
@@ -27,7 +32,11 @@ func TestMetaAccountCreator_CreateAccountNilAddress(t *testing.T) {
 func TestMetaAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     sharding.MetachainShardId,
+		NrOfShards: 1,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.MetaAccountCreator)
@@ -42,7 +51,11 @@ func TestMetaAccountCreator_CreateAccountNilAccountTraccer(t *testing.T) {
 func TestMetaAccountCreator_CreateAccountOk(t *testing.T) {
 	t.Parallel()
 
-	accF, err := factory.NewAccountFactoryCreator(factory.ShardStatistics)
+	shardC := &mock.ShardCoordinatorMock{
+		SelfID:     sharding.MetachainShardId,
+		NrOfShards: 1,
+	}
+	accF, err := factory.NewAccountFactoryCreator(shardC)
 	assert.Nil(t, err)
 
 	_, ok := accF.(*factory.MetaAccountCreator)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -48,7 +46,6 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
-				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -77,40 +74,10 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
-				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &smartContractResult.SmartContractResult{Nonce: 10}, true
-					}
-					return nil, false
-				},
-			}
-		},
-		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
-								return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
 					}
 					return nil, false
 				},
@@ -409,7 +376,7 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	t.Parallel()
 
-	dataPool := mock.NewPoolsHolderMock()
+	dataPool := mock.NewPoolsHolderFake()
 
 	shardedDataStub := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -468,7 +435,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	dataPool := mock.NewPoolsHolderFake()
 	senderShardId := uint32(0)
 	destinationShardId := uint32(1)
 

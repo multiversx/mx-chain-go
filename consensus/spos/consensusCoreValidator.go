@@ -41,7 +41,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.SyncTimer() == nil || container.SyncTimer().IsInterfaceNil() {
 		return ErrNilSyncTimer
 	}
-	if container.NodesCoordinator() == nil || container.NodesCoordinator().IsInterfaceNil() {
+	if container.ValidatorGroupSelector() == nil || container.ValidatorGroupSelector().IsInterfaceNil() {
 		return ErrNilValidatorGroupSelector
 	}
 	if container.RandomnessPrivateKey() == nil || container.RandomnessPrivateKey().IsInterfaceNil() {

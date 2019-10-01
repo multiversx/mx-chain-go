@@ -8,7 +8,6 @@ import (
 type shardedDataPool struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions   dataRetriever.ShardedDataCacherNotifier
 	headers              storage.Cacher
 	metaBlocks           storage.Cacher
 	headersNonces        dataRetriever.Uint64SyncMapCacher
@@ -20,7 +19,6 @@ type shardedDataPool struct {
 func NewShardedDataPool(
 	transactions dataRetriever.ShardedDataCacherNotifier,
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
-	rewardTransactions dataRetriever.ShardedDataCacherNotifier,
 	headers storage.Cacher,
 	headersNonces dataRetriever.Uint64SyncMapCacher,
 	miniBlocks storage.Cacher,
@@ -33,9 +31,6 @@ func NewShardedDataPool(
 	}
 	if unsignedTransactions == nil || unsignedTransactions.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilUnsignedTransactionPool
-	}
-	if rewardTransactions == nil || rewardTransactions.IsInterfaceNil() {
-		return nil, dataRetriever.ErrNilRewardTransactionPool
 	}
 	if headers == nil || headers.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilHeadersDataPool
@@ -56,7 +51,6 @@ func NewShardedDataPool(
 	return &shardedDataPool{
 		transactions:         transactions,
 		unsignedTransactions: unsignedTransactions,
-		rewardTransactions:   rewardTransactions,
 		headers:              headers,
 		headersNonces:        headersNonces,
 		miniBlocks:           miniBlocks,
@@ -73,11 +67,6 @@ func (tdp *shardedDataPool) Transactions() dataRetriever.ShardedDataCacherNotifi
 // UnsignedTransactions returns the holder for unsigned transactions (cross shard result entities)
 func (tdp *shardedDataPool) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return tdp.unsignedTransactions
-}
-
-// RewardTransactions returns the holder for reward transactions (cross shard result entities)
-func (tdp *shardedDataPool) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return tdp.rewardTransactions
 }
 
 // Headers returns the holder for headers

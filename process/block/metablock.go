@@ -50,8 +50,6 @@ func NewMetaProcessor(
 	dataPool dataRetriever.MetaPoolsHolder,
 	forkDetector process.ForkDetector,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	specialAddressHandler process.SpecialAddressHandler,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
@@ -67,8 +65,6 @@ func NewMetaProcessor(
 		marshalizer,
 		store,
 		shardCoordinator,
-		nodesCoordinator,
-		specialAddressHandler,
 		uint64Converter)
 	if err != nil {
 		return nil, err
@@ -97,8 +93,6 @@ func NewMetaProcessor(
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
-		nodesCoordinator:              nodesCoordinator,
-		specialAddressHandler:         specialAddressHandler,
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandler:        requestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
@@ -230,11 +224,6 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	return nil
-}
-
-// SetConsensusData - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-	// nothing to do
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {

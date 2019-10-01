@@ -22,21 +22,11 @@ func (sc *scProcessor) CreateVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	return sc.createVMInput(tx)
 }
 
-func (sc *scProcessor) ProcessVMOutput(
-	vmOutput *vmcommon.VMOutput,
-	tx *transaction.Transaction,
-	acntSnd state.AccountHandler,
-	round uint64,
-) ([]data.TransactionHandler, *big.Int, error) {
+func (sc *scProcessor) ProcessVMOutput(vmOutput *vmcommon.VMOutput, tx *transaction.Transaction, acntSnd state.AccountHandler, round uint64) ([]data.TransactionHandler, error) {
 	return sc.processVMOutput(vmOutput, tx, acntSnd, round)
 }
 
-func (sc *scProcessor) RefundGasToSender(
-	gasRefund *big.Int,
-	tx *transaction.Transaction,
-	txHash []byte,
-	acntSnd state.AccountHandler,
-) (*smartContractResult.SmartContractResult, *big.Int, error) {
+func (sc *scProcessor) RefundGasToSender(gasRefund *big.Int, tx *transaction.Transaction, txHash []byte, acntSnd state.AccountHandler) (*smartContractResult.SmartContractResult, error) {
 	return sc.refundGasToSender(gasRefund, tx, txHash, acntSnd)
 }
 

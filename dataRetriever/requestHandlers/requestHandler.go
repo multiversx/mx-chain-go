@@ -10,14 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type resolverRequestHandler struct {
+type ResolverRequestHandler struct {
 	resolversFinder      dataRetriever.ResolversFinder
 	txRequestTopic       string
 	scrRequestTopic      string
-	rewardTxRequestTopic string
 	mbRequestTopic       string
 	shardHdrRequestTopic string
-	metaHdrRequestTopic      string
+	metaHdrRequestTopic  string
 	isMetaChain          bool
 	maxTxsToRequest      int
 }
@@ -29,12 +28,11 @@ func NewShardResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	txRequestTopic string,
 	scrRequestTopic string,
-	rewardTxRequestTopic string,
 	mbRequestTopic string,
 	shardHdrRequestTopic string,
 	metaHdrRequestTopic string,
 	maxTxsToRequest int,
-) (*resolverRequestHandler, error) {
+) (*ResolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
 	}
@@ -43,9 +41,6 @@ func NewShardResolverRequestHandler(
 	}
 	if len(scrRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyScrRequestTopic
-	}
-	if len(rewardTxRequestTopic) == 0 {
-		return nil, dataRetriever.ErrEmptyRewardTxRequestTopic
 	}
 	if len(mbRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockRequestTopic
@@ -60,14 +55,13 @@ func NewShardResolverRequestHandler(
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
 	}
 
-	rrh := &resolverRequestHandler{
+	rrh := &ResolverRequestHandler{
 		resolversFinder:      finder,
 		txRequestTopic:       txRequestTopic,
 		mbRequestTopic:       mbRequestTopic,
 		shardHdrRequestTopic: shardHdrRequestTopic,
 		metaHdrRequestTopic:  metaHdrRequestTopic,
 		scrRequestTopic:      scrRequestTopic,
-		rewardTxRequestTopic: rewardTxRequestTopic,
 		isMetaChain:          false,
 		maxTxsToRequest:      maxTxsToRequest,
 	}
@@ -80,7 +74,7 @@ func NewMetaResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	shardHdrRequestTopic string,
 	metaHdrRequestTopic string,
-) (*resolverRequestHandler, error) {
+) (*ResolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
 	}
@@ -91,7 +85,7 @@ func NewMetaResolverRequestHandler(
 		return nil, dataRetriever.ErrEmptyMetaHeaderRequestTopic
 	}
 
-	rrh := &resolverRequestHandler{
+	rrh := &ResolverRequestHandler{
 		resolversFinder:      finder,
 		shardHdrRequestTopic: shardHdrRequestTopic,
 		metaHdrRequestTopic:  metaHdrRequestTopic,
@@ -102,11 +96,11 @@ func NewMetaResolverRequestHandler(
 }
 
 // RequestTransaction method asks for transactions from the connected peers
-func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
+func (rrh *ResolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
 	rrh.requestByHashes(destShardID, txHashes, rrh.txRequestTopic)
 }
 
-func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string) {
+func (rrh *ResolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string) {
 	log.Debug(fmt.Sprintf("Requesting %d transactions from shard %d from network on topic %s...\n", len(hashes), destShardID, topic))
 	resolver, err := rrh.resolversFinder.CrossShardResolver(topic, destShardID)
 	if err != nil {
@@ -138,22 +132,17 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 }
 
 // RequestUnsignedTransactions method asks for unsigned transactions from the connected peers
-func (rrh *resolverRequestHandler) RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte) {
+func (rrh *ResolverRequestHandler) RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte) {
 	rrh.requestByHashes(destShardID, scrHashes, rrh.scrRequestTopic)
 }
 
-// RequestRewardTransactions requests for reward transactions from the connected peers
-func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32, rewardTxHashes [][]byte) {
-	rrh.requestByHashes(destShardId, rewardTxHashes, rrh.rewardTxRequestTopic)
-}
-
 // RequestMiniBlock method asks for miniblocks from the connected peers
-func (rrh *resolverRequestHandler) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
+func (rrh *ResolverRequestHandler) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
 	rrh.requestByHash(shardId, miniblockHash, rrh.mbRequestTopic)
 }
 
 // RequestHeader method asks for header from the connected peers
-func (rrh *resolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
+func (rrh *ResolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
 	//TODO: Refactor this class and create specific methods for requesting shard or meta data
 	var topic string
 	if shardId == sharding.MetachainShardId {
@@ -165,7 +154,7 @@ func (rrh *resolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
 	rrh.requestByHash(shardId, hash, topic)
 }
 
-func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
+func (rrh *ResolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
 	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, core.ToB64(hash)))
 
 	var resolver dataRetriever.Resolver
@@ -189,7 +178,7 @@ func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 }
 
 // RequestHeaderByNonce method asks for transactions from the connected peers
-func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
+func (rrh *ResolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
 	var err error
 	var resolver dataRetriever.Resolver
 	var topic string
@@ -219,7 +208,7 @@ func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
+func (rrh *ResolverRequestHandler) IsInterfaceNil() bool {
 	if rrh == nil {
 		return true
 	}

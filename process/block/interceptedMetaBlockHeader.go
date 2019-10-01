@@ -1,11 +1,8 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -14,27 +11,21 @@ import (
 // It implements Newer and Hashed interfaces
 type InterceptedMetaHeader struct {
 	*block.MetaBlock
-	multiSigVerifier crypto.MultiSigVerifier
-	hash             []byte
-	nodesCoordinator sharding.NodesCoordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
+	multiSigVerifier    crypto.MultiSigVerifier
+	chronologyValidator process.ChronologyValidator
+	hash                []byte
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedMetaHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
-	nodesCoordinator sharding.NodesCoordinator,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
+	chronologyValidator process.ChronologyValidator,
 ) *InterceptedMetaHeader {
 
 	return &InterceptedMetaHeader{
-		MetaBlock:        &block.MetaBlock{},
-		multiSigVerifier: multiSigVerifier,
-		nodesCoordinator: nodesCoordinator,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
+		MetaBlock:           &block.MetaBlock{},
+		multiSigVerifier:    multiSigVerifier,
+		chronologyValidator: chronologyValidator,
 	}
 }
 
@@ -60,7 +51,7 @@ func (imh *InterceptedMetaHeader) IntegrityAndValidity(coordinator sharding.Coor
 		return err
 	}
 
-	return nil
+	return imh.validityCheck()
 }
 
 // Integrity checks the integrity of the state block wrapper
@@ -107,54 +98,30 @@ func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) er
 	return nil
 }
 
+func (imh *InterceptedMetaHeader) validityCheck() error {
+	if imh.chronologyValidator == nil || imh.chronologyValidator.IsInterfaceNil() {
+		return process.ErrNilChronologyValidator
+	}
+
+	return imh.chronologyValidator.ValidateReceivedBlock(
+		sharding.MetachainShardId,
+		imh.Epoch,
+		imh.Nonce,
+		imh.Round,
+	)
+}
+
 // VerifySig verifies a signature
 func (imh *InterceptedMetaHeader) VerifySig() error {
-	randSeed := imh.GetPrevRandSeed()
-	bitmap := imh.GetPubKeysBitmap()
-
-	if len(bitmap) == 0 {
-		return process.ErrNilPubKeysBitmap
-	}
-
-	if bitmap[0]&1 == 0 {
-		return process.ErrBlockProposerSignatureMissing
-
-	}
-
-	consensusPubKeys, err := imh.nodesCoordinator.GetValidatorsPublicKeys(randSeed, imh.Round, imh.GetShardID())
-	if err != nil {
-		return err
-	}
-
-	verifier, err := imh.multiSigVerifier.Create(consensusPubKeys, 0)
-	if err != nil {
-		return err
-	}
-
-	err = verifier.SetAggregatedSig(imh.Signature)
-	if err != nil {
-		return err
-	}
-
-	// get marshalled block header without signature and bitmap
-	// as this is the message that was signed
-	headerCopy := *imh.MetaBlock
-	headerCopy.Signature = nil
-	headerCopy.PubKeysBitmap = nil
-
-	hash, err := core.CalculateHash(imh.marshalizer, imh.hasher, headerCopy)
-	if err != nil {
-		return err
-	}
-
-	err = verifier.Verify(hash, bitmap)
-
-	return err
+	// TODO: Check block signature after multisig will be implemented
+	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
+	// TODO: verify that the block proposer is among the signers
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (mb *InterceptedMetaHeader) IsInterfaceNil() bool {
-	if mb == nil {
+func (imh *InterceptedMetaHeader) IsInterfaceNil() bool {
+	if imh == nil {
 		return true
 	}
 	return false

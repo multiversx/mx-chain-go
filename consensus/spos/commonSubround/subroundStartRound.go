@@ -204,20 +204,11 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		}
 	}
 
-	randomSeed := currentHeader.GetRandSeed()
+	randomSource := fmt.Sprintf("%d-%s", roundIndex, core.ToB64(currentHeader.GetRandSeed()))
 
-	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n",
-		core.ToB64(randomSeed)),
-	)
+	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
-	shardId := sr.ShardCoordinator().SelfId()
-
-	nextConsensusGroup, _, err := sr.GetNextConsensusGroup(
-		randomSeed,
-		uint64(sr.RoundIndex),
-		shardId,
-		sr.NodesCoordinator(),
-	)
+	nextConsensusGroup, err := sr.GetNextConsensusGroup(randomSource, sr.ValidatorGroupSelector())
 	if err != nil {
 		return err
 	}
@@ -232,8 +223,6 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	log.Info(fmt.Sprintf("\n"))
 
 	sr.SetConsensusGroup(nextConsensusGroup)
-
-	sr.BlockProcessor().SetConsensusData(randomSeed, uint64(sr.RoundIndex), currentHeader.GetEpoch(), shardId)
 
 	return nil
 }

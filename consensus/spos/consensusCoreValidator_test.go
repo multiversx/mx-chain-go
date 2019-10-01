@@ -22,24 +22,24 @@ func initConsensusDataContainer() *ConsensusCore {
 	rounderMock := &mock.RounderMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	validatorGroupSelector := &mock.NodesCoordinatorMock{}
+	validatorGroupSelector := &mock.ValidatorGroupSelectorMock{}
 
 	return &ConsensusCore{
-		blockChain:         blockChain,
-		blockProcessor:     blockProcessorMock,
-		blocksTracker:      blocksTrackerMock,
-		bootstrapper:       bootstrapperMock,
-		broadcastMessenger: broadcastMessengerMock,
-		chronologyHandler:  chronologyHandlerMock,
-		hasher:             hasherMock,
-		marshalizer:        marshalizerMock,
-		blsPrivateKey:      blsPrivateKeyMock,
-		blsSingleSigner:    blsSingleSignerMock,
-		multiSigner:        multiSignerMock,
-		rounder:            rounderMock,
-		shardCoordinator:   shardCoordinatorMock,
-		syncTimer:          syncTimerMock,
-		nodesCoordinator:   validatorGroupSelector,
+		blockChain:             blockChain,
+		blockProcessor:         blockProcessorMock,
+		blocksTracker:          blocksTrackerMock,
+		bootstrapper:           bootstrapperMock,
+		broadcastMessenger:     broadcastMessengerMock,
+		chronologyHandler:      chronologyHandlerMock,
+		hasher:                 hasherMock,
+		marshalizer:            marshalizerMock,
+		blsPrivateKey:          blsPrivateKeyMock,
+		blsSingleSigner:        blsSingleSignerMock,
+		multiSigner:            multiSignerMock,
+		rounder:                rounderMock,
+		shardCoordinator:       shardCoordinatorMock,
+		syncTimer:              syncTimerMock,
+		validatorGroupSelector: validatorGroupSelector,
 	}
 }
 
@@ -157,7 +157,7 @@ func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.nodesCoordinator = nil
+	container.validatorGroupSelector = nil
 
 	err := ValidateConsensusCore(container)
 

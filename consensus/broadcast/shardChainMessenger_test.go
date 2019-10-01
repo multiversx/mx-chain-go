@@ -1,6 +1,7 @@
 package broadcast_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"testing"
 	"time"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 

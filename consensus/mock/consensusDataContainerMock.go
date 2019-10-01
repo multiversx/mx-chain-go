@@ -26,7 +26,7 @@ type ConsensusCoreMock struct {
 	rounder                consensus.Rounder
 	shardCoordinator       sharding.Coordinator
 	syncTimer              ntp.SyncTimer
-	validatorGroupSelector sharding.NodesCoordinator
+	validatorGroupSelector consensus.ValidatorGroupSelector
 }
 
 func (cdc *ConsensusCoreMock) Blockchain() data.ChainHandler {
@@ -77,7 +77,7 @@ func (cdc *ConsensusCoreMock) SyncTimer() ntp.SyncTimer {
 	return cdc.syncTimer
 }
 
-func (cdc *ConsensusCoreMock) NodesCoordinator() sharding.NodesCoordinator {
+func (cdc *ConsensusCoreMock) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return cdc.validatorGroupSelector
 }
 
@@ -124,7 +124,7 @@ func (cdc *ConsensusCoreMock) SetSyncTimer(syncTimer ntp.SyncTimer) {
 	cdc.syncTimer = syncTimer
 }
 
-func (cdc *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector sharding.NodesCoordinator) {
+func (cdc *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector consensus.ValidatorGroupSelector) {
 	cdc.validatorGroupSelector = validatorGroupSelector
 }
 

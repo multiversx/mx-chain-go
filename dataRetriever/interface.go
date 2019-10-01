@@ -28,10 +28,8 @@ const (
 	MetaPeerDataUnit UnitType = 6
 	// UnsignedTransactionUnit is the unsigned transaction unit identifier
 	UnsignedTransactionUnit UnitType = 7
-	// RewardTransactionUnit is the reward transaction unit identifier
-	RewardTransactionUnit UnitType = 8
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
-	MetaHdrNonceHashDataUnit UnitType = 9
+	MetaHdrNonceHashDataUnit UnitType = 8
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -198,7 +196,6 @@ type Uint64SyncMapCacher interface {
 type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
-	RewardTransactions() ShardedDataCacherNotifier
 	Headers() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
 	MiniBlocks() storage.Cacher

@@ -106,12 +106,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	initialNodeAddr := "nodeAddr"
 	valMinting := big.NewInt(20000)
 
-	node := integrationTests.NewTestProcessorNode(
-		maxShards,
-		nodeShardId,
-		txSignPrivKeyShardId,
-		initialNodeAddr,
-	)
+	node := integrationTests.NewTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
 
 	txHexHash := ""
 

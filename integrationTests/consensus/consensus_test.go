@@ -28,14 +28,7 @@ func getPkEncoded(pubKey crypto.PublicKey) string {
 	return encodeAddress(pk)
 }
 
-func initNodesAndTest(
-	numNodes,
-	consensusSize,
-	numInvalid uint32,
-	roundTime uint64,
-	consensusType string,
-) ([]*testNode, p2p.Messenger, *sync.Map) {
-
+func initNodesAndTest(numNodes, consensusSize, numInvalid uint32, roundTime uint64, consensusType string) ([]*testNode, p2p.Messenger, *sync.Map) {
 	fmt.Println("Step 1. Setup nodes...")
 
 	advertiser := createMessengerWithKadDht(context.Background(), "")
@@ -50,45 +43,24 @@ func initNodesAndTest(
 		getConnectableAddress(advertiser),
 		consensusType,
 	)
-
-	for _, nodesList := range nodes {
-		displayAndStartNodes(nodesList)
-	}
+	displayAndStartNodes(nodes)
 
 	if numInvalid < numNodes {
 		for i := uint32(0); i < numInvalid; i++ {
-			nodes[0][i].blkProcessor.ProcessBlockCalled = func(
-				blockChain data.ChainHandler,
-				header data.HeaderHandler,
-				body data.BodyHandler,
-				haveTime func() time.Duration,
-			) error {
-
-				fmt.Println(
-					"process block invalid ",
-					header.GetRound(),
-					header.GetNonce(),
-					getPkEncoded(nodes[0][i].pk),
-				)
+			nodes[i].blkProcessor.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+				fmt.Println("process block invalid ", header.GetRound(), header.GetNonce(), getPkEncoded(nodes[i].pk))
 				return process.ErrBlockHashDoesNotMatch
 			}
-			nodes[0][i].blkProcessor.CreateBlockHeaderCalled = func(
-				body data.BodyHandler,
-				round uint64,
-				haveTime func() bool,
-			) (handler data.HeaderHandler, e error) {
+			nodes[i].blkProcessor.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint64, haveTime func() bool) (handler data.HeaderHandler, e error) {
 				return nil, process.ErrAccountStateDirty
 			}
-			nodes[0][i].blkProcessor.CreateBlockCalled = func(
-				round uint64,
-				haveTime func() bool,
-			) (handler data.BodyHandler, e error) {
+			nodes[i].blkProcessor.CreateBlockCalled = func(round uint64, haveTime func() bool) (handler data.BodyHandler, e error) {
 				return nil, process.ErrWrongTypeAssertion
 			}
 		}
 	}
 
-	return nodes[0], advertiser, concMap
+	return nodes, advertiser, concMap
 }
 
 func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {

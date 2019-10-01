@@ -122,7 +122,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	rounderMock := &RounderMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
-	validatorGroupSelector := &NodesCoordinatorMock{}
+	validatorGroupSelector := &ValidatorGroupSelectorMock{}
 
 	container := &ConsensusCoreMock{
 		blockChain,

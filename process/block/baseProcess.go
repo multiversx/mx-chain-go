@@ -30,16 +30,14 @@ type hashAndHdr struct {
 type mapShardHeaders map[uint32][]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	specialAddressHandler process.SpecialAddressHandler
-	accounts              state.AccountsAdapter
-	forkDetector          process.ForkDetector
-	hasher                hashing.Hasher
-	marshalizer           marshal.Marshalizer
-	store                 dataRetriever.StorageService
-	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler    process.BlockSizeThrottler
+	shardCoordinator   sharding.Coordinator
+	accounts           state.AccountsAdapter
+	forkDetector       process.ForkDetector
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	store              dataRetriever.StorageService
+	uint64Converter    typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler process.BlockSizeThrottler
 
 	mutNotarizedHdrs sync.RWMutex
 	notarizedHdrs    mapShardHeaders
@@ -499,8 +497,6 @@ func checkProcessorNilParameters(
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	specialAddressHandler process.SpecialAddressHandler,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 ) error {
 
@@ -521,12 +517,6 @@ func checkProcessorNilParameters(
 	}
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
-	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
-		return process.ErrNilNodesCoordinator
-	}
-	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {
-		return process.ErrNilSpecialAddressHandler
 	}
 	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
 		return process.ErrNilUint64Converter

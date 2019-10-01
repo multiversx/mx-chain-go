@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -19,24 +18,23 @@ import (
 
 type interceptorsContainerFactory struct {
 	accounts            state.AccountsAdapter
-	shardCoordinator sharding.Coordinator
-	messenger        process.TopicHandler
-	store            dataRetriever.StorageService
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	keyGen           crypto.KeyGenerator
-	singleSigner     crypto.SingleSigner
-	multiSigner      crypto.MultiSigner
-	dataPool         dataRetriever.PoolsHolder
-	addrConverter    state.AddressConverter
-	nodesCoordinator sharding.NodesCoordinator
+	shardCoordinator    sharding.Coordinator
+	messenger           process.TopicHandler
+	store               dataRetriever.StorageService
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	keyGen              crypto.KeyGenerator
+	singleSigner        crypto.SingleSigner
+	multiSigner         crypto.MultiSigner
+	dataPool            dataRetriever.PoolsHolder
+	addrConverter       state.AddressConverter
+	chronologyValidator process.ChronologyValidator
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
@@ -46,6 +44,7 @@ func NewInterceptorsContainerFactory(
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
+	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -80,23 +79,23 @@ func NewInterceptorsContainerFactory(
 	if addrConverter == nil || addrConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
-		return nil, process.ErrNilNodesCoordinator
+	if chronologyValidator == nil || chronologyValidator.IsInterfaceNil() {
+		return nil, process.ErrNilChronologyValidator
 	}
 
 	return &interceptorsContainerFactory{
 		accounts:            accounts,
-		shardCoordinator: shardCoordinator,
-		nodesCoordinator: nodesCoordinator,
-		messenger:        messenger,
-		store:            store,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		keyGen:           keyGen,
-		singleSigner:     singleSigner,
-		multiSigner:      multiSigner,
-		dataPool:         dataPool,
-		addrConverter:    addrConverter,
+		shardCoordinator:    shardCoordinator,
+		messenger:           messenger,
+		store:               store,
+		marshalizer:         marshalizer,
+		hasher:              hasher,
+		keyGen:              keyGen,
+		singleSigner:        singleSigner,
+		multiSigner:         multiSigner,
+		dataPool:            dataPool,
+		addrConverter:       addrConverter,
+		chronologyValidator: chronologyValidator,
 	}, nil
 }
 
@@ -115,16 +114,6 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	}
 
 	keys, interceptorSlice, err = icf.generateUnsignedTxsInterceptors()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.AddMultiple(keys, interceptorSlice)
-	if err != nil {
-		return nil, err
-	}
-
-	keys, interceptorSlice, err = icf.generateRewardTxInterceptors()
 	if err != nil {
 		return nil, err
 	}
@@ -249,60 +238,6 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
-//------- Reward transactions interceptors
-
-func (icf *interceptorsContainerFactory) generateRewardTxInterceptors() ([]string, []process.Interceptor, error) {
-	shardC := icf.shardCoordinator
-
-	noOfShards := shardC.NumberOfShards()
-
-	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
-
-	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
-
-		interceptor, err := icf.createOneRewardTxInterceptor(identifierScr)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		keys[int(idx)] = identifierScr
-		interceptorSlice[int(idx)] = interceptor
-	}
-
-	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-
-	interceptor, err := icf.createOneRewardTxInterceptor(identifierTx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	keys = append(keys, identifierTx)
-	interceptorSlice = append(interceptorSlice, interceptor)
-
-	return keys, interceptorSlice, nil
-}
-
-func (icf *interceptorsContainerFactory) createOneRewardTxInterceptor(identifier string) (process.Interceptor, error) {
-	rewardTxStorer := icf.store.GetStorer(dataRetriever.RewardTransactionUnit)
-
-	interceptor, err := rewardTransaction.NewRewardTxInterceptor(
-		icf.marshalizer,
-		icf.dataPool.RewardTransactions(),
-		rewardTxStorer,
-		icf.addrConverter,
-		icf.hasher,
-		icf.shardCoordinator,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
-}
-
 //------- Unsigned transactions interceptors
 
 func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]string, []process.Interceptor, error) {
@@ -376,7 +311,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
-		icf.nodesCoordinator,
+		icf.chronologyValidator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -476,7 +411,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
-		icf.nodesCoordinator,
+		icf.chronologyValidator,
 	)
 	if err != nil {
 		return nil, nil, err

@@ -23,7 +23,7 @@ type MetachainHeaderInterceptor struct {
 	multiSigVerifier       crypto.MultiSigVerifier
 	hasher                 hashing.Hasher
 	shardCoordinator       sharding.Coordinator
-	nodesCoordinator       sharding.NodesCoordinator
+	chronologyValidator    process.ChronologyValidator
 }
 
 // NewMetachainHeaderInterceptor hooks a new interceptor for metachain block headers
@@ -36,7 +36,7 @@ func NewMetachainHeaderInterceptor(
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
+	chronologyValidator process.ChronologyValidator,
 ) (*MetachainHeaderInterceptor, error) {
 
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
@@ -60,8 +60,8 @@ func NewMetachainHeaderInterceptor(
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
-		return nil, process.ErrNilNodesCoordinator
+	if chronologyValidator == nil || chronologyValidator.IsInterfaceNil() {
+		return nil, process.ErrNilChronologyValidator
 	}
 
 	return &MetachainHeaderInterceptor{
@@ -72,7 +72,7 @@ func NewMetachainHeaderInterceptor(
 		multiSigVerifier:       multiSigVerifier,
 		hasher:                 hasher,
 		shardCoordinator:       shardCoordinator,
-		nodesCoordinator:       nodesCoordinator,
+		chronologyValidator:    chronologyValidator,
 		metachainHeadersNonces: metachainHeadersNonces,
 	}, nil
 }
@@ -85,12 +85,7 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 		return err
 	}
 
-	metaHdrIntercepted := block.NewInterceptedMetaHeader(
-		mhi.multiSigVerifier,
-		mhi.nodesCoordinator,
-		mhi.marshalizer,
-		mhi.hasher,
-	)
+	metaHdrIntercepted := block.NewInterceptedMetaHeader(mhi.multiSigVerifier, mhi.chronologyValidator)
 	err = mhi.marshalizer.Unmarshal(metaHdrIntercepted, message.Data())
 	if err != nil {
 		return err
