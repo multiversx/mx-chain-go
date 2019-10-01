@@ -74,10 +74,10 @@ func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordi
 
 func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error {
 	for _, smbh := range sd.ShardMiniBlockHeaders {
-		if smbh.SenderShardId >= coordinator.NumberOfShards() {
-			return process.ErrInvalidShardId
-		}
-		if smbh.ReceiverShardId >= coordinator.NumberOfShards() {
+		isWrongSenderShardId := smbh.SenderShardId >= coordinator.NumberOfShards()
+		isWrongDestinationShardId := smbh.ReceiverShardId >= coordinator.NumberOfShards()
+		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
+		if isWrongShardId {
 			return process.ErrInvalidShardId
 		}
 	}
@@ -87,10 +87,10 @@ func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error 
 
 func checkMiniblocks(miniblocks []block.MiniBlockHeader, coordinator sharding.Coordinator) error {
 	for _, miniblock := range miniblocks {
-		if miniblock.SenderShardID >= coordinator.NumberOfShards() {
-			return process.ErrInvalidShardId
-		}
-		if miniblock.ReceiverShardID >= coordinator.NumberOfShards() {
+		isWrongSenderShardId := miniblock.SenderShardID >= coordinator.NumberOfShards()
+		isWrongDestinationShardId := miniblock.ReceiverShardID >= coordinator.NumberOfShards()
+		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
+		if isWrongShardId {
 			return process.ErrInvalidShardId
 		}
 	}
