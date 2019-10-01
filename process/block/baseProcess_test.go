@@ -330,7 +330,6 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			Core:             &mock.ServiceContainerMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
-		BlocksTracker:   &mock.BlocksTrackerMock{},
 		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}

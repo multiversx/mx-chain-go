@@ -64,7 +64,6 @@ type Node struct {
 	syncTimer                ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
-	blockTracker             process.BlocksTracker
 	genesisTime              time.Time
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
@@ -257,7 +256,6 @@ func (n *Node) StartConsensus() error {
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blockProcessor,
-		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		consensusState,
@@ -286,7 +284,6 @@ func (n *Node) StartConsensus() error {
 	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
-		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		chronologyHandler,
