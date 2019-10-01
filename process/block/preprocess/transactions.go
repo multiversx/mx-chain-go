@@ -531,18 +531,25 @@ func (txs *transactions) computeOrderedTxs(
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
 
+	if txShardPool == nil {
+		return nil, nil, process.ErrNilTxDataPool
+	}
+	if txShardPool.Len() == 0 {
+		return nil, nil, process.ErrEmptyTxDataPool
+	}
+
 	txs.mutOrderedTxs.RLock()
 	orderedTxs := txs.orderedTxs[strCache]
 	orderedTxHashes := txs.orderedTxHashes[strCache]
 	txs.mutOrderedTxs.RUnlock()
 
-	if txShardPool == nil || txShardPool.Len() == 0 {
-		return orderedTxs, orderedTxHashes, err
-	}
-
 	alreadyOrdered := len(orderedTxs) > 0
 	if !alreadyOrdered {
 		orderedTxs, orderedTxHashes, err = SortTxByNonce(txShardPool)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard %d from shard %d\n",
 			len(orderedTxs),
 			dstShardId,
@@ -554,7 +561,7 @@ func (txs *transactions) computeOrderedTxs(
 		txs.mutOrderedTxs.Unlock()
 	}
 
-	return orderedTxs, orderedTxHashes, err
+	return orderedTxs, orderedTxHashes, nil
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
