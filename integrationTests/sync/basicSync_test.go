@@ -149,8 +149,8 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 
 	time.Sleep(stepSync)
 
-	pubKeysVariant1 := []byte("1")
-	pubKeysVariant2 := []byte("2")
+	pubKeysVariant1 := []byte{3}
+	pubKeysVariant2 := []byte{1}
 
 	proposeBlockWithPubKeyBitmap(nodes[idxProposerShard0], round, nonce, pubKeysVariant1)
 	proposeBlockWithPubKeyBitmap(nodes[1], round, nonce, pubKeysVariant2)
