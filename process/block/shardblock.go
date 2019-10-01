@@ -733,8 +733,21 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
+	headersStorage := sp.dataPool.Headers()
 	for i := range finalHeaders {
-		rootHash := finalHeaders[i].GetRootHash()
+		val, ok := headersStorage.Get(finalHeaders[i].GetPrevHash())
+		if !ok {
+			log.Debug("Could not get header from storage")
+			continue
+		}
+
+		prevHeader, ok := val.(*block.Header)
+		if !ok {
+			log.Debug(process.ErrWrongTypeAssertion.Error())
+			continue
+		}
+
+		rootHash := prevHeader.GetRootHash()
 		if rootHash == nil {
 			continue
 		}
