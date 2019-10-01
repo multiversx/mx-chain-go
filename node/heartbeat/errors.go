@@ -37,3 +37,9 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrNilGetTimeHandler signals that a nil time getter handler has been provided
 var ErrNilGetTimeHandler = errors.New("nil time getter handler")
+
+// ErrNilMonitorDb signals that a nil monitor db was provided
+var ErrNilMonitorDb = errors.New("nil monitor db")
+
+// ErrNilMessageHandler signals that the provided message handler is nil
+var ErrNilMessageHandler = errors.New("nil message handler")

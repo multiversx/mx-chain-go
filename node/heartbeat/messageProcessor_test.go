@@ -3,30 +3,68 @@ package heartbeat
 import (
 	"encoding/json"
 	"errors"
-	"testing"
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-func TestNewMessageHandler(t *testing.T) {
+func TestNewMessageHandler_NilSingleSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mh := NewMessageHandler(
+	mh, err := NewMessageProcessor(
+		nil,
+		&mock.KeyGenMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	assert.Nil(t, mh)
+	assert.Equal(t, ErrNilSingleSigner, err)
+}
+
+func TestNewMessageHandler_NilKeygenShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mh, err := NewMessageProcessor(
+		&mock.SingleSignerMock{},
+		nil,
+		&mock.MarshalizerMock{},
+	)
+
+	assert.Nil(t, mh)
+	assert.Equal(t, ErrNilKeyGenerator, err)
+}
+
+func TestNewMessageHandler_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mh, err := NewMessageProcessor(
+		&mock.SingleSignerMock{},
+		&mock.KeyGenMock{},
+		nil,
+	)
+
+	assert.Nil(t, mh)
+	assert.Equal(t, ErrNilMarshalizer, err)
+}
+
+func TestNewMessageHandler_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mh, err := NewMessageProcessor(
 		&mock.SingleSignerMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 	)
 
 	assert.NotNil(t, mh)
+	assert.Nil(t, err)
 }
 
 func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mh := NewMessageHandler(
+	mh, _ := NewMessageProcessor(
 		&mock.SingleSignerMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
@@ -40,7 +78,7 @@ func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pMessageNilMessageShouldEr
 func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pMessageNilMessageDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mh := NewMessageHandler(
+	mh, _ := NewMessageProcessor(
 		&mock.SingleSignerMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
@@ -57,7 +95,7 @@ func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pMessageNilMessageDataShou
 func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pMessageUnmarshalError(t *testing.T) {
 	t.Parallel()
 
-	mh := NewMessageHandler(
+	mh, _ := NewMessageProcessor(
 		&mock.SingleSignerMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
@@ -76,7 +114,7 @@ func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pMessageSignatureShouldErr
 
 	expectedErr := errors.New("invalid signature")
 
-	mh := NewMessageHandler(
+	mh, _ := NewMessageProcessor(
 		&mock.SingleSignerMock{
 			VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 				return expectedErr
@@ -105,7 +143,7 @@ func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pMessageSignatureShouldErr
 func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mh := NewMessageHandler(
+	mh, _ := NewMessageProcessor(
 		&mock.SingleSignerMock{
 			VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 				return nil
@@ -129,44 +167,4 @@ func TestHeartbeatMessageHandler_CreateHeartbeatFromP2pOkValsShouldWork(t *testi
 	hbm, err := mh.CreateHeartbeatFromP2pMessage(&message)
 	assert.NotNil(t, hbm)
 	assert.Nil(t, err)
-}
-
-func TestHeartbeatMessageHandler_convertToExportedStruct(t *testing.T) {
-	t.Parallel()
-
-	mh := NewMessageHandler(
-		&mock.SingleSignerMock{},
-		&mock.KeyGenMock{},
-		&mock.MarshalizerMock{},
-	)
-
-	timeHandler := func() time.Time {
-		return time.Now()
-	}
-	hbmi, err := newHeartbeatMessageInfo(10, false, time.Now(), timeHandler)
-	assert.Nil(t, err)
-	res := mh.convertToExportedStruct(hbmi)
-
-	assert.Equal(t, hbmi.nodeDisplayName, res.NodeDisplayName)
-	assert.Equal(t, hbmi.isActive, res.IsActive)
-}
-
-func TestHeartbeatMessageHandler_convertFromExportedStruct(t *testing.T) {
-	t.Parallel()
-
-	mh := NewMessageHandler(
-		&mock.SingleSignerMock{},
-		&mock.KeyGenMock{},
-		&mock.MarshalizerMock{},
-	)
-
-	hbmiDto := HeartbeatDTO{
-		NodeDisplayName: "node0",
-		IsValidator:     false,
-	}
-
-	hbmi := mh.convertFromExportedStruct(hbmiDto, 10)
-
-	assert.Equal(t, hbmiDto.NodeDisplayName, hbmi.nodeDisplayName)
-	assert.Equal(t, hbmiDto.IsValidator, hbmi.isActive)
 }

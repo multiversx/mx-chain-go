@@ -12,7 +12,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -36,37 +35,32 @@ type Monitor struct {
 	appStatusHandler            core.AppStatusHandler
 	monitorDB                   storage.Storer
 	genesisTime                 time.Time
-	messageHandler              *MessageHandler
+	messageHandler              MessageHandler
 }
 
 // NewMonitor returns a new monitor instance
 func NewMonitor(
-	singleSigner crypto.SingleSigner,
-	keygen crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	maxDurationPeerUnresponsive time.Duration,
 	pubKeysMap map[uint32][]string,
 	monitorDB storage.Storer,
 	genesisTime time.Time,
+	messageHandler MessageHandler,
 ) (*Monitor, error) {
 
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
-		return nil, ErrNilSingleSigner
-	}
-	if keygen == nil || keygen.IsInterfaceNil() {
-		return nil, ErrNilKeyGenerator
-	}
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
 		return nil, ErrNilMarshalizer
 	}
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
 	}
-	if monitorDB == nil {
-		return nil, errors.New("nil monitor db")
+	if monitorDB == nil || monitorDB.IsInterfaceNil() {
+		return nil, ErrNilMonitorDb
+	}
+	if messageHandler == nil || messageHandler.IsInterfaceNil() {
+		return nil, ErrNilMessageHandler
 	}
 
-	messageHandler := NewMessageHandler(singleSigner, keygen, marshalizer)
 	mon := &Monitor{
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
@@ -220,7 +214,7 @@ func (m *Monitor) getHbmiFromDbBytes(message []byte) (*heartbeatMessageInfo, err
 		return nil, err
 	}
 
-	hbmi := m.messageHandler.convertFromExportedStruct(heartbeatDto, m.maxDurationPeerUnresponsive)
+	hbmi := m.convertFromExportedStruct(heartbeatDto, m.maxDurationPeerUnresponsive)
 
 	return &hbmi, nil
 }
@@ -274,7 +268,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 
 func (m *Monitor) storeHeartbeat(pubKey []byte) {
 	hbInfo := m.heartbeatMessages[string(pubKey)]
-	hbExportedFormat := m.messageHandler.convertToExportedStruct(hbInfo)
+	hbExportedFormat := m.convertToExportedStruct(hbInfo)
 	marshalizedHeartBeat, err := m.marshalizer.Marshal(hbExportedFormat)
 	if err != nil {
 		log.Warn(fmt.Sprintf("can't marshal heartbeat message for pubKey %s: %s", pubKey, err.Error()))
@@ -391,4 +385,39 @@ func (m *Monitor) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO {
+	return HeartbeatDTO{
+		TimeStamp:          v.timeStamp,
+		MaxInactiveTime:    v.maxInactiveTime,
+		IsActive:           v.isActive,
+		ReceivedShardID:    v.receivedShardID,
+		ComputedShardID:    v.computedShardID,
+		TotalUpTime:        v.totalUpTime,
+		TotalDownTime:      v.totalDownTime,
+		VersionNumber:      v.versionNumber,
+		IsValidator:        v.isValidator,
+		NodeDisplayName:    v.nodeDisplayName,
+		LastUptimeDowntime: v.lastUptimeDowntime,
+	}
+}
+
+func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time.Duration) heartbeatMessageInfo {
+	hbmi := heartbeatMessageInfo{
+		maxDurationPeerUnresponsive: maxDuration,
+		maxInactiveTime:             hbDTO.MaxInactiveTime,
+		timeStamp:                   hbDTO.TimeStamp,
+		isActive:                    hbDTO.IsActive,
+		totalUpTime:                 hbDTO.TotalUpTime,
+		totalDownTime:               hbDTO.TotalDownTime,
+		receivedShardID:             hbDTO.ReceivedShardID,
+		computedShardID:             hbDTO.ComputedShardID,
+		versionNumber:               hbDTO.VersionNumber,
+		nodeDisplayName:             hbDTO.NodeDisplayName,
+		isValidator:                 hbDTO.IsValidator,
+		lastUptimeDowntime:          hbDTO.LastUptimeDowntime,
+	}
+
+	return hbmi
 }

@@ -773,14 +773,21 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	heartbeatStorage := n.store.GetStorer(dataRetriever.HeartbeatUnit)
-	n.heartbeatMonitor, err = heartbeat.NewMonitor(
+	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
+		n.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.marshalizer,
 		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
 		n.initialNodesPubkeys,
 		heartbeatStorage,
 		n.genesisTime,
+		heartBeatMsgProcessor,
 	)
 	if err != nil {
 		return err

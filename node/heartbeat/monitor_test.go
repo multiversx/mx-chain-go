@@ -3,11 +3,10 @@ package heartbeat_test
 import (
 	"encoding/hex"
 	"encoding/json"
-	"errors"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/stretchr/testify/assert"
@@ -15,51 +14,16 @@ import (
 
 //------- NewMonitor
 
-func TestNewMonitor_NilSingleSignerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mon, err := heartbeat.NewMonitor(
-		nil,
-		&mock.KeyGenMock{},
-		&mock.MarshalizerMock{},
-		0,
-		map[uint32][]string{0: {""}},
-		&mock.StorerMock{},
-		time.Now(),
-	)
-
-	assert.Nil(t, mon)
-	assert.Equal(t, heartbeat.ErrNilSingleSigner, err)
-}
-
-func TestNewMonitor_NilKeygenShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mon, err := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		nil,
-		&mock.MarshalizerMock{},
-		0,
-		map[uint32][]string{0: {""}},
-		&mock.StorerMock{},
-		time.Now(),
-	)
-
-	assert.Nil(t, mon)
-	assert.Equal(t, heartbeat.ErrNilKeyGenerator, err)
-}
-
 func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mon, err := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		&mock.KeyGenMock{},
 		nil,
 		0,
 		map[uint32][]string{0: {""}},
 		&mock.StorerMock{},
 		time.Now(),
+		&mock.MessageHandlerStub{},
 	)
 
 	assert.Nil(t, mon)
@@ -70,30 +34,44 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mon, err := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 		0,
 		make(map[uint32][]string),
 		&mock.StorerMock{},
 		time.Now(),
+		&mock.MessageHandlerStub{},
 	)
 
 	assert.Nil(t, mon)
 	assert.Equal(t, heartbeat.ErrEmptyPublicKeysMap, err)
 }
 
+func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mon, err := heartbeat.NewMonitor(
+		&mock.MarshalizerMock{},
+		0,
+		map[uint32][]string{0: {""}},
+		&mock.StorerMock{},
+		time.Now(),
+		nil,
+	)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilMessageHandler, err)
+}
+
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 	t.Parallel()
 
 	mon, err := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 		1,
 		map[uint32][]string{0: {"pk1", "pk2"}},
 		mock.NewStorerMock(),
 		time.Now(),
+		&mock.MessageHandlerStub{},
 	)
 
 	assert.NotNil(t, mon)
@@ -112,13 +90,12 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 
 	maxDuration := time.Millisecond
 	mon, err := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
 		maxDuration,
 		pksPerShards,
 		mock.NewStorerMock(),
 		time.Now(),
+		&mock.MessageHandlerStub{},
 	)
 
 	assert.NotNil(t, mon)
@@ -131,142 +108,12 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 
 //------- ProcessReceivedMessage
 
-func TestMonitor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		&mock.KeyGenMock{},
-		&mock.MarshalizerMock{},
-		1,
-		map[uint32][]string{0: {"pk1"}},
-		mock.NewStorerMock(),
-		time.Now(),
-	)
-
-	err := mon.ProcessReceivedMessage(nil)
-
-	assert.Equal(t, heartbeat.ErrNilMessage, err)
-}
-
-func TestMonitor_ProcessReceivedMessageNilDataShouldErr(t *testing.T) {
-	t.Parallel()
-
-	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		&mock.KeyGenMock{},
-		&mock.MarshalizerMock{},
-		10,
-		map[uint32][]string{0: {"pk1"}},
-		mock.NewStorerMock(),
-		time.Now(),
-	)
-
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{})
-
-	assert.Equal(t, heartbeat.ErrNilDataToProcess, err)
-}
-
-func TestMonitor_ProcessReceivedMessageMarshalFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected err")
-
-	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		&mock.KeyGenMock{},
-		&mock.MarshalizerMock{
-			UnmarshalHandler: func(obj interface{}, buff []byte) error {
-				return errExpected
-			},
-		},
-		1,
-		map[uint32][]string{0: {"pk1"}},
-		mock.NewStorerMock(),
-		time.Now(),
-	)
-
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
-
-	assert.Equal(t, errExpected, err)
-}
-
-func TestMonitor_ProcessReceivedMessageWrongPubkeyShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected err")
-
-	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignMock{},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, errExpected
-			},
-		},
-		&mock.MarshalizerMock{
-			UnmarshalHandler: func(obj interface{}, buff []byte) error {
-				return nil
-			},
-		},
-		1,
-		map[uint32][]string{0: {"pk1"}},
-		mock.NewStorerMock(),
-		time.Now(),
-	)
-
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
-
-	assert.Equal(t, errExpected, err)
-}
-
-func TestMonitor_ProcessReceivedMessageVerifyFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected err")
-
-	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignStub{
-			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return errExpected
-			},
-		},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, nil
-			},
-		},
-		&mock.MarshalizerMock{
-			UnmarshalHandler: func(obj interface{}, buff []byte) error {
-				return nil
-			},
-		},
-		1,
-		map[uint32][]string{0: {"pk1"}},
-		mock.NewStorerMock(),
-		time.Now(),
-	)
-
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
-
-	assert.Equal(t, errExpected, err)
-}
-
 func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pubKey := "pk1"
 
 	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignStub{
-			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return nil
-			},
-		},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, nil
-			},
-		},
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
 				(obj.(*heartbeat.Heartbeat)).Pubkey = []byte(pubKey)
@@ -277,9 +124,20 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		map[uint32][]string{0: {pubKey}},
 		mock.NewStorerMock(),
 		time.Now(),
+		&mock.MessageHandlerStub{
+			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+				var rcvHb heartbeat.Heartbeat
+				_ = json.Unmarshal(message.Data(), &rcvHb)
+				return &rcvHb, nil
+			},
+		},
 	)
 
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
+	hb := heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey),
+	}
+	hbBytes, _ := json.Marshal(hb)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes})
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -296,16 +154,6 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 	pubKey := "pk1"
 
 	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignStub{
-			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return nil
-			},
-		},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, nil
-			},
-		},
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
 				(obj.(*heartbeat.Heartbeat)).Pubkey = []byte(pubKey)
@@ -316,9 +164,20 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 		map[uint32][]string{0: {"pk2"}},
 		mock.NewStorerMock(),
 		time.Now(),
+		&mock.MessageHandlerStub{
+			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+				var rcvHb heartbeat.Heartbeat
+				_ = json.Unmarshal(message.Data(), &rcvHb)
+				return &rcvHb, nil
+			},
+		},
 	)
 
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
+	hb := heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey),
+	}
+	hbBytes, _ := json.Marshal(hb)
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes})
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -336,16 +195,6 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	pubKey := []byte("pk1")
 
 	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignStub{
-			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return nil
-			},
-		},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, nil
-			},
-		},
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
 				var rcvdHb heartbeat.Heartbeat
@@ -359,6 +208,13 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 		map[uint32][]string{0: {"pk1"}},
 		mock.NewStorerMock(),
 		time.Now(),
+		&mock.MessageHandlerStub{
+			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+				var rcvHb heartbeat.Heartbeat
+				_ = json.Unmarshal(message.Data(), &rcvHb)
+				return &rcvHb, nil
+			},
+		},
 	)
 
 	// First send from pk1 from shard 0
@@ -408,16 +264,6 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	pubKey2 := "pk2-should-go-offline"
 
 	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignStub{
-			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return nil
-			},
-		},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, nil
-			},
-		},
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
 				var rcvdHb heartbeat.Heartbeat
@@ -431,6 +277,13 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 		map[uint32][]string{0: {pubKey1, pubKey2}},
 		mock.NewStorerMock(),
 		time.Now(),
+		&mock.MessageHandlerStub{
+			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+				var rcvHb heartbeat.Heartbeat
+				_ = json.Unmarshal(message.Data(), &rcvHb)
+				return &rcvHb, nil
+			},
+		},
 	)
 
 	// First send from pk1
