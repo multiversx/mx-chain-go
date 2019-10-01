@@ -50,7 +50,7 @@ func NewSubroundStartRound(
 		executeStoredMessages,
 		broadcastUnnotarisedBlocks,
 		statusHandler.NewNilStatusHandler(),
-		nil,
+		indexer.NewNilIndexer(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -206,7 +206,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
-	if sr.indexer == nil || sr.IsInterfaceNil() {
+	if sr.indexer == nil || sr.indexer.IsNilIndexer() {
 		return
 	}
 

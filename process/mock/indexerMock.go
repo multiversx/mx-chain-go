@@ -21,7 +21,7 @@ func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 }
 
 func (im *IndexerMock) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64, blockWasProposed bool) {
-	panic("implement me")
+	return
 }
 
 func (im *IndexerMock) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
@@ -34,4 +34,8 @@ func (im *IndexerMock) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (im *IndexerMock) IsNilIndexer() bool {
+	return true
 }

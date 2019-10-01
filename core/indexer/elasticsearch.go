@@ -53,6 +53,7 @@ type elasticIndexer struct {
 	hasher           hashing.Hasher
 	logger           *logger.Logger
 	options          *Options
+	isNilIndexer     bool
 }
 
 // NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
@@ -96,6 +97,7 @@ func NewElasticIndexer(
 		hasher,
 		logger,
 		options,
+		false,
 	}
 
 	err = indexer.checkAndCreateIndex(blockIndex, timestampMapping())
@@ -287,6 +289,11 @@ func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][
 
 		go ei.saveShardValidatorsPubKeys(shardId, valPubKeys[shardId])
 	}
+}
+
+// IsNilIndexer will return a bool value that signal if its a nil indexer
+func (ei *elasticIndexer) IsNilIndexer() bool {
+	return ei.isNilIndexer
 }
 
 func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string) {

@@ -34,3 +34,7 @@ func (im *IndexerMock) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func (im *IndexerMock) IsNilIndexer() bool {
+	return false
+}

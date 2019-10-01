@@ -13,4 +13,5 @@ type Indexer interface {
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte)
 	IsInterfaceNil() bool
+	IsNilIndexer() bool
 }
