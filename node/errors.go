@@ -58,6 +58,9 @@ var ErrNilDataPool = errors.New("trying to set nil data pool")
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 
+// ErrNilNodesCoordinator signals that a nil nodes coordinator has been provided
+var ErrNilNodesCoordinator = errors.New("trying to set nil nodes coordinator")
+
 // ErrNilUint64ByteSliceConverter signals that a nil uint64 <-> byte slice converter has been provided
 var ErrNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte slice converter")
 
