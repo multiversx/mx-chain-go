@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -482,6 +483,15 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	nodesCoordinator, err := createNodesCoordinator(
+		nodesConfig,
+		generalConfig.GeneralSettings,
+		pubKey,
+		coreComponents.Hasher)
+	if err != nil {
+		return err
+	}
+
 	stateArgs := factory.NewStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
@@ -551,8 +561,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(ctx, generalConfig, nodesConfig, shardCoordinator, keyGen,
-		privKey, log, initialBalancesSkPemFile.Name, txSignSk.Name, txSignSkIndex.Name)
+	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
+		ctx,
+		generalConfig,
+		nodesConfig,
+		shardCoordinator,
+		keyGen,
+		privKey,
+		log,
+		initialBalancesSkPemFile.Name,
+		txSignSk.Name,
+		txSignSkIndex.Name,
+	)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
 	if err != nil {
 		return err
@@ -611,8 +631,22 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	processArgs := factory.NewProcessComponentsFactoryArgs(genesisConfig, nodesConfig, syncer, shardCoordinator,
-		dataComponents, coreComponents, cryptoComponents, stateComponents, networkComponents, coreServiceContainer)
+	economicsConfig := &generalConfig.EconomicsConfig
+
+	processArgs := factory.NewProcessComponentsFactoryArgs(
+		genesisConfig,
+		economicsConfig,
+		nodesConfig,
+		syncer,
+		shardCoordinator,
+		nodesCoordinator,
+		dataComponents,
+		coreComponents,
+		cryptoComponents,
+		stateComponents,
+		networkComponents,
+		coreServiceContainer,
+	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
 		return err
@@ -626,6 +660,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		privKey,
 		pubKey,
 		shardCoordinator,
+		nodesCoordinator,
 		coreComponents,
 		stateComponents,
 		dataComponents,
@@ -950,23 +985,31 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 	return cfg, nil
 }
 
+func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig *sharding.NodesSetup) (uint32, error) {
+	if pubKey == nil {
+		return 0, errors.New("nil public key")
+	}
+
+	publicKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return 0, err
+	}
+
+	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return selfShardId, err
+}
+
 func createShardCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log *logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
-
-	if pubKey == nil {
-		return nil, "", errors.New("nil public key, could not create shard coordinator")
-	}
-
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, "", err
-	}
-
-	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
+	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		nodeType = core.NodeTypeObserver
@@ -992,6 +1035,55 @@ func createShardCoordinator(
 	}
 
 	return shardCoordinator, nodeType, nil
+}
+
+func createNodesCoordinator(
+	nodesConfig *sharding.NodesSetup,
+	settingsConfig config.GeneralSettingsConfig,
+	pubKey crypto.PublicKey,
+	hasher hashing.Hasher,
+) (sharding.NodesCoordinator, error) {
+
+	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
+	if err == sharding.ErrPublicKeyNotFoundInGenesis {
+		shardId, err = processDestinationShardAsObserver(settingsConfig)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	nbShards := nodesConfig.NumberOfShards()
+	shardConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
+	metaConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
+	initNodesInfo := nodesConfig.InitialNodesInfo()
+	initValidators := make(map[uint32][]sharding.Validator)
+
+	for shardId, nodeInfoList := range initNodesInfo {
+		validators := make([]sharding.Validator, 0)
+		for _, nodeInfo := range nodeInfoList {
+			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
+			if err != nil {
+				return nil, err
+			}
+
+			validators = append(validators, validator)
+		}
+		initValidators[shardId] = validators
+	}
+
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		hasher,
+		shardId,
+		nbShards,
+		initValidators,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodesCoordinator, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {
@@ -1062,6 +1154,7 @@ func createNode(
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	core *factory.Core,
 	state *factory.State,
 	data *factory.Data,
@@ -1093,6 +1186,7 @@ func createNode(
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),
+		node.WithNodesCoordinator(nodesCoordinator),
 		node.WithUint64ByteSliceConverter(core.Uint64ByteSliceConverter),
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),

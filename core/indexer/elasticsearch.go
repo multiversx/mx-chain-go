@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -505,6 +506,11 @@ func getTransactionByType(
 		return buildSmartContractResult(currentSc, txHash, mbHash, blockHash, mb, header)
 	}
 
+	currentReward, ok := tx.(*rewardTx.RewardTx)
+	if ok && currentReward != nil {
+		return buildRewardTransaction(currentReward, txHash, mbHash, blockHash, mb, header)
+	}
+
 	return nil
 }
 
@@ -522,6 +528,7 @@ func buildTransaction(
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         tx.Nonce,
+		Round:         header.GetRound(),
 		Value:         tx.Value,
 		Receiver:      hex.EncodeToString(tx.RcvAddr),
 		Sender:        hex.EncodeToString(tx.SndAddr),
@@ -549,6 +556,7 @@ func buildSmartContractResult(
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         scr.Nonce,
+		Round:         header.GetRound(),
 		Value:         scr.Value,
 		Receiver:      hex.EncodeToString(scr.RcvAddr),
 		Sender:        hex.EncodeToString(scr.SndAddr),
@@ -557,6 +565,37 @@ func buildSmartContractResult(
 		GasPrice:      0,
 		GasLimit:      0,
 		Data:          scr.Data,
+		Signature:     "",
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        "Success",
+	}
+}
+
+func buildRewardTransaction(
+	rTx *rewardTx.RewardTx,
+	txHash []byte,
+	mbHash []byte,
+	blockHash []byte,
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+) *Transaction {
+
+	shardIdStr := fmt.Sprintf("Shard%d", rTx.ShardId)
+
+	return &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		BlockHash:     hex.EncodeToString(blockHash),
+		Nonce:         0,
+		Round:         rTx.Round,
+		Value:         rTx.Value,
+		Receiver:      hex.EncodeToString(rTx.RcvAddr),
+		Sender:        shardIdStr,
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      0,
+		GasLimit:      0,
+		Data:          "",
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
