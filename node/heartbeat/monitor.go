@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -101,7 +100,7 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 		for _, pubkey := range pubKeys {
 			err := m.loadHbmiFromDbIfExists(pubkey)
 			if err != nil { // if pubKey not found in DB, create a new instance
-				mhbi, err := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime)
+				mhbi, err := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, nil)
 				if err != nil {
 					return err
 				}
@@ -199,7 +198,7 @@ func (m *Monitor) loadHbmiFromDbIfExists(pubKey string) error {
 		return err
 	}
 
-	receivedHbmi.getTimeHandler = receivedHbmi.clockTime
+	receivedHbmi.getTimeHandler = nil
 	receivedHbmi.lastUptimeDowntime = time.Now()
 	receivedHbmi.genesisTime = m.genesisTime
 	if receivedHbmi.timeStamp == m.genesisTime && time.Now().Sub(m.genesisTime) > 0 {
@@ -269,7 +268,7 @@ func (m *Monitor) sendHeartbeatMessage(hb *Heartbeat) {
 	pe := m.heartbeatMessages[pubKeyStr]
 	if pe == nil {
 		var err error
-		pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime)
+		pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, nil)
 		if err != nil {
 			log.Error(err.Error())
 			return
@@ -396,7 +395,8 @@ func (m *Monitor) updateAllHeartbeatMessages() {
 	counterActiveValidators := 0
 	counterConnectedNodes := 0
 	for _, v := range m.heartbeatMessages {
-		v.updateFields()
+		//TODO change here
+		v.updateFields(time.Now())
 
 		if v.isActive {
 			counterConnectedNodes++

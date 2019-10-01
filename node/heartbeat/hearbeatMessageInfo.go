@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-var emptyTimestamp = time.Time{}
-
 // heartbeatMessageInfo retain the message info received from another node (identified by a public key)
 type heartbeatMessageInfo struct {
 	maxDurationPeerUnresponsive time.Duration
@@ -30,10 +28,14 @@ func newHeartbeatMessageInfo(
 	maxDurationPeerUnresponsive time.Duration,
 	isValidator bool,
 	genesisTime time.Time,
+	getTimeHandler func() time.Time,
 ) (*heartbeatMessageInfo, error) {
 
 	if maxDurationPeerUnresponsive == 0 {
 		return nil, ErrInvalidMaxDurationPeerUnresponsive
+	}
+	if getTimeHandler == nil {
+		return nil, ErrNilGetTimeHandler
 	}
 
 	hbmi := &heartbeatMessageInfo{
@@ -42,39 +44,35 @@ func newHeartbeatMessageInfo(
 		isActive:                    false,
 		receivedShardID:             uint32(0),
 		timeStamp:                   genesisTime,
-		lastUptimeDowntime:          time.Now(),
+		lastUptimeDowntime:          getTimeHandler(),
 		totalUpTime:                 Duration{0},
 		totalDownTime:               Duration{0},
 		versionNumber:               "",
 		nodeDisplayName:             "",
 		isValidator:                 isValidator,
 		genesisTime:                 genesisTime,
+		getTimeHandler:              getTimeHandler,
 	}
-	hbmi.getTimeHandler = hbmi.clockTime
 
 	return hbmi, nil
 }
 
-func (hbmi *heartbeatMessageInfo) clockTime() time.Time {
-	return time.Now()
-}
-
-func (hbmi *heartbeatMessageInfo) updateFields() {
+func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
 	if hbmi.genesisTime != hbmi.timeStamp {
-		crtDuration := hbmi.getTimeHandler().Sub(hbmi.timeStamp)
+		crtDuration := crtTime.Sub(hbmi.timeStamp)
 		crtDuration = maxDuration(0, crtDuration)
 		hbmi.isActive = crtDuration < hbmi.maxDurationPeerUnresponsive
-		hbmi.updateMaxInactiveTimeDuration()
-		if time.Now().Sub(hbmi.genesisTime) > 0 {
-			hbmi.updateUpAndDownTime()
+		hbmi.updateMaxInactiveTimeDuration(crtTime)
+		if crtTime.Sub(hbmi.genesisTime) > 0 {
+			hbmi.updateUpAndDownTime(crtTime)
 		}
 	}
-	hbmi.lastUptimeDowntime = time.Now()
+	hbmi.lastUptimeDowntime = crtTime
 }
 
 // Wil update the total time a node was up and down
-func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
-	lastDuration := hbmi.clockTime().Sub(hbmi.lastUptimeDowntime)
+func (hbmi *heartbeatMessageInfo) updateUpAndDownTime(crtTime time.Time) {
+	lastDuration := crtTime.Sub(hbmi.lastUptimeDowntime)
 	lastDuration = maxDuration(0, lastDuration)
 
 	if hbmi.isActive {
@@ -88,20 +86,20 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
 func (hbmi *heartbeatMessageInfo) HeartbeatReceived(computedShardID, receivedshardID uint32, version string,
 	nodeDisplayName string) {
 	crtTime := hbmi.getTimeHandler()
-	hbmi.updateFields()
+	hbmi.updateFields(crtTime)
 	hbmi.computedShardID = computedShardID
 	hbmi.receivedShardID = receivedshardID
-	hbmi.updateMaxInactiveTimeDuration()
+	hbmi.updateMaxInactiveTimeDuration(crtTime)
 	hbmi.timeStamp = crtTime
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
 }
 
-func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration() {
-	crtDuration := hbmi.getTimeHandler().Sub(hbmi.timeStamp)
+func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration(currentTime time.Time) {
+	crtDuration := currentTime.Sub(hbmi.timeStamp)
 	crtDuration = maxDuration(0, crtDuration)
 
-	if hbmi.maxInactiveTime.Duration < crtDuration && hbmi.timeStamp != emptyTimestamp {
+	if hbmi.maxInactiveTime.Duration < crtDuration && hbmi.timeStamp != hbmi.genesisTime {
 		hbmi.maxInactiveTime.Duration = crtDuration
 	}
 }

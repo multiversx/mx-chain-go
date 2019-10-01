@@ -34,3 +34,6 @@ var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrNilGetTimeHandler signals that a nil time getter handler has been provided
+var ErrNilGetTimeHandler = errors.New("nil time getter handler")
