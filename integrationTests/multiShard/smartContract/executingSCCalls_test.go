@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -420,7 +419,7 @@ func processAndTestSmartContractCallInDestination(t *testing.T, contractCallTx *
 
 func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNode, proposerNodeShardAccount *testNode,
 	accountShardAddressBytes []byte, accShard uint32, generalRoundNumber uint64, mintingValue *big.Int, withdrawValue uint64) {
-	mbs := proposerNodeShardSC.scrForwarder.CreateAllInterMiniBlocks(core.MaxMiniBlocksInBlock)
+	mbs := proposerNodeShardSC.scrForwarder.CreateAllInterMiniBlocks()
 	mb, _ := mbs[accShard]
 	assert.NotNil(t, mb)
 	// Should have two transactions - one for the withdraw value, the second one for the gas return
