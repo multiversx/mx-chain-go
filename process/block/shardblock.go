@@ -733,17 +733,17 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	headersStorage := sp.dataPool.Headers()
 	for i := range finalHeaders {
-		val, ok := headersStorage.Get(finalHeaders[i].GetPrevHash())
-		if !ok {
-			log.Debug("could not get header from storage")
+		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
 			continue
 		}
 
-		prevHeader, ok := val.(*block.Header)
-		if !ok {
-			log.Debug(process.ErrWrongTypeAssertion.Error())
+		var prevHeader block.Header
+		errNotCritical = sp.marshalizer.Unmarshal(&prevHeader, val)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
 			continue
 		}
 
