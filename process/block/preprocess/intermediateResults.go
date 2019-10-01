@@ -83,7 +83,6 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 	}
 
 	finalMBs := make(map[uint32]*block.MiniBlock, 0)
-	mbAdded := 0
 	for i := 0; i < len(miniBlocks); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			miniBlocks[i].SenderShardID = irp.shardCoordinator.SelfId()
@@ -95,7 +94,6 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 			})
 
 			finalMBs[uint32(i)] = miniBlocks[i]
-			mbAdded++
 		}
 	}
 
