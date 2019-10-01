@@ -156,7 +156,7 @@ func TestMonitor_ProcessReceivedMessageNilDataShouldErr(t *testing.T) {
 		&mock.SinglesignMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
-		0,
+		10,
 		map[uint32][]string{0: {"pk1"}},
 		mock.NewStorerMock(),
 		time.Now(),
@@ -469,105 +469,4 @@ func sendHbMessageFromPubKey(pubKey string, mon *heartbeat.Monitor) error {
 	buffToSend, _ := json.Marshal(hb)
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
 	return err
-}
-
-func TestMonitor_ObserverShouldKeepPeerInactiveAfterRestart(t *testing.T) {
-	t.Parallel()
-
-	pubKey1 := "pk1-should-stay-online"
-	pubKey2 := "pk2-should-go-offline"
-
-	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignStub{
-			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return nil
-			},
-		},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, nil
-			},
-		},
-		&mock.MarshalizerFake{},
-		time.Millisecond*2,
-		map[uint32][]string{0: {pubKey1, pubKey2}},
-		mock.NewStorerMock(),
-		time.Now(),
-	)
-
-	hb := heartbeat.Heartbeat{
-		Pubkey: []byte(pubKey1),
-	}
-	time.Sleep(8 * time.Millisecond)
-	mon.SendHeartbeatMessage(&hb)
-	hbts := mon.GetHeartbeats()
-	assert.False(t, hbts[1].IsActive)
-
-	mon = mon.RestartMonitor()
-	hbts = mon.GetHeartbeats()
-	assert.False(t, hbts[1].IsActive)
-}
-
-func TestMonitor_ObserverShouldKeepPeerInactiveAfterRestart_PeerWentOfflineBefore(t *testing.T) {
-	t.Parallel()
-
-	pubKey1 := "pk1"
-	pubKey2 := "pk2"
-
-	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignStub{
-			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return nil
-			},
-		},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, nil
-			},
-		},
-		&mock.MarshalizerFake{},
-		time.Millisecond*3,
-		map[uint32][]string{0: {pubKey1, pubKey2}},
-		mock.NewStorerMock(),
-		time.Now(),
-	)
-
-	// observer is active
-	hb := heartbeat.Heartbeat{
-		Pubkey: []byte(pubKey1),
-	}
-	mon.SendHeartbeatMessage(&hb)
-	hbts := mon.GetHeartbeats()
-	assert.True(t, hbts[0].IsActive)
-
-	// peer is also active
-	hb = heartbeat.Heartbeat{
-		Pubkey: []byte(pubKey2),
-	}
-	mon.SendHeartbeatMessage(&hb)
-	hbts = mon.GetHeartbeats()
-	assert.True(t, hbts[0].IsActive)
-
-	// set peer as inactive by sending from observer and peer didn't send
-	hb = heartbeat.Heartbeat{
-		Pubkey: []byte(pubKey1),
-	}
-	time.Sleep(3 * time.Millisecond)
-	mon.SendHeartbeatMessage(&hb)
-	hbts = mon.GetHeartbeats()
-	assert.True(t, hbts[0].IsActive)
-	assert.False(t, hbts[1].IsActive)
-
-	// now restart the observer
-	mon = mon.RestartMonitor()
-
-	// send from observer
-	hb = heartbeat.Heartbeat{
-		Pubkey: []byte(pubKey1),
-	}
-	time.Sleep(5 * time.Millisecond)
-	mon.SendHeartbeatMessage(&hb)
-	hbts = mon.GetHeartbeats()
-	// peer should still be inactive
-	assert.False(t, hbts[1].IsActive)
 }

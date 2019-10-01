@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -21,12 +22,11 @@ import (
 var log = logger.DefaultLogger()
 
 const peersKeysDbEntry = "keys"
+const genesisTimeDbEntry = "genesisTime"
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
-	singleSigner                crypto.SingleSigner
 	maxDurationPeerUnresponsive time.Duration
-	keygen                      crypto.KeyGenerator
 	marshalizer                 marshal.Marshalizer
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutHeartbeatMessages        sync.RWMutex
@@ -36,6 +36,7 @@ type Monitor struct {
 	appStatusHandler            core.AppStatusHandler
 	monitorDB                   storage.Storer
 	genesisTime                 time.Time
+	messageHandler              *MessageHandler
 }
 
 // NewMonitor returns a new monitor instance
@@ -65,18 +66,18 @@ func NewMonitor(
 		return nil, errors.New("nil monitor db")
 	}
 
+	messageHandler := NewMessageHandler(singleSigner, keygen, marshalizer)
 	mon := &Monitor{
-		singleSigner:                singleSigner,
-		keygen:                      keygen,
 		marshalizer:                 marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 		monitorDB:                   monitorDB,
 		genesisTime:                 genesisTime,
+		messageHandler:              messageHandler,
 	}
 
-	err := mon.fetchGenesisTimeFromDb()
+	err := mon.updateGenesisTime()
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +101,10 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 		for _, pubkey := range pubKeys {
 			err := m.loadHbmiFromDbIfExists(pubkey)
 			if err != nil { // if pubKey not found in DB, create a new instance
-				mhbi, err := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, nil)
-				if err != nil {
-					return err
+				getTimeHandler := func() time.Time { return time.Now() }
+				mhbi, errNewHbmi := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, getTimeHandler)
+				if errNewHbmi != nil {
+					return errNewHbmi
 				}
 
 				mhbi.genesisTime = m.genesisTime
@@ -117,14 +119,14 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 	return nil
 }
 
-func (m *Monitor) fetchGenesisTimeFromDb() error {
-	if m.monitorDB.Has([]byte("genesisTime")) != nil {
+func (m *Monitor) updateGenesisTime() error {
+	if m.monitorDB.Has([]byte(genesisTimeDbEntry)) != nil {
 		err := m.saveGenesisTimeToDb()
 		if err != nil {
 			return err
 		}
 	} else {
-		genesisTimeFromDbBytes, err := m.monitorDB.Get([]byte("genesisTime"))
+		genesisTimeFromDbBytes, err := m.monitorDB.Get([]byte(genesisTimeDbEntry))
 		if err != nil {
 			return errors.New("monitor: can't get genesis time from db")
 		}
@@ -154,7 +156,7 @@ func (m *Monitor) saveGenesisTimeToDb() error {
 		return errors.New("monitor: can't marshal genesis time")
 	}
 
-	err = m.monitorDB.Put([]byte("genesisTime"), genesisTimeBytes)
+	err = m.monitorDB.Put([]byte(genesisTimeDbEntry), genesisTimeBytes)
 	if err != nil {
 		return errors.New("monitor: can't store genesis time")
 	}
@@ -218,7 +220,7 @@ func (m *Monitor) getHbmiFromDbBytes(message []byte) (*heartbeatMessageInfo, err
 		return nil, err
 	}
 
-	hbmi := m.convertFromExportedStruct(heartbeatDto)
+	hbmi := m.messageHandler.convertFromExportedStruct(heartbeatDto, m.maxDurationPeerUnresponsive)
 
 	return &hbmi, nil
 }
@@ -236,32 +238,18 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	if message == nil || message.IsInterfaceNil() {
-		return ErrNilMessage
-	}
-	if message.Data() == nil {
-		return ErrNilDataToProcess
-	}
-
-	hbRecv := &Heartbeat{}
-
-	err := m.marshalizer.Unmarshal(hbRecv, message.Data())
-	if err != nil {
-		return err
-	}
-
-	err = m.verifySignature(hbRecv)
+	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2pMessage(message)
 	if err != nil {
 		return err
 	}
 
 	//message is validated, process should be done async, method can return nil
-	go m.sendHeartbeatMessage(hbRecv)
+	go m.addHeartbeatMessageToMap(hbRecv)
 
 	return nil
 }
 
-func (m *Monitor) sendHeartbeatMessage(hb *Heartbeat) {
+func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	m.mutHeartbeatMessages.Lock()
 	defer m.mutHeartbeatMessages.Unlock()
 
@@ -269,7 +257,8 @@ func (m *Monitor) sendHeartbeatMessage(hb *Heartbeat) {
 	pe := m.heartbeatMessages[pubKeyStr]
 	if pe == nil {
 		var err error
-		pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, nil)
+		getTimeHandler := func() time.Time { return time.Now() }
+		pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, getTimeHandler)
 		if err != nil {
 			log.Error(err.Error())
 			return
@@ -285,7 +274,8 @@ func (m *Monitor) sendHeartbeatMessage(hb *Heartbeat) {
 
 func (m *Monitor) storeHeartbeat(pubKey []byte) {
 	hbInfo := m.heartbeatMessages[string(pubKey)]
-	marshalizedHeartBeat, err := m.marshalizer.Marshal(m.convertToExportedStruct(hbInfo))
+	hbExportedFormat := m.messageHandler.convertToExportedStruct(hbInfo)
+	marshalizedHeartBeat, err := m.marshalizer.Marshal(hbExportedFormat)
 	if err != nil {
 		log.Warn(fmt.Sprintf("can't marshal heartbeat message for pubKey %s: %s", pubKey, err.Error()))
 		return
@@ -324,41 +314,6 @@ func (m *Monitor) isPeerInFullPeersSlice(pubKey []byte) bool {
 	return false
 }
 
-func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO {
-	return HeartbeatDTO{
-		TimeStamp:          v.timeStamp,
-		MaxInactiveTime:    v.maxInactiveTime,
-		IsActive:           v.isActive,
-		ReceivedShardID:    v.receivedShardID,
-		ComputedShardID:    v.computedShardID,
-		TotalUpTime:        v.totalUpTime,
-		TotalDownTime:      v.totalDownTime,
-		VersionNumber:      v.versionNumber,
-		IsValidator:        v.isValidator,
-		NodeDisplayName:    v.nodeDisplayName,
-		LastUptimeDowntime: v.lastUptimeDowntime,
-	}
-}
-
-func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO) heartbeatMessageInfo {
-	hbmi := heartbeatMessageInfo{
-		maxDurationPeerUnresponsive: m.maxDurationPeerUnresponsive,
-		maxInactiveTime:             hbDTO.MaxInactiveTime,
-		timeStamp:                   hbDTO.TimeStamp,
-		isActive:                    hbDTO.IsActive,
-		totalUpTime:                 hbDTO.TotalUpTime,
-		totalDownTime:               hbDTO.TotalDownTime,
-		receivedShardID:             hbDTO.ReceivedShardID,
-		computedShardID:             hbDTO.ComputedShardID,
-		versionNumber:               hbDTO.VersionNumber,
-		nodeDisplayName:             hbDTO.NodeDisplayName,
-		isValidator:                 hbDTO.IsValidator,
-		lastUptimeDowntime:          hbDTO.LastUptimeDowntime,
-	}
-
-	return hbmi
-}
-
 func (m *Monitor) computeShardID(pubkey string) uint32 {
 	// TODO : the shard ID will be recomputed at the end of an epoch / beginning of a new one.
 	//  For the moment, just find the shard ID from a copy of the initial pub keys map
@@ -374,22 +329,6 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 
 	// if not found, return the latest known computed shard ID
 	return m.heartbeatMessages[pubkey].computedShardID
-}
-
-func (m *Monitor) verifySignature(hbRecv *Heartbeat) error {
-	senderPubKey, err := m.keygen.PublicKeyFromByteArray(hbRecv.Pubkey)
-	if err != nil {
-		return err
-	}
-
-	copiedHeartbeat := *hbRecv
-	copiedHeartbeat.Signature = nil
-	buffCopiedHeartbeat, err := m.marshalizer.Marshal(copiedHeartbeat)
-	if err != nil {
-		return err
-	}
-
-	return m.singleSigner.Verify(senderPubKey, buffCopiedHeartbeat, hbRecv.Signature)
 }
 
 func (m *Monitor) updateAllHeartbeatMessages() {

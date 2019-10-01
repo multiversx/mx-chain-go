@@ -29,22 +29,6 @@ func (m *Monitor) GetHbmi(tmstp time.Time) *heartbeatMessageInfo {
 	}
 }
 
-func (m *Monitor) GetExportedHbmi(hbmi *heartbeatMessageInfo) HeartbeatDTO {
-	return m.convertToExportedStruct(hbmi)
-}
-
 func (m *Monitor) SendHeartbeatMessage(hb *Heartbeat) {
-	m.sendHeartbeatMessage(hb)
-}
-
-func (m *Monitor) RestartMonitor() *Monitor {
-	mon, _ := NewMonitor(
-		m.singleSigner,
-		m.keygen,
-		m.marshalizer,
-		m.maxDurationPeerUnresponsive,
-		m.pubKeysMap,
-		m.monitorDB,
-		m.genesisTime)
-	return mon
+	m.addHeartbeatMessageToMap(hb)
 }
