@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -169,6 +170,8 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 		integrationTests.TestMarshalizer,
 		maxDurationPeerUnresponsive,
 		map[uint32][]string{0: {""}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	return monitor

@@ -107,6 +107,7 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 				}
 
 				mhbi.genesisTime = m.genesisTime
+				mhbi.computedShardID = shardId
 				m.heartbeatMessages[pubkey] = mhbi
 			}
 			pubKeysMapCopy[shardId] = append(pubKeysMapCopy[shardId], pubkey)

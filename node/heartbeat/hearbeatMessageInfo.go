@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-var emptyTimestamp = time.Time{}
+var emptyTimestamp = time.Now()
 
 // heartbeatMessageInfo retain the message info received from another node (identified by a public key)
 type heartbeatMessageInfo struct {
@@ -101,7 +101,7 @@ func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration() {
 	crtDuration := hbmi.getTimeHandler().Sub(hbmi.timeStamp)
 	crtDuration = maxDuration(0, crtDuration)
 
-	if hbmi.maxInactiveTime.Duration < crtDuration && hbmi.timeStamp != emptyTimestamp {
+	if hbmi.maxInactiveTime.Duration < crtDuration && hbmi.timeStamp != hbmi.genesisTime {
 		hbmi.maxInactiveTime.Duration = crtDuration
 	}
 }

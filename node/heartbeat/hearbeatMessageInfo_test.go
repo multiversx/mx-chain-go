@@ -29,7 +29,8 @@ func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 	t.Parallel()
 
-	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false, time.Now())
+	genesisTime := time.Now()
+	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false, genesisTime)
 	incrementalTime := int64(0)
 	hbmi.getTimeHandler = func() time.Time {
 		if incrementalTime < 2 {
@@ -38,7 +39,7 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 		return time.Unix(0, incrementalTime)
 	}
 
-	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
+	assert.Equal(t, genesisTime, hbmi.timeStamp)
 
 	hbmi.HeartbeatReceived(uint32(0), uint32(0), "v0.1", "undefined")
 	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
@@ -52,7 +53,8 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hbmi, _ := newHeartbeatMessageInfo(time.Duration(1), false, time.Now())
+	genesisTime := time.Now()
+	hbmi, _ := newHeartbeatMessageInfo(time.Duration(1), false, genesisTime)
 	incrementalTime := int64(0)
 	hbmi.getTimeHandler = func() time.Time {
 		tReturned := time.Unix(0, incrementalTime)
@@ -61,7 +63,7 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 		return tReturned
 	}
 
-	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
+	assert.Equal(t, genesisTime, hbmi.timeStamp)
 
 	hbmi.HeartbeatReceived(uint32(0), uint32(3), "v0.1", "undefined")
 	assert.NotEqual(t, emptyTimestamp, hbmi.timeStamp)
@@ -70,7 +72,8 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpTime(t *testing.T) {
 	t.Parallel()
 
-	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false, time.Now())
+	genesisTime := time.Now()
+	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false, genesisTime)
 	incrementalTime := int64(0)
 	hbmi.getTimeHandler = func() time.Time {
 		tReturned := time.Unix(0, incrementalTime)
@@ -79,7 +82,7 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpTime(t *testing.T) {
 		return tReturned
 	}
 
-	assert.Equal(t, emptyTimestamp, hbmi.timeStamp)
+	assert.Equal(t, genesisTime, hbmi.timeStamp)
 
 	// send heartbeat twice in order to calculate the duration between thm
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")

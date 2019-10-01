@@ -508,42 +508,6 @@ func TestMonitor_ObserverShouldKeepPeerInactiveAfterRestart(t *testing.T) {
 	assert.False(t, hbts[1].IsActive)
 }
 
-func TestMonitor_ObserverShouldKeepPeerActiveAfterRestart(t *testing.T) {
-	t.Parallel()
-
-	pubKey1 := "pk1"
-
-	mon, _ := heartbeat.NewMonitor(
-		&mock.SinglesignStub{
-			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-				return nil
-			},
-		},
-		&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
-				return nil, nil
-			},
-		},
-		&mock.MarshalizerFake{},
-		time.Millisecond*2,
-		map[uint32][]string{0: {pubKey1}},
-		mock.NewStorerMock(),
-		time.Now(),
-	)
-
-	hb := heartbeat.Heartbeat{
-		Pubkey: []byte(pubKey1),
-	}
-	time.Sleep(8 * time.Millisecond)
-	mon.SendHeartbeatMessage(&hb)
-	hbts := mon.GetHeartbeats()
-	assert.True(t, hbts[0].IsActive)
-
-	mon = mon.RestartMonitor()
-	hbts = mon.GetHeartbeats()
-	assert.True(t, hbts[0].IsActive)
-}
-
 func TestMonitor_ObserverShouldKeepPeerInactiveAfterRestart_PeerWentOfflineBefore(t *testing.T) {
 	t.Parallel()
 

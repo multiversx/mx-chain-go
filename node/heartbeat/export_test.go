@@ -25,7 +25,6 @@ func (m *Monitor) GetHbmi(tmstp time.Time) *heartbeatMessageInfo {
 		nodeDisplayName:             "",
 		isValidator:                 false,
 		lastUptimeDowntime:          time.Time{},
-		dirty:                       false,
 		genesisTime:                 time.Time{},
 	}
 }
