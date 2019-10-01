@@ -29,3 +29,15 @@ func (txProc *txProcessor) MoveBalances(acntSrc, acntDst *state.Account, value *
 func (txProc *txProcessor) IncreaseNonce(acntSrc *state.Account) error {
 	return txProc.increaseNonce(acntSrc)
 }
+
+func (txProc *txProcessor) SetMinTxFee(minTxFee uint64) {
+	mutTxFee.Lock()
+	minTxFee = minTxFee
+	mutTxFee.Unlock()
+}
+
+func (txProc *txProcessor) SetMinGasPrice(minGasPrice uint64) {
+	mutTxFee.Lock()
+	minGasPrice = minGasPrice
+	mutTxFee.Unlock()
+}
