@@ -3,6 +3,7 @@ package process_test
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -39,16 +40,16 @@ func TestEmptyChannelShouldWorkOnNotBufferedChannel(t *testing.T) {
 	ch := make(chan bool)
 
 	assert.Equal(t, 0, len(ch))
-	readsCnt := process.EmptyChannel(ch)
+	readsCnt := int32(process.EmptyChannel(ch))
 	assert.Equal(t, 0, len(ch))
-	assert.Equal(t, 0, readsCnt)
+	assert.Equal(t, int32(0), readsCnt)
 
 	wg := sync.WaitGroup{}
 	wgChanWasWritten := sync.WaitGroup{}
-	numConcurrentWrites := 100
-	wg.Add(numConcurrentWrites)
-	wgChanWasWritten.Add(numConcurrentWrites)
-	for i := 0; i < numConcurrentWrites; i++ {
+	numConcurrentWrites := int32(100)
+	wg.Add(int(numConcurrentWrites))
+	wgChanWasWritten.Add(int(numConcurrentWrites))
+	for i := int32(0); i < numConcurrentWrites; i++ {
 		go func() {
 			wg.Done()
 			time.Sleep(time.Millisecond)
@@ -62,7 +63,7 @@ func TestEmptyChannelShouldWorkOnNotBufferedChannel(t *testing.T) {
 
 	go func() {
 		for readsCnt < numConcurrentWrites {
-			readsCnt += process.EmptyChannel(ch)
+			atomic.AddInt32(&readsCnt, int32(process.EmptyChannel(ch)))
 		}
 	}()
 
@@ -70,7 +71,7 @@ func TestEmptyChannelShouldWorkOnNotBufferedChannel(t *testing.T) {
 	wgChanWasWritten.Wait()
 
 	assert.Equal(t, 0, len(ch))
-	assert.Equal(t, numConcurrentWrites, readsCnt)
+	assert.Equal(t, numConcurrentWrites, atomic.LoadInt32(&readsCnt))
 }
 
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
