@@ -12,7 +12,7 @@ type PreProcessorMock struct {
 	CreateBlockStartedCalled              func()
 	IsDataPreparedCalled                  func(requestedTxs int, haveTime func() time.Duration) error
 	RemoveTxBlockFromPoolsCalled          func(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPoolsCalled         func(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
+	RestoreTxBlockIntoPoolsCalled         func(body block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxBlockToStorageCalled            func(body block.Body) error
 	ProcessBlockTransactionsCalled        func(body block.Body, round uint64, haveTime func() bool) error
 	RequestBlockTransactionsCalled        func(body block.Body) int
@@ -45,9 +45,9 @@ func (ppm *PreProcessorMock) RemoveTxBlockFromPools(body block.Body, miniBlockPo
 	return ppm.RemoveTxBlockFromPoolsCalled(body, miniBlockPool)
 }
 
-func (ppm *PreProcessorMock) RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error) {
+func (ppm *PreProcessorMock) RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error) {
 	if ppm.RestoreTxBlockIntoPoolsCalled == nil {
-		return 0, nil, nil
+		return 0, nil
 	}
 	return ppm.RestoreTxBlockIntoPoolsCalled(body, miniBlockPool)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -54,7 +55,7 @@ func NewRewardTxPreprocessor(
 		return nil, process.ErrNilStorage
 	}
 	if rewardProcessor == nil || rewardProcessor.IsInterfaceNil() {
-		return nil, process.ErrNilTxProcessor
+		return nil, process.ErrNilRewardsTxProcessor
 	}
 	if rewardProducer == nil || rewardProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilInternalTransactionProducer
@@ -131,12 +132,10 @@ func (rtp *rewardTxPreprocessor) RemoveTxBlockFromPools(body block.Body, miniBlo
 func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 	body block.Body,
 	miniBlockPool storage.Cacher,
-) (int, map[int][]byte, error) {
+) (int, error) {
 	if miniBlockPool == nil {
-		return 0, nil, process.ErrNilMiniBlockPool
+		return 0, process.ErrNilMiniBlockPool
 	}
-
-	miniBlockHashes := make(map[int][]byte)
 
 	rewardTxsRestored := 0
 	for i := 0; i < len(body); i++ {
@@ -148,29 +147,34 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		rewardTxBuff, err := rtp.storage.GetAll(dataRetriever.RewardTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			return rewardTxsRestored, miniBlockHashes, err
+			return rewardTxsRestored, err
 		}
 
 		for txHash, txBuff := range rewardTxBuff {
 			tx := rewardTx.RewardTx{}
 			err = rtp.marshalizer.Unmarshal(&tx, txBuff)
 			if err != nil {
-				return rewardTxsRestored, miniBlockHashes, err
+				return rewardTxsRestored, err
 			}
 
 			rtp.rewardTxPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		restoredHash, err := rtp.restoreMiniBlock(miniBlock, miniBlockPool)
+		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
 		if err != nil {
-			return rewardTxsRestored, miniBlockHashes, err
+			return rewardTxsRestored, err
 		}
 
-		miniBlockHashes[i] = restoredHash
+		miniBlockPool.Put(miniBlockHash, miniBlock)
+
+		err = rtp.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
+		if err != nil {
+			return rewardTxsRestored, err
+		}
 		rewardTxsRestored += len(miniBlock.TxHashes)
 	}
 
-	return rewardTxsRestored, miniBlockHashes, nil
+	return rewardTxsRestored, nil
 }
 
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
@@ -196,13 +200,13 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 
 			txHash := miniBlock.TxHashes[j]
 			rtp.rewardTxsForBlock.mutTxsForBlock.RLock()
-			txInfo := rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)]
+			txData := rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)]
 			rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
-			if txInfo == nil || txInfo.tx == nil {
+			if txData == nil || txData.tx == nil {
 				return process.ErrMissingTransaction
 			}
 
-			rTx, ok := txInfo.tx.(*rewardTx.RewardTx)
+			rTx, ok := txData.tx.(*rewardTx.RewardTx)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
@@ -225,7 +229,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 // AddComputedRewardMiniBlocks adds to the local cache the reward transactions from the given miniblocks
 func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice) {
 	for _, rewardMb := range computedRewardMiniblocks {
-		txShardInfo := &txShardInfo{senderShardID: rewardMb.SenderShardID, receiverShardID: rewardMb.ReceiverShardID}
+		txShardData := &txShardInfo{senderShardID: rewardMb.SenderShardID, receiverShardID: rewardMb.ReceiverShardID}
 		for _, txHash := range rewardMb.TxHashes {
 			tx, ok := rtp.rewardTxPool.SearchFirstData(txHash)
 			if !ok {
@@ -240,7 +244,7 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 
 			rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{
 				tx:          rTx,
-				txShardInfo: txShardInfo,
+				txShardInfo: txShardData,
 			}
 		}
 	}
@@ -291,25 +295,33 @@ func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body block.Body) int {
 	missingRewardTxsForShards := rtp.computeMissingAndExistingRewardTxsForShards(body)
 
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
-	for senderShardID, rewardTxHashesInfo := range missingRewardTxsForShards {
-		txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: rewardTxHashesInfo.receiverShardID}
-		for _, txHash := range rewardTxHashesInfo.txHashes {
-			rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+	for senderShardID, rewardTxHashes := range missingRewardTxsForShards {
+		for _, txHash := range rewardTxHashes {
+			rtp.setMissingTxsForShard(senderShardID, txHash)
 		}
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 
-	for senderShardID, scrHashesInfo := range missingRewardTxsForShards {
-		requestedRewardTxs += len(scrHashesInfo.txHashes)
-		rtp.onRequestRewardTx(senderShardID, scrHashesInfo.txHashes)
+	for senderShardID, mbsRewardTxHashes := range missingRewardTxsForShards {
+		for _, mbRewardTxHashes := range mbsRewardTxHashes {
+			requestedRewardTxs += len(mbRewardTxHashes.txHashes)
+			rtp.onRequestRewardTx(senderShardID, mbRewardTxHashes.txHashes)
+		}
 	}
 
 	return requestedRewardTxs
 }
 
+func (rtp *rewardTxPreprocessor) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
+	txShardData := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
+	for _, txHash := range mbTxHashes.txHashes {
+		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardData}
+	}
+}
+
 // computeMissingAndExistingRewardTxsForShards calculates what reward transactions are available and what are missing
 // from block.Body
-func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body block.Body) map[uint32]*txsHashesInfo {
+func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body block.Body) map[uint32][]*txsHashesInfo {
 	rewardTxs := block.Body{}
 	for _, mb := range body {
 		if mb.Type != block.RewardsBlock {
@@ -322,7 +334,7 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		rewardTxs = append(rewardTxs, mb)
 	}
 
-	missingTxsForShard := rtp.computeExistingAndMissing(
+	missingTxsForShards := rtp.computeExistingAndMissing(
 		rewardTxs,
 		&rtp.rewardTxsForBlock,
 		rtp.chReceivedAllRewardTxs,
@@ -330,7 +342,7 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		rtp.rewardTxPool,
 	)
 
-	return missingTxsForShard
+	return missingTxsForShards
 }
 
 // processRewardTransaction processes a reward transaction, if the transactions has an error it removes it from pool
@@ -347,9 +359,9 @@ func (rtp *rewardTxPreprocessor) processRewardTransaction(
 		return err
 	}
 
-	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
+	txShardData := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
-	rtp.rewardTxsForBlock.txHashAndInfo[string(rewardTxHash)] = &txInfo{tx: rewardTx, txShardInfo: txShardInfo}
+	rtp.rewardTxsForBlock.txHashAndInfo[string(rewardTxHash)] = &txInfo{tx: rewardTx, txShardInfo: txShardData}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 
 	return nil
@@ -435,7 +447,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	_ func() bool,
-) (block.MiniBlockSlice, error){
+) (block.MiniBlockSlice, error) {
 
 	// always have time for rewards
 	haveTime := func() bool {
@@ -490,11 +502,11 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		}
 	}
 
-	txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
+	txShardData := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockRewardTxs[index], txShardInfo: txShardInfo}
+		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockRewardTxs[index], txShardInfo: txShardData}
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 
@@ -516,8 +528,8 @@ func (rtp *rewardTxPreprocessor) GetAllCurrentUsedTxs() map[string]data.Transact
 	rewardTxPool := make(map[string]data.TransactionHandler)
 
 	rtp.rewardTxsForBlock.mutTxsForBlock.RLock()
-	for txHash, txInfo := range rtp.rewardTxsForBlock.txHashAndInfo {
-		rewardTxPool[txHash] = txInfo.tx
+	for txHash, txData := range rtp.rewardTxsForBlock.txHashAndInfo {
+		rewardTxPool[txHash] = txData.tx
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
 

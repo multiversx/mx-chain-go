@@ -54,6 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -91,6 +92,10 @@ const (
 )
 
 var log = logger.DefaultLogger()
+
+//TODO: Extract all others error messages from this file in some defined errors
+// ErrCreateForkDetector signals that a fork detector could not be created
+var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
@@ -487,7 +492,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	forkDetector, err := processSync.NewBasicForkDetector(rounder)
+	forkDetector, err := newForkDetector(rounder, args.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -1217,6 +1222,7 @@ func newShardInterceptorAndResolverContainerFactory(
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 	//TODO add a real chronology validator and remove null chronology validator
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
+		state.AccountsAdapter,
 		shardCoordinator,
 		nodesCoordinator,
 		network.NetMessenger,
@@ -1415,6 +1421,20 @@ func createInMemoryShardCoordinatorAndAccount(
 	return newShardCoordinator, accounts, nil
 }
 
+func newForkDetector(
+	rounder consensus.Rounder,
+	shardCoordinator sharding.Coordinator,
+) (process.ForkDetector, error) {
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return processSync.NewShardForkDetector(rounder)
+	}
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		return processSync.NewMetaForkDetector(rounder)
+	}
+
+	return nil, ErrCreateForkDetector
+}
+
 func newBlockProcessorAndTracker(
 	processArgs *processComponentsFactoryArgs,
 	resolversFinder dataRetriever.ResolversFinder,
@@ -1423,6 +1443,7 @@ func newBlockProcessorAndTracker(
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
+	nodesCoordinator := processArgs.nodesCoordinator
 	peerProcessor, err := newPeerProcessor(processArgs)
 	if err != nil {
 		return nil, nil, err
@@ -1447,7 +1468,9 @@ func newBlockProcessorAndTracker(
 		communityAddress,
 		burnAddress,
 		processArgs.state.AddressConverter,
-		shardCoordinator)
+		shardCoordinator,
+		nodesCoordinator,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1547,8 +1570,8 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	internalTransactionProducer, ok:= rewardsTxInterim.(process.InternalTransactionProducer)
-	if !ok{
+	internalTransactionProducer, ok := rewardsTxInterim.(process.InternalTransactionProducer)
+	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
@@ -1574,6 +1597,7 @@ func newShardBlockProcessorAndTracker(
 		factory.UnsignedTransactionTopic,
 		factory.RewardsTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
 		MaxTxsToRequest,
 	)
@@ -1656,24 +1680,39 @@ func newShardBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	blockProcessor, err := block.NewShardProcessor(
-		coreServiceContainer,
-		data.Datapool,
-		data.Store,
-		core.Hasher,
-		core.Marshalizer,
+	txPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
 		state.AccountsAdapter,
 		shardCoordinator,
-		nodesCoordinator,
-		specialAddressHandler,
-		forkDetector,
-		blockTracker,
-		peerProcessor,
-		shardsGenesisBlocks,
-		requestHandler,
-		txCoordinator,
-		core.Uint64ByteSliceConverter,
+		data.Datapool,
+		state.AddressConverter,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Accounts:              state.AccountsAdapter,
+		ForkDetector:          forkDetector,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.Marshalizer,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		NodesCoordinator:      nodesCoordinator,
+		SpecialAddressHandler: specialAddressHandler,
+		Uint64Converter:       core.Uint64ByteSliceConverter,
+		StartHeaders:          shardsGenesisBlocks,
+		RequestHandler:        requestHandler,
+		Core:                  coreServiceContainer,
+	}
+	arguments := block.ArgShardProcessor{
+		ArgBaseProcessor: &argumentsBaseProcessor,
+		DataPool:         data.Datapool,
+		BlocksTracker:    blockTracker,
+		TxCoordinator:    txCoordinator,
+		TxsPoolsCleaner:  txPoolsCleaner,
+	}
+
+	blockProcessor, err := block.NewShardProcessor(arguments)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
@@ -1699,12 +1738,10 @@ func newMetaBlockProcessorAndTracker(
 	coreServiceContainer serviceContainer.Core,
 	peerProcessor process.PeerProcessor,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
-
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 		resolversFinder,
 		factory.ShardHeadersForMetachainTopic,
-	)
-
+		factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, nil, err
 	}

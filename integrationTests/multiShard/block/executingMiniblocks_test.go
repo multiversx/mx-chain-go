@@ -62,7 +62,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
 		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
-
 		//receivers in same shard with the sender
 		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 		receiversPublicKeys[senderShard] = append(receiversPublicKeys[senderShard], pk)

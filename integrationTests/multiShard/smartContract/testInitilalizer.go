@@ -296,6 +296,7 @@ func createNetNode(
 	dataPacker, _ := partitioning.NewSimpleDataPacker(testMarshalizer)
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+		accntAdapter,
 		shardCoordinator,
 		nodesCoordinator,
 		messenger,
@@ -330,6 +331,7 @@ func createNetNode(
 		factory.UnsignedTransactionTopic,
 		factory.RewardsTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
 		100,
 	)
@@ -339,10 +341,11 @@ func createNetNode(
 		testMarshalizer,
 		testHasher,
 		testAddressConverter,
-		&mock.SpecialAddressHandlerMock{
-			ShardCoordinator: shardCoordinator,
-			AdrConv:          testAddressConverter,
-		},
+		mock.NewSpecialAddressHandlerMock(
+			testAddressConverter,
+			shardCoordinator,
+			nodesCoordinator,
+		),
 		store,
 		dPool,
 	)
@@ -416,31 +419,39 @@ func createNetNode(
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
-	blockProcessor, _ := block.NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		dPool,
-		store,
-		testHasher,
-		testMarshalizer,
-		accntAdapter,
-		shardCoordinator,
-		nodesCoordinator,
-		&mock.SpecialAddressHandlerMock{
+
+	arguments := block.ArgShardProcessor{
+		ArgBaseProcessor: &block.ArgBaseProcessor{
+			Accounts: accntAdapter,
+			ForkDetector: &mock.ForkDetectorMock{
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+					return nil
+				},
+				GetHighestFinalBlockNonceCalled: func() uint64 {
+					return 0
+				},
+				ProbableHighestNonceCalled: func() uint64 {
+					return 0
+				},
+			},
+			Hasher:           testHasher,
+			Marshalizer:      testMarshalizer,
+			Store:            store,
 			ShardCoordinator: shardCoordinator,
-			AdrConv:          testAddressConverter,
+			NodesCoordinator: nodesCoordinator,
+			SpecialAddressHandler: mock.NewSpecialAddressHandlerMock(
+				testAddressConverter,
+				shardCoordinator,
+				nodesCoordinator,
+			),
+			Uint64Converter: uint64Converter,
+			StartHeaders:    genesisBlocks,
+			RequestHandler:  requestHandler,
+			Core:            &mock.ServiceContainerMock{},
+			PeerProcessor:   &mock.PeerProcessorMock{},
 		},
-		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
-				return nil
-			},
-			GetHighestFinalBlockNonceCalled: func() uint64 {
-				return 0
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
-		},
-		&mock.BlocksTrackerMock{
+		DataPool: dPool,
+		BlocksTracker: &mock.BlocksTrackerMock{
 			AddBlockCalled: func(headerHandler data.HeaderHandler) {
 			},
 			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
@@ -450,12 +461,11 @@ func createNetNode(
 				return make([]data.HeaderHandler, 0)
 			},
 		},
-		&mock.PeerProcessorMock{},
-		genesisBlocks,
-		requestHandler,
-		tc,
-		uint64Converter,
-	)
+		TxCoordinator:   tc,
+		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
+	}
+
+	blockProcessor, _ := block.NewShardProcessor(arguments)
 
 	_ = blkc.SetGenesisHeader(genesisBlocks[shardCoordinator.SelfId()])
 
@@ -538,7 +548,6 @@ func createNodes(
 	nodesPerShard int,
 	serviceID string,
 ) map[uint32][]*testNode {
-
 	//first node generated will have is pk belonging to firstSkShardId
 	numMetaChainNodes := 1
 	nodes := make(map[uint32][]*testNode)
@@ -749,7 +758,7 @@ func createMetaNetNode(
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
-	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(resolvers, factory.ShardHeadersForMetachainTopic)
+	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(resolvers, factory.ShardHeadersForMetachainTopic, factory.MetachainBlocksTopic)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 	blkProc, _ := block.NewMetaProcessor(
@@ -757,7 +766,7 @@ func createMetaNetNode(
 		accntAdapter,
 		dPool,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 				return nil
 			},
 			GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -770,10 +779,11 @@ func createMetaNetNode(
 		&mock.PeerProcessorMock{},
 		shardCoordinator,
 		nodesCoordinator,
-		&mock.SpecialAddressHandlerMock{
-			ShardCoordinator: shardCoordinator,
-			AdrConv:          testAddressConverter,
-		},
+		mock.NewSpecialAddressHandlerMock(
+			testAddressConverter,
+			shardCoordinator,
+			nodesCoordinator,
+		),
 		testHasher,
 		testMarshalizer,
 		store,

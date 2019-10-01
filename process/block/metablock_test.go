@@ -523,7 +523,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	hdr.ShardInfo = make([]block.ShardData, 0)
 	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
 
-	assert.Equal(t, process.ErrRootStateMissmatch, err)
+	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
 }
 
@@ -733,8 +733,11 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		accounts,
 		mdp,
 		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 				return nil
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
 			},
 		},
 		&mock.PeerProcessorMock{},
@@ -858,13 +861,16 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	forkDetectorAddCalled := false
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			if header == hdr {
 				forkDetectorAddCalled = true
 				return nil
 			}
 
 			return errors.New("should have not got here")
+		},
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 0
 		},
 	}
 	hasher := &mock.HasherStub{}
@@ -1010,34 +1016,6 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	header := createMetaBlockHeader()
 	err := mp.RemoveBlockInfoFromPool(header)
 	assert.Nil(t, err)
-}
-
-//------- ComputeNewNoncePrevHash
-
-func TestMetaProcessor_DisplayLogInfo(t *testing.T) {
-	t.Parallel()
-
-	mdp := initMetaDataPool()
-	hasher := mock.HasherMock{}
-	hdr := createMetaBlockHeader()
-	mp, _ := blproc.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		&mock.PeerProcessorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		initStore(),
-		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-		&mock.RequestHandlerMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-	hdr.PrevHash = hasher.Compute("prev hash")
-	mp.DisplayMetaBlock(hdr)
 }
 
 func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
@@ -2344,7 +2322,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRootStateMissmatch)
+	assert.Equal(t, err, process.ErrRootStateDoesNotMatch)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
@@ -2356,7 +2334,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.Nonce = 45
 	prevHdr.Round = currHdr.Round + 1
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrLowerRoundInOtherChainBlock)
+	assert.Equal(t, err, process.ErrLowerRoundInBlock)
 
 	prevHdr.Round = currHdr.Round - 1
 	currHdr.Nonce = prevHdr.Nonce + 2
@@ -2364,16 +2342,17 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	assert.Equal(t, err, process.ErrWrongNonceInBlock)
 
 	currHdr.Nonce = prevHdr.Nonce + 1
-	prevHdr.RandSeed = []byte("randomwrong")
-	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRandSeedMismatch)
-
-	prevHdr.RandSeed = currRandSeed
 	currHdr.PrevHash = []byte("wronghash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrHashDoesNotMatchInOtherChainBlock)
+	assert.Equal(t, err, process.ErrBlockHashDoesNotMatch)
+
+	prevHdr.RandSeed = []byte("randomwrong")
+	currHdr.PrevHash, _ = mp.ComputeHeaderHash(prevHdr)
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrRandSeedDoesNotMatch)
 
 	currHdr.PrevHash = prevHash
+	prevHdr.RandSeed = currRandSeed
 	prevHdr.RootHash = []byte("prevRootHash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
 	assert.Nil(t, err)

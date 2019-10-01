@@ -81,8 +81,14 @@ const MetricCpuLoadPercent = "erd_cpu_load_percent"
 // MetricMemLoadPercent is the metric for monitoring memory load [%]
 const MetricMemLoadPercent = "erd_mem_load_percent"
 
-// MetricTotalMem is the metric for monitoring total memory bytes
-const MetricTotalMem = "erd_total_mem"
+// MetricMemTotal is the metric for monitoring total memory bytes
+const MetricMemTotal = "erd_mem_total"
+
+// MetricMemUsedGolang is the metric that stores the total memory used by golang in bytes
+const MetricMemUsedGolang = "erd_mem_used_golang"
+
+// MetricMemUsedSystem is the metric that stores the total memory used by the system in bytes
+const MetricMemUsedSystem = "erd_mem_used_sys"
 
 // MetricNetworkRecvPercent is the metric for monitoring network receive load [%]
 const MetricNetworkRecvPercent = "erd_network_recv_percent"
@@ -123,9 +129,6 @@ const MetricConsensusRoundState = "erd_consensus_round_state"
 // MetricCrossCheckBlockHeight is the metric that store cross block height
 const MetricCrossCheckBlockHeight = "erd_metric_cross_check_block_height"
 
-// MetricMemoryUsedByNode is the metric that stores  the total memory used by the node in bytes
-const MetricMemoryUsedByNode = "erd_used_memory_by_node"
-
 // MetricNumProcessedTxs is the metric that stores the number of transactions processed
 const MetricNumProcessedTxs = "erd_num_transactions_processed"
 
@@ -135,14 +138,17 @@ const MetricCurrentBlockHash = "erd_current_block_hash"
 // MetricCurrentRoundTimestamp is the metric that stores current round timestamp
 const MetricCurrentRoundTimestamp = "erd_current_round_timestamp"
 
-//MetricHeaderSize is the metric that stores the current block size
+// MetricHeaderSize is the metric that stores the current block size
 const MetricHeaderSize = "erd_current_block_size"
 
-//MetricMiniBlocksSize is the metric that stores the current block size
+// MetricMiniBlocksSize is the metric that stores the current block size
 const MetricMiniBlocksSize = "erd_mini_blocks_size"
 
-//MetricNumShardHeadersFromPool is the metric that stores number of shard header from pool
+// MetricNumShardHeadersFromPool is the metric that stores number of shard header from pool
 const MetricNumShardHeadersFromPool = "erd_num_shard_headers_from_pool"
 
-//MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
+// MetricNumShardHeadersProcessed is the metric that stores number of shard header processed
 const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
+
+// MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
+const MetricNumTimesInForkChoice = "erd_fork_choice_count"

@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -49,7 +50,8 @@ type TxTypeHandler interface {
 
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
-	IsTxValidForProcessing(txHandler data.TransactionHandler) bool
+	IsTxValidForProcessing(txHandler TxValidatorHandler) bool
+	NumRejectedTxs() uint64
 	IsInterfaceNil() bool
 }
 
@@ -66,13 +68,13 @@ type TransactionCoordinator interface {
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
 	SaveBlockDataToStorage(body block.Body) error
-	RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error)
+	RestoreBlockDataFromStorage(body block.Body) (int, error)
 	RemoveBlockDataFromPool(body block.Body) error
 
 	ProcessBlockTransaction(body block.Body, round uint64, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
 	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
@@ -114,7 +116,7 @@ type TransactionVerifier interface {
 	IsTransactionValid(tx data.TransactionHandler) error
 }
 
-// UnsignedTxHandler creates and verifies unsigned transactions for current round
+// TransactionFeeHandler processes the transaction fee
 type TransactionFeeHandler interface {
 	ProcessTransactionFee(cost *big.Int)
 	IsInterfaceNil() bool
@@ -122,15 +124,18 @@ type TransactionFeeHandler interface {
 
 // SpecialAddressHandler responds with needed special addresses
 type SpecialAddressHandler interface {
-	SetElrondCommunityAddress(elrond []byte)
+	SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error
+	SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error
+	ConsensusShardRewardData() *data.ConsensusRewardData
+	ConsensusMetaRewardData() []*data.ConsensusRewardData
+	ClearMetaConsensusData()
 	ElrondCommunityAddress() []byte
-	SetConsensusData(consensusRewardAddresses []string, round uint64, epoch uint32)
-	ConsensusRewardAddresses() []string
 	LeaderAddress() []byte
 	BurnAddress() []byte
+	SetElrondCommunityAddress(elrond []byte)
 	ShardIdForAddress([]byte) (uint32, error)
-	Round() uint64
 	Epoch() uint32
+	Round() uint64
 	IsInterfaceNil() bool
 }
 
@@ -140,7 +145,7 @@ type PreProcessor interface {
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
 	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, map[int][]byte, error)
+	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxBlockToStorage(body block.Body) error
 
 	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error
@@ -169,7 +174,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusData(consensusRewardAddresses []string, round uint64)
+	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
 }
 
@@ -222,13 +227,14 @@ type Bootstrapper interface {
 	ShouldSync() bool
 	StopSync()
 	StartSync()
+	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error
+	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
 	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() (forkDetected bool, nonce uint64, hash []byte)
 	GetHighestFinalBlockNonce() uint64
@@ -393,5 +399,20 @@ type BlockSizeThrottler interface {
 	Add(round uint64, items uint32)
 	Succeed(round uint64)
 	ComputeMaxItems()
+	IsInterfaceNil() bool
+}
+
+// TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
+type TxValidatorHandler interface {
+	SenderShardId() uint32
+	Nonce() uint64
+	SenderAddress() state.AddressContainer
+	TotalValue() *big.Int
+}
+
+// PoolsCleaner define the functionality that is needed for a pools cleaner
+type PoolsCleaner interface {
+	Clean(duration time.Duration) (bool, error)
+	NumRemovedTxs() uint64
 	IsInterfaceNil() bool
 }

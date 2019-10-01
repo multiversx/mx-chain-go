@@ -190,10 +190,11 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initTestNode() {
-	tpn.SpecialAddressHandler = &mock.SpecialAddressHandlerMock{
-		ShardCoordinator: tpn.ShardCoordinator,
-		AdrConv:          TestAddressConverter,
-	}
+	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+		tpn.NodesCoordinator,
+	)
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
@@ -260,6 +261,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		}
 	} else {
 		interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
+			tpn.AccntState,
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
 			tpn.Messenger,
@@ -297,6 +299,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
+			factory.HeadersTopic,
 			factory.ShardHeadersForMetachainTopic,
 		)
 	} else {
@@ -318,6 +321,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			factory.UnsignedTransactionTopic,
 			factory.RewardsTransactionTopic,
 			factory.MiniBlocksTopic,
+			factory.HeadersTopic,
 			factory.MetachainBlocksTopic,
 			100,
 		)
@@ -418,7 +422,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeader data.HeaderHandler, finalHeaderHash []byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -458,24 +462,29 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			TestUint64Converter,
 		)
 	} else {
-		tpn.BlockProcessor, err = block.NewShardProcessor(
-			nil,
-			tpn.ShardDataPool,
-			tpn.Storage,
-			TestHasher,
-			TestMarshalizer,
-			tpn.AccntState,
-			tpn.ShardCoordinator,
-			tpn.NodesCoordinator,
-			tpn.SpecialAddressHandler,
-			tpn.ForkDetector,
-			tpn.BlockTracker,
-			&mock.PeerProcessorMock{},
-			tpn.GenesisBlocks,
-			tpn.RequestHandler,
-			tpn.TxCoordinator,
-			TestUint64Converter,
-		)
+		arguments := block.ArgShardProcessor{
+			ArgBaseProcessor: &block.ArgBaseProcessor{
+				Accounts:              tpn.AccntState,
+				ForkDetector:          tpn.ForkDetector,
+				Hasher:                TestHasher,
+				Marshalizer:           TestMarshalizer,
+				Store:                 tpn.Storage,
+				ShardCoordinator:      tpn.ShardCoordinator,
+				NodesCoordinator:      tpn.NodesCoordinator,
+				SpecialAddressHandler: tpn.SpecialAddressHandler,
+				Uint64Converter:       TestUint64Converter,
+				StartHeaders:          tpn.GenesisBlocks,
+				RequestHandler:        tpn.RequestHandler,
+				Core:                  nil,
+				PeerProcessor:         &mock.PeerProcessorMock{},
+			},
+			DataPool:        tpn.ShardDataPool,
+			BlocksTracker:   tpn.BlockTracker,
+			TxCoordinator:   tpn.TxCoordinator,
+			TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
+		}
+
+		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
 	}
 
 	if err != nil {

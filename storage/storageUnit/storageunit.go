@@ -83,7 +83,7 @@ type BloomConfig struct {
 }
 
 // Unit represents a storer's data bank
-// holding the cache, persistance unit and bloom filter
+// holding the cache, persistence unit and bloom filter
 type Unit struct {
 	lock        sync.RWMutex
 	batcher     storage.Batcher
@@ -92,16 +92,10 @@ type Unit struct {
 	bloomFilter storage.BloomFilter
 }
 
-// Put adds data to both cache and persistance medium and updates the bloom filter
+// Put adds data to both cache and persistence medium and updates the bloom filter
 func (s *Unit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
-	// no need to add if already present in cache
-	has := s.cacher.Has(key)
-	if has {
-		return nil
-	}
 
 	s.cacher.Put(key, data)
 
@@ -139,7 +133,7 @@ func (s *Unit) Get(key []byte) ([]byte, error) {
 				return nil, err
 			}
 
-			// if found in persistance unit, add it in cache
+			// if found in persistence unit, add it in cache
 			s.cacher.Put(key, v)
 		} else {
 			return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
@@ -186,7 +180,7 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) error {
 			//add it to the cache
 			s.cacher.Put(key, value)
 
-			// add it also to the persistance unit
+			// add it also to the persistence unit
 			err = s.persister.Put(key, value)
 			if err != nil {
 				//revert adding to the cache
@@ -210,7 +204,7 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) error {
 	return nil
 }
 
-// Remove removes the data associated to the given key from both cache and persistance medium
+// Remove removes the data associated to the given key from both cache and persistence medium
 func (s *Unit) Remove(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()

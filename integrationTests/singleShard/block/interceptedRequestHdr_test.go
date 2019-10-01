@@ -110,15 +110,15 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	nRequester.ShardDataPool.Headers().RegisterHandler(func(key []byte) {
 		hdrStored, _ := nRequester.ShardDataPool.Headers().Peek(key)
-		fmt.Printf("Recieved hash %v\n", base64.StdEncoding.EncodeToString(key))
+		fmt.Printf("Received hash %v\n", base64.StdEncoding.EncodeToString(key))
 
 		if reflect.DeepEqual(hdrStored, &hdr1) && hdr1.Signature != nil {
-			fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
+			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			wg.Done()
 		}
 
 		if reflect.DeepEqual(hdrStored, &hdr2) && hdr2.Signature != nil {
-			fmt.Printf("Recieved header with hash %v\n", base64.StdEncoding.EncodeToString(key))
+			fmt.Printf("Received header with hash %v\n", base64.StdEncoding.EncodeToString(key))
 			wg.Done()
 		}
 	})

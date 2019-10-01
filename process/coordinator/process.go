@@ -257,28 +257,25 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 }
 
 // RestoreBlockDataFromStorage restores block data from storage to pool
-func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (int, map[int][][]byte, error) {
+func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (int, error) {
 	separatedBodies := tc.separateBodyByType(body)
 
 	var errFound error
 	localMutex := sync.Mutex{}
 	totalRestoredTx := 0
-	restoredMbHashes := make(map[int][][]byte)
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
 		go func(blockType block.Type, blockBody block.Body) {
-			restoredMbs := make(map[int][]byte)
-
 			preproc := tc.getPreProcessor(blockType)
 			if preproc == nil {
 				wg.Done()
 				return
 			}
 
-			restoredTxs, restoredMbs, err := preproc.RestoreTxBlockIntoPools(blockBody, tc.miniBlockPool)
+			restoredTxs, err := preproc.RestoreTxBlockIntoPools(blockBody, tc.miniBlockPool)
 			if err != nil {
 				log.Debug(err.Error())
 
@@ -290,10 +287,6 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 			localMutex.Lock()
 			totalRestoredTx += restoredTxs
 
-			for shId, mbHash := range restoredMbs {
-				restoredMbHashes[shId] = append(restoredMbHashes[shId], mbHash)
-			}
-
 			localMutex.Unlock()
 
 			wg.Done()
@@ -302,7 +295,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 
 	wg.Wait()
 
-	return totalRestoredTx, restoredMbHashes, errFound
+	return totalRestoredTx, errFound
 }
 
 // RemoveBlockDataFromPool deletes block data from pools
@@ -376,6 +369,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 // with destination of current shard
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
+	processedMiniBlocksHashes map[string]struct{},
 	maxTxRemaining uint32,
 	maxMbRemaining uint32,
 	round uint64,
@@ -383,7 +377,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 ) (block.MiniBlockSlice, uint32, bool) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
-	nrMBprocessed := 0
+	nrMiniBlocksProcessed := 0
 
 	if hdr == nil || hdr.IsInterfaceNil() {
 		return miniBlocks, nrTxAdded, true
@@ -395,8 +389,9 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		if hdr.GetMiniBlockProcessed([]byte(key)) {
-			nrMBprocessed++
+		_, ok := processedMiniBlocksHashes[key]
+		if ok {
+			nrMiniBlocksProcessed++
 			continue
 		}
 
@@ -435,7 +430,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
-		nrMBprocessed++
+		nrMiniBlocksProcessed++
 
 		mbOverFlow := uint32(len(miniBlocks)) >= maxMbRemaining
 		if mbOverFlow {
@@ -443,7 +438,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 	}
 
-	allMBsProcessed := nrMBprocessed == len(crossMiniBlockHashes)
+	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
 	return miniBlocks, nrTxAdded, allMBsProcessed
 }
 

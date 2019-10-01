@@ -91,11 +91,14 @@ var ErrNilRootHash = errors.New("root hash is nil")
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nonce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
-// ErrBlockHashDoesNotMatch signals the hash of the block is not matching with the previous one
+// ErrWrongNonceInOtherChainBlock signals the nonce in block is different than expected nonce
+var ErrWrongNonceInOtherChainBlock = errors.New("wrong nonce in other chain block")
+
+// ErrBlockHashDoesNotMatch signals that header hash does not match with the previous one
 var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
 
-// ErrHashDoesNotMatchInOtherChainBlock signals that header hash for one shard is not match with the previous one
-var ErrHashDoesNotMatchInOtherChainBlock = errors.New("block hash does not match with the last committed for this shard")
+// ErrBlockHashDoesNotMatchInOtherChainBlock signals that header hash does not match with the previous one
+var ErrBlockHashDoesNotMatchInOtherChainBlock = errors.New("block hash does not match in other chain block")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
@@ -106,8 +109,11 @@ var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 // ErrUnmarshalWithoutSuccess signals that unmarshal some data was not done with success
 var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 
-// ErrRootStateMissmatch signals that persist some data was not done with success
-var ErrRootStateMissmatch = errors.New("root state does not match")
+// ErrRootStateDoesNotMatch signals that root state does not match
+var ErrRootStateDoesNotMatch = errors.New("root state does not match")
+
+// ErrRootStateDoesNotMatchInOtherChainBlock signals that root state does not match
+var ErrRootStateDoesNotMatchInOtherChainBlock = errors.New("root state does not match in other chain block")
 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
@@ -235,6 +241,9 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 // ErrNilMetaBlockPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlockPool = errors.New("nil meta block pool")
 
+// ErrNilShardBlockPool signals that a nil shard blocks pool was used
+var ErrNilShardBlockPool = errors.New("nil shard block pool")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 
@@ -298,14 +307,17 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
 var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
 
-// ErrLowerRoundInOtherChainBlock signals that header round for one shard is too low for processing it
-var ErrLowerRoundInOtherChainBlock = errors.New("header round is lower than last committed for this shard")
+// ErrLowerRoundInOtherChainBlock signals that header round too low for processing it
+var ErrLowerRoundInOtherChainBlock = errors.New("header round is lower than last committed in other chain block")
 
-// ErrLowerRoundInBlock signals that a header round is too low for processing
+// ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
-// ErrRandSeedMismatch signals that random seeds are not equal
-var ErrRandSeedMismatch = errors.New("random seeds do not match")
+// ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
+var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
+
+// ErrRandSeedDoesNotMatchInOtherChainBlock signals that seed does not match with the previous one
+var ErrRandSeedDoesNotMatchInOtherChainBlock = errors.New("random seed does not match in other chain block")
 
 // ErrHeaderNotFinal signals that header is not final and it should be
 var ErrHeaderNotFinal = errors.New("header in metablock is not final")
@@ -483,3 +495,18 @@ var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
 
 // ErrNilPeerProcessor signals that nil peer processor was provided
 var ErrNilPeerProcessor = errors.New("nil peer processor")
+
+// ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
+var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
+
+// ErrVMTypeLengthInvalid signals that vm type length is too long
+var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
+
+// ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
+var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
+
+// ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
+var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
+
+// ErrZeroMaxCleanTime signal that cleaning time for pools its less or equals with 0
+var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")

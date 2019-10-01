@@ -44,33 +44,44 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint
 	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) GetProcessedMetaBlocksFromPool(body block.Body, header *block.Header) ([]data.HeaderHandler, error) {
-	return sp.getProcessedMetaBlocksFromPool(body, header)
+func (sp *shardProcessor) GetProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
+	return sp.getProcessedMetaBlocksFromHeader(header)
 }
 
-func (sp *shardProcessor) RemoveProcessedMetablocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
-	return sp.removeProcessedMetablocksFromPool(processedMetaHdrs)
+func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
+	return sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
-	shardProcessor, err := NewShardProcessor(
-		&mock.ServiceContainerMock{},
-		tdp,
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.ForkDetectorMock{},
-		&mock.BlocksTrackerMock{},
-		&mock.PeerProcessorMock{},
-		genesisBlocks,
-		&mock.RequestHandlerMock{},
-		&mock.TransactionCoordinatorMock{},
-		&mock.Uint64ByteSliceConverterMock{},
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	specialAddressHandler := mock.NewSpecialAddressHandlerMock(
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		nodesCoordinator,
 	)
+	arguments := ArgShardProcessor{
+		ArgBaseProcessor: &ArgBaseProcessor{
+			Accounts:              &mock.AccountsStub{},
+			ForkDetector:          &mock.ForkDetectorMock{},
+			Hasher:                &mock.HasherMock{},
+			Marshalizer:           &mock.MarshalizerMock{},
+			Store:                 &mock.ChainStorerMock{},
+			ShardCoordinator:      shardCoordinator,
+			NodesCoordinator:      nodesCoordinator,
+			SpecialAddressHandler: specialAddressHandler,
+			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:          genesisBlocks,
+			RequestHandler:        &mock.RequestHandlerMock{},
+			Core:                  &mock.ServiceContainerMock{},
+			PeerProcessor:         &mock.PeerProcessorMock{},
+		},
+		DataPool:        tdp,
+		BlocksTracker:   &mock.BlocksTrackerMock{},
+		TxCoordinator:   &mock.TransactionCoordinatorMock{},
+		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
+	}
+	shardProcessor, err := NewShardProcessor(arguments)
 	return shardProcessor, err
 }
 
@@ -100,10 +111,6 @@ func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, u
 
 func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
 	return mp.removeBlockInfoFromPool(header)
-}
-
-func (mp *metaProcessor) DisplayMetaBlock(header *block.MetaBlock) {
-	mp.displayMetaBlock(header)
 }
 
 func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
@@ -161,6 +168,10 @@ func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
 
 func (bp *baseProcessor) LastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
 	return bp.lastNotarizedHdrForShard(shardId)
+}
+
+func (bp *baseProcessor) RemoveLastNotarized() {
+	bp.removeLastNotarized()
 }
 
 func (bp *baseProcessor) SetMarshalizer(marshal marshal.Marshalizer) {
@@ -277,8 +288,8 @@ func (sp *shardProcessor) DisplayLogInfo(
 	sp.txCounter.displayLogInfo(header, body, headerHash, numShards, selfId, dataPool)
 }
 
-func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(round uint64) (*block.Header, []byte, error) {
-	return sp.getHighestHdrForOwnShardFromMetachain(round)
+func (sp *shardProcessor) GetHighestHdrForOwnShardFromMetachain(processedHdrs []data.HeaderHandler) ([]data.HeaderHandler, [][]byte, error) {
+	return sp.getHighestHdrForOwnShardFromMetachain(processedHdrs)
 }
 
 func (sp *shardProcessor) RestoreMetaBlockIntoPool(
@@ -293,4 +304,12 @@ func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
 	metaHashes [][]byte,
 ) (map[string][]byte, error) {
 	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
+}
+
+func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
+	return sp.isMiniBlockProcessed(metaBlockHash, miniBlockHash)
+}
+
+func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
+	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
 }
