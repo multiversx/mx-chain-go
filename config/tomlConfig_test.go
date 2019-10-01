@@ -32,6 +32,9 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bn"
 
+	communityAddress := "community"
+	burnAddress := "burnAddress"
+
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
@@ -71,6 +74,10 @@ func TestTomlParser(t *testing.T) {
 		Consensus: TypeConfig{
 			Type: consensusType,
 		},
+		EconomicsConfig: EconomicsConfig{
+			CommunityAddress: communityAddress,
+			BurnAddress:      burnAddress,
+		},
 	}
 
 	testString := `
@@ -107,6 +114,10 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
 	Type = "` + consensusType + `"
+
+[EconomicsConfig]
+    CommunityAddress = "` + communityAddress + `"
+    BurnAddress = "` + burnAddress + `"
 `
 	cfg := Config{}
 

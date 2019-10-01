@@ -1,13 +1,16 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/consensus"
+import (
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+)
 
 type ConsensusStateMock struct {
 	ResetConsensusStateCalled        func()
 	IsNodeLeaderInCurrentRoundCalled func(node string) bool
 	IsSelfLeaderInCurrentRoundCalled func() bool
 	GetLeaderCalled                  func() (string, error)
-	GetNextConsensusGroupCalled      func(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string, error)
+	GetNextConsensusGroupCalled      func(randomSource string, vgs sharding.NodesCoordinator) ([]string, error)
 	IsConsensusDataSetCalled         func() bool
 	IsConsensusDataEqualCalled       func(data []byte) bool
 	IsJobDoneCalled                  func(node string, currentSubroundId int) bool
@@ -17,13 +20,12 @@ type ConsensusStateMock struct {
 	IsBlockBodyAlreadyReceivedCalled func() bool
 	IsHeaderAlreadyReceivedCalled    func() bool
 	CanDoSubroundJobCalled           func(currentSubroundId int) bool
-	CanProcessReceivedMessageCalled  func(cnsDta consensus.Message, currentRoundIndex int32,
-		currentSubroundId int) bool
-	GenerateBitmapCalled     func(subroundId int) []byte
-	ProcessingBlockCalled    func() bool
-	SetProcessingBlockCalled func(processingBlock bool)
-	ConsensusGroupSizeCalled func() int
-	SetThresholdCalled       func(subroundId int, threshold int)
+	CanProcessReceivedMessageCalled  func(cnsDta consensus.Message, currentRoundIndex int32, currentSubroundId int) bool
+	GenerateBitmapCalled             func(subroundId int) []byte
+	ProcessingBlockCalled            func() bool
+	SetProcessingBlockCalled         func(processingBlock bool)
+	ConsensusGroupSizeCalled         func() int
+	SetThresholdCalled               func(subroundId int, threshold int)
 }
 
 func (cnsm *ConsensusStateMock) ResetConsensusState() {
@@ -42,9 +44,10 @@ func (cnsm *ConsensusStateMock) GetLeader() (string, error) {
 	return cnsm.GetLeaderCalled()
 }
 
-func (cnsm *ConsensusStateMock) GetNextConsensusGroup(randomSource string,
-	vgs consensus.ValidatorGroupSelector) ([]string,
-	error) {
+func (cnsm *ConsensusStateMock) GetNextConsensusGroup(
+	randomSource string,
+	vgs sharding.NodesCoordinator,
+) ([]string, error) {
 	return cnsm.GetNextConsensusGroupCalled(randomSource, vgs)
 }
 
@@ -84,8 +87,11 @@ func (cnsm *ConsensusStateMock) CanDoSubroundJob(currentSubroundId int) bool {
 	return cnsm.CanDoSubroundJobCalled(currentSubroundId)
 }
 
-func (cnsm *ConsensusStateMock) CanProcessReceivedMessage(cnsDta consensus.Message, currentRoundIndex int32,
-	currentSubroundId int) bool {
+func (cnsm *ConsensusStateMock) CanProcessReceivedMessage(
+	cnsDta consensus.Message,
+	currentRoundIndex int32,
+	currentSubroundId int,
+) bool {
 	return cnsm.CanProcessReceivedMessageCalled(cnsDta, currentRoundIndex, currentSubroundId)
 }
 
