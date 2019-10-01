@@ -152,3 +152,6 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 
 // MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
+
+//MetricHighestFinalBlockInShard is the metric that store highest nonce block notarized by meta for current shard
+const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_meta_for_current_shard"

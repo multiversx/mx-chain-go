@@ -239,6 +239,12 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
 	rows[4] = []string{fmt.Sprintf("Cross check block height: %s", crossCheckBlockHeight)}
 
+	shardId := wr.presenter.GetShardId()
+	if shardId != uint64(sharding.MetachainShardId) {
+		highestBlockInShard := wr.presenter.GetHighestFinalBlockInShard()
+		rows[4][0] += fmt.Sprintf(" ,highest block nonce in shard: %d", highestBlockInShard)
+	}
+
 	consensusState := wr.presenter.GetConsensusState()
 	rows[5] = []string{fmt.Sprintf("Consensus state: %s", consensusState)}
 

@@ -750,6 +750,7 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
+	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 }
 
 func startStatusPolling(
