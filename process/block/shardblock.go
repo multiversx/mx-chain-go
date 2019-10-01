@@ -737,7 +737,7 @@ func (sp *shardProcessor) CommitBlock(
 	for i := range finalHeaders {
 		val, ok := headersStorage.Get(finalHeaders[i].GetPrevHash())
 		if !ok {
-			log.Debug("Could not get header from storage")
+			log.Debug("could not get header from storage")
 			continue
 		}
 
