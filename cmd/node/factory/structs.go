@@ -826,6 +826,14 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
+	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
+		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
+		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
@@ -836,6 +844,7 @@ func createShardDataStoreFromConfig(
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
+	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 
 	return store, err
 }
@@ -929,6 +938,14 @@ func createMetaChainDataStoreFromConfig(
 		}
 	}
 
+	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
+		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
+		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
@@ -939,6 +956,7 @@ func createMetaChainDataStoreFromConfig(
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
 	}
+	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 
 	return store, err
 }

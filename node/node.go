@@ -737,12 +737,12 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
-func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
-	if !config.Enabled {
+func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
+	if !hbConfig.Enabled {
 		return nil
 	}
 
-	err := n.checkConfigParams(config)
+	err := n.checkConfigParams(hbConfig)
 	if err != nil {
 		return err
 	}
@@ -772,12 +772,15 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		return err
 	}
 
+	heartbeatStorage := n.store.GetStorer(dataRetriever.HeartbeatUnit)
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.singleSigner,
 		n.keyGen,
 		n.marshalizer,
-		time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive),
+		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
 		n.initialNodesPubkeys,
+		heartbeatStorage,
+		n.genesisTime,
 	)
 	if err != nil {
 		return err
@@ -793,7 +796,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		return err
 	}
 
-	go n.startSendingHeartbeats(config)
+	go n.startSendingHeartbeats(hbConfig)
 
 	return nil
 }

@@ -24,6 +24,8 @@ func TestNewMonitor_NilSingleSignerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		map[uint32][]string{0: {""}},
+		&mock.StorerMock{},
+		time.Now(),
 	)
 
 	assert.Nil(t, mon)
@@ -39,6 +41,8 @@ func TestNewMonitor_NilKeygenShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		map[uint32][]string{0: {""}},
+		&mock.StorerMock{},
+		time.Now(),
 	)
 
 	assert.Nil(t, mon)
@@ -54,6 +58,8 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		nil,
 		0,
 		map[uint32][]string{0: {""}},
+		&mock.StorerMock{},
+		time.Now(),
 	)
 
 	assert.Nil(t, mon)
@@ -69,6 +75,8 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		make(map[uint32][]string),
+		&mock.StorerMock{},
+		time.Now(),
 	)
 
 	assert.Nil(t, mon)
@@ -84,6 +92,8 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 		&mock.MarshalizerMock{},
 		1,
 		map[uint32][]string{0: {"pk1", "pk2"}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	assert.NotNil(t, mon)
@@ -107,6 +117,8 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 		&mock.MarshalizerMock{},
 		maxDuration,
 		pksPerShards,
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	assert.NotNil(t, mon)
@@ -128,6 +140,8 @@ func TestMonitor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		1,
 		map[uint32][]string{0: {"pk1"}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	err := mon.ProcessReceivedMessage(nil)
@@ -144,6 +158,8 @@ func TestMonitor_ProcessReceivedMessageNilDataShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		0,
 		map[uint32][]string{0: {"pk1"}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{})
@@ -166,6 +182,8 @@ func TestMonitor_ProcessReceivedMessageMarshalFailsShouldErr(t *testing.T) {
 		},
 		1,
 		map[uint32][]string{0: {"pk1"}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -192,6 +210,8 @@ func TestMonitor_ProcessReceivedMessageWrongPubkeyShouldErr(t *testing.T) {
 		},
 		1,
 		map[uint32][]string{0: {"pk1"}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -222,6 +242,8 @@ func TestMonitor_ProcessReceivedMessageVerifyFailsShouldErr(t *testing.T) {
 		},
 		1,
 		map[uint32][]string{0: {"pk1"}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -253,6 +275,8 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		},
 		time.Second*1000,
 		map[uint32][]string{0: {pubKey}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -290,6 +314,8 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 		},
 		time.Second*1000,
 		map[uint32][]string{0: {"pk2"}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: []byte("")})
@@ -331,6 +357,8 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 		},
 		time.Second*1000,
 		map[uint32][]string{0: {"pk1"}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	// First send from pk1 from shard 0
@@ -401,6 +429,8 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 		},
 		time.Millisecond*5,
 		map[uint32][]string{0: {pubKey1, pubKey2}},
+		mock.NewStorerMock(),
+		time.Now(),
 	)
 
 	// First send from pk1
@@ -439,4 +469,141 @@ func sendHbMessageFromPubKey(pubKey string, mon *heartbeat.Monitor) error {
 	buffToSend, _ := json.Marshal(hb)
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
 	return err
+}
+
+func TestMonitor_ObserverShouldKeepPeerInactiveAfterRestart(t *testing.T) {
+	t.Parallel()
+
+	pubKey1 := "pk1-should-stay-online"
+	pubKey2 := "pk2-should-go-offline"
+
+	mon, _ := heartbeat.NewMonitor(
+		&mock.SinglesignStub{
+			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+				return nil
+			},
+		},
+		&mock.KeyGenMock{
+			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
+				return nil, nil
+			},
+		},
+		&mock.MarshalizerFake{},
+		time.Millisecond*2,
+		map[uint32][]string{0: {pubKey1, pubKey2}},
+		mock.NewStorerMock(),
+		time.Now(),
+	)
+
+	hb := heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey1),
+	}
+	time.Sleep(8 * time.Millisecond)
+	mon.SendHeartbeatMessage(&hb)
+	hbts := mon.GetHeartbeats()
+	assert.False(t, hbts[1].IsActive)
+
+	mon = mon.RestartMonitor()
+	hbts = mon.GetHeartbeats()
+	assert.False(t, hbts[1].IsActive)
+}
+
+func TestMonitor_ObserverShouldKeepPeerActiveAfterRestart(t *testing.T) {
+	t.Parallel()
+
+	pubKey1 := "pk1"
+
+	mon, _ := heartbeat.NewMonitor(
+		&mock.SinglesignStub{
+			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+				return nil
+			},
+		},
+		&mock.KeyGenMock{
+			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
+				return nil, nil
+			},
+		},
+		&mock.MarshalizerFake{},
+		time.Millisecond*2,
+		map[uint32][]string{0: {pubKey1}},
+		mock.NewStorerMock(),
+		time.Now(),
+	)
+
+	hb := heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey1),
+	}
+	time.Sleep(8 * time.Millisecond)
+	mon.SendHeartbeatMessage(&hb)
+	hbts := mon.GetHeartbeats()
+	assert.True(t, hbts[0].IsActive)
+
+	mon = mon.RestartMonitor()
+	hbts = mon.GetHeartbeats()
+	assert.True(t, hbts[0].IsActive)
+}
+
+func TestMonitor_ObserverShouldKeepPeerInactiveAfterRestart_PeerWentOfflineBefore(t *testing.T) {
+	t.Parallel()
+
+	pubKey1 := "pk1"
+	pubKey2 := "pk2"
+
+	mon, _ := heartbeat.NewMonitor(
+		&mock.SinglesignStub{
+			VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+				return nil
+			},
+		},
+		&mock.KeyGenMock{
+			PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
+				return nil, nil
+			},
+		},
+		&mock.MarshalizerFake{},
+		time.Millisecond*3,
+		map[uint32][]string{0: {pubKey1, pubKey2}},
+		mock.NewStorerMock(),
+		time.Now(),
+	)
+
+	// observer is active
+	hb := heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey1),
+	}
+	mon.SendHeartbeatMessage(&hb)
+	hbts := mon.GetHeartbeats()
+	assert.True(t, hbts[0].IsActive)
+
+	// peer is also active
+	hb = heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey2),
+	}
+	mon.SendHeartbeatMessage(&hb)
+	hbts = mon.GetHeartbeats()
+	assert.True(t, hbts[0].IsActive)
+
+	// set peer as inactive by sending from observer and peer didn't send
+	hb = heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey1),
+	}
+	time.Sleep(3 * time.Millisecond)
+	mon.SendHeartbeatMessage(&hb)
+	hbts = mon.GetHeartbeats()
+	assert.True(t, hbts[0].IsActive)
+	assert.False(t, hbts[1].IsActive)
+
+	// now restart the observer
+	mon = mon.RestartMonitor()
+
+	// send from observer
+	hb = heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey1),
+	}
+	time.Sleep(5 * time.Millisecond)
+	mon.SendHeartbeatMessage(&hb)
+	hbts = mon.GetHeartbeats()
+	// peer should still be inactive
+	assert.False(t, hbts[1].IsActive)
 }

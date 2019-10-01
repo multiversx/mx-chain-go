@@ -11,7 +11,7 @@ import (
 func TestNewHeartbeatMessageInfo_InvalidDurationShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hbmi, err := newHeartbeatMessageInfo(0, false)
+	hbmi, err := newHeartbeatMessageInfo(0, false, time.Now())
 
 	assert.Nil(t, hbmi)
 	assert.Equal(t, ErrInvalidMaxDurationPeerUnresponsive, err)
@@ -20,7 +20,7 @@ func TestNewHeartbeatMessageInfo_InvalidDurationShouldErr(t *testing.T) {
 func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hbmi, err := newHeartbeatMessageInfo(1, false)
+	hbmi, err := newHeartbeatMessageInfo(1, false, time.Now())
 
 	assert.NotNil(t, hbmi)
 	assert.Nil(t, err)
@@ -29,7 +29,7 @@ func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 	t.Parallel()
 
-	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false)
+	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false, time.Now())
 	incrementalTime := int64(0)
 	hbmi.getTimeHandler = func() time.Time {
 		if incrementalTime < 2 {
@@ -52,7 +52,7 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hbmi, _ := newHeartbeatMessageInfo(time.Duration(1), false)
+	hbmi, _ := newHeartbeatMessageInfo(time.Duration(1), false, time.Now())
 	incrementalTime := int64(0)
 	hbmi.getTimeHandler = func() time.Time {
 		tReturned := time.Unix(0, incrementalTime)
@@ -70,7 +70,7 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpTime(t *testing.T) {
 	t.Parallel()
 
-	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false)
+	hbmi, _ := newHeartbeatMessageInfo(time.Duration(10), false, time.Now())
 	incrementalTime := int64(0)
 	hbmi.getTimeHandler = func() time.Time {
 		tReturned := time.Unix(0, incrementalTime)

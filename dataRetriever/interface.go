@@ -30,6 +30,8 @@ const (
 	UnsignedTransactionUnit UnitType = 7
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
 	MetaHdrNonceHashDataUnit UnitType = 8
+	// HeartbeatUnit is the heartbeat storage unit identifier
+	HeartbeatUnit UnitType = 9
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

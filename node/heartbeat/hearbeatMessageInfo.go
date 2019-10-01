@@ -22,12 +22,14 @@ type heartbeatMessageInfo struct {
 	nodeDisplayName    string
 	isValidator        bool
 	lastUptimeDowntime time.Time
+	genesisTime        time.Time
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
 func newHeartbeatMessageInfo(
 	maxDurationPeerUnresponsive time.Duration,
 	isValidator bool,
+	genesisTime time.Time,
 ) (*heartbeatMessageInfo, error) {
 
 	if maxDurationPeerUnresponsive == 0 {
@@ -39,13 +41,14 @@ func newHeartbeatMessageInfo(
 		maxInactiveTime:             Duration{0},
 		isActive:                    false,
 		receivedShardID:             uint32(0),
-		timeStamp:                   emptyTimestamp,
+		timeStamp:                   genesisTime,
 		lastUptimeDowntime:          time.Now(),
 		totalUpTime:                 Duration{0},
 		totalDownTime:               Duration{0},
 		versionNumber:               "",
 		nodeDisplayName:             "",
 		isValidator:                 isValidator,
+		genesisTime:                 genesisTime,
 	}
 	hbmi.getTimeHandler = hbmi.clockTime
 
@@ -57,12 +60,16 @@ func (hbmi *heartbeatMessageInfo) clockTime() time.Time {
 }
 
 func (hbmi *heartbeatMessageInfo) updateFields() {
-	crtDuration := hbmi.getTimeHandler().Sub(hbmi.timeStamp)
-	crtDuration = maxDuration(0, crtDuration)
-
-	hbmi.isActive = crtDuration < hbmi.maxDurationPeerUnresponsive
-	hbmi.updateUpAndDownTime()
-	hbmi.updateMaxInactiveTimeDuration()
+	if hbmi.genesisTime != hbmi.timeStamp {
+		crtDuration := hbmi.getTimeHandler().Sub(hbmi.timeStamp)
+		crtDuration = maxDuration(0, crtDuration)
+		hbmi.isActive = crtDuration < hbmi.maxDurationPeerUnresponsive
+		hbmi.updateMaxInactiveTimeDuration()
+		if time.Now().Sub(hbmi.genesisTime) > 0 {
+			hbmi.updateUpAndDownTime()
+		}
+	}
+	hbmi.lastUptimeDowntime = time.Now()
 }
 
 // Wil update the total time a node was up and down
@@ -75,8 +82,6 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime() {
 	} else {
 		hbmi.totalDownTime.Duration += lastDuration
 	}
-
-	hbmi.lastUptimeDowntime = time.Now()
 }
 
 // HeartbeatReceived processes a new message arrived from a peer
