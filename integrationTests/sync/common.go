@@ -18,7 +18,8 @@ var stepSync = time.Second * 2
 
 func setupSyncNodesOneShardAndMeta(
 	numNodesPerShard int,
-	numNodesMeta int) ([]*integrationTests.TestProcessorNode, p2p.Messenger, []int) {
+	numNodesMeta int,
+) ([]*integrationTests.TestProcessorNode, p2p.Messenger, []int) {
 
 	maxShards := uint32(1)
 	shardId := uint32(0)
@@ -48,7 +49,7 @@ func setupSyncNodesOneShardAndMeta(
 		)
 		nodes = append(nodes, metaNode)
 	}
-	idxProposerMeta := numNodesPerShard
+	idxProposerMeta := len(nodes) - 1
 
 	idxProposers := []int{idxProposerShard0, idxProposerMeta}
 
@@ -110,23 +111,18 @@ func proposeBlocks(
 	}
 }
 
-func manualRollback(nodes []*integrationTests.TestProcessorNode, shardId uint32, targetNonce uint64) {
+func forkChoiceOneBlock(nodes []*integrationTests.TestProcessorNode, shardId uint32) {
 	for idx, n := range nodes {
 		if n.ShardCoordinator.SelfId() != shardId {
 			continue
 		}
-
-		if n.BlockChain.GetCurrentBlockHeader().GetNonce() != targetNonce {
-			continue
-		}
-
-		oldNonce := n.BlockChain.GetCurrentBlockHeader().GetNonce()
-		err := n.Bootstrapper.ManualRollback()
+		err := n.Bootstrapper.ForkChoice(false)
 		if err != nil {
 			fmt.Println(err)
 		}
+
 		newNonce := n.BlockChain.GetCurrentBlockHeader().GetNonce()
-		fmt.Printf("Node's id %d had nonce %d, now is %d\n", idx, oldNonce, newNonce)
+		fmt.Printf("Node's id %d is at block height %d\n", idx, newNonce)
 	}
 }
 
@@ -144,7 +140,6 @@ func emptyNodeDataPool(node *integrationTests.TestProcessorNode) {
 	if node.ShardDataPool != nil {
 		emptyShardDataPool(node.ShardDataPool)
 	}
-
 	if node.MetaDataPool != nil {
 		emptyMetaDataPool(node.MetaDataPool)
 	}
@@ -172,7 +167,6 @@ func resetHighestProbableNonce(nodes []*integrationTests.TestProcessorNode, shar
 		if n.ShardCoordinator.SelfId() != shardId {
 			continue
 		}
-
 		if n.BlockChain.GetCurrentBlockHeader().GetNonce() != targetNonce {
 			continue
 		}

@@ -49,7 +49,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	)
 
 	shardIdToRollbackLastBlock := uint32(0)
-	manualRollback(nodes, shardIdToRollbackLastBlock, 3)
+	forkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
 	resetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 2)
 	emptyDataPools(nodes, shardIdToRollbackLastBlock)
 
