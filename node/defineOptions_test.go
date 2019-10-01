@@ -544,6 +544,32 @@ func TestWithShardCoordinator_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithNodesCoordinator_NilNodesCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNodesCoordinator(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.nodesCoordinator)
+	assert.Equal(t, ErrNilNodesCoordinator, err)
+}
+
+func TestWithNodesCoordinator_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
+
+	opt := WithNodesCoordinator(nodesCoordinator)
+	err := opt(node)
+
+	assert.True(t, node.nodesCoordinator == nodesCoordinator)
+	assert.Nil(t, err)
+}
+
 func TestWithUint64ByteSliceConverter_NilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
