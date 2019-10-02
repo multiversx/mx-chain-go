@@ -22,13 +22,24 @@ func NewTestSyncNode(
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
+		NodesCoordinator: nodesCoordinator,
 	}
 
+	kg := &mock.KeyGenMock{}
+	sk, pk := kg.GeneratePair()
+	tpn.NodeKeys = &TestKeyPair{
+		Sk: sk,
+		Pk: pk,
+	}
+
+	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initTestNodeWithSync()
@@ -39,9 +50,14 @@ func NewTestSyncNode(
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initRounder()
 	tpn.initStorage()
-	tpn.AccntState, _, _ = CreateAccountsDB(tpn.ShardCoordinator)
+	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
+	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+		tpn.NodesCoordinator,
+	)
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
@@ -82,6 +98,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.MetaDataPool,
 			tpn.ForkDetector,
 			tpn.ShardCoordinator,
+			tpn.NodesCoordinator,
+			tpn.SpecialAddressHandler,
 			TestHasher,
 			TestMarshalizer,
 			tpn.Storage,
@@ -89,20 +107,23 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.RequestHandler,
 			TestUint64Converter,
 		)
+
 	} else {
 		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: &block.ArgBaseProcessor{
-				Accounts:         tpn.AccntState,
-				ForkDetector:     tpn.ForkDetector,
-				Hasher:           TestHasher,
-				Marshalizer:      TestMarshalizer,
-				Store:            tpn.Storage,
-				ShardCoordinator: tpn.ShardCoordinator,
-				Uint64Converter:  TestUint64Converter,
-				StartHeaders:     tpn.GenesisBlocks,
-				RequestHandler:   tpn.RequestHandler,
-				Core:             nil,
+				Accounts:              tpn.AccntState,
+				ForkDetector:          tpn.ForkDetector,
+				Hasher:                TestHasher,
+				Marshalizer:           TestMarshalizer,
+				Store:                 tpn.Storage,
+				ShardCoordinator:      tpn.ShardCoordinator,
+				NodesCoordinator:      tpn.NodesCoordinator,
+				SpecialAddressHandler: tpn.SpecialAddressHandler,
+				Uint64Converter:       TestUint64Converter,
+				StartHeaders:          tpn.GenesisBlocks,
+				RequestHandler:        tpn.RequestHandler,
+				Core:                  nil,
 			},
 			DataPool:        tpn.ShardDataPool,
 			BlocksTracker:   tpn.BlockTracker,

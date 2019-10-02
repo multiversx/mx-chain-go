@@ -5,13 +5,14 @@ import (
 )
 
 type ValidatorMock struct {
-	stake  *big.Int
-	rating int32
-	pubKey []byte
+	stake   *big.Int
+	rating  int32
+	pubKey  []byte
+	address []byte
 }
 
-func NewValidatorMock(stake *big.Int, rating int32, pubKey []byte) *ValidatorMock {
-	return &ValidatorMock{stake: stake, rating: rating, pubKey: pubKey}
+func NewValidatorMock(stake *big.Int, rating int32, pubKey []byte, address []byte) *ValidatorMock {
+	return &ValidatorMock{stake: stake, rating: rating, pubKey: pubKey, address: address}
 }
 
 func (vm *ValidatorMock) Stake() *big.Int {
@@ -24,6 +25,10 @@ func (vm *ValidatorMock) Rating() int32 {
 
 func (vm *ValidatorMock) PubKey() []byte {
 	return vm.pubKey
+}
+
+func (vm *ValidatorMock) Address() []byte {
+	return vm.address
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
