@@ -518,7 +518,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.state,
 		forkDetector,
 		shardsGenesisBlocks,
-		args.nodesConfig,
 		args.coreServiceContainer,
 	)
 
@@ -1441,7 +1440,6 @@ func newBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
@@ -1470,7 +1468,6 @@ func newBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	// TODO: remove nodesConfig as no longer needed with nodes coordinator available
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessorAndTracker(
 			resolversFinder,
@@ -1482,7 +1479,6 @@ func newBlockProcessorAndTracker(
 			state,
 			forkDetector,
 			shardsGenesisBlocks,
-			nodesConfig,
 			coreServiceContainer,
 		)
 	}
@@ -1514,7 +1510,6 @@ func newShardBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
@@ -1745,21 +1740,26 @@ func newMetaBlockProcessorAndTracker(
 		return nil, nil, err
 	}
 
-	metaProcessor, err := block.NewMetaProcessor(
-		coreServiceContainer,
-		state.AccountsAdapter,
-		data.MetaDatapool,
-		forkDetector,
-		shardCoordinator,
-		nodesCoordinator,
-		specialAddressHandler,
-		core.Hasher,
-		core.Marshalizer,
-		data.Store,
-		shardsGenesisBlocks,
-		requestHandler,
-		core.Uint64ByteSliceConverter,
-	)
+	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Accounts:              state.AccountsAdapter,
+		ForkDetector:          forkDetector,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.Marshalizer,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		NodesCoordinator:      nodesCoordinator,
+		SpecialAddressHandler: specialAddressHandler,
+		Uint64Converter:       core.Uint64ByteSliceConverter,
+		StartHeaders:          shardsGenesisBlocks,
+		RequestHandler:        requestHandler,
+		Core:                  coreServiceContainer,
+	}
+	arguments := block.ArgMetaProcessor{
+		ArgBaseProcessor: &argumentsBaseProcessor,
+		DataPool:         data.MetaDatapool,
+	}
+
+	metaProcessor, err := block.NewMetaProcessor(arguments)
 	if err != nil {
 		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}

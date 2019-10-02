@@ -10,15 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -44,43 +39,29 @@ type metaProcessor struct {
 }
 
 // NewMetaProcessor creates a new metaProcessor object
-func NewMetaProcessor(
-	core serviceContainer.Core,
-	accounts state.AccountsAdapter,
-	dataPool dataRetriever.MetaPoolsHolder,
-	forkDetector process.ForkDetector,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	specialAddressHandler process.SpecialAddressHandler,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	store dataRetriever.StorageService,
-	startHeaders map[uint32]data.HeaderHandler,
-	requestHandler process.RequestHandler,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) (*metaProcessor, error) {
+func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	err := checkProcessorNilParameters(
-		accounts,
-		forkDetector,
-		hasher,
-		marshalizer,
-		store,
-		shardCoordinator,
-		nodesCoordinator,
-		specialAddressHandler,
-		uint64Converter)
+		arguments.Accounts,
+		arguments.ForkDetector,
+		arguments.Hasher,
+		arguments.Marshalizer,
+		arguments.Store,
+		arguments.ShardCoordinator,
+		arguments.NodesCoordinator,
+		arguments.SpecialAddressHandler,
+		arguments.Uint64Converter)
 	if err != nil {
 		return nil, err
 	}
 
-	if dataPool == nil || dataPool.IsInterfaceNil() {
+	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if dataPool.ShardHeaders() == nil || dataPool.ShardHeaders().IsInterfaceNil() {
+	if arguments.DataPool.ShardHeaders() == nil || arguments.DataPool.ShardHeaders().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if requestHandler == nil || requestHandler.IsInterfaceNil() {
+	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
 
@@ -90,30 +71,30 @@ func NewMetaProcessor(
 	}
 
 	base := &baseProcessor{
-		accounts:                      accounts,
+		accounts:                      arguments.Accounts,
 		blockSizeThrottler:            blockSizeThrottler,
-		forkDetector:                  forkDetector,
-		hasher:                        hasher,
-		marshalizer:                   marshalizer,
-		store:                         store,
-		shardCoordinator:              shardCoordinator,
-		nodesCoordinator:              nodesCoordinator,
-		specialAddressHandler:         specialAddressHandler,
-		uint64Converter:               uint64Converter,
-		onRequestHeaderHandler:        requestHandler.RequestHeader,
-		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.Hasher,
+		marshalizer:                   arguments.Marshalizer,
+		store:                         arguments.Store,
+		shardCoordinator:              arguments.ShardCoordinator,
+		nodesCoordinator:              arguments.NodesCoordinator,
+		specialAddressHandler:         arguments.SpecialAddressHandler,
+		uint64Converter:               arguments.Uint64Converter,
+		onRequestHeaderHandler:        arguments.RequestHandler.RequestHeader,
+		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 	}
 
-	err = base.setLastNotarizedHeadersSlice(startHeaders)
+	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
 	mp := metaProcessor{
-		core:           core,
+		core:           arguments.Core,
 		baseProcessor:  base,
-		dataPool:       dataPool,
+		dataPool:       arguments.DataPool,
 		headersCounter: NewHeaderCounter(),
 	}
 

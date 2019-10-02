@@ -38,3 +38,10 @@ type ArgShardProcessor struct {
 	TxCoordinator   process.TransactionCoordinator
 	TxsPoolsCleaner process.PoolsCleaner
 }
+
+// ArgMetaProcessor holds all dependencies required by the process data factory in order to create
+// new instances of meta processor
+type ArgMetaProcessor struct {
+	*ArgBaseProcessor
+	DataPool dataRetriever.MetaPoolsHolder
+}

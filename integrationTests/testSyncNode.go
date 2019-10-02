@@ -91,45 +91,40 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		},
 	}
 
+	argumentsBase := &block.ArgBaseProcessor{
+		Accounts:              tpn.AccntState,
+		ForkDetector:          nil,
+		Hasher:                TestHasher,
+		Marshalizer:           TestMarshalizer,
+		Store:                 tpn.Storage,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		NodesCoordinator:      tpn.NodesCoordinator,
+		SpecialAddressHandler: tpn.SpecialAddressHandler,
+		Uint64Converter:       TestUint64Converter,
+		StartHeaders:          tpn.GenesisBlocks,
+		RequestHandler:        tpn.RequestHandler,
+		Core:                  nil,
+	}
+
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder)
-		tpn.BlockProcessor, err = block.NewMetaProcessor(
-			&mock.ServiceContainerMock{},
-			tpn.AccntState,
-			tpn.MetaDataPool,
-			tpn.ForkDetector,
-			tpn.ShardCoordinator,
-			tpn.NodesCoordinator,
-			tpn.SpecialAddressHandler,
-			TestHasher,
-			TestMarshalizer,
-			tpn.Storage,
-			tpn.GenesisBlocks,
-			tpn.RequestHandler,
-			TestUint64Converter,
-		)
+		argumentsBase.ForkDetector = tpn.ForkDetector
+		arguments := block.ArgMetaProcessor{
+			ArgBaseProcessor: argumentsBase,
+			DataPool:         tpn.MetaDataPool,
+		}
+
+		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 
 	} else {
 		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
+		argumentsBase.ForkDetector = tpn.ForkDetector
 		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor: &block.ArgBaseProcessor{
-				Accounts:              tpn.AccntState,
-				ForkDetector:          tpn.ForkDetector,
-				Hasher:                TestHasher,
-				Marshalizer:           TestMarshalizer,
-				Store:                 tpn.Storage,
-				ShardCoordinator:      tpn.ShardCoordinator,
-				NodesCoordinator:      tpn.NodesCoordinator,
-				SpecialAddressHandler: tpn.SpecialAddressHandler,
-				Uint64Converter:       TestUint64Converter,
-				StartHeaders:          tpn.GenesisBlocks,
-				RequestHandler:        tpn.RequestHandler,
-				Core:                  nil,
-			},
-			DataPool:        tpn.ShardDataPool,
-			BlocksTracker:   tpn.BlockTracker,
-			TxCoordinator:   tpn.TxCoordinator,
-			TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
+			ArgBaseProcessor: argumentsBase,
+			DataPool:         tpn.ShardDataPool,
+			BlocksTracker:    tpn.BlockTracker,
+			TxCoordinator:    tpn.TxCoordinator,
+			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
