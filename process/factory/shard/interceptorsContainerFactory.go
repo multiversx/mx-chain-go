@@ -21,19 +21,19 @@ import (
 const maxGoRoutinexTxInterceptor = 100
 
 type interceptorsContainerFactory struct {
-	accounts				state.AccountsAdapter
-	shardCoordinator		sharding.Coordinator
-	messenger				process.TopicHandler
-	store					dataRetriever.StorageService
-	marshalizer				marshal.Marshalizer
-	hasher					hashing.Hasher
-	keyGen					crypto.KeyGenerator
-	singleSigner			crypto.SingleSigner
-	multiSigner				crypto.MultiSigner
-	dataPool				dataRetriever.PoolsHolder
-	addrConverter			state.AddressConverter
-	nodesCoordinator		sharding.NodesCoordinator
-	txInterceptorThrottler	process.InterceptorThrottler
+	accounts               state.AccountsAdapter
+	shardCoordinator       sharding.Coordinator
+	messenger              process.TopicHandler
+	store                  dataRetriever.StorageService
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	keyGen                 crypto.KeyGenerator
+	singleSigner           crypto.SingleSigner
+	multiSigner            crypto.MultiSigner
+	dataPool               dataRetriever.PoolsHolder
+	addrConverter          state.AddressConverter
+	nodesCoordinator       sharding.NodesCoordinator
+	txInterceptorThrottler process.InterceptorThrottler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -96,7 +96,7 @@ func NewInterceptorsContainerFactory(
 	return &interceptorsContainerFactory{
 		accounts:               accounts,
 		shardCoordinator:       shardCoordinator,
-		nodesCoordinator: 		nodesCoordinator,
+		nodesCoordinator:       nodesCoordinator,
 		messenger:              messenger,
 		store:                  store,
 		marshalizer:            marshalizer,
@@ -106,7 +106,6 @@ func NewInterceptorsContainerFactory(
 		multiSigner:            multiSigner,
 		dataPool:               dataPool,
 		addrConverter:          addrConverter,
-		chronologyValidator:    chronologyValidator,
 		txInterceptorThrottler: txInterceptorThrottler,
 	}, nil
 }
