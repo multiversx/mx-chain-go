@@ -36,6 +36,7 @@ func TestNewMetaInterceptedDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 
 	arg := createMockMetaArgument()
 	arg.Marshalizer = nil
+
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
 
 	assert.Nil(t, midf)
@@ -47,6 +48,7 @@ func TestNewMetaInterceptedDataFactory_NilHasherShouldErr(t *testing.T) {
 
 	arg := createMockMetaArgument()
 	arg.Hasher = nil
+
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
 
 	assert.Nil(t, midf)
@@ -58,6 +60,7 @@ func TestNewMetaInterceptedDataFactory_NilShardCoordinatorShouldErr(t *testing.T
 
 	arg := createMockMetaArgument()
 	arg.ShardCoordinator = nil
+
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
 
 	assert.Nil(t, midf)
@@ -69,6 +72,7 @@ func TestNewMetaInterceptedDataFactory_NilMultiSigVerifierShouldErr(t *testing.T
 
 	arg := createMockMetaArgument()
 	arg.MultiSigVerifier = nil
+
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
 
 	assert.Nil(t, midf)
@@ -80,6 +84,7 @@ func TestNewMetaInterceptedDataFactory_NilChronologyValidatorShouldErr(t *testin
 
 	arg := createMockMetaArgument()
 	arg.ChronologyValidator = nil
+
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
 
 	assert.Nil(t, midf)
@@ -115,7 +120,6 @@ func TestMetaInterceptedDataFactory_CreateInterceptedShardHdrShouldWork(t *testi
 	marshalizer := &mock.MarshalizerMock{}
 	emptyHdr := &block.Header{}
 	emptyHdrBuff, _ := marshalizer.Marshal(emptyHdr)
-
 	midf, _ := factory.NewMetaInterceptedDataFactory(createMockMetaArgument(), factory.InterceptedShardHeader)
 
 	instance, err := midf.Create(emptyHdrBuff)
@@ -123,6 +127,22 @@ func TestMetaInterceptedDataFactory_CreateInterceptedShardHdrShouldWork(t *testi
 	assert.NotNil(t, instance)
 	assert.Nil(t, err)
 	_, ok := instance.(*interceptedBlocks.InterceptedHeader)
+	assert.True(t, ok)
+}
+
+func TestMetaInterceptedDataFactory_CreateInterceptedMetaHdrShouldWork(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	emptyHdr := &block.Header{}
+	emptyHdrBuff, _ := marshalizer.Marshal(emptyHdr)
+	midf, _ := factory.NewMetaInterceptedDataFactory(createMockMetaArgument(), factory.InterceptedMetaHeader)
+
+	instance, err := midf.Create(emptyHdrBuff)
+
+	assert.NotNil(t, instance)
+	assert.Nil(t, err)
+	_, ok := instance.(*interceptedBlocks.InterceptedMetaHeader)
 	assert.True(t, ok)
 }
 

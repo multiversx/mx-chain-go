@@ -83,6 +83,8 @@ func (sidf *shardInterceptedDataFactory) Create(buff []byte) (process.Intercepte
 		return sidf.createInterceptedShardHeader(buff)
 	case InterceptedUnsignedTx:
 		return sidf.createInterceptedUnsignedTx(buff)
+	case InterceptedMetaHeader:
+		return sidf.createInterceptedMetaHeader(buff)
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
 	}
@@ -95,6 +97,16 @@ func (sidf *shardInterceptedDataFactory) createInterceptedTx(buff []byte) (proce
 		sidf.hasher,
 		sidf.keyGen,
 		sidf.singleSigner,
+		sidf.addrConverter,
+		sidf.shardCoordinator,
+	)
+}
+
+func (sidf *shardInterceptedDataFactory) createInterceptedUnsignedTx(buff []byte) (process.InterceptedData, error) {
+	return unsigned.NewInterceptedUnsignedTransaction(
+		buff,
+		sidf.marshalizer,
+		sidf.hasher,
 		sidf.addrConverter,
 		sidf.shardCoordinator,
 	)
@@ -113,14 +125,17 @@ func (sidf *shardInterceptedDataFactory) createInterceptedShardHeader(buff []byt
 	return interceptedBlocks.NewInterceptedHeader(arg)
 }
 
-func (sidf *shardInterceptedDataFactory) createInterceptedUnsignedTx(buff []byte) (process.InterceptedData, error) {
-	return unsigned.NewInterceptedUnsignedTransaction(
-		buff,
-		sidf.marshalizer,
-		sidf.hasher,
-		sidf.addrConverter,
-		sidf.shardCoordinator,
-	)
+func (sidf *shardInterceptedDataFactory) createInterceptedMetaHeader(buff []byte) (process.InterceptedData, error) {
+	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
+		HdrBuff:             buff,
+		Marshalizer:         sidf.marshalizer,
+		Hasher:              sidf.hasher,
+		MultiSigVerifier:    sidf.multiSigVerifier,
+		ChronologyValidator: sidf.chronologyValidator,
+		ShardCoordinator:    sidf.shardCoordinator,
+	}
+
+	return interceptedBlocks.NewInterceptedMetaHeader(arg)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -2,6 +2,12 @@ package mock
 
 type HeaderHandlerStub struct {
 	GetMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
+	GetPubKeysBitmapCalled           func() []byte
+	GetSignatureCalled               func() []byte
+	GetRootHashCalled                func() []byte
+	GetRandSeedCalled                func() []byte
+	GetPrevRandSeedCalled            func() []byte
+	GetPrevHashCalled                func() []byte
 }
 
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
@@ -25,27 +31,27 @@ func (hhs *HeaderHandlerStub) GetTimeStamp() uint64 {
 }
 
 func (hhs *HeaderHandlerStub) GetRootHash() []byte {
-	panic("implement me")
+	return hhs.GetRootHashCalled()
 }
 
 func (hhs *HeaderHandlerStub) GetPrevHash() []byte {
-	panic("implement me")
+	return hhs.GetPrevHashCalled()
 }
 
 func (hhs *HeaderHandlerStub) GetPrevRandSeed() []byte {
-	panic("implement me")
+	return hhs.GetPrevRandSeedCalled()
 }
 
 func (hhs *HeaderHandlerStub) GetRandSeed() []byte {
-	panic("implement me")
+	return hhs.GetRandSeedCalled()
 }
 
 func (hhs *HeaderHandlerStub) GetPubKeysBitmap() []byte {
-	panic("implement me")
+	return hhs.GetPubKeysBitmapCalled()
 }
 
 func (hhs *HeaderHandlerStub) GetSignature() []byte {
-	panic("implement me")
+	return hhs.GetSignatureCalled()
 }
 
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {

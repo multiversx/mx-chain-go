@@ -65,6 +65,8 @@ func (midf *metaInterceptedDataFactory) Create(buff []byte) (process.Intercepted
 	switch midf.interceptedDataType {
 	case InterceptedShardHeader:
 		return midf.createInterceptedShardHeader(buff)
+	case InterceptedMetaHeader:
+		return midf.createInterceptedMetaHeader(buff)
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
 	}
@@ -81,6 +83,19 @@ func (midf *metaInterceptedDataFactory) createInterceptedShardHeader(buff []byte
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)
+}
+
+func (midf *metaInterceptedDataFactory) createInterceptedMetaHeader(buff []byte) (process.InterceptedData, error) {
+	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
+		HdrBuff:             buff,
+		Marshalizer:         midf.marshalizer,
+		Hasher:              midf.hasher,
+		MultiSigVerifier:    midf.multiSigVerifier,
+		ChronologyValidator: midf.chronologyValidator,
+		ShardCoordinator:    midf.shardCoordinator,
+	}
+
+	return interceptedBlocks.NewInterceptedMetaHeader(arg)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

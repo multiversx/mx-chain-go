@@ -415,30 +415,6 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateTopicCreationPeerChBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	icf, _ := shard.NewInterceptorsContainerFactory(
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		createStubTopicHandler(factory.PeerChBodyTopic, ""),
-		createStore(),
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		mock.NewMultiSigner(),
-		createDataPools(),
-		&mock.AddressConverterMock{},
-		&mock.ChronologyValidatorStub{},
-	)
-
-	container, err := icf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -518,30 +494,6 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler("", factory.MiniBlocksTopic),
-		createStore(),
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		mock.NewMultiSigner(),
-		createDataPools(),
-		&mock.AddressConverterMock{},
-		&mock.ChronologyValidatorStub{},
-	)
-
-	container, err := icf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestInterceptorsContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	icf, _ := shard.NewInterceptorsContainerFactory(
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		createStubTopicHandler("", factory.PeerChBodyTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -650,10 +602,9 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorTxs := noOfShards + 1
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards
-	numInterceptorPeerChanges := 1
 	numInterceptorMetachainHeaders := 1
 	totalInterceptors := numInterceptorTxs + numInterceptorHeaders + numInterceptorMiniBlocks +
-		numInterceptorPeerChanges + numInterceptorMetachainHeaders + numInterceptorTxs
+		numInterceptorMetachainHeaders + numInterceptorTxs
 
 	assert.Equal(t, totalInterceptors, container.Len())
 }

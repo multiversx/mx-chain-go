@@ -19,7 +19,7 @@ var hdrShardId = uint32(1)
 var hdrRound = uint64(67)
 var hdrEpoch = uint32(78)
 
-func createDefaultArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
+func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		MultiSigVerifier: mock.NewMultiSigner(),
@@ -32,13 +32,13 @@ func createDefaultArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		},
 	}
 
-	hdr := createMockHeader()
+	hdr := createMockShardHeader()
 	arg.HdrBuff, _ = testMarshalizer.Marshal(hdr)
 
 	return arg
 }
 
-func createMockHeader() *dataBlock.Header {
+func createMockShardHeader() *dataBlock.Header {
 	return &dataBlock.Header{
 		Nonce:            hdrNonce,
 		PrevHash:         []byte("prev hash"),
@@ -70,82 +70,10 @@ func TestNewInterceptedHeader_NilArgumentShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilArguments, err)
 }
 
-func TestNewInterceptedHeader_NilHdrShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.HdrBuff = nil
-
-	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
-
-	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilBuffer, err)
-}
-
-func TestNewInterceptedHeader_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.Marshalizer = nil
-
-	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
-
-	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
-}
-
-func TestNewInterceptedHeader_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.Hasher = nil
-
-	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
-
-	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilHasher, err)
-}
-
-func TestNewInterceptedHeader_NilMultiSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.MultiSigVerifier = nil
-
-	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
-
-	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
-}
-
-func TestNewInterceptedHeader_NilChronologyValidatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.ChronologyValidator = nil
-
-	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
-
-	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilChronologyValidator, err)
-}
-
-func TestNewInterceptedHeader_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.ShardCoordinator = nil
-
-	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
-
-	assert.Nil(t, inHdr)
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
 func TestNewInterceptedHeader_MarshalizerFailShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultShardArgument()
 	arg.HdrBuff = []byte("invalid buffer")
 
 	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
@@ -158,7 +86,7 @@ func TestNewInterceptedHeader_MarshalizerFailShouldErr(t *testing.T) {
 func TestNewInterceptedHeader_NotForThisShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultShardArgument()
 	arg.ShardCoordinator = &mock.CoordinatorStub{
 		NumberOfShardsCalled: func() uint32 {
 			return hdrShardId + 2
@@ -178,7 +106,7 @@ func TestNewInterceptedHeader_NotForThisShardShouldWork(t *testing.T) {
 func TestNewInterceptedHeader_ForThisShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultShardArgument()
 	arg.ShardCoordinator = &mock.CoordinatorStub{
 		NumberOfShardsCalled: func() uint32 {
 			return hdrShardId + 2
@@ -198,7 +126,7 @@ func TestNewInterceptedHeader_ForThisShardShouldWork(t *testing.T) {
 func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultShardArgument()
 	arg.ShardCoordinator = &mock.CoordinatorStub{
 		NumberOfShardsCalled: func() uint32 {
 			return hdrShardId + 2
@@ -220,11 +148,11 @@ func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := createMockHeader()
+	hdr := createMockShardHeader()
 	hdr.PubKeysBitmap = nil
 	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultArgument()
+	arg := createDefaultShardArgument()
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
 
@@ -233,90 +161,35 @@ func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilPubKeysBitmap, err)
 }
 
-func TestInterceptedHeader_CheckValidityNilPrevHashShouldErr(t *testing.T) {
+func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := createMockHeader()
-	hdr.PrevHash = nil
+	hdr := createMockShardHeader()
+	badShardId := uint32(2)
+	hdr.MiniBlockHeaders = []dataBlock.MiniBlockHeader{
+		{
+			Hash:            make([]byte, 0),
+			SenderShardID:   badShardId,
+			ReceiverShardID: 0,
+			TxCount:         0,
+			Type:            0,
+		},
+	}
 	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultArgument()
+	arg := createDefaultShardArgument()
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
 
 	err := inHdr.CheckValidity()
 
-	assert.Equal(t, process.ErrNilPreviousBlockHash, err)
-}
-
-func TestInterceptedHeader_CheckValidityNilSignatureShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdr := createMockHeader()
-	hdr.Signature = nil
-	buff, _ := testMarshalizer.Marshal(hdr)
-
-	arg := createDefaultArgument()
-	arg.HdrBuff = buff
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-
-	err := inHdr.CheckValidity()
-
-	assert.Equal(t, process.ErrNilSignature, err)
-}
-
-func TestInterceptedHeader_CheckValidityNilRootHashShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdr := createMockHeader()
-	hdr.RootHash = nil
-	buff, _ := testMarshalizer.Marshal(hdr)
-
-	arg := createDefaultArgument()
-	arg.HdrBuff = buff
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-
-	err := inHdr.CheckValidity()
-
-	assert.Equal(t, process.ErrNilRootHash, err)
-}
-
-func TestInterceptedHeader_CheckValidityNilRandSeedShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdr := createMockHeader()
-	hdr.RandSeed = nil
-	buff, _ := testMarshalizer.Marshal(hdr)
-
-	arg := createDefaultArgument()
-	arg.HdrBuff = buff
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-
-	err := inHdr.CheckValidity()
-
-	assert.Equal(t, process.ErrNilRandSeed, err)
-}
-
-func TestInterceptedHeader_CheckValidityNilPrevRandSeedShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdr := createMockHeader()
-	hdr.PrevRandSeed = nil
-	buff, _ := testMarshalizer.Marshal(hdr)
-
-	arg := createDefaultArgument()
-	arg.HdrBuff = buff
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-
-	err := inHdr.CheckValidity()
-
-	assert.Equal(t, process.ErrNilPrevRandSeed, err)
+	assert.Equal(t, process.ErrInvalidShardId, err)
 }
 
 func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultShardArgument()
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
 
 	err := inHdr.CheckValidity()
@@ -329,7 +202,7 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 func TestInterceptedHeader_Getters(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultArgument()
+	arg := createDefaultShardArgument()
 	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
 
 	hash := testHasher.Compute(string(arg.HdrBuff))
