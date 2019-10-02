@@ -59,6 +59,8 @@ var TestMultiSig = mock.NewMultiSigner(1)
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+const maxTxNonceDeltaAllowed = 8000
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -272,6 +274,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestMultiSig,
 			tpn.ShardDataPool,
 			TestAddressConverter,
+			maxTxNonceDeltaAllowed,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()

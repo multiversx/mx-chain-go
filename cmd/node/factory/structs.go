@@ -92,8 +92,10 @@ const (
 
 var log = logger.DefaultLogger()
 
-//TODO: Extract all others error messages from this file in some defined errors
+const maxTxNonceDeltaAllowed = 100
+
 // ErrCreateForkDetector signals that a fork detector could not be created
+//TODO: Extract all others error messages from this file in some defined errors
 var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // Network struct holds the network components of the Elrond protocol
@@ -518,7 +520,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.state,
 		forkDetector,
 		shardsGenesisBlocks,
-		args.nodesConfig,
 		args.coreServiceContainer,
 	)
 
@@ -1216,7 +1217,7 @@ func newShardInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
-	//TODO add a real chronology validator and remove null chronology validator
+
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
 		shardCoordinator,
@@ -1230,6 +1231,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		crypto.MultiSigner,
 		data.Datapool,
 		state.AddressConverter,
+		maxTxNonceDeltaAllowed,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1264,7 +1266,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 	crypto *Crypto,
 	network *Network,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
-	//TODO add a real chronology validator and remove null chronology validator
+
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		nodesCoordinator,
@@ -1441,7 +1443,6 @@ func newBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 
@@ -1482,7 +1483,6 @@ func newBlockProcessorAndTracker(
 			state,
 			forkDetector,
 			shardsGenesisBlocks,
-			nodesConfig,
 			coreServiceContainer,
 		)
 	}
@@ -1514,7 +1514,6 @@ func newShardBlockProcessorAndTracker(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, process.BlocksTracker, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()

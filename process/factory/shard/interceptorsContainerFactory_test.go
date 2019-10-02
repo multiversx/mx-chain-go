@@ -17,6 +17,8 @@ import (
 
 var errExpected = errors.New("expected error")
 
+const maxTxNonceDeltaAllowed = 100
+
 func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
@@ -96,6 +98,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -118,6 +121,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -140,6 +144,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -162,6 +167,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -184,6 +190,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -206,6 +213,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -228,6 +236,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -250,6 +259,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -272,6 +282,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -294,6 +305,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		nil,
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -316,6 +328,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		mock.NewMultiSigner(),
 		nil,
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -338,6 +351,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		mock.NewMultiSigner(),
 		createDataPools(),
 		nil,
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, icf)
@@ -360,6 +374,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	assert.NotNil(t, icf)
@@ -384,6 +399,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -408,6 +424,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -432,6 +449,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -456,6 +474,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationPeerChBlocksFailsShould
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -480,6 +499,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -504,6 +524,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -528,6 +549,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -552,6 +574,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -576,6 +599,7 @@ func TestInterceptorsContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -600,6 +624,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -631,6 +656,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, err := icf.Create()
@@ -675,6 +701,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 	)
 
 	container, _ := icf.Create()

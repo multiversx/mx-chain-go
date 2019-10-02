@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const maxGoRoutinexTxInterceptor = 100
+const maxGoRoutineTxInterceptor = 100
 
 type interceptorsContainerFactory struct {
 	accounts               state.AccountsAdapter
@@ -34,6 +34,7 @@ type interceptorsContainerFactory struct {
 	addrConverter          state.AddressConverter
 	nodesCoordinator       sharding.NodesCoordinator
 	txInterceptorThrottler process.InterceptorThrottler
+	maxTxNonceDeltaAllowed int
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -50,6 +51,7 @@ func NewInterceptorsContainerFactory(
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
+	maxTxNonceDeltaAllowed int,
 ) (*interceptorsContainerFactory, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -88,7 +90,7 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilNodesCoordinator
 	}
 
-	txInterceptorThrottler, err := throttler.NewNumGoRoutineThrottler(maxGoRoutinexTxInterceptor)
+	txInterceptorThrottler, err := throttler.NewNumGoRoutineThrottler(maxGoRoutineTxInterceptor)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +109,7 @@ func NewInterceptorsContainerFactory(
 		dataPool:               dataPool,
 		addrConverter:          addrConverter,
 		txInterceptorThrottler: txInterceptorThrottler,
+		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 	}, nil
 }
 
@@ -237,7 +240,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
+	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator, icf.maxTxNonceDeltaAllowed)
 	if err != nil {
 		return nil, err
 	}

@@ -61,6 +61,8 @@ import (
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
+//TODO refactor this package to use TestNodeProcessor infrastructure
+
 var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
@@ -70,6 +72,8 @@ var rootHash = []byte("root hash")
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
 var opGas = int64(1)
+
+const maxTxNonceDeltaAllowed = 8000
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -308,6 +312,7 @@ func createNetNode(
 		testMultiSig,
 		dPool,
 		testAddressConverter,
+		maxTxNonceDeltaAllowed,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
