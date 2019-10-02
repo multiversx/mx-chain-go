@@ -1210,7 +1210,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 
 	mp.blockSizeThrottler.Add(
 		round,
-		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
+		uint32(core.Max(int32(header.ItemsInBody()), int32(header.ItemsInHeader()))))
 
 	return header, nil
 }
