@@ -11,13 +11,12 @@ import (
 )
 
 func createTestInterceptedHeader() *block.InterceptedHeader {
+
 	return block.NewInterceptedHeader(
 		mock.NewMultiSigner(),
-		&mock.ChronologyValidatorStub{
-			ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
-				return nil
-			},
-		},
+		&mock.NodesCoordinatorMock{},
+		&mock.MarshalizerMock{Fail: false},
+		mock.HasherMock{},
 	)
 }
 
@@ -245,24 +244,6 @@ func TestInterceptedHeader_IntegrityAndValidityIntegrityDoesNotPassShouldErr(t *
 	assert.Equal(t, process.ErrNilPubKeysBitmap, hdr.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestInterceptedHeader_IntegrityAndValidityNilChronologyValidatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdr := block.NewInterceptedHeader(
-		mock.NewMultiSigner(),
-		nil,
-	)
-	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
-	hdr.BlockBodyType = block2.PeerBlock
-	hdr.Signature = make([]byte, 0)
-	hdr.RootHash = make([]byte, 0)
-	hdr.PrevRandSeed = make([]byte, 0)
-	hdr.RandSeed = make([]byte, 0)
-
-	assert.Equal(t, process.ErrNilChronologyValidator, hdr.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
-}
-
 func TestInterceptedHeader_IntegrityAndValidityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -283,7 +264,7 @@ func TestInterceptedHeader_VerifySigOkValsShouldWork(t *testing.T) {
 
 	hdr := createTestInterceptedHeader()
 	hdr.PrevHash = make([]byte, 0)
-	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.PubKeysBitmap = []byte{1}
 	hdr.BlockBodyType = block2.PeerBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)

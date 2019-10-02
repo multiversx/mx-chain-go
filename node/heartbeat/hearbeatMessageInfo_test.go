@@ -223,6 +223,7 @@ func TestHeartbeatMessageInfo_HeartbeatEqualGenesisShouldHaveUpDownTimeZero(t *t
 
 	// send heartbeat twice in order to calculate the duration between thm
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")
+	time.Sleep(10 * time.Millisecond)
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined")
 
 	expectedDuration := time.Duration(0)

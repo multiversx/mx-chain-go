@@ -11,6 +11,7 @@ type PoolsHolderStub struct {
 	PeerChangesBlocksCalled    func() storage.Cacher
 	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
 	MiniBlocksCalled           func() storage.Cacher
 	MetaBlocksCalled           func() storage.Cacher
 	MetaHeadersNoncesCalled    func() dataRetriever.Uint64SyncMapCacher
@@ -46,6 +47,10 @@ func (phs *PoolsHolderStub) MetaHeadersNonces() dataRetriever.Uint64SyncMapCache
 
 func (phs *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
 	return phs.UnsignedTransactionsCalled()
+}
+
+func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return phs.RewardTransactionsCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
