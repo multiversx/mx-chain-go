@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -409,7 +410,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 
 type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
-	economicsConfig      *config.EconomicsConfig
+	economicsData        *economics.EconomicsData
 	nodesConfig          *sharding.NodesSetup
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
@@ -425,7 +426,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
-	economicsConfig *config.EconomicsConfig,
+	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
 	shardCoordinator sharding.Coordinator,
@@ -439,7 +440,7 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		genesisConfig:        genesisConfig,
-		economicsConfig:      economicsConfig,
+		economicsData:        economicsData,
 		nodesConfig:          nodesConfig,
 		syncer:               syncer,
 		shardCoordinator:     shardCoordinator,
@@ -511,7 +512,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		args.shardCoordinator,
 		args.nodesCoordinator,
-		args.economicsConfig,
+		args.economicsData,
 		args.data,
 		args.core,
 		args.state,
@@ -1432,7 +1433,7 @@ func newBlockProcessor(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	economicsConfig *config.EconomicsConfig,
+	economics *economics.EconomicsData,
 	data *Data,
 	core *Core,
 	state *State,
@@ -1441,16 +1442,18 @@ func newBlockProcessor(
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, error) {
 
-	if economicsConfig.CommunityAddress == "" || economicsConfig.BurnAddress == "" {
+	communityAddr := economics.CommunityAddress()
+	burnAddr := economics.BurnAddress()
+	if communityAddr == "" || burnAddr == "" {
 		return nil, errors.New("rewards configuration missing")
 	}
 
-	communityAddress, err := hex.DecodeString(economicsConfig.CommunityAddress)
+	communityAddress, err := hex.DecodeString(communityAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	burnAddress, err := hex.DecodeString(economicsConfig.BurnAddress)
+	burnAddress, err := hex.DecodeString(burnAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -1478,6 +1481,7 @@ func newBlockProcessor(
 			forkDetector,
 			shardsGenesisBlocks,
 			coreServiceContainer,
+			economics,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1509,6 +1513,7 @@ func newShardBlockProcessor(
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
+	economics *economics.EconomicsData,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1533,6 +1538,7 @@ func newShardBlockProcessor(
 		specialAddressHandler,
 		data.Store,
 		data.Datapool,
+		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -1617,6 +1623,7 @@ func newShardBlockProcessor(
 		scProcessor,
 		rewardsTxHandler,
 		txTypeHandler,
+		economics,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
@@ -1636,6 +1643,7 @@ func newShardBlockProcessor(
 		scProcessor,
 		rewardsTxProcessor,
 		internalTransactionProducer,
+		economics,
 	)
 	if err != nil {
 		return nil, err
