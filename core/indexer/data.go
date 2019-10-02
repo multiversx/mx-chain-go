@@ -45,7 +45,7 @@ type Block struct {
 	PrevHash      string        `json:"prevHash"`
 }
 
-//ValidatorsPublicKeys is a structure containing fields for validator public keys
+//ValidatorsPublicKeys is a structure containing fields for validators public keys
 type ValidatorsPublicKeys struct {
 	PublicKeys []string `json:"publicKeys"`
 }

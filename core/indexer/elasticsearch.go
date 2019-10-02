@@ -240,7 +240,7 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 }
 
-// SaveRoundInfo will save data about a round on elastic
+// SaveRoundInfo will save data about a round on elastic search
 func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64, blockWasProposed bool) {
 	var buff bytes.Buffer
 
@@ -291,7 +291,7 @@ func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][
 	}
 }
 
-// IsNilIndexer will return a bool value that signal if its a nil indexer
+// IsNilIndexer will return a bool value that signals if the indexer's implementation is a NilIndexer
 func (ei *elasticIndexer) IsNilIndexer() bool {
 	return ei.isNilIndexer
 }

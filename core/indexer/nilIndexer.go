@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// NilIndexer will be used when an Indexer is required, but another one isn't necessary or available
 type NilIndexer struct {
 }
 
@@ -41,7 +42,7 @@ func (ni *NilIndexer) IsInterfaceNil() bool {
 	return false
 }
 
-// IsNilIndexer return if implementation of indexer is a nil implementation
+// IsNilIndexer will return a bool value that signals if the indexer's implementation is a NilIndexer
 func (ni *NilIndexer) IsNilIndexer() bool {
 	return true
 }

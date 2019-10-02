@@ -799,6 +799,6 @@ func TestWithIndexer_ShouldWork(t *testing.T) {
 	opt := WithIndexer(indexer)
 	err := opt(node)
 
-	assert.True(t, node.indexer == indexer)
+	assert.Equal(t, indexer, node.indexer)
 	assert.Nil(t, err)
 }
