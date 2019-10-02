@@ -263,7 +263,7 @@ func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
-) (block.MiniBlockSlice, [][]byte, uint32, error) {
+) (block.MiniBlockSlice, uint32, uint32, error) {
 	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)
 }
 
