@@ -16,14 +16,6 @@ import (
 
 var log = logger.DefaultLogger()
 
-// minGasPrice is the minimal gas price to be paid for any transaction
-// TODO: Set minGasPrice and minTxFee to some positive value (TBD)
-var minGasPrice = uint64(0)
-
-// minTxFee is the minimal fee to be paid for any transaction
-var minTxFee = uint64(0)
-var mutTxFee sync.RWMutex
-
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	accounts         state.AccountsAdapter
@@ -34,6 +26,8 @@ type txProcessor struct {
 	txFeeHandler     process.TransactionFeeHandler
 	shardCoordinator sharding.Coordinator
 	txTypeHandler    process.TxTypeHandler
+	economicsFee     process.FeeHandler
+	mutTxFee         sync.RWMutex
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -46,6 +40,7 @@ func NewTxProcessor(
 	scProcessor process.SmartContractProcessor,
 	txFeeHandler process.TransactionFeeHandler,
 	txTypeHandler process.TxTypeHandler,
+	economicsFee process.FeeHandler,
 ) (*txProcessor, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
@@ -72,6 +67,9 @@ func NewTxProcessor(
 	if txTypeHandler == nil || txTypeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilTxTypeHandler
 	}
+	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	return &txProcessor{
 		accounts:         accounts,
@@ -82,6 +80,8 @@ func NewTxProcessor(
 		scProcessor:      scProcessor,
 		txFeeHandler:     txFeeHandler,
 		txTypeHandler:    txTypeHandler,
+		economicsFee:     economicsFee,
+		mutTxFee:         sync.RWMutex{},
 	}, nil
 }
 
@@ -132,11 +132,11 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 
 	txDataLen := int64(len(tx.Data))
-	mutTxFee.RLock()
+	txProc.mutTxFee.RLock()
 	minFee := big.NewInt(0)
-	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(minGasPrice))
-	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(minTxFee))
-	mutTxFee.RUnlock()
+	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(txProc.economicsFee.MinGasPrice()))
+	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(txProc.economicsFee.MinTxFee()))
+	txProc.mutTxFee.RUnlock()
 
 	if minFee.Cmp(cost) > 0 {
 		return nil, process.ErrNotEnoughFeeInTransactions

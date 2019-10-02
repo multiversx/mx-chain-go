@@ -416,3 +416,27 @@ type InterceptorThrottler interface {
 	EndProcessing()
 	IsInterfaceNil() bool
 }
+
+// RewardsHandler will return information about rewards
+type RewardsHandler interface {
+	RewardsValue() uint64
+	CommunityPercentage() float64
+	LeaderPercentage() float64
+	BurnPercentage() float64
+	IsInterfaceNil() bool
+}
+
+// FeeHandler will return information about fees
+type FeeHandler interface {
+	MinGasPrice() uint64
+	MinGasLimitForTx() uint64
+	MinTxFee() uint64
+	IsInterfaceNil() bool
+}
+
+// EconomicsAddressesHandler will return information about economics addresses
+type EconomicsAddressesHandler interface {
+	CommunityAddress() string
+	BurnAddress() string
+	IsInterfaceNil() bool
+}

@@ -38,6 +38,7 @@ type transactions struct {
 	orderedTxs           map[string][]*transaction.Transaction
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
+	economicsFee         process.FeeHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -50,6 +51,7 @@ func NewTransactionPreprocessor(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
+	economicsFee process.FeeHandler,
 ) (*transactions, error) {
 
 	if hasher == nil || hasher.IsInterfaceNil() {
@@ -90,6 +92,7 @@ func NewTransactionPreprocessor(
 		onRequestTransaction: onRequestTransaction,
 		txProcessor:          txProcessor,
 		accounts:             accounts,
+		economicsFee:         economicsFee,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -409,9 +412,6 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	return transactions, txHashes, nil
 }
 
-//TODO move this constant to txFeeHandler
-const minGasLimitForTx = uint64(5)
-
 //TODO move this to smart contract address calculation component
 func isSmartContractAddress(rcvAddress []byte) bool {
 	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
@@ -519,7 +519,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		currTxGasLimit := minGasLimitForTx
+		currTxGasLimit := txs.economicsFee.MinGasLimitForTx()
 		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}
