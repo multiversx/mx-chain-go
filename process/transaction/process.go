@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"bytes"
-	"errors"
 	"math/big"
 	"sync"
 
@@ -68,8 +67,8 @@ func NewTxProcessor(
 	if txTypeHandler == nil || txTypeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if economicsFee == nil {
-		return nil, errors.New("nil economics fee handler")
+	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	return &txProcessor{

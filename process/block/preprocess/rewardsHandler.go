@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"errors"
 	"math/big"
 	"sync"
 
@@ -70,8 +69,8 @@ func NewRewardTxHandler(
 	if rewardTxPool == nil || rewardTxPool.IsInterfaceNil() {
 		return nil, process.ErrNilRewardTxDataPool
 	}
-	if economicsRewards == nil {
-		return nil, errors.New("nil economics rewards handler")
+	if economicsRewards == nil || economicsRewards.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsRewardsHandler
 	}
 
 	rewardValue := big.NewInt(int64(economicsRewards.RewardsValue()))

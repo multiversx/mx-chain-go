@@ -78,3 +78,11 @@ func (ed *EconomicsData) CommunityAddress() string {
 func (ed *EconomicsData) BurnAddress() string {
 	return ed.burnAddress
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ed *EconomicsData) IsInterfaceNil() bool {
+	if ed == nil {
+		return true
+	}
+	return false
+}

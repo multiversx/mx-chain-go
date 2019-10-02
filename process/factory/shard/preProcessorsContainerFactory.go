@@ -1,8 +1,6 @@
 package shard
 
 import (
-	"errors"
-
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -88,8 +86,8 @@ func NewPreProcessorsContainerFactory(
 	if rewardsProducer == nil || rewardsProducer.IsInterfaceNil() {
 		return nil, process.ErrNilInternalTransactionProducer
 	}
-	if economicsFee == nil {
-		return nil, errors.New("nil economics fee handler")
+	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	return &preProcessorsContainerFactory{

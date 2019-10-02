@@ -12,7 +12,6 @@ func TestEconomicsData_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	economicsData := economics.NewEconomicsData(&config.ConfigEconomics{})
-
 	assert.NotNil(t, economicsData)
 }
 
