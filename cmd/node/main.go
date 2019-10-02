@@ -1053,8 +1053,8 @@ func createNodesCoordinator(
 	}
 
 	nbShards := nodesConfig.NumberOfShards()
-	shardConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
-	metaConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
+	shardConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
+	metaConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
 	initNodesInfo := nodesConfig.InitialNodesInfo()
 	initValidators := make(map[uint32][]sharding.Validator)
 
