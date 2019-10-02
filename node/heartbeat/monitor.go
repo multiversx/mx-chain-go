@@ -200,6 +200,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	if err != nil {
 		log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
 	}
+	m.addPeerToFullPeersSlice(hb.Pubkey)
 	m.updateAllHeartbeatMessages()
 }
 
