@@ -96,7 +96,7 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 		for _, pubkey := range pubKeys {
 			err := m.loadHbmiFromStorer(pubkey)
 			if err != nil { // if pubKey not found in DB, create a new instance
-				getTimeHandler := func() time.Time { return time.Now() }
+				getTimeHandler := m.timeHandler
 				mhbi, errNewHbmi := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, getTimeHandler)
 				if errNewHbmi != nil {
 					return errNewHbmi
@@ -139,11 +139,11 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) error {
 	}
 
 	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
-	receivedHbmi.getTimeHandler = func() time.Time { return time.Now() }
-	receivedHbmi.lastUptimeDowntime = time.Now()
+	receivedHbmi.getTimeHandler = m.timeHandler
+	receivedHbmi.lastUptimeDowntime = m.timeHandler()
 	receivedHbmi.genesisTime = m.genesisTime
-	if receivedHbmi.timeStamp == m.genesisTime && time.Now().Sub(m.genesisTime) > 0 {
-		receivedHbmi.totalDownTime = Duration{time.Now().Sub(m.genesisTime)}
+	if receivedHbmi.timeStamp == m.genesisTime && m.timeHandler().Sub(m.genesisTime) > 0 {
+		receivedHbmi.totalDownTime = Duration{m.timeHandler().Sub(m.genesisTime)}
 	}
 
 	m.heartbeatMessages[pubKey] = &receivedHbmi
@@ -183,7 +183,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	pe, ok := m.heartbeatMessages[pubKeyStr]
 	if pe == nil || !ok {
 		var err error
-		getTimeHandler := func() time.Time { return time.Now() }
+		getTimeHandler := func() time.Time { return m.timeHandler() }
 		pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, getTimeHandler)
 		if err != nil {
 			log.Error(err.Error())
@@ -245,7 +245,7 @@ func (m *Monitor) updateAllHeartbeatMessages() {
 	counterConnectedNodes := 0
 	for _, v := range m.heartbeatMessages {
 		//TODO change here
-		v.updateFields(time.Now())
+		v.updateFields(m.timeHandler())
 
 		if v.isActive {
 			counterConnectedNodes++
@@ -280,8 +280,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
 		}
-		if status[idx].TimeStamp == m.genesisTime && time.Now().Sub(m.genesisTime) > 0 {
-			status[idx].TotalDownTime = int(time.Now().Sub(m.genesisTime).Seconds())
+		if status[idx].TimeStamp == m.genesisTime && m.timeHandler().Sub(m.genesisTime) > 0 {
+			status[idx].TotalDownTime = int(m.timeHandler().Sub(m.genesisTime).Seconds())
 		}
 		idx++
 	}
