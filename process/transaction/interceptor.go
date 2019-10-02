@@ -136,6 +136,7 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			continue
 		}
 
+		//TODO: check if throttler needs to be applied also on the following go routine.
 		go txi.processTransaction(txIntercepted)
 	}
 
