@@ -12,6 +12,7 @@ type Account struct {
 	Balance  *big.Int
 	CodeHash []byte
 	RootHash []byte
+	Address  []byte
 
 	addressContainer AddressContainer
 	code             []byte
@@ -28,11 +29,14 @@ func NewAccount(addressContainer AddressContainer, tracker AccountTracker) (*Acc
 		return nil, ErrNilAccountTracker
 	}
 
+	addressBytes := addressContainer.Bytes()
+
 	return &Account{
 		Balance:          big.NewInt(0),
 		addressContainer: addressContainer,
+		Address:          addressBytes,
 		accountTracker:   tracker,
-		dataTrieTracker:  NewTrackableDataTrie(nil),
+		dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
 	}, nil
 }
 

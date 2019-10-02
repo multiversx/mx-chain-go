@@ -903,6 +903,9 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 			return err
 		}
 
+		// TODO add integration test to see that pruning canceling works as expected
+		boot.accounts.CancelPrune(newHeader.GetRootHash())
+
 		newBody, err = boot.getTxBlockBody(newHeader)
 		if err != nil {
 			return err

@@ -733,6 +733,32 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
+	for i := range finalHeaders {
+		val, errNotCritical := sp.store.Get(dataRetriever.BlockHeaderUnit, finalHeaders[i].GetPrevHash())
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
+		}
+
+		var prevHeader block.Header
+		errNotCritical = sp.marshalizer.Unmarshal(&prevHeader, val)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+			continue
+		}
+
+		rootHash := prevHeader.GetRootHash()
+		if rootHash == nil {
+			continue
+		}
+
+		// TODO add integration test to see that pruning works as expected
+		errNotCritical = sp.accounts.PruneTrie(rootHash)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+	}
+
 	log.Info(fmt.Sprintf("shard block with nonce %d is the highest final block in shard %d\n",
 		sp.forkDetector.GetHighestFinalBlockNonce(),
 		sp.shardCoordinator.SelfId()))

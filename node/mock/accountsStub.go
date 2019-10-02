@@ -19,6 +19,8 @@ type AccountsStub struct {
 	SaveDataTrieCalled          func(acountWrapper state.AccountHandler) error
 	RootHashCalled              func() ([]byte, error)
 	RecreateTrieCalled          func(rootHash []byte) error
+	PruneTrieCalled             func(rootHash []byte) error
+	CancelPruneCalled           func(rootHash []byte)
 }
 
 func (aam *AccountsStub) AddJournalEntry(je state.JournalEntry) {
@@ -75,6 +77,14 @@ func (aam *AccountsStub) RootHash() ([]byte, error) {
 
 func (aam *AccountsStub) RecreateTrie(rootHash []byte) error {
 	return aam.RecreateTrieCalled(rootHash)
+}
+
+func (aam *AccountsStub) PruneTrie(rootHash []byte) error {
+	return aam.PruneTrieCalled(rootHash)
+}
+
+func (aam *AccountsStub) CancelPrune(rootHash []byte) {
+	aam.CancelPruneCalled(rootHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

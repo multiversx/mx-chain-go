@@ -180,9 +180,9 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.JsonMarshalizer{}
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
-	evictionCacheSize := 100
+	evictionWaitListSize := 100
 
-	tr, _ := trie.NewTrie(store, marsh, hasher, memorydb.New(), evictionCacheSize)
+	tr, _ := trie.NewTrie(store, marsh, hasher, memorydb.New(), evictionWaitListSize)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address state.AddressContainer, tracker state.AccountTracker) (wrapper state.AccountHandler, e error) {
 			return state.NewAccount(address, tracker)

@@ -26,7 +26,7 @@ func NewAccountWrapMock(adr state.AddressContainer, tracker state.AccountTracker
 	return &AccountWrapMock{
 		address:           adr,
 		tracker:           tracker,
-		trackableDataTrie: state.NewTrackableDataTrie(nil),
+		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
 	}
 }
 

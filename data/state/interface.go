@@ -93,6 +93,8 @@ type AccountsAdapter interface {
 	PutCode(accountHandler AccountHandler, code []byte) error
 	RemoveCode(codeHash []byte) error
 	SaveDataTrie(accountHandler AccountHandler) error
+	PruneTrie(rootHash []byte) error
+	CancelPrune(rootHash []byte)
 	IsInterfaceNil() bool
 }
 

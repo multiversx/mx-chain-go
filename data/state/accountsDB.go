@@ -409,15 +409,21 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	copy(jEntries, adb.entries)
 	adb.mutEntries.RUnlock()
 
+	oldHashes := make([][]byte, 0)
 	//Step 1. iterate through journal entries and commit the data tries accordingly
 	for i := 0; i < len(jEntries); i++ {
 		jed, found := jEntries[i].(*BaseJournalEntryData)
 
 		if found {
-			err := jed.Trie().Commit()
+			tr := jed.Trie()
+			oldTrieHashes := tr.ResetOldHashes()
+
+			err := tr.Commit()
 			if err != nil {
 				return nil, err
 			}
+
+			oldHashes = append(oldHashes, oldTrieHashes...)
 		}
 	}
 
@@ -425,6 +431,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.clearJournal()
 
 	//Step 3. commit main trie
+	adb.mainTrie.AppendToOldHashes(oldHashes)
 	err := adb.mainTrie.Commit()
 	if err != nil {
 		return nil, err
@@ -492,6 +499,16 @@ func (adb *AccountsDB) clearJournal() {
 	adb.mutEntries.Lock()
 	adb.entries = make([]JournalEntry, 0)
 	adb.mutEntries.Unlock()
+}
+
+// PruneTrie removes old values from the trie database
+func (adb *AccountsDB) PruneTrie(rootHash []byte) error {
+	return adb.mainTrie.Prune(rootHash)
+}
+
+// CancelPrune clears the trie's evictionWaitingList
+func (adb *AccountsDB) CancelPrune(rootHash []byte) {
+	adb.mainTrie.CancelPrune(rootHash)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
