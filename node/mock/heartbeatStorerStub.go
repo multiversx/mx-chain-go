@@ -1,8 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
 type HeartbeatStorerStub struct {
