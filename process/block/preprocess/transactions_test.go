@@ -730,12 +730,12 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-func TestSortTxByNonce_NilCacherShouldErr(t *testing.T) {
+func TestSortTxByNonce_NilTxDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 	transactions, txHashes, err := SortTxByNonce(nil)
 	assert.Nil(t, transactions)
 	assert.Nil(t, txHashes)
-	assert.Equal(t, process.ErrNilCacher, err)
+	assert.Equal(t, process.ErrNilTxDataPool, err)
 }
 
 func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {
