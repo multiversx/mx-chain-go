@@ -774,7 +774,7 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, initUint)
 	appStatusHandler.SetStringValue(core.MetricConsensusState, initString)
 	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, initString)
-	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, initString)
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "0")
 	appStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, initString)
 	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, initUint)
@@ -785,6 +785,7 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
+	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 }
 
 func startStatusPolling(
@@ -1052,8 +1053,8 @@ func createNodesCoordinator(
 	}
 
 	nbShards := nodesConfig.NumberOfShards()
-	shardConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
-	metaConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
+	shardConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
+	metaConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
 	initNodesInfo := nodesConfig.InitialNodesInfo()
 	initValidators := make(map[uint32][]sharding.Validator)
 

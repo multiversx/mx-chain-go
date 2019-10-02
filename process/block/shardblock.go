@@ -773,13 +773,15 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
+	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Info(fmt.Sprintf("shard block with nonce %d is the highest final block in shard %d\n",
-		sp.forkDetector.GetHighestFinalBlockNonce(),
+		highestFinalBlockNonce,
 		sp.shardCoordinator.SelfId()))
 
 	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
+	sp.appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
 
-	hdrsToAttestPreviousFinal := uint32(header.Nonce-sp.forkDetector.GetHighestFinalBlockNonce()) + 1
+	hdrsToAttestPreviousFinal := uint32(header.Nonce-highestFinalBlockNonce) + 1
 	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
 	err = chainHandler.SetCurrentBlockBody(body)
