@@ -43,3 +43,6 @@ var ErrNilMonitorDb = errors.New("nil monitor db")
 
 // ErrNilMessageHandler signals that the provided message handler is nil
 var ErrNilMessageHandler = errors.New("nil message handler")
+
+// ErrNilHeartbeatStorer signals that the provided heartbeat storer is nil
+var ErrNilHeartbeatStorer = errors.New("nil heartbeat storer")

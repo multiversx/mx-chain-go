@@ -3,6 +3,7 @@ package heartbeat_test
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"testing"
 	"time"
@@ -17,13 +18,15 @@ import (
 func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
+	th := func() time.Time { return time.Now() }
 	mon, err := heartbeat.NewMonitor(
 		nil,
 		0,
 		map[uint32][]string{0: {""}},
-		&mock.StorerMock{},
 		time.Now(),
 		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{},
+		th,
 	)
 
 	assert.Nil(t, mon)
@@ -33,13 +36,15 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 	t.Parallel()
 
+	th := func() time.Time { return time.Now() }
 	mon, err := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{},
 		0,
 		make(map[uint32][]string),
-		&mock.StorerMock{},
 		time.Now(),
 		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{},
+		th,
 	)
 
 	assert.Nil(t, mon)
@@ -49,29 +54,81 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
+	th := func() time.Time { return time.Now() }
 	mon, err := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{},
 		0,
 		map[uint32][]string{0: {""}},
-		&mock.StorerMock{},
 		time.Now(),
 		nil,
+		&mock.HeartbeatStorerStub{},
+		th,
 	)
 
 	assert.Nil(t, mon)
 	assert.Equal(t, heartbeat.ErrNilMessageHandler, err)
 }
 
-func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
+func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	th := func() time.Time { return time.Now() }
+	mon, err := heartbeat.NewMonitor(
+		&mock.MarshalizerMock{},
+		0,
+		map[uint32][]string{0: {""}},
+		time.Now(),
+		&mock.MessageHandlerStub{},
+		nil,
+		th,
+	)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilHeartbeatStorer, err)
+}
+
+func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mon, err := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{},
-		1,
-		map[uint32][]string{0: {"pk1", "pk2"}},
-		mock.NewStorerMock(),
+		0,
+		map[uint32][]string{0: {""}},
 		time.Now(),
 		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{},
+		nil,
+	)
+
+	assert.Nil(t, mon)
+	assert.Equal(t, heartbeat.ErrNilGetTimeHandler, err)
+}
+
+func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
+	t.Parallel()
+
+	th := func() time.Time { return time.Now() }
+	mon, err := heartbeat.NewMonitor(
+		&mock.MarshalizerMock{},
+		1,
+		map[uint32][]string{0: {"pk1", "pk2"}},
+		time.Now(),
+		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{
+			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
+				return nil
+			},
+			LoadHbmiDTOCalled: func(pubKey string) (*heartbeat.HeartbeatDTO, error) {
+				return nil, errors.New("not found")
+			},
+			LoadKeysCalled: func() ([][]byte, error) {
+				return nil, nil
+			},
+			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+		},
+		th,
 	)
 
 	assert.NotNil(t, mon)
@@ -83,6 +140,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 	t.Parallel()
 
+	th := func() time.Time { return time.Now() }
 	pksPerShards := map[uint32][]string{
 		0: {"pk0"},
 		1: {"pk1"},
@@ -93,9 +151,23 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 		&mock.MarshalizerMock{},
 		maxDuration,
 		pksPerShards,
-		mock.NewStorerMock(),
 		time.Now(),
 		&mock.MessageHandlerStub{},
+		&mock.HeartbeatStorerStub{
+			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
+				return nil
+			},
+			LoadHbmiDTOCalled: func(pubKey string) (*heartbeat.HeartbeatDTO, error) {
+				return nil, errors.New("not found")
+			},
+			LoadKeysCalled: func() ([][]byte, error) {
+				return nil, nil
+			},
+			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+		},
+		th,
 	)
 
 	assert.NotNil(t, mon)
@@ -113,6 +185,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 
 	pubKey := "pk1"
 
+	th := func() time.Time { return time.Now() }
 	mon, _ := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -122,7 +195,6 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		},
 		time.Second*1000,
 		map[uint32][]string{0: {pubKey}},
-		mock.NewStorerMock(),
 		time.Now(),
 		&mock.MessageHandlerStub{
 			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
@@ -131,6 +203,21 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 				return &rcvHb, nil
 			},
 		},
+		&mock.HeartbeatStorerStub{
+			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
+				return nil
+			},
+			LoadHbmiDTOCalled: func(pubKey string) (*heartbeat.HeartbeatDTO, error) {
+				return nil, errors.New("not found")
+			},
+			LoadKeysCalled: func() ([][]byte, error) {
+				return nil, nil
+			},
+			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+		},
+		th,
 	)
 
 	hb := heartbeat.Heartbeat{
@@ -153,6 +240,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 
 	pubKey := "pk1"
 
+	th := func() time.Time { return time.Now() }
 	mon, _ := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -162,7 +250,6 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 		},
 		time.Second*1000,
 		map[uint32][]string{0: {"pk2"}},
-		mock.NewStorerMock(),
 		time.Now(),
 		&mock.MessageHandlerStub{
 			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
@@ -171,6 +258,21 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 				return &rcvHb, nil
 			},
 		},
+		&mock.HeartbeatStorerStub{
+			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
+				return nil
+			},
+			LoadHbmiDTOCalled: func(pubKey string) (*heartbeat.HeartbeatDTO, error) {
+				return nil, errors.New("not found")
+			},
+			LoadKeysCalled: func() ([][]byte, error) {
+				return nil, nil
+			},
+			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+		},
+		th,
 	)
 
 	hb := heartbeat.Heartbeat{
@@ -194,6 +296,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	pubKey := []byte("pk1")
 
+	th := func() time.Time { return time.Now() }
 	mon, _ := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -206,7 +309,6 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 		},
 		time.Second*1000,
 		map[uint32][]string{0: {"pk1"}},
-		mock.NewStorerMock(),
 		time.Now(),
 		&mock.MessageHandlerStub{
 			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
@@ -215,6 +317,21 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 				return &rcvHb, nil
 			},
 		},
+		&mock.HeartbeatStorerStub{
+			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
+				return nil
+			},
+			LoadHbmiDTOCalled: func(pubKey string) (*heartbeat.HeartbeatDTO, error) {
+				return nil, errors.New("not found")
+			},
+			LoadKeysCalled: func() ([][]byte, error) {
+				return nil, nil
+			},
+			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+		},
+		th,
 	)
 
 	// First send from pk1 from shard 0
@@ -263,6 +380,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	pubKey1 := "pk1-should-stay-online"
 	pubKey2 := "pk2-should-go-offline"
 
+	th := func() time.Time { return time.Now() }
 	mon, _ := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -275,7 +393,6 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 		},
 		time.Millisecond*5,
 		map[uint32][]string{0: {pubKey1, pubKey2}},
-		mock.NewStorerMock(),
 		time.Now(),
 		&mock.MessageHandlerStub{
 			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
@@ -284,6 +401,21 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 				return &rcvHb, nil
 			},
 		},
+		&mock.HeartbeatStorerStub{
+			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
+				return nil
+			},
+			LoadHbmiDTOCalled: func(pubKey string) (*heartbeat.HeartbeatDTO, error) {
+				return nil, errors.New("not found")
+			},
+			LoadKeysCalled: func() ([][]byte, error) {
+				return nil, nil
+			},
+			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+		},
+		th,
 	)
 
 	// First send from pk1

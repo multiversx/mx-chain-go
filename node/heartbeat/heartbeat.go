@@ -43,4 +43,5 @@ type HeartbeatDTO struct {
 	NodeDisplayName             string
 	IsValidator                 bool
 	LastUptimeDowntime          time.Time
+	GenesisTime                 time.Time
 }

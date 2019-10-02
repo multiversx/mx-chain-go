@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"math/big"
 	"math/rand"
 	"sync/atomic"
@@ -772,7 +773,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
-	heartbeatStorage := n.store.GetStorer(dataRetriever.HeartbeatUnit)
+	heartbeatStorageUnit := n.store.GetStorer(dataRetriever.HeartbeatUnit)
 	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
@@ -781,13 +782,16 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
+	heartbeatStorer, err := storage.NewHeartbeatStorer(heartbeatStorageUnit, n.marshalizer)
+	getTimeHandler := func() time.Time { return time.Now() }
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.marshalizer,
 		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
 		n.initialNodesPubkeys,
-		heartbeatStorage,
 		n.genesisTime,
 		heartBeatMsgProcessor,
+		heartbeatStorer,
+		getTimeHandler,
 	)
 	if err != nil {
 		return err

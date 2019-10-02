@@ -3,7 +3,6 @@ package heartbeat
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -15,13 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.DefaultLogger()
-
-const peersKeysDbEntry = "keys"
-const genesisTimeDbEntry = "genesisTime"
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
@@ -33,9 +28,10 @@ type Monitor struct {
 	fullPeersSlice              [][]byte
 	mutPubKeysMap               sync.RWMutex
 	appStatusHandler            core.AppStatusHandler
-	monitorDB                   storage.Storer
 	genesisTime                 time.Time
 	messageHandler              MessageHandler
+	storer                      HeartbeatStorageHandler
+	timeHandler                 func() time.Time
 }
 
 // NewMonitor returns a new monitor instance
@@ -43,9 +39,10 @@ func NewMonitor(
 	marshalizer marshal.Marshalizer,
 	maxDurationPeerUnresponsive time.Duration,
 	pubKeysMap map[uint32][]string,
-	monitorDB storage.Storer,
 	genesisTime time.Time,
 	messageHandler MessageHandler,
+	storer HeartbeatStorageHandler,
+	timeHandler func() time.Time,
 ) (*Monitor, error) {
 
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
@@ -54,11 +51,14 @@ func NewMonitor(
 	if len(pubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
 	}
-	if monitorDB == nil || monitorDB.IsInterfaceNil() {
-		return nil, ErrNilMonitorDb
-	}
 	if messageHandler == nil || messageHandler.IsInterfaceNil() {
 		return nil, ErrNilMessageHandler
+	}
+	if storer == nil || storer.IsInterfaceNil() {
+		return nil, ErrNilHeartbeatStorer
+	}
+	if timeHandler == nil {
+		return nil, ErrNilGetTimeHandler
 	}
 
 	mon := &Monitor{
@@ -66,12 +66,13 @@ func NewMonitor(
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
-		monitorDB:                   monitorDB,
 		genesisTime:                 genesisTime,
 		messageHandler:              messageHandler,
+		storer:                      storer,
+		timeHandler:                 timeHandler,
 	}
 
-	err := mon.updateGenesisTime()
+	err := mon.storer.UpdateGenesisTime(genesisTime)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +94,7 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 	pubKeysMapCopy := make(map[uint32][]string, 0)
 	for shardId, pubKeys := range pubKeysMap {
 		for _, pubkey := range pubKeys {
-			err := m.loadHbmiFromDbIfExists(pubkey)
+			err := m.loadHbmiFromStorer(pubkey)
 			if err != nil { // if pubKey not found in DB, create a new instance
 				getTimeHandler := func() time.Time { return time.Now() }
 				mhbi, errNewHbmi := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, getTimeHandler)
@@ -113,66 +114,15 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 	return nil
 }
 
-func (m *Monitor) updateGenesisTime() error {
-	if m.monitorDB.Has([]byte(genesisTimeDbEntry)) != nil {
-		err := m.saveGenesisTimeToDb()
-		if err != nil {
-			return err
-		}
-	} else {
-		genesisTimeFromDbBytes, err := m.monitorDB.Get([]byte(genesisTimeDbEntry))
-		if err != nil {
-			return errors.New("monitor: can't get genesis time from db")
-		}
-
-		var genesisTimeFromDb time.Time
-		err = m.marshalizer.Unmarshal(&genesisTimeFromDb, genesisTimeFromDbBytes)
-		if err != nil {
-			return errors.New("monitor: can't unmarshal genesis time")
-		}
-
-		if genesisTimeFromDb != m.genesisTime {
-			log.Info(fmt.Sprintf("updated heartbeat's genesis time to %s", genesisTimeFromDb))
-		}
-
-		err = m.saveGenesisTimeToDb()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (m *Monitor) saveGenesisTimeToDb() error {
-	genesisTimeBytes, err := m.marshalizer.Marshal(m.genesisTime)
-	if err != nil {
-		return errors.New("monitor: can't marshal genesis time")
-	}
-
-	err = m.monitorDB.Put([]byte(genesisTimeDbEntry), genesisTimeBytes)
-	if err != nil {
-		return errors.New("monitor: can't store genesis time")
-	}
-
-	return nil
-}
-
 func (m *Monitor) loadRestOfPubKeysFromStorage() error {
-	allKeysBytes, err := m.monitorDB.Get([]byte(peersKeysDbEntry))
-	if err != nil {
-		return err
-	}
-
-	var peersSlice [][]byte
-	err = m.marshalizer.Unmarshal(&peersSlice, allKeysBytes)
+	peersSlice, err := m.storer.LoadKeys()
 	if err != nil {
 		return err
 	}
 
 	for _, peer := range peersSlice {
 		if _, ok := m.heartbeatMessages[string(peer)]; !ok { // peer not in nodes map
-			err = m.loadHbmiFromDbIfExists(string(peer))
+			err = m.loadHbmiFromStorer(string(peer))
 			if err != nil {
 				continue
 			}
@@ -182,41 +132,23 @@ func (m *Monitor) loadRestOfPubKeysFromStorage() error {
 	return nil
 }
 
-func (m *Monitor) loadHbmiFromDbIfExists(pubKey string) error {
-	pkbytes := []byte(pubKey)
-
-	hbFromDB, err := m.monitorDB.Get(pkbytes)
+func (m *Monitor) loadHbmiFromStorer(pubKey string) error {
+	hbmiDTO, err := m.storer.LoadHbmiDTO(pubKey)
 	if err != nil {
 		return err
 	}
 
-	receivedHbmi, err := m.getHbmiFromDbBytes(hbFromDB)
-	if err != nil {
-		return err
-	}
-
-	receivedHbmi.getTimeHandler = nil
+	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
+	receivedHbmi.getTimeHandler = func() time.Time { return time.Now() }
 	receivedHbmi.lastUptimeDowntime = time.Now()
 	receivedHbmi.genesisTime = m.genesisTime
 	if receivedHbmi.timeStamp == m.genesisTime && time.Now().Sub(m.genesisTime) > 0 {
 		receivedHbmi.totalDownTime = Duration{time.Now().Sub(m.genesisTime)}
 	}
 
-	m.heartbeatMessages[pubKey] = receivedHbmi
+	m.heartbeatMessages[pubKey] = &receivedHbmi
 
 	return nil
-}
-
-func (m *Monitor) getHbmiFromDbBytes(message []byte) (*heartbeatMessageInfo, error) {
-	heartbeatDto := HeartbeatDTO{}
-	err := m.marshalizer.Unmarshal(&heartbeatDto, message)
-	if err != nil {
-		return nil, err
-	}
-
-	hbmi := m.convertFromExportedStruct(heartbeatDto, m.maxDurationPeerUnresponsive)
-
-	return &hbmi, nil
 }
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
@@ -248,8 +180,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	defer m.mutHeartbeatMessages.Unlock()
 
 	pubKeyStr := string(hb.Pubkey)
-	pe := m.heartbeatMessages[pubKeyStr]
-	if pe == nil {
+	pe, ok := m.heartbeatMessages[pubKeyStr]
+	if pe == nil || !ok {
 		var err error
 		getTimeHandler := func() time.Time { return time.Now() }
 		pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, getTimeHandler)
@@ -262,38 +194,21 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 
 	computedShardID := m.computeShardID(pubKeyStr)
 	pe.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
-	m.storeHeartbeat(hb.Pubkey)
-	m.updateAllHeartbeatMessages()
-}
-
-func (m *Monitor) storeHeartbeat(pubKey []byte) {
-	hbInfo := m.heartbeatMessages[string(pubKey)]
-	hbExportedFormat := m.convertToExportedStruct(hbInfo)
-	marshalizedHeartBeat, err := m.marshalizer.Marshal(hbExportedFormat)
+	//m.storeHeartbeat(hb.Pubkey)
+	hbDTO := m.convertToExportedStruct(pe)
+	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
 	if err != nil {
-		log.Warn(fmt.Sprintf("can't marshal heartbeat message for pubKey %s: %s", pubKey, err.Error()))
-		return
+		log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
 	}
-
-	errStore := m.monitorDB.Put(pubKey, marshalizedHeartBeat)
-	if errStore != nil {
-		log.Warn(fmt.Sprintf("can't save heartbeat to db: %s", errStore.Error()))
-	}
-
-	m.addPeerToFullPeersSlice(pubKey)
+	m.updateAllHeartbeatMessages()
 }
 
 func (m *Monitor) addPeerToFullPeersSlice(pubKey []byte) {
 	if !m.isPeerInFullPeersSlice(pubKey) {
 		m.fullPeersSlice = append(m.fullPeersSlice, pubKey)
-		marshalizedFullPeersSlice, errMarsh := m.marshalizer.Marshal(m.fullPeersSlice)
-		if errMarsh != nil {
-			log.Warn(fmt.Sprintf("can't marshal peers keys slice: %s", errMarsh.Error()))
-		}
-
-		errStoreKeys := m.monitorDB.Put([]byte(peersKeysDbEntry), marshalizedFullPeersSlice)
-		if errStoreKeys != nil {
-			log.Warn(fmt.Sprintf("can't store the keys slice: %s", errStoreKeys.Error()))
+		err := m.storer.SaveKeys(m.fullPeersSlice)
+		if err != nil {
+			log.Warn(fmt.Sprintf("can't store the keys slice: %s", err.Error()))
 		}
 	}
 }
@@ -400,6 +315,7 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO 
 		IsValidator:        v.isValidator,
 		NodeDisplayName:    v.nodeDisplayName,
 		LastUptimeDowntime: v.lastUptimeDowntime,
+		GenesisTime:        v.genesisTime,
 	}
 }
 
@@ -417,6 +333,7 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 		nodeDisplayName:             hbDTO.NodeDisplayName,
 		isValidator:                 hbDTO.IsValidator,
 		lastUptimeDowntime:          hbDTO.LastUptimeDowntime,
+		genesisTime:                 hbDTO.GenesisTime,
 	}
 
 	return hbmi
