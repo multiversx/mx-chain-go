@@ -17,10 +17,10 @@ type MessageHandler interface {
 	IsInterfaceNil() bool
 }
 
+// HeartbeatStorageHandler defines what a heartbeat's storer should do
 type HeartbeatStorageHandler interface {
 	LoadGenesisTime() (time.Time, error)
 	UpdateGenesisTime(genesisTime time.Time) error
-	LoadPubkeysData() (map[string]*HeartbeatDTO, error)
 	LoadHbmiDTO(pubKey string) (*HeartbeatDTO, error)
 	SavePubkeyData(pubkey []byte, heartbeat *HeartbeatDTO) error
 	LoadKeys() ([][]byte, error)

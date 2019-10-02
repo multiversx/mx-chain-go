@@ -782,7 +782,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		return err
 	}
 
-	heartbeatStorer, err := storage.NewHeartbeatStorer(heartbeatStorageUnit, n.marshalizer)
+	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
 	getTimeHandler := func() time.Time { return time.Now() }
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.marshalizer,

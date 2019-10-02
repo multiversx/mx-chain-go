@@ -46,3 +46,9 @@ var ErrNilMessageHandler = errors.New("nil message handler")
 
 // ErrNilHeartbeatStorer signals that the provided heartbeat storer is nil
 var ErrNilHeartbeatStorer = errors.New("nil heartbeat storer")
+
+// ErrFetchGenesisTimeFromDb signals that the genesis time cannot be fetched from db
+var ErrFetchGenesisTimeFromDb = errors.New("monitor: can't get genesis time from db")
+
+// ErrUnmarshalGenesisTime signals that the unmarshaling of the genesis time didn't work
+var ErrUnmarshalGenesisTime = errors.New("monitor: can't unmarshal genesis time")
