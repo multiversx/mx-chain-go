@@ -15,8 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -89,6 +87,7 @@ type Node struct {
 	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
+	nodesCoordinator sharding.NodesCoordinator
 
 	consensusTopic string
 	consensusType  string
@@ -276,11 +275,6 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	validatorGroupSelector, err := n.createValidatorGroupSelector()
-	if err != nil {
-		return err
-	}
-
 	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
@@ -294,8 +288,9 @@ func (n *Node) StartConsensus() error {
 		n.multiSigner,
 		n.rounder,
 		n.shardCoordinator,
+		n.nodesCoordinator,
 		n.syncTimer,
-		validatorGroupSelector)
+	)
 	if err != nil {
 		return err
 	}
@@ -447,37 +442,6 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 		roundStatus)
 
 	return consensusState, nil
-}
-
-// createValidatorGroupSelector creates a index hashed group selector object
-func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector, error) {
-	validatorGroupSelector, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorsList := make([]consensus.Validator, 0)
-	shID := n.shardCoordinator.SelfId()
-
-	if len(n.initialNodesPubkeys[shID]) == 0 {
-		return nil, errors.New("could not create validator group as shardID is out of range")
-	}
-
-	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
-		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
-		if err != nil {
-			return nil, err
-		}
-
-		validatorsList = append(validatorsList, validator)
-	}
-
-	err = validatorGroupSelector.LoadEligibleList(validatorsList)
-	if err != nil {
-		return nil, err
-	}
-
-	return validatorGroupSelector, nil
 }
 
 // createConsensusTopic creates a consensus topic for node
