@@ -12,6 +12,8 @@ import (
 
 var log = logger.DefaultLogger()
 
+const maxNonceDeltaAllowed = 100
+
 // TxValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type TxValidator struct {
 	accounts         state.AccountsAdapter
@@ -55,7 +57,9 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	accountNonce := accountHandler.GetNonce()
 	txNonce := interceptedTx.Nonce()
 	lowerNonceInTx := txNonce < accountNonce
-	if lowerNonceInTx {
+	veryHighNonceInTx := txNonce > accountNonce+maxNonceDeltaAllowed
+	isTxRejected := lowerNonceInTx || veryHighNonceInTx
+	if isTxRejected {
 		tv.rejectedTxs++
 		return false
 	}

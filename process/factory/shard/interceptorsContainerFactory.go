@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -16,19 +17,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const maxGoRoutinexTxInterceptor = 100
+
 type interceptorsContainerFactory struct {
-	accounts            state.AccountsAdapter
-	shardCoordinator    sharding.Coordinator
-	messenger           process.TopicHandler
-	store               dataRetriever.StorageService
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	keyGen              crypto.KeyGenerator
-	singleSigner        crypto.SingleSigner
-	multiSigner         crypto.MultiSigner
-	dataPool            dataRetriever.PoolsHolder
-	addrConverter       state.AddressConverter
-	chronologyValidator process.ChronologyValidator
+	accounts               state.AccountsAdapter
+	shardCoordinator       sharding.Coordinator
+	messenger              process.TopicHandler
+	store                  dataRetriever.StorageService
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	keyGen                 crypto.KeyGenerator
+	singleSigner           crypto.SingleSigner
+	multiSigner            crypto.MultiSigner
+	dataPool               dataRetriever.PoolsHolder
+	addrConverter          state.AddressConverter
+	chronologyValidator    process.ChronologyValidator
+	txInterceptorThrottler process.InterceptorThrottler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -83,19 +87,25 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilChronologyValidator
 	}
 
+	txInterceptorThrottler, err := throttler.NewNumGoRoutineThrottler(maxGoRoutinexTxInterceptor)
+	if err != nil {
+		return nil, err
+	}
+
 	return &interceptorsContainerFactory{
-		accounts:            accounts,
-		shardCoordinator:    shardCoordinator,
-		messenger:           messenger,
-		store:               store,
-		marshalizer:         marshalizer,
-		hasher:              hasher,
-		keyGen:              keyGen,
-		singleSigner:        singleSigner,
-		multiSigner:         multiSigner,
-		dataPool:            dataPool,
-		addrConverter:       addrConverter,
-		chronologyValidator: chronologyValidator,
+		accounts:               accounts,
+		shardCoordinator:       shardCoordinator,
+		messenger:              messenger,
+		store:                  store,
+		marshalizer:            marshalizer,
+		hasher:                 hasher,
+		keyGen:                 keyGen,
+		singleSigner:           singleSigner,
+		multiSigner:            multiSigner,
+		dataPool:               dataPool,
+		addrConverter:          addrConverter,
+		chronologyValidator:    chronologyValidator,
+		txInterceptorThrottler: txInterceptorThrottler,
 	}, nil
 }
 
@@ -229,7 +239,9 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.hasher,
 		icf.singleSigner,
 		icf.keyGen,
-		icf.shardCoordinator)
+		icf.shardCoordinator,
+		icf.txInterceptorThrottler,
+	)
 
 	if err != nil {
 		return nil, err

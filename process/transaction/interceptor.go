@@ -25,6 +25,7 @@ type TxInterceptor struct {
 	keyGen                   crypto.KeyGenerator
 	shardCoordinator         sharding.Coordinator
 	broadcastCallbackHandler func(buffToSend []byte)
+	throttler                process.InterceptorThrottler
 }
 
 // NewTxInterceptor hooks a new interceptor for transactions
@@ -37,6 +38,7 @@ func NewTxInterceptor(
 	singleSigner crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
 	shardCoordinator sharding.Coordinator,
+	throttler process.InterceptorThrottler,
 ) (*TxInterceptor, error) {
 
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
@@ -63,6 +65,9 @@ func NewTxInterceptor(
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if throttler == nil || throttler.IsInterfaceNil() {
+		return nil, process.ErrNilThrottler
+	}
 
 	txIntercept := &TxInterceptor{
 		marshalizer:      marshalizer,
@@ -73,6 +78,7 @@ func NewTxInterceptor(
 		singleSigner:     singleSigner,
 		keyGen:           keyGen,
 		shardCoordinator: shardCoordinator,
+		throttler:        throttler,
 	}
 
 	return txIntercept, nil
@@ -81,10 +87,17 @@ func NewTxInterceptor(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+	canProcess := txi.throttler.CanProcess()
+	if !canProcess {
+		return process.ErrSystemBusy
+	}
+
+	txi.throttler.StartProcessing()
+	defer txi.throttler.EndProcessing()
+
 	if message == nil || message.IsInterfaceNil() {
 		return process.ErrNilMessage
 	}
-
 	if message.Data() == nil {
 		return process.ErrNilDataToProcess
 	}

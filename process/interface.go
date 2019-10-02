@@ -365,3 +365,11 @@ type PoolsCleaner interface {
 	NumRemovedTxs() uint64
 	IsInterfaceNil() bool
 }
+
+// InterceptorThrottler can determine if the a new joc can or cannot be started
+type InterceptorThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}

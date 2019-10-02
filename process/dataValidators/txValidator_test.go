@@ -122,6 +122,24 @@ func TestTxValidator_IsTxValidForProcessingAccountNonceIsGreaterThanTxNonceShoul
 	assert.Equal(t, false, result)
 }
 
+func TestTxValidator_IsTxValidForProcessingTxNonceIsTooHigh(t *testing.T) {
+	t.Parallel()
+
+	accountNonce := uint64(100)
+	txNonce := accountNonce + dataValidators.MaxNonceDeltaAllowed + 1
+
+	accounts := getAccAdapter(accountNonce, big.NewInt(0))
+	shardCoordinator := createMockCoordinator("_", 0)
+	txValidator, err := dataValidators.NewTxValidator(accounts, shardCoordinator)
+	assert.Nil(t, err)
+
+	addressMock := mock.NewAddressMock([]byte("address"))
+	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, big.NewInt(0))
+
+	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
+	assert.Equal(t, false, result)
+}
+
 func TestTxValidator_IsTxValidForProcessingAccountBalanceIsLessThanTxTotalValueShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 

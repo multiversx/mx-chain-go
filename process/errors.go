@@ -91,14 +91,8 @@ var ErrNilRootHash = errors.New("root hash is nil")
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nonce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
-// ErrWrongNonceInOtherChainBlock signals the nonce in block is different than expected nonce
-var ErrWrongNonceInOtherChainBlock = errors.New("wrong nonce in other chain block")
-
 // ErrBlockHashDoesNotMatch signals that header hash does not match with the previous one
 var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
-
-// ErrBlockHashDoesNotMatchInOtherChainBlock signals that header hash does not match with the previous one
-var ErrBlockHashDoesNotMatchInOtherChainBlock = errors.New("block hash does not match in other chain block")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
@@ -111,9 +105,6 @@ var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 
 // ErrRootStateDoesNotMatch signals that root state does not match
 var ErrRootStateDoesNotMatch = errors.New("root state does not match")
-
-// ErrRootStateDoesNotMatchInOtherChainBlock signals that root state does not match
-var ErrRootStateDoesNotMatchInOtherChainBlock = errors.New("root state does not match in other chain block")
 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
@@ -301,17 +292,11 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
 var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
 
-// ErrLowerRoundInOtherChainBlock signals that header round too low for processing it
-var ErrLowerRoundInOtherChainBlock = errors.New("header round is lower than last committed in other chain block")
-
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
 // ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
 var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
-
-// ErrRandSeedDoesNotMatchInOtherChainBlock signals that seed does not match with the previous one
-var ErrRandSeedDoesNotMatchInOtherChainBlock = errors.New("random seed does not match in other chain block")
 
 // ErrHeaderNotFinal signals that header is not final and it should be
 var ErrHeaderNotFinal = errors.New("header in metablock is not final")
@@ -444,3 +429,9 @@ var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
 
 // ErrZeroMaxCleanTime signal that cleaning time for pools its less or equals with 0
 var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrSystemBusy signals that the system is busy
+var ErrSystemBusy = errors.New("system busy")
