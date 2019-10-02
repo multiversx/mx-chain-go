@@ -31,7 +31,7 @@ type Monitor struct {
 	genesisTime                 time.Time
 	messageHandler              MessageHandler
 	storer                      HeartbeatStorageHandler
-	timeHandler                 func() time.Time
+	timer                       Timer
 }
 
 // NewMonitor returns a new monitor instance
@@ -42,7 +42,7 @@ func NewMonitor(
 	genesisTime time.Time,
 	messageHandler MessageHandler,
 	storer HeartbeatStorageHandler,
-	timeHandler func() time.Time,
+	timer Timer,
 ) (*Monitor, error) {
 
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
@@ -57,7 +57,7 @@ func NewMonitor(
 	if storer == nil || storer.IsInterfaceNil() {
 		return nil, ErrNilHeartbeatStorer
 	}
-	if timeHandler == nil {
+	if timer == nil || timer.IsInterfaceNil() {
 		return nil, ErrNilGetTimeHandler
 	}
 
@@ -69,7 +69,7 @@ func NewMonitor(
 		genesisTime:                 genesisTime,
 		messageHandler:              messageHandler,
 		storer:                      storer,
-		timeHandler:                 timeHandler,
+		timer:                       timer,
 	}
 
 	err := mon.storer.UpdateGenesisTime(genesisTime)
@@ -96,7 +96,7 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 		for _, pubkey := range pubKeys {
 			err := m.loadHbmiFromStorer(pubkey)
 			if err != nil { // if pubKey not found in DB, create a new instance
-				getTimeHandler := m.timeHandler
+				getTimeHandler := m.timer.Now
 				mhbi, errNewHbmi := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, getTimeHandler)
 				if errNewHbmi != nil {
 					return errNewHbmi
@@ -139,11 +139,11 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) error {
 	}
 
 	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
-	receivedHbmi.getTimeHandler = m.timeHandler
-	receivedHbmi.lastUptimeDowntime = m.timeHandler()
+	receivedHbmi.getTimeHandler = m.timer.Now
+	receivedHbmi.lastUptimeDowntime = m.timer.Now()
 	receivedHbmi.genesisTime = m.genesisTime
-	if receivedHbmi.timeStamp == m.genesisTime && m.timeHandler().Sub(m.genesisTime) > 0 {
-		receivedHbmi.totalDownTime = Duration{m.timeHandler().Sub(m.genesisTime)}
+	if receivedHbmi.timeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
+		receivedHbmi.totalDownTime = Duration{m.timer.Now().Sub(m.genesisTime)}
 	}
 
 	m.heartbeatMessages[pubKey] = &receivedHbmi
@@ -183,7 +183,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	pe, ok := m.heartbeatMessages[pubKeyStr]
 	if pe == nil || !ok {
 		var err error
-		getTimeHandler := func() time.Time { return m.timeHandler() }
+		getTimeHandler := func() time.Time { return m.timer.Now() }
 		pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, getTimeHandler)
 		if err != nil {
 			log.Error(err.Error())
@@ -245,7 +245,7 @@ func (m *Monitor) updateAllHeartbeatMessages() {
 	counterConnectedNodes := 0
 	for _, v := range m.heartbeatMessages {
 		//TODO change here
-		v.updateFields(m.timeHandler())
+		v.updateFields(m.timer.Now())
 
 		if v.isActive {
 			counterConnectedNodes++
@@ -280,8 +280,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
 		}
-		if status[idx].TimeStamp == m.genesisTime && m.timeHandler().Sub(m.genesisTime) > 0 {
-			status[idx].TotalDownTime = int(m.timeHandler().Sub(m.genesisTime).Seconds())
+		if status[idx].TimeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
+			status[idx].TotalDownTime = int(m.timer.Now().Sub(m.genesisTime).Seconds())
 		}
 		idx++
 	}

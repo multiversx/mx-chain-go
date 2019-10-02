@@ -58,7 +58,7 @@ func newHeartbeatMessageInfo(
 }
 
 func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
-	if hbmi.genesisTime != hbmi.timeStamp {
+	if hbmi.genesisTime.Sub(hbmi.timeStamp) < 0 {
 		crtDuration := crtTime.Sub(hbmi.timeStamp)
 		crtDuration = maxDuration(0, crtDuration)
 		hbmi.isActive = crtDuration < hbmi.maxDurationPeerUnresponsive

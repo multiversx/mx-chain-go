@@ -32,3 +32,7 @@ func (m *Monitor) GetHbmi(tmstp time.Time) *heartbeatMessageInfo {
 func (m *Monitor) SendHeartbeatMessage(hb *Heartbeat) {
 	m.addHeartbeatMessageToMap(hb)
 }
+
+func (m *Monitor) AddHeartbeatMessageToMap(hb *Heartbeat) {
+	m.addHeartbeatMessageToMap(hb)
+}

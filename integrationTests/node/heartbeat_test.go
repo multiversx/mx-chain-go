@@ -189,7 +189,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 				return nil
 			},
 		},
-		func() time.Time { return time.Now() },
+		&mock.MockTimer{},
 	)
 
 	return monitor

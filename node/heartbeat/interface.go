@@ -17,6 +17,12 @@ type MessageHandler interface {
 	IsInterfaceNil() bool
 }
 
+//Timer defines an interface for tracking time
+type Timer interface {
+	Now() time.Time
+	IsInterfaceNil() bool
+}
+
 // HeartbeatStorageHandler defines what a heartbeat's storer should do
 type HeartbeatStorageHandler interface {
 	LoadGenesisTime() (time.Time, error)

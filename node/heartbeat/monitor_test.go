@@ -18,7 +18,7 @@ import (
 func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, err := heartbeat.NewMonitor(
 		nil,
 		0,
@@ -36,7 +36,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 	t.Parallel()
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, err := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{},
 		0,
@@ -54,7 +54,7 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, err := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{},
 		0,
@@ -72,7 +72,7 @@ func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, err := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{},
 		0,
@@ -107,7 +107,7 @@ func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 	t.Parallel()
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, err := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{},
 		1,
@@ -140,7 +140,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 	t.Parallel()
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	pksPerShards := map[uint32][]string{
 		0: {"pk0"},
 		1: {"pk1"},
@@ -185,7 +185,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 
 	pubKey := "pk1"
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, _ := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -240,7 +240,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 
 	pubKey := "pk1"
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, _ := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -296,7 +296,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	pubKey := []byte("pk1")
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, _ := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
@@ -380,7 +380,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	pubKey1 := "pk1-should-stay-online"
 	pubKey2 := "pk2-should-go-offline"
 
-	th := func() time.Time { return time.Now() }
+	th := &mock.MockTimer{}
 	mon, _ := heartbeat.NewMonitor(
 		&mock.MarshalizerMock{
 			UnmarshalHandler: func(obj interface{}, buff []byte) error {
