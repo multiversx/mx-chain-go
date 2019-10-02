@@ -1466,7 +1466,6 @@ func newBlockProcessor(
 		return nil, err
 	}
 
-	// TODO: remove nodesConfig as no longer needed with nodes coordinator available
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
 			resolversFinder,
