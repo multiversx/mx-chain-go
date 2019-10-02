@@ -22,3 +22,11 @@ func (rhm *RewardsHandlerMock) LeaderPercentage() float64 {
 func (rhm *RewardsHandlerMock) BurnPercentage() float64 {
 	return rhm.BurnPercentageCalled()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rhm *RewardsHandlerMock) IsInterfaceNil() bool {
+	if rhm == nil {
+		return true
+	}
+	return false
+}
