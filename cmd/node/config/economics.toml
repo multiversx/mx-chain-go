@@ -1,0 +1,18 @@
+#Econimics config of the node
+[EconomicsAddresses]
+    CommunityAddress = "1bedf9f1db526aa98eb61f251e6eb29df64c0a4d96261b6fe9d4df1bc2cf5420"
+    BurnAddress = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+
+[RewardsSettings]
+    RewardsValue = 1000
+    CommunityPercentage = 0.10
+    LeaderPercentage = 0.50
+    BurnPercentage = 0.40	
+
+[FeeSettings]
+    MinGasPrice = 0
+    MinGasLimitForTx = 5
+    MinTxFee = 0
+
+    
+	
