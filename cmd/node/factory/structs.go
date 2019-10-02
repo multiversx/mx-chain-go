@@ -517,7 +517,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.state,
 		forkDetector,
 		shardsGenesisBlocks,
-		args.nodesConfig,
 		args.coreServiceContainer,
 	)
 
@@ -1439,22 +1438,21 @@ func newBlockProcessor(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, error) {
 
 	if economicsConfig.CommunityAddress == "" || economicsConfig.BurnAddress == "" {
-		return nil, nil, errors.New("rewards configuration missing")
+		return nil, errors.New("rewards configuration missing")
 	}
 
 	communityAddress, err := hex.DecodeString(economicsConfig.CommunityAddress)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	burnAddress, err := hex.DecodeString(economicsConfig.BurnAddress)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	specialAddressHolder, err := address.NewSpecialAddressHolder(
@@ -1465,7 +1463,7 @@ func newBlockProcessor(
 		nodesCoordinator,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// TODO: remove nodesConfig as no longer needed with nodes coordinator available
@@ -1480,7 +1478,6 @@ func newBlockProcessor(
 			state,
 			forkDetector,
 			shardsGenesisBlocks,
-			nodesConfig,
 			coreServiceContainer,
 		)
 	}
@@ -1512,7 +1509,6 @@ func newShardBlockProcessor(
 	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	nodesConfig *sharding.NodesSetup,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
@@ -1555,17 +1551,17 @@ func newShardBlockProcessor(
 
 	rewardsTxInterim, err := interimProcContainer.Get(dataBlock.RewardsBlock)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	rewardsTxHandler, ok := rewardsTxInterim.(process.TransactionFeeHandler)
 	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	internalTransactionProducer, ok := rewardsTxInterim.(process.InternalTransactionProducer)
 	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(
@@ -1605,12 +1601,12 @@ func newShardBlockProcessor(
 		rewardsTxInterim,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	transactionProcessor, err := transaction.NewTxProcessor(
