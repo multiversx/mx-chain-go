@@ -147,7 +147,7 @@ func (mp *metaProcessor) ProcessBlock(
 	err := mp.checkBlockValidity(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		if err == process.ErrBlockHashDoesNotMatch {
-			log.Info(fmt.Sprintf("requested missing meta header with hash %s for shard %d\n",
+			log.Info(fmt.Sprintf("requested missing meta hdr with hash %s for shard %d\n",
 				core.ToB64(headerHandler.GetPrevHash()),
 				headerHandler.GetShardID()))
 
@@ -743,7 +743,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(header *block.MetaBlock, high
 				break
 			}
 
-			// found a header with the next nonce
+			// found a hdr with the next nonce
 			tmpHdr := sortedHdrPerShard[shId][i]
 			if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 				err := mp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
@@ -841,7 +841,7 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 			return true, hdrIds
 		}
 
-		// found a header with the next nonce
+		// found a hdr with the next nonce
 		tmpHdr := sortedShardHdrs[i]
 		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := mp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
@@ -862,7 +862,7 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 	return false, nil
 }
 
-// receivedHeader is a call back function which is called when a new header
+// receivedHeader is a call back function which is called when a new hdr
 // is added in the headers pool
 func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 	shardHdrsCache := mp.dataPool.ShardHeaders()
@@ -885,7 +885,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 		return
 	}
 
-	log.Debug(fmt.Sprintf("received header with hash %s and nonce %d from network\n",
+	log.Debug(fmt.Sprintf("received hdr with hash %s and nonce %d from network\n",
 		core.ToB64(headerHash),
 		header.GetNonce()))
 
@@ -925,7 +925,7 @@ func (mp *metaProcessor) receivedHeader(headerHash []byte) {
 }
 
 // requestFinalMissingHeaders requests the headers needed to accept the current selected headers for processing the
-// current block. It requests the nextKValidity headers greater than the highest shard header, for each shard, related
+// current block. It requests the nextKValidity headers greater than the highest shard hdr, for each shard, related
 // to the block which should be processed
 func (mp *metaProcessor) requestFinalMissingHeaders() uint32 {
 	requestedBlockHeaders := uint32(0)
@@ -1178,9 +1178,9 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 	return peerInfo, nil
 }
 
-// CreateBlockHeader creates a miniblock header list given a block body
+// CreateBlockHeader creates a miniblock hdr list given a block body
 func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
-	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
+	log.Debug(fmt.Sprintf("started creating block hdr in round %d\n", round))
 	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
 	header := &block.MetaBlock{
 		ShardInfo:    make([]block.ShardData, 0),
@@ -1233,7 +1233,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	mrsData := make(map[uint32][]byte)
 	mrsTxs := make(map[string][][]byte)
 
-	// send headers which can validate the current header
+	// send headers which can validate the current hdr
 
 	return mrsData, mrsTxs, nil
 }
@@ -1357,7 +1357,7 @@ func (mp *metaProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 	return &body
 }
 
-// DecodeBlockHeader method decodes block header from a given byte array
+// DecodeBlockHeader method decodes block hdr from a given byte array
 func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	if dta == nil {
 		return nil

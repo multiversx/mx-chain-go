@@ -86,7 +86,7 @@ func (bp *baseProcessor) RevertAccountState() {
 	}
 }
 
-// AddLastNotarizedHdr adds the last notarized header
+// AddLastNotarizedHdr adds the last notarized hdr
 func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bp.mutNotarizedHdrs.Lock()
 	bp.notarizedHdrs[shardId] = append(bp.notarizedHdrs[shardId], processedHdr)
@@ -210,7 +210,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	//TODO: add verification if rand seed was correctly computed add other verification
-	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
+	//TODO: check here if the 2 hdr blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() >= currHdr.GetRound() {
 		log.Debug(fmt.Sprintf("round does not match in shard %d: local block round is %d and node received block with round %d\n",
 			currHdr.GetShardID(), prevHdr.GetRound(), currHdr.GetRound()))
@@ -355,8 +355,8 @@ func (bp *baseProcessor) getLastNotarizedHdr(shardId uint32) (data.HeaderHandler
 }
 
 // SetLastNotarizedHeadersSlice sets the headers blocks in notarizedHdrs for every shard
-// This is done when starting a new epoch so metachain can use it when validating next shard header blocks
-// and shard can validate the next meta header
+// This is done when starting a new epoch so metachain can use it when validating next shard hdr blocks
+// and shard can validate the next meta hdr
 func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
 	//TODO: protect this to be called only once at genesis time
 	//TODO: do this on constructor as it is a must to for blockprocessor to work
