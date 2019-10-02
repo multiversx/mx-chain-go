@@ -136,6 +136,9 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
+// ErrEmptyTxDataPool signals that a empty transaction pool has been provided
+var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
+
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
