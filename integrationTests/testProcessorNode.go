@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -32,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -40,7 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -108,7 +110,6 @@ type TestProcessorNode struct {
 	PreProcessorsContainer process.PreProcessorsContainer
 
 	ForkDetector       process.ForkDetector
-	BlockTracker       process.BlocksTracker
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
 	Bootstrapper       process.Bootstrapper
@@ -332,6 +333,21 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		return
 	}
 
+	economicsData := economics.NewEconomicsData(
+		&config.ConfigEconomics{
+			EconomicsAddresses: config.EconomicsAddresses{
+				"addr1",
+				"addr2",
+			},
+			RewardsSettings: config.RewardsSettings{
+				1000, 0.10, 0.50, 0.40,
+			},
+			FeeSettings: config.FeeSettings{
+				0, 5, 0,
+			},
+		},
+	)
+
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		TestMarshalizer,
@@ -340,6 +356,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.SpecialAddressHandler,
 		tpn.Storage,
 		tpn.ShardDataPool,
+		economicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -388,6 +405,17 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		rewardsHandler,
 		txTypeHandler,
+		&mock.FeeHandlerMock{
+			MinGasPriceCalled: func() uint64 {
+				return 0
+			},
+			MinGasLimitForTxCalled: func() uint64 {
+				return 5
+			},
+			MinTxFeeCalled: func() uint64 {
+				return 0
+			},
+		},
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -404,6 +432,17 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
 		internalTxProducer,
+		&mock.FeeHandlerMock{
+			MinGasPriceCalled: func() uint64 {
+				return 0
+			},
+			MinGasLimitForTxCalled: func() uint64 {
+				return 5
+			},
+			MinTxFeeCalled: func() uint64 {
+				return 0
+			},
+		},
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -429,17 +468,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
-		},
-	}
-
-	tpn.BlockTracker = &mock.BlocksTrackerMock{
-		AddBlockCalled: func(headerHandler data.HeaderHandler) {
-		},
-		RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
-			return nil
-		},
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			return make([]data.HeaderHandler, 0)
 		},
 	}
 
@@ -476,7 +504,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				Core:                  nil,
 			},
 			DataPool:        tpn.ShardDataPool,
-			BlocksTracker:   tpn.BlockTracker,
 			TxCoordinator:   tpn.TxCoordinator,
 			TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 		}

@@ -38,13 +38,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -107,6 +108,13 @@ VERSION:
 		Usage: "The main configuration file to load",
 		Value: "./config/config.toml",
 	}
+	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
+	configurationEconomicsFile = cli.StringFlag{
+		Name:  "configEconomics",
+		Usage: "The economics configuration file to load",
+		Value: "./config/economics.toml",
+	}
+
 	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
 	p2pConfigurationFile = cli.StringFlag{
 		Name:  "p2pconfig",
@@ -289,6 +297,7 @@ func main() {
 		nodesFile,
 		port,
 		configurationFile,
+		configurationEconomicsFile,
 		p2pConfigurationFile,
 		txSignSk,
 		sk,
@@ -364,6 +373,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFileName))
+
+	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
+	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName, log)
+	if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Initialized with config economics from: %s", configurationEconomicsFileName))
 
 	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
 	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
@@ -631,11 +647,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	economicsConfig := &generalConfig.EconomicsConfig
+	economicsData := economics.NewEconomicsData(economicsConfig)
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		genesisConfig,
-		economicsConfig,
+		economicsData,
 		nodesConfig,
 		syncer,
 		shardCoordinator,
@@ -985,6 +1001,15 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 	return cfg, nil
 }
 
+func loadEconomicsConfig(filepath string, log *logger.Logger) (*config.ConfigEconomics, error) {
+	cfg := &config.ConfigEconomics{}
+	err := core.LoadTomlFile(cfg, filepath, log)
+	if err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
 func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig *sharding.NodesSetup) (uint32, error) {
 	if pubKey == nil {
 		return 0, errors.New("nil public key")
@@ -1182,7 +1207,6 @@ func createNode(
 		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(process.BlockProcessor),
-		node.WithBlockTracker(process.BlockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),
