@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -338,16 +338,6 @@ type TopicMessageHandler interface {
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
-	IsInterfaceNil() bool
-}
-
-// BlocksTracker defines the functionality to track all the notarised blocks
-type BlocksTracker interface {
-	UnnotarisedBlocks() []data.HeaderHandler
-	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
-	AddBlock(headerHandler data.HeaderHandler)
-	SetBlockBroadcastRound(nonce uint64, round int64)
-	BlockBroadcastRound(nonce uint64) int64
 	IsInterfaceNil() bool
 }
 
