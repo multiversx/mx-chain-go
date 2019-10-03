@@ -56,12 +56,6 @@ type NTPConfig struct {
 	Version int
 }
 
-// EconomicsConfig will hold the reward configuration
-type EconomicsConfig struct {
-	CommunityAddress string
-	BurnAddress      string
-}
-
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -106,8 +100,7 @@ type Config struct {
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
 
-	NTPConfig       NTPConfig
-	EconomicsConfig EconomicsConfig
+	NTPConfig NTPConfig
 }
 
 // NodeConfig will hold basic p2p settings
