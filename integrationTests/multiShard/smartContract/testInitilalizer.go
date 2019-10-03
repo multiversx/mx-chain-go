@@ -480,17 +480,7 @@ func createNetNode(
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
 		},
-		DataPool: dPool,
-		BlocksTracker: &mock.BlocksTrackerMock{
-			AddBlockCalled: func(headerHandler data.HeaderHandler) {
-			},
-			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
-				return nil
-			},
-			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-				return make([]data.HeaderHandler, 0)
-			},
-		},
+		DataPool:        dPool,
 		TxCoordinator:   tc,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}

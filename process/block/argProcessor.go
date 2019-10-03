@@ -34,7 +34,6 @@ type ArgBaseProcessor struct {
 type ArgShardProcessor struct {
 	*ArgBaseProcessor
 	DataPool        dataRetriever.PoolsHolder
-	BlocksTracker   process.BlocksTracker
 	TxCoordinator   process.TransactionCoordinator
 	TxsPoolsCleaner process.PoolsCleaner
 }

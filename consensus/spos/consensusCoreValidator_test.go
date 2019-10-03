@@ -10,7 +10,6 @@ import (
 func initConsensusDataContainer() *ConsensusCore {
 	blockChain := &mock.BlockChainMock{}
 	blockProcessorMock := mock.InitBlockProcessorMock()
-	blocksTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
@@ -27,7 +26,6 @@ func initConsensusDataContainer() *ConsensusCore {
 	return &ConsensusCore{
 		blockChain:         blockChain,
 		blockProcessor:     blockProcessorMock,
-		blocksTracker:      blocksTrackerMock,
 		bootstrapper:       bootstrapperMock,
 		broadcastMessenger: broadcastMessengerMock,
 		chronologyHandler:  chronologyHandlerMock,

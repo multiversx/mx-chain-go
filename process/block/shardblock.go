@@ -41,7 +41,6 @@ type hdrForBlock struct {
 type shardProcessor struct {
 	*baseProcessor
 	dataPool          dataRetriever.PoolsHolder
-	blocksTracker     process.BlocksTracker
 	metaBlockFinality int
 
 	chRcvAllMetaHdrs        chan bool
@@ -77,9 +76,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
-	}
-	if arguments.BlocksTracker == nil || arguments.BlocksTracker.IsInterfaceNil() {
-		return nil, process.ErrNilBlocksTracker
 	}
 	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
@@ -120,7 +116,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		core:            arguments.Core,
 		baseProcessor:   base,
 		dataPool:        arguments.DataPool,
-		blocksTracker:   arguments.BlocksTracker,
 		txCoordinator:   arguments.TxCoordinator,
 		txCounter:       NewTransactionCounter(),
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
@@ -746,8 +741,6 @@ func (sp *shardProcessor) CommitBlock(
 		header.Nonce,
 		core.ToB64(headerHash)))
 
-	sp.blocksTracker.AddBlock(header)
-
 	errNotCritical = sp.txCoordinator.RemoveBlockDataFromPool(body)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
@@ -1032,7 +1025,6 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 	}
 
 	processed := 0
-	unnotarized := len(sp.blocksTracker.UnnotarisedBlocks())
 	// processedMetaHdrs is also sorted
 	for i := 0; i < len(processedMetaHdrs); i++ {
 		hdr := processedMetaHdrs[i]
@@ -1041,9 +1033,6 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		if hdr.GetNonce() > lastNotarizedMetaHdr.GetNonce() {
 			continue
 		}
-
-		errNotCritical := sp.blocksTracker.RemoveNotarisedBlocks(hdr)
-		log.LogIfError(errNotCritical)
 
 		// metablock was processed and finalized
 		buff, err := sp.marshalizer.Marshal(hdr)
@@ -1080,11 +1069,6 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 
 	if processed > 0 {
 		log.Debug(fmt.Sprintf("%d meta blocks have been processed completely and removed from pool\n", processed))
-	}
-
-	notarized := unnotarized - len(sp.blocksTracker.UnnotarisedBlocks())
-	if notarized > 0 {
-		log.Debug(fmt.Sprintf("%d shard blocks have been notarised by metachain\n", notarized))
 	}
 
 	return nil
