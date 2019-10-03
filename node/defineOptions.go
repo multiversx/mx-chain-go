@@ -215,17 +215,6 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	}
 }
 
-// WithBlockTracker sets up the block tracker option for the Node
-func WithBlockTracker(blockTracker process.BlocksTracker) Option {
-	return func(n *Node) error {
-		if blockTracker == nil || blockTracker.IsInterfaceNil() {
-			return ErrNilBlockTracker
-		}
-		n.blockTracker = blockTracker
-		return nil
-	}
-}
-
 // WithGenesisTime sets up the genesis time option for the Node
 func WithGenesisTime(genesisTime time.Time) Option {
 	return func(n *Node) error {

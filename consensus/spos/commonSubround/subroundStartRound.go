@@ -20,7 +20,6 @@ type SubroundStartRound struct {
 	processingThresholdPercentage int
 	getSubroundName               func(subroundId int) string
 	executeStoredMessages         func()
-	broadcastUnnotarisedBlocks    func()
 
 	appStatusHandler core.AppStatusHandler
 	indexer          indexer.Indexer
@@ -33,11 +32,9 @@ func NewSubroundStartRound(
 	processingThresholdPercentage int,
 	getSubroundName func(subroundId int) string,
 	executeStoredMessages func(),
-	broadcastUnnotarisedBlocks func(),
 ) (*SubroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
-		broadcastUnnotarisedBlocks,
 	)
 	if err != nil {
 		return nil, err
@@ -48,7 +45,6 @@ func NewSubroundStartRound(
 		processingThresholdPercentage,
 		getSubroundName,
 		executeStoredMessages,
-		broadcastUnnotarisedBlocks,
 		statusHandler.NewNilStatusHandler(),
 		indexer.NewNilIndexer(),
 	}
@@ -61,16 +57,12 @@ func NewSubroundStartRound(
 
 func checkNewSubroundStartRoundParams(
 	baseSubround *spos.Subround,
-	broadcastUnnotarisedBlocks func(),
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
-	}
-	if broadcastUnnotarisedBlocks == nil {
-		return spos.ErrNilBroadcastUnnotarisedBlocks
 	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
@@ -194,10 +186,6 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
-
-	if leader == sr.SelfPubKey() {
-		//TODO: Should be analyzed if call of sr.broadcastUnnotarisedBlocks() is still necessary
-	}
 
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()

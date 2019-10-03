@@ -111,8 +111,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	sr.BlocksTracker().SetBlockBroadcastRound(sr.Header.GetNonce(), sr.RoundIndex)
-
 	log.Info(fmt.Sprintf("%sStep 3: BlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	err = sr.broadcastMiniBlocksAndTransactions()

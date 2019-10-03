@@ -19,14 +19,6 @@ func (wrk *Worker) SetBlockProcessor(blockProcessor process.BlockProcessor) {
 	wrk.blockProcessor = blockProcessor
 }
 
-func (wrk *Worker) BlockTracker() process.BlocksTracker {
-	return wrk.blockTracker
-}
-
-func (wrk *Worker) SetBlockTracker(blockTracker process.BlocksTracker) {
-	wrk.blockTracker = blockTracker
-}
-
 func (wrk *Worker) Bootstrapper() process.Bootstrapper {
 	return wrk.bootstrapper
 }
