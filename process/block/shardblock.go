@@ -1582,16 +1582,14 @@ func (sp *shardProcessor) createMiniBlocks(
 		uint32(len(destMeMiniBlocks)+len(usedMetaHdrsHashes)),
 		uint32(len(miniBlocks)))
 
-	if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
-		mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
-			uint32(maxTxSpaceRemained),
-			uint32(maxMbSpaceRemained),
-			round,
-			haveTime)
+	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
+		uint32(maxTxSpaceRemained),
+		uint32(maxMbSpaceRemained),
+		round,
+		haveTime)
 
-		if len(mbFromMe) > 0 {
-			miniBlocks = append(miniBlocks, mbFromMe...)
-		}
+	if len(mbFromMe) > 0 {
+		miniBlocks = append(miniBlocks, mbFromMe...)
 	}
 
 	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
