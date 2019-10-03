@@ -250,14 +250,14 @@ func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersInde
 		ShardId:          shardId,
 	}
 
-	marshalizedSignersIndexes, err := ei.marshalizer.Marshal(roundInfo)
+	marshalizedRoundInfo, err := ei.marshalizer.Marshal(roundInfo)
 	if err != nil {
 		ei.logger.Warn("could not marshal signers indexes")
 		return
 	}
 
-	buff.Grow(len(marshalizedSignersIndexes))
-	buff.Write(marshalizedSignersIndexes)
+	buff.Grow(len(marshalizedRoundInfo))
+	buff.Write(marshalizedRoundInfo)
 
 	req := esapi.IndexRequest{
 		Index:      roundIndex,
