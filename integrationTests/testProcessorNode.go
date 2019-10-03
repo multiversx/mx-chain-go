@@ -108,6 +108,7 @@ type TestProcessorNode struct {
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
+	EconomicsData          *economics.EconomicsData
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -347,6 +348,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 			},
 		},
 	)
+
+	tpn.EconomicsData = economicsData
 
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		tpn.ShardCoordinator,

@@ -2466,19 +2466,22 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash2 := []byte("miniblock hash 2")
 	miniBlockHash3 := []byte("miniblock hash 3")
 
-	metaBlock := mock.HeaderHandlerStub{
-		GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
-			return map[string]uint32{
-				string(miniBlockHash1): 0,
-				string(miniBlockHash2): 0,
-				string(miniBlockHash3): 0,
-			}
-		},
-	}
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+		Round: 1,
+		ShardInfo: []block.ShardData{
+			block.ShardData{
+				ShardId: 1,
+				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
+					block.ShardMiniBlockHeader{Hash: miniBlockHash1, SenderShardId: 1, ReceiverShardId: 0},
+					block.ShardMiniBlockHeader{Hash: miniBlockHash2, SenderShardId: 1, ReceiverShardId: 0},
+					block.ShardMiniBlockHeader{Hash: miniBlockHash3, SenderShardId: 1, ReceiverShardId: 0},
+				}},
+		}}
 
 	//put this metaBlock inside datapool
 	metaBlockHash := []byte("metablock hash")
-	dataPool.MetaBlocks().Put(metaBlockHash, &metaBlock)
+	dataPool.MetaBlocks().Put(metaBlockHash, metaBlock)
 	//put the existing miniblock inside datapool
 	dataPool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
 

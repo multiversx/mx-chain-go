@@ -328,12 +328,6 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 		return nil
 	}
 
-	if len(usedMetaHdrs) > 1 {
-		sort.Slice(usedMetaHdrs, func(i, j int) bool {
-			return usedMetaHdrs[i].Nonce < usedMetaHdrs[j].Nonce
-		})
-	}
-
 	for _, metaHdr := range usedMetaHdrs {
 		err = sp.isHdrConstructionValid(metaHdr, tmpNotedHdr)
 		if err != nil {
@@ -390,53 +384,6 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 
 	return nil
 }
-
-//func (sp *shardProcessor) getFinalityAttestingHeaders(
-//	highestNonceHdr data.HeaderHandler,
-//	finality uint64,
-//) ([]*hashAndHdr, error) {
-//
-//	if highestNonceHdr == nil || highestNonceHdr.IsInterfaceNil() {
-//		return nil, process.ErrNilBlockHeader
-//	}
-//
-//	metaBlockPool := sp.dataPool.MetaBlocks()
-//	if metaBlockPool == nil {
-//		return nil, process.ErrNilMetaBlockPool
-//	}
-//
-//	orderedMetaBlocks := make([]*hashAndHdr, 0)
-//	// get keys and arrange them into shards
-//	for _, key := range metaBlockPool.Keys() {
-//		val, _ := metaBlockPool.Peek(key)
-//		if val == nil {
-//			continue
-//		}
-//
-//		hdr, ok := val.(*block.MetaBlock)
-//		if !ok {
-//			continue
-//		}
-//
-//		isHdrNonceLowerOrEqualThanHighestNonce := hdr.GetNonce() <= highestNonceHdr.GetNonce()
-//		isHdrNonceHigherThanFinalNonce := hdr.GetNonce() > highestNonceHdr.GetNonce()+finality
-//
-//		if isHdrNonceLowerOrEqualThanHighestNonce ||
-//			isHdrNonceHigherThanFinalNonce {
-//			continue
-//		}
-//
-//		orderedMetaBlocks = append(orderedMetaBlocks, &hashAndHdr{hdr: hdr, hash: key})
-//	}
-//
-//	if len(orderedMetaBlocks) > 1 {
-//		sort.Slice(orderedMetaBlocks, func(i, j int) bool {
-//			return orderedMetaBlocks[i].hdr.GetNonce() < orderedMetaBlocks[j].hdr.GetNonce()
-//		})
-//	}
-//
-//	return orderedMetaBlocks, nil
-//}
 
 // check if header has the same miniblocks as presented in body
 func (sp *shardProcessor) checkHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
@@ -1083,40 +1030,30 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
-	//metaHdrsNoncesCache := sp.dataPool.HeadersNonces()
-	//if metaHdrsNoncesCache == nil && sp.metaBlockFinality > 0 {
-	//	return
-	//}
-	//
-	//miniBlksCache := sp.dataPool.MiniBlocks()
-	//if miniBlksCache == nil || miniBlksCache.IsInterfaceNil() {
-	//	return
-	//}
-
 	obj, ok := metaBlockPool.Peek(metaBlockHash)
 	if !ok {
 		return
 	}
 
-	metaBlock, ok := obj.(data.HeaderHandler)
+	metaBlock, ok := obj.(*block.MetaBlock)
 	if !ok {
 		return
 	}
 
 	log.Debug(fmt.Sprintf("received metablock with hash %s and nonce %d from network\n",
 		core.ToB64(metaBlockHash),
-		metaBlock.GetNonce()))
+		metaBlock.Nonce))
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
 	if sp.hdrsForCurrBlock.missingHdrs > 0 || sp.hdrsForCurrBlock.missingFinalHdrs > 0 {
 		hdrInfoForHash := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
 		if hdrInfoForHash != nil && (hdrInfoForHash.hdr == nil || hdrInfoForHash.hdr.IsInterfaceNil()) {
-			sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)].hdr = metaBlock
+			hdrInfoForHash.hdr = metaBlock
 			sp.hdrsForCurrBlock.missingHdrs--
 
-			if metaBlock.GetNonce() > sp.currHighestMetaHdrNonce {
-				sp.currHighestMetaHdrNonce = metaBlock.GetNonce()
+			if metaBlock.Nonce > sp.currHighestMetaHdrNonce {
+				sp.currHighestMetaHdrNonce = metaBlock.Nonce
 			}
 		}
 
@@ -1134,7 +1071,8 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		missingFinalHdrs := sp.hdrsForCurrBlock.missingFinalHdrs
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-		if missingHdrs == 0 && missingFinalHdrs == 0 {
+		allMissingNeededHdrsReceived := missingHdrs == 0 && missingFinalHdrs == 0
+		if allMissingNeededHdrsReceived {
 			sp.chRcvAllMetaHdrs <- true
 		}
 	} else {
@@ -1780,12 +1718,19 @@ func (sp *shardProcessor) sortHdrsForCurrentBlock(usedInBlock bool) ([]*block.Me
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
+	if len(hdrsForCurrentBlock) > 1 {
+		sort.Slice(hdrsForCurrentBlock, func(i, j int) bool {
+			return hdrsForCurrentBlock[i].Nonce < hdrsForCurrentBlock[j].Nonce
+		})
+	}
+
 	return hdrsForCurrentBlock, nil
 }
 
 func (sp *shardProcessor) sortHdrsHashesForCurrentBlock(usedInBlock bool) [][]byte {
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	hdrsForCurrentBlockInfo := make([]*nonceAndHashInfo, 0)
+
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, hdrInfo := range sp.hdrsForCurrBlock.hdrHashAndInfo {
 		if hdrInfo.usedInBlock != usedInBlock {
 			continue
