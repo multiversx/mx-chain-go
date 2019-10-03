@@ -24,6 +24,20 @@ func generateRandomByteSlice(size int) []byte {
 	return buff
 }
 
+func FeeHandlerMock() *mock.FeeHandlerMock {
+	return &mock.FeeHandlerMock{
+		MinGasPriceCalled: func() uint64 {
+			return 0
+		},
+		MinGasLimitForTxCalled: func() uint64 {
+			return 5
+		},
+		MinTxFeeCalled: func() uint64 {
+			return 0
+		},
+	}
+}
+
 func createAccountStub(sndAddr, rcvAddr []byte,
 	acntSrc, acntDst *state.Account,
 ) *mock.AccountsStub {
@@ -54,6 +68,7 @@ func createTxProcessor() txproc.TxProcessor {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	return txProc
@@ -73,6 +88,7 @@ func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -91,6 +107,7 @@ func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -109,6 +126,7 @@ func TestNewTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -127,6 +145,7 @@ func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -145,6 +164,7 @@ func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -163,6 +183,7 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 		nil,
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
@@ -181,6 +202,7 @@ func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		nil,
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	assert.Equal(t, process.ErrNilUnsignedTxHandler, err)
@@ -199,6 +221,7 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -221,6 +244,7 @@ func TestTxProcessor_GetAddressErrAddressConvShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	addressConv.Fail = true
@@ -262,6 +286,7 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	adr1 := mock.NewAddressMock([]byte{65})
@@ -288,6 +313,7 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	adr1 := mock.NewAddressMock([]byte{65})
@@ -331,6 +357,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
@@ -383,6 +410,7 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
@@ -420,6 +448,7 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	a1, a2, err := execTx.GetAccounts(adr1, adr2)
@@ -448,6 +477,7 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	a1, a2, err := execTx.GetAccounts(adr1, adr1)
@@ -690,6 +720,7 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	addressConv.Fail = true
@@ -712,6 +743,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	tx := transaction.Transaction{}
@@ -750,6 +782,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -803,6 +836,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -848,10 +882,9 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
-	execTx.SetMinTxFee(0)
-	execTx.SetMinGasPrice(0)
 	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, journalizeCalled)
@@ -905,10 +938,9 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
-	execTx.SetMinTxFee(0)
-	execTx.SetMinGasPrice(0)
 	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, journalizeCalled)
@@ -962,6 +994,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -1011,10 +1044,8 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
-
-	execTx.SetMinTxFee(0)
-	execTx.SetMinGasPrice(0)
 
 	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
@@ -1066,6 +1097,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		FeeHandlerMock(),
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -1133,6 +1165,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 				return process.SCInvoking, nil
 			},
 		},
+		FeeHandlerMock(),
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -1193,6 +1226,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
 			return process.SCInvoking, nil
 		}},
+		FeeHandlerMock(),
 	)
 
 	err = execTx.ProcessTransaction(&tx, 4)
@@ -1265,10 +1299,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		scProcessorMock,
 		&mock.UnsignedTxHandlerMock{},
 		computeType,
+		FeeHandlerMock(),
 	)
-
-	execTx.SetMinTxFee(0)
-	execTx.SetMinGasPrice(0)
 
 	err = execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
