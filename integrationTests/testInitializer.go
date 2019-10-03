@@ -431,7 +431,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
-		&mock.FeeHandlerMock{
+		&mock.FeeHandlerStub{
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
@@ -749,8 +749,8 @@ type txArgs struct {
 	rcvAddr  []byte
 	sndAddr  []byte
 	data     string
-	gasPrice int
-	gasLimit int
+	gasPrice uint64
+	gasLimit uint64
 }
 
 func generateTransferTx(
@@ -789,8 +789,8 @@ func generateTx(
 		Value:    args.value,
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
-		GasPrice: uint64(args.gasPrice),
-		GasLimit: uint64(args.gasLimit),
+		GasPrice: args.gasPrice,
+		GasLimit: args.gasLimit,
 		Data:     args.data,
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)

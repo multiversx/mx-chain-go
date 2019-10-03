@@ -53,11 +53,12 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{nRequester}, 0, []crypto.PrivateKey{nRequester.OwnAccount.SkTxSign}, valMinting)
 	//Step 1. Generate a signed transaction
 	tx := transaction.Transaction{
-		Nonce:   0,
-		Value:   big.NewInt(0),
-		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
-		SndAddr: buffPk1,
-		Data:    "tx notarized data",
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  integrationTests.TestHasher.Compute("receiver"),
+		SndAddr:  buffPk1,
+		Data:     "tx notarized data",
+		GasLimit: integrationTests.MinTxGasLimit,
 	}
 
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)

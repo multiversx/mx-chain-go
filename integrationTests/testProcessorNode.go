@@ -61,6 +61,13 @@ var TestMultiSig = mock.NewMultiSigner(1)
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+// MinTxGasPrice minimum gas price required by a transaction
+//TODO refactor all tests to pass with a non zero value
+var MinTxGasPrice = uint64(0)
+
+// MinTxGasLimit minimum gas limit required by a transaction
+var MinTxGasLimit = uint64(4)
+
 const maxTxNonceDeltaAllowed = 8000
 
 // TestKeyPair holds a pair of private/public Keys
@@ -93,6 +100,8 @@ type TestProcessorNode struct {
 	AccntState    state.AccountsAdapter
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
+
+	EconomicsData *economics.EconomicsData
 
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
@@ -203,6 +212,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
+	tpn.initEconomicsData()
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
@@ -244,6 +254,30 @@ func (tpn *TestProcessorNode) initChainHandler() {
 	}
 }
 
+func (tpn *TestProcessorNode) initEconomicsData() {
+	economicsData := economics.NewEconomicsData(
+		&config.ConfigEconomics{
+			EconomicsAddresses: config.EconomicsAddresses{
+				CommunityAddress: "addr1",
+				BurnAddress:      "addr2",
+			},
+			RewardsSettings: config.RewardsSettings{
+				RewardsValue:        1000,
+				CommunityPercentage: 0.10,
+				LeaderPercentage:    0.50,
+				BurnPercentage:      0.40,
+			},
+			FeeSettings: config.FeeSettings{
+				MinGasPrice:      MinTxGasPrice,
+				MinGasLimitForTx: MinTxGasLimit,
+				MinTxFee:         MinTxGasPrice * MinTxGasLimit,
+			},
+		},
+	)
+
+	tpn.EconomicsData = economicsData
+}
+
 func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -277,6 +311,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.ShardDataPool,
 			TestAddressConverter,
 			maxTxNonceDeltaAllowed,
+			tpn.EconomicsData,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -337,21 +372,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		return
 	}
 
-	economicsData := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{
-				"addr1",
-				"addr2",
-			},
-			RewardsSettings: config.RewardsSettings{
-				1000, 0.10, 0.50, 0.40,
-			},
-			FeeSettings: config.FeeSettings{
-				0, 5, 0,
-			},
-		},
-	)
-
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		TestMarshalizer,
@@ -360,7 +380,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.SpecialAddressHandler,
 		tpn.Storage,
 		tpn.ShardDataPool,
-		economicsData,
+		tpn.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -409,7 +429,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		&mock.FeeHandlerMock{
+		&mock.FeeHandlerStub{
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
@@ -436,7 +456,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
 		internalTxProducer,
-		&mock.FeeHandlerMock{
+		&mock.FeeHandlerStub{
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
