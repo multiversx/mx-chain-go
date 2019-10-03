@@ -56,6 +56,14 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	}
 }
 
+func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string) []uint64 {
+	return nil
+}
+
+func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys() map[uint32][][]byte {
+	return nil
+}
+
 func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error) {
 	if ncm.GetSelectedPublicKeysCalled != nil {
 		return ncm.GetSelectedPublicKeysCalled(selection, shardId)

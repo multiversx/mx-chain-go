@@ -226,6 +226,35 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte,
 	return publicKeys, nil
 }
 
+// GetAllValidatorsPublicKeys will return all validators public keys for all shards
+func (ihgs *indexHashedNodesCoordinator) GetAllValidatorsPublicKeys() map[uint32][][]byte {
+	validatorsPubKeys := make(map[uint32][][]byte)
+
+	for shardId, shardEligible := range ihgs.nodesMap {
+		for i := 0; i < len(shardEligible); i++ {
+			validatorsPubKeys[shardId] = append(validatorsPubKeys[shardId], ihgs.nodesMap[shardId][i].PubKey())
+		}
+	}
+
+	return validatorsPubKeys
+}
+
+// GetValidatorsIndexes will return validators indexes for a block
+func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(publicKeys []string) []uint64 {
+	validatorsPubKeys := ihgs.GetAllValidatorsPublicKeys()
+	signersIndexes := make([]uint64, 0)
+
+	for _, pubKey := range publicKeys {
+		for index, value := range validatorsPubKeys[ihgs.shardId] {
+			if bytes.Equal([]byte(pubKey), value) {
+				signersIndexes = append(signersIndexes, uint64(index))
+			}
+		}
+	}
+
+	return signersIndexes
+}
+
 func (ihgs *indexHashedNodesCoordinator) expandEligibleList(shardId uint32) []Validator {
 	//TODO implement an expand eligible list variant
 	return ihgs.nodesMap[shardId]

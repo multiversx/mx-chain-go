@@ -45,7 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -668,6 +668,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	var elasticIndexer indexer.Indexer
+	if coreServiceContainer == nil || coreServiceContainer.IsInterfaceNil() {
+		elasticIndexer = nil
+	} else {
+		elasticIndexer = coreServiceContainer.Indexer()
+	}
+
 	currentNode, err := createNode(
 		generalConfig,
 		nodesConfig,
@@ -685,9 +692,14 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		networkComponents,
 		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
 		version,
+		elasticIndexer,
 	)
 	if err != nil {
 		return err
+	}
+
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
 	vmAccountsDB, err := hooks.NewVMAccountsDB(
@@ -762,6 +774,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
+	if elasticIndexer == nil || elasticIndexer.IsInterfaceNil() {
+		return
+	}
+
+	validatorsPubKeys := coordinator.GetAllValidatorsPublicKeys()
+
+	if validatorsPubKeys != nil {
+		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
+	}
 }
 
 func initMetrics(
@@ -1188,6 +1212,7 @@ func createNode(
 	network *factory.Network,
 	bootstrapRoundIndex uint64,
 	version string,
+	indexer indexer.Indexer,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1207,7 +1232,6 @@ func createNode(
 		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(process.BlockProcessor),
-		node.WithBlockTracker(process.BlockTracker),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),
@@ -1228,6 +1252,7 @@ func createNode(
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(core.StatusHandler),
+		node.WithIndexer(indexer),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

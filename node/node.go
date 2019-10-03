@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -62,7 +63,6 @@ type Node struct {
 	syncTimer                ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
-	blockTracker             process.BlocksTracker
 	genesisTime              time.Time
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
@@ -97,6 +97,8 @@ type Node struct {
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
+
+	indexer indexer.Indexer
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -256,7 +258,6 @@ func (n *Node) StartConsensus() error {
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blockProcessor,
-		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		consensusState,
@@ -280,7 +281,6 @@ func (n *Node) StartConsensus() error {
 	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
-		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		chronologyHandler,
@@ -298,7 +298,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler, n.indexer)
 	if err != nil {
 		return err
 	}
