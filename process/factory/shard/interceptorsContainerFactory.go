@@ -35,6 +35,7 @@ type interceptorsContainerFactory struct {
 	nodesCoordinator       sharding.NodesCoordinator
 	txInterceptorThrottler process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
+	txFeeHandler           process.FeeHandler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -52,6 +53,7 @@ func NewInterceptorsContainerFactory(
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
 	maxTxNonceDeltaAllowed int,
+	txFeeHandler process.FeeHandler,
 ) (*interceptorsContainerFactory, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -89,6 +91,9 @@ func NewInterceptorsContainerFactory(
 	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilNodesCoordinator
 	}
+	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	txInterceptorThrottler, err := throttler.NewNumGoRoutineThrottler(maxGoRoutineTxInterceptor)
 	if err != nil {
@@ -110,6 +115,7 @@ func NewInterceptorsContainerFactory(
 		addrConverter:          addrConverter,
 		txInterceptorThrottler: txInterceptorThrottler,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
+		txFeeHandler:           txFeeHandler,
 	}, nil
 }
 
@@ -255,6 +261,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.keyGen,
 		icf.shardCoordinator,
 		icf.txInterceptorThrottler,
+		icf.txFeeHandler,
 	)
 
 	if err != nil {

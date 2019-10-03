@@ -26,6 +26,7 @@ type TxInterceptor struct {
 	shardCoordinator         sharding.Coordinator
 	broadcastCallbackHandler func(buffToSend []byte)
 	throttler                process.InterceptorThrottler
+	feeHandler               process.FeeHandler
 }
 
 // NewTxInterceptor hooks a new interceptor for transactions
@@ -39,6 +40,7 @@ func NewTxInterceptor(
 	keyGen crypto.KeyGenerator,
 	shardCoordinator sharding.Coordinator,
 	throttler process.InterceptorThrottler,
+	feeHandler process.FeeHandler,
 ) (*TxInterceptor, error) {
 
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
@@ -68,6 +70,9 @@ func NewTxInterceptor(
 	if throttler == nil || throttler.IsInterfaceNil() {
 		return nil, process.ErrNilThrottler
 	}
+	if feeHandler == nil || feeHandler.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	txIntercept := &TxInterceptor{
 		marshalizer:      marshalizer,
@@ -79,6 +84,7 @@ func NewTxInterceptor(
 		keyGen:           keyGen,
 		shardCoordinator: shardCoordinator,
 		throttler:        throttler,
+		feeHandler:       feeHandler,
 	}
 
 	return txIntercept, nil
@@ -121,7 +127,9 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			txi.keyGen,
 			txi.singleSigner,
 			txi.addrConverter,
-			txi.shardCoordinator)
+			txi.shardCoordinator,
+			txi.feeHandler,
+		)
 
 		if err != nil {
 			lastErrEncountered = err

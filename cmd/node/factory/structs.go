@@ -460,7 +460,14 @@ func NewProcessComponentsFactoryArgs(
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
 	interceptorContainerFactory, resolversContainerFactory, err := newInterceptorAndResolverContainerFactory(
-		args.shardCoordinator, args.nodesCoordinator, args.data, args.core, args.crypto, args.state, args.network)
+		args.shardCoordinator,
+		args.nodesCoordinator,
+		args.data, args.core,
+		args.crypto,
+		args.state,
+		args.network,
+		args.economicsData,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1183,7 +1190,9 @@ func newInterceptorAndResolverContainerFactory(
 	crypto *Crypto,
 	state *State,
 	network *Network,
+	economics *economics.EconomicsData,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorAndResolverContainerFactory(
 			shardCoordinator,
@@ -1193,6 +1202,7 @@ func newInterceptorAndResolverContainerFactory(
 			crypto,
 			state,
 			network,
+			economics,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1217,6 +1227,7 @@ func newShardInterceptorAndResolverContainerFactory(
 	crypto *Crypto,
 	state *State,
 	network *Network,
+	economics *economics.EconomicsData,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -1233,6 +1244,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		state.AddressConverter,
 		maxTxNonceDeltaAllowed,
+		economics,
 	)
 	if err != nil {
 		return nil, nil, err
