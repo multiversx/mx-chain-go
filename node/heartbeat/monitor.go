@@ -141,7 +141,8 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) error {
 	receivedHbmi.getTimeHandler = m.timer.Now
 	//receivedHbmi.lastUptimeDowntime = m.timer.Now()
 	receivedHbmi.genesisTime = m.genesisTime
-	if receivedHbmi.timeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
+	if receivedHbmi.timeStamp == m.genesisTime &&
+		!receivedHbmi.isActive && m.timer.Now().Sub(m.genesisTime) > m.maxDurationPeerUnresponsive {
 		receivedHbmi.totalDownTime = Duration{m.timer.Now().Sub(m.genesisTime)}
 	}
 
@@ -263,6 +264,8 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.mutHeartbeatMessages.RLock()
 	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 
+	//m.updateAllHeartbeatMessages()
+
 	idx := 0
 	for k, v := range m.heartbeatMessages {
 		status[idx] = PubKeyHeartbeat{
@@ -278,9 +281,9 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
 		}
-		//if status[idx].TimeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
-		//	status[idx].TotalDownTime = int(m.timer.Now().Sub(m.genesisTime).Seconds())
-		//}
+		if status[idx].TimeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
+			status[idx].TotalDownTime = int(m.timer.Now().Sub(m.genesisTime).Seconds())
+		}
 		idx++
 	}
 	m.mutHeartbeatMessages.RUnlock()

@@ -218,6 +218,9 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
 				return nil
 			},
+			SaveKeysCalled: func(peersSlice [][]byte) error {
+				return nil
+			},
 		},
 		th,
 	)
@@ -271,6 +274,9 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 				return nil, nil
 			},
 			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+			SaveKeysCalled: func(peersSlice [][]byte) error {
 				return nil
 			},
 		},
@@ -330,6 +336,9 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 				return nil, nil
 			},
 			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+			SaveKeysCalled: func(peersSlice [][]byte) error {
 				return nil
 			},
 		},
@@ -393,9 +402,9 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 				return nil
 			},
 		},
-		time.Millisecond*5,
+		time.Second*5,
 		map[uint32][]string{0: {pubKey1, pubKey2}},
-		time.Now(),
+		th.Now(),
 		&mock.MessageHandlerStub{
 			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
 				var rcvHb heartbeat.Heartbeat
@@ -416,17 +425,20 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	assert.Nil(t, err)
 
 	// set pk2 to inactive as max inactive time is lower
-	time.Sleep(6 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
+	th.IncrementSeconds(6)
 
 	// Check that both are added
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 2, len(hbStatus))
+	//assert.False(t, hbStatus[1].IsActive)
 
 	// Now send a message from pk1 in order to see that pk2 is not active anymore
 	err = sendHbMessageFromPubKey(pubKey1, mon)
+	time.Sleep(5 * time.Millisecond)
 	assert.Nil(t, err)
 
-	time.Sleep(5 * time.Millisecond)
+	th.IncrementSeconds(4)
 
 	hbStatus = mon.GetHeartbeats()
 

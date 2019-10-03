@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	mock2 "github.com/ElrondNetwork/elrond-go/node/heartbeat/mock"
 	"testing"
 	"time"
 
@@ -189,8 +188,11 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
 				return nil
 			},
+			SaveKeysCalled: func(peersSlice [][]byte) error {
+				return nil
+			},
 		},
-		&mock2.MockTimer{},
+		&heartbeat.RealTimer{},
 	)
 
 	return monitor
