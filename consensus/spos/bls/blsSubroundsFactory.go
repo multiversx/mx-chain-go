@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/commonSubround"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -17,6 +18,7 @@ type factory struct {
 	worker         spos.WorkerHandler
 
 	appStatusHandler core.AppStatusHandler
+	indexer          indexer.Indexer
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -63,7 +65,7 @@ func checkNewFactoryParams(
 	return nil
 }
 
-// SetAppStatusHandler method set appStatusHandler
+// SetAppStatusHandler method will update the value of the factory's appStatusHandler
 func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	if ash == nil || ash.IsInterfaceNil() {
 		return spos.ErrNilAppStatusHandler
@@ -71,6 +73,11 @@ func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 	fct.appStatusHandler = ash
 	return nil
+}
+
+// SetIndexer method will update the value of the factory's indexer
+func (fct *factory) SetIndexer(indexer indexer.Indexer) {
+	fct.indexer = indexer
 }
 
 // GenerateSubrounds will generate the subrounds used in BLS Cns
@@ -138,6 +145,8 @@ func (fct *factory) generateStartRoundSubround() error {
 	if err != nil {
 		return err
 	}
+
+	subroundStartRound.SetIndexer(fct.indexer)
 
 	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
 
