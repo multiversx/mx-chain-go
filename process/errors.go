@@ -492,3 +492,9 @@ var ErrNilThrottler = errors.New("nil throttler")
 
 // ErrSystemBusy signals that the system is busy
 var ErrSystemBusy = errors.New("system busy")
+
+// ErrInsufficientGasPriceInTx signals that a lower gas price than required was provided
+var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
+
+// ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
+var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
