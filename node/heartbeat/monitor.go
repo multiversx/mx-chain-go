@@ -96,8 +96,7 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 		for _, pubkey := range pubKeys {
 			err := m.loadHbmiFromStorer(pubkey)
 			if err != nil { // if pubKey not found in DB, create a new instance
-				getTimeHandler := m.timer.Now
-				mhbi, errNewHbmi := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, getTimeHandler)
+				mhbi, errNewHbmi := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer.Now)
 				if errNewHbmi != nil {
 					return errNewHbmi
 				}
@@ -140,7 +139,7 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) error {
 
 	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
-	receivedHbmi.lastUptimeDowntime = m.timer.Now()
+	//receivedHbmi.lastUptimeDowntime = m.timer.Now()
 	receivedHbmi.genesisTime = m.genesisTime
 	if receivedHbmi.timeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
 		receivedHbmi.totalDownTime = Duration{m.timer.Now().Sub(m.genesisTime)}
@@ -180,22 +179,20 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	defer m.mutHeartbeatMessages.Unlock()
 
 	pubKeyStr := string(hb.Pubkey)
-	pe, ok := m.heartbeatMessages[pubKeyStr]
-	if pe == nil || !ok {
+	hbmi, ok := m.heartbeatMessages[pubKeyStr]
+	if hbmi == nil || !ok {
 		var err error
-		getTimeHandler := func() time.Time { return m.timer.Now() }
-		pe, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, getTimeHandler)
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, m.timer.Now)
 		if err != nil {
 			log.Error(err.Error())
 			return
 		}
-		m.heartbeatMessages[pubKeyStr] = pe
+		m.heartbeatMessages[pubKeyStr] = hbmi
 	}
 
 	computedShardID := m.computeShardID(pubKeyStr)
-	pe.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
-	//m.storeHeartbeat(hb.Pubkey)
-	hbDTO := m.convertToExportedStruct(pe)
+	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
+	hbDTO := m.convertToExportedStruct(hbmi)
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
 	if err != nil {
 		log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
@@ -281,9 +278,9 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
 		}
-		if status[idx].TimeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
-			status[idx].TotalDownTime = int(m.timer.Now().Sub(m.genesisTime).Seconds())
-		}
+		//if status[idx].TimeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
+		//	status[idx].TotalDownTime = int(m.timer.Now().Sub(m.genesisTime).Seconds())
+		//}
 		idx++
 	}
 	m.mutHeartbeatMessages.RUnlock()

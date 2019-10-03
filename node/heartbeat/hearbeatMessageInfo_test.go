@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	mock2 "github.com/ElrondNetwork/elrond-go/node/heartbeat/mock"
 	"testing"
 	"time"
 
@@ -60,27 +61,27 @@ func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 	t.Parallel()
 
-	genesisTime := time.Unix(0, 1)
-	incrementalTime := int64(0)
+	mockTimer := mock2.MockTimer{}
+	genesisTime := mockTimer.Now()
+
 	hbmi, _ := newHeartbeatMessageInfo(
-		time.Duration(10),
+		time.Duration(10*time.Second),
 		false,
 		genesisTime,
-		func() time.Time {
-			incrementalTime += 10
-
-			return time.Unix(0, incrementalTime)
-		},
+		mockTimer.Now,
 	)
 
 	assert.Equal(t, genesisTime, hbmi.timeStamp)
 
-	expectedTime := time.Unix(0, 20)
+	mockTimer.IncrementSeconds(1)
+
+	expectedTime := time.Unix(1, 0)
 	hbmi.HeartbeatReceived(uint32(0), uint32(0), "v0.1", "undefined")
 	assert.Equal(t, expectedTime, hbmi.timeStamp)
 	assert.Equal(t, uint32(0), hbmi.receivedShardID)
 
-	expectedTime = time.Unix(0, 30)
+	mockTimer.IncrementSeconds(1)
+	expectedTime = time.Unix(2, 0)
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")
 	assert.Equal(t, expectedTime, hbmi.timeStamp)
 	assert.Equal(t, uint32(1), hbmi.receivedShardID)
@@ -89,146 +90,131 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	incrementalTime := int64(0)
-	getTimeHandler := func() time.Time {
-		incrementalTime += 10
-
-		return time.Unix(0, incrementalTime)
-	}
-	genesisTime := time.Unix(0, 1)
+	mockTimer := mock2.MockTimer{}
+	genesisTime := mockTimer.Now()
 	hbmi, _ := newHeartbeatMessageInfo(
-		time.Duration(1),
+		time.Duration(100*time.Second),
 		false,
 		genesisTime,
-		getTimeHandler,
+		mockTimer.Now,
 	)
 
 	assert.Equal(t, genesisTime, hbmi.timeStamp)
 
-	expectedTime := time.Unix(0, 20)
+	mockTimer.IncrementSeconds(1)
+
+	expectedTime := time.Unix(1, 0)
+	expectedUptime := time.Duration(0)
+	expectedDownTime := time.Duration(1 * time.Second)
 	hbmi.HeartbeatReceived(uint32(0), uint32(3), "v0.1", "undefined")
 	assert.Equal(t, expectedTime, hbmi.timeStamp)
+	assert.Equal(t, true, hbmi.isActive)
+	assert.Equal(t, expectedUptime, hbmi.totalUpTime.Duration)
+	assert.Equal(t, expectedDownTime, hbmi.totalDownTime.Duration)
 }
 
-func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpTime(t *testing.T) {
+func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 	t.Parallel()
 
-	incrementalTime := int64(0)
-	getTimeHandler := func() time.Time {
-		incrementalTime += 10
-
-		return time.Unix(0, incrementalTime)
-	}
-	genesisTime := time.Unix(0, 1)
+	mockTimer := mock2.MockTimer{}
+	genesisTime := mockTimer.Now()
 	hbmi, _ := newHeartbeatMessageInfo(
-		time.Duration(100),
+		time.Duration(100*time.Second),
 		false,
 		genesisTime,
-		getTimeHandler,
+		mockTimer.Now,
 	)
 
 	assert.Equal(t, genesisTime, hbmi.timeStamp)
 
 	// send heartbeat twice in order to calculate the duration between thm
+	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")
+	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined")
 
-	expectedDownDuration := time.Duration(0)
-	expectedUpDuration := time.Duration(10)
+	expectedDownDuration := time.Duration(1 * time.Second)
+	expectedUpDuration := time.Duration(1 * time.Second)
 	assert.Equal(t, expectedUpDuration, hbmi.totalUpTime.Duration)
 	assert.Equal(t, expectedDownDuration, hbmi.totalDownTime.Duration)
-	expectedTime := time.Unix(0, 30)
+	expectedTime := time.Unix(2, 0)
 	assert.Equal(t, expectedTime, hbmi.timeStamp)
 }
 
-func TestHeartbeatMessageInfo_HeartbeatShouldUpdateDownTime(t *testing.T) {
+func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime(t *testing.T) {
 	t.Parallel()
 
-	incrementalTime := int64(0)
-	getTimeHandler := func() time.Time {
-		incrementalTime += 10
-
-		return time.Unix(0, incrementalTime)
-	}
-	genesisTime := time.Unix(0, 1)
+	mockTimer := mock2.MockTimer{}
+	genesisTime := mockTimer.Now()
 	hbmi, _ := newHeartbeatMessageInfo(
-		time.Duration(1),
+		time.Duration(500*time.Millisecond),
 		false,
 		genesisTime,
-		getTimeHandler,
+		mockTimer.Now,
 	)
 
 	assert.Equal(t, genesisTime, hbmi.timeStamp)
 
 	// send heartbeat twice in order to calculate the duration between thm
+	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")
+	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined")
 
-	expectedDownDuration := time.Duration(10)
+	expectedDownDuration := time.Duration(2 * time.Second)
 	expectedUpDuration := time.Duration(0)
 	assert.Equal(t, expectedDownDuration, hbmi.totalDownTime.Duration)
 	assert.Equal(t, expectedUpDuration, hbmi.totalUpTime.Duration)
-	expectedTime := time.Unix(0, 30)
+	expectedTime := time.Unix(2, 0)
 	assert.Equal(t, expectedTime, hbmi.timeStamp)
 }
 
 func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t *testing.T) {
 	t.Parallel()
 
-	incrementalTime := int64(0)
-	getTimeHandler := func() time.Time {
-		incrementalTime += 10
-
-		return time.Unix(0, incrementalTime)
-	}
-	genesisTime := time.Unix(0, 40)
+	mockTimer := mock2.MockTimer{}
+	genesisTime := time.Unix(5, 0)
 	hbmi, _ := newHeartbeatMessageInfo(
-		time.Duration(100),
+		time.Duration(100*time.Second),
 		false,
 		genesisTime,
-		getTimeHandler,
+		mockTimer.Now,
 	)
 
 	assert.Equal(t, genesisTime, hbmi.timeStamp)
 
 	// send heartbeat twice in order to calculate the duration between thm
+	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")
+	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined")
 
 	expectedDuration := time.Duration(0)
 	assert.Equal(t, expectedDuration, hbmi.totalDownTime.Duration)
 	assert.Equal(t, expectedDuration, hbmi.totalUpTime.Duration)
-	expectedTime := time.Unix(0, 30)
+	expectedTime := time.Unix(2, 0)
 	assert.Equal(t, expectedTime, hbmi.timeStamp)
 }
 
 func TestHeartbeatMessageInfo_HeartbeatEqualGenesisShouldHaveUpDownTimeZero(t *testing.T) {
 	t.Parallel()
 
-	incrementalTime := int64(0)
-	getTimeHandler := func() time.Time {
-		incrementalTime += 10
-
-		return time.Unix(0, incrementalTime)
-	}
-	genesisTime := time.Unix(0, 30)
+	mockTimer := mock2.MockTimer{}
+	genesisTime := time.Unix(1, 0)
 	hbmi, _ := newHeartbeatMessageInfo(
-		time.Duration(100),
+		time.Duration(100*time.Second),
 		false,
 		genesisTime,
-		getTimeHandler,
+		mockTimer.Now,
 	)
 
 	assert.Equal(t, genesisTime, hbmi.timeStamp)
-
-	// send heartbeat twice in order to calculate the duration between thm
+	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")
-	time.Sleep(10 * time.Millisecond)
-	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined")
 
 	expectedDuration := time.Duration(0)
 	assert.Equal(t, expectedDuration, hbmi.totalUpTime.Duration)
 	assert.Equal(t, expectedDuration, hbmi.totalDownTime.Duration)
-	expectedTime := time.Unix(0, 30)
+	expectedTime := time.Unix(1, 0)
 	assert.Equal(t, expectedTime, hbmi.timeStamp)
 }

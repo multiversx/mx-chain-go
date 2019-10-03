@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	mock2 "github.com/ElrondNetwork/elrond-go/node/heartbeat/mock"
 	"testing"
 	"time"
 
@@ -189,7 +190,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 				return nil
 			},
 		},
-		&mock.MockTimer{},
+		&mock2.MockTimer{},
 	)
 
 	return monitor

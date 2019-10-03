@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	mock2 "github.com/ElrondNetwork/elrond-go/node/heartbeat/mock"
 	"testing"
 	"time"
 
@@ -37,13 +38,20 @@ func TestMonitor_ObserverGapValidatorOffline(t *testing.T) {
 	t.Parallel()
 
 	storer, _ := storage.NewHeartbeatDbStorer(mock.NewStorerMock(), &mock.MarshalizerFake{})
-	genesisTime := time.Unix(0, 0)
+	timer := &mock2.MockTimer{}
 	unresponsiveDuration := time.Second * 3
 	observerDownDuration := 3
 
-	timer := &mock.MockTimer{}
+	genesisTime := timer.Now()
+	mon1 := createMonitor(storer, genesisTime, unresponsiveDuration, timer)
 
 	timer.IncrementSeconds(1)
+
+	heartBeats1 := mon1.GetHeartbeats()
+	assert.Equal(t, 1, len(heartBeats1))
+	assert.Equal(t, 0, heartBeats1[0].TotalUpTime)
+	assert.Equal(t, 1, heartBeats1[0].TotalDownTime)
+
 	_ = createMonitor(storer, genesisTime, unresponsiveDuration, timer)
 
 	timer.IncrementSeconds(1)
@@ -51,10 +59,10 @@ func TestMonitor_ObserverGapValidatorOffline(t *testing.T) {
 
 	timer.IncrementSeconds(1)
 
-	heartBeats := mon2.GetHeartbeats()
-	assert.Equal(t, 1, len(heartBeats))
-	assert.Equal(t, 0, heartBeats[0].TotalUpTime)
-	assert.Equal(t, observerDownDuration, heartBeats[0].TotalDownTime)
+	heartBeats2 := mon2.GetHeartbeats()
+	assert.Equal(t, 1, len(heartBeats2))
+	assert.Equal(t, 0, heartBeats2[0].TotalUpTime)
+	assert.Equal(t, observerDownDuration, heartBeats2[0].TotalDownTime)
 }
 
 // v: |_________________________________
@@ -66,19 +74,30 @@ func TestMonitor_ObserverGapValidatorOnline(t *testing.T) {
 	genesisTime := time.Unix(0, 0)
 	unresponsiveDuration := time.Second * 3
 
-	timer := &mock.MockTimer{}
+	timer := &mock2.MockTimer{}
 
-	timer.IncrementSeconds(1)
 	mon1 := createMonitor(storer, genesisTime, unresponsiveDuration, timer)
 	mon1.AddHeartbeatMessageToMap(&heartbeat.Heartbeat{Pubkey: []byte(pkValidator)})
 
 	heartBeats := mon1.GetHeartbeats()
 	assert.Equal(t, 1, len(heartBeats))
 	assert.Equal(t, true, heartBeats[0].IsActive)
+	assert.Equal(t, 0, heartBeats[0].TotalDownTime)
+	assert.Equal(t, 0, heartBeats[0].TotalUpTime)
 
+	timer.IncrementSeconds(1)
 	mon2 := createMonitor(storer, genesisTime, unresponsiveDuration, timer)
 
 	heartBeats = mon2.GetHeartbeats()
 	assert.Equal(t, 1, len(heartBeats))
 	assert.Equal(t, true, heartBeats[0].IsActive)
+	assert.Equal(t, 1, heartBeats[0].TotalDownTime)
+	assert.Equal(t, 0, heartBeats[0].TotalUpTime)
+
+	mon2.AddHeartbeatMessageToMap(&heartbeat.Heartbeat{Pubkey: []byte(pkValidator)})
+	heartBeats = mon2.GetHeartbeats()
+	assert.Equal(t, 1, len(heartBeats))
+	assert.Equal(t, true, heartBeats[0].IsActive)
+	assert.Equal(t, 0, heartBeats[0].TotalDownTime)
+	assert.Equal(t, 1, heartBeats[0].TotalUpTime)
 }
