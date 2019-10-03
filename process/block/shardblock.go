@@ -256,6 +256,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	log.Info(fmt.Sprintf("processed metaBlock %d out of %d", len(processedMetaHdrs), len(header.MetaBlockHashes)))
+	for i := 0; i < len(processedMetaHdrs); i++ {
+		log.Info(fmt.Sprintf("processed metablock with nonce: %d and round %d", processedMetaHdrs[i].GetNonce(), processedMetaHdrs[i].GetRound()))
+	}
+
 	err = sp.setMetaConsensusData(processedMetaHdrs)
 	if err != nil {
 		return err
@@ -1553,6 +1558,11 @@ func (sp *shardProcessor) createMiniBlocks(
 	processedMetaHdrs, errNotCritical := sp.getProcessedMetaBlocksFromMiniBlocks(destMeMiniBlocks, usedMetaHdrsHashes)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
+	}
+
+	log.Info(fmt.Sprintf("processed metaBlock %d out of %d", len(processedMetaHdrs), len(usedMetaHdrsHashes)))
+	for i := 0; i < len(processedMetaHdrs); i++ {
+		log.Info(fmt.Sprintf("processed metablock with nonce: %d and round %d", processedMetaHdrs[i].GetNonce(), processedMetaHdrs[i].GetRound()))
 	}
 
 	err = sp.setMetaConsensusData(processedMetaHdrs)
