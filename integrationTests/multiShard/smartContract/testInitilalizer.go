@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -45,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -336,6 +338,12 @@ func createNetNode(
 		100,
 	)
 
+	economicsData := economics.NewEconomicsData(&config.ConfigEconomics{
+		EconomicsAddresses: config.EconomicsAddresses{},
+		RewardsSettings:    config.RewardsSettings{},
+		FeeSettings:        config.FeeSettings{},
+	})
+
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		testMarshalizer,
@@ -348,6 +356,7 @@ func createNetNode(
 		),
 		store,
 		dPool,
+		economicsData,
 	)
 	interimProcContainer, _ := interimProcFactory.Create()
 	scForwarder, _ := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
@@ -390,6 +399,17 @@ func createNetNode(
 		scProcessor,
 		rewardsHandler,
 		txTypeHandler,
+		&mock.FeeHandlerMock{
+			MinGasLimitForTxCalled: func() uint64 {
+				return 5
+			},
+			MinTxFeeCalled: func() uint64 {
+				return 0
+			},
+			MinGasPriceCalled: func() uint64 {
+				return 0
+			},
+		},
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -406,6 +426,17 @@ func createNetNode(
 		scProcessor,
 		rewardProcessor,
 		internalTxProducer,
+		&mock.FeeHandlerMock{
+			MinGasLimitForTxCalled: func() uint64 {
+				return 5
+			},
+			MinTxFeeCalled: func() uint64 {
+				return 0
+			},
+			MinGasPriceCalled: func() uint64 {
+				return 0
+			},
+		},
 	)
 	container, _ := fact.Create()
 
@@ -449,17 +480,7 @@ func createNetNode(
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
 		},
-		DataPool: dPool,
-		BlocksTracker: &mock.BlocksTrackerMock{
-			AddBlockCalled: func(headerHandler data.HeaderHandler) {
-			},
-			RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
-				return nil
-			},
-			UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-				return make([]data.HeaderHandler, 0)
-			},
-		},
+		DataPool:        dPool,
 		TxCoordinator:   tc,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
