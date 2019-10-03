@@ -20,3 +20,7 @@ func (m *MockTimer) IsInterfaceNil() bool {
 func (m *MockTimer) IncrementSeconds(value int) {
 	m.seconds += int64(value)
 }
+
+func (m *MockTimer) SetSeconds(value int) {
+	m.seconds = int64(value)
+}

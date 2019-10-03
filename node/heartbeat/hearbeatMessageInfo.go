@@ -44,7 +44,7 @@ func newHeartbeatMessageInfo(
 		isActive:                    false,
 		receivedShardID:             uint32(0),
 		timeStamp:                   genesisTime,
-		lastUptimeDowntime:          genesisTime,
+		lastUptimeDowntime:          getTimeHandler(),
 		totalUpTime:                 Duration{0},
 		totalDownTime:               Duration{0},
 		versionNumber:               "",
@@ -58,19 +58,37 @@ func newHeartbeatMessageInfo(
 }
 
 func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
-	if crtTime.Sub(hbmi.genesisTime) >= 0 {
-		crtDuration := crtTime.Sub(hbmi.timeStamp)
-		crtDuration = maxDuration(0, crtDuration)
-		previousActive := hbmi.isActive
-		hbmi.isActive = crtDuration < hbmi.maxDurationPeerUnresponsive
-		hbmi.updateMaxInactiveTimeDuration(crtTime)
-		hbmi.updateUpAndDownTime(previousActive, crtTime)
+	if crtTime.Sub(hbmi.genesisTime) < 0 {
+		return
 	}
+	crtDuration := crtTime.Sub(hbmi.timeStamp)
+	crtDuration = maxDuration(0, crtDuration)
+	previousActive := hbmi.isActive && crtDuration <= hbmi.maxDurationPeerUnresponsive
+	hbmi.isActive = true
+	hbmi.updateMaxInactiveTimeDuration(crtTime)
+	hbmi.updateUpAndDownTime(previousActive, crtTime)
 	hbmi.lastUptimeDowntime = crtTime
+}
+
+func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
+	if crtTime.Sub(hbmi.genesisTime) < 0 {
+		return
+	}
+	crtDuration := crtTime.Sub(hbmi.lastUptimeDowntime)
+	crtDuration = maxDuration(0, crtDuration)
+	hbmi.isActive = hbmi.isActive && crtDuration < hbmi.maxDurationPeerUnresponsive
+	hbmi.updateUpAndDownTime(hbmi.isActive, crtTime)
+	hbmi.lastUptimeDowntime = crtTime
+
+	hbmi.isActive = hbmi.isActive && crtDuration < hbmi.maxDurationPeerUnresponsive
 }
 
 // Wil update the total time a node was up and down
 func (hbmi *heartbeatMessageInfo) updateUpAndDownTime(previousActive bool, crtTime time.Time) {
+	if hbmi.lastUptimeDowntime.Sub(hbmi.genesisTime) < 0 {
+		hbmi.lastUptimeDowntime = hbmi.genesisTime
+	}
+
 	lastDuration := crtTime.Sub(hbmi.lastUptimeDowntime)
 	lastDuration = maxDuration(0, lastDuration)
 

@@ -139,12 +139,13 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) error {
 
 	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
-	//receivedHbmi.lastUptimeDowntime = m.timer.Now()
+	receivedHbmi.isActive = m.timer.Now().Sub(receivedHbmi.lastUptimeDowntime) <= m.maxDurationPeerUnresponsive
+	receivedHbmi.lastUptimeDowntime = m.timer.Now()
 	receivedHbmi.genesisTime = m.genesisTime
-	if receivedHbmi.timeStamp == m.genesisTime &&
-		!receivedHbmi.isActive && m.timer.Now().Sub(m.genesisTime) > m.maxDurationPeerUnresponsive {
-		receivedHbmi.totalDownTime = Duration{m.timer.Now().Sub(m.genesisTime)}
-	}
+	//if receivedHbmi.timeStamp == m.genesisTime &&
+	//	!receivedHbmi.isActive && m.timer.Now().Sub(m.genesisTime) > m.maxDurationPeerUnresponsive {
+	//	receivedHbmi.totalDownTime = Duration{m.timer.Now().Sub(m.genesisTime)}
+	//}
 
 	m.heartbeatMessages[pubKey] = &receivedHbmi
 
@@ -199,7 +200,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 		log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
 	}
 	m.addPeerToFullPeersSlice(hb.Pubkey)
-	m.updateAllHeartbeatMessages()
+	//m.updateAllHeartbeatMessages()
 }
 
 func (m *Monitor) addPeerToFullPeersSlice(pubKey []byte) {
@@ -242,9 +243,15 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 func (m *Monitor) updateAllHeartbeatMessages() {
 	counterActiveValidators := 0
 	counterConnectedNodes := 0
-	for _, v := range m.heartbeatMessages {
+	for pk, v := range m.heartbeatMessages {
 		//TODO change here
-		v.updateFields(m.timer.Now())
+		v.computeActive(m.timer.Now())
+
+		hbDTO := m.convertToExportedStruct(v)
+		err := m.storer.SavePubkeyData([]byte(pk), &hbDTO)
+		if err != nil {
+			log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
+		}
 
 		if v.isActive {
 			counterConnectedNodes++
@@ -264,7 +271,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.mutHeartbeatMessages.RLock()
 	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 
-	//m.updateAllHeartbeatMessages()
+	m.updateAllHeartbeatMessages()
 
 	idx := 0
 	for k, v := range m.heartbeatMessages {
@@ -281,9 +288,9 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			IsValidator:     v.isValidator,
 			NodeDisplayName: v.nodeDisplayName,
 		}
-		if status[idx].TimeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
-			status[idx].TotalDownTime = int(m.timer.Now().Sub(m.genesisTime).Seconds())
-		}
+		//if status[idx].TimeStamp == m.genesisTime && m.timer.Now().Sub(m.genesisTime) > 0 {
+		//	status[idx].TotalDownTime = int(m.timer.Now().Sub(m.genesisTime).Seconds())
+		//}
 		idx++
 	}
 	m.mutHeartbeatMessages.RUnlock()
