@@ -250,8 +250,8 @@ func (sp *shardProcessor) RequestFinalMissingHeaders() uint32 {
 	return sp.requestFinalMissingHeaders()
 }
 
-func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(hdr *block.Header) error {
-	return sp.checkMetaHeadersValidityAndFinality(hdr)
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
+	return sp.checkMetaHeadersValidityAndFinality()
 }
 
 func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
@@ -299,9 +299,8 @@ func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 
 func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
 	round uint64,
-	metaHashes [][]byte,
 ) (map[string][]byte, error) {
-	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
+	return sp.getAllMiniBlockDstMeFromMeta(round)
 }
 
 func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
@@ -310,4 +309,22 @@ func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHa
 
 func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
 	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
+}
+
+func (sp *shardProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler data.HeaderHandler, usedInBlock bool) {
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	sp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: headerHandler, usedInBlock: usedInBlock}
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (sp *shardProcessor) SetMissingHdrsForCurrentBlock(missingHdrs uint32) {
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	sp.hdrsForCurrBlock.missingHdrs = missingHdrs
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (sp *shardProcessor) SetMissingFinalHdrsForCurrentBlock(missingFinalHdrs uint32) {
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	sp.hdrsForCurrBlock.missingFinalHdrs = missingFinalHdrs
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }

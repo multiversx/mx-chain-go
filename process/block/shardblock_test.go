@@ -1422,30 +1422,30 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 
 	prevMeta := genesisBlocks[sharding.MetachainShardId]
 	prevHash, _ = core.CalculateHash(marshalizer, hasher, prevMeta)
-	meta := &block.MetaBlock{
+	meta1 := &block.MetaBlock{
 		Nonce:        1,
 		ShardInfo:    shardHdrs,
 		Round:        1,
 		PrevHash:     prevHash,
 		PrevRandSeed: prevMeta.GetRandSeed(),
 	}
-	metaBytes, _ := marshalizer.Marshal(meta)
-	metaHash := hasher.Compute(string(metaBytes))
-	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
+	metaBytes, _ := marshalizer.Marshal(meta1)
+	metaHash1 := hasher.Compute(string(metaBytes))
+	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash1)
 
-	tdp.MetaBlocks().Put(metaHash, meta)
+	tdp.MetaBlocks().Put(metaHash1, meta1)
 
-	prevHash, _ = core.CalculateHash(marshalizer, hasher, meta)
-	meta = &block.MetaBlock{
+	prevHash, _ = core.CalculateHash(marshalizer, hasher, meta1)
+	meta2 := &block.MetaBlock{
 		Nonce:     2,
 		ShardInfo: make([]block.ShardData, 0),
 		Round:     2,
 		PrevHash:  prevHash,
 	}
-	metaBytes, _ = marshalizer.Marshal(meta)
-	metaHash = hasher.Compute(string(metaBytes))
+	metaBytes, _ = marshalizer.Marshal(meta2)
+	metaHash2 := hasher.Compute(string(metaBytes))
 
-	tdp.MetaBlocks().Put(metaHash, meta)
+	tdp.MetaBlocks().Put(metaHash2, meta2)
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	arguments.Hasher = hasher
@@ -1454,33 +1454,22 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr.Round = 4
 
-	err := sp.CheckMetaHeadersValidityAndFinality(&hdr)
+	sp.SetHdrForCurrentBlock(metaHash1, meta1, true)
+	sp.SetHdrForCurrentBlock(metaHash2, meta2, false)
+
+	err := sp.CheckMetaHeadersValidityAndFinality()
 	assert.Nil(t, err)
 }
 
-func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldErr(t *testing.T) {
+func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNoMetaBlocksAreUsed(t *testing.T) {
 	t.Parallel()
-
-	mbHdrs := make([]block.MiniBlockHeader, 0)
-	rootHash := []byte("rootHash")
-	txHash := []byte("txhash1")
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, txHash)
 
 	tdp := mock.NewPoolsHolderMock()
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
 
-	lastHdr := genesisBlocks[0]
-	prevHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, lastHdr)
-
-	randSeed := []byte("rand seed")
-	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)
-
-	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, []byte("meta"))
-	hdr.Round = 0
-	err := sp.CheckMetaHeadersValidityAndFinality(&hdr)
-	assert.Equal(t, err, process.ErrNilMetaBlockHeader)
+	err := sp.CheckMetaHeadersValidityAndFinality()
+	assert.Nil(t, err)
 }
 
 //------- CommitBlock
@@ -2953,20 +2942,23 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	}
 
 	//put 3 metablocks in pool
-	mb1Hash := []byte("meta block 1")
+	metaBlockHash1 := []byte("meta block 1")
+	metaBlock1 := createDummyMetaBlock(destShardId, destShards[0], miniblockHashes[0], miniblockHashes[1])
 	dataPool.MetaBlocks().Put(
-		mb1Hash,
-		createDummyMetaBlock(destShardId, destShards[0], miniblockHashes[0], miniblockHashes[1]),
+		metaBlockHash1,
+		metaBlock1,
 	)
-	mb2Hash := []byte("meta block 2")
+	metaBlockHash2 := []byte("meta block 2")
+	metaBlock2 := createDummyMetaBlock(destShardId, destShards[1], miniblockHashes[2], miniblockHashes[3])
 	dataPool.MetaBlocks().Put(
-		mb2Hash,
-		createDummyMetaBlock(destShardId, destShards[1], miniblockHashes[2], miniblockHashes[3]),
+		metaBlockHash2,
+		metaBlock2,
 	)
-	mb3Hash := []byte("meta block 3")
+	metaBlockHash3 := []byte("meta block 3")
+	metaBlock3 := createDummyMetaBlock(destShardId, destShards[2], miniblockHashes[4], miniblockHashes[5])
 	dataPool.MetaBlocks().Put(
-		mb3Hash,
-		createDummyMetaBlock(destShardId, destShards[2], miniblockHashes[4], miniblockHashes[5]),
+		metaBlockHash3,
+		metaBlock3,
 	)
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
@@ -2991,6 +2983,10 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	arguments.StartHeaders = createGenesisBlocks(shardCoordinator)
 	bp, _ := blproc.NewShardProcessor(arguments)
 
+	bp.SetHdrForCurrentBlock(metaBlockHash1, metaBlock1, true)
+	bp.SetHdrForCurrentBlock(metaBlockHash2, metaBlock2, true)
+	bp.SetHdrForCurrentBlock(metaBlockHash3, metaBlock3, true)
+
 	//create mini block headers with first 3 miniblocks from miniblocks var
 	mbHeaders := []block.MiniBlockHeader{
 		{Hash: miniblockHashes[0]},
@@ -2999,9 +2995,9 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	}
 
 	hashes := [][]byte{
-		mb1Hash,
-		mb2Hash,
-		mb3Hash,
+		metaBlockHash1,
+		metaBlockHash2,
+		metaBlockHash3,
 	}
 
 	blockHeader := &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
@@ -3010,11 +3006,11 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	//check WasMiniBlockProcessed for remaining metablocks
-	assert.True(t, bp.IsMiniBlockProcessed(mb2Hash, miniblockHashes[2]))
-	assert.False(t, bp.IsMiniBlockProcessed(mb2Hash, miniblockHashes[3]))
+	assert.True(t, bp.IsMiniBlockProcessed(metaBlockHash2, miniblockHashes[2]))
+	assert.False(t, bp.IsMiniBlockProcessed(metaBlockHash2, miniblockHashes[3]))
 
-	assert.False(t, bp.IsMiniBlockProcessed(mb3Hash, miniblockHashes[4]))
-	assert.False(t, bp.IsMiniBlockProcessed(mb3Hash, miniblockHashes[5]))
+	assert.False(t, bp.IsMiniBlockProcessed(metaBlockHash3, miniblockHashes[4]))
+	assert.False(t, bp.IsMiniBlockProcessed(metaBlockHash3, miniblockHashes[5]))
 }
 
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.T) {
@@ -3391,6 +3387,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	// wrong hdr type in pool and defer called
 	dataPool.MetaBlocks().Put(currHash, shardHdr)
+	sp.SetHdrForCurrentBlock(currHash, shardHdr, true)
 
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
@@ -3412,6 +3409,10 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	// put headers in pool
 	dataPool.MetaBlocks().Put(currHash, currHdr)
 	dataPool.MetaBlocks().Put(prevHash, prevHdr)
+
+	sp.CreateBlockStarted()
+	sp.SetHdrForCurrentBlock(currHash, currHdr, true)
+	sp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
 	hashes = make([][]byte, 0)
 	hashes = append(hashes, currHash)
@@ -3573,6 +3574,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	dataPool.MetaBlocks().Put(currHash, currHdr)
 	dataPool.MetaBlocks().Put(prevHash, prevHdr)
 
+	sp.SetHdrForCurrentBlock(currHash, currHdr, true)
+	sp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
+
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
 	hashes = append(hashes, prevHash)
@@ -3717,6 +3721,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 		PrevRandSeed: []byte("nextrand"),
 		PrevHash:     currHash,
 		Nonce:        47})
+
+	sp.SetHdrForCurrentBlock(currHash, currHdr, true)
+	sp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
 	hashes := make([][]byte, 0)
 	hashes = append(hashes, currHash)
@@ -3925,54 +3932,22 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 	}
 	shardHdrs := make([]block.ShardData, 0)
 	shardHdrs = append(shardHdrs, shardHeader)
+	metaBlock := &block.MetaBlock{Nonce: 1, Round: 1, ShardInfo: shardHdrs}
 
 	idp := initDataPool([]byte("tx_hash1"))
-	idp.MetaBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				if reflect.DeepEqual(key, []byte("tx1_hash")) {
-					return &transaction.Transaction{Nonce: 10}, true
-				}
-				return nil, false
-			},
-			KeysCalled: func() [][]byte {
-				return nil
-			},
-			LenCalled: func() int {
-				return 0
-			},
-			PeekCalled: func(key []byte) (value interface{}, ok bool) {
-				return &block.MetaBlock{
-					Nonce:     1,
-					Round:     1,
-					ShardInfo: shardHdrs,
-				}, true
-			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
-				return true
-			},
-			RegisterHandlerCalled: func(i func(key []byte)) {},
-		}
-	}
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = idp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	meta := block.MetaBlock{
-		Nonce:     0,
-		ShardInfo: make([]block.ShardData, 0),
-	}
-
-	metaBytes, _ := marshalizer.Marshal(meta)
+	metaBytes, _ := marshalizer.Marshal(metaBlock)
 	hasher.ComputeCalled = func(s string) []byte {
 		return []byte("cool")
 	}
 	metaHash := hasher.Compute(string(metaBytes))
-	metablockHashes := make([][]byte, 0)
-	metablockHashes = append(metablockHashes, metaHash)
+	sp.SetHdrForCurrentBlock(metaHash, metaBlock, true)
 
-	orderedMetaBlocks, err := sp.GetAllMiniBlockDstMeFromMeta(1, metablockHashes)
+	orderedMetaBlocks, err := sp.GetAllMiniBlockDstMeFromMeta(1)
 
 	assert.Equal(t, 1, len(orderedMetaBlocks))
 	assert.Equal(t, orderedMetaBlocks[""], metaHash)
