@@ -871,17 +871,6 @@ func (sp *shardProcessor) getProcessedMetaBlocksFromMiniBlocks(
 	usedMiniBlocks []*block.MiniBlock,
 ) ([]data.HeaderHandler, error) {
 
-	nrMiniBlocksUsed := len(usedMiniBlocks)
-
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	nrMetaBlocksUsed := len(sp.hdrsForCurrBlock.hdrHashAndInfo)
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-
-	if nrMiniBlocksUsed == 0 || nrMetaBlocksUsed == 0 {
-		// not an error, it can happen that no metablock hdr or no miniblock is used.
-		return make([]data.HeaderHandler, 0), nil
-	}
-
 	miniBlockHashes := make(map[int][]byte, 0)
 	for i := 0; i < len(usedMiniBlocks); i++ {
 		if usedMiniBlocks[i].SenderShardID == sp.shardCoordinator.SelfId() {
