@@ -235,13 +235,13 @@
    DurationInSecToConsiderUnresponsive = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
-           Size = 100000
+           Size = 100
            Type = "LRU"
        [Heartbeat.HeartbeatStorage.DB]
            FilePath = "HeartbeatStorage"
            Type = "LvlDBSerial"
            BatchDelaySeconds = 15
-           MaxBatchSize = 45000
+           MaxBatchSize = 100
            MaxOpenFiles = 10
 
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")

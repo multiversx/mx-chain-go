@@ -35,8 +35,8 @@ var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
-// ErrNilGetTimeHandler signals that a nil time getter handler has been provided
-var ErrNilGetTimeHandler = errors.New("nil time getter handler")
+// ErrNilTimer signals that a nil time getter handler has been provided
+var ErrNilTimer = errors.New("nil time getter handler")
 
 // ErrNilMonitorDb signals that a nil monitor db was provided
 var ErrNilMonitorDb = errors.New("nil monitor db")
@@ -50,5 +50,11 @@ var ErrNilHeartbeatStorer = errors.New("nil heartbeat storer")
 // ErrFetchGenesisTimeFromDb signals that the genesis time cannot be fetched from db
 var ErrFetchGenesisTimeFromDb = errors.New("monitor: can't get genesis time from db")
 
+// ErrStoreGenesisTimeToDb signals that the genesis time cannot be store to db
+var ErrStoreGenesisTimeToDb = errors.New("monitor: can't store genesis time")
+
 // ErrUnmarshalGenesisTime signals that the unmarshaling of the genesis time didn't work
 var ErrUnmarshalGenesisTime = errors.New("monitor: can't unmarshal genesis time")
+
+// ErrMarshalGenesisTime signals that the marshaling of the genesis time didn't work
+var ErrMarshalGenesisTime = errors.New("monitor: can't marshal genesis time")

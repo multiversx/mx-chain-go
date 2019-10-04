@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -58,25 +57,19 @@ func (hs *HeartbeatDbStorer) LoadGenesisTime() (time.Time, error) {
 
 // UpdateGenesisTime will update the saved genesis time and will log if the genesis time changed
 func (hs *HeartbeatDbStorer) UpdateGenesisTime(genesisTime time.Time) error {
-	if hs.storer.Has([]byte(genesisTimeDbEntry)) == nil { // if found, check for changes
-		genesisTimeFromDb, err := hs.LoadGenesisTime()
-		if err != nil {
-			return err
-		}
 
-		if genesisTimeFromDb != genesisTime {
-			log.Info(fmt.Sprintf("updated heartbeat's genesis time to %s", genesisTimeFromDb))
-		}
-
-		err = hs.saveGenesisTimeToDb(genesisTime)
-		if err != nil {
-			return err
-		}
+	genesisTimeFromDb, err := hs.LoadGenesisTime()
+	if err != nil && err != heartbeat.ErrFetchGenesisTimeFromDb {
+		return err
 	}
 
-	err := hs.saveGenesisTimeToDb(genesisTime)
+	err = hs.saveGenesisTimeToDb(genesisTime)
 	if err != nil {
 		return err
+	}
+
+	if genesisTimeFromDb != genesisTime {
+		log.Info(fmt.Sprintf("updated heartbeat's genesis time to %s", genesisTimeFromDb))
 	}
 
 	return nil
@@ -85,12 +78,12 @@ func (hs *HeartbeatDbStorer) UpdateGenesisTime(genesisTime time.Time) error {
 func (hs *HeartbeatDbStorer) saveGenesisTimeToDb(genesisTime time.Time) error {
 	genesisTimeBytes, err := hs.marshalizer.Marshal(genesisTime)
 	if err != nil {
-		return errors.New("monitor: can't marshal genesis time")
+		return heartbeat.ErrMarshalGenesisTime
 	}
 
 	err = hs.storer.Put([]byte(genesisTimeDbEntry), genesisTimeBytes)
 	if err != nil {
-		return errors.New("monitor: can't store genesis time")
+		return heartbeat.ErrStoreGenesisTimeToDb
 	}
 
 	return nil
