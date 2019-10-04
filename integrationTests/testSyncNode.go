@@ -58,6 +58,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initEconomicsData()
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()

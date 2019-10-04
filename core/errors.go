@@ -39,3 +39,6 @@ var ErrEmptyFile = errors.New("empty file provided")
 
 // ErrInvalidIndex signals that an invalid private key index has been provided
 var ErrInvalidIndex = errors.New("invalid private key index")
+
+// ErrNotPositiveValue signals that a 0 or negative value has been provided
+var ErrNotPositiveValue = errors.New("the provided value is not positive")
