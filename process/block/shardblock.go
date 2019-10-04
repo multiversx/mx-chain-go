@@ -24,7 +24,6 @@ const maxCleanTime = time.Second
 type shardProcessor struct {
 	*baseProcessor
 	dataPool          dataRetriever.PoolsHolder
-	blocksTracker     process.BlocksTracker
 	metaBlockFinality int
 
 	chRcvAllMetaHdrs      chan bool
@@ -66,9 +65,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if arguments.BlocksTracker == nil || arguments.BlocksTracker.IsInterfaceNil() {
-		return nil, process.ErrNilBlocksTracker
-	}
 	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
@@ -108,7 +104,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		core:            arguments.Core,
 		baseProcessor:   base,
 		dataPool:        arguments.DataPool,
-		blocksTracker:   arguments.BlocksTracker,
 		txCoordinator:   arguments.TxCoordinator,
 		txCounter:       NewTransactionCounter(),
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
@@ -508,7 +503,9 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 
 func (sp *shardProcessor) indexBlockIfNeeded(
 	body data.BodyHandler,
-	header data.HeaderHandler) {
+	header data.HeaderHandler,
+	lastBlockHeader data.HeaderHandler,
+) {
 	if sp.core == nil || sp.core.Indexer() == nil {
 		return
 	}
@@ -524,7 +521,33 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		txPool[hash] = tx
 	}
 
-	go sp.core.Indexer().SaveBlock(body, header, txPool)
+	shardId := sp.shardCoordinator.SelfId()
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(header.GetPrevRandSeed(), header.GetRound(), shardId)
+	if err != nil {
+		return
+	}
+
+	signersIndexes := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys)
+
+	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
+	go sp.core.Indexer().SaveRoundInfo(int64(header.GetRound()), shardId, signersIndexes, true)
+
+	if lastBlockHeader == nil {
+		return
+	}
+
+	lastBlockRound := lastBlockHeader.GetRound()
+	currentBlockRound := header.GetRound()
+
+	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
+		publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(lastBlockHeader.GetRandSeed(), i, shardId)
+		if err != nil {
+			continue
+		}
+		signersIndexes = sp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
+		go sp.core.Indexer().SaveRoundInfo(int64(i), shardId, signersIndexes, true)
+	}
+
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -768,8 +791,6 @@ func (sp *shardProcessor) CommitBlock(
 		header.Nonce,
 		core.ToB64(headerHash)))
 
-	sp.blocksTracker.AddBlock(header)
-
 	errNotCritical = sp.txCoordinator.RemoveBlockDataFromPool(body)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
@@ -796,6 +817,8 @@ func (sp *shardProcessor) CommitBlock(
 	hdrsToAttestPreviousFinal := uint32(header.Nonce-highestFinalBlockNonce) + 1
 	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
+	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
+
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
@@ -807,7 +830,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-	sp.indexBlockIfNeeded(bodyHandler, headerHandler)
+	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 
 	go sp.cleanTxsPools()
 
@@ -1039,7 +1062,6 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 	}
 
 	processed := 0
-	unnotarized := len(sp.blocksTracker.UnnotarisedBlocks())
 	// processedMetaHdrs is also sorted
 	for i := 0; i < len(processedMetaHdrs); i++ {
 		hdr := processedMetaHdrs[i]
@@ -1048,9 +1070,6 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		if hdr.GetNonce() > lastNotarizedMetaHdr.GetNonce() {
 			continue
 		}
-
-		errNotCritical := sp.blocksTracker.RemoveNotarisedBlocks(hdr)
-		log.LogIfError(errNotCritical)
 
 		// metablock was processed and finalized
 		buff, err := sp.marshalizer.Marshal(hdr)
@@ -1087,11 +1106,6 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 
 	if processed > 0 {
 		log.Debug(fmt.Sprintf("%d meta blocks have been processed completely and removed from pool\n", processed))
-	}
-
-	notarized := unnotarized - len(sp.blocksTracker.UnnotarisedBlocks())
-	if notarized > 0 {
-		log.Debug(fmt.Sprintf("%d shard blocks have been notarised by metachain\n", notarized))
 	}
 
 	return nil

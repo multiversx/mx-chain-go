@@ -42,7 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -110,7 +110,6 @@ type TestProcessorNode struct {
 	PreProcessorsContainer process.PreProcessorsContainer
 
 	ForkDetector       process.ForkDetector
-	BlockTracker       process.BlocksTracker
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
 	Bootstrapper       TestBootstrapper
@@ -472,17 +471,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 	}
 
-	tpn.BlockTracker = &mock.BlocksTrackerMock{
-		AddBlockCalled: func(headerHandler data.HeaderHandler) {
-		},
-		RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
-			return nil
-		},
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			return make([]data.HeaderHandler, 0)
-		},
-	}
-
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.BlockProcessor, err = block.NewMetaProcessor(
 			&mock.ServiceContainerMock{},
@@ -516,7 +504,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				Core:                  nil,
 			},
 			DataPool:        tpn.ShardDataPool,
-			BlocksTracker:   tpn.BlockTracker,
 			TxCoordinator:   tpn.TxCoordinator,
 			TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 		}

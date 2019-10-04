@@ -64,9 +64,6 @@ var ErrNilMessenger = errors.New("messenger is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
-// ErrNilBlocksTracker is raised when a valid block tracker is expected but nil used
-var ErrNilBlocksTracker = errors.New("blocks tracker is nil")
-
 // ErrNilBootstrapper is raised when a valid block processor is expected but nil used
 var ErrNilBootstrapper = errors.New("bootstrapper is nil")
 
@@ -141,9 +138,6 @@ var ErrNilBody = errors.New("body is nil")
 
 // ErrNilMetaHeader is raised when an expected meta header is nil
 var ErrNilMetaHeader = errors.New("meta header is nil")
-
-// ErrNilBroadcastUnnotarisedBlocks is raised when a valid broadcastUnnotarisedBlocks function is expected but nil used
-var ErrNilBroadcastUnnotarisedBlocks = errors.New("broadcastUnnotarisedBlocks is nil")
 
 // ErrNilForkDetector is raised when a valid fork detector is expected but nil used
 var ErrNilForkDetector = errors.New("fork detector is nil")

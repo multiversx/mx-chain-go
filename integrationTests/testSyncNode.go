@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -79,17 +78,6 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
-	tpn.BlockTracker = &mock.BlocksTrackerMock{
-		AddBlockCalled: func(headerHandler data.HeaderHandler) {
-		},
-		RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
-			return nil
-		},
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			return make([]data.HeaderHandler, 0)
-		},
-	}
-
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder)
 		tpn.BlockProcessor, err = block.NewMetaProcessor(
@@ -126,7 +114,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				Core:                  nil,
 			},
 			DataPool:        tpn.ShardDataPool,
-			BlocksTracker:   tpn.BlockTracker,
 			TxCoordinator:   tpn.TxCoordinator,
 			TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 		}
