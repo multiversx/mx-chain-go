@@ -15,9 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -64,7 +63,6 @@ type Node struct {
 	syncTimer                ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
-	blockTracker             process.BlocksTracker
 	genesisTime              time.Time
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
@@ -90,6 +88,7 @@ type Node struct {
 	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
+	nodesCoordinator sharding.NodesCoordinator
 
 	consensusTopic string
 	consensusType  string
@@ -98,6 +97,8 @@ type Node struct {
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
+
+	indexer indexer.Indexer
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -257,7 +258,6 @@ func (n *Node) StartConsensus() error {
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blockProcessor,
-		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		consensusState,
@@ -278,15 +278,9 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	validatorGroupSelector, err := n.createValidatorGroupSelector()
-	if err != nil {
-		return err
-	}
-
 	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
-		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		chronologyHandler,
@@ -297,13 +291,14 @@ func (n *Node) StartConsensus() error {
 		n.multiSigner,
 		n.rounder,
 		n.shardCoordinator,
+		n.nodesCoordinator,
 		n.syncTimer,
-		validatorGroupSelector)
+	)
 	if err != nil {
 		return err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler, n.indexer)
 	if err != nil {
 		return err
 	}
@@ -450,37 +445,6 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 		roundStatus)
 
 	return consensusState, nil
-}
-
-// createValidatorGroupSelector creates a index hashed group selector object
-func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector, error) {
-	validatorGroupSelector, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorsList := make([]consensus.Validator, 0)
-	shID := n.shardCoordinator.SelfId()
-
-	if len(n.initialNodesPubkeys[shID]) == 0 {
-		return nil, errors.New("could not create validator group as shardID is out of range")
-	}
-
-	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
-		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
-		if err != nil {
-			return nil, err
-		}
-
-		validatorsList = append(validatorsList, validator)
-	}
-
-	err = validatorGroupSelector.LoadEligibleList(validatorsList)
-	if err != nil {
-		return nil, err
-	}
-
-	return validatorGroupSelector, nil
 }
 
 // createConsensusTopic creates a consensus topic for node

@@ -13,17 +13,20 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator  sharding.Coordinator
-	store             dataRetriever.StorageService
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	dataPool          dataRetriever.PoolsHolder
-	addrConverter     state.AddressConverter
-	txProcessor       process.TransactionProcessor
-	scProcessor       process.SmartContractProcessor
-	scResultProcessor process.SmartContractResultProcessor
-	accounts          state.AccountsAdapter
-	requestHandler    process.RequestHandler
+	shardCoordinator   sharding.Coordinator
+	store              dataRetriever.StorageService
+	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
+	dataPool           dataRetriever.PoolsHolder
+	addrConverter      state.AddressConverter
+	txProcessor        process.TransactionProcessor
+	scProcessor        process.SmartContractProcessor
+	scResultProcessor  process.SmartContractResultProcessor
+	rewardsTxProcessor process.RewardTransactionProcessor
+	accounts           state.AccountsAdapter
+	requestHandler     process.RequestHandler
+	rewardsProducer    process.InternalTransactionProducer
+	economicsFee       process.FeeHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -39,6 +42,9 @@ func NewPreProcessorsContainerFactory(
 	txProcessor process.TransactionProcessor,
 	scProcessor process.SmartContractProcessor,
 	scResultProcessor process.SmartContractResultProcessor,
+	rewardsTxProcessor process.RewardTransactionProcessor,
+	rewardsProducer process.InternalTransactionProducer,
+	economicsFee process.FeeHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -71,22 +77,34 @@ func NewPreProcessorsContainerFactory(
 	if scResultProcessor == nil || scResultProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
+	if rewardsTxProcessor == nil || rewardsTxProcessor.IsInterfaceNil() {
+		return nil, process.ErrNilRewardsTxProcessor
+	}
 	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
 	}
+	if rewardsProducer == nil || rewardsProducer.IsInterfaceNil() {
+		return nil, process.ErrNilInternalTransactionProducer
+	}
+	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:  shardCoordinator,
-		store:             store,
-		marshalizer:       marshalizer,
-		hasher:            hasher,
-		dataPool:          dataPool,
-		addrConverter:     addrConverter,
-		txProcessor:       txProcessor,
-		accounts:          accounts,
-		scProcessor:       scProcessor,
-		scResultProcessor: scResultProcessor,
-		requestHandler:    requestHandler,
+		shardCoordinator:   shardCoordinator,
+		store:              store,
+		marshalizer:        marshalizer,
+		hasher:             hasher,
+		dataPool:           dataPool,
+		addrConverter:      addrConverter,
+		txProcessor:        txProcessor,
+		accounts:           accounts,
+		scProcessor:        scProcessor,
+		scResultProcessor:  scResultProcessor,
+		rewardsTxProcessor: rewardsTxProcessor,
+		requestHandler:     requestHandler,
+		rewardsProducer:    rewardsProducer,
+		economicsFee:       economicsFee,
 	}, nil
 }
 
@@ -114,6 +132,16 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 		return nil, err
 	}
 
+	preproc, err = ppcm.createRewardsTransactionPreProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.RewardsBlock, preproc)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -127,6 +155,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestTransaction,
+		ppcm.economicsFee,
 	)
 
 	return txPreprocessor, err
@@ -145,6 +174,22 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 	)
 
 	return scrPreprocessor, err
+}
+
+func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor() (process.PreProcessor, error) {
+	rewardTxPreprocessor, err := preprocess.NewRewardTxPreprocessor(
+		ppcm.dataPool.RewardTransactions(),
+		ppcm.store,
+		ppcm.hasher,
+		ppcm.marshalizer,
+		ppcm.rewardsTxProcessor,
+		ppcm.rewardsProducer,
+		ppcm.shardCoordinator,
+		ppcm.accounts,
+		ppcm.requestHandler.RequestRewardTransactions,
+	)
+
+	return rewardTxPreprocessor, err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

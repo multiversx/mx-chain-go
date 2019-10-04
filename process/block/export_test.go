@@ -53,22 +53,29 @@ func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
-
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	specialAddressHandler := mock.NewSpecialAddressHandlerMock(
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		nodesCoordinator,
+	)
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: &ArgBaseProcessor{
-			Accounts:         &mock.AccountsStub{},
-			ForkDetector:     &mock.ForkDetectorMock{},
-			Hasher:           &mock.HasherMock{},
-			Marshalizer:      &mock.MarshalizerMock{},
-			Store:            &mock.ChainStorerMock{},
-			ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-			Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:     genesisBlocks,
-			RequestHandler:   &mock.RequestHandlerMock{},
-			Core:             &mock.ServiceContainerMock{},
+			Accounts:              &mock.AccountsStub{},
+			ForkDetector:          &mock.ForkDetectorMock{},
+			Hasher:                &mock.HasherMock{},
+			Marshalizer:           &mock.MarshalizerMock{},
+			Store:                 &mock.ChainStorerMock{},
+			ShardCoordinator:      shardCoordinator,
+			NodesCoordinator:      nodesCoordinator,
+			SpecialAddressHandler: specialAddressHandler,
+			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:          genesisBlocks,
+			RequestHandler:        &mock.RequestHandlerMock{},
+			Core:                  &mock.ServiceContainerMock{},
 		},
 		DataPool:        tdp,
-		BlocksTracker:   &mock.BlocksTrackerMock{},
 		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
@@ -83,6 +90,8 @@ func NewMetaProcessorBasicSingleShard(mdp dataRetriever.MetaPoolsHolder, genesis
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -300,4 +309,13 @@ func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHa
 
 func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
 	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
+}
+
+func (sp *shardProcessor) CalculateRoundDuration(
+	lastBlockTimestamp uint64,
+	currentBlockTimestamp uint64,
+	lastBlockRound uint64,
+	currentBlockRound uint64,
+) uint64 {
+	return sp.calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
 }

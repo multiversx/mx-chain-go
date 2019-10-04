@@ -18,8 +18,6 @@ type ConsensusCoreHandler interface {
 	Blockchain() data.ChainHandler
 	// BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 	BlockProcessor() process.BlockProcessor
-	// BlocksTracker gets the BlockTracker stored in the ConsensusCore
-	BlocksTracker() process.BlocksTracker
 	// BootStrapper gets the Bootstrapper stored in the ConsensusCore
 	BootStrapper() process.Bootstrapper
 	// BroadcastMessenger gets the BroadcastMessenger stored in ConsensusCore
@@ -38,8 +36,8 @@ type ConsensusCoreHandler interface {
 	ShardCoordinator() sharding.Coordinator
 	// SyncTimer gets the SyncTimer stored in the ConsensusCore
 	SyncTimer() ntp.SyncTimer
-	// ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
-	ValidatorGroupSelector() consensus.ValidatorGroupSelector
+	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
+	NodesCoordinator() sharding.NodesCoordinator
 	// RandomnessPrivateKey returns the private key stored in the ConsensusStore used for randomness generation
 	RandomnessPrivateKey() crypto.PrivateKey
 	// RandomnessSingleSigner returns the single signer stored in the ConsensusStore used for randomness generation
@@ -88,8 +86,6 @@ type WorkerHandler interface {
 	GetConsensusStateChangedChannel() chan bool
 	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
-	//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
-	BroadcastUnnotarisedBlocks()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

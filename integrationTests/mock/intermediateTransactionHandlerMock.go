@@ -58,7 +58,7 @@ func (ith *IntermediateTransactionHandlerMock) SaveCurrentIntermediateTxToStorag
 
 func (ith *IntermediateTransactionHandlerMock) CreateBlockStarted() {
 	if ith.CreateBlockStartedCalled != nil {
-		ith.CreateAllInterMiniBlocksCalled()
+		ith.CreateBlockStarted()
 	}
 }
 

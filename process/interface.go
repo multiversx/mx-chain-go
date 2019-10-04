@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -14,12 +15,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction, round uint64) error
+	IsInterfaceNil() bool
+}
+
+// RewardTransactionProcessor is the interface for reward transaction execution engine
+type RewardTransactionProcessor interface {
+	ProcessRewardTransaction(rewardTx *rewardTx.RewardTx) error
+	IsInterfaceNil() bool
+}
+
+// RewardTransactionPreProcessor prepares the processing of reward transactions
+type RewardTransactionPreProcessor interface {
+	AddComputedRewardMiniBlocks(computedRewardMiniblocks block.MiniBlockSlice)
 	IsInterfaceNil() bool
 }
 
@@ -92,6 +105,40 @@ type IntermediateTransactionHandler interface {
 	IsInterfaceNil() bool
 }
 
+// InternalTransactionProducer creates system transactions (e.g. rewards)
+type InternalTransactionProducer interface {
+	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
+	IsInterfaceNil() bool
+}
+
+// TransactionVerifier interface validates if the transaction is good and if it should be processed
+type TransactionVerifier interface {
+	IsTransactionValid(tx data.TransactionHandler) error
+}
+
+// TransactionFeeHandler processes the transaction fee
+type TransactionFeeHandler interface {
+	ProcessTransactionFee(cost *big.Int)
+	IsInterfaceNil() bool
+}
+
+// SpecialAddressHandler responds with needed special addresses
+type SpecialAddressHandler interface {
+	SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error
+	SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error
+	ConsensusShardRewardData() *data.ConsensusRewardData
+	ConsensusMetaRewardData() []*data.ConsensusRewardData
+	ClearMetaConsensusData()
+	ElrondCommunityAddress() []byte
+	LeaderAddress() []byte
+	BurnAddress() []byte
+	SetElrondCommunityAddress(elrond []byte)
+	ShardIdForAddress([]byte) (uint32, error)
+	Epoch() uint32
+	Round() uint64
+	IsInterfaceNil() bool
+}
+
 // PreProcessor is an interface used to prepare and process transaction data
 type PreProcessor interface {
 	CreateBlockStarted()
@@ -101,7 +148,7 @@ type PreProcessor interface {
 	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxBlockToStorage(body block.Body) error
 
-	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() time.Duration) error
+	ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error
 	RequestBlockTransactions(body block.Body) int
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
@@ -109,6 +156,7 @@ type PreProcessor interface {
 	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
+	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -126,6 +174,7 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
 }
 
@@ -286,26 +335,9 @@ type TopicMessageHandler interface {
 	TopicHandler
 }
 
-// ChronologyValidator defines the functionality needed to validate a received header block (shard or metachain)
-// from chronology point of view
-type ChronologyValidator interface {
-	ValidateReceivedBlock(shardID uint32, epoch uint32, nonce uint64, round uint64) error
-	IsInterfaceNil() bool
-}
-
 // DataPacker can split a large slice of byte slices in smaller packets
 type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
-	IsInterfaceNil() bool
-}
-
-// BlocksTracker defines the functionality to track all the notarised blocks
-type BlocksTracker interface {
-	UnnotarisedBlocks() []data.HeaderHandler
-	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
-	AddBlock(headerHandler data.HeaderHandler)
-	SetBlockBroadcastRound(nonce uint64, round int64)
-	BlockBroadcastRound(nonce uint64) int64
 	IsInterfaceNil() bool
 }
 
@@ -314,6 +346,7 @@ type RequestHandler interface {
 	RequestHeaderByNonce(shardId uint32, nonce uint64)
 	RequestTransaction(shardId uint32, txHashes [][]byte)
 	RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte)
+	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(shardId uint32, miniblockHash []byte)
 	RequestHeader(shardId uint32, hash []byte)
 	IsInterfaceNil() bool
@@ -363,5 +396,37 @@ type TxValidatorHandler interface {
 type PoolsCleaner interface {
 	Clean(duration time.Duration) (bool, error)
 	NumRemovedTxs() uint64
+	IsInterfaceNil() bool
+}
+
+// InterceptorThrottler can determine if the a new go routine can start
+type InterceptorThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}
+
+// RewardsHandler will return information about rewards
+type RewardsHandler interface {
+	RewardsValue() uint64
+	CommunityPercentage() float64
+	LeaderPercentage() float64
+	BurnPercentage() float64
+	IsInterfaceNil() bool
+}
+
+// FeeHandler will return information about fees
+type FeeHandler interface {
+	MinGasPrice() uint64
+	MinGasLimitForTx() uint64
+	MinTxFee() uint64
+	IsInterfaceNil() bool
+}
+
+// EconomicsAddressesHandler will return information about economics addresses
+type EconomicsAddressesHandler interface {
+	CommunityAddress() string
+	BurnAddress() string
 	IsInterfaceNil() bool
 }

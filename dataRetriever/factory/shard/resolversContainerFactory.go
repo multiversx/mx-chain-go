@@ -74,7 +74,11 @@ func NewResolversContainerFactory(
 func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
 	container := containers.NewResolversContainer()
 
-	keys, resolverSlice, err := rcf.generateTxResolvers(factory.TransactionTopic, dataRetriever.TransactionUnit, rcf.dataPools.Transactions())
+	keys, resolverSlice, err := rcf.generateTxResolvers(
+		factory.TransactionTopic,
+		dataRetriever.TransactionUnit,
+		rcf.dataPools.Transactions(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +95,20 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 	if err != nil {
 		return nil, err
 	}
+	err = container.AddMultiple(keys, resolverSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, resolverSlice, err = rcf.generateTxResolvers(
+		factory.RewardsTransactionTopic,
+		dataRetriever.RewardTransactionUnit,
+		rcf.dataPools.RewardTransactions(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	err = container.AddMultiple(keys, resolverSlice)
 	if err != nil {
 		return nil, err
