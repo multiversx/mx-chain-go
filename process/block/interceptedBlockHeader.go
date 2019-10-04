@@ -38,17 +38,17 @@ func NewInterceptedHeader(
 	}
 }
 
-// SetHash sets the hash of this hdr. The hash will also be the ID of this object
+// SetHash sets the hash of this header. The hash will also be the ID of this object
 func (inHdr *InterceptedHeader) SetHash(hash []byte) {
 	inHdr.hash = hash
 }
 
-// Hash gets the hash of this hdr
+// Hash gets the hash of this header
 func (inHdr *InterceptedHeader) Hash() []byte {
 	return inHdr.hash
 }
 
-// Shard returns the shard ID for which this hdr is addressed
+// Shard returns the shard ID for which this header is addressed
 func (inHdr *InterceptedHeader) Shard() uint32 {
 	return inHdr.ShardId
 }
@@ -63,7 +63,7 @@ func (inHdr *InterceptedHeader) GetUnderlyingObject() interface{} {
 	return inHdr.Header
 }
 
-// IntegrityAndValidity checks the integrity and validity of a block hdr wrapper
+// IntegrityAndValidity checks the integrity and validity of a block header wrapper
 func (inHdr *InterceptedHeader) IntegrityAndValidity(coordinator sharding.Coordinator) error {
 	err := inHdr.Integrity(coordinator)
 	if err != nil {
@@ -144,7 +144,7 @@ func (inHdr *InterceptedHeader) VerifySig() error {
 		return err
 	}
 
-	// get marshalled block hdr without signature and bitmap
+	// get marshalled block header without signature and bitmap
 	// as this is the message that was signed
 	headerCopy := *inHdr.Header
 	headerCopy.Signature = nil

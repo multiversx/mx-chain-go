@@ -315,15 +315,3 @@ func (sp *shardProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler
 	sp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: headerHandler, usedInBlock: usedInBlock}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
-
-func (sp *shardProcessor) SetMissingHdrsForCurrentBlock(missingHdrs uint32) {
-	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	sp.hdrsForCurrBlock.missingHdrs = missingHdrs
-	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-}
-
-func (sp *shardProcessor) SetMissingFinalHdrsForCurrentBlock(missingFinalHdrs uint32) {
-	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	sp.hdrsForCurrBlock.missingFinalHdrs = missingFinalHdrs
-	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-}

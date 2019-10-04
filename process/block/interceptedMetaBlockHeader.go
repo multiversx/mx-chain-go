@@ -38,12 +38,12 @@ func NewInterceptedMetaHeader(
 	}
 }
 
-// SetHash sets the hash of this hdr. The hash will also be the ID of this object
+// SetHash sets the hash of this header. The hash will also be the ID of this object
 func (imh *InterceptedMetaHeader) SetHash(hash []byte) {
 	imh.hash = hash
 }
 
-// Hash gets the hash of this hdr
+// Hash gets the hash of this header
 func (imh *InterceptedMetaHeader) Hash() []byte {
 	return imh.hash
 }
@@ -53,7 +53,7 @@ func (imh *InterceptedMetaHeader) GetMetaHeader() *block.MetaBlock {
 	return imh.MetaBlock
 }
 
-// IntegrityAndValidity checks the integrity and validity of a block hdr wrapper
+// IntegrityAndValidity checks the integrity and validity of a block header wrapper
 func (imh *InterceptedMetaHeader) IntegrityAndValidity(coordinator sharding.Coordinator) error {
 	err := imh.Integrity(coordinator)
 	if err != nil {
@@ -136,7 +136,7 @@ func (imh *InterceptedMetaHeader) VerifySig() error {
 		return err
 	}
 
-	// get marshalled block hdr without signature and bitmap
+	// get marshalled block header without signature and bitmap
 	// as this is the message that was signed
 	headerCopy := *imh.MetaBlock
 	headerCopy.Signature = nil

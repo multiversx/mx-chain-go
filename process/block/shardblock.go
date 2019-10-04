@@ -1554,7 +1554,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 	sp.blockSizeThrottler.Add(
 		round,
-		uint32(core.Max(int32(header.ItemsInBody()), int32(header.ItemsInHeader()))))
+		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
 }
@@ -1701,7 +1701,7 @@ func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
 ) int32 {
 	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
 	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
-	maxMbSpaceRemained := core.Min(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
+	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 	return maxMbSpaceRemained
 }

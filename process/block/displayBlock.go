@@ -229,7 +229,7 @@ func DisplayLastNotarized(
 	shardId uint32) {
 
 	if lastNotarizedHdrForShard == nil || lastNotarizedHdrForShard.IsInterfaceNil() {
-		log.Error("last notarized hdr for shard is nil")
+		log.Error("last notarized header for shard is nil")
 		return
 	}
 

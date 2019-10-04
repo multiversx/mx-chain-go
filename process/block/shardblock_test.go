@@ -1721,7 +1721,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 
 	txHash := []byte("txHash")
 	rootHash := []byte("root hash")
-	hdrHash := []byte("hdr hash")
+	hdrHash := []byte("header hash")
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
@@ -1803,7 +1803,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	txHash := []byte("tx_hash1")
 
 	rootHash := []byte("root hash")
-	hdrHash := []byte("hdr hash")
+	hdrHash := []byte("header hash")
 	randSeed := []byte("rand seed")
 
 	prevHdr := &block.Header{
@@ -1897,7 +1897,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	txHash := []byte("tx_hash1")
 
 	rootHash := []byte("root hash")
-	hdrHash := []byte("hdr hash")
+	hdrHash := []byte("header hash")
 	randSeed := []byte("rand seed")
 
 	prevHdr := &block.Header{
@@ -2115,7 +2115,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	}
 	hasher.ComputeCalled = func(s string) []byte {
 		if s == "hdrHeaderMarshalized" {
-			return []byte("hdr hash")
+			return []byte("header hash")
 		}
 		if s == "txBlockBodyMarshalized" {
 			return []byte("tx block body hash")
@@ -2542,13 +2542,16 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	miniBlockHash1 := []byte("miniblock hash 1 found in cache")
 
-	metaBlock := mock.HeaderHandlerStub{
-		GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
-			return map[string]uint32{
-				string(miniBlockHash1): 0,
-			}
-		},
-	}
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+		Round: 1,
+		ShardInfo: []block.ShardData{
+			block.ShardData{
+				ShardId: 1,
+				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
+					block.ShardMiniBlockHeader{Hash: miniBlockHash1, SenderShardId: 1, ReceiverShardId: 0},
+				}},
+		}}
 
 	//put this metaBlock inside datapool
 	metaBlockHash := []byte("metablock hash")
@@ -3179,7 +3182,7 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	//put the existing headers inside datapool
 
-	//hdr shard 0
+	//header shard 0
 	prevHash, _ := sp.ComputeHeaderHash(sp.LastNotarizedHdrForShard(sharding.MetachainShardId).(*block.MetaBlock))
 	prevHdr := &block.MetaBlock{
 		Round:        10,
@@ -3288,7 +3291,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 		RandSeed: prevRandSeed}
 	notarizedHdrs[sharding.MetachainShardId] = append(notarizedHdrs[sharding.MetachainShardId], lastHdr)
 
-	//hdr shard 0
+	//header shard 0
 	prevHash, _ := sp.ComputeHeaderHash(sp.LastNotarizedHdrForShard(sharding.MetachainShardId).(*block.MetaBlock))
 	prevHdr := &block.MetaBlock{
 		Round:        10,
@@ -3313,7 +3316,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	mbHeaders := make([]block.MiniBlockHeader, 0)
 	blockHeader := &block.Header{}
 
-	// test hdr not in pool and defer called
+	// test header not in pool and defer called
 	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromHeader(blockHeader)
 	assert.Nil(t, err)
 
@@ -3328,7 +3331,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	assert.Equal(t, firstNonce, sp.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
 	assert.Equal(t, 0, len(processedMetaHdrs))
 
-	// wrong hdr type in pool and defer called
+	// wrong header type in pool and defer called
 	dataPool.MetaBlocks().Put(currHash, shardHdr)
 	sp.SetHdrForCurrentBlock(currHash, shardHdr, true)
 
@@ -3480,7 +3483,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 
 	miniBlocks := make([]block.MiniBlock, 0)
 	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
-	//hdr shard 0
+	//header shard 0
 	prevHash, _ := sp.ComputeHeaderHash(sp.LastNotarizedHdrForShard(sharding.MetachainShardId).(*block.MetaBlock))
 	prevHdr := &block.MetaBlock{
 		Round:        10,
@@ -3615,7 +3618,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 
 	miniBlocks := make([]block.MiniBlock, 0)
 	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
-	//hdr shard 0
+	//header shard 0
 	prevHash, _ := sp.ComputeHeaderHash(sp.LastNotarizedHdrForShard(sharding.MetachainShardId).(*block.MetaBlock))
 	prevHdr := &block.MetaBlock{
 		Round:        10,
