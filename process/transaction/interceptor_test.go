@@ -37,6 +37,7 @@ func TestNewTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		nil,
@@ -46,7 +47,10 @@ func TestNewTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, txi)
@@ -60,6 +64,7 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -69,7 +74,10 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Equal(t, process.ErrNilTxDataPool, err)
 	assert.Nil(t, txi)
@@ -83,6 +91,7 @@ func TestNewTxInterceptor_NilTxHandlerValidatorShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -92,7 +101,10 @@ func TestNewTxInterceptor_NilTxHandlerValidatorShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Equal(t, process.ErrNilTxHandlerValidator, err)
 	assert.Nil(t, txi)
@@ -106,6 +118,7 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -115,7 +128,10 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Equal(t, process.ErrNilAddressConverter, err)
 	assert.Nil(t, txi)
@@ -130,6 +146,7 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -139,7 +156,10 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 		nil,
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, txi)
@@ -153,6 +173,7 @@ func TestNewTxInterceptor_NilSignerShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -162,7 +183,10 @@ func TestNewTxInterceptor_NilSignerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		nil,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Equal(t, process.ErrNilSingleSigner, err)
 	assert.Nil(t, txi)
@@ -176,6 +200,7 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -185,7 +210,10 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		signer,
 		nil,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Equal(t, process.ErrNilKeyGen, err)
 	assert.Nil(t, txi)
@@ -199,6 +227,7 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -208,9 +237,67 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		nil)
+		nil,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+	assert.Nil(t, txi)
+}
+
+func TestNewTxInterceptor_NilThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txPool := &mock.ShardedDataStub{}
+	addrConv := &mock.AddressConverterMock{}
+	keyGen := &mock.SingleSignKeyGenMock{}
+	txValidator := createMockedTxValidator()
+	signer := &mock.SignerMock{}
+	oneSharder := mock.NewOneShardCoordinatorMock()
+
+	txi, err := transaction.NewTxInterceptor(
+		&mock.MarshalizerMock{},
+		txPool,
+		txValidator,
+		addrConv,
+		mock.HasherMock{},
+		signer,
+		keyGen,
+		oneSharder,
+		nil,
+		&mock.FeeHandlerStub{},
+	)
+
+	assert.Equal(t, process.ErrNilThrottler, err)
+	assert.Nil(t, txi)
+}
+
+func TestNewTxInterceptor_NilFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txPool := &mock.ShardedDataStub{}
+	addrConv := &mock.AddressConverterMock{}
+	keyGen := &mock.SingleSignKeyGenMock{}
+	txValidator := createMockedTxValidator()
+	signer := &mock.SignerMock{}
+	oneSharder := mock.NewOneShardCoordinatorMock()
+	throttler := &mock.InterceptorThrottlerStub{}
+
+	txi, err := transaction.NewTxInterceptor(
+		&mock.MarshalizerMock{},
+		txPool,
+		txValidator,
+		addrConv,
+		mock.HasherMock{},
+		signer,
+		keyGen,
+		oneSharder,
+		throttler,
+		nil,
+	)
+
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 	assert.Nil(t, txi)
 }
 
@@ -223,6 +310,7 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -232,13 +320,51 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, txi)
 }
 
 //------- ProcessReceivedMessage
+
+func TestTransactionInterceptor_ProcessReceivedMessageSystemBusyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txPool := &mock.ShardedDataStub{}
+	addrConv := &mock.AddressConverterMock{}
+	keyGen := &mock.SingleSignKeyGenMock{}
+	oneSharder := mock.NewOneShardCoordinatorMock()
+	txValidator := createMockedTxValidator()
+	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return false
+		},
+	}
+
+	txi, _ := transaction.NewTxInterceptor(
+		&mock.MarshalizerMock{},
+		txPool,
+		txValidator,
+		addrConv,
+		mock.HasherMock{},
+		signer,
+		keyGen,
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
+
+	err := txi.ProcessReceivedMessage(nil)
+
+	assert.Equal(t, process.ErrSystemBusy, err)
+	assert.Equal(t, int32(0), throttler.StartProcessingCount())
+	assert.Equal(t, int32(0), throttler.EndProcessingCount())
+}
 
 func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *testing.T) {
 	t.Parallel()
@@ -249,6 +375,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *te
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -258,11 +389,16 @@ func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *te
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	err := txi.ProcessReceivedMessage(nil)
 
 	assert.Equal(t, process.ErrNilMessage, err)
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t *testing.T) {
@@ -274,6 +410,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		&mock.MarshalizerMock{},
@@ -283,13 +424,18 @@ func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t 
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	msg := &mock.P2PMessageMock{}
 
 	err := txi.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, process.ErrNilDataToProcess, err)
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarshalingShouldErr(t *testing.T) {
@@ -303,6 +449,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		&mock.MarshalizerStub{
@@ -316,7 +467,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
@@ -325,6 +479,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 	err := txi.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, errMarshalizer, err)
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShouldErr(t *testing.T) {
@@ -336,6 +492,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		&mock.MarshalizerStub{
@@ -352,7 +513,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
@@ -361,6 +525,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShou
 	err := txi.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, process.ErrNoTransactionInMessage, err)
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t *testing.T) {
@@ -374,6 +540,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := createMockedTxValidator()
 	signer := &mock.SignerMock{}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
@@ -383,7 +554,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		&mock.FeeHandlerStub{},
+	)
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -405,6 +579,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 	err := txi.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, process.ErrNilSignature, err)
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsShouldErrAndFilter(t *testing.T) {
@@ -432,6 +608,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 			return nil
 		},
 	}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
@@ -441,7 +622,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		createFreeTxFeeHandler(),
+	)
 
 	tx1 := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -485,6 +669,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 	txRecovered := &dataTransaction.Transaction{}
 	_ = marshalizer.Unmarshal(txRecovered, txBuffRecovered[0])
 	assert.Equal(t, tx2, txRecovered)
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t *testing.T) {
@@ -509,6 +695,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 			return errExpected
 		},
 	}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
@@ -518,7 +709,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		createFreeTxFeeHandler(),
+	)
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -540,6 +734,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 	err := txi.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, errExpected, err)
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(t *testing.T) {
@@ -567,6 +763,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 			return nil
 		},
 	}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
@@ -576,7 +777,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		oneSharder)
+		oneSharder,
+		throttler,
+		createFreeTxFeeHandler(),
+	)
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -610,6 +814,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	case <-time.After(durTimeout):
 		assert.Fail(t, "timeout while waiting for tx to be inserted in the pool")
 	}
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWork(t *testing.T) {
@@ -636,6 +842,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 			return nil
 		},
 	}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
@@ -645,7 +856,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		multiSharder)
+		multiSharder,
+		throttler,
+		createFreeTxFeeHandler(),
+	)
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -678,6 +892,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 		assert.Fail(t, "should have not add tx in pool")
 	case <-time.After(durTimeout):
 	}
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *testing.T) {
@@ -716,6 +932,11 @@ func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *
 			return nil
 		},
 	}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return true
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		marshalizer,
@@ -725,7 +946,10 @@ func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *
 		mock.HasherMock{},
 		signer,
 		keyGen,
-		multiSharder)
+		multiSharder,
+		throttler,
+		createFreeTxFeeHandler(),
+	)
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
@@ -758,4 +982,6 @@ func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *
 		assert.Fail(t, "should have not add tx in pool")
 	case <-time.After(durTimeout):
 	}
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }

@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -17,19 +18,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const maxGoRoutineTxInterceptor = 100
+
 type interceptorsContainerFactory struct {
-	accounts            state.AccountsAdapter
-	shardCoordinator sharding.Coordinator
-	messenger        process.TopicHandler
-	store            dataRetriever.StorageService
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	keyGen           crypto.KeyGenerator
-	singleSigner     crypto.SingleSigner
-	multiSigner      crypto.MultiSigner
-	dataPool         dataRetriever.PoolsHolder
-	addrConverter    state.AddressConverter
-	nodesCoordinator sharding.NodesCoordinator
+	accounts               state.AccountsAdapter
+	shardCoordinator       sharding.Coordinator
+	messenger              process.TopicHandler
+	store                  dataRetriever.StorageService
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	keyGen                 crypto.KeyGenerator
+	singleSigner           crypto.SingleSigner
+	multiSigner            crypto.MultiSigner
+	dataPool               dataRetriever.PoolsHolder
+	addrConverter          state.AddressConverter
+	nodesCoordinator       sharding.NodesCoordinator
+	txInterceptorThrottler process.InterceptorThrottler
+	maxTxNonceDeltaAllowed int
+	txFeeHandler           process.FeeHandler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -46,6 +52,8 @@ func NewInterceptorsContainerFactory(
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
+	maxTxNonceDeltaAllowed int,
+	txFeeHandler process.FeeHandler,
 ) (*interceptorsContainerFactory, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -83,20 +91,31 @@ func NewInterceptorsContainerFactory(
 	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilNodesCoordinator
 	}
+	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
+
+	txInterceptorThrottler, err := throttler.NewNumGoRoutineThrottler(maxGoRoutineTxInterceptor)
+	if err != nil {
+		return nil, err
+	}
 
 	return &interceptorsContainerFactory{
-		accounts:            accounts,
-		shardCoordinator: shardCoordinator,
-		nodesCoordinator: nodesCoordinator,
-		messenger:        messenger,
-		store:            store,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		keyGen:           keyGen,
-		singleSigner:     singleSigner,
-		multiSigner:      multiSigner,
-		dataPool:         dataPool,
-		addrConverter:    addrConverter,
+		accounts:               accounts,
+		shardCoordinator:       shardCoordinator,
+		nodesCoordinator:       nodesCoordinator,
+		messenger:              messenger,
+		store:                  store,
+		marshalizer:            marshalizer,
+		hasher:                 hasher,
+		keyGen:                 keyGen,
+		singleSigner:           singleSigner,
+		multiSigner:            multiSigner,
+		dataPool:               dataPool,
+		addrConverter:          addrConverter,
+		txInterceptorThrottler: txInterceptorThrottler,
+		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
+		txFeeHandler:           txFeeHandler,
 	}, nil
 }
 
@@ -227,7 +246,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
+	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator, icf.maxTxNonceDeltaAllowed)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +259,10 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		icf.hasher,
 		icf.singleSigner,
 		icf.keyGen,
-		icf.shardCoordinator)
+		icf.shardCoordinator,
+		icf.txInterceptorThrottler,
+		icf.txFeeHandler,
+	)
 
 	if err != nil {
 		return nil, err
