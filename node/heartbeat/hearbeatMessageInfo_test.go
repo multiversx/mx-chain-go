@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/mock"
-
 	"github.com/stretchr/testify/assert"
 )
 
