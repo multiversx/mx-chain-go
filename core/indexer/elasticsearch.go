@@ -255,7 +255,7 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 
 	req := esapi.IndexRequest{
 		Index:      roundIndex,
-		DocumentID: strconv.Itoa(int(roundInfo.Index)),
+		DocumentID: strconv.FormatInt(int64(roundInfo.Index), 10),
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}
