@@ -399,7 +399,7 @@ type PoolsCleaner interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptorThrottler can determine if the a new joc can or cannot be started
+// InterceptorThrottler can determine if the a new go routine can start
 type InterceptorThrottler interface {
 	CanProcess() bool
 	StartProcessing()
