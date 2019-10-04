@@ -154,7 +154,7 @@
     Type = "LRU"
 
 [TxBlockBodyDataPool]
-    Size = 100
+    Size = 300
     Type = "LRU"
 
 [StateBlockBodyDataPool]

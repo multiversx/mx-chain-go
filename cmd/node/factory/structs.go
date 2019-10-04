@@ -92,9 +92,10 @@ const (
 
 var log = logger.DefaultLogger()
 
-//TODO: Extract all others error messages from this file in some defined errors
+const maxTxNonceDeltaAllowed = 100
 
 // ErrCreateForkDetector signals that a fork detector could not be created
+//TODO: Extract all others error messages from this file in some defined errors
 var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // Network struct holds the network components of the Elrond protocol
@@ -457,7 +458,14 @@ func NewProcessComponentsFactoryArgs(
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
 	interceptorContainerFactory, resolversContainerFactory, err := newInterceptorAndResolverContainerFactory(
-		args.shardCoordinator, args.nodesCoordinator, args.data, args.core, args.crypto, args.state, args.network)
+		args.shardCoordinator,
+		args.nodesCoordinator,
+		args.data, args.core,
+		args.crypto,
+		args.state,
+		args.network,
+		args.economicsData,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1197,7 +1205,9 @@ func newInterceptorAndResolverContainerFactory(
 	crypto *Crypto,
 	state *State,
 	network *Network,
+	economics *economics.EconomicsData,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorAndResolverContainerFactory(
 			shardCoordinator,
@@ -1207,6 +1217,7 @@ func newInterceptorAndResolverContainerFactory(
 			crypto,
 			state,
 			network,
+			economics,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1231,8 +1242,9 @@ func newShardInterceptorAndResolverContainerFactory(
 	crypto *Crypto,
 	state *State,
 	network *Network,
+	economics *economics.EconomicsData,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
-	//TODO add a real chronology validator and remove null chronology validator
+
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
 		shardCoordinator,
@@ -1246,6 +1258,8 @@ func newShardInterceptorAndResolverContainerFactory(
 		crypto.MultiSigner,
 		data.Datapool,
 		state.AddressConverter,
+		maxTxNonceDeltaAllowed,
+		economics,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1280,7 +1294,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 	crypto *Crypto,
 	network *Network,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
-	//TODO add a real chronology validator and remove null chronology validator
+
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		nodesCoordinator,
