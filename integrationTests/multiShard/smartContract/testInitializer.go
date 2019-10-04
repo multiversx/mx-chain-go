@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -63,6 +64,8 @@ import (
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
+//TODO refactor this package to use TestNodeProcessor infrastructure
+
 var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
@@ -72,6 +75,8 @@ var rootHash = []byte("root hash")
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
 var opGas = int64(1)
+
+const maxTxNonceDeltaAllowed = 8000
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -297,6 +302,18 @@ func createNetNode(
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	dataPacker, _ := partitioning.NewSimpleDataPacker(testMarshalizer)
 
+	feeHandler := &mock.FeeHandlerStub{
+		MinGasPriceCalled: func() uint64 {
+			return integrationTests.MinTxGasPrice
+		},
+		MinGasLimitForTxCalled: func() uint64 {
+			return integrationTests.MinTxGasLimit
+		},
+		MinTxFeeCalled: func() uint64 {
+			return integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice
+		},
+	}
+
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		accntAdapter,
 		shardCoordinator,
@@ -310,6 +327,8 @@ func createNetNode(
 		testMultiSig,
 		dPool,
 		testAddressConverter,
+		maxTxNonceDeltaAllowed,
+		feeHandler,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -399,7 +418,7 @@ func createNetNode(
 		scProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		&mock.FeeHandlerMock{
+		&mock.FeeHandlerStub{
 			MinGasLimitForTxCalled: func() uint64 {
 				return 5
 			},
@@ -426,7 +445,7 @@ func createNetNode(
 		scProcessor,
 		rewardProcessor,
 		internalTxProducer,
-		&mock.FeeHandlerMock{
+		&mock.FeeHandlerStub{
 			MinGasLimitForTxCalled: func() uint64 {
 				return 5
 			},

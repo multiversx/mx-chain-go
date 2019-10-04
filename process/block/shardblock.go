@@ -452,7 +452,9 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 
 func (sp *shardProcessor) indexBlockIfNeeded(
 	body data.BodyHandler,
-	header data.HeaderHandler) {
+	header data.HeaderHandler,
+	lastBlockHeader data.HeaderHandler,
+) {
 	if sp.core == nil || sp.core.Indexer() == nil {
 		return
 	}
@@ -468,7 +470,33 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		txPool[hash] = tx
 	}
 
-	go sp.core.Indexer().SaveBlock(body, header, txPool)
+	shardId := sp.shardCoordinator.SelfId()
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(header.GetPrevRandSeed(), header.GetRound(), shardId)
+	if err != nil {
+		return
+	}
+
+	signersIndexes := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys)
+
+	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
+	go sp.core.Indexer().SaveRoundInfo(int64(header.GetRound()), shardId, signersIndexes, true)
+
+	if lastBlockHeader == nil {
+		return
+	}
+
+	lastBlockRound := lastBlockHeader.GetRound()
+	currentBlockRound := header.GetRound()
+
+	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
+		publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(lastBlockHeader.GetRandSeed(), i, shardId)
+		if err != nil {
+			continue
+		}
+		signersIndexes = sp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
+		go sp.core.Indexer().SaveRoundInfo(int64(i), shardId, signersIndexes, true)
+	}
+
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -714,6 +742,8 @@ func (sp *shardProcessor) CommitBlock(
 	hdrsToAttestPreviousFinal := uint32(header.Nonce-highestFinalBlockNonce) + 1
 	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
+	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
+
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
@@ -725,7 +755,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
-	sp.indexBlockIfNeeded(bodyHandler, headerHandler)
+	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 
 	go sp.cleanTxsPools()
 

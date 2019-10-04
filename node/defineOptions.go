@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -386,6 +387,14 @@ func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 
 		}
 		n.appStatusHandler = aph
+		return nil
+	}
+}
+
+// WithIndexer sets up a indexer for the Node
+func WithIndexer(indexer indexer.Indexer) Option {
+	return func(n *Node) error {
+		n.indexer = indexer
 		return nil
 	}
 }

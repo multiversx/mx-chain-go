@@ -24,8 +24,8 @@ func generateRandomByteSlice(size int) []byte {
 	return buff
 }
 
-func FeeHandlerMock() *mock.FeeHandlerMock {
-	return &mock.FeeHandlerMock{
+func FeeHandlerMock() *mock.FeeHandlerStub {
+	return &mock.FeeHandlerStub{
 		MinGasPriceCalled: func() uint64 {
 			return 0
 		},

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -21,6 +22,7 @@ type SubroundStartRound struct {
 	executeStoredMessages         func()
 
 	appStatusHandler core.AppStatusHandler
+	indexer          indexer.Indexer
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
@@ -44,6 +46,7 @@ func NewSubroundStartRound(
 		getSubroundName,
 		executeStoredMessages,
 		statusHandler.NewNilStatusHandler(),
+		indexer.NewNilIndexer(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -75,6 +78,11 @@ func (sr *SubroundStartRound) SetAppStatusHandler(ash core.AppStatusHandler) err
 
 	sr.appStatusHandler = ash
 	return nil
+}
+
+// SetIndexer method set indexer
+func (sr *SubroundStartRound) SetIndexer(indexer indexer.Indexer) {
+	sr.indexer = indexer
 }
 
 // doStartRoundJob method does the job of the subround StartRound
@@ -139,6 +147,8 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	pubKeys := sr.ConsensusGroup()
 
+	sr.indexRoundIfNeeded(pubKeys)
+
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, not in the consensus group\n",
@@ -181,6 +191,17 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	go sr.executeStoredMessages()
 
 	return true
+}
+
+func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
+	if sr.indexer == nil || sr.indexer.IsNilIndexer() {
+		return
+	}
+
+	shardId := sr.ShardCoordinator().SelfId()
+	signersIndexes := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys)
+	round := sr.Rounder().Index()
+	go sr.indexer.SaveRoundInfo(round, shardId, signersIndexes, false)
 }
 
 func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
