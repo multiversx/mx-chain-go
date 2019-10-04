@@ -1344,8 +1344,8 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 	assert.True(t, res)
 }
 
-//-------- requestFinalMissingHeaders
-func TestShardProcessor_RequestFinalMissingHeaders(t *testing.T) {
+//-------- requestMissingFinalityAttestingHeaders
+func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 	t.Parallel()
 
 	tdp := mock.NewPoolsHolderMock()
@@ -1353,8 +1353,8 @@ func TestShardProcessor_RequestFinalMissingHeaders(t *testing.T) {
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	sp.SetCurrHighestMetaHdrNonce(1)
-	res := sp.RequestFinalMissingHeaders()
+	sp.SetHighestHdrNonceForCurrentBlock(1)
+	res := sp.RequestMissingFinalityAttestingHeaders()
 	assert.Equal(t, res > 0, true)
 }
 
@@ -2964,7 +2964,7 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 
 	blockHeader := &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	_, err := bp.GetProcessedMetaBlocksFromHeader(blockHeader)
+	err := bp.AddProcessedCrossMiniBlocksFromHeader(blockHeader)
 
 	assert.Nil(t, err)
 	//check WasMiniBlockProcessed for remaining metablocks
@@ -3317,7 +3317,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	blockHeader := &block.Header{}
 
 	// test header not in pool and defer called
-	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromHeader(blockHeader)
+	processedMetaHdrs, err := sp.GetOrderedProcessedMetaBlocksFromHeader(blockHeader)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -3339,7 +3339,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	hashes = append(hashes, currHash)
 	blockHeader = &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromHeader(blockHeader)
+	processedMetaHdrs, err = sp.GetOrderedProcessedMetaBlocksFromHeader(blockHeader)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -3365,7 +3365,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	hashes = append(hashes, prevHash)
 	blockHeader = &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	processedMetaHdrs, err = sp.GetProcessedMetaBlocksFromHeader(blockHeader)
+	processedMetaHdrs, err = sp.GetOrderedProcessedMetaBlocksFromHeader(blockHeader)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -3520,7 +3520,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	hashes = append(hashes, prevHash)
 	blockHeader := &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromHeader(blockHeader)
+	processedMetaHdrs, err := sp.GetOrderedProcessedMetaBlocksFromHeader(blockHeader)
 	assert.Nil(t, err)
 
 	err = sp.SaveLastNotarizedHeader(sharding.MetachainShardId, processedMetaHdrs)
@@ -3660,7 +3660,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	hashes = append(hashes, prevHash)
 	blockHeader := &block.Header{MetaBlockHashes: hashes, MiniBlockHeaders: mbHeaders}
 
-	processedMetaHdrs, err := sp.GetProcessedMetaBlocksFromHeader(blockHeader)
+	processedMetaHdrs, err := sp.GetOrderedProcessedMetaBlocksFromHeader(blockHeader)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(processedMetaHdrs))
 

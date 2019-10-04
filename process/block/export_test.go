@@ -44,8 +44,8 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint
 	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) GetProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
-	return sp.getProcessedMetaBlocksFromHeader(header)
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
+	return sp.getOrderedProcessedMetaBlocksFromHeader(header)
 }
 
 func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
@@ -245,8 +245,8 @@ func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []
 	return &hashAndHdr{header, hash}
 }
 
-func (sp *shardProcessor) RequestFinalMissingHeaders() uint32 {
-	return sp.requestFinalMissingHeaders()
+func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
+	return sp.requestMissingFinalityAttestingHeaders()
 }
 
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
@@ -270,8 +270,8 @@ func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockS
 	bp.blockSizeThrottler = blockSizeThrottler
 }
 
-func (sp *shardProcessor) SetCurrHighestMetaHdrNonce(value uint64) {
-	sp.currHighestMetaHdrNonce = value
+func (sp *shardProcessor) SetHighestHdrNonceForCurrentBlock(value uint64) {
+	sp.hdrsForCurrBlock.highestHdrNonce = value
 }
 
 func (sp *shardProcessor) DisplayLogInfo(
@@ -323,4 +323,12 @@ func (sp *shardProcessor) CalculateRoundDuration(
 	currentBlockRound uint64,
 ) uint64 {
 	return sp.calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
+}
+
+func (sp *shardProcessor) CreateBlockStarted() {
+	sp.createBlockStarted()
+}
+
+func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {
+	return sp.addProcessedCrossMiniBlocksFromHeader(header)
 }

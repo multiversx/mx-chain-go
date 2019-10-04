@@ -1,6 +1,8 @@
 package process
 
 import (
+	"sort"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -551,4 +553,13 @@ func getHeaderHashFromStorageWithNonce(
 	}
 
 	return hash, nil
+}
+
+// SortHeadersByNonce will sort a given list of headers by nonce
+func SortHeadersByNonce(headers []data.HeaderHandler) {
+	if len(headers) > 1 {
+		sort.Slice(headers, func(i, j int) bool {
+			return headers[i].GetNonce() < headers[j].GetNonce()
+		})
+	}
 }

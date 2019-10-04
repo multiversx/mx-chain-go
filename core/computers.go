@@ -1,6 +1,6 @@
 package core
 
-// MaxInt32 returns the maximum number between two given
+// MaxInt32 returns the maximum of two given numbers
 func MaxInt32(a int32, b int32) int32 {
 	if a > b {
 		return a
@@ -8,7 +8,7 @@ func MaxInt32(a int32, b int32) int32 {
 	return b
 }
 
-// MinInt32 returns the minimum number between two given
+// MinInt32 returns the minimum of two given numbers
 func MinInt32(a int32, b int32) int32 {
 	if a < b {
 		return a
@@ -16,7 +16,7 @@ func MinInt32(a int32, b int32) int32 {
 	return b
 }
 
-// MaxUint32 returns the maximum number between two given
+// MaxUint32 returns the maximum of two given numbers
 func MaxUint32(a uint32, b uint32) uint32 {
 	if a > b {
 		return a
@@ -24,7 +24,7 @@ func MaxUint32(a uint32, b uint32) uint32 {
 	return b
 }
 
-// MinUint32 returns the minimum number between two given
+// MinUint32 returns the minimum of two given numbers
 func MinUint32(a uint32, b uint32) uint32 {
 	if a < b {
 		return a
