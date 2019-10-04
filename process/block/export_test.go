@@ -310,3 +310,12 @@ func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHa
 func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
 	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
 }
+
+func (sp *shardProcessor) CalculateRoundDuration(
+	lastBlockTimestamp uint64,
+	currentBlockTimestamp uint64,
+	lastBlockRound uint64,
+	currentBlockRound uint64,
+) uint64 {
+	return sp.calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
+}
