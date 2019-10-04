@@ -74,13 +74,11 @@ func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
 	if crtTime.Sub(hbmi.genesisTime) < 0 {
 		return
 	}
-	crtDuration := crtTime.Sub(hbmi.lastUptimeDowntime)
+	crtDuration := crtTime.Sub(hbmi.timeStamp)
 	crtDuration = maxDuration(0, crtDuration)
-	hbmi.isActive = hbmi.isActive && crtDuration < hbmi.maxDurationPeerUnresponsive
+	hbmi.isActive = hbmi.isActive && crtDuration <= hbmi.maxDurationPeerUnresponsive
 	hbmi.updateUpAndDownTime(hbmi.isActive, crtTime)
 	hbmi.lastUptimeDowntime = crtTime
-
-	hbmi.isActive = hbmi.isActive && crtDuration < hbmi.maxDurationPeerUnresponsive
 }
 
 // Wil update the total time a node was up and down
