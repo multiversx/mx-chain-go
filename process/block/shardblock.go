@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -477,9 +478,16 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	signersIndexes := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys)
+	roundInfo := indexer.RoundInfo{
+		Index:            header.GetRound(),
+		SignersIndexes:   signersIndexes,
+		BlockWasProposed: true,
+		ShardId:          shardId,
+		Timestamp:        time.Duration(header.GetTimeStamp()),
+	}
 
 	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
-	go sp.core.Indexer().SaveRoundInfo(int64(header.GetRound()), shardId, signersIndexes, true)
+	go sp.core.Indexer().SaveRoundInfo(roundInfo)
 
 	if lastBlockHeader == nil {
 		return
@@ -488,15 +496,44 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	lastBlockRound := lastBlockHeader.GetRound()
 	currentBlockRound := header.GetRound()
 
+	roundDuration := sp.calculateRoundDuration(lastBlockHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(lastBlockHeader.GetRandSeed(), i, shardId)
 		if err != nil {
 			continue
 		}
 		signersIndexes = sp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
-		go sp.core.Indexer().SaveRoundInfo(int64(i), shardId, signersIndexes, true)
+		roundInfo = indexer.RoundInfo{
+			Index:            i,
+			SignersIndexes:   signersIndexes,
+			BlockWasProposed: true,
+			ShardId:          shardId,
+			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
+		}
+
+		go sp.core.Indexer().SaveRoundInfo(roundInfo)
+	}
+}
+
+func (sp *shardProcessor) calculateRoundDuration(
+	lastBlockTimestamp uint64,
+	currentBlockTimestamp uint64,
+	lastBlockRound uint64,
+	currentBlockRound uint64,
+) uint64 {
+	if lastBlockTimestamp >= currentBlockTimestamp {
+		log.Error("last block timestamp is greater or equals than current block timestamp")
+		return 0
+	}
+	if lastBlockRound >= currentBlockRound {
+		log.Error("last block round is greater or equals than current block round")
+		return 0
 	}
 
+	diffTimeStamp := currentBlockTimestamp - lastBlockTimestamp
+	diffRounds := currentBlockRound - lastBlockRound
+
+	return diffTimeStamp / diffRounds
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools

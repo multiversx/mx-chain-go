@@ -4172,3 +4172,18 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, sp.IsMiniBlockProcessed(metaHash, testMBHash))
 }
+
+func TestNewShardProcessor_CalculateRoundDuration(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments()
+	sp, _ := blproc.NewShardProcessor(arguments)
+	lastBlockTimestamp := uint64(80)
+	currentBlockTimestamp := uint64(100)
+	lastBlockRound := uint64(5)
+	currentBlockRound := uint64(10)
+	expectedRoundDuration := uint64(4)
+
+	roundDuration := sp.CalculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
+	assert.Equal(t, expectedRoundDuration, roundDuration)
+}
