@@ -27,6 +27,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func FeeHandlerMock() *mock.FeeHandlerStub {
+	return &mock.FeeHandlerStub{
+		MinGasPriceCalled: func() uint64 {
+			return 0
+		},
+		MinGasLimitForTxCalled: func() uint64 {
+			return 5
+		},
+		MinTxFeeCalled: func() uint64 {
+			return 0
+		},
+	}
+}
+
 func initDataPool() *mock.PoolsHolderStub {
 	sdp := &mock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
@@ -187,6 +201,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -207,6 +222,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -227,6 +243,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -247,6 +264,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -267,6 +285,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -287,6 +306,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		nil,
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -307,6 +327,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -326,6 +347,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		nil,
+		FeeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -345,6 +367,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 	txHash := []byte("tx1_hash")
 	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions())
@@ -366,6 +389,7 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
@@ -393,6 +417,7 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	shardId := uint32(1)
@@ -435,6 +460,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	//add 3 tx hashes on requested list
@@ -508,6 +534,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 
 	mb := &block.MiniBlock{
@@ -542,6 +569,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *test
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
 	assert.NotNil(t, err)
@@ -561,6 +589,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 	body := make(block.Body, 0)
 	txHash := []byte("txHash")
@@ -595,6 +624,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 	assert.NotNil(t, txs)
 
@@ -637,6 +667,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 	assert.NotNil(t, txs)
 
@@ -681,6 +712,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		FeeHandlerMock(),
 	)
 	assert.NotNil(t, txs)
 
@@ -730,12 +762,12 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-func TestSortTxByNonce_NilCacherShouldErr(t *testing.T) {
+func TestSortTxByNonce_NilTxDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 	transactions, txHashes, err := SortTxByNonce(nil)
 	assert.Nil(t, transactions)
 	assert.Nil(t, txHashes)
-	assert.Equal(t, process.ErrNilCacher, err)
+	assert.Equal(t, process.ErrNilTxDataPool, err)
 }
 
 func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {

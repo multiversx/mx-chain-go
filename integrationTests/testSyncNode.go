@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -59,6 +58,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
+	tpn.initEconomicsData()
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
@@ -80,17 +80,6 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
-	tpn.BlockTracker = &mock.BlocksTrackerMock{
-		AddBlockCalled: func(headerHandler data.HeaderHandler) {
-		},
-		RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
-			return nil
-		},
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			return make([]data.HeaderHandler, 0)
-		},
-	}
-
 	argumentsBase := &block.ArgBaseProcessor{
 		Accounts:              tpn.AccntState,
 		ForkDetector:          nil,
@@ -108,6 +97,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder)
+		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
@@ -122,7 +112,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.ShardDataPool,
-			BlocksTracker:    tpn.BlockTracker,
 			TxCoordinator:    tpn.TxCoordinator,
 			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}

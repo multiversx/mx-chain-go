@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -214,17 +215,6 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	}
 }
 
-// WithBlockTracker sets up the block tracker option for the Node
-func WithBlockTracker(blockTracker process.BlocksTracker) Option {
-	return func(n *Node) error {
-		if blockTracker == nil || blockTracker.IsInterfaceNil() {
-			return ErrNilBlockTracker
-		}
-		n.blockTracker = blockTracker
-		return nil
-	}
-}
-
 // WithGenesisTime sets up the genesis time option for the Node
 func WithGenesisTime(genesisTime time.Time) Option {
 	return func(n *Node) error {
@@ -397,6 +387,14 @@ func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 
 		}
 		n.appStatusHandler = aph
+		return nil
+	}
+}
+
+// WithIndexer sets up a indexer for the Node
+func WithIndexer(indexer indexer.Indexer) Option {
+	return func(n *Node) error {
+		n.indexer = indexer
 		return nil
 	}
 }

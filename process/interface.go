@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -341,16 +341,6 @@ type DataPacker interface {
 	IsInterfaceNil() bool
 }
 
-// BlocksTracker defines the functionality to track all the notarised blocks
-type BlocksTracker interface {
-	UnnotarisedBlocks() []data.HeaderHandler
-	RemoveNotarisedBlocks(headerHandler data.HeaderHandler) error
-	AddBlock(headerHandler data.HeaderHandler)
-	SetBlockBroadcastRound(nonce uint64, round int64)
-	BlockBroadcastRound(nonce uint64) int64
-	IsInterfaceNil() bool
-}
-
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	RequestHeaderByNonce(shardId uint32, nonce uint64)
@@ -406,5 +396,37 @@ type TxValidatorHandler interface {
 type PoolsCleaner interface {
 	Clean(duration time.Duration) (bool, error)
 	NumRemovedTxs() uint64
+	IsInterfaceNil() bool
+}
+
+// InterceptorThrottler can determine if the a new go routine can start
+type InterceptorThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}
+
+// RewardsHandler will return information about rewards
+type RewardsHandler interface {
+	RewardsValue() uint64
+	CommunityPercentage() float64
+	LeaderPercentage() float64
+	BurnPercentage() float64
+	IsInterfaceNil() bool
+}
+
+// FeeHandler will return information about fees
+type FeeHandler interface {
+	MinGasPrice() uint64
+	MinGasLimitForTx() uint64
+	MinTxFee() uint64
+	IsInterfaceNil() bool
+}
+
+// EconomicsAddressesHandler will return information about economics addresses
+type EconomicsAddressesHandler interface {
+	CommunityAddress() string
+	BurnAddress() string
 	IsInterfaceNil() bool
 }

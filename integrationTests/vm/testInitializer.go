@@ -118,6 +118,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		scProcessor,
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
+		&mock.FeeHandlerStub{},
 	)
 
 	return txProcessor
@@ -178,6 +179,7 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(
 		scProcessor,
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
+		&mock.FeeHandlerStub{},
 	)
 
 	return txProcessor, blockChainHook

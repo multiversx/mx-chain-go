@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -32,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -40,7 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -58,6 +60,15 @@ var TestMultiSig = mock.NewMultiSigner(1)
 
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
+
+// MinTxGasPrice minimum gas price required by a transaction
+//TODO refactor all tests to pass with a non zero value
+var MinTxGasPrice = uint64(0)
+
+// MinTxGasLimit minimum gas limit required by a transaction
+var MinTxGasLimit = uint64(4)
+
+const maxTxNonceDeltaAllowed = 8000
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -90,6 +101,8 @@ type TestProcessorNode struct {
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
 
+	EconomicsData *economics.EconomicsData
+
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
@@ -108,7 +121,6 @@ type TestProcessorNode struct {
 	PreProcessorsContainer process.PreProcessorsContainer
 
 	ForkDetector       process.ForkDetector
-	BlockTracker       process.BlocksTracker
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
 	Bootstrapper       process.Bootstrapper
@@ -199,6 +211,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
+	tpn.initEconomicsData()
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
@@ -240,6 +253,30 @@ func (tpn *TestProcessorNode) initChainHandler() {
 	}
 }
 
+func (tpn *TestProcessorNode) initEconomicsData() {
+	economicsData := economics.NewEconomicsData(
+		&config.ConfigEconomics{
+			EconomicsAddresses: config.EconomicsAddresses{
+				CommunityAddress: "addr1",
+				BurnAddress:      "addr2",
+			},
+			RewardsSettings: config.RewardsSettings{
+				RewardsValue:        1000,
+				CommunityPercentage: 0.10,
+				LeaderPercentage:    0.50,
+				BurnPercentage:      0.40,
+			},
+			FeeSettings: config.FeeSettings{
+				MinGasPrice:      MinTxGasPrice,
+				MinGasLimitForTx: MinTxGasLimit,
+				MinTxFee:         MinTxGasPrice * MinTxGasLimit,
+			},
+		},
+	)
+
+	tpn.EconomicsData = economicsData
+}
+
 func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -272,6 +309,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestMultiSig,
 			tpn.ShardDataPool,
 			TestAddressConverter,
+			maxTxNonceDeltaAllowed,
+			tpn.EconomicsData,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -340,6 +379,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.SpecialAddressHandler,
 		tpn.Storage,
 		tpn.ShardDataPool,
+		tpn.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -388,6 +428,17 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		rewardsHandler,
 		txTypeHandler,
+		&mock.FeeHandlerStub{
+			MinGasPriceCalled: func() uint64 {
+				return 0
+			},
+			MinGasLimitForTxCalled: func() uint64 {
+				return 5
+			},
+			MinTxFeeCalled: func() uint64 {
+				return 0
+			},
+		},
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -404,6 +455,17 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
 		internalTxProducer,
+		&mock.FeeHandlerStub{
+			MinGasPriceCalled: func() uint64 {
+				return 0
+			},
+			MinGasLimitForTxCalled: func() uint64 {
+				return 5
+			},
+			MinTxFeeCalled: func() uint64 {
+				return 0
+			},
+		},
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -432,17 +494,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 	}
 
-	tpn.BlockTracker = &mock.BlocksTrackerMock{
-		AddBlockCalled: func(headerHandler data.HeaderHandler) {
-		},
-		RemoveNotarisedBlocksCalled: func(headerHandler data.HeaderHandler) error {
-			return nil
-		},
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			return make([]data.HeaderHandler, 0)
-		},
-	}
-
 	argumentsBase := &block.ArgBaseProcessor{
 		Accounts:              tpn.AccntState,
 		ForkDetector:          tpn.ForkDetector,
@@ -459,6 +510,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		arguments.Core = &mock.ServiceContainerMock{}
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.MetaDataPool,
@@ -469,7 +521,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.ShardDataPool,
-			BlocksTracker:    tpn.BlockTracker,
 			TxCoordinator:    tpn.TxCoordinator,
 			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}

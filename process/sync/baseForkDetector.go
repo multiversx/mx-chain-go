@@ -185,10 +185,8 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 
 	var preservedHdrInfos []*headerInfo
 
-	bfd.mutHeaders.RLock()
+	bfd.mutHeaders.Lock()
 	hdrInfos := bfd.headers[nonce]
-	bfd.mutHeaders.RUnlock()
-
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hash) {
 			continue
@@ -197,7 +195,6 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 		preservedHdrInfos = append(preservedHdrInfos, hdrInfoStored)
 	}
 
-	bfd.mutHeaders.Lock()
 	if preservedHdrInfos == nil {
 		delete(bfd.headers, nonce)
 	} else {

@@ -15,6 +15,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func RewandsHandlerMock() *mock.RewardsHandlerMock {
+	return &mock.RewardsHandlerMock{
+		RewardsValueCalled: func() uint64 {
+			return 1000
+		},
+		CommunityPercentageCalled: func() float64 {
+			return 0.10
+		},
+		LeaderPercentageCalled: func() float64 {
+			return 0.50
+		},
+		BurnPercentageCalled: func() float64 {
+			return 0.40
+		},
+	}
+}
+
 func TestNewRewardTxHandler_NilSpecialAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -27,6 +44,7 @@ func TestNewRewardTxHandler_NilSpecialAddressShouldErr(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, th)
@@ -45,6 +63,7 @@ func TestNewRewardTxHandler_NilHasher(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, th)
@@ -63,6 +82,7 @@ func TestNewRewardTxHandler_NilMarshalizer(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, th)
@@ -81,6 +101,7 @@ func TestNewRewardTxHandler_NilShardCoordinator(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, th)
@@ -99,6 +120,7 @@ func TestNewRewardTxHandler_NilAddressConverter(t *testing.T) {
 		nil,
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, th)
@@ -117,6 +139,7 @@ func TestNewRewardTxHandler_NilChainStorer(t *testing.T) {
 		&mock.AddressConverterMock{},
 		nil,
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, th)
@@ -134,6 +157,7 @@ func TestNewRewardTxHandler_NilRewardsPool(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		nil,
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, th)
@@ -152,6 +176,7 @@ func TestNewRewardTxHandler_ValsOk(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -170,6 +195,7 @@ func TestRewardsHandler_AddIntermediateTransactions(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -191,6 +217,7 @@ func TestRewardsHandler_ProcessTransactionFee(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -218,6 +245,7 @@ func TestRewardsHandler_cleanCachedData(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -245,6 +273,7 @@ func TestRewardsHandler_CreateRewardsFromFees(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -282,6 +311,7 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsRewardTxNotFound(t *testing.T) {
 		adrConv,
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -316,6 +346,7 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsTotalTxsFeesDoNotMatch(t *testing
 		adrConv,
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -352,6 +383,7 @@ func TestRewardsHandler_VerifyCreatedRewardsTxsOK(t *testing.T) {
 		adrConv,
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -385,6 +417,7 @@ func TestRewardsHandler_CreateAllInterMiniBlocksOK(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -423,6 +456,7 @@ func TestRewardsHandler_GetAllCurrentFinishedTxs(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, err)
@@ -471,6 +505,7 @@ func TestRewardsHandler_CreateMarshalizedDataShouldWork(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	txs := []data.TransactionHandler{
@@ -522,6 +557,7 @@ func TestRewardsHandler_CreateBlockStartedShouldCreateProtocolReward(t *testing.
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	assert.Nil(t, th.protocolRewards)
@@ -548,6 +584,7 @@ func TestRewardsHandler_SaveCurrentIntermediateTxToStorageShouldWork(t *testing.
 			},
 		},
 		tdp.RewardTransactions(),
+		RewandsHandlerMock(),
 	)
 
 	txs := []data.TransactionHandler{

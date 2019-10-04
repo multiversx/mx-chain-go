@@ -14,12 +14,12 @@
    NodeDisplayName = ""
 
 [Explorer]
-    Enabled = false
-    IndexerURL = "http://localhost:9200"
+   Enabled = false
+   IndexerURL = "http://localhost:9200"
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
-        Size = 100
+        Size = 300
         Type = "LRU"
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
@@ -154,7 +154,7 @@
     Type = "LRU"
 
 [TxBlockBodyDataPool]
-    Size = 100
+    Size = 300
     Type = "LRU"
 
 [StateBlockBodyDataPool]
@@ -245,6 +245,4 @@
    Timeout = 0  # Setting 0 means 'use default value'
    Version = 0  # Setting 0 means 'use default value'
 
-[EconomicsConfig]
-    CommunityAddress = "1bedf9f1db526aa98eb61f251e6eb29df64c0a4d96261b6fe9d4df1bc2cf5420"
-    BurnAddress = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+
