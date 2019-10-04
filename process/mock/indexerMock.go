@@ -21,7 +21,7 @@ func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	panic("implement me")
 }
 
-func (im *IndexerMock) SaveRoundInfo(round int64, roundInfo indexer.RoundInfo) {
+func (im *IndexerMock) SaveRoundInfo(roundInfo indexer.RoundInfo) {
 	return
 }
 

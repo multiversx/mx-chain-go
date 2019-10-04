@@ -241,7 +241,7 @@ func (ei *elasticIndexer) SaveBlock(
 }
 
 // SaveRoundInfo will save data about a round on elastic search
-func (ei *elasticIndexer) SaveRoundInfo(round int64, roundInfo RoundInfo) {
+func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 	var buff bytes.Buffer
 
 	marshalizedRoundInfo, err := ei.marshalizer.Marshal(roundInfo)
@@ -255,7 +255,7 @@ func (ei *elasticIndexer) SaveRoundInfo(round int64, roundInfo RoundInfo) {
 
 	req := esapi.IndexRequest{
 		Index:      roundIndex,
-		DocumentID: strconv.Itoa(int(round)),
+		DocumentID: strconv.Itoa(int(roundInfo.Index)),
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}

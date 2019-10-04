@@ -9,7 +9,7 @@ import (
 // This could be an elasticsearch index, a MySql database or any other external services.
 type Indexer interface {
 	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64)
-	SaveRoundInfo(round int64, roundInfo RoundInfo)
+	SaveRoundInfo(roundInfo RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte)
 	IsInterfaceNil() bool
