@@ -1071,7 +1071,7 @@ func (mp *metaProcessor) createShardInfo(
 
 	log.Info(fmt.Sprintf("creating shard info has been started: have %d hdrs in pool\n", len(orderedHdrs)))
 
-	// save last committed hdr for verification
+	// save last committed header for verification
 	mp.mutNotarizedHdrs.RLock()
 	if mp.notarizedHdrs == nil {
 		mp.mutNotarizedHdrs.RUnlock()
@@ -1210,7 +1210,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 
 	mp.blockSizeThrottler.Add(
 		round,
-		uint32(core.Max(int32(header.ItemsInBody()), int32(header.ItemsInHeader()))))
+		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
 }

@@ -491,7 +491,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	timeAfter := time.Now()
 
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug(err.Error())
 		return nil, err
 	}
 

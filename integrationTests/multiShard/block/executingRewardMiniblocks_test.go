@@ -19,9 +19,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getRewardValue() uint32 {
-	//TODO: this should be read from protocol config
-	return uint32(1000)
+func getRewardValue(node *integrationTests.TestProcessorNode) uint64 {
+	return node.EconomicsData.RewardsValue()
+}
+
+func getLeaderPercentage(node *integrationTests.TestProcessorNode) float64 {
+	return node.EconomicsData.LeaderPercentage()
 }
 
 func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
@@ -324,14 +327,14 @@ func verifyRewardsForMetachain(
 	mapRewardsForMeta map[string]uint32,
 	nodes map[uint32][]*integrationTests.TestProcessorNode,
 ) {
-	rewardValue := getRewardValue()
+	rewardValue := getRewardValue(nodes[0][0])
 
 	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
 		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(metaAddr))
 		acc, err := nodes[0][0].AccntState.GetExistingAccount(addrContainer)
 		assert.Nil(t, err)
 
-		expectedBalance := big.NewInt(int64(numOfTimesRewarded * rewardValue))
+		expectedBalance := big.NewInt(int64(uint64(numOfTimesRewarded) * rewardValue))
 		assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 	}
 }
@@ -344,9 +347,8 @@ func verifyRewardsForShards(
 	gasPrice uint64,
 	gasLimit uint64,
 ) {
-	rewardValue := getRewardValue()
-	// TODO: fee percentage should be read from protocol config
-	feePerTxForLeader := gasPrice * gasLimit / 2
+	rewardValue := getRewardValue(nodesMap[0][0])
+	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0])
 
 	for address, nbRewards := range mapRewardsForAddress {
 		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(address))
