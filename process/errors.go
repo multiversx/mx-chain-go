@@ -478,7 +478,7 @@ var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wr
 // ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
 var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
 
-// ErrZeroMaxCleanTime signals that cleaning time for pools its less or equals with 0
+// ErrZeroMaxCleanTime signals that cleaning time for pools is less or equal with 0
 var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")
 
 // ErrNilEconomicsRewardsHandler signals that rewards handler is nil
@@ -486,3 +486,15 @@ var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
 
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrSystemBusy signals that the system is busy
+var ErrSystemBusy = errors.New("system busy")
+
+// ErrInsufficientGasPriceInTx signals that a lower gas price than required was provided
+var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
+
+// ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
+var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
