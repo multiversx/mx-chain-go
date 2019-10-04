@@ -201,7 +201,15 @@ func (sr *SubroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	shardId := sr.ShardCoordinator().SelfId()
 	signersIndexes := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys)
 	round := sr.Rounder().Index()
-	go sr.indexer.SaveRoundInfo(round, shardId, signersIndexes, false)
+
+	roundInfo := indexer.RoundInfo{
+		SignersIndexes:   signersIndexes,
+		BlockWasProposed: false,
+		ShardId:          shardId,
+		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
+	}
+
+	go sr.indexer.SaveRoundInfo(round, roundInfo)
 }
 
 func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

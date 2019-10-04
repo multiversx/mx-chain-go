@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -528,9 +529,15 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	signersIndexes := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys)
+	roundInfo := indexer.RoundInfo{
+		SignersIndexes:   signersIndexes,
+		BlockWasProposed: true,
+		ShardId:          shardId,
+		Timestamp:        time.Duration(header.GetTimeStamp()),
+	}
 
 	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
-	go sp.core.Indexer().SaveRoundInfo(int64(header.GetRound()), shardId, signersIndexes, true)
+	go sp.core.Indexer().SaveRoundInfo(int64(header.GetRound()), roundInfo)
 
 	if lastBlockHeader == nil {
 		return
@@ -545,7 +552,14 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 			continue
 		}
 		signersIndexes = sp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
-		go sp.core.Indexer().SaveRoundInfo(int64(i), shardId, signersIndexes, true)
+		roundInfo = indexer.RoundInfo{
+			SignersIndexes:   signersIndexes,
+			BlockWasProposed: true,
+			ShardId:          shardId,
+			Timestamp:        time.Duration(header.GetTimeStamp() - (currentBlockRound - i)),
+		}
+
+		go sp.core.Indexer().SaveRoundInfo(int64(i), roundInfo)
 	}
 
 }

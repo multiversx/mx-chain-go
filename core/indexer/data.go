@@ -52,9 +52,10 @@ type ValidatorsPublicKeys struct {
 
 // RoundInfo is a structure containing block signers and shard id
 type RoundInfo struct {
-	SignersIndexes   []uint64 `json:"signersIndexes"`
-	BlockWasProposed bool     `json:"blockWasProposed"`
-	ShardId          uint32   `json:"shardId"`
+	SignersIndexes   []uint64      `json:"signersIndexes"`
+	BlockWasProposed bool          `json:"blockWasProposed"`
+	ShardId          uint32        `json:"shardId"`
+	Timestamp        time.Duration `json:"timestamp"`
 }
 
 // TPS is a structure containing all the fields that need to

@@ -120,7 +120,7 @@ func NewElasticIndexer(
 		return nil, err
 	}
 
-	err = indexer.checkAndCreateIndex(roundIndex, nil)
+	err = indexer.checkAndCreateIndex(roundIndex, timestampMapping())
 	if err != nil {
 		return nil, err
 	}
@@ -241,14 +241,8 @@ func (ei *elasticIndexer) SaveBlock(
 }
 
 // SaveRoundInfo will save data about a round on elastic search
-func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64, blockWasProposed bool) {
+func (ei *elasticIndexer) SaveRoundInfo(round int64, roundInfo RoundInfo) {
 	var buff bytes.Buffer
-
-	roundInfo := RoundInfo{
-		SignersIndexes:   signersIndexes,
-		BlockWasProposed: blockWasProposed,
-		ShardId:          shardId,
-	}
 
 	marshalizedRoundInfo, err := ei.marshalizer.Marshal(roundInfo)
 	if err != nil {
