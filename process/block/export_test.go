@@ -61,7 +61,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		nodesCoordinator,
 	)
 	arguments := ArgShardProcessor{
-		ArgBaseProcessor: &ArgBaseProcessor{
+		ArgBaseProcessor: ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
 			ForkDetector:          &mock.ForkDetectorMock{},
 			Hasher:                &mock.HasherMock{},

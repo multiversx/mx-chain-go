@@ -494,7 +494,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 	}
 
-	argumentsBase := &block.ArgBaseProcessor{
+	argumentsBase := block.ArgBaseProcessor{
 		Accounts:              tpn.AccntState,
 		ForkDetector:          tpn.ForkDetector,
 		Hasher:                TestHasher,
@@ -510,7 +510,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		arguments.Core = &mock.ServiceContainerMock{}
+		argumentsBase.Core = &mock.ServiceContainerMock{}
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.MetaDataPool,

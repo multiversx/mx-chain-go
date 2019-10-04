@@ -80,7 +80,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
-	argumentsBase := &block.ArgBaseProcessor{
+	argumentsBase := block.ArgBaseProcessor{
 		Accounts:              tpn.AccntState,
 		ForkDetector:          nil,
 		Hasher:                TestHasher,

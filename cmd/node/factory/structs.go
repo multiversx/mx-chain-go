@@ -1705,7 +1705,7 @@ func newShardBlockProcessor(
 		Core:                  coreServiceContainer,
 	}
 	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: &argumentsBaseProcessor,
+		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.Datapool,
 		TxCoordinator:    txCoordinator,
 		TxsPoolsCleaner:  txPoolsCleaner,
@@ -1759,7 +1759,7 @@ func newMetaBlockProcessor(
 		Core:                  coreServiceContainer,
 	}
 	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor: &argumentsBaseProcessor,
+		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.MetaDatapool,
 	}
 

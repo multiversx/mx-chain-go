@@ -471,7 +471,7 @@ func createNetNode(
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 
 	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: &block.ArgBaseProcessor{
+		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
 				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
@@ -802,7 +802,7 @@ func createMetaNetNode(
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 
 	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor: &block.ArgBaseProcessor{
+		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
 				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {

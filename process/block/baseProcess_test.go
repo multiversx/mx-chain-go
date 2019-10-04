@@ -316,7 +316,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 		nodesCoordinator,
 	)
 	arguments := blproc.ArgShardProcessor{
-		ArgBaseProcessor: &blproc.ArgBaseProcessor{
+		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
 			ForkDetector:          &mock.ForkDetectorMock{},
 			Hasher:                &mock.HasherStub{},

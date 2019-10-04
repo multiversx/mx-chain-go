@@ -24,7 +24,7 @@ func CreateMockMetaArguments() blproc.ArgMetaProcessor {
 	mdp := initMetaDataPool()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	arguments := blproc.ArgMetaProcessor{
-		ArgBaseProcessor: &blproc.ArgBaseProcessor{
+		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
 			ForkDetector:          &mock.ForkDetectorMock{},
 			Hasher:                &mock.HasherStub{},
