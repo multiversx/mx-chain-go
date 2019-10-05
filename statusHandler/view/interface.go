@@ -44,6 +44,7 @@ type Presenter interface {
 	GetBlockSize() uint64
 	GetNumShardHeadersInPool() uint64
 	GetNumShardHeadersProcessed() uint64
+	GetHighestFinalBlockInShard() uint64
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

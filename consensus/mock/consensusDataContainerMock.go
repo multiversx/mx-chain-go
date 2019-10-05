@@ -14,7 +14,6 @@ import (
 type ConsensusCoreMock struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
-	blocksTracker          process.BlocksTracker
 	bootstrapper           process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
 	chronologyHandler      consensus.ChronologyHandler
@@ -26,7 +25,7 @@ type ConsensusCoreMock struct {
 	rounder                consensus.Rounder
 	shardCoordinator       sharding.Coordinator
 	syncTimer              ntp.SyncTimer
-	validatorGroupSelector consensus.ValidatorGroupSelector
+	validatorGroupSelector sharding.NodesCoordinator
 }
 
 func (cdc *ConsensusCoreMock) Blockchain() data.ChainHandler {
@@ -35,10 +34,6 @@ func (cdc *ConsensusCoreMock) Blockchain() data.ChainHandler {
 
 func (cdc *ConsensusCoreMock) BlockProcessor() process.BlockProcessor {
 	return cdc.blockProcessor
-}
-
-func (cdc *ConsensusCoreMock) BlocksTracker() process.BlocksTracker {
-	return cdc.blocksTracker
 }
 
 func (cdc *ConsensusCoreMock) BootStrapper() process.Bootstrapper {
@@ -77,7 +72,7 @@ func (cdc *ConsensusCoreMock) SyncTimer() ntp.SyncTimer {
 	return cdc.syncTimer
 }
 
-func (cdc *ConsensusCoreMock) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
+func (cdc *ConsensusCoreMock) NodesCoordinator() sharding.NodesCoordinator {
 	return cdc.validatorGroupSelector
 }
 
@@ -124,7 +119,7 @@ func (cdc *ConsensusCoreMock) SetSyncTimer(syncTimer ntp.SyncTimer) {
 	cdc.syncTimer = syncTimer
 }
 
-func (cdc *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector consensus.ValidatorGroupSelector) {
+func (cdc *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector sharding.NodesCoordinator) {
 	cdc.validatorGroupSelector = validatorGroupSelector
 }
 

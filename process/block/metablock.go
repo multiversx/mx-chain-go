@@ -50,6 +50,8 @@ func NewMetaProcessor(
 	dataPool dataRetriever.MetaPoolsHolder,
 	forkDetector process.ForkDetector,
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	specialAddressHandler process.SpecialAddressHandler,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
@@ -65,6 +67,8 @@ func NewMetaProcessor(
 		marshalizer,
 		store,
 		shardCoordinator,
+		nodesCoordinator,
+		specialAddressHandler,
 		uint64Converter)
 	if err != nil {
 		return nil, err
@@ -93,6 +97,8 @@ func NewMetaProcessor(
 		marshalizer:                   marshalizer,
 		store:                         store,
 		shardCoordinator:              shardCoordinator,
+		nodesCoordinator:              nodesCoordinator,
+		specialAddressHandler:         specialAddressHandler,
 		uint64Converter:               uint64Converter,
 		onRequestHeaderHandler:        requestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
@@ -224,6 +230,11 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+// SetConsensusData - sets the reward addresses for the current consensus group
+func (mp *metaProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
+	// nothing to do
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
@@ -1060,7 +1071,7 @@ func (mp *metaProcessor) createShardInfo(
 
 	log.Info(fmt.Sprintf("creating shard info has been started: have %d hdrs in pool\n", len(orderedHdrs)))
 
-	// save last committed hdr for verification
+	// save last committed header for verification
 	mp.mutNotarizedHdrs.RLock()
 	if mp.notarizedHdrs == nil {
 		mp.mutNotarizedHdrs.RUnlock()
@@ -1199,7 +1210,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 
 	mp.blockSizeThrottler.Add(
 		round,
-		core.Max(header.ItemsInBody(), header.ItemsInHeader()))
+		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
 }

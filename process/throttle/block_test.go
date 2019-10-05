@@ -3,6 +3,7 @@ package throttle_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/stretchr/testify/assert"
@@ -133,7 +134,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToMinItemsInBlockWhen
 func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToADecreasedValueWhenLastActionNotSucceed(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	lastActionMaxItems1 := uint32(12000)
+	lastActionMaxItems1 := core.MaxUint32(12000, process.MinItemsInBlock)
 	bst.SetMaxItems(lastActionMaxItems1)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, false)
@@ -142,7 +143,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToADecreasedValueWhen
 	assert.Equal(t, decreasedValue, bst.MaxItemsToAdd())
 
 	bst.SetSucceed(2, true)
-	lastActionMaxItems2 := uint32(14000)
+	lastActionMaxItems2 := core.MaxUint32(14000, process.MinItemsInBlock)
 	bst.SetMaxItems(lastActionMaxItems2)
 	bst.Add(3, 0)
 	bst.SetSucceed(3, false)
@@ -178,12 +179,12 @@ func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldReturnNoOfMaxItemsUsedWit
 func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldIncreaseMaxItemsWithAtLeastOneUnit(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithoutSucceed := uint32(process.MinItemsInBlock + 1)
+	maxItemsUsedWithoutSucceed := core.MinUint32(process.MinItemsInBlock+1, process.MaxItemsInBlock)
 	bst.SetMaxItems(maxItemsUsedWithoutSucceed)
 	bst.Add(2, 0)
 	maxItemsWhenSucceed := bst.GetMaxItemsWhenSucceed(process.MinItemsInBlock)
 
-	assert.Equal(t, uint32(process.MinItemsInBlock+1), maxItemsWhenSucceed)
+	assert.Equal(t, core.MinUint32(process.MinItemsInBlock+1, process.MaxItemsInBlock), maxItemsWhenSucceed)
 }
 
 func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldIncreaseMaxItems(t *testing.T) {
@@ -257,7 +258,7 @@ func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldDecreaseMaxItemsWithAt
 func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldDecreaseMaxItems(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithSucceed := uint32(7000)
+	maxItemsUsedWithSucceed := core.MaxUint32(7000, process.MinItemsInBlock)
 	bst.SetMaxItems(maxItemsUsedWithSucceed)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, true)
