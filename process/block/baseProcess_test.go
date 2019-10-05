@@ -245,7 +245,7 @@ func initStore() *dataRetriever.ChainStorer {
 	return store
 }
 
-func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) data.HeaderHandler {
+func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) *block.MetaBlock {
 	metaBlock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{
