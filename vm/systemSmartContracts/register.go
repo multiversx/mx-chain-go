@@ -26,12 +26,12 @@ func NewRegisterSmartContract(stakeValue *big.Int, eei vm.SystemEI) (*registerSC
 }
 
 // Execute calls one of the functions from the register smart contract and runs the code according to the input
-func (r *registerSC) Execute(args *vm.ExecuteArguments) vmcommon.ReturnCode {
+func (r *registerSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
 	}
 
-	if args.Value.Cmp(r.stakeValue) != 0 {
+	if args.CallValue.Cmp(r.stakeValue) != 0 {
 		return vmcommon.UserError
 	}
 

@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/vm"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -49,48 +48,6 @@ func TestSystemSCContainer_AddShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, c.Len())
-}
-
-//------- AddMultiple
-
-func TestSystemSCContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
-	t.Parallel()
-
-	c := NewSystemSCContainer()
-
-	keys := [][]byte{[]byte("0001"), []byte("0001")}
-	scs := []vm.SystemSmartContract{&mock.SystemSCStub{}, &mock.SystemSCStub{}}
-
-	err := c.AddMultiple(keys, scs)
-
-	assert.Equal(t, process.ErrContainerKeyAlreadyExists, err)
-}
-
-func TestSystemSCContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
-	t.Parallel()
-
-	c := NewSystemSCContainer()
-
-	keys := [][]byte{[]byte("0001")}
-	scs := []vm.SystemSmartContract{&mock.SystemSCStub{}, &mock.SystemSCStub{}}
-
-	err := c.AddMultiple(keys, scs)
-
-	assert.Equal(t, process.ErrLenMismatch, err)
-}
-
-func TestSystemSCContainer_AddMultipleShouldWork(t *testing.T) {
-	t.Parallel()
-
-	c := NewSystemSCContainer()
-
-	keys := [][]byte{[]byte("0001"), []byte("0002")}
-	scs := []vm.SystemSmartContract{&mock.SystemSCStub{}, &mock.SystemSCStub{}}
-
-	err := c.AddMultiple(keys, scs)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 2, c.Len())
 }
 
 //------- Get

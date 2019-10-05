@@ -6,6 +6,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
+	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 )
@@ -57,12 +60,46 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
+	vm, err = vmf.createSystemVM()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.SystemVirtualMachine, vm)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
 	return ieleVM, nil
+}
+
+func (vmf * vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
+	systemEI, err := systemSmartContracts.NewVMContext(vmf.vmAccountsDB, vmf.cryptoHook)
+	if err != nil {
+		return nil, err
+	}
+
+	scFactory, err := systemVMFactory.NewSystemSCFactory(systemEI)
+	if err != nil {
+		return nil, err
+	}
+
+	systemContracts, err := scFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	systemVM, err := systemVMProcess.NewSystemVM(systemEI, systemContracts, factory.SystemVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+
+	return systemVM, nil
 }
 
 // VMAccountsDB returns the created vmAccountsDB

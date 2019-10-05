@@ -1,16 +1,15 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type SystemSCStub struct {
-	ExecuteCalled func(args *vm.ExecuteArguments) vmcommon.ReturnCode
+	ExecuteCalled func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	ValueOfCalled func(key interface{}) interface{}
 }
 
-func (s *SystemSCStub) Execute(args *vm.ExecuteArguments) vmcommon.ReturnCode {
+func (s *SystemSCStub) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.ExecuteCalled != nil {
 		return s.ExecuteCalled(args)
 	}

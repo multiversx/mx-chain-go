@@ -13,14 +13,16 @@ type systemSCFactory struct {
 	systemEI vm.SystemEI
 }
 
+// NewSystemSCFactory creates a factory which will instantiate the system smart contracts
 func NewSystemSCFactory(systemEI vm.SystemEI) (*systemSCFactory, error) {
 	if systemEI == nil || systemEI.IsInterfaceNil() {
-		return nil, errors.New("nil system environmental interface")
+		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
 
 	return &systemSCFactory{systemEI: systemEI}, nil
 }
 
+// Create instantiates all the system smart contracts and returns a container
 func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
 
@@ -42,6 +44,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	return scContainer, nil
 }
 
+// IsInterfaceNil checks whether the underlying object is nil
 func (scf *systemSCFactory) IsInterfaceNil() bool {
 	if scf == nil {
 		return true

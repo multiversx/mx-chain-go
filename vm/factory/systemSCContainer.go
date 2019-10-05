@@ -50,23 +50,6 @@ func (vmc *systemSCContainer) Add(key []byte, sc vm.SystemSmartContract) error {
 	return nil
 }
 
-// AddMultiple will add objects with given keys. Returns
-// an error if one element already exists, lengths mismatch or an interceptor is nil
-func (vmc *systemSCContainer) AddMultiple(keys [][]byte, scs []vm.SystemSmartContract) error {
-	if len(keys) != len(scs) {
-		return process.ErrLenMismatch
-	}
-
-	for idx, key := range keys {
-		err := vmc.Add(key, scs[idx])
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // Replace will add (or replace if it already exists) an object at a given key
 func (vmc *systemSCContainer) Replace(key []byte, sc vm.SystemSmartContract) error {
 	if sc == nil || sc.IsInterfaceNil() {
