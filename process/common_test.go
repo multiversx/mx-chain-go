@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -2109,4 +2110,22 @@ func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, txFromPool, tx)
+}
+
+func TestSortHeadersByNonceShouldWork(t *testing.T) {
+	headers := []data.HeaderHandler{
+		&block.Header{Nonce: 3},
+		&block.Header{Nonce: 2},
+		&block.Header{Nonce: 1},
+	}
+
+	assert.Equal(t, uint64(3), headers[0].GetNonce())
+	assert.Equal(t, uint64(2), headers[1].GetNonce())
+	assert.Equal(t, uint64(1), headers[2].GetNonce())
+
+	process.SortHeadersByNonce(headers)
+
+	assert.Equal(t, uint64(1), headers[0].GetNonce())
+	assert.Equal(t, uint64(2), headers[1].GetNonce())
+	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }
