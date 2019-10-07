@@ -77,6 +77,7 @@ type Config struct {
 	PeerDataStorage  StorageConfig
 
 	AccountsTrieStorage StorageConfig
+	TrieSnapshotDB      DBConfig
 	EvictionWaitingList EvictionWaitingListConfig
 	BadBlocksCache      CacheConfig
 

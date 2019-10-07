@@ -4,9 +4,14 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
@@ -25,12 +30,22 @@ func emptyTrie() data.Trie {
 	return tr
 }
 
-func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashing.Hasher, storage.Persister, int) {
+func getDefaultTrieParameters() (data.DBWriteCacher, marshal.Marshalizer, hashing.Hasher, storage.Persister, int, config.DBConfig) {
 	db := mock.NewMemDbMock()
 	marshalizer := &mock.ProtobufMarshalizerMock{}
 	hasher := &mock.KeccakMock{}
 
-	return db, marshalizer, hasher, mock.NewMemDbMock(), 100
+	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
+
+	cfg := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
+	}
+
+	return db, marshalizer, hasher, mock.NewMemDbMock(), 100, cfg
 }
 
 func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
@@ -59,8 +74,8 @@ func initTrie() data.Trie {
 func TestNewTrieWithNilDB(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, evictionDB, evictionWaitListSize := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, evictionDB, evictionWaitListSize)
+	_, marshalizer, hasher, evictionDB, evictionWaitListSize, cfg := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, evictionDB, evictionWaitListSize, cfg)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilDatabase, err)
@@ -69,8 +84,8 @@ func TestNewTrieWithNilDB(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	db, _, hasher, evictionDB, evictionWaitListSize := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, nil, hasher, evictionDB, evictionWaitListSize)
+	db, _, hasher, evictionDB, evictionWaitListSize, cfg := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, nil, hasher, evictionDB, evictionWaitListSize, cfg)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -79,8 +94,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	db, marshalizer, _, evictionDB, evictionWaitListSize := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, nil, evictionDB, evictionWaitListSize)
+	db, marshalizer, _, evictionDB, evictionWaitListSize, cfg := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, marshalizer, nil, evictionDB, evictionWaitListSize, cfg)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -89,8 +104,8 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 func TestNewTrieWithNilEvictionDB(t *testing.T) {
 	t.Parallel()
 
-	db, marshalizer, hasher, _, evictionWaitListSize := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(db, marshalizer, hasher, nil, evictionWaitListSize)
+	db, marshalizer, hasher, _, evictionWaitListSize, cfg := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(db, marshalizer, hasher, nil, evictionWaitListSize, cfg)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilDatabase, err)
@@ -483,8 +498,8 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	t.Parallel()
 
-	db, marsh, hashser, evictionDb, evictionWaitListSize := getDefaultTrieParameters()
-	tr, _ := trie.NewTrie(db, marsh, hashser, evictionDb, evictionWaitListSize)
+	db, marsh, hashser, evictionDb, evictionWaitListSize, cfg := getDefaultTrieParameters()
+	tr, _ := trie.NewTrie(db, marsh, hashser, evictionDb, evictionWaitListSize, cfg)
 
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
@@ -501,6 +516,15 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	val, err := db.Get(rootHash)
 	assert.Nil(t, val)
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestPatriciaMerkleTrie_Snapshot(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	err := tr.Snapshot()
+	assert.Nil(t, err)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

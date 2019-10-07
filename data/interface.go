@@ -96,6 +96,7 @@ type Trie interface {
 	DeepClone() (Trie, error)
 	CancelPrune(rootHash []byte)
 	Prune(rootHash []byte) error
+	Snapshot() error
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	IsInterfaceNil() bool

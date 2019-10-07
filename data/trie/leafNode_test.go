@@ -157,7 +157,7 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln, marsh, hasher)
 	_ = ln.setHash(marsh, hasher)
 
-	err := ln.commit(0, db, marsh, hasher)
+	err := ln.commit(false, 0, db, marsh, hasher)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -174,7 +174,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := ln.commit(0, db, marsh, hasher)
+	err := ln.commit(false, 0, db, marsh, hasher)
 	assert.Equal(t, ErrEmptyNode, err)
 }
 
@@ -185,7 +185,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := ln.commit(0, db, marsh, hasher)
+	err := ln.commit(false, 0, db, marsh, hasher)
 	assert.Equal(t, ErrNilNode, err)
 }
 
@@ -382,7 +382,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	ln := getLn()
 	marsh, hasher := getTestMarshAndHasher()
 	node := newLeafNode([]byte("dog"), []byte("dogs"))
-	_ = ln.commit(0, db, marsh, hasher)
+	_ = ln.commit(false, 0, db, marsh, hasher)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.insert(node, db, marsh)
@@ -399,7 +399,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	ln := newLeafNode([]byte{1, 2, 3}, []byte("dog"))
 	node := newLeafNode([]byte{4, 5, 6}, []byte("dogs"))
-	_ = ln.commit(0, db, marsh, hasher)
+	_ = ln.commit(false, 0, db, marsh, hasher)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.insert(node, db, marsh)
@@ -472,7 +472,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	ln := getLn()
 	marsh, hasher := getTestMarshAndHasher()
-	_ = ln.commit(0, db, marsh, hasher)
+	_ = ln.commit(false, 0, db, marsh, hasher)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db, marsh)
@@ -488,7 +488,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
-	_ = ln.commit(0, db, marsh, hasher)
+	_ = ln.commit(false, 0, db, marsh, hasher)
 
 	wrongKey := []byte{1, 2, 3}
 	dirty, _, oldHashes, err := ln.delete(wrongKey, db, marsh)

@@ -120,12 +120,12 @@ func (ln *leafNode) hashNode(marshalizer marshal.Marshalizer, hasher hashing.Has
 	return encodeNodeAndGetHash(ln, marshalizer, hasher)
 }
 
-func (ln *leafNode) commit(level byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (ln *leafNode) commit(force bool, level byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
-	if !ln.dirty {
+	if !ln.dirty && !force {
 		return nil
 	}
 	ln.dirty = false
