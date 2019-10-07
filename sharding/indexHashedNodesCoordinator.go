@@ -11,6 +11,7 @@ import (
 )
 
 type indexHashedNodesCoordinator struct {
+	RatingCoordinator
 	nbShards                uint32
 	shardId                 uint32
 	hasher                  hashing.Hasher
@@ -27,6 +28,7 @@ func NewIndexHashedNodesCoordinator(
 	shardId uint32,
 	nbShards uint32,
 	nodes map[uint32][]Validator,
+	coordinator RatingCoordinator,
 ) (*indexHashedNodesCoordinator, error) {
 	if shardConsensusGroupSize < 1 || metaConsensusGroupSize < 1 {
 		return nil, ErrInvalidConsensusGroupSize
@@ -44,7 +46,12 @@ func NewIndexHashedNodesCoordinator(
 		return nil, ErrNilHasher
 	}
 
+	if coordinator == nil {
+		return nil, ErrNilRatingCoordinator
+	}
+
 	ihgs := &indexHashedNodesCoordinator{
+		RatingCoordinator:       coordinator,
 		nbShards:                nbShards,
 		shardId:                 shardId,
 		hasher:                  hasher,
@@ -115,7 +122,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
 
 	// TODO: pre-compute eligible list and update only on rating change.
-	expandedList := ihgs.expandEligibleList(shardId)
+	expandedList := ihgs.expandEligibleList(shardId, round)
 	lenExpandedList := len(expandedList)
 
 	for startIdx := 0; startIdx < consensusSize; startIdx++ {
@@ -255,9 +262,9 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(publicKeys []strin
 	return signersIndexes
 }
 
-func (ihgs *indexHashedNodesCoordinator) expandEligibleList(shardId uint32) []Validator {
-	//TODO implement an expand eligible list variant
-	return ihgs.nodesMap[shardId]
+func (ihgs *indexHashedNodesCoordinator) expandEligibleList(shardId uint32, round uint64) []Validator {
+	//TODO implement and expand eligible list variant
+	return ihgs.GetValidatorListAccordingToRating(ihgs.nodesMap[shardId], round)
 }
 
 // computeListIndex computes a proposed index from expanded eligible list

@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -31,6 +32,7 @@ type Validator interface {
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
 	PublicKeysSelector
+	RatingCoordinator
 	SetNodesPerShards(nodes map[uint32][]Validator) error
 	ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
@@ -44,4 +46,12 @@ type PublicKeysSelector interface {
 	GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error)
 	GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32) ([]string, error)
 	GetValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32) ([]string, error)
+}
+
+// RatingCoordinator defines the behaviour of a struct able to do ratings for validators
+type RatingCoordinator interface {
+	GetValidatorListAccordingToRating([]Validator, uint64) []Validator
+	IncreaseRating([]string)
+	DecreaseRating([]string)
+	UpdateRating(handler data.HeaderHandler)
 }

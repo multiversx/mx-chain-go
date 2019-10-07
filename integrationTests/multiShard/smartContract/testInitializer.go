@@ -611,6 +611,7 @@ func createNodes(
 				uint32(shardId),
 				uint32(numOfShards),
 				validatorsMap,
+				&mock.RatingCoordinatorMock{},
 			)
 
 			accntAdapter := createAccountsDB()
@@ -686,6 +687,7 @@ func createNodes(
 			sharding.MetachainShardId,
 			uint32(numOfShards),
 			validatorsMap,
+			&mock.RatingCoordinatorMock{},
 		)
 
 		metaNodes[i] = createMetaNetNode(

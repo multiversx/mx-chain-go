@@ -775,6 +775,15 @@ func (sp *shardProcessor) CommitBlock(
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
+	var lastBlockHeader data.HeaderHandler
+
+	//lastBlockRound := uint64(0) //previous rating computed in round
+	for _, finalHdr := range finalHeaders {
+		if finalHdr.GetNonce() == 0 {
+			continue
+		}
+
+	}
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Info(fmt.Sprintf("shard block with nonce %d is the highest final block in shard %d\n",

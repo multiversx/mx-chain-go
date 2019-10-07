@@ -1908,3 +1908,49 @@ func getSk(
 
 	return decodeAddress(string(encodedSk))
 }
+
+// BlockSigningRatingCoordinator defines the behaviour of a struct able to do ratings for validators
+type BlockSigningRatingCoordinator struct {
+	lastBlockHeader data.HeaderHandler
+}
+
+func (rc *BlockSigningRatingCoordinator) GetValidatorListAccordingToRating(
+	v []sharding.Validator,
+	round uint64,
+) []sharding.Validator {
+	return v
+}
+
+func (rc *BlockSigningRatingCoordinator) IsInterfaceNil() bool {
+	return false
+}
+
+func (rc *BlockSigningRatingCoordinator) IncreaseRating([]string) {
+
+}
+
+func (rc *BlockSigningRatingCoordinator) DecreaseRating([]string) {
+
+}
+
+func (rc *BlockSigningRatingCoordinator) UpdateRating(finalHdr data.HeaderHandler) {
+	//for i := rc.lastBlockHeader.GetRound() + 1; i < finalHdr.GetRound(); i++ {
+	//	publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(rc.lastBlockHeader.GetRandSeed(), i,
+	//		rc.lastBlockHeader.GetShardID())
+	//	if err != nil {
+	//		if err != nil {
+	//			log.Debug(err.Error())
+	//		}
+	//	}
+	//	sp.nodesCoordinator.DecreaseRating(publicKeys)
+	//}
+	//
+	//publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(finalHdr.GetPrevRandSeed(), finalHdr.GetRound(),
+	//	finalHdr.GetShardID())
+	//if err != nil {
+	//	log.Debug(err.Error())
+	//}
+	//sp.nodesCoordinator.IncreaseRating(publicKeys)
+	//
+	//lastBlockHeader = finalHdr
+}

@@ -70,6 +70,9 @@ var ErrNilRandomness = errors.New("nil randomness source")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
+// ErrNilRatingCoordinator signals that a nil rating coordinator has been provided
+var ErrNilRatingCoordinator = errors.New("nil rating coordinator")
+
 // ErrNilStake signals that a nil stake structure has been provided
 var ErrNilStake = errors.New("nil stake")
 

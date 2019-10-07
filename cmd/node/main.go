@@ -1120,6 +1120,8 @@ func createNodesCoordinator(
 		initValidators[shardId] = validators
 	}
 
+	ratingCoordinator := &factory.BlockSigningRatingCoordinator{}
+
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
@@ -1127,6 +1129,7 @@ func createNodesCoordinator(
 		shardId,
 		nbShards,
 		initValidators,
+		ratingCoordinator,
 	)
 	if err != nil {
 		return nil, err

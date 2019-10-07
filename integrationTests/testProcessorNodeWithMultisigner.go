@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"testing"
 	"time"
 
@@ -87,6 +88,7 @@ func CreateNodesWithNodesCoordinator(
 			shardId,
 			uint32(nbShards),
 			validatorsMap,
+			&mock.RatingCoordinatorMock{},
 		)
 
 		if err != nil {

@@ -457,6 +457,7 @@ func createNodes(
 			0,
 			1,
 			validatorsMap,
+			&mock.RatingCoordinatorMock{},
 		)
 
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
