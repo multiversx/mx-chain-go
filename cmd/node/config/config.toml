@@ -233,6 +233,16 @@
    MinTimeToWaitBetweenBroadcastsInSec = 20
    MaxTimeToWaitBetweenBroadcastsInSec = 25
    DurationInSecToConsiderUnresponsive = 60
+   [Heartbeat.HeartbeatStorage]
+       [Heartbeat.HeartbeatStorage.Cache]
+           Size = 100
+           Type = "LRU"
+       [Heartbeat.HeartbeatStorage.DB]
+           FilePath = "HeartbeatStorage"
+           Type = "LvlDBSerial"
+           BatchDelaySeconds = 15
+           MaxBatchSize = 1
+           MaxOpenFiles = 10
 
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")
 # When consensus type is "bls" the multisig hasher type should be "blake2b"

@@ -32,6 +32,8 @@ const (
 	RewardTransactionUnit UnitType = 8
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
 	MetaHdrNonceHashDataUnit UnitType = 9
+	// HeartbeatUnit is the heartbeat storage unit identifier
+	HeartbeatUnit UnitType = 10
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
