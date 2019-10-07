@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
@@ -17,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 const (
@@ -313,6 +312,8 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		return nil, err
 	}
 	newTr.dbEvictionWaitingList = tr.dbEvictionWaitingList
+	newTr.snapshots = tr.snapshots
+	newTr.snapshotId = tr.snapshotId
 
 	if emptyTrie(root) {
 		return newTr, nil
@@ -343,6 +344,8 @@ func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
 		return nil, err
 	}
 	clonedTrie.dbEvictionWaitingList = tr.dbEvictionWaitingList
+	clonedTrie.snapshots = tr.snapshots
+	clonedTrie.snapshotId = tr.snapshotId
 
 	if tr.root == nil {
 		return clonedTrie, nil
@@ -384,13 +387,6 @@ func emptyTrie(root []byte) bool {
 	return false
 }
 
-// CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte) {
-	tr.mutOperation.Lock()
-	_, _ = tr.dbEvictionWaitingList.Evict(rootHash)
-	tr.mutOperation.Unlock()
-}
-
 // Prune removes from the database all the old hashes that correspond to the given root hash
 func (tr *patriciaMerkleTrie) Prune(rootHash []byte) error {
 	tr.mutOperation.Lock()
@@ -411,6 +407,18 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte) error {
 	return nil
 }
 
+// CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
+func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte) {
+	tr.mutOperation.Lock()
+	_, _ = tr.dbEvictionWaitingList.Evict(rootHash)
+	tr.mutOperation.Unlock()
+}
+
+// AppendToOldHashes appends the given hashes to the trie's oldHashes variable
+func (tr *patriciaMerkleTrie) AppendToOldHashes(hashes [][]byte) {
+	tr.oldHashes = append(tr.oldHashes, hashes...)
+}
+
 // ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
 func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	oldHashes := tr.oldHashes
@@ -418,11 +426,6 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	tr.oldRoot = make([]byte, 0)
 
 	return oldHashes
-}
-
-// AppendToOldHashes appends the given hashes to the trie's oldHashes variable
-func (tr *patriciaMerkleTrie) AppendToOldHashes(hashes [][]byte) {
-	tr.oldHashes = append(tr.oldHashes, hashes...)
 }
 
 // Snapshot creates a new database in which the current state of the trie is saved.

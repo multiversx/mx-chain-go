@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -19,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -716,8 +715,8 @@ func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 		b.StopTimer()
 		hsh := keccak.Keccak{}
 		tr := emptyTrie()
-		for i := 0; i < nrValuesInTrie; i++ {
-			hash := hsh.Compute(strconv.Itoa(i))
+		for j := 0; j < nrValuesInTrie; j++ {
+			hash := hsh.Compute(strconv.Itoa(j))
 			_ = tr.Update(hash, hash)
 		}
 		b.StartTimer()

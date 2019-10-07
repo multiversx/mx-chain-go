@@ -662,7 +662,8 @@ func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
 func getTrie(
 	cfg config.StorageConfig,
 	evictionWaitingListCfg config.EvictionWaitingListConfig,
-	snapshotDbCfg config.DBConfig, marshalizer marshal.Marshalizer,
+	snapshotDbCfg config.DBConfig,
+	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uniqueID string,
 ) (data.Trie, error) {
