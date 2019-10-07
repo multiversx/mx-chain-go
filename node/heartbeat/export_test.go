@@ -51,22 +51,22 @@ func NewHeartbeatMessageInfo(
 	)
 }
 
-func GetTimeStamp(hbmi *heartbeatMessageInfo) time.Time {
+func (hbmi *heartbeatMessageInfo) GetTimeStamp() time.Time {
 	return hbmi.timeStamp
 }
 
-func GetReceiverShardId(hbmi *heartbeatMessageInfo) uint32 {
+func (hbmi *heartbeatMessageInfo) GetReceiverShardId() uint32 {
 	return hbmi.receivedShardID
 }
 
-func GetUpTimeDuration(hbmi *heartbeatMessageInfo) time.Duration {
-	return hbmi.totalUpTime.Duration
+func (hbmi *heartbeatMessageInfo) GetTotalUpTime() Duration {
+	return hbmi.totalUpTime
 }
 
-func GetDownTimeDuration(hbmi *heartbeatMessageInfo) time.Duration {
-	return hbmi.totalDownTime.Duration
+func (hbmi *heartbeatMessageInfo) GetTotalDownTime() Duration {
+	return hbmi.totalDownTime
 }
 
-func GetIsActive(hbmi *heartbeatMessageInfo) bool {
+func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 	return hbmi.isActive
 }

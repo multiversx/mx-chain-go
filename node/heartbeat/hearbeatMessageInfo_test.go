@@ -68,20 +68,20 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 		mockTimer,
 	)
 
-	assert.Equal(t, genesisTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, genesisTime, hbmi.GetTimeStamp())
 
 	mockTimer.IncrementSeconds(1)
 
 	expectedTime := time.Unix(1, 0)
 	hbmi.HeartbeatReceived(uint32(0), uint32(0), "v0.1", "undefined")
-	assert.Equal(t, expectedTime, heartbeat.GetTimeStamp(hbmi))
-	assert.Equal(t, uint32(0), heartbeat.GetReceiverShardId(hbmi))
+	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
+	assert.Equal(t, uint32(0), hbmi.GetReceiverShardId())
 
 	mockTimer.IncrementSeconds(1)
 	expectedTime = time.Unix(2, 0)
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")
-	assert.Equal(t, expectedTime, heartbeat.GetTimeStamp(hbmi))
-	assert.Equal(t, uint32(1), heartbeat.GetReceiverShardId(hbmi))
+	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
+	assert.Equal(t, uint32(1), hbmi.GetReceiverShardId())
 }
 
 func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
@@ -96,7 +96,7 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 		mockTimer,
 	)
 
-	assert.Equal(t, genesisTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, genesisTime, hbmi.GetTimeStamp())
 
 	mockTimer.IncrementSeconds(1)
 
@@ -104,10 +104,10 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	expectedUptime := time.Duration(0)
 	expectedDownTime := time.Duration(1 * time.Second)
 	hbmi.HeartbeatReceived(uint32(0), uint32(3), "v0.1", "undefined")
-	assert.Equal(t, expectedTime, heartbeat.GetTimeStamp(hbmi))
-	assert.Equal(t, true, heartbeat.GetIsActive(hbmi))
-	assert.Equal(t, expectedUptime, heartbeat.GetUpTimeDuration(hbmi))
-	assert.Equal(t, expectedDownTime, heartbeat.GetDownTimeDuration(hbmi))
+	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
+	assert.Equal(t, true, hbmi.GetIsActive())
+	assert.Equal(t, expectedUptime, hbmi.GetTotalUpTime().Duration)
+	assert.Equal(t, expectedDownTime, hbmi.GetTotalDownTime().Duration)
 }
 
 func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
@@ -122,7 +122,7 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 		mockTimer,
 	)
 
-	assert.Equal(t, genesisTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, genesisTime, hbmi.GetTimeStamp())
 
 	// send heartbeat twice in order to calculate the duration between thm
 	mockTimer.IncrementSeconds(1)
@@ -132,10 +132,10 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 
 	expectedDownDuration := time.Duration(1 * time.Second)
 	expectedUpDuration := time.Duration(1 * time.Second)
-	assert.Equal(t, expectedUpDuration, heartbeat.GetUpTimeDuration(hbmi))
-	assert.Equal(t, expectedDownDuration, heartbeat.GetDownTimeDuration(hbmi))
+	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime().Duration)
+	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime().Duration)
 	expectedTime := time.Unix(2, 0)
-	assert.Equal(t, expectedTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }
 
 func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime(t *testing.T) {
@@ -150,7 +150,7 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 		mockTimer,
 	)
 
-	assert.Equal(t, genesisTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, genesisTime, hbmi.GetTimeStamp())
 
 	// send heartbeat twice in order to calculate the duration between thm
 	mockTimer.IncrementSeconds(1)
@@ -160,10 +160,10 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 
 	expectedDownDuration := time.Duration(2 * time.Second)
 	expectedUpDuration := time.Duration(0)
-	assert.Equal(t, expectedDownDuration, heartbeat.GetDownTimeDuration(hbmi))
-	assert.Equal(t, expectedUpDuration, heartbeat.GetUpTimeDuration(hbmi))
+	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime().Duration)
+	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime().Duration)
 	expectedTime := time.Unix(2, 0)
-	assert.Equal(t, expectedTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }
 
 func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t *testing.T) {
@@ -178,7 +178,7 @@ func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t 
 		mockTimer,
 	)
 
-	assert.Equal(t, genesisTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, genesisTime, hbmi.GetTimeStamp())
 
 	// send heartbeat twice in order to calculate the duration between thm
 	mockTimer.IncrementSeconds(1)
@@ -187,10 +187,10 @@ func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t 
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined")
 
 	expectedDuration := time.Duration(0)
-	assert.Equal(t, expectedDuration, heartbeat.GetDownTimeDuration(hbmi))
-	assert.Equal(t, expectedDuration, heartbeat.GetUpTimeDuration(hbmi))
+	assert.Equal(t, expectedDuration, hbmi.GetTotalDownTime().Duration)
+	assert.Equal(t, expectedDuration, hbmi.GetTotalUpTime().Duration)
 	expectedTime := time.Unix(2, 0)
-	assert.Equal(t, expectedTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }
 
 func TestHeartbeatMessageInfo_HeartbeatEqualGenesisShouldHaveUpDownTimeZero(t *testing.T) {
@@ -205,13 +205,13 @@ func TestHeartbeatMessageInfo_HeartbeatEqualGenesisShouldHaveUpDownTimeZero(t *t
 		mockTimer,
 	)
 
-	assert.Equal(t, genesisTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, genesisTime, hbmi.GetTimeStamp())
 	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(1), "v0.1", "undefined")
 
 	expectedDuration := time.Duration(0)
-	assert.Equal(t, expectedDuration, heartbeat.GetUpTimeDuration(hbmi))
-	assert.Equal(t, expectedDuration, heartbeat.GetDownTimeDuration(hbmi))
+	assert.Equal(t, expectedDuration, hbmi.GetTotalUpTime().Duration)
+	assert.Equal(t, expectedDuration, hbmi.GetTotalDownTime().Duration)
 	expectedTime := time.Unix(1, 0)
-	assert.Equal(t, expectedTime, heartbeat.GetTimeStamp(hbmi))
+	assert.Equal(t, expectedTime, hbmi.GetTimeStamp())
 }
