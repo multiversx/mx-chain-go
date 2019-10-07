@@ -58,24 +58,26 @@ func newHeartbeatMessageInfo(
 }
 
 func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
-	if crtTime.Sub(hbmi.genesisTime) < 0 {
-		return
-	}
 	validDuration := computeValidDuration(crtTime, hbmi)
 	previousActive := hbmi.isActive && validDuration
 	hbmi.isActive = true
-	hbmi.updateMaxInactiveTimeDuration(crtTime)
-	hbmi.updateUpAndDownTime(previousActive, crtTime)
+
+	hbmi.updateTimes(crtTime, previousActive)
 }
 
 func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
+	validDuration := computeValidDuration(crtTime, hbmi)
+	hbmi.isActive = hbmi.isActive && validDuration
+
+	hbmi.updateTimes(crtTime, hbmi.isActive)
+}
+
+func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time, previousActive bool) {
 	if crtTime.Sub(hbmi.genesisTime) < 0 {
 		return
 	}
-	validDuration := computeValidDuration(crtTime, hbmi)
-	hbmi.isActive = hbmi.isActive && validDuration
-	hbmi.updateUpAndDownTime(hbmi.isActive, crtTime)
-
+	hbmi.updateMaxInactiveTimeDuration(crtTime)
+	hbmi.updateUpAndDownTime(previousActive, crtTime)
 }
 
 func computeValidDuration(crtTime time.Time, hbmi *heartbeatMessageInfo) bool {
