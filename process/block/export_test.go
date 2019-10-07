@@ -181,7 +181,7 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 
 func (mp *metaProcessor) SetNextKValidity(val uint32) {
 	mp.mutRequestedShardHdrsHashes.Lock()
-	mp.nextKValidity = val
+	mp.shardBlockFinality = val
 	mp.mutRequestedShardHdrsHashes.Unlock()
 }
 

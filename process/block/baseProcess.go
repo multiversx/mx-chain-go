@@ -27,6 +27,24 @@ type hashAndHdr struct {
 	hash []byte
 }
 
+type nonceAndHashInfo struct {
+	hash  []byte
+	nonce uint64
+}
+
+type hdrInfo struct {
+	usedInBlock bool
+	hdr         data.HeaderHandler
+}
+
+type hdrForBlock struct {
+	missingHdrs                  uint32
+	missingFinalityAttestingHdrs uint32
+	highestHdrNonce              map[uint32]uint64
+	mutHdrsForBlock              sync.RWMutex
+	hdrHashAndInfo               map[string]*hdrInfo
+}
+
 type mapShardHeaders map[uint32][]data.HeaderHandler
 
 type baseProcessor struct {
@@ -40,6 +58,8 @@ type baseProcessor struct {
 	store                 dataRetriever.StorageService
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler    process.BlockSizeThrottler
+
+	hdrsForCurrBlock hdrForBlock
 
 	mutNotarizedHdrs sync.RWMutex
 	notarizedHdrs    mapShardHeaders
@@ -533,4 +553,13 @@ func checkProcessorNilParameters(
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) createBlockStarted() {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.missingHdrs = 0
+	bp.hdrsForCurrBlock.missingFinalityAttestingHdrs = 0
+	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
+	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
