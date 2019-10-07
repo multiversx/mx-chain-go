@@ -56,6 +56,8 @@ type shardProcessor struct {
 	txCounter     *transactionCounter
 
 	txsPoolsCleaner process.PoolsCleaner
+
+	lastFinalBlockHeader data.HeaderHandler
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -785,6 +787,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	}
 
+	sp.computeRating(finalHeaders)
+
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Info(fmt.Sprintf("shard block with nonce %d is the highest final block in shard %d\n",
 		highestFinalBlockNonce,
@@ -826,6 +830,36 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockSizeThrottler.Succeed(header.Round)
 
 	return nil
+}
+
+func (sp *shardProcessor) computeRating(finalHeaders []data.HeaderHandler) {
+	for _, finalHdr := range finalHeaders {
+		if finalHdr.GetNonce() == 0 {
+			continue
+		}
+
+		if sp.lastFinalBlockHeader != nil {
+			for i := sp.lastFinalBlockHeader.GetRound() + 1; i < finalHdr.GetRound(); i++ {
+				publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(sp.lastFinalBlockHeader.GetRandSeed(), i,
+					sp.lastFinalBlockHeader.GetShardID())
+				if err != nil {
+					if err != nil {
+						log.Debug(err.Error())
+					}
+				}
+				sp.nodesCoordinator.DecreaseRating(publicKeys)
+			}
+		}
+
+		publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(finalHdr.GetPrevRandSeed(), finalHdr.GetRound(),
+			finalHdr.GetShardID())
+		if err != nil {
+			log.Debug(err.Error())
+		}
+		sp.nodesCoordinator.IncreaseRating(publicKeys)
+
+		sp.lastFinalBlockHeader = finalHdr
+	}
 }
 
 func (sp *shardProcessor) cleanTxsPools() {

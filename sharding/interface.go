@@ -53,5 +53,4 @@ type RatingCoordinator interface {
 	GetValidatorListAccordingToRating([]Validator, uint64) []Validator
 	IncreaseRating([]string)
 	DecreaseRating([]string)
-	UpdateRating(handler data.HeaderHandler)
 }
