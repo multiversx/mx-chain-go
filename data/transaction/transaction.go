@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/transaction/capnp"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // Transaction holds all the data needed for a value transfer
@@ -103,6 +103,11 @@ func (tx *Transaction) IsInterfaceNil() bool {
 // GetValue returns the value of the transaction
 func (tx *Transaction) GetValue() *big.Int {
 	return tx.Value
+}
+
+// GetNonce returns the transaction nonce
+func (tx *Transaction) GetNonce() uint64 {
+	return tx.Nonce
 }
 
 // GetData returns the data of the transaction

@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx/capnp"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // RewardTx holds the data for a reward transaction
@@ -83,6 +83,11 @@ func (scr *RewardTx) IsInterfaceNil() bool {
 // GetValue returns the value of the reward transaction
 func (scr *RewardTx) GetValue() *big.Int {
 	return scr.Value
+}
+
+// GetNonce returns 0 as reward transactions do not have a nonce
+func (scr *RewardTx) GetNonce() uint64 {
+	return 0
 }
 
 // GetData returns the data of the reward transaction

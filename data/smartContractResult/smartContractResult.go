@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult/capnp"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // SmartContractResult holds all the data needed for a value transfer
@@ -89,6 +89,11 @@ func (scr *SmartContractResult) IsInterfaceNil() bool {
 // GetValue returns the value of the smart contract result
 func (scr *SmartContractResult) GetValue() *big.Int {
 	return scr.Value
+}
+
+// GetNonce returns the nonce of the smart contract result
+func (scr *SmartContractResult) GetNonce() uint64 {
+	return scr.Nonce
 }
 
 // GetData returns the data of the smart contract result

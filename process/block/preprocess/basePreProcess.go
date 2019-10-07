@@ -24,6 +24,7 @@ type txShardInfo struct {
 type txInfo struct {
 	tx data.TransactionHandler
 	*txShardInfo
+	txHash []byte
 }
 
 type txsHashesInfo struct {

@@ -72,6 +72,7 @@ type TransactionHandler interface {
 	IsInterfaceNil() bool
 
 	GetValue() *big.Int
+	GetNonce() uint64
 	GetData() string
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
