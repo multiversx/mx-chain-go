@@ -21,36 +21,21 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core     serviceContainer.Core
-	dataPool dataRetriever.MetaPoolsHolder
-
+	core                        serviceContainer.Core
+	dataPool                    dataRetriever.MetaPoolsHolder
 	currHighestShardHdrsNonces  map[uint32]uint64
 	requestedShardHdrsHashes    map[string]bool
 	allNeededShardHdrsFound     bool
 	mutRequestedShardHdrsHashes sync.RWMutex
-
-	shardsHeadersNonce *sync.Map
-
-	nextKValidity uint32
-
-	chRcvAllHdrs chan bool
-
-	headersCounter *headersCounter
+	shardsHeadersNonce          *sync.Map
+	nextKValidity               uint32
+	chRcvAllHdrs                chan bool
+	headersCounter              *headersCounter
 }
 
 // NewMetaProcessor creates a new metaProcessor object
 func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
-
-	err := checkProcessorNilParameters(
-		arguments.Accounts,
-		arguments.ForkDetector,
-		arguments.Hasher,
-		arguments.Marshalizer,
-		arguments.Store,
-		arguments.ShardCoordinator,
-		arguments.NodesCoordinator,
-		arguments.SpecialAddressHandler,
-		arguments.Uint64Converter)
+	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -60,9 +45,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if arguments.DataPool.ShardHeaders() == nil || arguments.DataPool.ShardHeaders().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
-	}
-	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
-		return nil, process.ErrNilRequestHandler
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()

@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func CreateMockMetaArguments() blproc.ArgMetaProcessor {
+func createMockMetaArguments() blproc.ArgMetaProcessor {
 	mdp := initMetaDataPool()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	arguments := blproc.ArgMetaProcessor{
@@ -147,7 +147,7 @@ func setLastNotarizedHdr(
 func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
@@ -158,7 +158,7 @@ func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.DataPool = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
@@ -169,7 +169,7 @@ func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.ForkDetector = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
@@ -180,7 +180,7 @@ func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 func TestNewMetaProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.ShardCoordinator = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
@@ -191,7 +191,7 @@ func TestNewMetaProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Hasher = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
@@ -202,7 +202,7 @@ func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 func TestNewMetaProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Marshalizer = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
@@ -213,7 +213,7 @@ func TestNewMetaProcessor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Store = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
@@ -224,7 +224,7 @@ func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 func TestNewMetaProcessor_NilRequestHeaderHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.RequestHandler = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
@@ -235,7 +235,7 @@ func TestNewMetaProcessor_NilRequestHeaderHandlerShouldErr(t *testing.T) {
 func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 
 	mp, err := blproc.NewMetaProcessor(arguments)
 	assert.Nil(t, err)
@@ -247,7 +247,7 @@ func TestNewMetaProcessor_OkValsShouldWork(t *testing.T) {
 func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := &block.MetaBlockBody{}
 
@@ -258,7 +258,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := &block.MetaBlockBody{}
@@ -270,7 +270,7 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	err := mp.ProcessBlock(&blockchain.MetaChain{}, &block.MetaBlock{}, nil, haveTime)
@@ -280,7 +280,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := &block.MetaBlockBody{}
 
@@ -303,7 +303,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		RootHash:      []byte("roothash"),
 	}
 	body := &block.MetaBlockBody{}
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revToSnapshot,
@@ -319,7 +319,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	blkc := &blockchain.MetaChain{}
@@ -334,7 +334,7 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
@@ -355,7 +355,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blkc := &blockchain.MetaChain{
 		CurrentBlock: &block.MetaBlock{
@@ -395,7 +395,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	rootHashCalled := func() ([]byte, error) {
 		return []byte("rootHashX"), nil
 	}
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
@@ -421,7 +421,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 func TestMetaProcessor_ProcessBlockHeaderShouldPass(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
@@ -469,7 +469,7 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	accounts.RevertToSnapshotCalled = func(snapshot int) error {
 		return nil
 	}
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
 	arguments.StartHeaders = createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 	arguments.DataPool = mdp
@@ -497,7 +497,7 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
@@ -529,7 +529,7 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 			return []byte("obj"), nil
 		},
 	}
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = accounts
 	arguments.Marshalizer = marshalizer
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -559,7 +559,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.MetaBlockUnit, hdrUnit)
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = accounts
 	arguments.Store = store
 	arguments.ForkDetector = &mock.ForkDetectorMock{
@@ -593,7 +593,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	body := &block.MetaBlockBody{}
 	store := initStore()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = accounts
 	arguments.Store = store
 	arguments.DataPool = mdp
@@ -623,7 +623,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	hasher := &mock.HasherStub{}
 	store := initStore()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.DataPool = mdp
 	arguments.Accounts = accounts
 	arguments.ForkDetector = fd
@@ -682,7 +682,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, blockHeaderUnit)
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.DataPool = mdp
 	arguments.Accounts = accounts
 	arguments.ForkDetector = fd
@@ -724,7 +724,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 
 	mdp := initMetaDataPool()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.DataPool = mdp
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -752,7 +752,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.DataPool = initMetaDataPool()
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -765,7 +765,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *tes
 func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.DataPool = initMetaDataPool()
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -778,7 +778,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		JournalLenCalled: func() int {
 			return 1
@@ -797,7 +797,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFai
 func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		JournalLenCalled: func() int {
 			return 0
@@ -826,7 +826,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 		return nil
 	}
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: revToSnapshot,
 	}
@@ -842,7 +842,7 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -858,7 +858,7 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 	t.Parallel()
 
 	pool := mock.NewMetaPoolsHolderFake()
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.DataPool = pool
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -931,7 +931,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 		MiniBlockHeaders: miniBlockHeaders3})
 
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1000,7 +1000,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1107,7 +1107,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1263,7 +1263,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
 
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1388,7 +1388,7 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -1420,7 +1420,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		},
 	}
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.DataPool = pool
 	arguments.Store = store
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -1439,7 +1439,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 
 	pool := mock.NewMetaPoolsHolderFake()
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1524,7 +1524,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 
 	pool := mock.NewMetaPoolsHolderFake()
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1610,7 +1610,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	pool := mock.NewMetaPoolsHolderFake()
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1659,7 +1659,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	pool := mock.NewMetaPoolsHolderFake()
 
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1713,7 +1713,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 
 	pool := mock.NewMetaPoolsHolderFake()
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1816,7 +1816,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	pool := mock.NewMetaPoolsHolderFake()
 	noOfShards := uint32(5)
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -1915,7 +1915,7 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 	pool := mock.NewMetaPoolsHolderFake()
 	noOfShards := uint32(5)
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -2026,7 +2026,7 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 	t.Parallel()
 
 	marshalizerMock := &mock.MarshalizerMock{}
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	body := &block.MetaBlockBody{}
 	message, err := marshalizerMock.Marshal(body)
@@ -2043,7 +2043,7 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 	t.Parallel()
 
 	marshalizerMock := &mock.MarshalizerMock{}
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{}
 	hdr.Nonce = 1
@@ -2066,7 +2066,7 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockMetaArguments()
+	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	numberOfShards := uint32(4)
