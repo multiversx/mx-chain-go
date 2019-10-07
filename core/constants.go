@@ -158,3 +158,9 @@ const MaxMiniBlocksInBlock = 100
 
 //MetricHighestFinalBlockInShard is the metric that stores the highest nonce block notarized by metachain for current shard
 const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_metachain_for_current_shard"
+
+//MetricCountConsensusAcceptedBlocks is the metric for monitoring number of blocks accepted when the node was in consensus group
+const MetricCountConsensusAcceptedBlocks = "erd_count_consensus_accepted_blocks"
+
+//MetricRewardsValue is the metric that stores rewards value
+const MetricRewardsValue = "erd_rewards_value"

@@ -17,43 +17,42 @@ type indexHashedNodesCoordinator struct {
 	nodesMap                map[uint32][]Validator
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
+	selfPubKey              []byte
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
-func NewIndexHashedNodesCoordinator(
-	shardConsensusGroupSize int,
-	metaConsensusGroupSize int,
-	hasher hashing.Hasher,
-	shardId uint32,
-	nbShards uint32,
-	nodes map[uint32][]Validator,
-) (*indexHashedNodesCoordinator, error) {
-	if shardConsensusGroupSize < 1 || metaConsensusGroupSize < 1 {
+func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
+	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
 		return nil, ErrInvalidConsensusGroupSize
 	}
 
-	if nbShards < 1 {
+	if arguments.NbShards < 1 {
 		return nil, ErrInvalidNumberOfShards
 	}
 
-	if shardId >= nbShards && shardId != MetachainShardId {
+	if arguments.ShardId >= arguments.NbShards && arguments.ShardId != MetachainShardId {
 		return nil, ErrInvalidShardId
 	}
 
-	if hasher == nil {
+	if arguments.Hasher == nil {
 		return nil, ErrNilHasher
 	}
 
-	ihgs := &indexHashedNodesCoordinator{
-		nbShards:                nbShards,
-		shardId:                 shardId,
-		hasher:                  hasher,
-		nodesMap:                make(map[uint32][]Validator),
-		shardConsensusGroupSize: shardConsensusGroupSize,
-		metaConsensusGroupSize:  metaConsensusGroupSize,
+	if arguments.SelfPublicKey == nil {
+		return nil, ErrNilPubKey
 	}
 
-	err := ihgs.SetNodesPerShards(nodes)
+	ihgs := &indexHashedNodesCoordinator{
+		nbShards:                arguments.NbShards,
+		shardId:                 arguments.ShardId,
+		hasher:                  arguments.Hasher,
+		nodesMap:                make(map[uint32][]Validator),
+		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
+		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
+		selfPubKey:              arguments.SelfPublicKey,
+	}
+
+	err := ihgs.SetNodesPerShards(arguments.Nodes)
 	if err != nil {
 		return nil, err
 	}
@@ -314,6 +313,11 @@ func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(shardId uint32) int 
 	}
 
 	return ihgs.shardConsensusGroupSize
+}
+
+// GetOwnPublicKey will return current node public key  for block sign
+func (ihgs *indexHashedNodesCoordinator) GetOwnPublicKey() []byte {
+	return ihgs.selfPubKey
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

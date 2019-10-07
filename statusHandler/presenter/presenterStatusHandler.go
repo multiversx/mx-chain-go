@@ -15,6 +15,7 @@ type PresenterStatusHandler struct {
 	mutLogLineWrite             sync.RWMutex
 	oldNonce                    uint64
 	synchronizationSpeedHistory []uint64
+	totalRewardsOld             uint64
 }
 
 // NewPresenterStatusHandler will return an instance of the struct
@@ -22,6 +23,7 @@ func NewPresenterStatusHandler() *PresenterStatusHandler {
 	psh := &PresenterStatusHandler{
 		presenterMetrics:            &sync.Map{},
 		synchronizationSpeedHistory: make([]uint64, 0),
+		totalRewardsOld:             0,
 	}
 	return psh
 }

@@ -185,6 +185,10 @@ func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sh
 	return nil, 0, sharding.ErrValidatorNotFound
 }
 
+func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
+	return []byte("key")
+}
+
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	if ncm == nil {
 		return true

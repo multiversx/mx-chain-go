@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -585,14 +586,16 @@ func createNodes(
 			}
 
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
-			nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
-				1,
-				1,
-				testHasher,
-				uint32(shardId),
-				uint32(numOfShards),
-				validatorsMap,
-			)
+			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+				ShardConsensusGroupSize: 1,
+				MetaConsensusGroupSize:  1,
+				Hasher:                  testHasher,
+				ShardId:                 uint32(shardId),
+				NbShards:                uint32(numOfShards),
+				Nodes:                   validatorsMap,
+				SelfPublicKey:           []byte(strconv.Itoa(j)),
+			}
+			nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 			accntAdapter := createAccountsDB()
 			n, mes, resFinder, blkProcessor, txProcessor, transactionCoordinator, scrForwarder, blkc, store := createNetNode(
@@ -660,14 +663,16 @@ func createNodes(
 	metaNodes := make([]*testNode, numMetaChainNodes)
 	for i := 0; i < numMetaChainNodes; i++ {
 		shardCoordinatorMeta, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), sharding.MetachainShardId)
-		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
-			1,
-			1,
-			testHasher,
-			sharding.MetachainShardId,
-			uint32(numOfShards),
-			validatorsMap,
-		)
+		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			ShardConsensusGroupSize: 1,
+			MetaConsensusGroupSize:  1,
+			Hasher:                  testHasher,
+			ShardId:                 sharding.MetachainShardId,
+			NbShards:                uint32(numOfShards),
+			Nodes:                   validatorsMap,
+			SelfPublicKey:           []byte(strconv.Itoa(i)),
+		}
+		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		metaNodes[i] = createMetaNetNode(
 			createTestMetaDataPool(),

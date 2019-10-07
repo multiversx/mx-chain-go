@@ -44,4 +44,5 @@ type PublicKeysSelector interface {
 	GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error)
 	GetValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32) ([]string, error)
 	GetValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32) ([]string, error)
+	GetOwnPublicKey() []byte
 }

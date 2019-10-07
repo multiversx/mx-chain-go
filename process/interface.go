@@ -136,6 +136,7 @@ type SpecialAddressHandler interface {
 	ShardIdForAddress([]byte) (uint32, error)
 	Epoch() uint32
 	Round() uint64
+	IsInConsensus() bool
 	IsInterfaceNil() bool
 }
 

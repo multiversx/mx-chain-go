@@ -119,26 +119,36 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	pkBlockSign := wr.presenter.GetPublicKeyBlockSign()
 	rows[2] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
 
+	var consensusInfo string
+	instanceType := wr.presenter.GetNodeType()
 	shardId := wr.presenter.GetShardId()
-	shardIdStr := ""
+	countConsensus := wr.presenter.GetCountConsensus()
+	countConsensusAcceptedBlocks := wr.presenter.GetCountConsensusAcceptedBlocks()
+	shardIdStr := fmt.Sprintf("%d", shardId)
 	if shardId == uint64(sharding.MetachainShardId) {
 		shardIdStr = "meta"
+		consensusInfo = fmt.Sprintf("Count consensus participant: %d | Signed blocks headers: %d", countConsensus, countConsensusAcceptedBlocks)
+
 	} else {
-		shardIdStr = fmt.Sprintf("%d", shardId)
+		consensusInfo = fmt.Sprintf("Consensus accepted / signed blocks: %d / %d", countConsensusAcceptedBlocks, countConsensus)
 	}
-	rows[3] = []string{fmt.Sprintf("ShardID: %s", shardIdStr)}
 
-	instanceType := wr.presenter.GetNodeType()
-	rows[4] = []string{fmt.Sprintf("Instance type: %s", instanceType)}
+	rows[3] = []string{fmt.Sprintf("Shard: %s %s", shardIdStr, instanceType)}
 
-	countConsensus := wr.presenter.GetCountConsensus()
-	rows[5] = []string{fmt.Sprintf("Consensus group participation count: %d", countConsensus)}
+	rows[4] = []string{consensusInfo}
 
 	countLeader := wr.presenter.GetCountLeader()
-	rows[6] = []string{fmt.Sprintf("Elected consensus leader count: %d", countLeader)}
-
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
-	rows[7] = []string{fmt.Sprintf("Consensus proposed & accepted blocks: %d", countAcceptedBlocks)}
+	rows[5] = []string{fmt.Sprintf("Consensus leader accepted / proposed blocks : %d / %d", countAcceptedBlocks, countLeader)}
+
+	totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
+	if diffRewards > 0 {
+		wr.instanceInfo.RowStyles[6] = ui.NewStyle(ui.ColorGreen)
+		rows[6] = []string{fmt.Sprintf("Total rewards %d TERD + %d", totalRewardsValue, diffRewards)}
+	} else {
+		wr.instanceInfo.RowStyles[6] = ui.NewStyle(ui.ColorWhite)
+		rows[6] = []string{fmt.Sprintf("Total rewards %d TERD", totalRewardsValue)}
+	}
 
 	wr.instanceInfo.Title = "Instance info"
 	wr.instanceInfo.RowSeparator = false

@@ -1,6 +1,9 @@
 package block
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -69,4 +72,43 @@ func getMetricsFromHeader(
 	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
 	appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, numTxWithDst)
 	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, uint64(totalTx))
+}
+
+func saveMetricsForACommittedBlock(
+	appStatusHandler core.AppStatusHandler,
+	isInConsensus bool,
+	currentBlockHash string,
+	highestFinalBlockNonce uint64,
+	headerMetaNonce uint64,
+) {
+	if isInConsensus {
+		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
+	}
+	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
+	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMetaNonce))
+}
+
+func estimateRewardsForMetachain(
+	publicKeys []string,
+	ownPublicKey []byte,
+	appStatusHandler core.AppStatusHandler,
+	numBlockHeaders int,
+) {
+	isInConsensus := false
+
+	for _, publicKey := range publicKeys {
+		if bytes.Equal([]byte(publicKey), ownPublicKey) {
+			isInConsensus = true
+			continue
+		}
+	}
+
+	if !isInConsensus || numBlockHeaders == 0 {
+		return
+	}
+
+	for i := 0; i < numBlockHeaders; i++ {
+		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
+	}
 }

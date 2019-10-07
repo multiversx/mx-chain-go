@@ -561,6 +561,11 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
+	pubKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, sharding.MetachainShardId)
+	if err == nil {
+		estimateRewardsForMetachain(pubKeys, mp.nodesCoordinator.GetOwnPublicKey(), mp.appStatusHandler, len(header.ShardInfo))
+	}
+
 	go mp.headersCounter.displayLogInfo(
 		header,
 		headerHash,

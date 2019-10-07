@@ -149,3 +149,12 @@ func (sh *SpecialAddressHandlerMock) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+// IsInConsensus calculate if current node was in consensus group
+func (sh *SpecialAddressHandlerMock) IsInConsensus() bool {
+	return false
+}
+
+func (sh *SpecialAddressHandlerMock) NumConsensusParticipantMeta() uint64 {
+	return 0
+}

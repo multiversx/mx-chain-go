@@ -569,7 +569,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version)
+	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -629,7 +629,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	if generalConfig.Explorer.Enabled {
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
-		dbIndexer, err = CreateElasticIndexer(
+		dbIndexer, err = createElasticIndexer(
 			ctx,
 			serversConfigurationFileName,
 			generalConfig.Explorer.IndexerURL,
@@ -795,6 +795,7 @@ func initMetrics(
 	shardCoordinator sharding.Coordinator,
 	nodesConfig *sharding.NodesSetup,
 	version string,
+	economicsConfig *config.ConfigEconomics,
 ) {
 	shardId := uint64(shardCoordinator.SelfId())
 	roundDuration := nodesConfig.RoundDuration
@@ -826,6 +827,8 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
 }
 
 func startStatusPolling(
@@ -1120,14 +1123,18 @@ func createNodesCoordinator(
 		initValidators[shardId] = validators
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
-		shardConsensusGroupSize,
-		metaConsensusGroupSize,
-		hasher,
-		shardId,
-		nbShards,
-		initValidators,
-	)
+	pubKeyBytes, err := pubKey.ToByteArray()
+
+	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: shardConsensusGroupSize,
+		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		Hasher:                  hasher,
+		ShardId:                 shardId,
+		NbShards:                nbShards,
+		Nodes:                   initValidators,
+		SelfPublicKey:           pubKeyBytes,
+	}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -1154,7 +1161,7 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 
 // CreateElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
-func CreateElasticIndexer(
+func createElasticIndexer(
 	ctx *cli.Context,
 	serversConfigurationFileName string,
 	url string,

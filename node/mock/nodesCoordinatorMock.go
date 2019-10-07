@@ -110,6 +110,10 @@ func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string) []uin
 	panic("implement me")
 }
 
+func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
+	panic("implement me")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	if ncm == nil {

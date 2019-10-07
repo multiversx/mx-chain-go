@@ -4,5 +4,6 @@ package data
 type ConsensusRewardData struct {
 	Round     uint64
 	Epoch     uint32
+	PubKeys   []string
 	Addresses []string
 }

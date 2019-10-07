@@ -8,6 +8,7 @@ type Presenter interface {
 	GetShardId() uint64
 	GetNodeType() string
 	GetCountConsensus() uint64
+	GetCountConsensusAcceptedBlocks() uint64
 	GetCountLeader() uint64
 	GetCountAcceptedBlocks() uint64
 	GetIsSyncing() uint64
@@ -45,6 +46,8 @@ type Presenter interface {
 	GetNumShardHeadersInPool() uint64
 	GetNumShardHeadersProcessed() uint64
 	GetHighestFinalBlockInShard() uint64
+
+	GetTotalRewardsValue() (uint64, uint64)
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
