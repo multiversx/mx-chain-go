@@ -240,7 +240,6 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	counterActiveValidators := 0
 	counterConnectedNodes := 0
 	for pk, v := range m.heartbeatMessages {
-		//TODO change here
 		v.computeActive(m.timer.Now())
 
 		hbDTO := m.convertToExportedStruct(v)
