@@ -1,44 +1,56 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"sync"
 )
 
 type StorerMock struct {
-	memDb data.DBWriteCacher
+	mut  sync.Mutex
+	data map[string][]byte
 }
 
 func NewStorerMock() *StorerMock {
-	memDb, _ := mock.NewMemDbMock()
 	return &StorerMock{
-		memDb: memDb,
+		data: make(map[string][]byte),
 	}
 }
 
 func (sm *StorerMock) Put(key, data []byte) error {
-	return sm.memDb.Put(key, data)
+	sm.mut.Lock()
+	defer sm.mut.Unlock()
+	sm.data[string(key)] = data
+
+	return nil
 }
 
 func (sm *StorerMock) Get(key []byte) ([]byte, error) {
-	return sm.memDb.Get(key)
+	sm.mut.Lock()
+	defer sm.mut.Unlock()
+
+	val, ok := sm.data[string(key)]
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
+	}
+
+	return val, nil
 }
 
 func (sm *StorerMock) Has(key []byte) error {
-	_, err := sm.memDb.Get(key)
-	return err
+	return errors.New("not implemented")
 }
 
 func (sm *StorerMock) Remove(key []byte) error {
-	panic("imp[lement me")
+	return errors.New("not implemented")
 }
 
 func (sm *StorerMock) ClearCache() {
-	panic("imp[lement me")
 }
 
 func (sm *StorerMock) DestroyUnit() error {
-	panic("imp[lement me")
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
