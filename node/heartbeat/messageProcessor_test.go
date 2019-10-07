@@ -3,10 +3,11 @@ package heartbeat
 import (
 	"encoding/json"
 	"errors"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewMessageHandler_NilSingleSignerShouldErr(t *testing.T) {
