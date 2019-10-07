@@ -399,6 +399,14 @@ type PoolsCleaner interface {
 	IsInterfaceNil() bool
 }
 
+// InterceptorThrottler can determine if a new go routine can start
+type InterceptorThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}
+
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	RewardsValue() uint64
