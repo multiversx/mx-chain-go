@@ -169,6 +169,12 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	//message is validated, process should be done async, method can return nil
 	go m.addHeartbeatMessageToMap(hbRecv)
+	go func() {
+		m.mutHeartbeatMessages.Lock()
+		defer m.mutHeartbeatMessages.Unlock()
+
+		m.computeAllHeartbeatMessages()
+	}()
 
 	return nil
 }
@@ -239,14 +245,8 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 func (m *Monitor) computeAllHeartbeatMessages() {
 	counterActiveValidators := 0
 	counterConnectedNodes := 0
-	for pk, v := range m.heartbeatMessages {
+	for _, v := range m.heartbeatMessages {
 		v.computeActive(m.timer.Now())
-
-		hbDTO := m.convertToExportedStruct(v)
-		err := m.storer.SavePubkeyData([]byte(pk), &hbDTO)
-		if err != nil {
-			log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
-		}
 
 		if v.isActive {
 			counterConnectedNodes++
@@ -261,12 +261,23 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
 
+func (m *Monitor) saveHeartbeats() {
+	for pk, v := range m.heartbeatMessages {
+		hbDTO := m.convertToExportedStruct(v)
+		err := m.storer.SavePubkeyData([]byte(pk), &hbDTO)
+		if err != nil {
+			log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
+		}
+	}
+}
+
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.mutHeartbeatMessages.Lock()
 	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 
 	m.computeAllHeartbeatMessages()
+	m.saveHeartbeats()
 
 	idx := 0
 	for k, v := range m.heartbeatMessages {
