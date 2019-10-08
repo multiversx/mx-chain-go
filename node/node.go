@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -701,12 +702,12 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
-func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
-	if !config.Enabled {
+func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
+	if !hbConfig.Enabled {
 		return nil
 	}
 
-	err := n.checkConfigParams(config)
+	err := n.checkConfigParams(hbConfig)
 	if err != nil {
 		return err
 	}
@@ -736,12 +737,25 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		return err
 	}
 
-	n.heartbeatMonitor, err = heartbeat.NewMonitor(
+	heartbeatStorageUnit := n.store.GetStorer(dataRetriever.HeartbeatUnit)
+	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
+		n.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
+	timer := &heartbeat.RealTimer{}
+	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.marshalizer,
-		time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive),
+		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
 		n.initialNodesPubkeys,
+		n.genesisTime,
+		heartBeatMsgProcessor,
+		heartbeatStorer,
+		timer,
 	)
 	if err != nil {
 		return err
@@ -757,7 +771,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		return err
 	}
 
-	go n.startSendingHeartbeats(config)
+	go n.startSendingHeartbeats(hbConfig)
 
 	return nil
 }
