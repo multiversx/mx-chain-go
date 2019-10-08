@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ArgInterceptedTxBlockBody is the argument for the intercepted tx block body
+// ArgInterceptedTxBlockBody is the argument for the intercepted transaction block body
 type ArgInterceptedTxBlockBody struct {
 	TxBlockBodyBuff  []byte
 	Marshalizer      marshal.Marshalizer

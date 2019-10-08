@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -16,7 +17,7 @@ var log = logger.DefaultLogger()
 
 // TxBodyInterceptorProcessor is the processor used when intercepting miniblocks grouped in a block.TxBlockBody structure
 type TxBodyInterceptorProcessor struct {
-	miniblocks       storage.Cacher
+	miniblockCache   storage.Cacher
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
@@ -27,7 +28,7 @@ func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*Tx
 	if argument == nil {
 		return nil, process.ErrNilArguments
 	}
-	if check.IfNil(argument.Miniblocks) {
+	if check.IfNil(argument.MiniblockCache) {
 		return nil, process.ErrNilMiniBlockPool
 	}
 	if check.IfNil(argument.Marshalizer) {
@@ -41,7 +42,7 @@ func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*Tx
 	}
 
 	return &TxBodyInterceptorProcessor{
-		miniblocks:       argument.Miniblocks,
+		miniblockCache:   argument.MiniblockCache,
 		marshalizer:      argument.Marshalizer,
 		hasher:           argument.Hasher,
 		shardCoordinator: argument.ShardCoordinator,
@@ -81,12 +82,12 @@ func (tbip *TxBodyInterceptorProcessor) processMiniblock(miniblock *block.MiniBl
 		return nil
 	}
 
-	mbBytes, err := tbip.marshalizer.Marshal(miniblock)
+	hash, err := core.CalculateHash(tbip.marshalizer, tbip.hasher, miniblock)
 	if err != nil {
 		return err
 	}
 
-	tbip.miniblocks.HasOrAdd(tbip.hasher.Compute(string(mbBytes)), miniblock)
+	tbip.miniblockCache.HasOrAdd(hash, miniblock)
 
 	return nil
 }

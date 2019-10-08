@@ -9,7 +9,7 @@ import (
 
 // ArgTxBodyInterceptorProcessor is the argument for the interceptor processor used for tx block body
 type ArgTxBodyInterceptorProcessor struct {
-	Miniblocks       storage.Cacher
+	MiniblockCache   storage.Cacher
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher
 	ShardCoordinator sharding.Coordinator

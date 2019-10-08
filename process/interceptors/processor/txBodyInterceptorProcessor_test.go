@@ -2,6 +2,8 @@ package processor_test
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -9,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
@@ -17,7 +18,7 @@ var testHasher = mock.HasherMock{}
 
 func createMockTxBodyArgument() *processor.ArgTxBodyInterceptorProcessor {
 	return &processor.ArgTxBodyInterceptorProcessor{
-		Miniblocks:       &mock.CacherStub{},
+		MiniblockCache:   &mock.CacherStub{},
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
@@ -50,7 +51,7 @@ func TestNewTxBodyInterceptorProcessor_NilMiniblocksShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockTxBodyArgument()
-	arg.Miniblocks = nil
+	arg.MiniblockCache = nil
 	tbip, err := processor.NewTxBodyInterceptorProcessor(arg)
 
 	assert.Nil(t, tbip)
@@ -125,7 +126,7 @@ func TestTxBodyInterceptorProcessor_SaveEmptyBlockShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockTxBodyArgument()
-	cacher := arg.Miniblocks.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*mock.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
@@ -157,7 +158,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksNotForCurrentShardShouldNotAdd
 	}
 
 	arg := createMockTxBodyArgument()
-	cacher := arg.Miniblocks.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*mock.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
@@ -190,7 +191,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithSenderShouldAdd(t *testing
 	}
 
 	arg := createMockTxBodyArgument()
-	cacher := arg.Miniblocks.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*mock.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		miniblock, ok := value.(*block.MiniBlock)
 		if !ok {
@@ -231,7 +232,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksWithReceiverShouldAdd(t *testi
 	}
 
 	arg := createMockTxBodyArgument()
-	cacher := arg.Miniblocks.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*mock.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		miniblock, ok := value.(*block.MiniBlock)
 		if !ok {
@@ -278,7 +279,7 @@ func TestTxBodyInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd(t 
 			return nil, errExpected
 		},
 	}
-	cacher := arg.Miniblocks.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*mock.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return

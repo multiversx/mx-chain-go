@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// InterceptedTxBlockBody represents the wrapper over TxBlockBodyWrapper struct.
+// InterceptedTxBlockBody is a wrapper over a slice of miniblocks which contains transactions.
 type InterceptedTxBlockBody struct {
 	txBlockBody       block.Body
 	marshalizer       marshal.Marshalizer
@@ -51,61 +51,61 @@ func createTxBlockBody(marshalizer marshal.Marshalizer, txBlockBodyBuff []byte) 
 	return txBlockBody, nil
 }
 
-func (inTxBlkBdy *InterceptedTxBlockBody) processFields(txBuff []byte) {
-	inTxBlkBdy.hash = inTxBlkBdy.hasher.Compute(string(txBuff))
+func (inTxBody *InterceptedTxBlockBody) processFields(txBuff []byte) {
+	inTxBody.hash = inTxBody.hasher.Compute(string(txBuff))
 
-	inTxBlkBdy.processIsForCurrentShard(inTxBlkBdy.txBlockBody)
+	inTxBody.processIsForCurrentShard(inTxBody.txBlockBody)
 }
 
-func (inTxBlkBdy *InterceptedTxBlockBody) processIsForCurrentShard(txBlockBody block.Body) {
-	inTxBlkBdy.isForCurrentShard = false
-	for _, miniblock := range inTxBlkBdy.txBlockBody {
-		inTxBlkBdy.isForCurrentShard = inTxBlkBdy.miniblockForCurrentShard(miniblock)
-		if inTxBlkBdy.isForCurrentShard {
+func (inTxBody *InterceptedTxBlockBody) processIsForCurrentShard(txBlockBody block.Body) {
+	inTxBody.isForCurrentShard = false
+	for _, miniblock := range inTxBody.txBlockBody {
+		inTxBody.isForCurrentShard = inTxBody.isMiniblockForCurrentShard(miniblock)
+		if inTxBody.isForCurrentShard {
 			return
 		}
 	}
 }
 
-func (inTxBlkBdy *InterceptedTxBlockBody) miniblockForCurrentShard(miniblock *block.MiniBlock) bool {
-	isForCurrentShardRecv := miniblock.ReceiverShardID == inTxBlkBdy.shardCoordinator.SelfId()
-	isForCurrentShardSender := miniblock.SenderShardID == inTxBlkBdy.shardCoordinator.SelfId()
+func (inTxBody *InterceptedTxBlockBody) isMiniblockForCurrentShard(miniblock *block.MiniBlock) bool {
+	isForCurrentShardRecv := miniblock.ReceiverShardID == inTxBody.shardCoordinator.SelfId()
+	isForCurrentShardSender := miniblock.SenderShardID == inTxBody.shardCoordinator.SelfId()
 
 	return isForCurrentShardRecv || isForCurrentShardSender
 }
 
 // Hash gets the hash of this transaction block body
-func (inTxBlkBdy *InterceptedTxBlockBody) Hash() []byte {
-	return inTxBlkBdy.hash
+func (inTxBody *InterceptedTxBlockBody) Hash() []byte {
+	return inTxBody.hash
 }
 
 // TxBlockBody returns the block body held by this wrapper
-func (inTxBlkBdy *InterceptedTxBlockBody) TxBlockBody() block.Body {
-	return inTxBlkBdy.txBlockBody
+func (inTxBody *InterceptedTxBlockBody) TxBlockBody() block.Body {
+	return inTxBody.txBlockBody
 }
 
 // CheckValidity checks if the received tx block body is valid (not nil fields)
-func (inTxBlkBdy *InterceptedTxBlockBody) CheckValidity() error {
-	return inTxBlkBdy.integrity()
+func (inTxBody *InterceptedTxBlockBody) CheckValidity() error {
+	return inTxBody.integrity()
 }
 
 // IsForCurrentShard returns true if at least one contained miniblock is for current shard
-func (inTxBlkBdy *InterceptedTxBlockBody) IsForCurrentShard() bool {
-	return inTxBlkBdy.isForCurrentShard
+func (inTxBody *InterceptedTxBlockBody) IsForCurrentShard() bool {
+	return inTxBody.isForCurrentShard
 }
 
 // integrity checks the integrity of the tx block body
-func (inTxBlkBdy *InterceptedTxBlockBody) integrity() error {
-	for _, miniBlock := range inTxBlkBdy.txBlockBody {
+func (inTxBody *InterceptedTxBlockBody) integrity() error {
+	for _, miniBlock := range inTxBody.txBlockBody {
 		if miniBlock.TxHashes == nil {
 			return process.ErrNilTxHashes
 		}
 
-		if miniBlock.ReceiverShardID >= inTxBlkBdy.shardCoordinator.NumberOfShards() {
+		if miniBlock.ReceiverShardID >= inTxBody.shardCoordinator.NumberOfShards() {
 			return process.ErrInvalidShardId
 		}
 
-		if miniBlock.SenderShardID >= inTxBlkBdy.shardCoordinator.NumberOfShards() {
+		if miniBlock.SenderShardID >= inTxBody.shardCoordinator.NumberOfShards() {
 			return process.ErrInvalidShardId
 		}
 
@@ -120,8 +120,8 @@ func (inTxBlkBdy *InterceptedTxBlockBody) integrity() error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (inTxBlkBdy *InterceptedTxBlockBody) IsInterfaceNil() bool {
-	if inTxBlkBdy == nil {
+func (inTxBody *InterceptedTxBlockBody) IsInterfaceNil() bool {
+	if inTxBody == nil {
 		return true
 	}
 	return false

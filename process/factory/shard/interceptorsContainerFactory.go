@@ -233,7 +233,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
 	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
 	if err != nil {
 		return nil, err
@@ -266,7 +266,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- Unsigned transactions interceptors
@@ -303,7 +303,7 @@ func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]st
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(identifier string) (process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
 	//TODO replace the nil tx validator with white list validator
 	txValidator, err := mock.NewNilTxValidator()
 	if err != nil {
@@ -337,7 +337,7 @@ func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(identifi
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- Hdr interceptor
@@ -408,9 +408,9 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxBodyInterceptorProcessor{
-		Miniblocks:       icf.dataPool.MiniBlocks(),
+		MiniblockCache:   icf.dataPool.MiniBlocks(),
 		Marshalizer:      icf.marshalizer,
 		Hasher:           icf.hasher,
 		ShardCoordinator: icf.shardCoordinator,
@@ -437,7 +437,7 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifi
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- MetachainHeader interceptors
