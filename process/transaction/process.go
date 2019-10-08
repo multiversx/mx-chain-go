@@ -133,9 +133,12 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 
 	txDataLen := int64(len(tx.Data))
 	txProc.mutTxFee.RLock()
+	minTxFee := big.NewInt(0).SetUint64(txProc.economicsFee.MinGasLimitForTx())
+	minTxFee = minTxFee.Mul(minTxFee, big.NewInt(0).SetUint64(txProc.economicsFee.MinGasPrice()))
+
 	minFee := big.NewInt(0)
 	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(txProc.economicsFee.MinGasPrice()))
-	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(txProc.economicsFee.MinTxFee()))
+	minFee = minFee.Add(minFee, minTxFee)
 	txProc.mutTxFee.RUnlock()
 
 	if minFee.Cmp(cost) > 0 {

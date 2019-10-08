@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -254,22 +255,24 @@ func (tpn *TestProcessorNode) initChainHandler() {
 }
 
 func (tpn *TestProcessorNode) initEconomicsData() {
-	economicsData := economics.NewEconomicsData(
+	mingGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
+	minGasLimitForTx := strconv.FormatUint(MinTxGasLimit, 10)
+
+	economicsData, _ := economics.NewEconomicsData(
 		&config.ConfigEconomics{
 			EconomicsAddresses: config.EconomicsAddresses{
 				CommunityAddress: "addr1",
 				BurnAddress:      "addr2",
 			},
 			RewardsSettings: config.RewardsSettings{
-				RewardsValue:        1000,
+				RewardsValue:        "1000",
 				CommunityPercentage: 0.10,
 				LeaderPercentage:    0.50,
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MinGasPrice:      MinTxGasPrice,
-				MinGasLimitForTx: MinTxGasLimit,
-				MinTxFee:         MinTxGasPrice * MinTxGasLimit,
+				MinGasPrice:      mingGasPrice,
+				MinGasLimitForTx: minGasLimitForTx,
 			},
 		},
 	)

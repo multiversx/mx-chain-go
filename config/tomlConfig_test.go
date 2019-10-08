@@ -121,13 +121,12 @@ func TestTomlParser(t *testing.T) {
 func TestTomlEconomicsParser(t *testing.T) {
 	communityAddress := "commAddr"
 	burnAddress := "burnAddr"
-	rewardsValue := uint64(500)
+	rewardsValue := "500"
 	communityPercentage := 0.1
 	leaderPercentage := 0.1
 	burnPercentage := 0.8
-	minGasPrice := uint64(1)
-	minGasLimitForTx := uint64(2)
-	minTxFee := uint64(3)
+	minGasPrice := "1"
+	minGasLimitForTx := "2"
 
 	cfgEconomicsExpected := ConfigEconomics{
 		EconomicsAddresses: EconomicsAddresses{
@@ -143,7 +142,6 @@ func TestTomlEconomicsParser(t *testing.T) {
 		FeeSettings: FeeSettings{
 			MinGasPrice:      minGasPrice,
 			MinGasLimitForTx: minGasLimitForTx,
-			MinTxFee:         minTxFee,
 		},
 	}
 
@@ -152,14 +150,13 @@ func TestTomlEconomicsParser(t *testing.T) {
 	CommunityAddress = "` + communityAddress + `"
 	BurnAddress = "` + burnAddress + `"
 [RewardsSettings]
-    RewardsValue = ` + strconv.FormatUint(rewardsValue, 10) + `
+    RewardsValue = "` + rewardsValue + `"
     CommunityPercentage = ` + fmt.Sprintf("%.6f", communityPercentage) + `
     LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
     BurnPercentage = 	` + fmt.Sprintf("%.6f", burnPercentage) + `
 [FeeSettings]
-    MinGasPrice = ` + strconv.FormatUint(minGasPrice, 10) + `
-    MinGasLimitForTx = ` + strconv.FormatUint(minGasLimitForTx, 10) + `
-    MinTxFee = ` + strconv.FormatUint(minTxFee, 10) + `
+    MinGasPrice = "` + minGasPrice + `"
+    MinGasLimitForTx = "` + minGasLimitForTx + `"
 `
 
 	cfg := ConfigEconomics{}

@@ -208,9 +208,6 @@ var ErrNilStorage = errors.New("nil storage")
 // ErrNilShardedDataCacherNotifier signals that a nil sharded data cacher notifier has been provided
 var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifier")
 
-// ErrNilBlocksTracker signals that a nil blocks tracker has been provided
-var ErrNilBlocksTracker = errors.New("nil blocks tracker")
-
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
@@ -498,3 +495,15 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
+
+// ErrInvalidMinimumGasPrice signals that a invalid gas price has been read from config file
+var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
+
+// ErrInvalidMinimumGasLimitForTx signals that a invalid minimum gas limit for transactions has been read from config file
+var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
+
+// ErrInvalidRewardsValue signals that a invalid rewards value has been read from config file
+var ErrInvalidRewardsValue = errors.New("invalid rewards value")
+
+// ErrInvalidRewardsPercentages signal that rewards percentages are not correct
+var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")

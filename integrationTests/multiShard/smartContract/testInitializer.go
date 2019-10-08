@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -357,11 +356,7 @@ func createNetNode(
 		100,
 	)
 
-	economicsData := economics.NewEconomicsData(&config.ConfigEconomics{
-		EconomicsAddresses: config.EconomicsAddresses{},
-		RewardsSettings:    config.RewardsSettings{},
-		FeeSettings:        config.FeeSettings{},
-	})
+	economicsData := &economics.EconomicsData{}
 
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,

@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getRewardValue(node *integrationTests.TestProcessorNode) uint64 {
+func getRewardValue(node *integrationTests.TestProcessorNode) *big.Int {
 	return node.EconomicsData.RewardsValue()
 }
 
@@ -334,7 +334,8 @@ func verifyRewardsForMetachain(
 		acc, err := nodes[0][0].AccntState.GetExistingAccount(addrContainer)
 		assert.Nil(t, err)
 
-		expectedBalance := big.NewInt(int64(uint64(numOfTimesRewarded) * rewardValue))
+		expectedBalance := big.NewInt(0).SetUint64(uint64(numOfTimesRewarded))
+		expectedBalance = expectedBalance.Mul(expectedBalance, rewardValue)
 		assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 	}
 }
@@ -359,9 +360,14 @@ func verifyRewardsForShards(
 			assert.Nil(t, err)
 
 			nbProposedTxs := nbTxsForLeaderAddress[address]
-			expectedBalance := int64(nbRewards)*int64(rewardValue) + int64(nbProposedTxs)*int64(feePerTxForLeader)
+			expectedBalance := big.NewInt(0).SetUint64(uint64(nbRewards))
+			expectedBalance = expectedBalance.Mul(expectedBalance, rewardValue)
+			totalFees := big.NewInt(0).SetUint64(uint64(nbProposedTxs))
+			totalFees = totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
+
+			expectedBalance = expectedBalance.Add(expectedBalance, totalFees)
 			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
-			assert.Equal(t, big.NewInt(expectedBalance), acc.(*state.Account).Balance)
+			assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 		}
 	}
 }

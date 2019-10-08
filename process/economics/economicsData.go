@@ -1,41 +1,113 @@
 package economics
 
 import (
+	"math/big"
+	"strconv"
+
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	rewardsValue        uint64
+	rewardsValue        *big.Int
 	communityPercentage float64
 	leaderPercentage    float64
 	burnPercentage      float64
-
-	minGasPrice      uint64
-	minGasLimitForTx uint64
-	minTxFee         uint64
-
-	communityAddress string
-	burnAddress      string
+	minGasPrice         uint64
+	minGasLimitForTx    uint64
+	communityAddress    string
+	burnAddress         string
 }
 
 // NewEconomicsData will create and object with information about economics parameters
-func NewEconomicsData(economics *config.ConfigEconomics) *EconomicsData {
+func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
+	//TODO check addresses what happens if addresses are wrong
+	rewardsValue, minGasPrice, minGasLimitForTx, err := convertValues(economics)
+	if err != nil {
+		return nil, err
+	}
+
+	notGreaterThanZero := rewardsValue.Cmp(big.NewInt(0))
+	if notGreaterThanZero < 0 {
+		return nil, process.ErrInvalidRewardsValue
+	}
+
+	err = checkValues(economics)
+	if err != nil {
+		return nil, err
+	}
+
 	return &EconomicsData{
-		rewardsValue:        economics.RewardsSettings.RewardsValue,
+		rewardsValue:        rewardsValue,
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
 		burnPercentage:      economics.RewardsSettings.BurnPercentage,
-		minGasPrice:         economics.FeeSettings.MinGasPrice,
-		minGasLimitForTx:    economics.FeeSettings.MinGasLimitForTx,
-		minTxFee:            economics.FeeSettings.MinTxFee,
+		minGasPrice:         minGasPrice,
+		minGasLimitForTx:    minGasLimitForTx,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
+	}, nil
+}
+
+func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64, error) {
+	conversionBase := 10
+	bitConversionSize := 64
+
+	rewardsValue := new(big.Int)
+	rewardsValue, ok := rewardsValue.SetString(economics.RewardsSettings.RewardsValue, conversionBase)
+	if !ok {
+		return nil, 0, 0, process.ErrInvalidRewardsValue
 	}
+	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, 0, 0, process.ErrInvalidMinimumGasPrice
+	}
+	minGasLimitForTx, err := strconv.ParseUint(economics.FeeSettings.MinGasLimitForTx, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, 0, 0, process.ErrInvalidMinimumGasLimitForTx
+	}
+
+	return rewardsValue, minGasPrice, minGasLimitForTx, nil
+}
+
+func checkValues(economics *config.ConfigEconomics) error {
+	bigBurnPercentage := big.NewFloat(economics.RewardsSettings.BurnPercentage)
+	bigCommunityPercentage := big.NewFloat(economics.RewardsSettings.CommunityPercentage)
+	bigLeaderPercentage := big.NewFloat(economics.RewardsSettings.LeaderPercentage)
+
+	notGreaterOrEqualWithZero := bigBurnPercentage.Cmp(big.NewFloat(0.0))
+	notLessThanOne := big.NewFloat(1.0).Cmp(bigBurnPercentage)
+	if notGreaterOrEqualWithZero < 0 || notLessThanOne < 0 {
+		return process.ErrInvalidRewardsPercentages
+	}
+
+	notGreaterOrEqualWithZero = bigCommunityPercentage.Cmp(big.NewFloat(0.0))
+	notLessThanOne = big.NewFloat(1.0).Cmp(bigCommunityPercentage)
+	if notGreaterOrEqualWithZero < 0 || notLessThanOne < 0 {
+		return process.ErrInvalidRewardsPercentages
+	}
+
+	notGreaterOrEqualWithZero = bigLeaderPercentage.Cmp(big.NewFloat(0.0))
+	notLessThanOne = big.NewFloat(1.0).Cmp(bigLeaderPercentage)
+	if notGreaterOrEqualWithZero < 0 || notLessThanOne < 0 {
+		return process.ErrInvalidRewardsPercentages
+	}
+
+	sumPercentage := new(big.Float)
+	sumPercentage = sumPercentage.Add(bigBurnPercentage, bigCommunityPercentage)
+	sumPercentage = sumPercentage.Add(sumPercentage, bigLeaderPercentage)
+
+	equalsWithOne := sumPercentage.Cmp(big.NewFloat(1.0))
+	if equalsWithOne != 0 {
+		return process.ErrInvalidRewardsPercentages
+	}
+
+	return nil
 }
 
 // RewardsValue will return rewards value
-func (ed *EconomicsData) RewardsValue() uint64 {
+func (ed *EconomicsData) RewardsValue() *big.Int {
 	return ed.rewardsValue
 }
 
@@ -62,11 +134,6 @@ func (ed *EconomicsData) MinGasPrice() uint64 {
 // MinGasLimitForTx will return minimum gas limit
 func (ed *EconomicsData) MinGasLimitForTx() uint64 {
 	return ed.minGasLimitForTx
-}
-
-// MinTxFee will return minimum transaction fee
-func (ed *EconomicsData) MinTxFee() uint64 {
-	return ed.minTxFee
 }
 
 // CommunityAddress will return community address
