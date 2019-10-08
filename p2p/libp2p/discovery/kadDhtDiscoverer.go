@@ -27,6 +27,7 @@ type KadDhtDiscoverer struct {
 	refreshInterval  time.Duration
 	randezVous       string
 	initialPeersList []string
+	initc            bool
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
@@ -47,6 +48,7 @@ func NewKadDhtPeerDiscoverer(
 		refreshInterval:  refreshInterval,
 		randezVous:       randezVous,
 		initialPeersList: initialPeersList,
+		initc:            true,
 	}
 }
 
@@ -98,12 +100,22 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 		<-chanStartBootstrap
 
 		kdd.mutKadDht.Lock()
-		err := kdd.kadDHT.BootstrapWithConfig(ctx, cfg)
+		go func() {
+			for {
+				if kdd.initc {
+					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
+					if err != nil {
+						log.Warn("error bootstrapping: %s", err)
+					}
+				}
+				select {
+				case <-time.After(cfg.Period):
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
 		kdd.mutKadDht.Unlock()
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
 	}()
 }
 
@@ -174,6 +186,24 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
 	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+}
+
+func (kdd *KadDhtDiscoverer) Pause() {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+	if kdd.initc {
+		log.Info("KDD: Pause kad-dht discovery")
+		kdd.initc = false
+	}
+}
+
+func (kdd *KadDhtDiscoverer) Resume() {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+	if !kdd.initc {
+		log.Info("KDD: Resume kad-dht discovery")
+		kdd.initc = true
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

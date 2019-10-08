@@ -1256,6 +1256,7 @@ func createNetMessenger(
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		pDiscoverer,
 		libp2p.ListenAddrWithIp4AndTcp,
+		p2pConfig.Node.TargetPeerCount,
 	)
 	if err != nil {
 		return nil, err
