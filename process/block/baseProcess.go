@@ -563,3 +563,54 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
+
+//TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
+	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
+
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for _, hdrInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if hdrInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		hdrsForCurrentBlock[hdrInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[hdrInfo.hdr.GetShardID()], hdrInfo.hdr)
+	}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	// sort headers for each shard
+	for shardId := uint32(0); shardId < bp.shardCoordinator.NumberOfShards(); shardId++ {
+		hdrsForShard := hdrsForCurrentBlock[shardId]
+		process.SortHeadersByNonce(hdrsForShard)
+	}
+
+	return hdrsForCurrentBlock
+}
+
+//TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) [][]byte {
+	hdrsForCurrentBlockInfo := make([]*nonceAndHashInfo, 0)
+
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for metaBlockHash, hdrInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if hdrInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		hdrsForCurrentBlockInfo = append(hdrsForCurrentBlockInfo, &nonceAndHashInfo{nonce: hdrInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
+	}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	if len(hdrsForCurrentBlockInfo) > 1 {
+		sort.Slice(hdrsForCurrentBlockInfo, func(i, j int) bool {
+			return hdrsForCurrentBlockInfo[i].nonce < hdrsForCurrentBlockInfo[j].nonce
+		})
+	}
+
+	hdrsHashesForCurrentBlock := make([][]byte, len(hdrsForCurrentBlockInfo))
+	for i := 0; i < len(hdrsForCurrentBlockInfo); i++ {
+		hdrsHashesForCurrentBlock[i] = hdrsForCurrentBlockInfo[i].hash
+	}
+
+	return hdrsHashesForCurrentBlock
+}

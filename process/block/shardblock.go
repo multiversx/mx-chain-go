@@ -25,7 +25,7 @@ const maxCleanTime = time.Second
 type shardProcessor struct {
 	*baseProcessor
 	dataPool          dataRetriever.PoolsHolder
-	metaBlockFinality int
+	metaBlockFinality uint32
 
 	chRcvAllMetaHdrs chan bool
 
@@ -307,16 +307,12 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 		return err
 	}
 
-	usedMetaHdrs, err := sp.sortMetaHeadersForCurrentBlockByNonce(true)
-	if err != nil {
-		return err
-	}
-
-	if len(usedMetaHdrs) == 0 {
+	usedMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(true)
+	if len(usedMetaHdrs[sharding.MetachainShardId]) == 0 {
 		return nil
 	}
 
-	for _, metaHdr := range usedMetaHdrs {
+	for _, metaHdr := range usedMetaHdrs[sharding.MetachainShardId] {
 		err = sp.isHdrConstructionValid(metaHdr, tmpNotedHdr)
 		if err != nil {
 			return err
@@ -339,22 +335,19 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
-	finalityAttestingMetaHdrs, err := sp.sortMetaHeadersForCurrentBlockByNonce(false)
-	if err != nil {
-		return err
-	}
+	finalityAttestingMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(false)
 
 	lastVerifiedHdr := header
 	// verify if there are "K" block after current to make this one final
-	nextBlocksVerified := 0
-	for _, metaHdr := range finalityAttestingMetaHdrs {
+	nextBlocksVerified := uint32(0)
+	for _, metaHdr := range finalityAttestingMetaHdrs[sharding.MetachainShardId] {
 		if nextBlocksVerified >= sp.metaBlockFinality {
 			break
 		}
 
 		// found a header with the next nonce
-		if metaHdr.Nonce == lastVerifiedHdr.GetNonce()+1 {
-			err = sp.isHdrConstructionValid(metaHdr, lastVerifiedHdr)
+		if metaHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
+			err := sp.isHdrConstructionValid(metaHdr, lastVerifiedHdr)
 			if err != nil {
 				log.Debug(err.Error())
 				continue
@@ -375,7 +368,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 
 // check if header has the same miniblocks as presented in body
 func (sp *shardProcessor) checkHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
-	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader)
+	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(hdr.MiniBlockHeaders))
 	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
 		mbHashesFromHdr[string(hdr.MiniBlockHeaders[i].Hash)] = &hdr.MiniBlockHeaders[i]
 	}
@@ -839,10 +832,10 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 
 	process.SortHeadersByNonce(ownShIdHdrs)
 
-	ownShIdHdrsHashes := make([][]byte, 0)
+	ownShIdHdrsHashes := make([][]byte, len(ownShIdHdrs))
 	for i := 0; i < len(ownShIdHdrs); i++ {
 		hash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, ownShIdHdrs[i])
-		ownShIdHdrsHashes = append(ownShIdHdrsHashes, hash)
+		ownShIdHdrsHashes[i] = hash
 	}
 
 	return ownShIdHdrs, ownShIdHdrsHashes, nil
@@ -886,7 +879,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header *block.
 		return nil, process.ErrNilBlockHeader
 	}
 
-	miniBlockHashes := make(map[int][]byte, 0)
+	miniBlockHashes := make(map[int][]byte, len(header.MiniBlockHeaders))
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
 		miniBlockHashes[i] = header.MiniBlockHeaders[i].Hash
 	}
@@ -906,7 +899,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header *block.He
 		return process.ErrNilBlockHeader
 	}
 
-	miniBlockHashes := make(map[int][]byte, 0)
+	miniBlockHashes := make(map[int][]byte, len(header.MiniBlockHeaders))
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
 		miniBlockHashes[i] = header.MiniBlockHeaders[i].Hash
 	}
@@ -945,7 +938,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlocks(
 	usedMiniBlocks []*block.MiniBlock,
 ) ([]data.HeaderHandler, error) {
 
-	miniBlockHashes := make(map[int][]byte, 0)
+	miniBlockHashes := make(map[int][]byte)
 	for i := 0; i < len(usedMiniBlocks); i++ {
 		if usedMiniBlocks[i].SenderShardID == sp.shardCoordinator.SelfId() {
 			continue
@@ -1265,21 +1258,21 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint64) (map[string
 		if !hdrInfo.usedInBlock {
 			continue
 		}
-		hdr, ok := hdrInfo.hdr.(*block.MetaBlock)
+		metaBlock, ok := hdrInfo.hdr.(*block.MetaBlock)
 		if !ok {
 			continue
 		}
-		if hdr.GetRound() > round {
+		if metaBlock.GetRound() > round {
 			continue
 		}
-		if hdr.GetRound() <= lastHdr.GetRound() {
+		if metaBlock.GetRound() <= lastHdr.GetRound() {
 			continue
 		}
-		if hdr.GetNonce() <= lastHdr.GetNonce() {
+		if metaBlock.GetNonce() <= lastHdr.GetNonce() {
 			continue
 		}
 
-		crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
 			miniBlockMetaHashes[hash] = []byte(metaBlockHash)
 		}
@@ -1345,7 +1338,7 @@ func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHd
 
 	// verify if there are "K" block after current to make this one final
 	lastVerifiedHdr := currHdr
-	nextBlocksVerified := 0
+	nextBlocksVerified := uint32(0)
 
 	for i := startPos; i < len(sortedHdrs); i++ {
 		if nextBlocksVerified >= sp.metaBlockFinality {
@@ -1590,11 +1583,10 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 	header.MiniBlockHeaders = miniBlockHeaders
 	header.TxCount = uint32(totalTxCount)
+	header.MetaBlockHashes = sp.sortHeaderHashesForCurrentBlockByNonce(true)
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
-
-	header.MetaBlockHashes = sp.sortMetaHeaderHashesForCurrentBlockByNonce(true)
 
 	sp.blockSizeThrottler.Add(
 		round,
@@ -1748,61 +1740,4 @@ func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
 	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 	return maxMbSpaceRemained
-}
-
-//TODO: remove bool parameter and give instead the set to sort
-func (sp *shardProcessor) sortMetaHeadersForCurrentBlockByNonce(usedInBlock bool) ([]*block.MetaBlock, error) {
-	hdrsForCurrentBlock := make([]*block.MetaBlock, 0)
-
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for _, hdrInfo := range sp.hdrsForCurrBlock.hdrHashAndInfo {
-		if hdrInfo.usedInBlock != usedInBlock {
-			continue
-		}
-
-		metaHdr, ok := hdrInfo.hdr.(*block.MetaBlock)
-		if !ok {
-			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return nil, process.ErrWrongTypeAssertion
-		}
-
-		hdrsForCurrentBlock = append(hdrsForCurrentBlock, metaHdr)
-	}
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-
-	if len(hdrsForCurrentBlock) > 1 {
-		sort.Slice(hdrsForCurrentBlock, func(i, j int) bool {
-			return hdrsForCurrentBlock[i].Nonce < hdrsForCurrentBlock[j].Nonce
-		})
-	}
-
-	return hdrsForCurrentBlock, nil
-}
-
-//TODO: remove bool parameter and give instead the set to sort
-func (sp *shardProcessor) sortMetaHeaderHashesForCurrentBlockByNonce(usedInBlock bool) [][]byte {
-	hdrsForCurrentBlockInfo := make([]*nonceAndHashInfo, 0)
-
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for metaBlockHash, hdrInfo := range sp.hdrsForCurrBlock.hdrHashAndInfo {
-		if hdrInfo.usedInBlock != usedInBlock {
-			continue
-		}
-
-		hdrsForCurrentBlockInfo = append(hdrsForCurrentBlockInfo, &nonceAndHashInfo{nonce: hdrInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
-	}
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-
-	if len(hdrsForCurrentBlockInfo) > 1 {
-		sort.Slice(hdrsForCurrentBlockInfo, func(i, j int) bool {
-			return hdrsForCurrentBlockInfo[i].nonce < hdrsForCurrentBlockInfo[j].nonce
-		})
-	}
-
-	hdrsHashesForCurrentBlock := make([][]byte, len(hdrsForCurrentBlockInfo))
-	for i := 0; i < len(hdrsForCurrentBlockInfo); i++ {
-		hdrsHashesForCurrentBlock[i] = hdrsForCurrentBlockInfo[i].hash
-	}
-
-	return hdrsHashesForCurrentBlock
 }
