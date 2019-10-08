@@ -496,13 +496,13 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 
-// ErrInvalidMinimumGasPrice signals that a invalid gas price has been read from config file
+// ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 
-// ErrInvalidMinimumGasLimitForTx signals that a invalid minimum gas limit for transactions has been read from config file
+// ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
 var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
 
-// ErrInvalidRewardsValue signals that a invalid rewards value has been read from config file
+// ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
 var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
 // ErrInvalidRewardsPercentages signal that rewards percentages are not correct

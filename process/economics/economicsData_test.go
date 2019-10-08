@@ -18,13 +18,13 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			BurnAddress:      "addr2",
 		},
 		RewardsSettings: config.RewardsSettings{
-			RewardsValue:        "1000",
+			RewardsValue:        "1000000000000000000000000000000000",
 			CommunityPercentage: 0.1,
 			LeaderPercentage:    0.1,
 			BurnPercentage:      0.8,
 		},
 		FeeSettings: config.FeeSettings{
-			MinGasPrice:      "100",
+			MinGasPrice:      "18446744073709551615",
 			MinGasLimitForTx: "500",
 		},
 	}

@@ -22,7 +22,7 @@ type EconomicsData struct {
 
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
-	//TODO check addresses what happens if addresses are wrong
+	//TODO check what happens if addresses are wrong
 	rewardsValue, minGasPrice, minGasLimitForTx, err := convertValues(economics)
 	if err != nil {
 		return nil, err
@@ -59,10 +59,12 @@ func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64,
 	if !ok {
 		return nil, 0, 0, process.ErrInvalidRewardsValue
 	}
+
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
 		return nil, 0, 0, process.ErrInvalidMinimumGasPrice
 	}
+
 	minGasLimitForTx, err := strconv.ParseUint(economics.FeeSettings.MinGasLimitForTx, conversionBase, bitConversionSize)
 	if err != nil {
 		return nil, 0, 0, process.ErrInvalidMinimumGasLimitForTx
@@ -76,34 +78,30 @@ func checkValues(economics *config.ConfigEconomics) error {
 	bigCommunityPercentage := big.NewFloat(economics.RewardsSettings.CommunityPercentage)
 	bigLeaderPercentage := big.NewFloat(economics.RewardsSettings.LeaderPercentage)
 
-	notGreaterOrEqualWithZero := bigBurnPercentage.Cmp(big.NewFloat(0.0))
-	notLessThanOne := big.NewFloat(1.0).Cmp(bigBurnPercentage)
-	if notGreaterOrEqualWithZero < 0 || notLessThanOne < 0 {
-		return process.ErrInvalidRewardsPercentages
-	}
-
-	notGreaterOrEqualWithZero = bigCommunityPercentage.Cmp(big.NewFloat(0.0))
-	notLessThanOne = big.NewFloat(1.0).Cmp(bigCommunityPercentage)
-	if notGreaterOrEqualWithZero < 0 || notLessThanOne < 0 {
-		return process.ErrInvalidRewardsPercentages
-	}
-
-	notGreaterOrEqualWithZero = bigLeaderPercentage.Cmp(big.NewFloat(0.0))
-	notLessThanOne = big.NewFloat(1.0).Cmp(bigLeaderPercentage)
-	if notGreaterOrEqualWithZero < 0 || notLessThanOne < 0 {
+	if isNotPercentageValid(bigBurnPercentage) || isNotPercentageValid(bigCommunityPercentage) || isNotPercentageValid(bigLeaderPercentage) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
 	sumPercentage := new(big.Float)
-	sumPercentage = sumPercentage.Add(bigBurnPercentage, bigCommunityPercentage)
-	sumPercentage = sumPercentage.Add(sumPercentage, bigLeaderPercentage)
+	sumPercentage.Add(bigBurnPercentage, bigCommunityPercentage)
+	sumPercentage.Add(sumPercentage, bigLeaderPercentage)
 
-	equalsWithOne := sumPercentage.Cmp(big.NewFloat(1.0))
-	if equalsWithOne != 0 {
+	isNotEqualToOne := sumPercentage.Cmp(big.NewFloat(1.0)) != 0
+	if isNotEqualToOne {
 		return process.ErrInvalidRewardsPercentages
 	}
 
 	return nil
+}
+
+func isNotPercentageValid(percentage *big.Float) bool {
+	isLessThanZero := percentage.Cmp(big.NewFloat(0.0)) < 0
+	isGreaterThanOne := big.NewFloat(1.0).Cmp(percentage) < 0
+	if isLessThanZero || isGreaterThanOne {
+		return true
+	}
+
+	return false
 }
 
 // RewardsValue will return rewards value

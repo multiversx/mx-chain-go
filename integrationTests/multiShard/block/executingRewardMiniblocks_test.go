@@ -335,7 +335,7 @@ func verifyRewardsForMetachain(
 		assert.Nil(t, err)
 
 		expectedBalance := big.NewInt(0).SetUint64(uint64(numOfTimesRewarded))
-		expectedBalance = expectedBalance.Mul(expectedBalance, rewardValue)
+		expectedBalance.Mul(expectedBalance, rewardValue)
 		assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 	}
 }
@@ -361,11 +361,11 @@ func verifyRewardsForShards(
 
 			nbProposedTxs := nbTxsForLeaderAddress[address]
 			expectedBalance := big.NewInt(0).SetUint64(uint64(nbRewards))
-			expectedBalance = expectedBalance.Mul(expectedBalance, rewardValue)
+			expectedBalance.Mul(expectedBalance, rewardValue)
 			totalFees := big.NewInt(0).SetUint64(uint64(nbProposedTxs))
-			totalFees = totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
+			totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
 
-			expectedBalance = expectedBalance.Add(expectedBalance, totalFees)
+			expectedBalance.Add(expectedBalance, totalFees)
 			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
 			assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 		}

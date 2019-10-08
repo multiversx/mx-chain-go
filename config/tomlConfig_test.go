@@ -121,12 +121,12 @@ func TestTomlParser(t *testing.T) {
 func TestTomlEconomicsParser(t *testing.T) {
 	communityAddress := "commAddr"
 	burnAddress := "burnAddr"
-	rewardsValue := "500"
+	rewardsValue := "1000000000000000000000000000000000"
 	communityPercentage := 0.1
 	leaderPercentage := 0.1
 	burnPercentage := 0.8
-	minGasPrice := "1"
-	minGasLimitForTx := "2"
+	minGasPrice := "18446744073709551615"
+	minGasLimitForTx := "18446744073709551615"
 
 	cfgEconomicsExpected := ConfigEconomics{
 		EconomicsAddresses: EconomicsAddresses{
