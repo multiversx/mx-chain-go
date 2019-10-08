@@ -1,7 +1,6 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -31,7 +30,7 @@ func NewSystemVM(
 	sVm := &systemVM{
 		systemEI:        systemEI,
 		systemContracts: systemContracts,
-		vmType:          make([]byte, hooks.VMTypeLen),
+		vmType:          make([]byte, len(vmType)),
 	}
 	copy(sVm.vmType, vmType)
 
