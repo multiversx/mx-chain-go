@@ -135,6 +135,7 @@ type HeartbeatConfig struct {
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
 	DurationInSecToConsiderUnresponsive int
+	HeartbeatStorage                    StorageConfig
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
