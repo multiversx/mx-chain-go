@@ -261,23 +261,12 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
 
-func (m *Monitor) saveHeartbeats() {
-	for pk, v := range m.heartbeatMessages {
-		hbDTO := m.convertToExportedStruct(v)
-		err := m.storer.SavePubkeyData([]byte(pk), &hbDTO)
-		if err != nil {
-			log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
-		}
-	}
-}
-
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.mutHeartbeatMessages.Lock()
 	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 
 	m.computeAllHeartbeatMessages()
-	m.saveHeartbeats()
 
 	idx := 0
 	for k, v := range m.heartbeatMessages {
