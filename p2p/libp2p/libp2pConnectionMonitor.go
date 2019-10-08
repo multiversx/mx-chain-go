@@ -1,6 +1,8 @@
 package libp2p
 
 import (
+	"math"
+	"math/rand"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -17,14 +19,16 @@ var ThresholdMinimumConnectedPeers = 3
 var DurationBetweenReconnectAttempts = time.Second * 5
 
 type libp2pConnectionMonitor struct {
-	chDoReconnect chan struct{}
-	reconnecter   p2p.Reconnecter
+	chDoReconnect   chan struct{}
+	reconnecter     p2p.Reconnecter
+	targetConnCount int
 }
 
-func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter) *libp2pConnectionMonitor {
+func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, targetConnCount int) *libp2pConnectionMonitor {
 	cm := &libp2pConnectionMonitor{
-		reconnecter:   reconnecter,
-		chDoReconnect: make(chan struct{}, 0),
+		reconnecter:     reconnecter,
+		chDoReconnect:   make(chan struct{}, 0),
+		targetConnCount: targetConnCount,
 	}
 
 	if reconnecter != nil {
@@ -40,16 +44,55 @@ func (lcm *libp2pConnectionMonitor) Listen(network.Network, multiaddr.Multiaddr)
 // ListenClose is called when network stops listening on an addr
 func (lcm *libp2pConnectionMonitor) ListenClose(network.Network, multiaddr.Multiaddr) {}
 
+// ThresholdDiscoveryPause if the number of connected peers is over this value, the dht discovery is stopped
+func (lcm *libp2pConnectionMonitor) ThresholdDiscoveryPause() int {
+	if lcm.targetConnCount > 0 {
+		return lcm.targetConnCount
+	}
+	return math.MaxInt32
+}
+
+// ThresholdDiscoveryResume if the number of connected peers drop under this value, the dht discovery is restarted
+func (lcm *libp2pConnectionMonitor) ThresholdDiscoveryResume() int {
+	if lcm.targetConnCount > 0 {
+		return lcm.targetConnCount * 4 / 5
+	}
+	return 0
+}
+
+// ThresholdRandomTrim if the number of connected peers is over this value, we start cutting of connections at random
+func (lcm *libp2pConnectionMonitor) ThresholdRandomTrim() int {
+	if lcm.targetConnCount > 0 {
+		return lcm.targetConnCount * 6 / 5
+	}
+	return math.MaxInt32
+}
+
 // Connected is called when a connection opened
-func (lcm *libp2pConnectionMonitor) Connected(network.Network, network.Conn) {}
+func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
+	if len(netw.Conns()) > lcm.ThresholdDiscoveryPause() {
+		lcm.reconnecter.Pause()
+	}
+	if len(netw.Conns()) > lcm.ThresholdRandomTrim() {
+		for len(netw.Conns()) > lcm.ThresholdDiscoveryPause() {
+			log.Info("KDD: cutoff connection")
+			netw.Conns()[rand.Uint32()%uint32(len(netw.Conns()))].Close()
+		}
+	}
+}
 
 // Disconnected is called when a connection closed
 func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn network.Conn) {
-	if len(netw.Conns()) < ThresholdMinimumConnectedPeers {
+	currentConnCount := len(netw.Conns())
+	if currentConnCount < ThresholdMinimumConnectedPeers {
 		select {
 		case lcm.chDoReconnect <- struct{}{}:
 		default:
 		}
+	}
+
+	if currentConnCount < lcm.ThresholdDiscoveryResume() {
+		lcm.reconnecter.Resume()
 	}
 }
 
