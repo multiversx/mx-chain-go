@@ -2470,12 +2470,12 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		Nonce: 1,
 		Round: 1,
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				ShardId: 1,
 				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-					block.ShardMiniBlockHeader{Hash: miniBlockHash1, SenderShardId: 1, ReceiverShardId: 0},
-					block.ShardMiniBlockHeader{Hash: miniBlockHash2, SenderShardId: 1, ReceiverShardId: 0},
-					block.ShardMiniBlockHeader{Hash: miniBlockHash3, SenderShardId: 1, ReceiverShardId: 0},
+					{Hash: miniBlockHash1, SenderShardId: 1, ReceiverShardId: 0},
+					{Hash: miniBlockHash2, SenderShardId: 1, ReceiverShardId: 0},
+					{Hash: miniBlockHash3, SenderShardId: 1, ReceiverShardId: 0},
 				}},
 		}}
 
@@ -4171,19 +4171,4 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	assert.Equal(t, meta, metaBlockRestored)
 	assert.Nil(t, err)
 	assert.True(t, sp.IsMiniBlockProcessed(metaHash, testMBHash))
-}
-
-func TestNewShardProcessor_CalculateRoundDuration(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments()
-	sp, _ := blproc.NewShardProcessor(arguments)
-	lastBlockTimestamp := uint64(80)
-	currentBlockTimestamp := uint64(100)
-	lastBlockRound := uint64(5)
-	currentBlockRound := uint64(10)
-	expectedRoundDuration := uint64(4)
-
-	roundDuration := sp.CalculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
-	assert.Equal(t, expectedRoundDuration, roundDuration)
 }

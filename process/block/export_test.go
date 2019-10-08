@@ -316,15 +316,6 @@ func (sp *shardProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
-func (sp *shardProcessor) CalculateRoundDuration(
-	lastBlockTimestamp uint64,
-	currentBlockTimestamp uint64,
-	lastBlockRound uint64,
-	currentBlockRound uint64,
-) uint64 {
-	return sp.calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
-}
-
 func (sp *shardProcessor) CreateBlockStarted() {
 	sp.createBlockStarted()
 }
