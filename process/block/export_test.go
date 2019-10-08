@@ -40,8 +40,8 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint32, round uint64, haveTime func() bool) (block.Body, error) {
-	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
+func (sp *shardProcessor) CreateMiniBlocks(maxItemsInBlock uint32, round uint64, haveTime func() bool) (block.Body, error) {
+	return sp.createMiniBlocks(maxItemsInBlock, round, haveTime)
 }
 
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
@@ -110,8 +110,8 @@ func (mp *metaProcessor) RemoveBlockInfoFromPool() error {
 	return mp.removeBlockInfoFromPool()
 }
 
-func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
-	mp.receivedHeader(hdrHash)
+func (mp *metaProcessor) ReceivedShardHeader(shardHeaderHash []byte) {
+	mp.receivedShardHeader(shardHeaderHash)
 }
 
 func (mp *metaProcessor) AddHdrHashToRequestedList(hdr *block.Header, hdrHash []byte) {
@@ -257,12 +257,11 @@ func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]*hashAndHdr, err
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
-	noShards uint32,
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)
+	return sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
 }
 
 func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {

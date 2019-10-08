@@ -209,11 +209,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 		err = sp.waitForMetaHdrHashes(haveTime())
 
-		sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+		sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 		missingMetaHdrs := sp.hdrsForCurrBlock.missingHdrs
-		sp.hdrsForCurrBlock.missingHdrs = 0
-		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = 0
-		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+		sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+		sp.resetMissingHdrs()
 
 		if requestedMetaHdrs > 0 {
 			log.Info(fmt.Sprintf("received %d missing meta headers\n", requestedMetaHdrs-missingMetaHdrs))
@@ -613,7 +613,7 @@ func (sp *shardProcessor) CreateBlockBody(round uint64, haveTime func() bool) (d
 	sp.createBlockStarted()
 	sp.blockSizeThrottler.ComputeMaxItems()
 
-	miniBlocks, err := sp.createMiniBlocks(sp.shardCoordinator.NumberOfShards(), sp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
+	miniBlocks, err := sp.createMiniBlocks(sp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1177,14 +1177,14 @@ func (sp *shardProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 	return requestedBlockHeaders
 }
 
-func (sp *shardProcessor) requestMetaHeaders(shardBlock *block.Header) (uint32, uint32) {
+func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {
 	_ = process.EmptyChannel(sp.chRcvAllMetaHdrs)
 
-	if len(shardBlock.MetaBlockHashes) == 0 {
+	if len(shardHeader.MetaBlockHashes) == 0 {
 		return 0, 0
 	}
 
-	missingHeadersHashes := sp.computeMissingAndExistingMetaHeaders(shardBlock)
+	missingHeadersHashes := sp.computeMissingAndExistingMetaHeaders(shardHeader)
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for _, hash := range missingHeadersHashes {
@@ -1367,7 +1367,6 @@ func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHd
 
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
-	noShards uint32,
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
@@ -1473,7 +1472,6 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 }
 
 func (sp *shardProcessor) createMiniBlocks(
-	noShards uint32,
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
@@ -1495,7 +1493,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)
+	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -1583,7 +1581,8 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 	header.MiniBlockHeaders = miniBlockHeaders
 	header.TxCount = uint32(totalTxCount)
-	header.MetaBlockHashes = sp.sortHeaderHashesForCurrentBlockByNonce(true)
+	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
+	header.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))

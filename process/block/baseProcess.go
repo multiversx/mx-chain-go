@@ -556,11 +556,17 @@ func checkProcessorNilParameters(
 }
 
 func (bp *baseProcessor) createBlockStarted() {
+	bp.resetMissingHdrs()
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
+	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (bp *baseProcessor) resetMissingHdrs() {
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	bp.hdrsForCurrBlock.missingHdrs = 0
 	bp.hdrsForCurrBlock.missingFinalityAttestingHdrs = 0
-	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
-	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
@@ -579,8 +585,7 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
 	// sort headers for each shard
-	for shardId := uint32(0); shardId < bp.shardCoordinator.NumberOfShards(); shardId++ {
-		hdrsForShard := hdrsForCurrentBlock[shardId]
+	for _, hdrsForShard := range hdrsForCurrentBlock {
 		process.SortHeadersByNonce(hdrsForShard)
 	}
 
@@ -588,8 +593,8 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 }
 
 //TODO: remove bool parameter and give instead the set to sort
-func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) [][]byte {
-	hdrsForCurrentBlockInfo := make([]*nonceAndHashInfo, 0)
+func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) map[uint32][][]byte {
+	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, hdrInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
@@ -597,19 +602,24 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 			continue
 		}
 
-		hdrsForCurrentBlockInfo = append(hdrsForCurrentBlockInfo, &nonceAndHashInfo{nonce: hdrInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
+		hdrsForCurrentBlockInfo[hdrInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[hdrInfo.hdr.GetShardID()],
+			&nonceAndHashInfo{nonce: hdrInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
 	}
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-	if len(hdrsForCurrentBlockInfo) > 1 {
-		sort.Slice(hdrsForCurrentBlockInfo, func(i, j int) bool {
-			return hdrsForCurrentBlockInfo[i].nonce < hdrsForCurrentBlockInfo[j].nonce
-		})
+	for _, hdrsForShard := range hdrsForCurrentBlockInfo {
+		if len(hdrsForShard) > 1 {
+			sort.Slice(hdrsForShard, func(i, j int) bool {
+				return hdrsForShard[i].nonce < hdrsForShard[j].nonce
+			})
+		}
 	}
 
-	hdrsHashesForCurrentBlock := make([][]byte, len(hdrsForCurrentBlockInfo))
-	for i := 0; i < len(hdrsForCurrentBlockInfo); i++ {
-		hdrsHashesForCurrentBlock[i] = hdrsForCurrentBlockInfo[i].hash
+	hdrsHashesForCurrentBlock := make(map[uint32][][]byte)
+	for shardId, hdrsForShard := range hdrsForCurrentBlockInfo {
+		for _, hdrForShard := range hdrsForShard {
+			hdrsHashesForCurrentBlock[shardId] = append(hdrsHashesForCurrentBlock[shardId], hdrForShard.hash)
+		}
 	}
 
 	return hdrsHashesForCurrentBlock
