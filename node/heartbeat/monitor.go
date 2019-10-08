@@ -84,7 +84,7 @@ func NewMonitor(
 
 	err = mon.loadRestOfPubKeysFromStorage()
 	if err != nil {
-		log.Warn(fmt.Sprintf("heartbeat can't load public keys from storage: %s", err.Error()))
+		log.Debug(fmt.Sprintf("heartbeat can't load public keys from storage: %s", err.Error()))
 	}
 
 	return mon, nil
@@ -200,7 +200,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 	hbDTO := m.convertToExportedStruct(hbmi)
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
 	if err != nil {
-		log.Warn(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
+		log.Error(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
 	}
 	m.addPeerToFullPeersSlice(hb.Pubkey)
 }
@@ -210,7 +210,7 @@ func (m *Monitor) addPeerToFullPeersSlice(pubKey []byte) {
 		m.fullPeersSlice = append(m.fullPeersSlice, pubKey)
 		err := m.storer.SaveKeys(m.fullPeersSlice)
 		if err != nil {
-			log.Warn(fmt.Sprintf("can't store the keys slice: %s", err.Error()))
+			log.Error(fmt.Sprintf("can't store the keys slice: %s", err.Error()))
 		}
 	}
 }
