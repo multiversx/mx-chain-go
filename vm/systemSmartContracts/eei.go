@@ -1,10 +1,11 @@
 package systemSmartContracts
 
 import (
-	"errors"
 	"fmt"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
+
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type SCFunctionHandler func(value *big.Int, args []*big.Int)
@@ -21,16 +22,19 @@ type vmContext struct {
 	selfDestruct map[string][]byte
 }
 
+// NewVMContext creates a context where smart contracts can run and write
 func NewVMContext(blockChainHook vmcommon.BlockchainHook, cryptoHook vmcommon.CryptoHook) (*vmContext, error) {
 	if blockChainHook == nil {
-		return nil, errors.New("nil blockchain hook")
+		return nil, vm.ErrNilBlockchainHook
 	}
 	if cryptoHook == nil {
-		return nil, errors.New("nil cryptohook")
+		return nil, vm.ErrNilCryptoHook
 	}
 
-	return &vmContext{blockChainHook: blockChainHook,
-		cryptoHook: cryptoHook}, nil
+	vmc := &vmContext{blockChainHook: blockChainHook, cryptoHook: cryptoHook}
+	vmc.CleanCache()
+
+	return vmc, nil
 }
 
 // SelfDestruct destroy the current smart contract, setting the beneficiary for the liberated storage fees
@@ -100,6 +104,7 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 		senderAcc = &vmcommon.OutputAccount{
 			Address:      sender,
 			BalanceDelta: big.NewInt(0),
+			Balance:      big.NewInt(0),
 		}
 		host.outputAccounts[string(senderAcc.Address)] = senderAcc
 	}
@@ -109,6 +114,7 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 		destAcc = &vmcommon.OutputAccount{
 			Address:      destination,
 			BalanceDelta: big.NewInt(0),
+			Balance:      big.NewInt(0),
 		}
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
@@ -162,6 +168,11 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		if outAcc.Nonce > 0 {
 			outAccs[addr].Nonce = outAcc.Nonce
 		}
+	}
+
+	// add self destructed contracts
+	for addr := range host.selfDestruct {
+		vmOutput.DeletedAccounts = append(vmOutput.DeletedAccounts, []byte(addr))
 	}
 
 	// save to the output finally

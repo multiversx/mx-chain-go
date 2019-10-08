@@ -37,3 +37,9 @@ var ErrInputGasProvidedIsNil = errors.New("input gas provided for system smart c
 
 // ErrInputGasPriceIsNil signals that input gas price value is nil for system smart contracts
 var ErrInputGasPriceIsNil = errors.New("input gas price for system smart contract is nil")
+
+// ErrNilBlockchainHook signals that blockchain hook is nil
+var ErrNilBlockchainHook = errors.New("blockchain hook is nil")
+
+// ErrNilCryptoHook signals that crypto hook is nil
+var ErrNilCryptoHook = errors.New("crypto hook is nil")

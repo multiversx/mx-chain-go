@@ -1,13 +1,16 @@
 package factory
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
+	t.Parallel()
+
 	scFactory, err := NewSystemSCFactory(nil)
 
 	assert.Nil(t, scFactory)
@@ -15,6 +18,8 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 }
 
 func TestNewSystemSCFactory_Ok(t *testing.T) {
+	t.Parallel()
+
 	scFactory, err := NewSystemSCFactory(&mock.SystemEIStub{})
 
 	assert.Nil(t, err)
@@ -22,6 +27,8 @@ func TestNewSystemSCFactory_Ok(t *testing.T) {
 }
 
 func TestSystemSCFactory_Create(t *testing.T) {
+	t.Parallel()
+
 	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{})
 
 	container, err := scFactory.Create()
@@ -30,6 +37,8 @@ func TestSystemSCFactory_Create(t *testing.T) {
 }
 
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
 	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{})
 	assert.False(t, scFactory.IsInterfaceNil())
 

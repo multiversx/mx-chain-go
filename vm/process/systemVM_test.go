@@ -2,15 +2,18 @@ package process
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewSystemVM_NilSystemEI(t *testing.T) {
+	t.Parallel()
+
 	systemVM, err := NewSystemVM(nil, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
 	assert.Nil(t, systemVM)
@@ -18,6 +21,8 @@ func TestNewSystemVM_NilSystemEI(t *testing.T) {
 }
 
 func TestNewSystemVM_NilContainer(t *testing.T) {
+	t.Parallel()
+
 	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, nil, factory.SystemVirtualMachine)
 
 	assert.Nil(t, systemVM)
@@ -25,6 +30,8 @@ func TestNewSystemVM_NilContainer(t *testing.T) {
 }
 
 func TestNewSystemVM_NilVMType(t *testing.T) {
+	t.Parallel()
+
 	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, nil)
 
 	assert.Nil(t, systemVM)
@@ -32,6 +39,8 @@ func TestNewSystemVM_NilVMType(t *testing.T) {
 }
 
 func TestNewSystemVM_Ok(t *testing.T) {
+	t.Parallel()
+
 	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
 	assert.Nil(t, err)
@@ -39,6 +48,8 @@ func TestNewSystemVM_Ok(t *testing.T) {
 }
 
 func TestSystemVM_RunSmartContractCreate(t *testing.T) {
+	t.Parallel()
+
 	systemVM, _ := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
 	vmOutput, err := systemVM.RunSmartContractCreate(nil)
@@ -47,6 +58,8 @@ func TestSystemVM_RunSmartContractCreate(t *testing.T) {
 }
 
 func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
+	t.Parallel()
+
 	systemVM, _ := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
 	vmOutput, err := systemVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: []byte("tralala")})
@@ -55,6 +68,8 @@ func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
 }
 
 func TestSystemVM_RunSmartContractCall(t *testing.T) {
+	t.Parallel()
+
 	sc := &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.Ok
 	}}

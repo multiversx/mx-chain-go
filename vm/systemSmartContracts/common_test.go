@@ -1,22 +1,27 @@
 package systemSmartContracts
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 func TestCheckIfNil_NilArgs(t *testing.T) {
+	t.Parallel()
+
 	err := CheckIfNil(nil)
 
 	assert.Equal(t, vm.ErrInputArgsIsNil, err)
 }
 
 func TestCheckIfNil_NilCallerAddr(t *testing.T) {
+	t.Parallel()
+
 	err := CheckIfNil(&vmcommon.ContractCallInput{
-		VMInput:       vmcommon.VMInput{
+		VMInput: vmcommon.VMInput{
 			CallerAddr:  nil,
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
@@ -32,8 +37,10 @@ func TestCheckIfNil_NilCallerAddr(t *testing.T) {
 }
 
 func TestCheckIfNil_NilCallValue(t *testing.T) {
+	t.Parallel()
+
 	err := CheckIfNil(&vmcommon.ContractCallInput{
-		VMInput:       vmcommon.VMInput{
+		VMInput: vmcommon.VMInput{
 			CallerAddr:  []byte("tralala"),
 			Arguments:   nil,
 			CallValue:   nil,
@@ -49,8 +56,10 @@ func TestCheckIfNil_NilCallValue(t *testing.T) {
 }
 
 func TestCheckIfNil_NilGasPrice(t *testing.T) {
+	t.Parallel()
+
 	err := CheckIfNil(&vmcommon.ContractCallInput{
-		VMInput:       vmcommon.VMInput{
+		VMInput: vmcommon.VMInput{
 			CallerAddr:  []byte("tralala"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
@@ -66,8 +75,10 @@ func TestCheckIfNil_NilGasPrice(t *testing.T) {
 }
 
 func TestCheckIfNil_NilGasProvided(t *testing.T) {
+	t.Parallel()
+
 	err := CheckIfNil(&vmcommon.ContractCallInput{
-		VMInput:       vmcommon.VMInput{
+		VMInput: vmcommon.VMInput{
 			CallerAddr:  []byte("tralala"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
@@ -83,8 +94,10 @@ func TestCheckIfNil_NilGasProvided(t *testing.T) {
 }
 
 func TestCheckIfNil_NilRecipientAddr(t *testing.T) {
+	t.Parallel()
+
 	err := CheckIfNil(&vmcommon.ContractCallInput{
-		VMInput:       vmcommon.VMInput{
+		VMInput: vmcommon.VMInput{
 			CallerAddr:  []byte("tralala"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
@@ -100,8 +113,10 @@ func TestCheckIfNil_NilRecipientAddr(t *testing.T) {
 }
 
 func TestCheckIfNil_NilFunction(t *testing.T) {
+	t.Parallel()
+
 	err := CheckIfNil(&vmcommon.ContractCallInput{
-		VMInput:       vmcommon.VMInput{
+		VMInput: vmcommon.VMInput{
 			CallerAddr:  []byte("tralala"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
@@ -117,8 +132,10 @@ func TestCheckIfNil_NilFunction(t *testing.T) {
 }
 
 func TestCheckIfNil(t *testing.T) {
+	t.Parallel()
+
 	err := CheckIfNil(&vmcommon.ContractCallInput{
-		VMInput:       vmcommon.VMInput{
+		VMInput: vmcommon.VMInput{
 			CallerAddr:  []byte("tralala"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),

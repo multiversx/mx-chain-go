@@ -2,9 +2,10 @@ package systemSmartContracts
 
 import (
 	"errors"
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"math/big"
 )
 
 type registerSC struct {
