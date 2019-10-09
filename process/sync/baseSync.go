@@ -29,6 +29,9 @@ const sleepTime = 5 * time.Millisecond
 // block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
 const maxRoundsToWait = 5
 
+// maxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing
+const maxHeadersToRequestInAdvance = 10
+
 type notarizedInfo struct {
 	lastNotarized           map[uint32]uint64
 	finalNotarized          map[uint32]uint64
@@ -331,7 +334,7 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	log.Debug(fmt.Sprintf("receivedHeaders: received header with hash %s and nonce %d from network\n",
+	log.Debug(fmt.Sprintf("received header with hash %s and nonce %d from network\n",
 		core.ToB64(headerHash),
 		headerHandler.GetNonce()))
 
@@ -357,7 +360,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, hash []byte) {
-	log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
+	log.Debug(fmt.Sprintf("received header with nonce %d and hash %s from network\n",
 		nonce,
 		core.ToB64(hash)))
 
@@ -367,9 +370,9 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network and probable highest nonce is %d\n",
+		log.Info(fmt.Sprintf("received requested header with nonce %d and hash %s from network\n",
 			nonce,
-			boot.forkDetector.ProbableHighestNonce()))
+			core.ToB64(hash)))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdrNonce <- true
 	}
@@ -561,4 +564,42 @@ func isRandomSeedValid(header data.HeaderHandler) bool {
 	isRandSeedNilOrEmpty := len(randSeed) == 0
 
 	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
+}
+
+func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(nonce uint64, hdrRes dataRetriever.HeaderResolver) {
+	var err error
+	nbRequestedHdrs := 0
+	maxNonce := core.MinUint64(nonce+maxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
+	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
+		if boot.shardCoordinator.SelfId() == sharding.MetachainShardId {
+			_, _, err = process.GetMetaHeaderFromPoolWithNonce(
+				currentNonce,
+				boot.headers,
+				boot.headersNonces)
+		} else {
+			_, _, err = process.GetShardHeaderFromPoolWithNonce(
+				currentNonce,
+				boot.shardCoordinator.SelfId(),
+				boot.headers,
+				boot.headersNonces)
+		}
+
+		if err != nil {
+			err = hdrRes.RequestDataFromNonce(currentNonce)
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			nbRequestedHdrs++
+		}
+	}
+
+	if nbRequestedHdrs > 0 {
+		log.Info(fmt.Sprintf("requested in advance %d headers from nonce %d to nonce %d and probable highest nonce is %d\n",
+			nbRequestedHdrs,
+			nonce,
+			maxNonce,
+			boot.forkDetector.ProbableHighestNonce()))
+	}
 }

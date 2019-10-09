@@ -451,6 +451,9 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		return err
 	}
 
+	// request in advance next meta header if missing
+	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.hdrRes)
+
 	haveTime := func() time.Duration {
 		return boot.rounder.TimeDuration()
 	}
@@ -483,7 +486,9 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
-	log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
+	log.Info(fmt.Sprintf("requested header with nonce %d from network and probable highest nonce is %d\n",
+		nonce,
+		boot.forkDetector.ProbableHighestNonce()))
 
 	if err != nil {
 		log.Error(err.Error())

@@ -74,19 +74,18 @@ func (gbbRes *GenericBlockBodyResolver) ProcessReceivedMessage(message p2p.Messa
 }
 
 func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetriever.RequestData) ([]byte, error) {
-
 	if rd.Value == nil {
 		return nil, dataRetriever.ErrNilValue
 	}
 
-	miniBlockHashes, err := gbbRes.miniBlockHashesFromRequestType(rd)
+	hashes, err := gbbRes.miniBlockHashesFromRequestType(rd)
 	if err != nil {
 		return nil, err
 	}
-	miniBlocks := gbbRes.GetMiniBlocks(miniBlockHashes)
 
-	if miniBlocks == nil {
-		return nil, dataRetriever.ErrNilMiniBlocks
+	miniBlocks, _ := gbbRes.GetMiniBlocks(hashes)
+	if len(miniBlocks) == 0 {
+		return nil, dataRetriever.ErrEmptyMiniBlockSlice
 	}
 
 	buff, err := gbbRes.marshalizer.Marshal(miniBlocks)
@@ -141,89 +140,88 @@ func (gbbRes *GenericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte
 }
 
 // GetMiniBlocks method returns a list of deserialized mini blocks from a given hash list either from data pool or from storage
-func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice {
-	miniBlocks := gbbRes.getMiniBlocks(hashes)
-	if miniBlocks == nil {
-		return nil
-	}
+func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+	marshalizedMiniBlocks, missingMiniBlocksHashes := gbbRes.getMiniBlocks(hashes)
+	miniBlocks := make(block.MiniBlockSlice, 0)
 
-	mbLength := len(hashes)
-	expandedMiniBlocks := make(block.MiniBlockSlice, mbLength)
-
-	for i := 0; i < mbLength; i++ {
-		mb := &block.MiniBlock{}
-		err := gbbRes.marshalizer.Unmarshal(mb, miniBlocks[i])
-
+	for hash, marshalizedMiniBlock := range marshalizedMiniBlocks {
+		miniBlock := &block.MiniBlock{}
+		err := gbbRes.marshalizer.Unmarshal(miniBlock, marshalizedMiniBlock)
 		if err != nil {
 			log.Debug(err.Error())
-			gbbRes.miniBlockPool.Remove(hashes[i])
-			err = gbbRes.miniBlockStorage.Remove(hashes[i])
+			gbbRes.miniBlockPool.Remove([]byte(hash))
+			err = gbbRes.miniBlockStorage.Remove([]byte(hash))
 			if err != nil {
 				log.Debug(err.Error())
 			}
 
-			return nil
+			missingMiniBlocksHashes = append(missingMiniBlocksHashes, []byte(hash))
+			continue
 		}
 
-		expandedMiniBlocks[i] = mb
+		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	return expandedMiniBlocks
+	return miniBlocks, missingMiniBlocksHashes
 }
 
 // getMiniBlocks method returns a list of serialized mini blocks from a given hash list either from data pool or from storage
-func (gbbRes *GenericBlockBodyResolver) getMiniBlocks(hashes [][]byte) [][]byte {
-	miniBlocks := gbbRes.getMiniBlocksFromCache(hashes)
-
-	if miniBlocks != nil {
-		return miniBlocks
+func (gbbRes *GenericBlockBodyResolver) getMiniBlocks(hashes [][]byte) (map[string][]byte, [][]byte) {
+	marshalizedMiniBlocks, missingMiniBlocksHashes := gbbRes.getMiniBlocksFromCache(hashes)
+	if len(missingMiniBlocksHashes) == 0 {
+		return marshalizedMiniBlocks, missingMiniBlocksHashes
 	}
 
-	return gbbRes.getMiniBlocksFromStorer(hashes)
+	marshalizedMiniBlocksFromStorer, missingMiniBlocksHashes := gbbRes.getMiniBlocksFromStorer(missingMiniBlocksHashes)
+	for hash, marshalizedMiniBlockFromStorer := range marshalizedMiniBlocksFromStorer {
+		marshalizedMiniBlocks[hash] = marshalizedMiniBlockFromStorer
+	}
+
+	return marshalizedMiniBlocks, missingMiniBlocksHashes
 }
 
-// getMiniBlocksFromCache returns a full list of miniblocks from cache.
-// If any of the miniblocks is missing the function returns nil
-func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromCache(hashes [][]byte) [][]byte {
-	miniBlocksLen := len(hashes)
-	miniBlocks := make([][]byte, miniBlocksLen)
+// getMiniBlocksFromCache returns a list of marshalized mini blocks from cache and a list of missing hashes
+func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromCache(hashes [][]byte) (map[string][]byte, [][]byte) {
+	marshalizedMiniBlocks := make(map[string][]byte)
+	missingMiniBlocksHashes := make([][]byte, 0)
 
-	for i := 0; i < miniBlocksLen; i++ {
-		cachedMB, _ := gbbRes.miniBlockPool.Peek(hashes[i])
-
-		if cachedMB == nil {
-			return nil
+	for i := 0; i < len(hashes); i++ {
+		miniBlock, ok := gbbRes.miniBlockPool.Peek(hashes[i])
+		if !ok {
+			missingMiniBlocksHashes = append(missingMiniBlocksHashes, hashes[i])
+			continue
 		}
 
-		buff, err := gbbRes.marshalizer.Marshal(cachedMB)
+		buff, err := gbbRes.marshalizer.Marshal(miniBlock)
 		if err != nil {
 			log.Debug(err.Error())
-			return nil
+			missingMiniBlocksHashes = append(missingMiniBlocksHashes, hashes[i])
+			continue
 		}
 
-		miniBlocks[i] = buff
+		marshalizedMiniBlocks[string(hashes[i])] = buff
 	}
 
-	return miniBlocks
+	return marshalizedMiniBlocks, missingMiniBlocksHashes
 }
 
-// getMiniBlocksFromStorer returns a full list of MiniBlocks from the storage unit.
-// If any MiniBlock is missing or is invalid, it is removed and the function returns nil
-func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte) [][]byte {
-	miniBlocksLen := len(hashes)
-	miniBlocks := make([][]byte, miniBlocksLen)
+// getMiniBlocksFromStorer returns a list of marshalized mini blocks from the storage unit and a list of missing hashes
+func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte) (map[string][]byte, [][]byte) {
+	marshalizedMiniBlocks := make(map[string][]byte)
+	missingMiniBlocksHashes := make([][]byte, 0)
 
-	for i := 0; i < miniBlocksLen; i++ {
+	for i := 0; i < len(hashes); i++ {
 		buff, err := gbbRes.miniBlockStorage.Get(hashes[i])
 		if err != nil {
 			log.Debug(err.Error())
-			return nil
+			missingMiniBlocksHashes = append(missingMiniBlocksHashes, hashes[i])
+			continue
 		}
 
-		miniBlocks[i] = buff
+		marshalizedMiniBlocks[string(hashes[i])] = buff
 	}
 
-	return miniBlocks
+	return marshalizedMiniBlocks, missingMiniBlocksHashes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
