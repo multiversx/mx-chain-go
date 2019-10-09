@@ -125,9 +125,12 @@ func (ln *leafNode) commit(force bool, level byte, db data.DBWriteCacher, marsha
 	if err != nil {
 		return err
 	}
-	if !ln.dirty && !force {
+
+	shouldNotCommit := !ln.dirty && !force
+	if shouldNotCommit {
 		return nil
 	}
+
 	ln.dirty = false
 	return encodeNodeAndCommitToDB(ln, db, marshalizer, hasher)
 }

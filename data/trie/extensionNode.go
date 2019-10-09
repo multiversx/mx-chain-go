@@ -171,9 +171,12 @@ func (en *extensionNode) commit(force bool, level byte, db data.DBWriteCacher, m
 	if err != nil {
 		return err
 	}
-	if !en.dirty && !force {
+
+	shouldNotCommit := !en.dirty && !force
+	if shouldNotCommit {
 		return nil
 	}
+
 	if en.child != nil {
 		err = en.child.commit(force, level, db, marshalizer, hasher)
 		if err != nil {

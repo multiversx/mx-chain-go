@@ -141,6 +141,5 @@ func (ts *TrieStub) Snapshot() error {
 	if ts.SnapshotCalled != nil {
 		return ts.SnapshotCalled()
 	}
-
-	return errNotImplemented
+	return nil
 }

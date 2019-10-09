@@ -689,7 +689,14 @@ func getTrie(
 
 	snapshotDbCfg.FilePath = filepath.Join(uniqueID, snapshotDbCfg.FilePath)
 
-	return trie.NewTrie(accountsTrieStorage, marshalizer, hasher, evictionDb, int(evictionWaitingListCfg.Size), snapshotDbCfg)
+	return trie.NewTrie(
+		accountsTrieStorage,
+		marshalizer,
+		hasher,
+		evictionDb,
+		int(evictionWaitingListCfg.Size),
+		snapshotDbCfg,
+	)
 }
 
 func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {

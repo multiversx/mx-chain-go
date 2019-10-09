@@ -250,9 +250,12 @@ func (bn *branchNode) commit(force bool, level byte, db data.DBWriteCacher, mars
 	if err != nil {
 		return err
 	}
-	if !bn.dirty && !force {
+
+	shouldNotCommit := !bn.dirty && !force
+	if shouldNotCommit {
 		return nil
 	}
+
 	for i := range bn.children {
 		if bn.children[i] != nil {
 			err := bn.children[i].commit(force, level, db, marshalizer, hasher)

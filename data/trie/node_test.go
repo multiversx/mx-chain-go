@@ -741,7 +741,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 		assert.True(t, f.IsDir())
 	}
 
-	assert.Equal(t, 3, tr.snapshotId)
+	assert.Equal(t, len(testVals), tr.snapshotId)
 }
 
 func TestDeleteOldSnapshots(t *testing.T) {
