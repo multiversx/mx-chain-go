@@ -2,11 +2,11 @@ package libp2p
 
 import (
 	"math"
-	"math/rand"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -76,9 +76,10 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 		lcm.reconnecter.Pause()
 	}
 	if len(netw.Conns()) > lcm.ThresholdRandomTrim() {
-		for len(netw.Conns()) > lcm.ThresholdDiscoveryPause() {
+		sorted := kbucket.SortClosestPeers(netw.Peers(), kbucket.ConvertPeerID(netw.LocalPeer()))
+		for i := lcm.ThresholdDiscoveryPause(); i < len(sorted); i++ {
 			log.Info("KDD: cutoff connection")
-			netw.Conns()[rand.Uint32()%uint32(len(netw.Conns()))].Close()
+			netw.ClosePeer(sorted[i])
 		}
 	}
 }
