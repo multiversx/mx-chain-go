@@ -1,6 +1,7 @@
 package economics
 
 import (
+	"math"
 	"math/big"
 	"strconv"
 
@@ -19,6 +20,8 @@ type EconomicsData struct {
 	communityAddress    string
 	burnAddress         string
 }
+
+const float64EqualityThreshold = 1e-9
 
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
@@ -74,33 +77,29 @@ func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64,
 }
 
 func checkValues(economics *config.ConfigEconomics) error {
-	bigBurnPercentage := big.NewFloat(economics.RewardsSettings.BurnPercentage)
-	bigCommunityPercentage := big.NewFloat(economics.RewardsSettings.CommunityPercentage)
-	bigLeaderPercentage := big.NewFloat(economics.RewardsSettings.LeaderPercentage)
-
-	if isPercentageInvalid(bigBurnPercentage) || isPercentageInvalid(bigCommunityPercentage) || isPercentageInvalid(bigLeaderPercentage) {
+	if isPercentageInvalid(economics.RewardsSettings.BurnPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
-	sumPercentage := new(big.Float)
-	sumPercentage.Add(bigBurnPercentage, bigCommunityPercentage)
-	sumPercentage.Add(sumPercentage, bigLeaderPercentage)
-
-	isNotEqualToOne := sumPercentage.Cmp(big.NewFloat(1.0)) != 0
-	if isNotEqualToOne {
+	sumPercentage := economics.RewardsSettings.BurnPercentage
+	sumPercentage += economics.RewardsSettings.CommunityPercentage
+	sumPercentage += economics.RewardsSettings.LeaderPercentage
+	isEqualsToOne := math.Abs(sumPercentage-1.0) <= float64EqualityThreshold
+	if !isEqualsToOne {
 		return process.ErrInvalidRewardsPercentages
 	}
 
 	return nil
 }
 
-func isPercentageInvalid(percentage *big.Float) bool {
-	isLessThanZero := percentage.Cmp(big.NewFloat(0.0)) < 0
-	isGreaterThanOne := big.NewFloat(1.0).Cmp(percentage) < 0
+func isPercentageInvalid(percentage float64) bool {
+	isLessThanZero := percentage < 0.0
+	isGreaterThanOne := percentage > 1.0
 	if isLessThanZero || isGreaterThanOne {
 		return true
 	}
-
 	return false
 }
 
