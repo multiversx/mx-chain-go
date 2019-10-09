@@ -419,7 +419,7 @@ type RewardsHandler interface {
 // FeeHandler will return information about fees
 type FeeHandler interface {
 	MinGasPrice() uint64
-	MinGasLimitForTx() uint64
+	MinGasLimit() uint64
 	IsInterfaceNil() bool
 }
 

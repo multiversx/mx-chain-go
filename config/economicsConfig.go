@@ -16,8 +16,8 @@ type RewardsSettings struct {
 
 // FeeSettings will hold economics fee settings
 type FeeSettings struct {
-	MinGasPrice      string
-	MinGasLimitForTx string
+	MinGasPrice string
+	MinGasLimit string
 }
 
 // ConfigEconomics will hold economics config

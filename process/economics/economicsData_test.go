@@ -24,8 +24,8 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			BurnPercentage:      0.8,
 		},
 		FeeSettings: config.FeeSettings{
-			MinGasPrice:      "18446744073709551615",
-			MinGasLimitForTx: "500",
+			MinGasPrice: "18446744073709551615",
+			MinGasLimit: "500",
 		},
 	}
 }
@@ -93,7 +93,7 @@ func TestNewEconomicsData_InvalidMinGasLimitShouldErr(t *testing.T) {
 	}
 
 	for _, minGasLimit := range bagMinGasLimit {
-		economicsConfig.FeeSettings.MinGasLimitForTx = minGasLimit
+		economicsConfig.FeeSettings.MinGasLimit = minGasLimit
 		_, err := economics.NewEconomicsData(economicsConfig)
 		assert.Equal(t, process.ErrInvalidMinimumGasLimitForTx, err)
 	}
@@ -225,16 +225,16 @@ func TestEconomicsData_MinGasPrice(t *testing.T) {
 	assert.Equal(t, minGasPrice, value)
 }
 
-func TestEconomicsData_MinGasLimitForTx(t *testing.T) {
+func TestEconomicsData_MinGasLimit(t *testing.T) {
 	t.Parallel()
 
-	minGasLimitForTx := uint64(1000)
+	minGasLimit := uint64(1000)
 	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MinGasLimitForTx = strconv.FormatUint(minGasLimitForTx, 10)
+	economicsConfig.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
 
-	value := economicsData.MinGasLimitForTx()
-	assert.Equal(t, minGasLimitForTx, value)
+	value := economicsData.MinGasLimit()
+	assert.Equal(t, minGasLimit, value)
 }
 
 func TestEconomicsData_CommunityAddress(t *testing.T) {

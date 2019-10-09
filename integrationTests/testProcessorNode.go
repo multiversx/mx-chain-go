@@ -256,7 +256,7 @@ func (tpn *TestProcessorNode) initChainHandler() {
 
 func (tpn *TestProcessorNode) initEconomicsData() {
 	mingGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
-	minGasLimitForTx := strconv.FormatUint(MinTxGasLimit, 10)
+	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
 
 	economicsData, _ := economics.NewEconomicsData(
 		&config.ConfigEconomics{
@@ -271,8 +271,8 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MinGasPrice:      mingGasPrice,
-				MinGasLimitForTx: minGasLimitForTx,
+				MinGasPrice: mingGasPrice,
+				MinGasLimit: minGasLimit,
 			},
 		},
 	)
@@ -435,7 +435,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {
@@ -462,7 +462,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {

@@ -126,7 +126,7 @@ func TestTomlEconomicsParser(t *testing.T) {
 	leaderPercentage := 0.1
 	burnPercentage := 0.8
 	minGasPrice := "18446744073709551615"
-	minGasLimitForTx := "18446744073709551615"
+	minGasLimit := "18446744073709551615"
 
 	cfgEconomicsExpected := ConfigEconomics{
 		EconomicsAddresses: EconomicsAddresses{
@@ -140,8 +140,8 @@ func TestTomlEconomicsParser(t *testing.T) {
 			BurnPercentage:      burnPercentage,
 		},
 		FeeSettings: FeeSettings{
-			MinGasPrice:      minGasPrice,
-			MinGasLimitForTx: minGasLimitForTx,
+			MinGasPrice: minGasPrice,
+			MinGasLimit: minGasLimit,
 		},
 	}
 
@@ -156,7 +156,7 @@ func TestTomlEconomicsParser(t *testing.T) {
     BurnPercentage = 	` + fmt.Sprintf("%.6f", burnPercentage) + `
 [FeeSettings]
     MinGasPrice = "` + minGasPrice + `"
-    MinGasLimitForTx = "` + minGasLimitForTx + `"
+    MinGasLimit = "` + minGasLimit + `"
 `
 
 	cfg := ConfigEconomics{}

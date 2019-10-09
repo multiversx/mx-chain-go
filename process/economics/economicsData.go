@@ -15,7 +15,7 @@ type EconomicsData struct {
 	leaderPercentage    float64
 	burnPercentage      float64
 	minGasPrice         uint64
-	minGasLimitForTx    uint64
+	minGasLimit         uint64
 	communityAddress    string
 	burnAddress         string
 }
@@ -23,7 +23,7 @@ type EconomicsData struct {
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	//TODO check what happens if addresses are wrong
-	rewardsValue, minGasPrice, minGasLimitForTx, err := convertValues(economics)
+	rewardsValue, minGasPrice, minGasLimit, err := convertValues(economics)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
 		burnPercentage:      economics.RewardsSettings.BurnPercentage,
 		minGasPrice:         minGasPrice,
-		minGasLimitForTx:    minGasLimitForTx,
+		minGasLimit:         minGasLimit,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
 	}, nil
@@ -65,12 +65,12 @@ func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64,
 		return nil, 0, 0, process.ErrInvalidMinimumGasPrice
 	}
 
-	minGasLimitForTx, err := strconv.ParseUint(economics.FeeSettings.MinGasLimitForTx, conversionBase, bitConversionSize)
+	minGasLimit, err := strconv.ParseUint(economics.FeeSettings.MinGasLimit, conversionBase, bitConversionSize)
 	if err != nil {
 		return nil, 0, 0, process.ErrInvalidMinimumGasLimitForTx
 	}
 
-	return rewardsValue, minGasPrice, minGasLimitForTx, nil
+	return rewardsValue, minGasPrice, minGasLimit, nil
 }
 
 func checkValues(economics *config.ConfigEconomics) error {
@@ -78,7 +78,7 @@ func checkValues(economics *config.ConfigEconomics) error {
 	bigCommunityPercentage := big.NewFloat(economics.RewardsSettings.CommunityPercentage)
 	bigLeaderPercentage := big.NewFloat(economics.RewardsSettings.LeaderPercentage)
 
-	if isNotPercentageValid(bigBurnPercentage) || isNotPercentageValid(bigCommunityPercentage) || isNotPercentageValid(bigLeaderPercentage) {
+	if isPercentageInvalid(bigBurnPercentage) || isPercentageInvalid(bigCommunityPercentage) || isPercentageInvalid(bigLeaderPercentage) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
@@ -94,7 +94,7 @@ func checkValues(economics *config.ConfigEconomics) error {
 	return nil
 }
 
-func isNotPercentageValid(percentage *big.Float) bool {
+func isPercentageInvalid(percentage *big.Float) bool {
 	isLessThanZero := percentage.Cmp(big.NewFloat(0.0)) < 0
 	isGreaterThanOne := big.NewFloat(1.0).Cmp(percentage) < 0
 	if isLessThanZero || isGreaterThanOne {
@@ -129,9 +129,9 @@ func (ed *EconomicsData) MinGasPrice() uint64 {
 	return ed.minGasPrice
 }
 
-// MinGasLimitForTx will return minimum gas limit
-func (ed *EconomicsData) MinGasLimitForTx() uint64 {
-	return ed.minGasLimitForTx
+// MinGasLimit will return minimum gas limit
+func (ed *EconomicsData) MinGasLimit() uint64 {
+	return ed.minGasLimit
 }
 
 // CommunityAddress will return community address

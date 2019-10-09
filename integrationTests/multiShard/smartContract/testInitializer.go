@@ -305,7 +305,7 @@ func createNetNode(
 		MinGasPriceCalled: func() uint64 {
 			return integrationTests.MinTxGasPrice
 		},
-		MinGasLimitForTxCalled: func() uint64 {
+		MinGasLimitCalled: func() uint64 {
 			return integrationTests.MinTxGasLimit
 		},
 		MinTxFeeCalled: func() uint64 {
@@ -414,7 +414,7 @@ func createNetNode(
 		rewardsHandler,
 		txTypeHandler,
 		&mock.FeeHandlerStub{
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {
@@ -441,7 +441,7 @@ func createNetNode(
 		rewardProcessor,
 		internalTxProducer,
 		&mock.FeeHandlerStub{
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {
