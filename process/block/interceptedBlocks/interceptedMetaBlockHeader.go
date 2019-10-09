@@ -23,16 +23,12 @@ type InterceptedMetaHeader struct {
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
 func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaHeader, error) {
-	err := checkArgument(arg)
+	err := checkBlockHeaderArgument(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr := &block.MetaBlock{
-		ShardInfo: make([]block.ShardData, 0),
-		PeerInfo:  make([]block.PeerData, 0),
-	}
-	err = arg.Marshalizer.Unmarshal(hdr, arg.HdrBuff)
+	hdr, err := createMetaHdr(arg.Marshalizer, arg.HdrBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +46,19 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	return inHdr, nil
 }
 
+func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.MetaBlock, error) {
+	hdr := &block.MetaBlock{
+		ShardInfo: make([]block.ShardData, 0),
+		PeerInfo:  make([]block.PeerData, 0),
+	}
+	err := marshalizer.Unmarshal(hdr, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return hdr, nil
+}
+
 func (imh *InterceptedMetaHeader) processFields(txBuff []byte) {
 	imh.hash = imh.hasher.Compute(string(txBuff))
 }
@@ -64,7 +73,7 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 	return imh.hdr
 }
 
-// CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
+// CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
 	err := imh.integrity()
 	if err != nil {
@@ -74,7 +83,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	return imh.verifySig()
 }
 
-// integrity checks the integrity of the state block wrapper
+// integrity checks the integrity of the meta header block wrapper
 func (imh *InterceptedMetaHeader) integrity() error {
 	err := checkHeaderHandler(imh.HeaderHandler())
 	if err != nil {

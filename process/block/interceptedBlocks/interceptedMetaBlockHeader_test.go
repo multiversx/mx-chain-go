@@ -125,7 +125,7 @@ func TestInterceptedMetaHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
 
-func TestNewInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
+func TestInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultMetaArgument()

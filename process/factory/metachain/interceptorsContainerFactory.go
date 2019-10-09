@@ -207,7 +207,7 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identifier string) (process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic string) (process.Interceptor, error) {
 	//TODO implement other HeaderHandlerProcessValidator that will check the header's nonce
 	// against blockchain's latest nonce - k finality
 	hdrValidator, err := dataValidators.NewNilHeaderValidator()
@@ -240,7 +240,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

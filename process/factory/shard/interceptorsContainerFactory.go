@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	blockInterceptors "github.com/ElrondNetwork/elrond-go/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -19,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const numGoRoutinesInTxInterceptors = 100
+const numGoRoutines = 100
 
 type interceptorsContainerFactory struct {
 	accounts              state.AccountsAdapter
@@ -120,7 +119,7 @@ func NewInterceptorsContainerFactory(
 	}
 
 	var err error
-	icf.globalTxThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutinesInTxInterceptors)
+	icf.globalTxThrottler, err = throttler.NewNumGoRoutineThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +233,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
 	txValidator, err := dataValidators.NewTxValidator(icf.accounts, icf.shardCoordinator)
 	if err != nil {
 		return nil, err
@@ -267,7 +266,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- Unsigned transactions interceptors
@@ -304,7 +303,7 @@ func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]st
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(identifier string) (process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
 	//TODO replace the nil tx validator with white list validator
 	txValidator, err := mock.NewNilTxValidator()
 	if err != nil {
@@ -338,7 +337,7 @@ func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(identifi
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- Hdr interceptor
@@ -409,21 +408,36 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
-	txBlockBodyStorer := icf.store.GetStorer(dataRetriever.MiniBlockUnit)
+func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+	argProcessor := &processor.ArgTxBodyInterceptorProcessor{
+		MiniblockCache:   icf.dataPool.MiniBlocks(),
+		Marshalizer:      icf.marshalizer,
+		Hasher:           icf.hasher,
+		ShardCoordinator: icf.shardCoordinator,
+	}
+	txBlockBodyProcessor, err := processor.NewTxBodyInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, err
+	}
 
-	interceptor, err := blockInterceptors.NewTxBlockBodyInterceptor(
-		icf.marshalizer,
-		icf.dataPool.MiniBlocks(),
-		txBlockBodyStorer,
-		icf.hasher,
-		icf.shardCoordinator,
+	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
+		icf.argInterceptorFactory,
+		interceptorFactory.InterceptedTxBlockBody,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	interceptor, err := interceptors.NewSingleDataInterceptor(
+		txFactory,
+		txBlockBodyProcessor,
+		icf.globalTxThrottler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- MetachainHeader interceptors

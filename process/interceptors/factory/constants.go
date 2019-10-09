@@ -14,3 +14,6 @@ const InterceptedShardHeader InterceptedDataType = "intercepted shard header"
 
 // InterceptedMetaHeader is the type for intercepted meta header
 const InterceptedMetaHeader InterceptedDataType = "intercepted meta header"
+
+// InterceptedTxBlockBody is the type for intercepted tx block body
+const InterceptedTxBlockBody InterceptedDataType = "intercepted block body"

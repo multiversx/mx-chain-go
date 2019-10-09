@@ -3,6 +3,7 @@ package unsigned
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -38,21 +39,20 @@ func NewInterceptedUnsignedTransaction(
 	if uTxBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if addrConv == nil || addrConv.IsInterfaceNil() {
+	if check.IfNil(addrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 
-	uTx := &smartContractResult.SmartContractResult{}
-	err := marshalizer.Unmarshal(uTx, uTxBuff)
+	uTx, err := createUtx(marshalizer, uTxBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +71,16 @@ func NewInterceptedUnsignedTransaction(
 	}
 
 	return inUTx, nil
+}
+
+func createUtx(marshalizer marshal.Marshalizer, uTxBuff []byte) (*smartContractResult.SmartContractResult, error) {
+	uTx := &smartContractResult.SmartContractResult{}
+	err := marshalizer.Unmarshal(uTx, uTxBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return uTx, nil
 }
 
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
