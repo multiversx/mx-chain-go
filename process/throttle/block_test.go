@@ -134,7 +134,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToMinItemsInBlockWhen
 func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToADecreasedValueWhenLastActionNotSucceed(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	lastActionMaxItems1 := uint32(core.Max(12000, process.MinItemsInBlock))
+	lastActionMaxItems1 := core.MaxUint32(12000, process.MinItemsInBlock)
 	bst.SetMaxItems(lastActionMaxItems1)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, false)
@@ -143,7 +143,7 @@ func TestBlockSizeThrottle_ComputeMaxItemsShouldSetMaxItemsToADecreasedValueWhen
 	assert.Equal(t, decreasedValue, bst.MaxItemsToAdd())
 
 	bst.SetSucceed(2, true)
-	lastActionMaxItems2 := uint32(core.Max(14000, process.MinItemsInBlock))
+	lastActionMaxItems2 := core.MaxUint32(14000, process.MinItemsInBlock)
 	bst.SetMaxItems(lastActionMaxItems2)
 	bst.Add(3, 0)
 	bst.SetSucceed(3, false)
@@ -179,12 +179,12 @@ func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldReturnNoOfMaxItemsUsedWit
 func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldIncreaseMaxItemsWithAtLeastOneUnit(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithoutSucceed := uint32(core.Min(process.MinItemsInBlock+1, process.MaxItemsInBlock))
+	maxItemsUsedWithoutSucceed := core.MinUint32(process.MinItemsInBlock+1, process.MaxItemsInBlock)
 	bst.SetMaxItems(maxItemsUsedWithoutSucceed)
 	bst.Add(2, 0)
 	maxItemsWhenSucceed := bst.GetMaxItemsWhenSucceed(process.MinItemsInBlock)
 
-	assert.Equal(t, uint32(core.Min(process.MinItemsInBlock+1, process.MaxItemsInBlock)), maxItemsWhenSucceed)
+	assert.Equal(t, core.MinUint32(process.MinItemsInBlock+1, process.MaxItemsInBlock), maxItemsWhenSucceed)
 }
 
 func TestBlockSizeThrottle_GetMaxItemsWhenSucceedShouldIncreaseMaxItems(t *testing.T) {
@@ -258,7 +258,7 @@ func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldDecreaseMaxItemsWithAt
 func TestBlockSizeThrottle_GetMaxItemsWhenNotSucceedShouldDecreaseMaxItems(t *testing.T) {
 	bst, _ := throttle.NewBlockSizeThrottle()
 
-	maxItemsUsedWithSucceed := uint32(core.Max(7000, process.MinItemsInBlock))
+	maxItemsUsedWithSucceed := core.MaxUint32(7000, process.MinItemsInBlock)
 	bst.SetMaxItems(maxItemsUsedWithSucceed)
 	bst.Add(2, 0)
 	bst.SetSucceed(2, true)

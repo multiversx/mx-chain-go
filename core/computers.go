@@ -1,32 +1,49 @@
 package core
 
-import (
-	"bytes"
-)
-
-// Max returns the maximum number between two given
-func Max(a int32, b int32) int32 {
+// MaxInt32 returns the maximum of two given numbers
+func MaxInt32(a int32, b int32) int32 {
 	if a > b {
 		return a
 	}
 	return b
 }
 
-// Min returns the minimum number between two given
-func Min(a int32, b int32) int32 {
+// MinInt32 returns the minimum of two given numbers
+func MinInt32(a int32, b int32) int32 {
 	if a < b {
 		return a
 	}
 	return b
 }
 
-// IsHashInList signals if the given hash exists in the given list of hashes
-func IsHashInList(hash []byte, hashes [][]byte) bool {
-	for i := 0; i < len(hashes); i++ {
-		if bytes.Equal(hash, hashes[i]) {
-			return true
-		}
+// MaxUint32 returns the maximum of two given numbers
+func MaxUint32(a uint32, b uint32) uint32 {
+	if a > b {
+		return a
 	}
+	return b
+}
 
-	return false
+// MinUint32 returns the minimum of two given numbers
+func MinUint32(a uint32, b uint32) uint32 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// MaxUint64 returns the maximum of two given numbers
+func MaxUint64(a uint64, b uint64) uint64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// MinUint64 returns the minimum of two given numbers
+func MinUint64(a uint64, b uint64) uint64 {
+	if a < b {
+		return a
+	}
+	return b
 }

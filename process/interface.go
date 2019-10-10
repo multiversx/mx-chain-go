@@ -400,9 +400,17 @@ type PoolsCleaner interface {
 	IsInterfaceNil() bool
 }
 
+// InterceptorThrottler can determine if a new go routine can start
+type InterceptorThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}
+
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
-	RewardsValue() uint64
+	RewardsValue() *big.Int
 	CommunityPercentage() float64
 	LeaderPercentage() float64
 	BurnPercentage() float64
@@ -412,8 +420,7 @@ type RewardsHandler interface {
 // FeeHandler will return information about fees
 type FeeHandler interface {
 	MinGasPrice() uint64
-	MinGasLimitForTx() uint64
-	MinTxFee() uint64
+	MinGasLimit() uint64
 	IsInterfaceNil() bool
 }
 

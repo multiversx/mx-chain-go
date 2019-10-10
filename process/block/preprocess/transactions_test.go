@@ -27,12 +27,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func FeeHandlerMock() *mock.FeeHandlerMock {
-	return &mock.FeeHandlerMock{
+func FeeHandlerMock() *mock.FeeHandlerStub {
+	return &mock.FeeHandlerStub{
 		MinGasPriceCalled: func() uint64 {
 			return 0
 		},
-		MinGasLimitForTxCalled: func() uint64 {
+		MinGasLimitCalled: func() uint64 {
 			return 5
 		},
 		MinTxFeeCalled: func() uint64 {

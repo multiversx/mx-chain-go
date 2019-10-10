@@ -491,7 +491,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	timeAfter := time.Now()
 
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug(err.Error())
 		return nil, err
 	}
 
@@ -519,7 +519,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		currTxGasLimit := txs.economicsFee.MinGasLimitForTx()
+		currTxGasLimit := txs.economicsFee.MinGasLimit()
 		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}

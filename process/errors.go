@@ -208,9 +208,6 @@ var ErrNilStorage = errors.New("nil storage")
 // ErrNilShardedDataCacherNotifier signals that a nil sharded data cacher notifier has been provided
 var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifier")
 
-// ErrNilBlocksTracker signals that a nil blocks tracker has been provided
-var ErrNilBlocksTracker = errors.New("nil blocks tracker")
-
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
@@ -478,7 +475,7 @@ var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wr
 // ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
 var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
 
-// ErrZeroMaxCleanTime signals that cleaning time for pools its less or equals with 0
+// ErrZeroMaxCleanTime signals that cleaning time for pools is less or equal with 0
 var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")
 
 // ErrNilEconomicsRewardsHandler signals that rewards handler is nil
@@ -486,3 +483,27 @@ var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
 
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrSystemBusy signals that the system is busy
+var ErrSystemBusy = errors.New("system busy")
+
+// ErrInsufficientGasPriceInTx signals that a lower gas price than required was provided
+var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
+
+// ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
+var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
+
+// ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
+var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
+
+// ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
+var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
+
+// ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
+var ErrInvalidRewardsValue = errors.New("invalid rewards value")
+
+// ErrInvalidRewardsPercentages signal that rewards percentages are not correct
+var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
