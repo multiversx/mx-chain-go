@@ -3,6 +3,8 @@ package libp2p
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
+
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -49,6 +51,14 @@ func NewMemoryMessenger(
 	if err != nil {
 		return nil, err
 	}
+
+	goRoutinesThrottler, err := throttler.NewNumGoRoutineThrottler(broadcastGoRoutines)
+	if err != nil {
+		log.LogIfError(h.Close())
+		return nil, err
+	}
+
+	mes.goRoutinesThrottler = goRoutinesThrottler
 
 	return mes, err
 }

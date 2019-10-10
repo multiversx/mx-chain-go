@@ -140,7 +140,7 @@ type Messenger interface {
 	// BroadcastOnChannelBlocking asynchronously waits until it can send a
 	// message on the channel, but once it is able to, it synchronously sends the
 	// message, blocking until sending is completed.
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte)
+	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
 
 	// BroadcastOnChannel asynchronously sends a message on a given topic
 	// through a specified channel.

@@ -8,6 +8,7 @@ import (
 )
 
 var MaxSendBuffSize = maxSendBuffSize
+var BroadcastGoRoutines = broadcastGoRoutines
 
 func (netMes *networkMessenger) ConnManager() connmgr.ConnManager {
 	return netMes.ctxProvider.connHost.ConnManager()
