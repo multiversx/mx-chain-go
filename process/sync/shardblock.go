@@ -675,7 +675,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		return err
 	}
 
-	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.getShardHeaderFromPoolWithNonce, boot.hdrRes)
+	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.haveShardHeaderInPoolWithNonce, boot.hdrRes)
 
 	hashes := make([][]byte, len(hdr.MiniBlockHeaders))
 	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
@@ -1000,12 +1000,12 @@ func (boot *ShardBootstrap) IsInterfaceNil() bool {
 	return false
 }
 
-func (boot *ShardBootstrap) getShardHeaderFromPoolWithNonce(nonce uint64) error {
+func (boot *ShardBootstrap) haveShardHeaderInPoolWithNonce(nonce uint64) bool {
 	_, _, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		boot.shardCoordinator.SelfId(),
 		boot.headers,
 		boot.headersNonces)
 
-	return err
+	return err == nil
 }

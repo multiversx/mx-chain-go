@@ -568,15 +568,15 @@ func isRandomSeedValid(header data.HeaderHandler) bool {
 
 func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	nonce uint64,
-	getHeaderFromPoolWithNonce func(uint64) error,
+	haveHeaderInPoolWithNonce func(uint64) bool,
 	hdrRes dataRetriever.HeaderResolver) {
 
 	nbRequestedHdrs := 0
 	maxNonce := core.MinUint64(nonce+maxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
-		err := getHeaderFromPoolWithNonce(nonce)
-		if err != nil {
-			err = hdrRes.RequestDataFromNonce(currentNonce)
+		haveHeader := haveHeaderInPoolWithNonce(nonce)
+		if !haveHeader {
+			err := hdrRes.RequestDataFromNonce(currentNonce)
 			if err != nil {
 				log.Error(err.Error())
 				continue

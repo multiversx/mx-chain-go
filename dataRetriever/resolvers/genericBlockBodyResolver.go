@@ -83,7 +83,7 @@ func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetrieve
 		return nil, err
 	}
 
-	miniBlocks, _ := gbbRes.getMiniBlocks(hashes)
+	miniBlocks, _ := gbbRes.GetMiniBlocks(hashes)
 	if len(miniBlocks) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockSlice
 	}
@@ -141,17 +141,7 @@ func (gbbRes *GenericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte
 
 // GetMiniBlocks method returns a list of deserialized mini blocks from a given hash list either from data pool or from storage
 func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return gbbRes.getMiniBlocks(hashes)
-}
-
-// GetMiniBlocks method returns a list of deserialized mini blocks from a given hash list from data pool
-func (gbbRes *GenericBlockBodyResolver) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return gbbRes.getMiniBlocksFromPool(hashes)
-}
-
-// getMiniBlocks method returns a list of serialized mini blocks from a given hash list either from data pool or from storage
-func (gbbRes *GenericBlockBodyResolver) getMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	miniBlocks, missingMiniBlocksHashes := gbbRes.getMiniBlocksFromPool(hashes)
+	miniBlocks, missingMiniBlocksHashes := gbbRes.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) == 0 {
 		return miniBlocks, missingMiniBlocksHashes
 	}
@@ -162,8 +152,8 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocks(hashes [][]byte) (block.Mi
 	return miniBlocks, missingMiniBlocksHashes
 }
 
-// getMiniBlocksFromPool returns a list of mini blocks from cache and a list of missing hashes
-func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+// GetMiniBlocksFromPool method returns a list of deserialized mini blocks from a given hash list from data pool
+func (gbbRes *GenericBlockBodyResolver) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	missingMiniBlocksHashes := make([][]byte, 0)
 
