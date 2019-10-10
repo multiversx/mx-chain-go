@@ -54,3 +54,27 @@ func TestMinUint32ShouldReturnA(t *testing.T) {
 	b := uint32(11)
 	assert.Equal(t, a, core.MinUint32(a, b))
 }
+
+func TestMaxUint64ShouldReturnA(t *testing.T) {
+	a := uint64(11)
+	b := uint64(10)
+	assert.Equal(t, a, core.MaxUint64(a, b))
+}
+
+func TestMaxUint64ShouldReturnB(t *testing.T) {
+	a := uint64(10)
+	b := uint64(11)
+	assert.Equal(t, b, core.MaxUint64(a, b))
+}
+
+func TestMinUint64ShouldReturnB(t *testing.T) {
+	a := uint64(11)
+	b := uint64(10)
+	assert.Equal(t, b, core.MinUint64(a, b))
+}
+
+func TestMinUint64ShouldReturnA(t *testing.T) {
+	a := uint64(10)
+	b := uint64(11)
+	assert.Equal(t, a, core.MinUint64(a, b))
+}
