@@ -146,3 +146,7 @@ func (sh *SpecialAddressHandlerMock) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func (sh *SpecialAddressHandlerMock) IsInConsensus() bool {
+	return false
+}

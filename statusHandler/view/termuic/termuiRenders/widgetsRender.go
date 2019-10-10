@@ -168,7 +168,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 
 	}
 
-	wr.instanceInfo.Title = "Instance info"
+	wr.instanceInfo.Title = "Elrond instance info"
 	wr.instanceInfo.RowSeparator = false
 	wr.instanceInfo.Rows = rows
 }

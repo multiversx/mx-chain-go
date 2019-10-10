@@ -130,7 +130,7 @@ func TestPresenterStatusHandler_GetNodeName(t *testing.T) {
 	assert.Equal(t, nodeName, result)
 }
 
-func TestPresenterStatusHandler_CalculateRewardsPerHour(t *testing.T) {
+func TestPresenterStatusHandler_CalculateRewardsTotal(t *testing.T) {
 	t.Parallel()
 
 	rewardsValue := uint64(1000)
@@ -142,4 +142,51 @@ func TestPresenterStatusHandler_CalculateRewardsPerHour(t *testing.T) {
 
 	assert.Equal(t, uint64(0), totalRewards)
 	assert.Equal(t, rewardsValue*numSignedBlocks, diff)
+}
+
+func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
+	t.Parallel()
+
+	rewardsValue := uint64(1000)
+	numSignedBlocks := uint64(50)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	totalRewardsOld := uint64(5000)
+	presenterStatusHandler.totalRewardsOld = totalRewardsOld
+	presenterStatusHandler.SetUInt64Value(core.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
+	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
+
+	assert.Equal(t, totalRewardsOld, totalRewards)
+	assert.Equal(t, rewardsValue*numSignedBlocks-totalRewardsOld, diff)
+}
+
+func TestPresenterStatusHandler_CalculateRewardsPerHourReturnZero(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	result := presenterStatusHandler.CalculateRewardsPerHour()
+
+	assert.Equal(t, uint64(0), result)
+}
+
+func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) {
+	t.Parallel()
+
+	consensusGroupSize := uint64(10)
+	numValidators := uint64(100)
+	totalBlocks := uint64(100)
+	totalRounds := uint64(1000)
+	roundTime := uint64(6)
+	rewardsValue := uint64(1000)
+	expectedValue := uint64(6000)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, consensusGroupSize)
+	presenterStatusHandler.SetUInt64Value(core.MetricNumValidators, numValidators)
+	presenterStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, totalBlocks)
+	presenterStatusHandler.SetUInt64Value(core.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, totalRounds)
+	presenterStatusHandler.SetUInt64Value(core.MetricRoundTime, roundTime)
+
+	result := presenterStatusHandler.CalculateRewardsPerHour()
+	assert.Equal(t, expectedValue, result)
 }
