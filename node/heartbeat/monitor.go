@@ -98,13 +98,14 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 			hbmi, err := m.loadHbmiFromStorer(pubkey)
 
 			if err != nil { // if pubKey not found in DB, create a new instance
-				hbmi, errNewHbmi := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
-				if errNewHbmi != nil {
-					return errNewHbmi
+				hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
+				if err != nil {
+					return err
 				}
 
 				hbmi.genesisTime = m.genesisTime
 				hbmi.computedShardID = shardId
+				pubKeysToSave[pubkey] = hbmi
 			} else {
 
 			}
