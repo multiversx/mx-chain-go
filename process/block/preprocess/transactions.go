@@ -473,7 +473,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		}
 	}
 
-	miniBlocks = txs.compressMiniBlocks(miniBlocks)
+	compressedMiniBlocks := txs.compressMiniBlocks(miniBlocks)
+	if len(compressedMiniBlocks) > 0 {
+		return compressedMiniBlocks, nil
+	}
 
 	return miniBlocks, nil
 }
