@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
@@ -124,7 +123,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 }
 
-func (tpn *TestProcessorNode) createShardBootstrapper() (process.Bootstrapper, error) {
+func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
 	bootstrap, err := sync.NewShardBootstrap(
 		tpn.ShardDataPool,
 		tpn.Storage,
@@ -144,10 +143,12 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (process.Bootstrapper, e
 		return nil, err
 	}
 
-	return bootstrap, nil
+	return &sync.TestShardBootstrap{
+		ShardBootstrap: bootstrap,
+	}, nil
 }
 
-func (tpn *TestProcessorNode) createMetaChainBootstrapper() (process.Bootstrapper, error) {
+func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, error) {
 	bootstrap, err := sync.NewMetaBootstrap(
 		tpn.MetaDataPool,
 		tpn.Storage,
@@ -168,7 +169,9 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (process.Bootstrappe
 		return nil, err
 	}
 
-	return bootstrap, nil
+	return &sync.TestMetaBootstrap{
+		MetaBootstrap: bootstrap,
+	}, nil
 }
 
 func (tpn *TestProcessorNode) initBootstrapper() {
