@@ -596,6 +596,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
 	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
+	coreComponents.StatusHandler.SetStringValue(core.MetricNodeDisplayName, generalConfig.GeneralSettings.NodeDisplayName)
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
@@ -829,6 +830,17 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
+
+	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	if err != nil {
+		return
+	}
+
+	validatorsNodes := nodesConfig.InitialNodesInfo()
+	numValidators := len(validatorsNodes[shardCoordinator.SelfId()])
+
+	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
+	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
 }
 
 func startStatusPolling(

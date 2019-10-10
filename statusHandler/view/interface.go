@@ -3,6 +3,7 @@ package view
 // Presenter defines the methods that return information about node
 type Presenter interface {
 	GetAppVersion() string
+	GetNodeName() string
 	GetPublicKeyTxSign() string
 	GetPublicKeyBlockSign() string
 	GetShardId() uint64
@@ -48,6 +49,7 @@ type Presenter interface {
 	GetHighestFinalBlockInShard() uint64
 
 	GetTotalRewardsValue() (uint64, uint64)
+	CalculateRewardsPerHour() uint64
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

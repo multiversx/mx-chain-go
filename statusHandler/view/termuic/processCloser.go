@@ -7,7 +7,7 @@ import (
 )
 
 // StopApplication is used to stop application when Ctrl+C is pressed
-func StopApplication() {
+func stopApplication() {
 	if p, err := os.FindProcess(os.Getpid()); err != nil {
 		return
 	} else {

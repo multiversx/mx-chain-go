@@ -104,7 +104,7 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 		tc.doResizeEvent(e)
 	case "<C-c>":
 		ui.Close()
-		StopApplication()
+		stopApplication()
 		return
 	}
 }

@@ -105,35 +105,40 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	numRows := 8
 	rows := make([][]string, numRows)
 
-	appVersion := wr.presenter.GetAppVersion()
-	rows[0] = []string{fmt.Sprintf("App version: %s", appVersion)}
-	if strings.Contains(appVersion, core.UnVersionedAppString) {
-		wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorRed)
-	} else {
-		wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorGreen)
-	}
-
-	pkTxSign := wr.presenter.GetPublicKeyTxSign()
-	rows[1] = []string{fmt.Sprintf("Public key TxSign: %s", pkTxSign)}
-
-	pkBlockSign := wr.presenter.GetPublicKeyBlockSign()
-	rows[2] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
-
-	var consensusInfo string
-	instanceType := wr.presenter.GetNodeType()
+	nodeName := wr.presenter.GetNodeName()
 	shardId := wr.presenter.GetShardId()
-	countConsensus := wr.presenter.GetCountConsensus()
-	countConsensusAcceptedBlocks := wr.presenter.GetCountConsensusAcceptedBlocks()
+	instanceType := wr.presenter.GetNodeType()
 	shardIdStr := fmt.Sprintf("%d", shardId)
 	if shardId == uint64(sharding.MetachainShardId) {
 		shardIdStr = "meta"
+	}
+	wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
+	rows[0] = []string{fmt.Sprintf("Node name: %s (Shard %s - %s)", nodeName, shardIdStr, strings.Title(instanceType))}
+
+	appVersion := wr.presenter.GetAppVersion()
+	rows[1] = []string{fmt.Sprintf("App version: %s", appVersion)}
+	if strings.Contains(appVersion, core.UnVersionedAppString) {
+		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorRed)
+	} else {
+		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorGreen)
+	}
+
+	pkTxSign := wr.presenter.GetPublicKeyTxSign()
+	rows[2] = []string{fmt.Sprintf("Public key TxSign: %s", pkTxSign)}
+
+	pkBlockSign := wr.presenter.GetPublicKeyBlockSign()
+	rows[3] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
+
+	var consensusInfo string
+	countConsensus := wr.presenter.GetCountConsensus()
+	countConsensusAcceptedBlocks := wr.presenter.GetCountConsensusAcceptedBlocks()
+
+	if shardId == uint64(sharding.MetachainShardId) {
 		consensusInfo = fmt.Sprintf("Count consensus participant: %d | Signed blocks headers: %d", countConsensus, countConsensusAcceptedBlocks)
 
 	} else {
 		consensusInfo = fmt.Sprintf("Consensus accepted / signed blocks: %d / %d", countConsensusAcceptedBlocks, countConsensus)
 	}
-
-	rows[3] = []string{fmt.Sprintf("Shard: %s %s", shardIdStr, instanceType)}
 
 	rows[4] = []string{consensusInfo}
 
@@ -141,13 +146,26 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
 	rows[5] = []string{fmt.Sprintf("Consensus leader accepted / proposed blocks : %d / %d", countAcceptedBlocks, countLeader)}
 
-	totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
-	if diffRewards > 0 {
-		wr.instanceInfo.RowStyles[6] = ui.NewStyle(ui.ColorGreen)
-		rows[6] = []string{fmt.Sprintf("Total rewards %d TERD + %d", totalRewardsValue, diffRewards)}
-	} else {
-		wr.instanceInfo.RowStyles[6] = ui.NewStyle(ui.ColorWhite)
-		rows[6] = []string{fmt.Sprintf("Total rewards %d TERD", totalRewardsValue)}
+	switch instanceType {
+	case string(core.NodeTypeValidator):
+		rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
+		rows[6] = []string{fmt.Sprintf("Rewards estionstion:  %d TERD / hour (without fees)", rewardsPerHour)}
+
+		var rewardsInfo []string
+		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
+		if diffRewards > 0 {
+			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %d TERD + %d", totalRewardsValue, diffRewards)}
+		} else {
+			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %d TERD", totalRewardsValue)}
+		}
+		rows[7] = rewardsInfo
+
+	default:
+		rows[6] = []string{""}
+		rows[7] = []string{""}
+
 	}
 
 	wr.instanceInfo.Title = "Instance info"

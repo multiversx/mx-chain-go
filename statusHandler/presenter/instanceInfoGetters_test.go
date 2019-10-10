@@ -94,3 +94,52 @@ func TestPresenterStatusHandler_GetCountAcceptedBlocks(t *testing.T) {
 
 	assert.Equal(t, countAcceptedBlocks, result)
 }
+
+func TestPresenterStatusHandler_GetCountConsensusAcceptedBlocks(t *testing.T) {
+	t.Parallel()
+
+	countConsensusAcceptedBlocks := uint64(1000)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, countConsensusAcceptedBlocks)
+	result := presenterStatusHandler.GetCountConsensusAcceptedBlocks()
+
+	assert.Equal(t, countConsensusAcceptedBlocks, result)
+
+}
+
+func TestPresenterStatusHandler_GetNodeNameShouldReturnDefaultName(t *testing.T) {
+	t.Parallel()
+
+	nodeName := ""
+	expectedName := "noname"
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetStringValue(core.MetricNodeDisplayName, nodeName)
+	result := presenterStatusHandler.GetNodeName()
+
+	assert.Equal(t, expectedName, result)
+}
+
+func TestPresenterStatusHandler_GetNodeName(t *testing.T) {
+	t.Parallel()
+
+	nodeName := "node"
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetStringValue(core.MetricNodeDisplayName, nodeName)
+	result := presenterStatusHandler.GetNodeName()
+
+	assert.Equal(t, nodeName, result)
+}
+
+func TestPresenterStatusHandler_CalculateRewardsPerHour(t *testing.T) {
+	t.Parallel()
+
+	rewardsValue := uint64(1000)
+	numSignedBlocks := uint64(50)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
+	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
+
+	assert.Equal(t, uint64(0), totalRewards)
+	assert.Equal(t, rewardsValue*numSignedBlocks, diff)
+}
