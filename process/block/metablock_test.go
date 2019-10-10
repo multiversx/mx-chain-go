@@ -735,6 +735,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	blkc, _ := blockchain.NewMetaChain(
 		generateTestCache(),
 	)
+	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
 	err := mp.CommitBlock(blkc, hdr, body)
 	assert.True(t, wasCalled)
 	assert.Nil(t, err)
@@ -901,6 +902,30 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	assert.Equal(t, uint32(1), hdrsRequested)
 }
 
+func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	mdp := initMetaDataPool()
+	mp, _ := blproc.NewMetaProcessor(
+		&mock.ServiceContainerMock{},
+		&mock.AccountsStub{},
+		mdp,
+		&mock.ForkDetectorMock{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		initStore(),
+		createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+		&mock.RequestHandlerMock{},
+		&mock.Uint64ByteSliceConverterMock{},
+	)
+	err := mp.RemoveBlockInfoFromPool(nil)
+	assert.NotNil(t, err)
+	assert.Equal(t, err, process.ErrNilMetaBlockHeader)
+}
+
 func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -921,7 +946,8 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
-	err := mp.RemoveBlockInfoFromPool()
+	header := createMetaBlockHeader()
+	err := mp.RemoveBlockInfoFromPool(header)
 	assert.Nil(t, err)
 }
 
@@ -1783,7 +1809,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
 	// test header not in pool and defer called
-	err := mp.SaveLastNotarizedHeader()
+	err := mp.SaveLastNotarizedHeader(metaHdr)
+	assert.Equal(t, process.ErrMissingHeader, err)
 	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
 
@@ -1793,7 +1820,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	mp.SetHdrForCurrentBlock(currHash, metaHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
-	err = mp.SaveLastNotarizedHeader()
+	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, firstNonce, mp.LastNotarizedHdrForShard(currHdr.ShardId).GetNonce())
@@ -1805,7 +1832,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
-	err = mp.SaveLastNotarizedHeader()
+	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
 	notarizedHdrs = mp.NotarizedHdrs()
 	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardId))

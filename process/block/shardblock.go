@@ -1153,13 +1153,13 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 // which should be processed
 func (sp *shardProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 	requestedBlockHeaders := uint32(0)
-	firstFinalityAttestingHeader := sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] + 1
-	lastFinalityAttestingHeader := sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] + uint64(sp.metaBlockFinality)
-	for i := firstFinalityAttestingHeader; i <= lastFinalityAttestingHeader; i++ {
-		if sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] == uint64(0) {
-			continue
-		}
+	highestHdrNonce := sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId]
+	if highestHdrNonce == uint64(0) {
+		return requestedBlockHeaders
+	}
 
+	lastFinalityAttestingHeader := sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] + uint64(sp.metaBlockFinality)
+	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
 		metaBlock, metaBlockHash, err := process.GetMetaHeaderFromPoolWithNonce(
 			i,
 			sp.dataPool.MetaBlocks(),

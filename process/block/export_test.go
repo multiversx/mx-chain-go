@@ -106,8 +106,8 @@ func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, u
 	return mp.requestShardHeaders(header)
 }
 
-func (mp *metaProcessor) RemoveBlockInfoFromPool() error {
-	return mp.removeBlockInfoFromPool()
+func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
+	return mp.removeBlockInfoFromPool(header)
 }
 
 func (mp *metaProcessor) ReceivedShardHeader(shardHeaderHash []byte) {
@@ -178,11 +178,13 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 }
 
 func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	mp.shardBlockFinality = val
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
-func (mp *metaProcessor) SaveLastNotarizedHeader() error {
-	return mp.saveLastNotarizedHeader()
+func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error {
+	return mp.saveLastNotarizedHeader(header)
 }
 
 func (mp *metaProcessor) CheckShardHeadersValidity() (map[uint32]data.HeaderHandler, error) {
