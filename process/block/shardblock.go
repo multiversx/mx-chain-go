@@ -905,9 +905,11 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header *block.He
 	}
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for metaBlockHash, hdrInfo := range sp.hdrsForCurrBlock.hdrHashAndInfo {
-		if !hdrInfo.usedInBlock {
-			continue
+	for _, metaBlockHash := range header.MetaBlockHashes {
+		hdrInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !ok {
+			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+			return process.ErrMissingHeader
 		}
 
 		metaBlock, ok := hdrInfo.hdr.(*block.MetaBlock)
@@ -923,7 +925,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header *block.He
 				continue
 			}
 
-			sp.addProcessedMiniBlock([]byte(metaBlockHash), miniBlockHash)
+			sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
 
 			delete(miniBlockHashes, key)
 		}
@@ -1229,13 +1231,13 @@ func (sp *shardProcessor) computeMissingAndExistingMetaHeaders(header *block.Hea
 	return missingHeadersHashes
 }
 
-func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) error {
-	miniBlockMetaHashes, err := sp.getAllMiniBlockDstMeFromMeta(hdr.Round)
+func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header *block.Header) error {
+	miniBlockMetaHashes, err := sp.getAllMiniBlockDstMeFromMeta(header)
 	if err != nil {
 		return err
 	}
 
-	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	for hash := range crossMiniBlockHashes {
 		if _, ok := miniBlockMetaHashes[hash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
@@ -1245,7 +1247,7 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(hdr *block.Header) erro
 	return nil
 }
 
-func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint64) (map[string][]byte, error) {
+func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (map[string][]byte, error) {
 	lastHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		return nil, err
@@ -1254,15 +1256,16 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(round uint64) (map[string
 	miniBlockMetaHashes := make(map[string][]byte)
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for metaBlockHash, hdrInfo := range sp.hdrsForCurrBlock.hdrHashAndInfo {
-		if !hdrInfo.usedInBlock {
+	for _, metaBlockHash := range header.MetaBlockHashes {
+		hdrInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !ok {
 			continue
 		}
 		metaBlock, ok := hdrInfo.hdr.(*block.MetaBlock)
 		if !ok {
 			continue
 		}
-		if metaBlock.GetRound() > round {
+		if metaBlock.GetRound() > header.Round {
 			continue
 		}
 		if metaBlock.GetRound() <= lastHdr.GetRound() {

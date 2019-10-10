@@ -242,10 +242,12 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 				log.Error(process.ErrWrongTypeAssertion.Error())
 			}
 
+			rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
 			rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{
 				tx:          rTx,
 				txShardInfo: txShardData,
 			}
+			rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 		}
 	}
 }

@@ -3877,7 +3877,11 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 	metaHash := hasher.Compute(string(metaBytes))
 	sp.SetHdrForCurrentBlock(metaHash, metaBlock, true)
 
-	orderedMetaBlocks, err := sp.GetAllMiniBlockDstMeFromMeta(1)
+	metablockHashes := make([][]byte, 0)
+	metablockHashes = append(metablockHashes, metaHash)
+	header := &block.Header{Nonce: 1, Round: 1, MetaBlockHashes: metablockHashes}
+
+	orderedMetaBlocks, err := sp.GetAllMiniBlockDstMeFromMeta(header)
 
 	assert.Equal(t, 1, len(orderedMetaBlocks))
 	assert.Equal(t, orderedMetaBlocks[""], metaHash)

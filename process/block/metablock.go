@@ -485,9 +485,12 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for shardBlockHash, hdrInfo := range mp.hdrsForCurrBlock.hdrHashAndInfo {
-		if !hdrInfo.usedInBlock {
-			continue
+	for i := 0; i < len(header.ShardInfo); i++ {
+		shardHeaderHash := header.ShardInfo[i].HeaderHash
+		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
+		if !ok {
+			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+			return process.ErrMissingHeader
 		}
 
 		shardBlock, ok := hdrInfo.hdr.(*block.Header)
@@ -506,10 +509,10 @@ func (mp *metaProcessor) CommitBlock(
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardBlock.Nonce)
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardBlock.ShardId)
-		errNotCritical = mp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, []byte(shardBlockHash))
+		errNotCritical = mp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, shardHeaderHash)
 		log.LogIfError(errNotCritical)
 
-		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, []byte(shardBlockHash), buff)
+		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardHeaderHash, buff)
 		log.LogIfError(errNotCritical)
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()

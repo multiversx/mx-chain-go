@@ -293,9 +293,9 @@ func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 }
 
 func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
-	round uint64,
+	header *block.Header,
 ) (map[string][]byte, error) {
-	return sp.getAllMiniBlockDstMeFromMeta(round)
+	return sp.getAllMiniBlockDstMeFromMeta(header)
 }
 
 func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
