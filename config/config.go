@@ -69,6 +69,7 @@ type Config struct {
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
 	UnsignedTransactionStorage StorageConfig
+	RewardTxStorage            StorageConfig
 	ShardHdrNonceHashStorage   StorageConfig
 	MetaHdrNonceHashStorage    StorageConfig
 
@@ -87,6 +88,7 @@ type Config struct {
 	BlockHeaderNoncesDataPool   CacheConfig
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
+	RewardTransactionDataPool   CacheConfig
 	MetaBlockBodyDataPool       CacheConfig
 
 	MiniBlockHeaderHashesDataPool CacheConfig
@@ -140,6 +142,7 @@ type HeartbeatConfig struct {
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
 	DurationInSecToConsiderUnresponsive int
+	HeartbeatStorage                    StorageConfig
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

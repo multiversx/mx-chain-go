@@ -11,9 +11,6 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.BlockProcessor() == nil || container.BlockProcessor().IsInterfaceNil() {
 		return ErrNilBlockProcessor
 	}
-	if container.BlocksTracker() == nil || container.BlocksTracker().IsInterfaceNil() {
-		return ErrNilBlocksTracker
-	}
 	if container.BootStrapper() == nil || container.BootStrapper().IsInterfaceNil() {
 		return ErrNilBootstrapper
 	}
@@ -41,7 +38,7 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.SyncTimer() == nil || container.SyncTimer().IsInterfaceNil() {
 		return ErrNilSyncTimer
 	}
-	if container.ValidatorGroupSelector() == nil || container.ValidatorGroupSelector().IsInterfaceNil() {
+	if container.NodesCoordinator() == nil || container.NodesCoordinator().IsInterfaceNil() {
 		return ErrNilValidatorGroupSelector
 	}
 	if container.RandomnessPrivateKey() == nil || container.RandomnessPrivateKey().IsInterfaceNil() {

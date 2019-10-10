@@ -10,7 +10,6 @@ import (
 func initConsensusDataContainer() *ConsensusCore {
 	blockChain := &mock.BlockChainMock{}
 	blockProcessorMock := mock.InitBlockProcessorMock()
-	blocksTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
@@ -22,24 +21,23 @@ func initConsensusDataContainer() *ConsensusCore {
 	rounderMock := &mock.RounderMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
-	validatorGroupSelector := &mock.ValidatorGroupSelectorMock{}
+	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 
 	return &ConsensusCore{
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessorMock,
-		blocksTracker:          blocksTrackerMock,
-		bootstrapper:           bootstrapperMock,
-		broadcastMessenger:     broadcastMessengerMock,
-		chronologyHandler:      chronologyHandlerMock,
-		hasher:                 hasherMock,
-		marshalizer:            marshalizerMock,
-		blsPrivateKey:          blsPrivateKeyMock,
-		blsSingleSigner:        blsSingleSignerMock,
-		multiSigner:            multiSignerMock,
-		rounder:                rounderMock,
-		shardCoordinator:       shardCoordinatorMock,
-		syncTimer:              syncTimerMock,
-		validatorGroupSelector: validatorGroupSelector,
+		blockChain:         blockChain,
+		blockProcessor:     blockProcessorMock,
+		bootstrapper:       bootstrapperMock,
+		broadcastMessenger: broadcastMessengerMock,
+		chronologyHandler:  chronologyHandlerMock,
+		hasher:             hasherMock,
+		marshalizer:        marshalizerMock,
+		blsPrivateKey:      blsPrivateKeyMock,
+		blsSingleSigner:    blsSingleSignerMock,
+		multiSigner:        multiSignerMock,
+		rounder:            rounderMock,
+		shardCoordinator:   shardCoordinatorMock,
+		syncTimer:          syncTimerMock,
+		nodesCoordinator:   validatorGroupSelector,
 	}
 }
 
@@ -157,7 +155,7 @@ func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.validatorGroupSelector = nil
+	container.nodesCoordinator = nil
 
 	err := ValidateConsensusCore(container)
 
