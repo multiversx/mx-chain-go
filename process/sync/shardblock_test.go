@@ -58,6 +58,9 @@ func createMockResolversFinder() *mock.ResolversFinderStub {
 					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 						return make(block.MiniBlockSlice, 0), make([][]byte, 0)
 					},
+					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), make([][]byte, 0)
+					},
 				}, nil
 			}
 
@@ -89,6 +92,9 @@ func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
 						return nil
 					},
 					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
+					},
+					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 						return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
 					},
 				}, nil

@@ -566,24 +566,15 @@ func isRandomSeedValid(header data.HeaderHandler) bool {
 	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
 }
 
-func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(nonce uint64, hdrRes dataRetriever.HeaderResolver) {
-	var err error
+func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
+	nonce uint64,
+	getHeaderFromPoolWithNonce func(uint64) error,
+	hdrRes dataRetriever.HeaderResolver) {
+
 	nbRequestedHdrs := 0
 	maxNonce := core.MinUint64(nonce+maxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
-		if boot.shardCoordinator.SelfId() == sharding.MetachainShardId {
-			_, _, err = process.GetMetaHeaderFromPoolWithNonce(
-				currentNonce,
-				boot.headers,
-				boot.headersNonces)
-		} else {
-			_, _, err = process.GetShardHeaderFromPoolWithNonce(
-				currentNonce,
-				boot.shardCoordinator.SelfId(),
-				boot.headers,
-				boot.headersNonces)
-		}
-
+		err := getHeaderFromPoolWithNonce(nonce)
 		if err != nil {
 			err = hdrRes.RequestDataFromNonce(currentNonce)
 			if err != nil {

@@ -60,7 +60,8 @@ type HeaderResolver interface {
 type MiniBlocksResolver interface {
 	Resolver
 	RequestDataFromHashArray(hashes [][]byte) error
-	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) // TODO miniblockresolver should not know about miniblockslice
+	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver

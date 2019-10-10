@@ -451,8 +451,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		return err
 	}
 
-	// request in advance next meta header if missing
-	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.hdrRes)
+	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.getMetaHeaderFromPoolWithNonce, boot.hdrRes)
 
 	haveTime := func() time.Duration {
 		return boot.rounder.TimeDuration()
@@ -678,4 +677,13 @@ func (boot *MetaBootstrap) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (boot *MetaBootstrap) getMetaHeaderFromPoolWithNonce(nonce uint64) error {
+	_, _, err := process.GetMetaHeaderFromPoolWithNonce(
+		nonce,
+		boot.headers,
+		boot.headersNonces)
+
+	return err
 }
