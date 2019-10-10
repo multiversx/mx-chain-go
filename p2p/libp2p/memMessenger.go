@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
-
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/libp2p/go-libp2p-core/connmgr"
