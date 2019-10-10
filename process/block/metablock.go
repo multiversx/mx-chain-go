@@ -281,6 +281,8 @@ func (mp *metaProcessor) indexBlock(
 	}
 	signersIndexes := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
 
+	go mp.core.Indexer().SaveMetaBlock(metaBlock, signersIndexes)
+
 	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, sharding.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 }
 

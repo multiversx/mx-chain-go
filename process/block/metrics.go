@@ -110,7 +110,7 @@ func saveRoundInfoInElastic(
 		roundInfo = indexer.RoundInfo{
 			Index:            i,
 			SignersIndexes:   signersIndexes,
-			BlockWasProposed: true,
+			BlockWasProposed: false,
 			ShardId:          shardId,
 			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
 		}

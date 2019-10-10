@@ -240,6 +240,16 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 }
 
+// SaveMetaBlock will index a meta block in elastic search
+func (ei *elasticIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
+	if header == nil || header.IsInterfaceNil() {
+		ei.logger.Warn(ErrNoHeader.Error())
+		return
+	}
+
+	go ei.saveHeader(header, signersIndexes)
+}
+
 // SaveRoundInfo will save data about a round on elastic search
 func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 	var buff bytes.Buffer
