@@ -519,7 +519,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		currTxGasLimit := txs.economicsFee.MinGasLimitForTx()
+		currTxGasLimit := txs.economicsFee.MinGasLimit()
 		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}
