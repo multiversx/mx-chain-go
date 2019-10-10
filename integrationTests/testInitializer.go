@@ -1285,3 +1285,21 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 
 	return params
 }
+
+// CloseProcessorNodes closes the used TestProcessorNodes and advertiser
+func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
+	_ = advertiser.Close()
+	for _, n := range nodes {
+		_ = n.Messenger.Close()
+	}
+}
+
+// StartP2pBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
+func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(p2pBootstrapStepDelay)
+}

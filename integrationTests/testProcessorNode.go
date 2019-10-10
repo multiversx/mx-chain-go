@@ -124,7 +124,7 @@ type TestProcessorNode struct {
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
-	Bootstrapper       process.Bootstrapper
+	Bootstrapper       TestBootstrapper
 	Rounder            *mock.RounderMock
 
 	MultiSigner crypto.MultiSigner
@@ -340,8 +340,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
-			factory.HeadersTopic,
 			factory.ShardHeadersForMetachainTopic,
+			factory.MetachainBlocksTopic,
 		)
 	} else {
 		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
