@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -37,7 +36,7 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 		MinGasPriceCalled: func() uint64 {
 			return 0
 		},
-		MinGasLimitForTxCalled: func() uint64 {
+		MinGasLimitCalled: func() uint64 {
 			return 5
 		},
 		MinTxFeeCalled: func() uint64 {
@@ -393,13 +392,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 }
 
 func createInterimProcessorContainer() process.IntermediateProcessorContainer {
-	economicsData := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{},
-			RewardsSettings:    config.RewardsSettings{},
-			FeeSettings:        config.FeeSettings{},
-		},
-	)
+	economicsData := &economics.EconomicsData{}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
@@ -1689,13 +1682,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testing.T) {
 	t.Parallel()
 
-	economicsData := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{},
-			RewardsSettings:    config.RewardsSettings{},
-			FeeSettings:        config.FeeSettings{},
-		},
-	)
+	economicsData := &economics.EconomicsData{}
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -1742,13 +1729,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	t.Parallel()
 
-	economicsData := economics.NewEconomicsData(
-		&config.ConfigEconomics{
-			EconomicsAddresses: config.EconomicsAddresses{},
-			RewardsSettings:    config.RewardsSettings{},
-			FeeSettings:        config.FeeSettings{},
-		},
-	)
+	economicsData := &economics.EconomicsData{}
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
