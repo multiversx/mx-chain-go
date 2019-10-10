@@ -13,10 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stepDelay = time.Second
-var delayP2pBootstrap = time.Second * 2
-var stepSync = time.Second * 2
-
 func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -196,10 +192,4 @@ func testAllNodesHaveSameLastBlock(t *testing.T, nodes []*integrationTests.TestP
 	}
 
 	assert.Equal(t, 1, len(mapBlocksByHash))
-}
-
-func updateRound(nodes []*integrationTests.TestProcessorNode, round uint64) {
-	for _, n := range nodes {
-		n.Rounder.IndexField = int64(round)
-	}
 }
