@@ -309,7 +309,7 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
 	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
 	for _, txHash := range mbTxHashes.txHashes {
-		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo, txHash: txHash}
 	}
 }
 
@@ -342,7 +342,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	txs.txsForCurrBlock.txHashAndInfo[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo}
+	txs.txsForCurrBlock.txHashAndInfo[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo, txHash: transactionHash}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return nil
@@ -528,9 +528,15 @@ func (txs *transactions) expandMiniBlocks(miniBlocks block.MiniBlockSlice) block
 		}
 	}
 
-	expandedMbs := txs.expand(mbsToExpand)
+	if len(mbsToExpand) > 0 {
+		expandedMbs := txs.expand(mbsToExpand)
+		if len(expandedMbs) > 0 {
+			return expandedMbs
+		}
+	}
 
-	return expandedMbs
+	return miniBlocks
+
 }
 
 func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
@@ -546,7 +552,10 @@ func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) block.MiniBlock
 		miniBlock := miniBlocks[i]
 		txsInfo[miniBlock.ReceiverShardID] = make([]*txInfo, 0)
 		for _, txHash := range miniBlocks[i].TxHashes {
-			txNfo := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+			txNfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+			if !ok {
+				continue
+			}
 			txNfo.txHash = txHash
 			txsInfo[miniBlock.ReceiverShardID] = append(txsInfo[miniBlock.ReceiverShardID], txNfo)
 		}
@@ -793,7 +802,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo}
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo, txHash: txHash}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 

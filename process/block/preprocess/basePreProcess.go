@@ -188,7 +188,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 				txHashes = append(txHashes, txHash)
 				forBlock.missingTxs++
 			} else {
-				forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo}
+				forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, txHash: txHash}
 			}
 		}
 

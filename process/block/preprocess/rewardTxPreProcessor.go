@@ -245,6 +245,7 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 			rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{
 				tx:          rTx,
 				txShardInfo: txShardData,
+				txHash:      txHash,
 			}
 		}
 	}
@@ -315,7 +316,7 @@ func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body block.Body) int {
 func (rtp *rewardTxPreprocessor) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
 	txShardData := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
 	for _, txHash := range mbTxHashes.txHashes {
-		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardData}
+		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardData, txHash: txHash}
 	}
 }
 
@@ -361,7 +362,7 @@ func (rtp *rewardTxPreprocessor) processRewardTransaction(
 
 	txShardData := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
-	rtp.rewardTxsForBlock.txHashAndInfo[string(rewardTxHash)] = &txInfo{tx: rewardTx, txShardInfo: txShardData}
+	rtp.rewardTxsForBlock.txHashAndInfo[string(rewardTxHash)] = &txInfo{tx: rewardTx, txShardInfo: txShardData, txHash: rewardTxHash}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 
 	return nil
@@ -506,7 +507,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockRewardTxs[index], txShardInfo: txShardData}
+		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockRewardTxs[index], txShardInfo: txShardData, txHash: txHash}
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 

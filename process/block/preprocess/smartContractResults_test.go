@@ -633,7 +633,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		Data:  "tx",
 	}
 
-	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
+	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo, txHash}
 
 	err := scr.ProcessBlockTransactions(body, 1, haveTimeTrue)
 

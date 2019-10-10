@@ -966,7 +966,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
-	assert.Equal(t, allTxs/numTxsToAdd, len(mbs))
+	// TODO: refactor this when compressing will include gas limiting
+	assert.Equal(t, 1, len(mbs))
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {

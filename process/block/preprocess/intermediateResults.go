@@ -160,7 +160,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		}
 
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
-		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
+		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo, txHash: scrHash}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
 	}
 
