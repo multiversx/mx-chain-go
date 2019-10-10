@@ -1,13 +1,15 @@
 package mock
 
+import "math/big"
+
 type RewardsHandlerMock struct {
-	RewardsValueCalled        func() uint64
+	RewardsValueCalled        func() *big.Int
 	CommunityPercentageCalled func() float64
 	LeaderPercentageCalled    func() float64
 	BurnPercentageCalled      func() float64
 }
 
-func (rhm *RewardsHandlerMock) RewardsValue() uint64 {
+func (rhm *RewardsHandlerMock) RewardsValue() *big.Int {
 	return rhm.RewardsValueCalled()
 }
 
