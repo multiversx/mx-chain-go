@@ -864,9 +864,12 @@ func (mp *metaProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 				mp.dataPool.HeadersNonces())
 
 			if err != nil {
-				requestedBlockHeaders++
-				go mp.onRequestHeaderHandlerByNonce(shardId, i)
-				continue
+				shardHeader, shardHeaderHash, err = mp.getShardHeaderWithNonce(shardId, i)
+				if err != nil {
+					requestedBlockHeaders++
+					go mp.onRequestHeaderHandlerByNonce(shardId, i)
+					continue
+				}
 			}
 
 			mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)] = &hdrInfo{hdr: shardHeader, usedInBlock: false}
@@ -1293,4 +1296,29 @@ func (mp *metaProcessor) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (mp *metaProcessor) getShardHeaderWithNonce(shardId uint32, nonce uint64) (*block.Header, []byte, error) {
+	shardBlocksPool := mp.dataPool.ShardHeaders()
+	if shardBlocksPool == nil {
+		return nil, nil, process.ErrNilShardBlockPool
+	}
+
+	for _, key := range shardBlocksPool.Keys() {
+		val, _ := shardBlocksPool.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(*block.Header)
+		if !ok {
+			continue
+		}
+
+		if hdr.ShardId == shardId && hdr.Nonce == nonce {
+			return hdr, key, nil
+		}
+	}
+
+	return nil, nil, process.ErrMissingHeader
 }

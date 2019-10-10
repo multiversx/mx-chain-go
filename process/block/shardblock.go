@@ -1168,9 +1168,12 @@ func (sp *shardProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 			sp.dataPool.HeadersNonces())
 
 		if err != nil {
-			requestedBlockHeaders++
-			go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
-			continue
+			metaBlock, metaBlockHash, err = sp.getMetaHeaderWithNonce(i)
+			if err != nil {
+				requestedBlockHeaders++
+				go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
+				continue
+			}
 		}
 
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)] = &hdrInfo{hdr: metaBlock, usedInBlock: false}
@@ -1742,4 +1745,29 @@ func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
 	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 	return maxMbSpaceRemained
+}
+
+func (sp *shardProcessor) getMetaHeaderWithNonce(nonce uint64) (*block.MetaBlock, []byte, error) {
+	metaBlocksPool := sp.dataPool.MetaBlocks()
+	if metaBlocksPool == nil {
+		return nil, nil, process.ErrNilMetaBlockPool
+	}
+
+	for _, key := range metaBlocksPool.Keys() {
+		val, _ := metaBlocksPool.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+
+		if hdr.Nonce == nonce {
+			return hdr, key, nil
+		}
+	}
+
+	return nil, nil, process.ErrMissingHeader
 }
