@@ -48,8 +48,8 @@ type Presenter interface {
 	GetNumShardHeadersProcessed() uint64
 	GetHighestFinalBlockInShard() uint64
 
-	GetTotalRewardsValue() (uint64, uint64)
-	CalculateRewardsPerHour() uint64
+	GetTotalRewardsValue() (string, string)
+	CalculateRewardsPerHour() string
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

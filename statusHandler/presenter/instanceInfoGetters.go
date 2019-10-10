@@ -1,6 +1,10 @@
 package presenter
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+)
 
 // GetAppVersion will return application version
 func (psh *PresenterStatusHandler) GetAppVersion() string {
@@ -59,36 +63,47 @@ func (psh *PresenterStatusHandler) GetNodeName() string {
 }
 
 // GetTotalRewardsValue will return total value of rewards and how rewards was increased on every second
-func (psh *PresenterStatusHandler) GetTotalRewardsValue() (uint64, uint64) {
-	rewardsValue := psh.getFromCacheAsUint64(core.MetricRewardsValue)
-	numSignedBlocks := psh.getFromCacheAsUint64(core.MetricCountConsensusAcceptedBlocks)
-	totalRewards := numSignedBlocks * rewardsValue
-	difRewards := totalRewards - psh.totalRewardsOld
-	psh.totalRewardsOld = totalRewards
-	totalRewards = totalRewards - difRewards
+func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
+	rewardsValueString := psh.getFromCacheAsString(core.MetricRewardsValue)
+	rewardsValue, ok := big.NewInt(0).SetString(rewardsValueString, 10)
+	if !ok {
+		return "0", "0"
+	}
 
-	return totalRewards, difRewards
+	numSignedBlocks := psh.getFromCacheAsUint64(core.MetricCountConsensusAcceptedBlocks)
+	totalRewards := big.NewInt(0).Mul(big.NewInt(0).SetUint64(numSignedBlocks), rewardsValue)
+	difRewards := big.NewInt(0).Sub(totalRewards, psh.totalRewardsOld)
+	psh.totalRewardsOld.Set(totalRewards)
+	totalRewards.Sub(totalRewards, difRewards)
+
+	return totalRewards.Text(10), difRewards.Text(10)
 }
 
 // CalculateRewardsPerHour will return an approximation of how many elronds will earn a validator per hour
-func (psh *PresenterStatusHandler) CalculateRewardsPerHour() uint64 {
+func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
 	consensusGroupSize := psh.getFromCacheAsUint64(core.MetricConsensusGroupSize)
 	numValidators := psh.getFromCacheAsUint64(core.MetricNumValidators)
 	totalBlocks := psh.GetProbableHighestNonce()
 	rounds := psh.GetCurrentRound()
-	rewardsValue := psh.getFromCacheAsUint64(core.MetricRewardsValue)
 	roundDuration := psh.GetRoundTime()
 	secondsInAHour := uint64(3600)
+	rewardsValueString := psh.getFromCacheAsString(core.MetricRewardsValue)
+	rewardsValue, ok := big.NewInt(0).SetString(rewardsValueString, 10)
+	if !ok {
+		return "0"
+	}
 
 	if consensusGroupSize == 0 || numValidators == 0 || totalBlocks == 0 ||
-		rounds == 0 || rewardsValue == 0 || roundDuration == 0 {
-		return 0
+		rounds == 0 || roundDuration == 0 || rewardsValue.Cmp(big.NewInt(0)) <= 0 {
+		return "0"
 	}
 
 	chanceToBeInConsensus := float64(consensusGroupSize) / float64(numValidators)
 	hitRate := float64(totalBlocks) / float64(rounds)
 	roundsPerHour := float64(secondsInAHour) / float64(roundDuration)
 
-	erdPerHour := uint64(chanceToBeInConsensus * hitRate * roundsPerHour * float64(rewardsValue))
-	return erdPerHour
+	mulData := chanceToBeInConsensus * hitRate * roundsPerHour
+
+	erdPerHour := big.NewInt(0).Mul(big.NewInt(int64(mulData)), rewardsValue)
+	return erdPerHour.Text(10)
 }

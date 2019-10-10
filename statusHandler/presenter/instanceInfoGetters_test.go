@@ -1,6 +1,7 @@
 package presenter
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -133,31 +134,37 @@ func TestPresenterStatusHandler_GetNodeName(t *testing.T) {
 func TestPresenterStatusHandler_CalculateRewardsTotal(t *testing.T) {
 	t.Parallel()
 
-	rewardsValue := uint64(1000)
+	rewardsValueString := "1000"
+	rewardsValue, _ := big.NewInt(0).SetString(rewardsValueString, 10)
 	numSignedBlocks := uint64(50)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValueString)
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
+	expectedDiffValue := big.NewInt(0).Mul(rewardsValue, big.NewInt(0).SetUint64(numSignedBlocks))
 
-	assert.Equal(t, uint64(0), totalRewards)
-	assert.Equal(t, rewardsValue*numSignedBlocks, diff)
+	assert.Equal(t, "0", totalRewards)
+	assert.Equal(t, expectedDiffValue.Text(10), diff)
 }
 
 func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
 	t.Parallel()
 
-	rewardsValue := uint64(1000)
+	rewardsValue := "1000"
 	numSignedBlocks := uint64(50)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	totalRewardsOld := uint64(5000)
-	presenterStatusHandler.totalRewardsOld = totalRewardsOld
-	presenterStatusHandler.SetUInt64Value(core.MetricRewardsValue, rewardsValue)
+	totalRewardsOld, _ := big.NewInt(0).SetString("1000", 10)
+	presenterStatusHandler.totalRewardsOld = big.NewInt(0).Set(totalRewardsOld)
+	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
 
-	assert.Equal(t, totalRewardsOld, totalRewards)
-	assert.Equal(t, rewardsValue*numSignedBlocks-totalRewardsOld, diff)
+	rv, _ := big.NewInt(0).SetString(rewardsValue, 10)
+	expectedValue := big.NewInt(0).Mul(rv, big.NewInt(0).SetUint64(numSignedBlocks))
+	expectedValue.Sub(expectedValue, totalRewardsOld)
+
+	assert.Equal(t, totalRewardsOld.Text(10), totalRewards)
+	assert.Equal(t, expectedValue.Text(10), diff)
 }
 
 func TestPresenterStatusHandler_CalculateRewardsPerHourReturnZero(t *testing.T) {
@@ -166,7 +173,7 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourReturnZero(t *testing.T) 
 	presenterStatusHandler := NewPresenterStatusHandler()
 	result := presenterStatusHandler.CalculateRewardsPerHour()
 
-	assert.Equal(t, uint64(0), result)
+	assert.Equal(t, "0", result)
 }
 
 func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) {
@@ -177,13 +184,13 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) 
 	totalBlocks := uint64(100)
 	totalRounds := uint64(1000)
 	roundTime := uint64(6)
-	rewardsValue := uint64(1000)
-	expectedValue := uint64(6000)
+	rewardsValue := "1000"
+	expectedValue := "6000"
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, consensusGroupSize)
 	presenterStatusHandler.SetUInt64Value(core.MetricNumValidators, numValidators)
 	presenterStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, totalBlocks)
-	presenterStatusHandler.SetUInt64Value(core.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, totalRounds)
 	presenterStatusHandler.SetUInt64Value(core.MetricRoundTime, roundTime)
 

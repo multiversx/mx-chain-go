@@ -832,7 +832,7 @@ func initMetrics(
 	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
+	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
 
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
