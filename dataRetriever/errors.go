@@ -40,8 +40,8 @@ var ErrNilPublicKey = errors.New("nil public key")
 // ErrNilSignature signals that a operation has been attempted with a nil signature
 var ErrNilSignature = errors.New("nil signature")
 
-// ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
-var ErrNilMiniBlocks = errors.New("nil mini blocks")
+// ErrEmptyMiniBlockSlice signals that an operation has been attempted with an empty mini block slice
+var ErrEmptyMiniBlockSlice = errors.New("empty mini block slice")
 
 // ErrInvalidShardId signals that the shard id is invalid
 var ErrInvalidShardId = errors.New("invalid shard id")

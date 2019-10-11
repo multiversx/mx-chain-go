@@ -1353,7 +1353,7 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	sp.SetHighestHdrNonceForCurrentBlock(1)
+	sp.SetHighestHdrNonceForCurrentBlock(sharding.MetachainShardId, 1)
 	res := sp.RequestMissingFinalityAttestingHeaders()
 	assert.Equal(t, res > 0, true)
 }
@@ -2648,7 +2648,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
-	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeTrue)
+	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, 2, haveTimeTrue)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
 	assert.Equal(t, usedMetaHdrsHashes, uint32(0))
@@ -2755,7 +2755,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(3, 2, 2, haveTimeTrue)
+	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, 2, haveTimeTrue)
 
 	assert.Equal(t, 0, len(miniBlocksReturned))
 	assert.Equal(t, uint32(0), usedMetaHdrsHashes)
@@ -2846,7 +2846,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 0
 			},
 		},
@@ -2870,7 +2870,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	arguments.TxCoordinator = tc
 	bp, _ := blproc.NewShardProcessor(arguments)
 
-	blockBody, err := bp.CreateMiniBlocks(1, 15000, 0, func() bool { return true })
+	blockBody, err := bp.CreateMiniBlocks(15000, 0, func() bool { return true })
 
 	assert.Nil(t, err)
 	//testing execution
@@ -3877,7 +3877,11 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 	metaHash := hasher.Compute(string(metaBytes))
 	sp.SetHdrForCurrentBlock(metaHash, metaBlock, true)
 
-	orderedMetaBlocks, err := sp.GetAllMiniBlockDstMeFromMeta(1)
+	metablockHashes := make([][]byte, 0)
+	metablockHashes = append(metablockHashes, metaHash)
+	header := &block.Header{Nonce: 1, Round: 1, MetaBlockHashes: metablockHashes}
+
+	orderedMetaBlocks, err := sp.GetAllMiniBlockDstMeFromMeta(header)
 
 	assert.Equal(t, 1, len(orderedMetaBlocks))
 	assert.Equal(t, orderedMetaBlocks[""], metaHash)

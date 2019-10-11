@@ -660,7 +660,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	}
 
-	economicsData := economics.NewEconomicsData(economicsConfig)
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	if err != nil {
+		return err
+	}
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		genesisConfig,
