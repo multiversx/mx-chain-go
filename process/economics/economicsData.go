@@ -1,41 +1,110 @@
 package economics
 
 import (
+	"math"
+	"math/big"
+	"strconv"
+
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	rewardsValue        uint64
+	rewardsValue        *big.Int
 	communityPercentage float64
 	leaderPercentage    float64
 	burnPercentage      float64
-
-	minGasPrice      uint64
-	minGasLimitForTx uint64
-	minTxFee         uint64
-
-	communityAddress string
-	burnAddress      string
+	minGasPrice         uint64
+	minGasLimit         uint64
+	communityAddress    string
+	burnAddress         string
 }
 
+const float64EqualityThreshold = 1e-9
+
 // NewEconomicsData will create and object with information about economics parameters
-func NewEconomicsData(economics *config.ConfigEconomics) *EconomicsData {
+func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
+	//TODO check what happens if addresses are wrong
+	rewardsValue, minGasPrice, minGasLimit, err := convertValues(economics)
+	if err != nil {
+		return nil, err
+	}
+
+	notGreaterThanZero := rewardsValue.Cmp(big.NewInt(0))
+	if notGreaterThanZero < 0 {
+		return nil, process.ErrInvalidRewardsValue
+	}
+
+	err = checkValues(economics)
+	if err != nil {
+		return nil, err
+	}
+
 	return &EconomicsData{
-		rewardsValue:        economics.RewardsSettings.RewardsValue,
+		rewardsValue:        rewardsValue,
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
 		burnPercentage:      economics.RewardsSettings.BurnPercentage,
-		minGasPrice:         economics.FeeSettings.MinGasPrice,
-		minGasLimitForTx:    economics.FeeSettings.MinGasLimitForTx,
-		minTxFee:            economics.FeeSettings.MinTxFee,
+		minGasPrice:         minGasPrice,
+		minGasLimit:         minGasLimit,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
+	}, nil
+}
+
+func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64, error) {
+	conversionBase := 10
+	bitConversionSize := 64
+
+	rewardsValue := new(big.Int)
+	rewardsValue, ok := rewardsValue.SetString(economics.RewardsSettings.RewardsValue, conversionBase)
+	if !ok {
+		return nil, 0, 0, process.ErrInvalidRewardsValue
 	}
+
+	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, 0, 0, process.ErrInvalidMinimumGasPrice
+	}
+
+	minGasLimit, err := strconv.ParseUint(economics.FeeSettings.MinGasLimit, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, 0, 0, process.ErrInvalidMinimumGasLimitForTx
+	}
+
+	return rewardsValue, minGasPrice, minGasLimit, nil
+}
+
+func checkValues(economics *config.ConfigEconomics) error {
+	if isPercentageInvalid(economics.RewardsSettings.BurnPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) {
+		return process.ErrInvalidRewardsPercentages
+	}
+
+	sumPercentage := economics.RewardsSettings.BurnPercentage
+	sumPercentage += economics.RewardsSettings.CommunityPercentage
+	sumPercentage += economics.RewardsSettings.LeaderPercentage
+	isEqualsToOne := math.Abs(sumPercentage-1.0) <= float64EqualityThreshold
+	if !isEqualsToOne {
+		return process.ErrInvalidRewardsPercentages
+	}
+
+	return nil
+}
+
+func isPercentageInvalid(percentage float64) bool {
+	isLessThanZero := percentage < 0.0
+	isGreaterThanOne := percentage > 1.0
+	if isLessThanZero || isGreaterThanOne {
+		return true
+	}
+	return false
 }
 
 // RewardsValue will return rewards value
-func (ed *EconomicsData) RewardsValue() uint64 {
+func (ed *EconomicsData) RewardsValue() *big.Int {
 	return ed.rewardsValue
 }
 
@@ -59,14 +128,9 @@ func (ed *EconomicsData) MinGasPrice() uint64 {
 	return ed.minGasPrice
 }
 
-// MinGasLimitForTx will return minimum gas limit
-func (ed *EconomicsData) MinGasLimitForTx() uint64 {
-	return ed.minGasLimitForTx
-}
-
-// MinTxFee will return minimum transaction fee
-func (ed *EconomicsData) MinTxFee() uint64 {
-	return ed.minTxFee
+// MinGasLimit will return minimum gas limit
+func (ed *EconomicsData) MinGasLimit() uint64 {
+	return ed.minGasLimit
 }
 
 // CommunityAddress will return community address
