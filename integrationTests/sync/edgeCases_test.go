@@ -23,12 +23,12 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	numNodesPerShard := 3
 	numNodesMeta := 3
 
-	nodes, advertiser, idxProposers := setupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
 	idxProposerMeta := idxProposers[1]
 	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
 
 	integrationTests.StartP2pBootstrapOnProcessorNodes(nodes)
-	startSyncingBlocks(nodes)
+	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)
 	idxNonceShard := 0
@@ -36,11 +36,11 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	nonces := []*uint64{new(uint64), new(uint64)}
 
 	round = integrationTests.IncrementAndPrintRound(round)
-	updateRound(nodes, round)
-	incrementNonces(nonces)
+	integrationTests.UpdateRound(nodes, round)
+	integrationTests.IncrementNonces(nonces)
 
 	numRoundsBlocksAreProposedCorrectly := 3
-	proposeAndSyncBlocks(
+	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
 		idxProposers,
@@ -49,15 +49,15 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	)
 
 	shardIdToRollbackLastBlock := uint32(0)
-	forkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
-	resetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 2)
-	emptyDataPools(nodes, shardIdToRollbackLastBlock)
+	integrationTests.ForkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
+	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 2)
+	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
 
 	//revert also the nonce, so the same block nonce will be used when shard will propose the next block
 	atomic.AddUint64(nonces[idxNonceShard], ^uint64(0))
 
 	numRoundsBlocksAreProposedOnlyByMeta := 2
-	proposeAndSyncBlocks(
+	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
 		[]int{idxProposerMeta},
@@ -66,7 +66,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	)
 
 	secondNumRoundsBlocksAreProposedCorrectly := 2
-	proposeAndSyncBlocks(
+	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
 		idxProposers,
@@ -88,11 +88,11 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
 	integrationTests.StartP2pBootstrapOnProcessorNodes(syncNodesSlice)
-	startSyncingBlocks(syncNodesSlice)
+	integrationTests.StartSyncingBlocks(syncNodesSlice)
 
 	//after joining the network we must propose a new block on the metachain as to be received by the sync
 	//node and to start the bootstrapping process
-	proposeAndSyncBlocks(
+	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
 		[]int{idxProposerMeta},
@@ -103,8 +103,8 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	numOfRoundsToWaitToCatchUp := numRoundsBlocksAreProposedCorrectly +
 		numRoundsBlocksAreProposedOnlyByMeta +
 		secondNumRoundsBlocksAreProposedCorrectly
-	time.Sleep(stepSync * time.Duration(numOfRoundsToWaitToCatchUp))
-	updateRound(nodes, round)
+	time.Sleep(integrationTests.StepSync * time.Duration(numOfRoundsToWaitToCatchUp))
+	integrationTests.UpdateRound(nodes, round)
 
 	nonceProposerMeta := nodes[idxProposerMeta].BlockChain.GetCurrentBlockHeader().GetNonce()
 	nonceSyncNode := syncMetaNode.BlockChain.GetCurrentBlockHeader().GetNonce()

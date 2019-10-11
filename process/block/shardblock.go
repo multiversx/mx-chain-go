@@ -795,7 +795,6 @@ func (sp *shardProcessor) CommitBlock(
 			continue
 		}
 
-		// TODO add integration test to see that pruning works as expected
 		errNotCritical = sp.accounts.PruneTrie(rootHash)
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())

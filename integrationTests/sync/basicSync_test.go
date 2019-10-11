@@ -61,26 +61,26 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(delayP2pBootstrap)
+	time.Sleep(integrationTests.P2pBootstrapStepDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
-	updateRound(nodes, round)
+	integrationTests.UpdateRound(nodes, round)
 	nonce++
 
 	numRoundsToTest := 5
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 
-		time.Sleep(stepSync)
+		time.Sleep(integrationTests.StepSync)
 
 		round = integrationTests.IncrementAndPrintRound(round)
-		updateRound(nodes, round)
+		integrationTests.UpdateRound(nodes, round)
 		nonce++
 	}
 
-	time.Sleep(stepSync)
+	time.Sleep(integrationTests.StepSync)
 
 	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
 }
@@ -124,26 +124,26 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(delayP2pBootstrap)
+	time.Sleep(integrationTests.P2pBootstrapStepDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
-	updateRound(nodes, round)
+	integrationTests.UpdateRound(nodes, round)
 	nonce++
 
 	numRoundsToTest := 2
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 
-		time.Sleep(stepSync)
+		time.Sleep(integrationTests.StepSync)
 
 		round = integrationTests.IncrementAndPrintRound(round)
-		updateRound(nodes, round)
+		integrationTests.UpdateRound(nodes, round)
 		nonce++
 	}
 
-	time.Sleep(stepSync)
+	time.Sleep(integrationTests.StepSync)
 
 	pubKeysVariant1 := []byte{3}
 	pubKeysVariant2 := []byte{1}
@@ -151,12 +151,12 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	proposeBlockWithPubKeyBitmap(nodes[idxProposerShard0], round, nonce, pubKeysVariant1)
 	proposeBlockWithPubKeyBitmap(nodes[1], round, nonce, pubKeysVariant2)
 
-	time.Sleep(stepDelay)
+	time.Sleep(integrationTests.StepDelay)
 
 	round = integrationTests.IncrementAndPrintRound(round)
-	updateRound(nodes, round)
+	integrationTests.UpdateRound(nodes, round)
 
-	stepDelayForkResolving := 4 * stepDelay
+	stepDelayForkResolving := 4 * integrationTests.StepDelay
 	time.Sleep(stepDelayForkResolving)
 
 	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)

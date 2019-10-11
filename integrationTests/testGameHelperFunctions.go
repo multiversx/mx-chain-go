@@ -30,7 +30,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 	nodes[senderIdx].OwnAccount.Nonce++
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
 	fmt.Println("Delaying for disseminating the deploy tx...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -128,7 +128,7 @@ func NodeDoesWithdraw(
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -156,7 +156,7 @@ func NodeDoesTopUp(
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
 	fmt.Println("Delaying for disseminating SC call tx...")
-	time.Sleep(stepDelay)
+	time.Sleep(StepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
