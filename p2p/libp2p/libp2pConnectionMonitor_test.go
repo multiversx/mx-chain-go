@@ -20,7 +20,7 @@ var durStartGoRoutine = time.Second
 func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cm, err := newLibp2pConnectionMonitor(nil, -1)
+	cm, err := newLibp2pConnectionMonitor(nil, -1, 0)
 
 	assert.Equal(t, p2p.ErrInvalidValue, err)
 	assert.Nil(t, cm)
@@ -29,7 +29,7 @@ func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T)
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cm, err := newLibp2pConnectionMonitor(nil, 3)
+	cm, err := newLibp2pConnectionMonitor(nil, 3, 0)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, cm)
@@ -60,7 +60,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 		},
 	}
 
-	cm, _ := newLibp2pConnectionMonitor(&rs, 3)
+	cm, _ := newLibp2pConnectionMonitor(&rs, 3, 0)
 	time.Sleep(durStartGoRoutine)
 	cm.Disconnected(&ns, nil)
 

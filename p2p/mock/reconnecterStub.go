@@ -15,3 +15,6 @@ func (rs *ReconnecterStub) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func (rs *ReconnecterStub) Pause()  {}
+func (rs *ReconnecterStub) Resume() {}
