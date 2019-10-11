@@ -48,6 +48,10 @@ func createMessenger(port int) p2p.Messenger {
 // Next message that the sender tries to send will cause a new error to be logged and no data to be sent
 // The fix consists in the full stream closing when an error occurs during writing.
 func TestIssueEN898_StreamResetError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	mes1 := createMessenger(23100)
 	mes2 := createMessenger(23101)
 

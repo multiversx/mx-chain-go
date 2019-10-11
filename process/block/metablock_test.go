@@ -131,6 +131,8 @@ func TestNewMetaProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -151,6 +153,8 @@ func TestNewMetaProcessor_NilDataPoolShouldErr(t *testing.T) {
 		nil,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -172,6 +176,8 @@ func TestNewMetaProcessor_NilForkDetectorShouldErr(t *testing.T) {
 		mdp,
 		nil,
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -193,6 +199,8 @@ func TestNewMetaProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		nil,
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -214,6 +222,8 @@ func TestNewMetaProcessor_NilHasherShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -235,6 +245,8 @@ func TestNewMetaProcessor_NilMarshalizerShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		nil,
 		&mock.ChainStorerMock{},
@@ -256,6 +268,8 @@ func TestNewMetaProcessor_NilChainStorerShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		nil,
@@ -277,6 +291,8 @@ func TestNewMetaProcessor_NilRequestHeaderHandlerShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -372,6 +388,8 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -476,6 +494,8 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -493,7 +513,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	hdr.ShardInfo = make([]block.ShardData, 0)
 	err := mp.ProcessBlock(blkc, hdr, body, haveTime)
 
-	assert.Equal(t, process.ErrRootStateMissmatch, err)
+	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
 }
 
@@ -513,6 +533,8 @@ func TestMetaProcessor_ProcessBlockHeaderShouldPass(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -567,6 +589,8 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -608,6 +632,8 @@ func TestMetaProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -647,6 +673,8 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		marshalizer,
 		&mock.ChainStorerMock{},
@@ -689,8 +717,13 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 				return nil
 			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
 		},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		store,
@@ -726,6 +759,8 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		store,
@@ -764,6 +799,8 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		mdp,
 		fd,
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		&mock.MarshalizerMock{},
 		store,
@@ -810,6 +847,9 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 			return errors.New("should have not got here")
 		},
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 0
+		},
 	}
 	hasher := &mock.HasherStub{}
 	blockHeaderUnit := &mock.StorerStub{
@@ -826,6 +866,8 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		mdp,
 		fd,
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		&mock.MarshalizerMock{},
 		store,
@@ -873,6 +915,8 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -910,6 +954,8 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldErrNilMetaBlockHeader(t *tes
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		initStore(),
@@ -932,6 +978,8 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		initStore(),
@@ -957,6 +1005,8 @@ func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFai
 		initMetaDataPool(),
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		initStore(),
@@ -986,6 +1036,8 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 		initMetaDataPool(),
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		initStore(),
@@ -1017,6 +1069,8 @@ func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) 
 		initMetaDataPool(),
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		initStore(),
@@ -1039,6 +1093,8 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		initStore(),
@@ -1068,6 +1124,8 @@ func TestMetaProcessor_ReceivedHeaderShouldEraseRequested(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1161,6 +1219,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1240,6 +1300,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1357,6 +1419,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1523,6 +1587,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1647,6 +1713,8 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testi
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		initStore(),
@@ -1690,6 +1758,8 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasherMock,
 		marshalizerMock,
 		store,
@@ -1729,6 +1799,8 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1822,6 +1894,8 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1916,6 +1990,8 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -1973,6 +2049,8 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -2036,6 +2114,8 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -2148,6 +2228,8 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -2197,7 +2279,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRootStateMissmatch)
+	assert.Equal(t, err, process.ErrRootStateDoesNotMatch)
 
 	currHdr.Nonce = 0
 	prevHdr.Nonce = 0
@@ -2209,7 +2291,7 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	prevHdr.Nonce = 45
 	prevHdr.Round = currHdr.Round + 1
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrLowerRoundInOtherChainBlock)
+	assert.Equal(t, err, process.ErrLowerRoundInBlock)
 
 	prevHdr.Round = currHdr.Round - 1
 	currHdr.Nonce = prevHdr.Nonce + 2
@@ -2217,16 +2299,17 @@ func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	assert.Equal(t, err, process.ErrWrongNonceInBlock)
 
 	currHdr.Nonce = prevHdr.Nonce + 1
-	prevHdr.RandSeed = []byte("randomwrong")
-	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrRandSeedMismatch)
-
-	prevHdr.RandSeed = currRandSeed
 	currHdr.PrevHash = []byte("wronghash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
-	assert.Equal(t, err, process.ErrHashDoesNotMatchInOtherChainBlock)
+	assert.Equal(t, err, process.ErrBlockHashDoesNotMatch)
+
+	prevHdr.RandSeed = []byte("randomwrong")
+	currHdr.PrevHash, _ = mp.ComputeHeaderHash(prevHdr)
+	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
+	assert.Equal(t, err, process.ErrRandSeedDoesNotMatch)
 
 	currHdr.PrevHash = prevHash
+	prevHdr.RandSeed = currRandSeed
 	prevHdr.RootHash = []byte("prevRootHash")
 	err = mp.IsHdrConstructionValid(currHdr, prevHdr)
 	assert.Nil(t, err)
@@ -2254,6 +2337,8 @@ func TestMetaProcessor_IsShardHeaderValidFinal(t *testing.T) {
 		pool,
 		&mock.ForkDetectorMock{},
 		mock.NewMultiShardsCoordinatorMock(noOfShards),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		hasher,
 		marshalizer,
 		initStore(),
@@ -2363,6 +2448,8 @@ func TestMetaProcessor_DecodeBlockBody(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		marshalizerMock,
 		&mock.ChainStorerMock{},
@@ -2391,6 +2478,8 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		marshalizerMock,
 		&mock.ChainStorerMock{},
@@ -2427,6 +2516,8 @@ func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		marshalizerMock,
 		&mock.ChainStorerMock{},

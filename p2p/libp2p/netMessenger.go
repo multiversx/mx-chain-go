@@ -31,6 +31,8 @@ const DirectSendID = protocol.ID("/directsend/1.0.0")
 const refreshPeersOnTopic = time.Second * 60
 const ttlPeersOnTopic = time.Second * 120
 
+const pubsubTimeCacheDuration = 10 * time.Minute
+
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 //64kB
@@ -177,6 +179,8 @@ func createPubSub(ctxProvider *Libp2pContext, withSigning bool) (*pubsub.PubSub,
 	optsPS := []pubsub.Option{
 		pubsub.WithMessageSigning(withSigning),
 	}
+
+	pubsub.TimeCacheDuration = pubsubTimeCacheDuration
 
 	ps, err := pubsub.NewGossipSub(ctxProvider.Context(), ctxProvider.Host(), optsPS...)
 	if err != nil {

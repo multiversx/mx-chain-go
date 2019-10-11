@@ -34,8 +34,10 @@ const (
 	PeerBlock Type = 2
 	// SmartContractResultBlock identifies a miniblock holding smartcontractresults
 	SmartContractResultBlock Type = 3
+	// RewardsBlock identifies a miniblock holding accumulated rewards, both system generated and from tx fees
+	RewardsBlock Type = 4
 	// InvalidBlock identifies identifies an invalid miniblock
-	InvalidBlock Type = 4
+	InvalidBlock Type = 5
 )
 
 // String returns the string representation of the Type
@@ -49,6 +51,8 @@ func (bType Type) String() string {
 		return "PeerBody"
 	case SmartContractResultBlock:
 		return "SmartContractResultBody"
+	case RewardsBlock:
+		return "RewardsBody"
 	case InvalidBlock:
 		return "InvalidBlock"
 	default:
@@ -99,7 +103,6 @@ type Header struct {
 	RootHash         []byte            `capid:"13"`
 	MetaBlockHashes  [][]byte          `capid:"14"`
 	TxCount          uint32            `capid:"15"`
-	processedMBs     map[string]bool
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -488,22 +491,6 @@ func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
 		hashDst[string(val.Hash)] = val.SenderShardID
 	}
 	return hashDst
-}
-
-// GetMiniBlockProcessed verifies if miniblock from header was processed
-func (h *Header) GetMiniBlockProcessed(hash []byte) bool {
-	if h.processedMBs == nil {
-		h.processedMBs = make(map[string]bool, 0)
-	}
-	return h.processedMBs[string(hash)]
-}
-
-// SetMiniBlockProcessed set that miniblock with hash to processed or not processed
-func (h *Header) SetMiniBlockProcessed(hash []byte, processed bool) {
-	if h.processedMBs == nil {
-		h.processedMBs = make(map[string]bool, 0)
-	}
-	h.processedMBs[string(hash)] = processed
 }
 
 // IntegrityAndValidity checks if data is valid

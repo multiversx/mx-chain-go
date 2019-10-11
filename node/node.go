@@ -15,9 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators"
-	"github.com/ElrondNetwork/elrond-go/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -29,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -64,7 +64,6 @@ type Node struct {
 	syncTimer                ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
-	blockTracker             process.BlocksTracker
 	genesisTime              time.Time
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
@@ -90,6 +89,7 @@ type Node struct {
 	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
+	nodesCoordinator sharding.NodesCoordinator
 
 	consensusTopic string
 	consensusType  string
@@ -98,6 +98,8 @@ type Node struct {
 	txStorageSize            uint32
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
+
+	indexer indexer.Indexer
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -257,7 +259,6 @@ func (n *Node) StartConsensus() error {
 	worker, err := spos.NewWorker(
 		consensusService,
 		n.blockProcessor,
-		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		consensusState,
@@ -278,15 +279,9 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	validatorGroupSelector, err := n.createValidatorGroupSelector()
-	if err != nil {
-		return err
-	}
-
 	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
-		n.blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		chronologyHandler,
@@ -297,13 +292,14 @@ func (n *Node) StartConsensus() error {
 		n.multiSigner,
 		n.rounder,
 		n.shardCoordinator,
+		n.nodesCoordinator,
 		n.syncTimer,
-		validatorGroupSelector)
+	)
 	if err != nil {
 		return err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler)
+	fct, err := sposFactory.GetSubroundsFactory(consensusDataContainer, consensusState, worker, n.consensusType, n.appStatusHandler, n.indexer)
 	if err != nil {
 		return err
 	}
@@ -450,37 +446,6 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 		roundStatus)
 
 	return consensusState, nil
-}
-
-// createValidatorGroupSelector creates a index hashed group selector object
-func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector, error) {
-	validatorGroupSelector, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorsList := make([]consensus.Validator, 0)
-	shID := n.shardCoordinator.SelfId()
-
-	if len(n.initialNodesPubkeys[shID]) == 0 {
-		return nil, errors.New("could not create validator group as shardID is out of range")
-	}
-
-	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
-		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
-		if err != nil {
-			return nil, err
-		}
-
-		validatorsList = append(validatorsList, validator)
-	}
-
-	err = validatorGroupSelector.LoadEligibleList(validatorsList)
-	if err != nil {
-		return nil, err
-	}
-
-	return validatorGroupSelector, nil
 }
 
 // createConsensusTopic creates a consensus topic for node
@@ -737,12 +702,12 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
-func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
-	if !config.Enabled {
+func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
+	if !hbConfig.Enabled {
 		return nil
 	}
 
-	err := n.checkConfigParams(config)
+	err := n.checkConfigParams(hbConfig)
 	if err != nil {
 		return err
 	}
@@ -772,12 +737,25 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		return err
 	}
 
-	n.heartbeatMonitor, err = heartbeat.NewMonitor(
+	heartbeatStorageUnit := n.store.GetStorer(dataRetriever.HeartbeatUnit)
+	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
+		n.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.marshalizer)
+	timer := &heartbeat.RealTimer{}
+	n.heartbeatMonitor, err = heartbeat.NewMonitor(
 		n.marshalizer,
-		time.Second*time.Duration(config.DurationInSecToConsiderUnresponsive),
+		time.Second*time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
 		n.initialNodesPubkeys,
+		n.genesisTime,
+		heartBeatMsgProcessor,
+		heartbeatStorer,
+		timer,
 	)
 	if err != nil {
 		return err
@@ -793,7 +771,7 @@ func (n *Node) StartHeartbeat(config config.HeartbeatConfig, versionNumber strin
 		return err
 	}
 
-	go n.startSendingHeartbeats(config)
+	go n.startSendingHeartbeats(hbConfig)
 
 	return nil
 }

@@ -28,7 +28,7 @@ type interceptorsContainerFactory struct {
 	shardCoordinator      sharding.Coordinator
 	messenger             process.TopicHandler
 	multiSigner           crypto.MultiSigner
-	chronologyValidator   process.ChronologyValidator
+	nodesCoordinator	  sharding.NodesCoordinator
 	tpsBenchmark          *statistics.TpsBenchmark
 	argInterceptorFactory *interceptorFactory.ArgMetaInterceptedDataFactory
 	globalThrottler       process.InterceptorThrottler
@@ -37,13 +37,13 @@ type interceptorsContainerFactory struct {
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	messenger process.TopicHandler,
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.MetaPoolsHolder,
-	chronologyValidator process.ChronologyValidator,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -67,15 +67,15 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(dataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if check.IfNil(chronologyValidator) {
-		return nil, process.ErrNilChronologyValidator
+	if check.IfNil(nodesCoordinator) {
+		return nil, process.ErrNilNodesCoordinator
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgMetaInterceptedDataFactory{
 		Marshalizer:         marshalizer,
 		Hasher:              hasher,
 		ShardCoordinator:    shardCoordinator,
-		ChronologyValidator: chronologyValidator,
+		nodesCoordinator: 	 nodesCoordinator,
 		MultiSigVerifier:    multiSigner,
 	}
 
@@ -171,6 +171,15 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		hdrFactory,
 		hdrProcessor,
 		icf.globalThrottler,
+	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
+		icf.marshalizer,
+		icf.dataPool.MetaChainBlocks(),
+		icf.dataPool.HeadersNonces(),
+		hdrValidator,
+		icf.multiSigner,
+		icf.hasher,
+		icf.shardCoordinator,
+		icf.nodesCoordinator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -218,6 +227,15 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 	hdrFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedShardHeader,
+	interceptor, err := interceptors.NewHeaderInterceptor(
+		icf.marshalizer,
+		icf.dataPool.ShardHeaders(),
+		icf.dataPool.HeadersNonces(),
+		hdrValidator,
+		icf.multiSigner,
+		icf.hasher,
+		icf.shardCoordinator,
+		icf.nodesCoordinator,
 	)
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{

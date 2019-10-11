@@ -300,7 +300,7 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	t.Parallel()
 
-	dataPool := mock.NewPoolsHolderFake()
+	dataPool := mock.NewPoolsHolderMock()
 
 	shardedDataStub := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -352,7 +352,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderFake()
+	dataPool := mock.NewPoolsHolderMock()
 	senderShardId := uint32(0)
 	destinationShardId := uint32(1)
 
@@ -619,7 +619,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
-		SenderShardID:   0,
+		SenderShardID:   1,
 		TxHashes:        txHashes,
 		Type:            block.SmartContractResultBlock,
 	}
@@ -635,7 +635,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}
 
-	err := scr.ProcessBlockTransactions(body, 1, haveTime)
+	err := scr.ProcessBlockTransactions(body, 1, haveTimeTrue)
 
 	assert.Nil(t, err)
 }
@@ -756,7 +756,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		}
 	}
 
-	dataPool := mock.NewPoolsHolderFake()
+	dataPool := mock.NewPoolsHolderMock()
 
 	shardedDataStub := &mock.ShardedDataStub{
 		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
@@ -794,9 +794,8 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 
 	body = append(body, &miniblock)
 	miniblockPool := mock.NewCacherMock()
-	scrRestored, miniBlockHashes, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+	scrRestored, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
 
-	assert.Equal(t, miniBlockHashes[0], []uint8([]byte(nil)))
 	assert.Equal(t, scrRestored, 1)
 	assert.Nil(t, err)
 }
@@ -826,7 +825,7 @@ func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *t
 
 	miniblockPool := storage.Cacher(nil)
 
-	_, _, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+	_, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilMiniBlockPool)

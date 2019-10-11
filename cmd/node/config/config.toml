@@ -14,12 +14,12 @@
    NodeDisplayName = ""
 
 [Explorer]
-    Enabled = false
-    IndexerURL = "http://localhost:9200"
+   Enabled = false
+   IndexerURL = "http://localhost:9200"
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
-        Size = 100
+        Size = 300
         Type = "LRU"
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
@@ -105,6 +105,17 @@
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
+[RewardTxStorage]
+    [RewardTxStorage.Cache]
+        Size = 10000
+        Type = "LRU"
+    [RewardTxStorage.DB]
+        FilePath = "RewardTransactions"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 15
+        MaxBatchSize = 500
+        MaxOpenFiles = 10
+
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
         Size = 1000
@@ -143,7 +154,7 @@
     Type = "LRU"
 
 [TxBlockBodyDataPool]
-    Size = 100
+    Size = 300
     Type = "LRU"
 
 [StateBlockBodyDataPool]
@@ -173,6 +184,10 @@
 
 [UnsignedTransactionDataPool]
     Size = 100000
+    Type = "LRU"
+
+[RewardTransactionDataPool]
+    Size = 5000
     Type = "LRU"
 
 [ShardHeadersDataPool]
@@ -218,6 +233,16 @@
    MinTimeToWaitBetweenBroadcastsInSec = 20
    MaxTimeToWaitBetweenBroadcastsInSec = 25
    DurationInSecToConsiderUnresponsive = 60
+   [Heartbeat.HeartbeatStorage]
+       [Heartbeat.HeartbeatStorage.Cache]
+           Size = 100
+           Type = "LRU"
+       [Heartbeat.HeartbeatStorage.DB]
+           FilePath = "HeartbeatStorage"
+           Type = "LvlDBSerial"
+           BatchDelaySeconds = 15
+           MaxBatchSize = 300
+           MaxOpenFiles = 10
 
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
@@ -229,3 +254,5 @@
    Port = 123
    Timeout = 0  # Setting 0 means 'use default value'
    Version = 0  # Setting 0 means 'use default value'
+
+

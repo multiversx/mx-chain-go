@@ -159,17 +159,20 @@ func TestPutNotPresentCacheWithNilBloomFilter(t *testing.T) {
 	assert.Nil(t, err, "expected to find key %s, but not found", key)
 }
 
-func TestPutPresent(t *testing.T) {
+func TestPutPresentShouldOverwriteValue(t *testing.T) {
 	key, val := []byte("key2"), []byte("value2")
 	s := initStorageUnitWithBloomFilter(t, 10)
 	err := s.Put(key, val)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	// put again same value, no error expected
-	err = s.Put(key, val)
-
+	newVal := []byte("value5")
+	err = s.Put(key, newVal)
 	assert.Nil(t, err, "no error expected but got %s", err)
+
+	returnedVal, err := s.Get(key)
+	assert.Nil(t, err)
+	assert.Equal(t, newVal, returnedVal)
 }
 
 func TestPutPresentWithNilBloomFilter(t *testing.T) {
@@ -323,72 +326,6 @@ func TestHasPresentWithNilBloomFilter(t *testing.T) {
 	assert.Nil(t, err, "no error expected but got %s", err)
 
 	err = s.Has(key)
-
-	assert.Nil(t, err, "expected no error, but got %s", err)
-}
-
-func TestHasOrAddNotPresent(t *testing.T) {
-	key, val := []byte("key9"), []byte("value9")
-	s := initStorageUnitWithBloomFilter(t, 10)
-	err := s.HasOrAdd(key, val)
-
-	assert.Nil(t, err)
-	err = s.Has(key)
-
-	assert.Nil(t, err, "expected no error, but got %s", err)
-}
-
-func TestHasOrAddNotPresentWithNilBloomFilter(t *testing.T) {
-	key, val := []byte("key9"), []byte("value9")
-	s := initStorageUnitWithNilBloomFilter(t, 10)
-	err := s.HasOrAdd(key, val)
-
-	assert.Nil(t, err)
-	err = s.Has(key)
-
-	assert.Nil(t, err, "expected no error, but got %s", err)
-}
-
-func TestHasOrAddNotPresentCache(t *testing.T) {
-	key, val := []byte("key10"), []byte("value10")
-	s := initStorageUnitWithBloomFilter(t, 10)
-	err := s.Put(key, val)
-
-	s.ClearCache()
-
-	err = s.HasOrAdd(key, val)
-
-	assert.Nil(t, err, "expected no error, but got %s", err)
-}
-
-func TestHasOrAddNotPresentCacheWithNilBloomFilter(t *testing.T) {
-	key, val := []byte("key10"), []byte("value10")
-	s := initStorageUnitWithNilBloomFilter(t, 10)
-	err := s.Put(key, val)
-
-	s.ClearCache()
-
-	err = s.HasOrAdd(key, val)
-
-	assert.Nil(t, err, "expected no error, but got %s", err)
-}
-
-func TestHasOrAddPresent(t *testing.T) {
-	key, val := []byte("key11"), []byte("value11")
-	s := initStorageUnitWithBloomFilter(t, 10)
-	_ = s.Put(key, val)
-
-	err := s.HasOrAdd(key, val)
-
-	assert.Nil(t, err, "expected no error, but got %s", err)
-}
-
-func TestHasOrAddPresentWithNilBloomFilter(t *testing.T) {
-	key, val := []byte("key11"), []byte("value11")
-	s := initStorageUnitWithNilBloomFilter(t, 10)
-	_ = s.Put(key, val)
-
-	err := s.HasOrAdd(key, val)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
 }

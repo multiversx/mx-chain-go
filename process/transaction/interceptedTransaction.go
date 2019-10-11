@@ -29,6 +29,19 @@ type InterceptedTransaction struct {
 	sndShard          uint32
 	isForCurrentShard bool
 	sndAddr           state.AddressContainer
+	tx                       *transaction.Transaction
+	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
+	keyGen                   crypto.KeyGenerator
+	singleSigner             crypto.SingleSigner
+	addrConv                 state.AddressConverter
+	coordinator              sharding.Coordinator
+	hash                     []byte
+	rcvShard                 uint32
+	sndShard                 uint32
+	isAddressedToOtherShards bool
+	sndAddr                  state.AddressContainer
+	feeHandler               process.FeeHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -40,6 +53,7 @@ func NewInterceptedTransaction(
 	signer crypto.SingleSigner,
 	addrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
+	feeHandler process.FeeHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -63,6 +77,9 @@ func NewInterceptedTransaction(
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if feeHandler == nil || coordinator.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	tx, err := createTx(marshalizer, txBuff)
 	if err != nil {
@@ -77,6 +94,7 @@ func NewInterceptedTransaction(
 		addrConv:     addrConv,
 		keyGen:       keyGen,
 		coordinator:  coordinator,
+		feeHandler:   feeHandler,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -156,6 +174,20 @@ func (inTx *InterceptedTransaction) integrity() error {
 	}
 	if inTx.tx.Value.Cmp(big.NewInt(0)) < 0 {
 		return process.ErrNegativeValue
+	}
+
+	return inTx.checkFeeValues()
+}
+
+func (inTx *InterceptedTransaction) checkFeeValues() error {
+	isLowerGasLimitInTx := inTx.tx.GasLimit < inTx.feeHandler.MinGasLimit()
+	if isLowerGasLimitInTx {
+		return process.ErrInsufficientGasLimitInTx
+	}
+
+	isLowerGasPrice := inTx.tx.GasPrice < inTx.feeHandler.MinGasPrice()
+	if isLowerGasPrice {
+		return process.ErrInsufficientGasPriceInTx
 	}
 
 	return nil

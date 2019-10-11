@@ -286,6 +286,11 @@ func TestNewNetworkMessenger_NoConnMgrShouldWork(t *testing.T) {
 }
 
 func TestNewNetworkMessenger_WithConnMgrShouldWork(t *testing.T) {
+	//TODO remove skip when external library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	port := 4000
 
 	_, sk := createLibP2PCredentialsMessenger()
@@ -319,6 +324,11 @@ func TestNewNetworkMessenger_WithConnMgrShouldWork(t *testing.T) {
 }
 
 func TestNewNetworkMessenger_WithNullPeerDiscoveryShouldWork(t *testing.T) {
+	//TODO remove skip when external library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	port := 4000
 
 	_, sk := createLibP2PCredentialsMessenger()
@@ -369,6 +379,11 @@ func TestNewNetworkMessenger_NilPeerDiscoveryShouldErr(t *testing.T) {
 }
 
 func TestNewNetworkMessenger_PeerDiscovererFailsWhenApplyingContextShouldErr(t *testing.T) {
+	//TODO remove skip when external library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	port := 4000
 
 	_, sk := createLibP2PCredentialsMessenger()
@@ -399,6 +414,11 @@ func TestNewNetworkMessenger_PeerDiscovererFailsWhenApplyingContextShouldErr(t *
 }
 
 func TestNewNetworkMessengerWithPortSweep_ShouldFindFreePort(t *testing.T) {
+	//TODO remove skip when external library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	_, sk := createLibP2PCredentialsMessenger()
 
 	mes, err := libp2p.NewNetworkMessengerOnFreePort(

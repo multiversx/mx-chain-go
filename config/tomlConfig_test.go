@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -107,6 +108,7 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
 	Type = "` + consensusType + `"
+
 `
 	cfg := Config{}
 
@@ -114,4 +116,53 @@ func TestTomlParser(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, cfgExpected, cfg)
+}
+
+func TestTomlEconomicsParser(t *testing.T) {
+	communityAddress := "commAddr"
+	burnAddress := "burnAddr"
+	rewardsValue := "1000000000000000000000000000000000"
+	communityPercentage := 0.1
+	leaderPercentage := 0.1
+	burnPercentage := 0.8
+	minGasPrice := "18446744073709551615"
+	minGasLimit := "18446744073709551615"
+
+	cfgEconomicsExpected := ConfigEconomics{
+		EconomicsAddresses: EconomicsAddresses{
+			CommunityAddress: communityAddress,
+			BurnAddress:      burnAddress,
+		},
+		RewardsSettings: RewardsSettings{
+			RewardsValue:        rewardsValue,
+			CommunityPercentage: communityPercentage,
+			LeaderPercentage:    leaderPercentage,
+			BurnPercentage:      burnPercentage,
+		},
+		FeeSettings: FeeSettings{
+			MinGasPrice: minGasPrice,
+			MinGasLimit: minGasLimit,
+		},
+	}
+
+	testString := `
+[EconomicsAddresses]
+	CommunityAddress = "` + communityAddress + `"
+	BurnAddress = "` + burnAddress + `"
+[RewardsSettings]
+    RewardsValue = "` + rewardsValue + `"
+    CommunityPercentage = ` + fmt.Sprintf("%.6f", communityPercentage) + `
+    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
+    BurnPercentage = 	` + fmt.Sprintf("%.6f", burnPercentage) + `
+[FeeSettings]
+    MinGasPrice = "` + minGasPrice + `"
+    MinGasLimit = "` + minGasLimit + `"
+`
+
+	cfg := ConfigEconomics{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, cfgEconomicsExpected, cfg)
 }
