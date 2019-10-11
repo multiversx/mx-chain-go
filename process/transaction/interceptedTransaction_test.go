@@ -52,7 +52,7 @@ func createTxFeeHandler(gasPrice uint64, gasLimit uint64) process.FeeHandler {
 		MinGasPriceCalled: func() uint64 {
 			return gasPrice
 		},
-		MinGasLimitForTxCalled: func() uint64 {
+		MinGasLimitCalled: func() uint64 {
 			return gasLimit
 		},
 	}
