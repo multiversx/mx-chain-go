@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -306,7 +305,7 @@ func createNetNode(
 		MinGasPriceCalled: func() uint64 {
 			return integrationTests.MinTxGasPrice
 		},
-		MinGasLimitForTxCalled: func() uint64 {
+		MinGasLimitCalled: func() uint64 {
 			return integrationTests.MinTxGasLimit
 		},
 		MinTxFeeCalled: func() uint64 {
@@ -357,11 +356,7 @@ func createNetNode(
 		100,
 	)
 
-	economicsData := economics.NewEconomicsData(&config.ConfigEconomics{
-		EconomicsAddresses: config.EconomicsAddresses{},
-		RewardsSettings:    config.RewardsSettings{},
-		FeeSettings:        config.FeeSettings{},
-	})
+	economicsData := &economics.EconomicsData{}
 
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
@@ -419,7 +414,7 @@ func createNetNode(
 		rewardsHandler,
 		txTypeHandler,
 		&mock.FeeHandlerStub{
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {
@@ -446,7 +441,7 @@ func createNetNode(
 		rewardProcessor,
 		internalTxProducer,
 		&mock.FeeHandlerStub{
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {

@@ -1,17 +1,17 @@
 package mock
 
 type FeeHandlerStub struct {
-	MinGasPriceCalled      func() uint64
-	MinGasLimitForTxCalled func() uint64
-	MinTxFeeCalled         func() uint64
+	MinGasPriceCalled func() uint64
+	MinGasLimitCalled func() uint64
+	MinTxFeeCalled    func() uint64
 }
 
 func (fhs *FeeHandlerStub) MinGasPrice() uint64 {
 	return fhs.MinGasPriceCalled()
 }
 
-func (fhs *FeeHandlerStub) MinGasLimitForTx() uint64 {
-	return fhs.MinGasLimitForTxCalled()
+func (fhs *FeeHandlerStub) MinGasLimit() uint64 {
+	return fhs.MinGasLimitCalled()
 }
 
 func (fhs *FeeHandlerStub) MinTxFee() uint64 {
