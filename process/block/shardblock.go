@@ -672,14 +672,18 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerNoncePool := sp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
-		err = process.ErrNilDataPoolHolder
+		err = process.ErrNilHeadersNoncesDataPool
 		return err
 	}
 
-	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(headerHandler.GetShardID(), headerHash)
-	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
+	headersPool := sp.dataPool.Headers()
+	if headersPool == nil {
+		err = process.ErrNilHeadersDataPool
+		return err
+	}
+
+	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
+	headersPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
@@ -1146,6 +1150,9 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	if metaBlock.GetRound() <= lastNotarizedHdr.GetRound() {
 		return
 	}
+	if metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance {
+		return
+	}
 
 	sp.txCoordinator.RequestMiniBlocks(metaBlock)
 }
@@ -1168,12 +1175,9 @@ func (sp *shardProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 			sp.dataPool.HeadersNonces())
 
 		if err != nil {
-			metaBlock, metaBlockHash, err = sp.getMetaHeaderWithNonce(i)
-			if err != nil {
-				requestedBlockHeaders++
-				go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
-				continue
-			}
+			requestedBlockHeaders++
+			go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
+			continue
 		}
 
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)] = &hdrInfo{hdr: metaBlock, usedInBlock: false}
@@ -1745,29 +1749,4 @@ func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
 	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 	return maxMbSpaceRemained
-}
-
-func (sp *shardProcessor) getMetaHeaderWithNonce(nonce uint64) (*block.MetaBlock, []byte, error) {
-	metaBlocksPool := sp.dataPool.MetaBlocks()
-	if metaBlocksPool == nil {
-		return nil, nil, process.ErrNilMetaBlockPool
-	}
-
-	for _, key := range metaBlocksPool.Keys() {
-		val, _ := metaBlocksPool.Peek(key)
-		if val == nil {
-			continue
-		}
-
-		hdr, ok := val.(*block.MetaBlock)
-		if !ok {
-			continue
-		}
-
-		if hdr.Nonce == nonce {
-			return hdr, key, nil
-		}
-	}
-
-	return nil, nil, process.ErrMissingHeader
 }

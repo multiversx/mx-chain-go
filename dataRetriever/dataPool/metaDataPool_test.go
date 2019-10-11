@@ -60,13 +60,13 @@ func TestNewMetaDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 }
 
 func TestNewMetaDataPool_ConfigOk(t *testing.T) {
-	metaChainBlocks := &mock.CacherStub{}
+	metaBlocks := &mock.CacherStub{}
 	shardHeaders := &mock.CacherStub{}
 	miniBlockheaders := &mock.ShardedDataStub{}
 	hdrsNonces := &mock.Uint64SyncMapCacherStub{}
 
 	tdp, err := dataPool.NewMetaDataPool(
-		metaChainBlocks,
+		metaBlocks,
 		miniBlockheaders,
 		shardHeaders,
 		hdrsNonces,
@@ -74,7 +74,7 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 
 	assert.Nil(t, err)
 	//pointer checking
-	assert.True(t, metaChainBlocks == tdp.MetaChainBlocks())
+	assert.True(t, metaBlocks == tdp.MetaBlocks())
 	assert.True(t, shardHeaders == tdp.ShardHeaders())
 	assert.True(t, miniBlockheaders == tdp.MiniBlockHashes())
 	assert.True(t, hdrsNonces == tdp.HeadersNonces())

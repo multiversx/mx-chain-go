@@ -10,7 +10,7 @@ import (
 )
 
 type MetaPoolsHolderFake struct {
-	metaChainBlocks storage.Cacher
+	metaBlocks      storage.Cacher
 	miniBlockHashes dataRetriever.ShardedDataCacherNotifier
 	shardHeaders    storage.Cacher
 	headersNonces   dataRetriever.Uint64SyncMapCacher
@@ -19,7 +19,7 @@ type MetaPoolsHolderFake struct {
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf := &MetaPoolsHolderFake{}
 	mphf.miniBlockHashes, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
-	mphf.metaChainBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	mphf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 
 	cacheShardHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
@@ -30,8 +30,8 @@ func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	return mphf
 }
 
-func (mphf *MetaPoolsHolderFake) MetaChainBlocks() storage.Cacher {
-	return mphf.metaChainBlocks
+func (mphf *MetaPoolsHolderFake) MetaBlocks() storage.Cacher {
+	return mphf.metaBlocks
 }
 
 func (mphf *MetaPoolsHolderFake) MiniBlockHashes() dataRetriever.ShardedDataCacherNotifier {

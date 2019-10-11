@@ -107,6 +107,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				HasCalled: func(nonce uint64, shardId uint32) bool {
 					return true
 				},
+				RemoveCalled: func(nonce uint64, shardId uint32) {},
 			}
 		},
 		MetaBlocksCalled: func() storage.Cacher {
@@ -130,6 +131,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 					return nil, false
 				},
 				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RemoveCalled:          func(key []byte) {},
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
@@ -158,6 +160,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs := &mock.CacherStub{}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
+			cs.RemoveCalled = func(key []byte) {
+			}
 			return cs
 		},
 	}
@@ -166,7 +170,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 
 func initMetaDataPool() *mock.MetaPoolsHolderStub {
 	mdp := &mock.MetaPoolsHolderStub{
-		MetaChainBlocksCalled: func() storage.Cacher {
+		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -187,6 +191,7 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 					return nil, false
 				},
 				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RemoveCalled:          func(key []byte) {},
 			}
 		},
 		MiniBlockHashesCalled: func() dataRetriever.ShardedDataCacherNotifier {

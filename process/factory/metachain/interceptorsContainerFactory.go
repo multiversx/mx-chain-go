@@ -128,7 +128,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,
-		icf.dataPool.MetaChainBlocks(),
+		icf.dataPool.MetaBlocks(),
 		icf.dataPool.HeadersNonces(),
 		hdrValidator,
 		icf.multiSigner,

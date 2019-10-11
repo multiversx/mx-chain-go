@@ -132,7 +132,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	metaHeaderBytes, _ := integrationTests.TestMarshalizer.Marshal(metaHdr)
 	metaHeaderHash := integrationTests.TestHasher.Compute(string(metaHeaderBytes))
 	for i := 0; i < numMetaNodes; i++ {
-		nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash, metaHdr)
+		nodes[i+1].MetaDataPool.MetaBlocks().HasOrAdd(metaHeaderHash, metaHdr)
 	}
 
 	for i := 0; i < maxNumRequests; i++ {
@@ -156,7 +156,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	metaHeaderBytes2, _ := integrationTests.TestMarshalizer.Marshal(metaHdr2)
 	metaHeaderHash2 := integrationTests.TestHasher.Compute(string(metaHeaderBytes2))
 	for i := 0; i < numMetaNodes; i++ {
-		nodes[i+1].MetaDataPool.MetaChainBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
+		nodes[i+1].MetaDataPool.MetaBlocks().HasOrAdd(metaHeaderHash2, metaHdr2)
 
 		syncMap := &dataPool.ShardIdHashSyncMap{}
 		syncMap.Store(sharding.MetachainShardId, metaHeaderHash2)

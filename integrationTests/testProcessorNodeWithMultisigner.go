@@ -259,7 +259,7 @@ func VerifyNodesHaveHeaders(
 
 		for _, metaNode := range nodesMap[sharding.MetachainShardId] {
 			if shHeader == sharding.MetachainShardId {
-				v, ok = metaNode.MetaDataPool.MetaChainBlocks().Get(headerHash)
+				v, ok = metaNode.MetaDataPool.MetaBlocks().Get(headerHash)
 			} else {
 				v, ok = metaNode.MetaDataPool.ShardHeaders().Get(headerHash)
 			}

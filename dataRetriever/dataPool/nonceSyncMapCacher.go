@@ -120,6 +120,7 @@ func (nspc *nonceSyncMapCacher) Remove(nonce uint64, shardId uint32) {
 	}
 
 	syncMap.Delete(shardId)
+	nspc.removeNonceFromCacheIfSyncMapIsEmpty(nonce, syncMap)
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
@@ -165,4 +166,19 @@ func (nspc *nonceSyncMapCacher) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (nspc *nonceSyncMapCacher) removeNonceFromCacheIfSyncMapIsEmpty(nonce uint64, syncMap *ShardIdHashSyncMap) {
+	isSyncMapEmpty := true
+	syncMap.Range(func(shardId uint32, hash []byte) bool {
+		if hash != nil {
+			isSyncMapEmpty = false
+			return false
+		}
+		return true
+	})
+
+	if isSyncMapEmpty {
+		nspc.cacher.Remove(nspc.nonceConverter.ToByteSlice(nonce))
+	}
 }
