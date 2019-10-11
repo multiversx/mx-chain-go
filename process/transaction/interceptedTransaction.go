@@ -29,13 +29,7 @@ type InterceptedTransaction struct {
 	sndShard          uint32
 	isForCurrentShard bool
 	sndAddr           state.AddressContainer
-	tx                       *transaction.Transaction
-	marshalizer              marshal.Marshalizer
-	hasher                   hashing.Hasher
-	keyGen                   crypto.KeyGenerator
-	singleSigner             crypto.SingleSigner
-	addrConv                 state.AddressConverter
-	coordinator              sharding.Coordinator
+
 	hash                     []byte
 	rcvShard                 uint32
 	sndShard                 uint32
