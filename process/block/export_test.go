@@ -40,8 +40,8 @@ func (sp *shardProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
 	sp.receivedMetaBlock(metaBlockHash)
 }
 
-func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint32, round uint64, haveTime func() bool) (block.Body, error) {
-	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
+func (sp *shardProcessor) CreateMiniBlocks(maxItemsInBlock uint32, round uint64, haveTime func() bool) (block.Body, error) {
+	return sp.createMiniBlocks(maxItemsInBlock, round, haveTime)
 }
 
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
@@ -91,41 +91,36 @@ func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error 
 	return mp.removeBlockInfoFromPool(header)
 }
 
-func (mp *metaProcessor) ReceivedHeader(hdrHash []byte) {
-	mp.receivedHeader(hdrHash)
+func (mp *metaProcessor) ReceivedShardHeader(shardHeaderHash []byte) {
+	mp.receivedShardHeader(shardHeaderHash)
 }
 
-func (mp *metaProcessor) AddHdrHashToRequestedList(hdrHash []byte) {
-	mp.mutRequestedShardHdrsHashes.Lock()
-	defer mp.mutRequestedShardHdrsHashes.Unlock()
+func (mp *metaProcessor) AddHdrHashToRequestedList(hdr *block.Header, hdrHash []byte) {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	if mp.requestedShardHdrsHashes == nil {
-		mp.requestedShardHdrsHashes = make(map[string]bool)
-		mp.allNeededShardHdrsFound = true
+	if mp.hdrsForCurrBlock.hdrHashAndInfo == nil {
+		mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	}
 
-	if mp.currHighestShardHdrsNonces == nil {
-		mp.currHighestShardHdrsNonces = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
-		for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-			mp.currHighestShardHdrsNonces[i] = uint64(0)
-		}
+	if mp.hdrsForCurrBlock.highestHdrNonce == nil {
+		mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 	}
 
-	mp.requestedShardHdrsHashes[string(hdrHash)] = true
-	mp.allNeededShardHdrsFound = false
+	mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)] = &hdrInfo{hdr: hdr, usedInBlock: true}
+	mp.hdrsForCurrBlock.missingHdrs++
 }
 
-func (mp *metaProcessor) SetCurrHighestShardHdrsNonces(key uint32, value uint64) {
-	mp.currHighestShardHdrsNonces[key] = value
-}
+func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-func (mp *metaProcessor) IsHdrHashRequested(hdrHash []byte) bool {
-	mp.mutRequestedShardHdrsHashes.Lock()
-	defer mp.mutRequestedShardHdrsHashes.Unlock()
+	hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)]
+	if !ok {
+		return true
+	}
 
-	_, found := mp.requestedShardHdrsHashes[string(hdrHash)]
-
-	return found
+	return hdrInfo.hdr == nil || hdrInfo.hdr.IsInterfaceNil()
 }
 
 func (mp *metaProcessor) CreateShardInfo(maxItemsInBlock uint32, round uint64, haveTime func() bool) ([]block.ShardData, error) {
@@ -136,8 +131,11 @@ func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint
 	return mp.processBlockHeaders(header, round, haveTime)
 }
 
-func (mp *metaProcessor) RequestFinalMissingHeaders() uint32 {
-	return mp.requestFinalMissingHeaders()
+func (mp *metaProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	return mp.requestMissingFinalityAttestingHeaders()
 }
 
 func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
@@ -160,22 +158,22 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 	bp.hasher = hasher
 }
 
-func (mp *metaProcessor) SetNextKValidity(val uint32) {
-	mp.mutRequestedShardHdrsHashes.Lock()
-	mp.nextKValidity = val
-	mp.mutRequestedShardHdrsHashes.Unlock()
+func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	mp.shardBlockFinality = val
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
 func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error {
 	return mp.saveLastNotarizedHeader(header)
 }
 
-func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
-	return mp.checkShardHeadersValidity(header)
+func (mp *metaProcessor) CheckShardHeadersValidity() (map[uint32]data.HeaderHandler, error) {
+	return mp.checkShardHeadersValidity()
 }
 
-func (mp *metaProcessor) CheckShardHeadersFinality(header *block.MetaBlock, highestNonceHdrs map[uint32]data.HeaderHandler) error {
-	return mp.checkShardHeadersFinality(header, highestNonceHdrs)
+func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]data.HeaderHandler) error {
+	return mp.checkShardHeadersFinality(highestNonceHdrs)
 }
 
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
@@ -227,6 +225,9 @@ func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []
 }
 
 func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
 	return sp.requestMissingFinalityAttestingHeaders()
 }
 
@@ -239,20 +240,15 @@ func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]*hashAndHdr, err
 }
 
 func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
-	noShards uint32,
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)
+	return sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
 }
 
 func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {
 	bp.blockSizeThrottler = blockSizeThrottler
-}
-
-func (sp *shardProcessor) SetHighestHdrNonceForCurrentBlock(value uint64) {
-	sp.hdrsForCurrBlock.highestHdrNonce = value
 }
 
 func (sp *shardProcessor) DisplayLogInfo(
@@ -278,9 +274,9 @@ func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 }
 
 func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
-	round uint64,
+	header *block.Header,
 ) (map[string][]byte, error) {
-	return sp.getAllMiniBlockDstMeFromMeta(round)
+	return sp.getAllMiniBlockDstMeFromMeta(header)
 }
 
 func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
@@ -291,10 +287,16 @@ func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockH
 	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
 }
 
-func (sp *shardProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler data.HeaderHandler, usedInBlock bool) {
-	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	sp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: headerHandler, usedInBlock: usedInBlock}
-	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+func (bp *baseProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler data.HeaderHandler, usedInBlock bool) {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: headerHandler, usedInBlock: usedInBlock}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (bp *baseProcessor) SetHighestHdrNonceForCurrentBlock(shardId uint32, value uint64) {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.highestHdrNonce[shardId] = value
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
 func (sp *shardProcessor) CalculateRoundDuration(
@@ -306,8 +308,8 @@ func (sp *shardProcessor) CalculateRoundDuration(
 	return sp.calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
 }
 
-func (sp *shardProcessor) CreateBlockStarted() {
-	sp.createBlockStarted()
+func (bp *baseProcessor) CreateBlockStarted() {
+	bp.createBlockStarted()
 }
 
 func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {
