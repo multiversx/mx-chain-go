@@ -266,7 +266,6 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 
 func (mp *metaProcessor) indexBlock(
 	metaBlock data.HeaderHandler,
-	headerPool map[string]*block.Header,
 	lastMetaBlock data.HeaderHandler,
 ) {
 	if mp.core == nil || mp.core.Indexer() == nil {
@@ -579,7 +578,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.core.TPSBenchmark().Update(header)
 	}
 
-	mp.indexBlock(header, tempHeaderPool, lastMetaBlock)
+	mp.indexBlock(header, lastMetaBlock)
 
 	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
