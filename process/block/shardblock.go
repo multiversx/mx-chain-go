@@ -24,15 +24,15 @@ const maxCleanTime = time.Second
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	dataPool          dataRetriever.PoolsHolder
-	metaBlockFinality uint32
-	chRcvAllMetaHdrs chan bool
+	dataPool               dataRetriever.PoolsHolder
+	metaBlockFinality      uint32
+	chRcvAllMetaHdrs       chan bool
 	processedMiniBlocks    map[string]map[string]struct{}
 	mutProcessedMiniBlocks sync.RWMutex
-	core          serviceContainer.Core
-	txCoordinator process.TransactionCoordinator
-	txCounter     *transactionCounter
-	txsPoolsCleaner process.PoolsCleaner
+	core                   serviceContainer.Core
+	txCoordinator          process.TransactionCoordinator
+	txCounter              *transactionCounter
+	txsPoolsCleaner        process.PoolsCleaner
 }
 
 // NewShardProcessor creates a new shardProcessor object

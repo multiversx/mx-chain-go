@@ -20,12 +20,12 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core     serviceContainer.Core
-	dataPool dataRetriever.MetaPoolsHolder
+	core               serviceContainer.Core
+	dataPool           dataRetriever.MetaPoolsHolder
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
-	chRcvAllHdrs chan bool
-	headersCounter *headersCounter
+	chRcvAllHdrs       chan bool
+	headersCounter     *headersCounter
 }
 
 // NewMetaProcessor creates a new metaProcessor object
