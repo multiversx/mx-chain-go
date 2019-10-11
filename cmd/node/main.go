@@ -114,7 +114,12 @@ VERSION:
 		Usage: "The economics configuration file to load",
 		Value: "./config/economics.toml",
 	}
-
+	// configurationPreferencesFile defines a flag for the path to the preferences toml configuration file
+	configurationPreferencesFile = cli.StringFlag{
+		Name:  "configPreferences",
+		Usage: "The preferences configuration file to load",
+		Value: "./config/prefs.toml",
+	}
 	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
 	p2pConfigurationFile = cli.StringFlag{
 		Name:  "p2pconfig",
@@ -298,6 +303,7 @@ func main() {
 		port,
 		configurationFile,
 		configurationEconomicsFile,
+		configurationPreferencesFile,
 		p2pConfigurationFile,
 		txSignSk,
 		sk,
@@ -381,6 +387,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with config economics from: %s", configurationEconomicsFileName))
 
+	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
+	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName, log)
+	if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Initialized with config preferences from: %s", configurationPreferencesFileName))
+
 	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
 	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
 	if err != nil {
@@ -448,7 +461,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	if ctx.IsSet(nodeDisplayName.Name) {
-		generalConfig.GeneralSettings.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
+		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
 	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, generalConfig.GeneralSettings, log)
@@ -677,6 +690,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	currentNode, err := createNode(
 		generalConfig,
+		preferencesConfig,
 		nodesConfig,
 		syncer,
 		keyGen,
@@ -1034,6 +1048,15 @@ func loadEconomicsConfig(filepath string, log *logger.Logger) (*config.ConfigEco
 	return cfg, nil
 }
 
+func loadPreferencesConfig(filepath string, log *logger.Logger) (*config.ConfigPreferences, error) {
+	cfg := &config.ConfigPreferences{}
+	err := core.LoadTomlFile(cfg, filepath, log)
+	if err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
 func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig *sharding.NodesSetup) (uint32, error) {
 	if pubKey == nil {
 		return 0, errors.New("nil public key")
@@ -1197,6 +1220,7 @@ func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sh
 
 func createNode(
 	config *config.Config,
+	preferencesConfig *config.ConfigPreferences,
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
@@ -1258,7 +1282,7 @@ func createNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	err = nd.StartHeartbeat(config.Heartbeat, version, config.GeneralSettings.NodeDisplayName)
+	err = nd.StartHeartbeat(config.Heartbeat, version, preferencesConfig.Preferences.NodeDisplayName)
 	if err != nil {
 		return nil, err
 	}

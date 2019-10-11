@@ -169,3 +169,25 @@ func TestTomlEconomicsParser(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, cfgEconomicsExpected, cfg)
 }
+
+func TestTomlPreferencesParser(t *testing.T) {
+	nodeDisplayName := "test-name"
+
+	cfgPreferencesExpected := ConfigPreferences{
+		Preferences: PreferencesConfig{
+			NodeDisplayName: nodeDisplayName,
+		},
+	}
+
+	testString := `
+[Preferences]
+	NodeDisplayName = "` + nodeDisplayName + `"
+`
+
+	cfg := ConfigPreferences{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, cfgPreferencesExpected, cfg)
+}
