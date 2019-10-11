@@ -96,8 +96,10 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime(previousActive bool, crtTi
 	lastDuration := crtTime.Sub(hbmi.lastUptimeDowntime)
 	lastDuration = maxDuration(0, lastDuration)
 
-	if previousActive && hbmi.isActive {
-		hbmi.totalUpTime.Duration += lastDuration
+	if previousActive {
+		if hbmi.isActive {
+			hbmi.totalUpTime.Duration += lastDuration
+		}
 	} else {
 		hbmi.totalDownTime.Duration += lastDuration
 	}

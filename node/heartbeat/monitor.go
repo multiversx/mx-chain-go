@@ -95,24 +95,10 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 	pubKeysToSave := make(map[string]*heartbeatMessageInfo, 0)
 	for shardId, pubKeys := range pubKeysMap {
 		for _, pubkey := range pubKeys {
-			hbmi, err := m.loadHbmiFromStorer(pubkey)
-
-			if err != nil { // if pubKey not found in DB, create a new instance
-				hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
-				if err != nil {
-					return err
-				}
-
-				hbmi.genesisTime = m.genesisTime
-				hbmi.computedShardID = shardId
-				pubKeysToSave[pubkey] = hbmi
-			} else {
-
+			e := m.initializeHeartBeatForPK(pubkey, shardId, pubKeysToSave, pubKeysMapCopy)
+			if e != nil {
+				return e
 			}
-
-			m.heartbeatMessages[pubkey] = hbmi
-
-			pubKeysMapCopy[shardId] = append(pubKeysMapCopy[shardId], pubkey)
 		}
 	}
 
@@ -122,6 +108,29 @@ func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string
 	return nil
 }
 
+func (m *Monitor) initializeHeartBeatForPK(
+	pubkey string,
+	shardId uint32,
+	pubKeysToSave map[string]*heartbeatMessageInfo,
+	pubKeysMapCopy map[uint32][]string,
+) error {
+	hbmi, err := m.loadHbmiFromStorer(pubkey)
+	if err != nil { // if pubKey not found in DB, create a new instance
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
+		if err != nil {
+			return err
+		}
+
+		hbmi.genesisTime = m.genesisTime
+		hbmi.computedShardID = shardId
+		pubKeysToSave[pubkey] = hbmi
+	}
+	m.heartbeatMessages[pubkey] = hbmi
+	pubKeysMapCopy[shardId] = append(pubKeysMapCopy[shardId], pubkey)
+	return nil
+}
+
+// SaveMultipleHeartbeatMessageInfos stores all heartbeatMessageInfos to the storer
 func (m *Monitor) SaveMultipleHeartbeatMessageInfos(pubKeysToSave map[string]*heartbeatMessageInfo) {
 	m.mutHeartbeatMessages.RLock()
 	defer m.mutHeartbeatMessages.RUnlock()
@@ -164,8 +173,6 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, erro
 	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
 	crtTime := m.timer.Now()
-	//receivedHbmi.isActive = m.timer.Now().Sub(receivedHbmi.lastUptimeDowntime) <= m.maxDurationPeerUnresponsive
-
 	crtDuration := crtTime.Sub(receivedHbmi.timeStamp)
 	crtDuration = maxDuration(0, crtDuration)
 	if receivedHbmi.isActive {
