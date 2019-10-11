@@ -40,6 +40,9 @@ func (vmc *systemSCContainer) Add(key []byte, sc vm.SystemSmartContract) error {
 	if sc == nil || sc.IsInterfaceNil() {
 		return process.ErrNilContainerElement
 	}
+	if len(key) == 0 {
+		return vm.ErrNilOrEmptyKey
+	}
 
 	ok := vmc.objects.Insert(key, sc)
 
@@ -54,6 +57,9 @@ func (vmc *systemSCContainer) Add(key []byte, sc vm.SystemSmartContract) error {
 func (vmc *systemSCContainer) Replace(key []byte, sc vm.SystemSmartContract) error {
 	if sc == nil || sc.IsInterfaceNil() {
 		return process.ErrNilContainerElement
+	}
+	if len(key) == 0 {
+		return vm.ErrNilOrEmptyKey
 	}
 
 	vmc.objects.Set(key, sc)

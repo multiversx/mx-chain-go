@@ -1,10 +1,10 @@
 package factory
 
 import (
-	"errors"
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	"math/big"
 )
 
 var initialStakeValue = "500000000000000000000000"
@@ -28,7 +28,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 
 	initValue, ok := big.NewInt(0).SetString(initialStakeValue, 10)
 	if !ok {
-		return nil, errors.New("bad config value for initial stake")
+		return nil, vm.ErrInvalidStakeValue
 	}
 
 	sc, err := systemSmartContracts.NewRegisterSmartContract(initValue, scf.systemEI)

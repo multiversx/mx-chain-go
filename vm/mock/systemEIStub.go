@@ -6,13 +6,16 @@ import (
 )
 
 type SystemEIStub struct {
-	TransferCalled func (destination []byte, sender []byte, value *big.Int, input []byte) error
-	GetBalanceCalled func(addr []byte) *big.Int
-	SetStorageCalled func(addr []byte, key []byte, value []byte)
-	GetStorageCalled func(addr []byte, key []byte) []byte
-	SelfDestructCalled func(addr []byte, beneficiary []byte)
+	TransferCalled       func(destination []byte, sender []byte, value *big.Int, input []byte) error
+	GetBalanceCalled     func(addr []byte) *big.Int
+	SetStorageCalled     func(key []byte, value []byte)
+	GetStorageCalled     func(key []byte) []byte
+	SelfDestructCalled   func(beneficiary []byte)
 	CreateVMOutputCalled func() *vmcommon.VMOutput
-	CleanCacheCalled func()
+	CleanCacheCalled     func()
+}
+
+func (s *SystemEIStub) SetSCAddress(addr []byte) {
 }
 
 func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error {
@@ -29,22 +32,22 @@ func (s *SystemEIStub) GetBalance(addr []byte) *big.Int {
 	return big.NewInt(0)
 }
 
-func (s *SystemEIStub) SetStorage(addr []byte, key []byte, value []byte) {
+func (s *SystemEIStub) SetStorage(key []byte, value []byte) {
 	if s.SetStorageCalled != nil {
-		s.SetStorageCalled(addr, key, value)
+		s.SetStorageCalled(key, value)
 	}
 }
 
-func (s *SystemEIStub) GetStorage(addr []byte, key []byte) []byte {
+func (s *SystemEIStub) GetStorage(key []byte) []byte {
 	if s.GetStorageCalled != nil {
-		return s.GetStorageCalled(addr, key)
+		return s.GetStorageCalled(key)
 	}
 	return nil
 }
 
-func (s *SystemEIStub) SelfDestruct(addr []byte, beneficiary []byte) {
+func (s *SystemEIStub) SelfDestruct(beneficiary []byte) {
 	if s.SelfDestructCalled != nil {
-		s.SelfDestructCalled(addr, beneficiary)
+		s.SelfDestructCalled(beneficiary)
 	}
 	return
 }
@@ -70,4 +73,3 @@ func (s *SystemEIStub) IsInterfaceNil() bool {
 	}
 	return false
 }
-

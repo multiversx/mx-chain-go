@@ -5,6 +5,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// CheckIfNil verifies if contract call input is not nil
 func CheckIfNil(args *vmcommon.ContractCallInput) error {
 	if args == nil {
 		return vm.ErrInputArgsIsNil

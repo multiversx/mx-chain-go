@@ -1,20 +1,18 @@
 package systemSmartContracts
 
 import (
-	"fmt"
-	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
-
-type SCFunctionHandler func(value *big.Int, args []*big.Int)
 
 type vmContext struct {
 	blockChainHook vmcommon.BlockchainHook
 	cryptoHook     vmcommon.CryptoHook
+	scAddress      []byte
 
-	storageUpdate  map[string](map[string][]byte)
+	storageUpdate  map[string]map[string][]byte
 	outputAccounts map[string]*vmcommon.OutputAccount
 
 	output []byte
@@ -38,30 +36,30 @@ func NewVMContext(blockChainHook vmcommon.BlockchainHook, cryptoHook vmcommon.Cr
 }
 
 // SelfDestruct destroy the current smart contract, setting the beneficiary for the liberated storage fees
-func (host *vmContext) SelfDestruct(addr []byte, beneficiary []byte) {
-	host.selfDestruct[string(addr)] = beneficiary
+func (host *vmContext) SelfDestruct(beneficiary []byte) {
+	host.selfDestruct[string(host.scAddress)] = beneficiary
 }
 
-// GetStorage
-func (host *vmContext) GetStorage(addr []byte, key []byte) []byte {
-	strAdr := string(addr)
+// GetStorage get the values saved for a certain key
+func (host *vmContext) GetStorage(key []byte) []byte {
+	strAdr := string(host.scAddress)
 	if _, ok := host.storageUpdate[strAdr]; ok {
 		if value, ok := host.storageUpdate[strAdr][string(key)]; ok {
 			return value
 		}
 	}
 
-	data, err := host.blockChainHook.GetStorageData(addr, key)
+	data, err := host.blockChainHook.GetStorageData(host.scAddress, key)
 	if err != nil {
-		fmt.Printf("GetStorage returned with error %s \n", err.Error())
+		return nil
 	}
 
 	return data
 }
 
 // SetStorage saves the key value storage under the address
-func (host *vmContext) SetStorage(addr []byte, key []byte, value []byte) {
-	strAdr := string(addr)
+func (host *vmContext) SetStorage(key []byte, value []byte) {
+	strAdr := string(host.scAddress)
 
 	if _, ok := host.storageUpdate[strAdr]; !ok {
 		host.storageUpdate[strAdr] = make(map[string][]byte, 0)
@@ -82,7 +80,6 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 
 	balance, err := host.blockChainHook.GetBalance(addr)
 	if err != nil {
-		fmt.Printf("GetBalance returned with error %s \n", err.Error())
 		return nil
 	}
 
@@ -96,7 +93,11 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
-func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte,
+func (host *vmContext) Transfer(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
 ) error {
 
 	senderAcc, ok := host.outputAccounts[string(sender)]
@@ -184,6 +185,11 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput.GasRefund = big.NewInt(0)
 
 	return vmOutput
+}
+
+// SetSCAddress sets the smart contract address
+func (host *vmContext) SetSCAddress(addr []byte) {
+	host.scAddress = addr
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

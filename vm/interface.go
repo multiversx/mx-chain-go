@@ -1,8 +1,9 @@
 package vm
 
 import (
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
+
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have
@@ -33,12 +34,13 @@ type SystemSCContainer interface {
 type SystemEI interface {
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error
 	GetBalance(addr []byte) *big.Int
-	SetStorage(addr []byte, key []byte, value []byte)
-	GetStorage(addr []byte, key []byte) []byte
-	SelfDestruct(addr []byte, beneficiary []byte)
+	SetStorage(key []byte, value []byte)
+	GetStorage(key []byte) []byte
+	SelfDestruct(beneficiary []byte)
 
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
+	SetSCAddress(addr []byte)
 
 	IsInterfaceNil() bool
 }

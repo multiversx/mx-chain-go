@@ -2,6 +2,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -63,19 +64,19 @@ func TestVmContext_GetBalance(t *testing.T) {
 	t.Parallel()
 
 	addr := []byte("addr")
-	key := []byte("key")
-	data := []byte("data")
-	blockChainHook := &mock.BlockChainHookStub{GetStorageDataCalled: func(accountsAddress []byte, index []byte) ([]byte, error) {
-		if bytes.Equal(addr, accountsAddress) && bytes.Equal(index, key) {
-			return data, nil
+	balance := big.NewInt(10)
+	blockChainHook := &mock.BlockChainHookStub{GetBalanceCalled: func(address []byte) (i *big.Int, e error) {
+		if bytes.Equal(address, addr) {
+			return balance, nil
 		}
-		return nil, nil
-	}}
+		return nil, errors.New("get balance error")
+	},
+	}
 
 	vmContext, _ := NewVMContext(blockChainHook, &mock.CryptoHookStub{})
 
-	res := vmContext.GetStorage(addr, key)
-	assert.True(t, bytes.Equal(data, res))
+	res := vmContext.GetBalance(addr)
+	assert.Equal(t, res.Uint64(), balance.Uint64())
 }
 
 func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
@@ -100,8 +101,9 @@ func TestVmContext_SelfDestruct(t *testing.T) {
 	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
 
 	addr := []byte("addr")
+	vmContext.SetSCAddress(addr)
 	beneficiary := []byte("beneficiary")
-	vmContext.SelfDestruct(addr, beneficiary)
+	vmContext.SelfDestruct(beneficiary)
 
 	vmOutput := vmContext.CreateVMOutput()
 	assert.True(t, bytes.Equal(addr, vmOutput.DeletedAccounts[0]))
@@ -113,12 +115,11 @@ func TestVmContext_SetStorage(t *testing.T) {
 
 	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
 
-	addr := []byte("addr")
 	key := []byte("key")
 	data := []byte("data")
-	vmContext.SetStorage(addr, key, data)
+	vmContext.SetStorage(key, data)
 
-	res := vmContext.GetStorage(addr, key)
+	res := vmContext.GetStorage(key)
 	assert.True(t, bytes.Equal(data, res))
 
 	vmOutput := vmContext.CreateVMOutput()

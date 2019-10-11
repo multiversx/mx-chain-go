@@ -43,3 +43,12 @@ var ErrNilBlockchainHook = errors.New("blockchain hook is nil")
 
 // ErrNilCryptoHook signals that crypto hook is nil
 var ErrNilCryptoHook = errors.New("crypto hook is nil")
+
+// ErrNilOrEmptyKey signals that key is nil or empty
+var ErrNilOrEmptyKey = errors.New("nil or empty key")
+
+// ErrInvalidStakeValue signals that config stake value is invalid
+var ErrInvalidStakeValue = errors.New("bad config value for initial stake")
+
+// ErrNilInitialStakeValue signals that nil initial stake value was provided
+var ErrNilInitialStakeValue = errors.New("initial stake value is nil")

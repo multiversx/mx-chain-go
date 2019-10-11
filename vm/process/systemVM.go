@@ -34,6 +34,8 @@ func NewSystemVM(
 	}
 	copy(sVm.vmType, vmType)
 
+	//TODO: run all system smart contracts INIT function at genesis, update roothash and block
+
 	return sVm, nil
 }
 
@@ -48,10 +50,15 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 // RunSmartContractCall executes a smart contract according to the input
 func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	s.systemEI.CleanCache()
+	s.systemEI.SetSCAddress(input.RecipientAddr)
 
 	contract, err := s.systemContracts.Get(input.RecipientAddr)
 	if err != nil {
 		return nil, vm.ErrUnknownSystemSmartContract
+	}
+
+	if input.Function == "_init" {
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
 	}
 
 	returnCode := contract.Execute(input)
