@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.DefaultLogger()
@@ -94,21 +95,28 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
 // source for the new selection
-func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string,
-	error) {
-	validatorsGroup, err := vgs.ComputeValidatorsGroup([]byte(randomSource))
+func (cns *ConsensusState) GetNextConsensusGroup(
+	randomSource []byte,
+	round uint64,
+	shardId uint32,
+	nodesCoordinator sharding.NodesCoordinator,
+) ([]string, []string, error) {
 
+	validatorsGroup, err := nodesCoordinator.ComputeValidatorsGroup(randomSource, round, shardId)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	newConsensusGroup := make([]string, 0)
+	consensusSize := len(validatorsGroup)
+	newConsensusGroup := make([]string, consensusSize)
+	consensusRewardAddresses := make([]string, consensusSize)
 
-	for i := 0; i < len(validatorsGroup); i++ {
-		newConsensusGroup = append(newConsensusGroup, string(validatorsGroup[i].PubKey()))
+	for i := 0; i < consensusSize; i++ {
+		newConsensusGroup[i] = string(validatorsGroup[i].PubKey())
+		consensusRewardAddresses[i] = string(validatorsGroup[i].Address())
 	}
 
-	return newConsensusGroup, nil
+	return newConsensusGroup, consensusRewardAddresses, nil
 }
 
 // IsConsensusDataSet method returns true if the consensus data for the current round is set and false otherwise

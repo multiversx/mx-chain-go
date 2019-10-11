@@ -157,7 +157,7 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	wg := sync.WaitGroup{}
 	wg.Add(2000)
@@ -290,7 +290,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
 
-	adb, _, mu := integrationTests.CreateAccountsDB(nil)
+	adb, _, mu := integrationTests.CreateAccountsDB(0)
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -355,7 +355,7 @@ func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
 		}
 	}()
 
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	hash, err := adb.Commit()
 
@@ -425,7 +425,7 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -496,7 +496,7 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -569,7 +569,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -637,7 +637,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -715,7 +715,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -809,7 +809,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -862,7 +862,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -895,7 +895,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(t, err)
@@ -1061,7 +1061,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(nil)
+	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	acntSrc, err := adb.GetAccountWithJournal(adrSrc)
 	assert.Nil(b, err)

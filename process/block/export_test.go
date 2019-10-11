@@ -44,8 +44,8 @@ func (sp *shardProcessor) CreateMiniBlocks(noShards uint32, maxItemsInBlock uint
 	return sp.createMiniBlocks(noShards, maxItemsInBlock, round, haveTime)
 }
 
-func (sp *shardProcessor) GetProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
-	return sp.getProcessedMetaBlocksFromHeader(header)
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
+	return sp.getOrderedProcessedMetaBlocksFromHeader(header)
 }
 
 func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
@@ -53,22 +53,29 @@ func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []
 }
 
 func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*shardProcessor, error) {
-
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	specialAddressHandler := mock.NewSpecialAddressHandlerMock(
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		nodesCoordinator,
+	)
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: &ArgBaseProcessor{
-			Accounts:         &mock.AccountsStub{},
-			ForkDetector:     &mock.ForkDetectorMock{},
-			Hasher:           &mock.HasherMock{},
-			Marshalizer:      &mock.MarshalizerMock{},
-			Store:            &mock.ChainStorerMock{},
-			ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
-			Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:     genesisBlocks,
-			RequestHandler:   &mock.RequestHandlerMock{},
-			Core:             &mock.ServiceContainerMock{},
+			Accounts:              &mock.AccountsStub{},
+			ForkDetector:          &mock.ForkDetectorMock{},
+			Hasher:                &mock.HasherMock{},
+			Marshalizer:           &mock.MarshalizerMock{},
+			Store:                 &mock.ChainStorerMock{},
+			ShardCoordinator:      shardCoordinator,
+			NodesCoordinator:      nodesCoordinator,
+			SpecialAddressHandler: specialAddressHandler,
+			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:          genesisBlocks,
+			RequestHandler:        &mock.RequestHandlerMock{},
+			Core:                  &mock.ServiceContainerMock{},
 		},
 		DataPool:        tdp,
-		BlocksTracker:   &mock.BlocksTrackerMock{},
 		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
@@ -83,6 +90,8 @@ func NewMetaProcessorBasicSingleShard(mdp dataRetriever.MetaPoolsHolder, genesis
 		mdp,
 		&mock.ForkDetectorMock{},
 		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.SpecialAddressHandlerMock{},
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.ChainStorerMock{},
@@ -236,12 +245,12 @@ func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []
 	return &hashAndHdr{header, hash}
 }
 
-func (sp *shardProcessor) RequestFinalMissingHeaders() uint32 {
-	return sp.requestFinalMissingHeaders()
+func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
+	return sp.requestMissingFinalityAttestingHeaders()
 }
 
-func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(hdr *block.Header) error {
-	return sp.checkMetaHeadersValidityAndFinality(hdr)
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
+	return sp.checkMetaHeadersValidityAndFinality()
 }
 
 func (sp *shardProcessor) GetOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
@@ -253,7 +262,7 @@ func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
-) (block.MiniBlockSlice, [][]byte, uint32, error) {
+) (block.MiniBlockSlice, uint32, uint32, error) {
 	return sp.createAndProcessCrossMiniBlocksDstMe(noShards, maxItemsInBlock, round, haveTime)
 }
 
@@ -261,8 +270,8 @@ func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockS
 	bp.blockSizeThrottler = blockSizeThrottler
 }
 
-func (sp *shardProcessor) SetCurrHighestMetaHdrNonce(value uint64) {
-	sp.currHighestMetaHdrNonce = value
+func (sp *shardProcessor) SetHighestHdrNonceForCurrentBlock(value uint64) {
+	sp.hdrsForCurrBlock.highestHdrNonce = value
 }
 
 func (sp *shardProcessor) DisplayLogInfo(
@@ -289,9 +298,8 @@ func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 
 func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
 	round uint64,
-	metaHashes [][]byte,
 ) (map[string][]byte, error) {
-	return sp.getAllMiniBlockDstMeFromMeta(round, metaHashes)
+	return sp.getAllMiniBlockDstMeFromMeta(round)
 }
 
 func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
@@ -300,4 +308,27 @@ func (sp *shardProcessor) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHa
 
 func (sp *shardProcessor) AddProcessedMiniBlock(metaBlockHash []byte, miniBlockHash []byte) {
 	sp.addProcessedMiniBlock(metaBlockHash, miniBlockHash)
+}
+
+func (sp *shardProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler data.HeaderHandler, usedInBlock bool) {
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	sp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: headerHandler, usedInBlock: usedInBlock}
+	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (sp *shardProcessor) CalculateRoundDuration(
+	lastBlockTimestamp uint64,
+	currentBlockTimestamp uint64,
+	lastBlockRound uint64,
+	currentBlockRound uint64,
+) uint64 {
+	return sp.calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
+}
+
+func (sp *shardProcessor) CreateBlockStarted() {
+	sp.createBlockStarted()
+}
+
+func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {
+	return sp.addProcessedCrossMiniBlocksFromHeader(header)
 }
