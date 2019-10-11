@@ -84,7 +84,6 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 	if len(netw.Conns()) > lcm.ThresholdRandomTrim() {
 		sorted := kbucket.SortClosestPeers(netw.Peers(), kbucket.ConvertPeerID(netw.LocalPeer()))
 		for i := lcm.ThresholdDiscoveryPause(); i < len(sorted); i++ {
-			log.Info("KDD: cutoff connection")
 			netw.ClosePeer(sorted[i])
 		}
 		lcm.doReconn()
@@ -98,7 +97,7 @@ func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn netw
 		lcm.doReconn()
 	}
 
-	if currentConnCount < lcm.ThresholdDiscoveryResume() {
+	if currentConnCount < lcm.ThresholdDiscoveryResume() && lcm.reconnecter != nil {
 		lcm.reconnecter.Resume()
 		lcm.doReconn()
 	}
