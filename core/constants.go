@@ -173,3 +173,9 @@ const MetricConsensusGroupSize = "metric_consensus_group_size"
 
 //MetricNumValidators is the metric for the number of validators
 const MetricNumValidators = "metric_num_validators"
+
+//MetricLeaderPercentage is the metric for leader rewards percentage
+const MetricLeaderPercentage = "metric_leader_percentage"
+
+//MetricCommunityPercentage is the metric for consensus signer percentage
+const MetricCommunityPercentage = "metric_community_percentage"

@@ -134,17 +134,23 @@ func TestPresenterStatusHandler_GetNodeName(t *testing.T) {
 func TestPresenterStatusHandler_CalculateRewardsTotal(t *testing.T) {
 	t.Parallel()
 
-	rewardsValueString := "1000"
-	rewardsValue, _ := big.NewInt(0).SetString(rewardsValueString, 10)
+	rewardsValue := "1000"
+	expectedDifValue := "9000"
 	numSignedBlocks := uint64(50)
+	numProposedBlocks := uint64(10)
+	leaderPercentage := "0.5"
+	communityPercentage := "0.1"
+
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValueString)
+	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetStringValue(core.MetricLeaderPercentage, leaderPercentage)
+	presenterStatusHandler.SetStringValue(core.MetricCommunityPercentage, communityPercentage)
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
+	presenterStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, numProposedBlocks)
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
-	expectedDiffValue := big.NewInt(0).Mul(rewardsValue, big.NewInt(0).SetUint64(numSignedBlocks))
 
 	assert.Equal(t, "0", totalRewards)
-	assert.Equal(t, expectedDiffValue.Text(10), diff)
+	assert.Equal(t, expectedDifValue, diff)
 }
 
 func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
@@ -152,19 +158,23 @@ func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
 
 	rewardsValue := "1000"
 	numSignedBlocks := uint64(50)
+	leaderPercentage := "0.5"
+	communityPercentage := "0.1"
+	numProposedBlocks := uint64(10)
+	expectedDiffValue := "8000"
+
 	presenterStatusHandler := NewPresenterStatusHandler()
-	totalRewardsOld, _ := big.NewInt(0).SetString("1000", 10)
+	totalRewardsOld, _ := big.NewInt(0).SetString(rewardsValue, 10)
 	presenterStatusHandler.totalRewardsOld = big.NewInt(0).Set(totalRewardsOld)
+	presenterStatusHandler.SetStringValue(core.MetricLeaderPercentage, leaderPercentage)
+	presenterStatusHandler.SetStringValue(core.MetricCommunityPercentage, communityPercentage)
 	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
+	presenterStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, numProposedBlocks)
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
 
-	rv, _ := big.NewInt(0).SetString(rewardsValue, 10)
-	expectedValue := big.NewInt(0).Mul(rv, big.NewInt(0).SetUint64(numSignedBlocks))
-	expectedValue.Sub(expectedValue, totalRewardsOld)
-
 	assert.Equal(t, totalRewardsOld.Text(10), totalRewards)
-	assert.Equal(t, expectedValue.Text(10), diff)
+	assert.Equal(t, expectedDiffValue, diff)
 }
 
 func TestPresenterStatusHandler_CalculateRewardsPerHourReturnZero(t *testing.T) {
@@ -184,8 +194,11 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) 
 	totalBlocks := uint64(100)
 	totalRounds := uint64(1000)
 	roundTime := uint64(6)
+	leaderPercentage := "0.5"
+	communityPercentage := "0.1"
 	rewardsValue := "1000"
-	expectedValue := "6000"
+	expectedValue := "840"
+
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, consensusGroupSize)
 	presenterStatusHandler.SetUInt64Value(core.MetricNumValidators, numValidators)
@@ -193,6 +206,8 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) 
 	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, totalRounds)
 	presenterStatusHandler.SetUInt64Value(core.MetricRoundTime, roundTime)
+	presenterStatusHandler.SetStringValue(core.MetricLeaderPercentage, leaderPercentage)
+	presenterStatusHandler.SetStringValue(core.MetricCommunityPercentage, communityPercentage)
 
 	result := presenterStatusHandler.CalculateRewardsPerHour()
 	assert.Equal(t, expectedValue, result)

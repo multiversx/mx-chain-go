@@ -833,6 +833,8 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
+	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
+	appStatusHandler.SetStringValue(core.MetricCommunityPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.CommunityPercentage))
 
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
