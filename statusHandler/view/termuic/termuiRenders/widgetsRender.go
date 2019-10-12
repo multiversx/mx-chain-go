@@ -149,7 +149,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	switch instanceType {
 	case string(core.NodeTypeValidator):
 		rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
-		rows[6] = []string{fmt.Sprintf("Rewards estionstion:  %s TERD / hour (without fees)", rewardsPerHour)}
+		rows[6] = []string{fmt.Sprintf("Rewards estimation:  %s TERD/h (without fees)", rewardsPerHour)}
 
 		var rewardsInfo []string
 		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()

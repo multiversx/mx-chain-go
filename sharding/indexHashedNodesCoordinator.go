@@ -22,24 +22,9 @@ type indexHashedNodesCoordinator struct {
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
 func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
-	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
-		return nil, ErrInvalidConsensusGroupSize
-	}
-
-	if arguments.NbShards < 1 {
-		return nil, ErrInvalidNumberOfShards
-	}
-
-	if arguments.ShardId >= arguments.NbShards && arguments.ShardId != MetachainShardId {
-		return nil, ErrInvalidShardId
-	}
-
-	if arguments.Hasher == nil {
-		return nil, ErrNilHasher
-	}
-
-	if arguments.SelfPublicKey == nil {
-		return nil, ErrNilPubKey
+	err := checkArguments(arguments)
+	if err != nil {
+		return nil, err
 	}
 
 	ihgs := &indexHashedNodesCoordinator{
@@ -52,12 +37,36 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		selfPubKey:              arguments.SelfPublicKey,
 	}
 
-	err := ihgs.SetNodesPerShards(arguments.Nodes)
+	err = ihgs.SetNodesPerShards(arguments.Nodes)
 	if err != nil {
 		return nil, err
 	}
 
 	return ihgs, nil
+}
+
+func checkArguments(arguments ArgNodesCoordinator) error {
+	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
+		return ErrInvalidConsensusGroupSize
+	}
+
+	if arguments.NbShards < 1 {
+		return ErrInvalidNumberOfShards
+	}
+
+	if arguments.ShardId >= arguments.NbShards && arguments.ShardId != MetachainShardId {
+		return ErrInvalidShardId
+	}
+
+	if arguments.Hasher == nil {
+		return ErrNilHasher
+	}
+
+	if arguments.SelfPublicKey == nil {
+		return ErrNilPubKey
+	}
+
+	return nil
 }
 
 // SetNodesPerShards loads the distribution of nodes per shard into the nodes management component

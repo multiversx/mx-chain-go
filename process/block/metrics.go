@@ -104,7 +104,7 @@ func estimateRewardsForMetachain(
 	for _, publicKey := range publicKeys {
 		if bytes.Equal([]byte(publicKey), ownPublicKey) {
 			isInConsensus = true
-			continue
+			break
 		}
 	}
 

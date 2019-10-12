@@ -1,6 +1,7 @@
 package presenter
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -36,7 +37,7 @@ func (psh *PresenterStatusHandler) GetCountConsensus() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCountConsensus)
 }
 
-// GetCountConsensusAcceptedBlocks will return count of how many times node was in concensus group and
+// GetCountConsensusAcceptedBlocks will return count of how many times node was in consensus group and
 // a block was produced
 func (psh *PresenterStatusHandler) GetCountConsensusAcceptedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCountConsensusAcceptedBlocks)
@@ -73,7 +74,7 @@ func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
 	numSignedBlocks := psh.getFromCacheAsUint64(core.MetricCountConsensusAcceptedBlocks)
 	numProposedBlocks := psh.getFromCacheAsUint64(core.MetricCountAcceptedBlocks)
 
-	rewardsCommunityCoefficient := float64(numSignedBlocks-numProposedBlocks) * communityPercentage
+	rewardsCommunityCoefficient := math.Abs(float64(int(numSignedBlocks-numProposedBlocks))) * communityPercentage
 	consensusSignedBlocksRewards := big.NewFloat(rewardsCommunityCoefficient)
 	consensusSignedBlocksRewards.Mul(consensusSignedBlocksRewards, big.NewFloat(0).SetInt(rewardsValue))
 
@@ -92,7 +93,7 @@ func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
 	return totalRewards.Text(10), difRewards.Text(10)
 }
 
-// CalculateRewardsPerHour will return an approximation of how many elronds will earn a validator per hour
+// CalculateRewardsPerHour will return an approximation of how many test ERDs a validator will earn per hour
 // Rewards estimation per hour will be equals with :
 // (changeToBeInConsensus - changeToBeLeader) * roundsPerHour * hitRate * communityPercentage * Rewards +
 // changeToBeLeader * roundsPerHour * hitRate * leaderPercentage * Rewards

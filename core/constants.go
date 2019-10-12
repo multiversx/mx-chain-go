@@ -169,13 +169,13 @@ const MetricRewardsValue = "erd_rewards_value"
 const MetricNodeDisplayName = "erd_node_display_name"
 
 //MetricConsensusGroupSize is the metric for consensus group size
-const MetricConsensusGroupSize = "metric_consensus_group_size"
+const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
 
 //MetricNumValidators is the metric for the number of validators
-const MetricNumValidators = "metric_num_validators"
+const MetricNumValidators = "erd_metric_num_validators"
 
 //MetricLeaderPercentage is the metric for leader rewards percentage
-const MetricLeaderPercentage = "metric_leader_percentage"
+const MetricLeaderPercentage = "erd_metric_leader_percentage"
 
 //MetricCommunityPercentage is the metric for consensus signer percentage
-const MetricCommunityPercentage = "metric_community_percentage"
+const MetricCommunityPercentage = "erd_metric_community_percentage"
