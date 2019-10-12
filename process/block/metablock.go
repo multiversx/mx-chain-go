@@ -228,18 +228,28 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 	return
 }
 
-func (mp *metaProcessor) indexBlock() {
+func (mp *metaProcessor) indexBlock(
+	metaBlock data.HeaderHandler,
+	lastMetaBlock data.HeaderHandler,
+) {
 	if mp.core == nil || mp.core.Indexer() == nil {
 		return
 	}
-
 	// Update tps benchmarks in the DB
 	tpsBenchmark := mp.core.TPSBenchmark()
 	if tpsBenchmark != nil {
 		go mp.core.Indexer().UpdateTPS(tpsBenchmark)
 	}
 
-	//TODO: maybe index metablocks also?
+	publicKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), sharding.MetachainShardId)
+	if err != nil {
+		return
+	}
+
+	signersIndexes := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
+	go mp.core.Indexer().SaveMetaBlock(metaBlock, signersIndexes)
+
+	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, sharding.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
@@ -514,6 +524,8 @@ func (mp *metaProcessor) CommitBlock(
 	hdrsToAttestPreviousFinal := mp.shardBlockFinality + 1
 	mp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
+	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
+
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
@@ -530,7 +542,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.core.TPSBenchmark().Update(header)
 	}
 
-	mp.indexBlock()
+	mp.indexBlock(header, lastMetaBlock)
 
 	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
 
