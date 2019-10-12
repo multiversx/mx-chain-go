@@ -14,7 +14,7 @@ type Transaction struct {
 	BlockHash     string        `json:"blockHash"`
 	Nonce         uint64        `json:"nonce"`
 	Round         uint64        `json:"round"`
-	Value         *big.Int      `json:"value"`
+	Value         string        `json:"value"`
 	Receiver      string        `json:"receiver"`
 	Sender        string        `json:"sender"`
 	ReceiverShard uint32        `json:"receiverShard"`

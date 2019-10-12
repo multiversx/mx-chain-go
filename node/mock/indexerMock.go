@@ -16,6 +16,10 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 	panic("implement me")
 }
 
+func (im *IndexerMock) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
+	panic("implement me")
+}
+
 func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	panic("implement me")
 }
