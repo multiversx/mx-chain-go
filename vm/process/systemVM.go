@@ -2,7 +2,6 @@ package process
 
 import (
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -74,11 +73,6 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 
 // RunSmartContractCall executes a smart contract according to the input
 func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-	err := systemSmartContracts.CheckIfNil(input)
-	if err != nil {
-		return nil, err
-	}
-
 	s.systemEI.CleanCache()
 	s.systemEI.SetSCAddress(input.RecipientAddr)
 
