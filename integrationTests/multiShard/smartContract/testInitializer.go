@@ -35,7 +35,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -271,6 +270,23 @@ func createAccountsDB() *state.AccountsDB {
 	return adb
 }
 
+func createMockTxFeeHandler() process.FeeHandler {
+	return &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return tx.GetGasLimit()
+		},
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			fee := big.NewInt(0).SetUint64(tx.GetGasPrice())
+			fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasLimit()))
+
+			return fee
+		},
+		CheckTxHandlerCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
+}
+
 func createNetNode(
 	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
@@ -301,18 +317,6 @@ func createNetNode(
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	dataPacker, _ := partitioning.NewSimpleDataPacker(testMarshalizer)
 
-	feeHandler := &mock.FeeHandlerStub{
-		MinGasPriceCalled: func() uint64 {
-			return integrationTests.MinTxGasPrice
-		},
-		MinGasLimitCalled: func() uint64 {
-			return integrationTests.MinTxGasLimit
-		},
-		MinTxFeeCalled: func() uint64 {
-			return integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice
-		},
-	}
-
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		accntAdapter,
 		shardCoordinator,
@@ -327,7 +331,7 @@ func createNetNode(
 		dPool,
 		testAddressConverter,
 		maxTxNonceDeltaAllowed,
-		feeHandler,
+		createMockTxFeeHandler(),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -413,17 +417,7 @@ func createNetNode(
 		scProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		&mock.FeeHandlerStub{
-			MinGasLimitCalled: func() uint64 {
-				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
-			MinGasPriceCalled: func() uint64 {
-				return 0
-			},
-		},
+		createMockTxFeeHandler(),
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -440,17 +434,7 @@ func createNetNode(
 		scProcessor,
 		rewardProcessor,
 		internalTxProducer,
-		&mock.FeeHandlerStub{
-			MinGasLimitCalled: func() uint64 {
-				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
-			MinGasPriceCalled: func() uint64 {
-				return 0
-			},
-		},
+		createMockTxFeeHandler(),
 	)
 	container, _ := fact.Create()
 

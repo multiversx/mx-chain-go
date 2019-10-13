@@ -316,9 +316,6 @@ var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to c
 // ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
 
-// ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
-var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
-
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
 
@@ -442,9 +439,6 @@ var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator prov
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 
-// ErrNotEnoughFeeInTransactions signals that the transaction does not enough fee
-var ErrNotEnoughFeeInTransactions = errors.New("transaction fee is not enough")
-
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
@@ -505,5 +499,5 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 // ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
 var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
-// ErrInvalidRewardsPercentages signal that rewards percentages are not correct
+// ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")

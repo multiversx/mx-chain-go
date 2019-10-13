@@ -44,7 +44,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	hashAfterExec, _ := accnts.Commit()
 	assert.NotEqual(t, hashCreated, hashAfterExec)
 
-	balance = balance.Sub(balance, big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit))
+	balance.Sub(balance, big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit))
 
 	accountAfterExec, _ := accnts.GetAccountWithJournal(address)
 	assert.Equal(t, nonce+1, accountAfterExec.(*state.Account).Nonce)

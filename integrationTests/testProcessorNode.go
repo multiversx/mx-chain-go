@@ -431,17 +431,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		&mock.FeeHandlerStub{
-			MinGasPriceCalled: func() uint64 {
-				return 0
-			},
-			MinGasLimitCalled: func() uint64 {
-				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
-		},
+		tpn.EconomicsData,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -458,17 +448,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
 		internalTxProducer,
-		&mock.FeeHandlerStub{
-			MinGasPriceCalled: func() uint64 {
-				return 0
-			},
-			MinGasLimitCalled: func() uint64 {
-				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
-		},
+		tpn.EconomicsData,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

@@ -123,14 +123,48 @@ func (ed *EconomicsData) BurnPercentage() float64 {
 	return ed.burnPercentage
 }
 
-// MinGasPrice will return minimum gas price
-func (ed *EconomicsData) MinGasPrice() uint64 {
-	return ed.minGasPrice
+// SetMinGasPrice sets the minimum gas price for a transaction to be accepted
+func (ed *EconomicsData) SetMinGasPrice(minGasPrice uint64) {
+	ed.minGasPrice = minGasPrice
 }
 
-// MinGasLimit will return minimum gas limit
-func (ed *EconomicsData) MinGasLimit() uint64 {
-	return ed.minGasLimit
+// SetMinGasLimit sets the minimum gas limit for a transaction to be accepted
+func (ed *EconomicsData) SetMinGasLimit(minGasLimit uint64) {
+	ed.minGasLimit = minGasLimit
+}
+
+// ComputeFee computes the provided transaction's fee
+func (ed *EconomicsData) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
+	gasPrice := big.NewInt(0).SetUint64(tx.GetGasPrice())
+	gasLimit := big.NewInt(0).SetUint64(ed.ComputeGasLimit(tx))
+
+	return gasPrice.Mul(gasPrice, gasLimit)
+}
+
+// CheckTxHandler checks if the provided transaction is economically correct
+func (ed *EconomicsData) CheckTxHandler(tx process.TransactionWithFeeHandler) error {
+	if ed.minGasPrice > tx.GetGasPrice() {
+		return process.ErrInsufficientGasPriceInTx
+	}
+
+	requiredGasLimit := ed.ComputeGasLimit(tx)
+	if requiredGasLimit > tx.GetGasLimit() {
+		return process.ErrInsufficientGasLimitInTx
+	}
+
+	return nil
+}
+
+// ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
+func (ed *EconomicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
+	gasLimit := ed.minGasLimit
+
+	//TODO: change this method of computing the gas limit of a notarizing tx
+	// it should follow an exponential curve as to disincentivise notarizing large data
+	// also, take into account if destination address is 0000...00000 as this will be a SC deploy tx
+	gasLimit += uint64(len(tx.GetData()))
+
+	return gasLimit
 }
 
 // CommunityAddress will return community address

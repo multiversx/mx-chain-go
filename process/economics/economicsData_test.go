@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/stretchr/testify/assert"
@@ -213,28 +214,124 @@ func TestEconomicsData_BurnPercentage(t *testing.T) {
 	assert.Equal(t, burnPercentage, value)
 }
 
-func TestEconomicsData_MinGasPrice(t *testing.T) {
+func TestEconomicsData_ComputeFeeNoTxData(t *testing.T) {
 	t.Parallel()
 
-	minGasPrice := uint64(500)
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MinGasPrice = strconv.FormatUint(minGasPrice, 10)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-
-	value := economicsData.MinGasPrice()
-	assert.Equal(t, minGasPrice, value)
-}
-
-func TestEconomicsData_MinGasLimit(t *testing.T) {
-	t.Parallel()
-
-	minGasLimit := uint64(1000)
+	gasPrice := uint64(500)
+	minGasLimit := uint64(12)
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	tx := &transaction.Transaction{
+		GasPrice: gasPrice,
+		GasLimit: minGasLimit,
+	}
 
-	value := economicsData.MinGasLimit()
-	assert.Equal(t, minGasLimit, value)
+	cost := economicsData.ComputeFee(tx)
+
+	expectedCost := big.NewInt(0).SetUint64(gasPrice)
+	expectedCost.Mul(expectedCost, big.NewInt(0).SetUint64(minGasLimit))
+	assert.Equal(t, expectedCost, cost)
+}
+
+func TestEconomicsData_ComputeFeeWithTxData(t *testing.T) {
+	t.Parallel()
+
+	gasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	txData := "text to be notarized"
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	tx := &transaction.Transaction{
+		GasPrice: gasPrice,
+		GasLimit: minGasLimit,
+		Data:     txData,
+	}
+
+	cost := economicsData.ComputeFee(tx)
+
+	expectedGasLimit := big.NewInt(0).SetUint64(minGasLimit)
+	expectedGasLimit.Add(expectedGasLimit, big.NewInt(int64(len(txData))))
+	expectedCost := big.NewInt(0).SetUint64(gasPrice)
+	expectedCost.Mul(expectedCost, expectedGasLimit)
+	assert.Equal(t, expectedCost, cost)
+}
+
+func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	economicsConfig := createDummyEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	economicsData.SetMinGasLimit(minGasLimit)
+	economicsData.SetMinGasPrice(minGasPrice)
+	tx := &transaction.Transaction{
+		GasPrice: minGasPrice - 1,
+		GasLimit: minGasLimit,
+	}
+
+	err := economicsData.CheckTxHandler(tx)
+
+	assert.Equal(t, process.ErrInsufficientGasPriceInTx, err)
+}
+
+func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	economicsConfig := createDummyEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	economicsData.SetMinGasLimit(minGasLimit)
+	economicsData.SetMinGasPrice(minGasPrice)
+	tx := &transaction.Transaction{
+		GasPrice: minGasPrice,
+		GasLimit: minGasLimit - 1,
+	}
+
+	err := economicsData.CheckTxHandler(tx)
+
+	assert.Equal(t, process.ErrInsufficientGasLimitInTx, err)
+}
+
+func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	economicsConfig := createDummyEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	economicsData.SetMinGasLimit(minGasLimit)
+	economicsData.SetMinGasPrice(minGasPrice)
+	tx := &transaction.Transaction{
+		GasPrice: minGasPrice,
+		GasLimit: minGasLimit,
+	}
+
+	err := economicsData.CheckTxHandler(tx)
+
+	assert.Nil(t, err)
+}
+
+func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	economicsConfig := createDummyEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	economicsData.SetMinGasLimit(minGasLimit)
+	economicsData.SetMinGasPrice(minGasPrice)
+	tx := &transaction.Transaction{
+		GasPrice: minGasPrice + 1,
+		GasLimit: minGasLimit + 1,
+	}
+
+	err := economicsData.CheckTxHandler(tx)
+
+	assert.Nil(t, err)
 }
 
 func TestEconomicsData_CommunityAddress(t *testing.T) {
