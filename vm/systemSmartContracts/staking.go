@@ -3,9 +3,9 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -14,7 +14,7 @@ var log = logger.DefaultLogger()
 
 const ownerKey = "owner"
 
-type registerData struct {
+type stakingData struct {
 	StartNonce    uint64   `json:"StartNonce"`
 	Staked        bool     `json:"Staked"`
 	UnStakedNonce uint64   `json:"UnStakedNonce"`
@@ -22,13 +22,13 @@ type registerData struct {
 	StakeValue    *big.Int `json:"StakeValue"`
 }
 
-type registerSC struct {
+type stakingSC struct {
 	eei        vm.SystemEI
 	stakeValue *big.Int
 }
 
-// NewRegisterSmartContract creates a register smart contract
-func NewRegisterSmartContract(stakeValue *big.Int, eei vm.SystemEI) (*registerSC, error) {
+// NewStakingSmartContract creates a staking smart contract
+func NewStakingSmartContract(stakeValue *big.Int, eei vm.SystemEI) (*stakingSC, error) {
 	if stakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
@@ -36,12 +36,12 @@ func NewRegisterSmartContract(stakeValue *big.Int, eei vm.SystemEI) (*registerSC
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
 
-	reg := &registerSC{stakeValue: big.NewInt(0).Set(stakeValue), eei: eei}
+	reg := &stakingSC{stakeValue: big.NewInt(0).Set(stakeValue), eei: eei}
 	return reg, nil
 }
 
-// Execute calls one of the functions from the register smart contract and runs the code according to the input
-func (r *registerSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+// Execute calls one of the functions from the staking smart contract and runs the code according to the input
+func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
 	}
@@ -62,22 +62,18 @@ func (r *registerSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.UserError
 }
 
-func (r *registerSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
 	return vmcommon.Ok
 }
 
-func (r *registerSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
-
-func (r *registerSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(r.stakeValue) != 0 {
 		return vmcommon.UserError
 	}
 
-	registrationData := registerData{
+	registrationData := stakingData{
 		StartNonce:    0,
 		Staked:        false,
 		BlsPubKey:     nil,
@@ -89,13 +85,13 @@ func (r *registerSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	if data != nil {
 		err := json.Unmarshal(data, registrationData)
 		if err != nil {
-			log.Error("unmarshal error on register smart contract stake function " + err.Error())
+			log.Error("unmarshal error on staking smart contract stake function " + err.Error())
 			return vmcommon.UserError
 		}
 	}
 
 	if registrationData.Staked == true {
-		log.Error("account already registered, re-staking is invalid")
+		log.Error("account already staked, re-staking is invalid")
 		return vmcommon.UserError
 	}
 
@@ -112,7 +108,7 @@ func (r *registerSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 
 	data, err := json.Marshal(registrationData)
 	if err != nil {
-		log.Error("marshal error on register smart contract stake function " + err.Error())
+		log.Error("marshal error on staking smart contract stake function " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -126,8 +122,8 @@ func (r *registerSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	return vmcommon.Ok
 }
 
-func (r *registerSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	var registrationData registerData
+func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	var registrationData stakingData
 	data := r.eei.GetStorage(args.CallerAddr)
 	if data == nil {
 		log.Error("unStake is not possible for address which is not staked")
@@ -136,7 +132,7 @@ func (r *registerSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 	err := json.Unmarshal(data, registrationData)
 	if err != nil {
-		log.Error("unmarshal error in unStake function of register smart contract " + err.Error())
+		log.Error("unmarshal error in unStake function of staking smart contract " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -145,7 +141,7 @@ func (r *registerSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 	data, err = json.Marshal(registrationData)
 	if err != nil {
-		log.Error("marshal error in unStake function of register smart contract" + err.Error())
+		log.Error("marshal error in unStake function of staking smart contract" + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -154,13 +150,13 @@ func (r *registerSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.Ok
 }
 
-func (r *registerSC) finalizeUnStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (r *stakingSC) finalizeUnStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		return vmcommon.UserError
 	}
 
-	var registrationData registerData
+	var registrationData stakingData
 	for _, arg := range args.Arguments {
 		data := r.eei.GetStorage(arg.Bytes())
 		err := json.Unmarshal(data, registrationData)
@@ -185,13 +181,44 @@ func (r *registerSC) finalizeUnStake(args *vmcommon.ContractCallInput) vmcommon.
 	return vmcommon.Ok
 }
 
+func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
+	if !bytes.Equal(ownerAddress, args.CallerAddr) {
+		log.Error("slash function called by not the owners address")
+		return vmcommon.UserError
+	}
+
+	if len(args.Arguments) != 2 {
+		log.Error("slash function called by wrong number of arguments")
+		return vmcommon.UserError
+	}
+
+	var registrationData stakingData
+	data := r.eei.GetStorage(args.Arguments[0].Bytes())
+	err := json.Unmarshal(data, registrationData)
+	if err != nil {
+		log.Error("unmarshal error on slash function" + err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(data) == 0 {
+		log.Error("slash error: validator was not registered")
+		return vmcommon.UserError
+	}
+
+	operation := big.NewInt(0).Set(registrationData.StakeValue)
+	registrationData.StakeValue = registrationData.StakeValue.Sub(operation, args.Arguments[1])
+
+	return vmcommon.Ok
+}
+
 // ValueOf returns the value of a selected key
-func (r *registerSC) ValueOf(key interface{}) interface{} {
+func (r *stakingSC) ValueOf(key interface{}) interface{} {
 	return nil
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not
-func (r *registerSC) IsInterfaceNil() bool {
+func (r *stakingSC) IsInterfaceNil() bool {
 	if r == nil {
 		return true
 	}

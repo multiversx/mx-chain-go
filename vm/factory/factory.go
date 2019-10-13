@@ -2,4 +2,5 @@ package factory
 
 // TODO: work on creating these addresses
 
-var RegisterSCAddress = []byte("12345678901234567890123456789012")
+// StakingSCAddress is the hard-coded address for smart contracts
+var StakingSCAddress = []byte("000000000100000000000000000000FF")

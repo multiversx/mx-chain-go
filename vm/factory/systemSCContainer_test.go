@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -37,6 +39,18 @@ func TestSystemSCContainer_AddNilShouldErr(t *testing.T) {
 	err := c.Add([]byte("0001"), nil)
 
 	assert.Equal(t, process.ErrNilContainerElement, err)
+}
+
+func TestSystemSCContainer_AddEmptyKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c := NewSystemSCContainer()
+
+	err := c.Add(nil, &mock.SystemSCStub{})
+	assert.Equal(t, vm.ErrNilOrEmptyKey, err)
+
+	err = c.Add([]byte{}, &mock.SystemSCStub{})
+	assert.Equal(t, vm.ErrNilOrEmptyKey, err)
 }
 
 func TestSystemSCContainer_AddShouldWork(t *testing.T) {
@@ -99,6 +113,32 @@ func TestSystemSCContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 	valRecovered, _ := c.Get(key)
 
 	assert.Equal(t, process.ErrNilContainerElement, err)
+	assert.Equal(t, val, valRecovered)
+}
+
+func TestSystemSCContainer_ReplaceKeyNilOrEmptyKeyErrAndNotModify(t *testing.T) {
+	t.Parallel()
+
+	c := NewSystemSCContainer()
+
+	key := []byte("0001")
+	val := &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+		return vmcommon.Ok
+	}}
+
+	_ = c.Add(key, val)
+	err := c.Replace(nil, &mock.SystemSCStub{})
+
+	valRecovered, _ := c.Get(key)
+
+	assert.Equal(t, vm.ErrNilOrEmptyKey, err)
+	assert.Equal(t, val, valRecovered)
+
+	err = c.Replace([]byte{}, &mock.SystemSCStub{})
+
+	valRecovered, _ = c.Get(key)
+
+	assert.Equal(t, vm.ErrNilOrEmptyKey, err)
 	assert.Equal(t, val, valRecovered)
 }
 

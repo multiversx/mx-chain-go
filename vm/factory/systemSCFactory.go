@@ -31,12 +31,12 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, vm.ErrInvalidStakeValue
 	}
 
-	sc, err := systemSmartContracts.NewRegisterSmartContract(initValue, scf.systemEI)
+	sc, err := systemSmartContracts.NewStakingSmartContract(initValue, scf.systemEI)
 	if err != nil {
 		return nil, err
 	}
 
-	err = scContainer.Add(RegisterSCAddress, sc)
+	err = scContainer.Add(StakingSCAddress, sc)
 	if err != nil {
 		return nil, err
 	}

@@ -7,8 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 var log = logger.DefaultLogger()
@@ -137,4 +139,38 @@ func setBalanceToTrie(
 	}
 
 	return account.SetBalanceWithJournal(balance)
+}
+
+func initSystemSmartContracts(
+	accounts state.AccountsAdapter,
+	adrConv state.AddressConverter,
+	processor process.SmartContractProcessor,
+	smartContracts vm.SystemSCContainer,
+) ([]byte, error) {
+	scKeys := smartContracts.Keys()
+
+	tx := &transaction.Transaction{
+		Value:   big.NewInt(0),
+		RcvAddr: make([]byte, adrConv.AddressLen()),
+	}
+	for _, scKey := range scKeys {
+		tx.SndAddr = scKey
+
+		adrSrc, err := adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+		if err != nil {
+			return nil, err
+		}
+
+		acntSrc, err := accounts.GetAccountWithJournal(adrSrc)
+		if err != nil {
+			return nil, err
+		}
+
+		err = processor.DeploySmartContract(tx, acntSrc, 0)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return accounts.Commit()
 }

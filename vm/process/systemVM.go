@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -41,14 +42,43 @@ func NewSystemVM(
 
 // RunSmartContractCreate creates and saves a new smart contract to the trie
 func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+	if input == nil {
+		return nil, vm.ErrInputArgsIsNil
+	}
+	if input.CallerAddr == nil {
+		return nil, vm.ErrInputCallerAddrIsNil
+	}
 	// currently this function is not used, as all the contracts are deployed and created at startNode time only
 	// register the system smart contract with a name into the map
+	s.systemEI.CleanCache()
+	s.systemEI.SetSCAddress(input.CallerAddr)
 
-	return nil, vm.ErrCannotCreateNewSystemSmartContract
+	contract, err := s.systemContracts.Get(input.CallerAddr)
+	if err != nil {
+		return nil, vm.ErrUnknownSystemSmartContract
+	}
+
+	deployInput := &vmcommon.ContractCallInput{
+		VMInput:       input.VMInput,
+		RecipientAddr: input.CallerAddr,
+		Function:      "_init",
+	}
+
+	returnCode := contract.Execute(deployInput)
+
+	vmOutput := s.systemEI.CreateVMOutput()
+	vmOutput.ReturnCode = returnCode
+
+	return vmOutput, nil
 }
 
 // RunSmartContractCall executes a smart contract according to the input
 func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	err := systemSmartContracts.CheckIfNil(input)
+	if err != nil {
+		return nil, err
+	}
+
 	s.systemEI.CleanCache()
 	s.systemEI.SetSCAddress(input.RecipientAddr)
 
