@@ -318,17 +318,12 @@ func (bp *baseProcessor) SetHighestHdrNonceForCurrentBlock(shardId uint32, value
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
-func (sp *shardProcessor) CalculateRoundDuration(
-	lastBlockTimestamp uint64,
-	currentBlockTimestamp uint64,
-	lastBlockRound uint64,
-	currentBlockRound uint64,
-) uint64 {
-	return sp.calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
-}
-
 func (bp *baseProcessor) CreateBlockStarted() {
 	bp.createBlockStarted()
+}
+
+func (sp *shardProcessor) CreateBlockStarted() {
+	sp.createBlockStarted()
 }
 
 func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {
