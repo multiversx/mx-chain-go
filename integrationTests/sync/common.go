@@ -158,7 +158,7 @@ func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
 func emptyMetaDataPool(holder dataRetriever.MetaPoolsHolder) {
 	holder.HeadersNonces().Clear()
 	holder.MetaChainBlocks().Clear()
-	holder.MiniBlockHashes().Clear()
+	holder.MiniBlocks().Clear()
 	holder.ShardHeaders().Clear()
 }
 

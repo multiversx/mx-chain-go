@@ -25,8 +25,9 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core     serviceContainer.Core
-	dataPool dataRetriever.MetaPoolsHolder
+	core          serviceContainer.Core
+	dataPool      dataRetriever.MetaPoolsHolder
+	txCoordinator process.TransactionCoordinator
 
 	shardsHeadersNonce *sync.Map
 
@@ -160,6 +161,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
+	body, ok := bodyHandler.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
 	go getMetricsFromMetaHeader(
 		header,
 		mp.marshalizer,
@@ -168,11 +174,19 @@ func (mp *metaProcessor) ProcessBlock(
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
+	mp.txCoordinator.CreateBlockStarted()
 	mp.createBlockStarted()
+	mp.txCoordinator.RequestBlockTransactions(body)
+
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
 		return process.ErrTimeIsOut
+	}
+
+	err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
+	if err != nil {
+		return err
 	}
 
 	haveMissingShardHeaders := requestedShardHdrs > 0 || requestedFinalityAttestingShardHdrs > 0
@@ -853,6 +867,13 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		}
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	}
+
+	// request miniblocks for which metachain is destination
+	for _, mb := range shardHeader.MiniBlockHeaders {
+		if mb.ReceiverShardID == mp.shardCoordinator.SelfId() {
+			go mp.onRequestMiniBlock(mb.Hash)
+		}
 	}
 }
 

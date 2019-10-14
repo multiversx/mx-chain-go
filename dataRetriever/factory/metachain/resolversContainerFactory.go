@@ -22,6 +22,7 @@ type resolversContainerFactory struct {
 	dataPools                dataRetriever.MetaPoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
+	dataPacker               dataRetriever.DataPacker
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -32,6 +33,7 @@ func NewResolversContainerFactory(
 	marshalizer marshal.Marshalizer,
 	dataPools dataRetriever.MetaPoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+	dataPacker dataRetriever.DataPacker,
 ) (*resolversContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -52,6 +54,9 @@ func NewResolversContainerFactory(
 	if uint64ByteSliceConverter == nil || uint64ByteSliceConverter.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
+	if dataPacker == nil || dataPacker.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilDataPacker
+	}
 
 	return &resolversContainerFactory{
 		shardCoordinator:         shardCoordinator,
@@ -61,6 +66,7 @@ func NewResolversContainerFactory(
 		dataPools:                dataPools,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
+		dataPacker:               dataPacker,
 	}, nil
 }
 
@@ -78,7 +84,45 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 	}
 
 	metaKeys, metaInterceptorSlice, err := rcf.generateMetaChainHeaderResolvers()
+	if err != nil {
+		return nil, err
+	}
 	err = container.AddMultiple(metaKeys, metaInterceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, resolverSlice, err := rcf.generateTxResolvers(
+		factory.TransactionTopic,
+		dataRetriever.TransactionUnit,
+		rcf.dataPools.Transactions(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, resolverSlice, err = rcf.generateTxResolvers(
+		factory.UnsignedTransactionTopic,
+		dataRetriever.UnsignedTransactionUnit,
+		rcf.dataPools.UnsignedTransactions(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, resolverSlice, err = rcf.generateMiniBlocksResolvers()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
 	if err != nil {
 		return nil, err
 	}
@@ -219,6 +263,166 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	return rcf.createTopicAndAssignHandler(
 		identifier+resolverSender.TopicRequestSuffix(),
 		resolver,
+		false)
+}
+
+//------- Tx resolvers
+
+func (rcf *resolversContainerFactory) generateTxResolvers(
+	topic string,
+	unit dataRetriever.UnitType,
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+) ([]string, []dataRetriever.Resolver, error) {
+
+	shardC := rcf.shardCoordinator
+
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards)
+	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierTx := topic + shardC.CommunicationIdentifier(idx)
+		excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+		resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resolverSlice[idx] = resolver
+		keys[idx] = identifierTx
+	}
+
+	identifierTx := topic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolverSlice[noOfShards] = resolver
+	keys[sharding.MetachainShardId] = identifierTx
+
+	return keys, resolverSlice, nil
+}
+
+func (rcf *resolversContainerFactory) createTxResolver(
+	topic string,
+	excludedTopic string,
+	unit dataRetriever.UnitType,
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+) (dataRetriever.Resolver, error) {
+
+	txStorer := rcf.store.GetStorer(unit)
+
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
+	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		topic,
+		peerListCreator,
+		rcf.marshalizer,
+		rcf.intRandomizer,
+		uint32(0),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resolver, err := resolvers.NewTxResolver(
+		resolverSender,
+		dataPool,
+		txStorer,
+		rcf.marshalizer,
+		rcf.dataPacker,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	//add on the request topic
+	return rcf.createTopicAndAssignHandler(
+		topic+resolverSender.TopicRequestSuffix(),
+		resolver,
+		false)
+}
+
+//------- MiniBlocks resolvers
+
+func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, []dataRetriever.Resolver, error) {
+	shardC := rcf.shardCoordinator
+	noOfShards := shardC.NumberOfShards()
+	keys := make([]string, noOfShards)
+	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
+		excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+		resolver, err := rcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		resolverSlice[idx] = resolver
+		keys[idx] = identifierMiniBlocks
+	}
+
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := rcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolverSlice[noOfShards] = resolver
+	keys[sharding.MetachainShardId] = identifierMiniBlocks
+
+	return keys, resolverSlice, nil
+}
+
+func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
+	miniBlocksStorer := rcf.store.GetStorer(dataRetriever.MiniBlockUnit)
+
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		topic,
+		peerListCreator,
+		rcf.marshalizer,
+		rcf.intRandomizer,
+		uint32(0),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	txBlkResolver, err := resolvers.NewGenericBlockBodyResolver(
+		resolverSender,
+		rcf.dataPools.MiniBlocks(),
+		miniBlocksStorer,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	//add on the request topic
+	return rcf.createTopicAndAssignHandler(
+		topic+resolverSender.TopicRequestSuffix(),
+		txBlkResolver,
 		false)
 }
 

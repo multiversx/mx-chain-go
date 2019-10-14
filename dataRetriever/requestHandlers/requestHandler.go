@@ -17,7 +17,7 @@ type resolverRequestHandler struct {
 	rewardTxRequestTopic string
 	mbRequestTopic       string
 	shardHdrRequestTopic string
-	metaHdrRequestTopic      string
+	metaHdrRequestTopic  string
 	isMetaChain          bool
 	maxTxsToRequest      int
 }
@@ -80,6 +80,7 @@ func NewMetaResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	shardHdrRequestTopic string,
 	metaHdrRequestTopic string,
+	txRequestTopic string,
 ) (*resolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
@@ -90,11 +91,15 @@ func NewMetaResolverRequestHandler(
 	if len(metaHdrRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyMetaHeaderRequestTopic
 	}
+	if len(txRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyTxRequestTopic
+	}
 
 	rrh := &resolverRequestHandler{
 		resolversFinder:      finder,
 		shardHdrRequestTopic: shardHdrRequestTopic,
 		metaHdrRequestTopic:  metaHdrRequestTopic,
+		txRequestTopic:       txRequestTopic,
 		isMetaChain:          true,
 	}
 

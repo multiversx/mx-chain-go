@@ -76,6 +76,6 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 	//pointer checking
 	assert.True(t, metaChainBlocks == tdp.MetaChainBlocks())
 	assert.True(t, shardHeaders == tdp.ShardHeaders())
-	assert.True(t, miniBlockheaders == tdp.MiniBlockHashes())
+	assert.True(t, miniBlockheaders == tdp.MiniBlocks())
 	assert.True(t, hdrsNonces == tdp.HeadersNonces())
 }

@@ -34,7 +34,7 @@ func (mphf *MetaPoolsHolderFake) MetaChainBlocks() storage.Cacher {
 	return mphf.metaChainBlocks
 }
 
-func (mphf *MetaPoolsHolderFake) MiniBlockHashes() dataRetriever.ShardedDataCacherNotifier {
+func (mphf *MetaPoolsHolderFake) MiniBlocks() dataRetriever.ShardedDataCacherNotifier {
 	return mphf.miniBlockHashes
 }
 

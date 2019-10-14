@@ -16,7 +16,7 @@ func (mphs *MetaPoolsHolderStub) MetaChainBlocks() storage.Cacher {
 	return mphs.MetaChainBlocksCalled()
 }
 
-func (mphs *MetaPoolsHolderStub) MiniBlockHashes() dataRetriever.ShardedDataCacherNotifier {
+func (mphs *MetaPoolsHolderStub) MiniBlocks() dataRetriever.ShardedDataCacherNotifier {
 	return mphs.MiniBlockHashesCalled()
 }
 

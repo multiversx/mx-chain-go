@@ -70,7 +70,7 @@ func NewResolversContainerFactory(
 	}, nil
 }
 
-// Create returns an interceptor container that will hold all interceptors in the system
+// Create returns a resolver container that will hold all resolvers in the system
 func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
 	container := containers.NewResolversContainer()
 
@@ -204,6 +204,17 @@ func (rcf *resolversContainerFactory) generateTxResolvers(
 		keys[idx] = identifierTx
 	}
 
+	identifierTx := topic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolverSlice[noOfShards] = resolver
+	keys[sharding.MetachainShardId] = identifierTx
+
 	return keys, resolverSlice, nil
 }
 
@@ -323,7 +334,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 	shardC := rcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards)
-	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
+	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
@@ -337,6 +348,17 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 		resolverSlice[idx] = resolver
 		keys[idx] = identifierMiniBlocks
 	}
+
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := rcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolverSlice[noOfShards] = resolver
+	keys[sharding.MetachainShardId] = identifierMiniBlocks
 
 	return keys, resolverSlice, nil
 }
