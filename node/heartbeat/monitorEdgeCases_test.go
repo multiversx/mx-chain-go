@@ -223,8 +223,11 @@ func TestMonitor_ObserverGapValidatorPartlyOnline2(t *testing.T) {
 	heartBeats = mon1.GetHeartbeats()
 	verifyHeartBeat(t, heartBeats[0], true, 20, 0)
 
+	time.Sleep(sleepDuration)
+
 	timer.SetSeconds(hundredSeconds)
 	mon2 := createMonitor(storer, genesisTime, unresponsiveDuration, timer)
+
 	mon2.AddHeartbeatMessageToMap(&heartbeat.Heartbeat{Pubkey: []byte(pkValidator)})
 	heartBeats = mon2.GetHeartbeats()
 	verifyHeartBeat(t, heartBeats[0], true, 100, 0)
@@ -234,9 +237,13 @@ func TestMonitor_ObserverGapValidatorPartlyOnline2(t *testing.T) {
 	heartBeats = mon2.GetHeartbeats()
 	verifyHeartBeat(t, heartBeats[0], true, 120, 0)
 
+	//timer.SetSeconds(170)
+	//heartBeats = mon2.GetHeartbeats()
+	//verifyHeartBeat(t, heartBeats[0], true, 170, 0)
+
 	timer.SetSeconds(twoHundredSeconds)
 	heartBeats = mon2.GetHeartbeats()
-	verifyHeartBeat(t, heartBeats[0], false, 120, 80)
+	verifyHeartBeat(t, heartBeats[0], false, 170, 30)
 }
 
 // v: |____________________________......

@@ -134,6 +134,7 @@ func (m *Monitor) initializeHeartBeatForPK(
 func (m *Monitor) SaveMultipleHeartbeatMessageInfos(pubKeysToSave map[string]*heartbeatMessageInfo) {
 	m.mutHeartbeatMessages.RLock()
 	defer m.mutHeartbeatMessages.RUnlock()
+
 	for key, hmbi := range pubKeysToSave {
 		hbDTO := m.convertToExportedStruct(hmbi)
 		err := m.storer.SavePubkeyData([]byte(key), &hbDTO)

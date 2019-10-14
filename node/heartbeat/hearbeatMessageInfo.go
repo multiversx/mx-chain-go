@@ -58,51 +58,54 @@ func newHeartbeatMessageInfo(
 }
 
 func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
-	validDuration := computeValidDuration(crtTime, hbmi)
-	previousActive := hbmi.isActive && validDuration
-	hbmi.isActive = true
-
-	hbmi.updateTimes(crtTime, previousActive)
+	hbmi.updateTimes(crtTime)
 }
 
 func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
-	validDuration := computeValidDuration(crtTime, hbmi)
-	hbmi.isActive = hbmi.isActive && validDuration
-
-	hbmi.updateTimes(crtTime, hbmi.isActive)
+	hbmi.updateTimes(crtTime)
 }
 
-func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time, previousActive bool) {
+func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time) {
 	if crtTime.Sub(hbmi.genesisTime) < 0 {
 		return
 	}
 	hbmi.updateMaxInactiveTimeDuration(crtTime)
-	hbmi.updateUpAndDownTime(previousActive, crtTime)
-}
-
-func computeValidDuration(crtTime time.Time, hbmi *heartbeatMessageInfo) bool {
-	crtDuration := crtTime.Sub(hbmi.timeStamp)
-	crtDuration = maxDuration(0, crtDuration)
-	validDuration := crtDuration <= hbmi.maxDurationPeerUnresponsive
-	return validDuration
+	hbmi.updateUpAndDownTime(crtTime)
 }
 
 // Will update the total time a node was up and down
-func (hbmi *heartbeatMessageInfo) updateUpAndDownTime(previousActive bool, crtTime time.Time) {
+func (hbmi *heartbeatMessageInfo) updateUpAndDownTime(crtTime time.Time) {
 	if hbmi.lastUptimeDowntime.Sub(hbmi.genesisTime) < 0 {
 		hbmi.lastUptimeDowntime = hbmi.genesisTime
 	}
 
+	if crtTime.Sub(hbmi.timeStamp) < 0 {
+		return
+	}
+
+	durationSinceLastHeartbeat := crtTime.Sub(hbmi.timeStamp)
+
 	lastDuration := crtTime.Sub(hbmi.lastUptimeDowntime)
 	lastDuration = maxDuration(0, lastDuration)
 
-	if previousActive {
-		if hbmi.isActive {
-			hbmi.totalUpTime.Duration += lastDuration
-		}
+	uptime := time.Duration(0)
+	downTime := time.Duration(0)
+
+	insideActiveWindowAfterHeartheat := durationSinceLastHeartbeat < hbmi.maxDurationPeerUnresponsive
+	outSideActiveWindowAfterHeartbeat := durationSinceLastHeartbeat-lastDuration > hbmi.maxDurationPeerUnresponsive
+	noHeartbeatReceived := hbmi.timeStamp == hbmi.genesisTime
+
+	if noHeartbeatReceived || outSideActiveWindowAfterHeartbeat {
+		downTime = lastDuration
+	} else if insideActiveWindowAfterHeartheat {
+		uptime = lastDuration
 	} else {
-		hbmi.totalDownTime.Duration += lastDuration
+		downTime = durationSinceLastHeartbeat - hbmi.maxDurationPeerUnresponsive
+		uptime = lastDuration - downTime
 	}
+
+	hbmi.totalUpTime.Duration += uptime
+	hbmi.totalDownTime.Duration += downTime
 
 	hbmi.lastUptimeDowntime = crtTime
 }
@@ -115,13 +118,16 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	nodeDisplayName string,
 ) {
 	crtTime := hbmi.getTimeHandler()
-	hbmi.updateFields(crtTime)
+	hbmi.isActive = true
 	hbmi.computedShardID = computedShardID
 	hbmi.receivedShardID = receivedshardID
-	hbmi.updateMaxInactiveTimeDuration(crtTime)
-	hbmi.timeStamp = crtTime
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
+
+	hbmi.updateFields(crtTime)
+	hbmi.updateMaxInactiveTimeDuration(crtTime)
+	hbmi.timeStamp = crtTime
+
 }
 
 func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration(currentTime time.Time) {
