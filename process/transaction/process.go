@@ -230,7 +230,6 @@ func (txProc *txProcessor) processSCInvoking(
 func (txProc *txProcessor) getAddresses(
 	tx *transaction.Transaction,
 ) (state.AddressContainer, state.AddressContainer, error) {
-	//for now we assume that the address = public key
 	adrSrc, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
 	if err != nil {
 		return nil, nil, err
