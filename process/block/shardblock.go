@@ -23,42 +23,26 @@ const maxCleanTime = time.Second
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	dataPool          dataRetriever.PoolsHolder
-	metaBlockFinality uint32
-
-	chRcvAllMetaHdrs chan bool
-
+	dataPool               dataRetriever.PoolsHolder
+	metaBlockFinality      uint32
+	chRcvAllMetaHdrs       chan bool
 	processedMiniBlocks    map[string]map[string]struct{}
 	mutProcessedMiniBlocks sync.RWMutex
-
-	core          serviceContainer.Core
-	txCoordinator process.TransactionCoordinator
-	txCounter     *transactionCounter
-
-	txsPoolsCleaner process.PoolsCleaner
+	core                   serviceContainer.Core
+	txCoordinator          process.TransactionCoordinator
+	txCounter              *transactionCounter
+	txsPoolsCleaner        process.PoolsCleaner
 }
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
-	err := checkProcessorNilParameters(
-		arguments.Accounts,
-		arguments.ForkDetector,
-		arguments.Hasher,
-		arguments.Marshalizer,
-		arguments.Store,
-		arguments.ShardCoordinator,
-		arguments.NodesCoordinator,
-		arguments.SpecialAddressHandler,
-		arguments.Uint64Converter)
+	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
 
 	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
-	}
-	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
-		return nil, process.ErrNilRequestHandler
 	}
 	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionCoordinator
