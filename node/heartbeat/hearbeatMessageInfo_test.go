@@ -18,7 +18,7 @@ func TestNewHeartbeatMessageInfo_InvalidDurationShouldErr(t *testing.T) {
 		0,
 		false,
 		time.Time{},
-		&mock.MockTimer{},
+		mock.NewMockTimer(),
 	)
 
 	assert.Nil(t, hbmi)
@@ -46,7 +46,7 @@ func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
 		1,
 		false,
 		time.Time{},
-		&mock.MockTimer{},
+		mock.NewMockTimer(),
 	)
 
 	assert.NotNil(t, hbmi)
@@ -58,7 +58,7 @@ func TestNewHeartbeatMessageInfo_OkValsShouldWork(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 	t.Parallel()
 
-	mockTimer := &mock.MockTimer{}
+	mockTimer := mock.NewMockTimer()
 	genesisTime := mockTimer.Now()
 
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
@@ -87,7 +87,7 @@ func TestHeartbeatMessageInfo_HeartbeatReceivedShouldUpdate(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mockTimer := &mock.MockTimer{}
+	mockTimer := mock.NewMockTimer()
 	genesisTime := mockTimer.Now()
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		100*time.Second,
@@ -113,7 +113,7 @@ func TestHeartbeatMessageInfo_HeartbeatUpdateFieldsShouldWork(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 	t.Parallel()
 
-	mockTimer := &mock.MockTimer{}
+	mockTimer := mock.NewMockTimer()
 	genesisTime := mockTimer.Now()
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		100*time.Second,
@@ -141,7 +141,7 @@ func TestHeartbeatMessageInfo_HeartbeatShouldUpdateUpDownTime(t *testing.T) {
 func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime(t *testing.T) {
 	t.Parallel()
 
-	mockTimer := &mock.MockTimer{}
+	mockTimer := mock.NewMockTimer()
 	genesisTime := mockTimer.Now()
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		500*time.Millisecond,
@@ -169,7 +169,7 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t *testing.T) {
 	t.Parallel()
 
-	mockTimer := &mock.MockTimer{}
+	mockTimer := mock.NewMockTimer()
 	genesisTime := time.Unix(5, 0)
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		100*time.Second,
@@ -196,7 +196,7 @@ func TestHeartbeatMessageInfo_HeartbeatBeforeGenesisShouldNotUpdateUpDownTime(t 
 func TestHeartbeatMessageInfo_HeartbeatEqualGenesisShouldHaveUpDownTimeZero(t *testing.T) {
 	t.Parallel()
 
-	mockTimer := &mock.MockTimer{}
+	mockTimer := mock.NewMockTimer()
 	genesisTime := time.Unix(1, 0)
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
 		100*time.Second,
