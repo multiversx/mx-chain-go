@@ -292,6 +292,12 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestHasher,
 			TestMultiSig,
 			tpn.MetaDataPool,
+			tpn.AccntState,
+			TestAddressConverter,
+			tpn.OwnAccount.SingleSigner,
+			tpn.OwnAccount.KeygenTxSign,
+			maxTxNonceDeltaAllowed,
+			tpn.EconomicsData,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -334,6 +340,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			TestMarshalizer,
 			tpn.MetaDataPool,
 			TestUint64Converter,
+			dataPacker,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -342,6 +349,9 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ResolverFinder,
 			factory.ShardHeadersForMetachainTopic,
 			factory.MetachainBlocksTopic,
+			factory.TransactionTopic,
+			factory.UnsignedTransactionTopic,
+			factory.MiniBlocksTopic,
 		)
 	} else {
 		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(

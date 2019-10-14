@@ -278,7 +278,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers(
 
 	noOfShards := shardC.NumberOfShards()
 
-	keys := make([]string, noOfShards)
+	keys := make([]string, noOfShards+1)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
@@ -303,7 +303,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers(
 	}
 
 	resolverSlice[noOfShards] = resolver
-	keys[sharding.MetachainShardId] = identifierTx
+	keys[noOfShards] = identifierTx
 
 	return keys, resolverSlice, nil
 }
@@ -359,7 +359,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards)
+	keys := make([]string, noOfShards+1)
 	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
@@ -384,7 +384,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 	}
 
 	resolverSlice[noOfShards] = resolver
-	keys[sharding.MetachainShardId] = identifierMiniBlocks
+	keys[noOfShards] = identifierMiniBlocks
 
 	return keys, resolverSlice, nil
 }

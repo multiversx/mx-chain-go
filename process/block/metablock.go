@@ -161,11 +161,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	body, ok := bodyHandler.(block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	go getMetricsFromMetaHeader(
 		header,
 		mp.marshalizer,

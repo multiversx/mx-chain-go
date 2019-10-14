@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+const maxGoRoutineTxInterceptor = 100
 
 type interceptorsContainerFactory struct {
 	accounts               state.AccountsAdapter
@@ -51,7 +54,6 @@ func NewInterceptorsContainerFactory(
 	keyGen crypto.KeyGenerator,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
-	txInterceptorThrottler process.InterceptorThrottler,
 ) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -93,8 +95,10 @@ func NewInterceptorsContainerFactory(
 	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if txInterceptorThrottler == nil || txInterceptorThrottler.IsInterfaceNil() {
-		return nil, process.ErrNilThrottler
+
+	txInterceptorThrottler, err := throttler.NewNumGoRoutineThrottler(maxGoRoutineTxInterceptor)
+	if err != nil {
+		return nil, err
 	}
 
 	return &interceptorsContainerFactory{
@@ -321,7 +325,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards)
+	keys := make([]string, noOfShards+1)
 	interceptorSlice := make([]process.Interceptor, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
@@ -343,7 +347,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 		return nil, nil, err
 	}
 
-	keys[sharding.MetachainShardId] = identifierMiniBlocks
+	keys[noOfShards] = identifierMiniBlocks
 	interceptorSlice[noOfShards] = interceptor
 
 	return keys, interceptorSlice, nil

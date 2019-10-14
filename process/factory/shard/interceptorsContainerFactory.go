@@ -416,7 +416,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards)
+	keys := make([]string, noOfShards+1)
 	interceptorSlice := make([]process.Interceptor, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
@@ -438,7 +438,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 		return nil, nil, err
 	}
 
-	keys[sharding.MetachainShardId] = identifierMiniBlocks
+	keys[noOfShards] = identifierMiniBlocks
 	interceptorSlice[noOfShards] = interceptor
 
 	return keys, interceptorSlice, nil
