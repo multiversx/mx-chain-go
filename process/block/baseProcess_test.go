@@ -245,7 +245,7 @@ func initStore() *dataRetriever.ChainStorer {
 	return store
 }
 
-func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) data.HeaderHandler {
+func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) *block.MetaBlock {
 	metaBlock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{
@@ -316,7 +316,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 		nodesCoordinator,
 	)
 	arguments := blproc.ArgShardProcessor{
-		ArgBaseProcessor: &blproc.ArgBaseProcessor{
+		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
 			ForkDetector:          &mock.ForkDetectorMock{},
 			Hasher:                &mock.HasherStub{},

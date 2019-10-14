@@ -92,7 +92,7 @@ const (
 
 var log = logger.DefaultLogger()
 
-const maxTxNonceDeltaAllowed = 100
+const maxTxNonceDeltaAllowed = 15000
 
 // ErrCreateForkDetector signals that a fork detector could not be created
 //TODO: Extract all others error messages from this file in some defined errors
@@ -860,6 +860,14 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
+	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
+		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
+		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
@@ -871,6 +879,7 @@ func createShardDataStoreFromConfig(
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
+	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 
 	return store, err
 }
@@ -964,6 +973,14 @@ func createMetaChainDataStoreFromConfig(
 		}
 	}
 
+	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
+		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
+		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
@@ -974,6 +991,7 @@ func createMetaChainDataStoreFromConfig(
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
 	}
+	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 
 	return store, err
 }
@@ -1705,7 +1723,7 @@ func newShardBlockProcessor(
 		Core:                  coreServiceContainer,
 	}
 	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: &argumentsBaseProcessor,
+		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.Datapool,
 		TxCoordinator:    txCoordinator,
 		TxsPoolsCleaner:  txPoolsCleaner,
@@ -1744,21 +1762,26 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	metaProcessor, err := block.NewMetaProcessor(
-		coreServiceContainer,
-		state.AccountsAdapter,
-		data.MetaDatapool,
-		forkDetector,
-		shardCoordinator,
-		nodesCoordinator,
-		specialAddressHandler,
-		core.Hasher,
-		core.Marshalizer,
-		data.Store,
-		shardsGenesisBlocks,
-		requestHandler,
-		core.Uint64ByteSliceConverter,
-	)
+	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Accounts:              state.AccountsAdapter,
+		ForkDetector:          forkDetector,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.Marshalizer,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		NodesCoordinator:      nodesCoordinator,
+		SpecialAddressHandler: specialAddressHandler,
+		Uint64Converter:       core.Uint64ByteSliceConverter,
+		StartHeaders:          shardsGenesisBlocks,
+		RequestHandler:        requestHandler,
+		Core:                  coreServiceContainer,
+	}
+	arguments := block.ArgMetaProcessor{
+		ArgBaseProcessor: argumentsBaseProcessor,
+		DataPool:         data.MetaDatapool,
+	}
+
+	metaProcessor, err := block.NewMetaProcessor(arguments)
 	if err != nil {
 		return nil, errors.New("could not create block processor: " + err.Error())
 	}

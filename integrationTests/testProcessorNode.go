@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -123,7 +124,7 @@ type TestProcessorNode struct {
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
 	BroadcastMessenger consensus.BroadcastMessenger
-	Bootstrapper       process.Bootstrapper
+	Bootstrapper       TestBootstrapper
 	Rounder            *mock.RounderMock
 
 	MultiSigner crypto.MultiSigner
@@ -254,22 +255,24 @@ func (tpn *TestProcessorNode) initChainHandler() {
 }
 
 func (tpn *TestProcessorNode) initEconomicsData() {
-	economicsData := economics.NewEconomicsData(
+	mingGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
+	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
+
+	economicsData, _ := economics.NewEconomicsData(
 		&config.ConfigEconomics{
 			EconomicsAddresses: config.EconomicsAddresses{
 				CommunityAddress: "addr1",
 				BurnAddress:      "addr2",
 			},
 			RewardsSettings: config.RewardsSettings{
-				RewardsValue:        1000,
+				RewardsValue:        "1000",
 				CommunityPercentage: 0.10,
 				LeaderPercentage:    0.50,
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MinGasPrice:      MinTxGasPrice,
-				MinGasLimitForTx: MinTxGasLimit,
-				MinTxFee:         MinTxGasPrice * MinTxGasLimit,
+				MinGasPrice: mingGasPrice,
+				MinGasLimit: minGasLimit,
 			},
 		},
 	)
@@ -337,8 +340,8 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
-			factory.HeadersTopic,
 			factory.ShardHeadersForMetachainTopic,
+			factory.MetachainBlocksTopic,
 		)
 	} else {
 		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
@@ -432,7 +435,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {
@@ -459,7 +462,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {
@@ -494,41 +497,35 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 	}
 
+	argumentsBase := block.ArgBaseProcessor{
+		Accounts:              tpn.AccntState,
+		ForkDetector:          tpn.ForkDetector,
+		Hasher:                TestHasher,
+		Marshalizer:           TestMarshalizer,
+		Store:                 tpn.Storage,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		NodesCoordinator:      tpn.NodesCoordinator,
+		SpecialAddressHandler: tpn.SpecialAddressHandler,
+		Uint64Converter:       TestUint64Converter,
+		StartHeaders:          tpn.GenesisBlocks,
+		RequestHandler:        tpn.RequestHandler,
+		Core:                  nil,
+	}
+
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.BlockProcessor, err = block.NewMetaProcessor(
-			&mock.ServiceContainerMock{},
-			tpn.AccntState,
-			tpn.MetaDataPool,
-			tpn.ForkDetector,
-			tpn.ShardCoordinator,
-			tpn.NodesCoordinator,
-			tpn.SpecialAddressHandler,
-			TestHasher,
-			TestMarshalizer,
-			tpn.Storage,
-			tpn.GenesisBlocks,
-			tpn.RequestHandler,
-			TestUint64Converter,
-		)
+		argumentsBase.Core = &mock.ServiceContainerMock{}
+		arguments := block.ArgMetaProcessor{
+			ArgBaseProcessor: argumentsBase,
+			DataPool:         tpn.MetaDataPool,
+		}
+
+		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
 		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor: &block.ArgBaseProcessor{
-				Accounts:              tpn.AccntState,
-				ForkDetector:          tpn.ForkDetector,
-				Hasher:                TestHasher,
-				Marshalizer:           TestMarshalizer,
-				Store:                 tpn.Storage,
-				ShardCoordinator:      tpn.ShardCoordinator,
-				NodesCoordinator:      tpn.NodesCoordinator,
-				SpecialAddressHandler: tpn.SpecialAddressHandler,
-				Uint64Converter:       TestUint64Converter,
-				StartHeaders:          tpn.GenesisBlocks,
-				RequestHandler:        tpn.RequestHandler,
-				Core:                  nil,
-			},
-			DataPool:        tpn.ShardDataPool,
-			TxCoordinator:   tpn.TxCoordinator,
-			TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
+			ArgBaseProcessor: argumentsBase,
+			DataPool:         tpn.ShardDataPool,
+			TxCoordinator:    tpn.TxCoordinator,
+			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)

@@ -120,7 +120,7 @@ func NewElasticIndexer(
 		return nil, err
 	}
 
-	err = indexer.checkAndCreateIndex(roundIndex, nil)
+	err = indexer.checkAndCreateIndex(roundIndex, timestampMapping())
 	if err != nil {
 		return nil, err
 	}
@@ -240,15 +240,19 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 }
 
-// SaveRoundInfo will save data about a round on elastic search
-func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64, blockWasProposed bool) {
-	var buff bytes.Buffer
-
-	roundInfo := RoundInfo{
-		SignersIndexes:   signersIndexes,
-		BlockWasProposed: blockWasProposed,
-		ShardId:          shardId,
+// SaveMetaBlock will index a meta block in elastic search
+func (ei *elasticIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
+	if header == nil || header.IsInterfaceNil() {
+		ei.logger.Warn(ErrNoHeader.Error())
+		return
 	}
+
+	go ei.saveHeader(header, signersIndexes)
+}
+
+// SaveRoundInfo will save data about a round on elastic search
+func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
+	var buff bytes.Buffer
 
 	marshalizedRoundInfo, err := ei.marshalizer.Marshal(roundInfo)
 	if err != nil {
@@ -261,7 +265,7 @@ func (ei *elasticIndexer) SaveRoundInfo(round int64, shardId uint32, signersInde
 
 	req := esapi.IndexRequest{
 		Index:      roundIndex,
-		DocumentID: strconv.Itoa(int(round)),
+		DocumentID: strconv.FormatUint(uint64(roundInfo.ShardId), 10) + "_" + strconv.FormatUint(roundInfo.Index, 10),
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}
@@ -635,7 +639,7 @@ func buildTransaction(
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         tx.Nonce,
 		Round:         header.GetRound(),
-		Value:         tx.Value,
+		Value:         tx.Value.String(),
 		Receiver:      hex.EncodeToString(tx.RcvAddr),
 		Sender:        hex.EncodeToString(tx.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
@@ -663,7 +667,7 @@ func buildSmartContractResult(
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         scr.Nonce,
 		Round:         header.GetRound(),
-		Value:         scr.Value,
+		Value:         scr.Value.String(),
 		Receiver:      hex.EncodeToString(scr.RcvAddr),
 		Sender:        hex.EncodeToString(scr.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
@@ -694,7 +698,7 @@ func buildRewardTransaction(
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         0,
 		Round:         rTx.Round,
-		Value:         rTx.Value,
+		Value:         rTx.Value.String(),
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
 		Sender:        shardIdStr,
 		ReceiverShard: mb.ReceiverShardID,

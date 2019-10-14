@@ -3,6 +3,8 @@ package node
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -159,16 +162,37 @@ func createSender(messenger p2p.Messenger, topic string) (*heartbeat.Sender, cry
 }
 
 func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	signer := &singlesig.SchnorrSigner{}
-	keyGen := signing.NewKeyGenerator(suite)
 
 	monitor, _ := heartbeat.NewMonitor(
-		signer,
-		keyGen,
 		integrationTests.TestMarshalizer,
 		maxDurationPeerUnresponsive,
 		map[uint32][]string{0: {""}},
+		time.Now(),
+		&mock.MessageHandlerStub{
+			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+				var hb heartbeat.Heartbeat
+				_ = json.Unmarshal(message.Data(), &hb)
+				return &hb, nil
+			},
+		},
+		&mock.HeartbeatStorerStub{
+			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
+				return nil
+			},
+			LoadHbmiDTOCalled: func(pubKey string) (*heartbeat.HeartbeatDTO, error) {
+				return nil, errors.New("not found")
+			},
+			LoadKeysCalled: func() ([][]byte, error) {
+				return nil, nil
+			},
+			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+				return nil
+			},
+			SaveKeysCalled: func(peersSlice [][]byte) error {
+				return nil
+			},
+		},
+		&heartbeat.RealTimer{},
 	)
 
 	return monitor

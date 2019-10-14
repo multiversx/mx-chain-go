@@ -14,7 +14,7 @@ type Transaction struct {
 	BlockHash     string        `json:"blockHash"`
 	Nonce         uint64        `json:"nonce"`
 	Round         uint64        `json:"round"`
-	Value         *big.Int      `json:"value"`
+	Value         string        `json:"value"`
 	Receiver      string        `json:"receiver"`
 	Sender        string        `json:"sender"`
 	ReceiverShard uint32        `json:"receiverShard"`
@@ -52,9 +52,11 @@ type ValidatorsPublicKeys struct {
 
 // RoundInfo is a structure containing block signers and shard id
 type RoundInfo struct {
-	SignersIndexes   []uint64 `json:"signersIndexes"`
-	BlockWasProposed bool     `json:"blockWasProposed"`
-	ShardId          uint32   `json:"shardId"`
+	Index            uint64        `json:"-"`
+	SignersIndexes   []uint64      `json:"signersIndexes"`
+	BlockWasProposed bool          `json:"blockWasProposed"`
+	ShardId          uint32        `json:"shardId"`
+	Timestamp        time.Duration `json:"timestamp"`
 }
 
 // TPS is a structure containing all the fields that need to

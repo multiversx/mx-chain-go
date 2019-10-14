@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -16,11 +17,15 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 	}
 }
 
+func (im *IndexerMock) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
+	return
+}
+
 func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	panic("implement me")
 }
 
-func (im *IndexerMock) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64, blockWasProposed bool) {
+func (im *IndexerMock) SaveRoundInfo(roundInfo indexer.RoundInfo) {
 	return
 }
 

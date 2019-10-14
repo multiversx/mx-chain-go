@@ -156,7 +156,7 @@ func (inTx *InterceptedTransaction) integrity() error {
 }
 
 func (inTx *InterceptedTransaction) checkFeeValues() error {
-	isLowerGasLimitInTx := inTx.tx.GasLimit < inTx.feeHandler.MinGasLimitForTx()
+	isLowerGasLimitInTx := inTx.tx.GasLimit < inTx.feeHandler.MinGasLimit()
 	if isLowerGasLimitInTx {
 		return process.ErrInsufficientGasLimitInTx
 	}

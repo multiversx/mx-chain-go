@@ -19,8 +19,12 @@ func (ni *NilIndexer) SaveBlock(body data.BodyHandler, header data.HeaderHandler
 	return
 }
 
+func (im *NilIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
+	return
+}
+
 // SaveRoundInfo will do nothing
-func (ni *NilIndexer) SaveRoundInfo(round int64, shardId uint32, signersIndexes []uint64, blockWasProposed bool) {
+func (ni *NilIndexer) SaveRoundInfo(info RoundInfo) {
 	return
 }
 
