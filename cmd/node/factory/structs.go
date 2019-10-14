@@ -92,7 +92,7 @@ const (
 
 var log = logger.DefaultLogger()
 
-const maxTxNonceDeltaAllowed = 100
+const maxTxNonceDeltaAllowed = 15000
 
 // ErrCreateForkDetector signals that a fork detector could not be created
 //TODO: Extract all others error messages from this file in some defined errors
