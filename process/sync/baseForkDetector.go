@@ -152,7 +152,7 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 	}
 
 	bfd.mutHeaders.RLock()
-	for nonce, _ := range bfd.headers {
+	for nonce := range bfd.headers {
 		if nonce <= probableHighestNonce {
 			continue
 		}
