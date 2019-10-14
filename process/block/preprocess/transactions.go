@@ -197,7 +197,10 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
-	expandedMiniBlocks := txs.expandTxBlockMiniBlocks(block.MiniBlockSlice(body))
+	expandedMiniBlocks, err := txs.expandTxBlockMiniBlocks(block.MiniBlockSlice(body))
+	if err != nil {
+		return err
+	}
 
 	// basic validation already done in interceptors
 	for i := 0; i < len(expandedMiniBlocks); i++ {
@@ -518,9 +521,9 @@ func (txs *transactions) merge(mergedMiniBlocks block.MiniBlockSlice, miniBlock 
 	return mergedMiniBlocks
 }
 
-func (txs *transactions) expandTxBlockMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
+func (txs *transactions) expandTxBlockMiniBlocks(miniBlocks block.MiniBlockSlice) (block.MiniBlockSlice, error) {
 	if len(miniBlocks) == 0 || miniBlocks[0].Type != block.TxBlock {
-		return miniBlocks
+		return miniBlocks, nil
 	}
 
 	expandedMbs := make(block.MiniBlockSlice, 0)
@@ -536,15 +539,20 @@ func (txs *transactions) expandTxBlockMiniBlocks(miniBlocks block.MiniBlockSlice
 	}
 
 	if len(mbsToExpand) > 0 {
-		expandedMbs = append(expandedMbs, txs.expand(mbsToExpand)...)
+		mbs, err := txs.expand(mbsToExpand)
+		if err != nil {
+			return nil, err
+		}
+
+		expandedMbs = append(expandedMbs, mbs...)
 	}
 
-	return expandedMbs
+	return expandedMbs, nil
 }
 
-func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
+func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) (block.MiniBlockSlice, error) {
 	if len(miniBlocks) == 0 {
-		return miniBlocks
+		return miniBlocks, nil
 	}
 
 	txsInfo := make([][]*txInfo, txs.shardCoordinator.NumberOfShards())
@@ -555,7 +563,7 @@ func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) block.MiniBlock
 		for _, txHash := range miniBlock.TxHashes {
 			txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
 			if !ok {
-				continue
+				return nil, process.ErrMissingTransaction
 			}
 
 			txsInfo[miniBlock.ReceiverShardID] = append(txsInfo[miniBlock.ReceiverShardID], txInfo)
@@ -574,7 +582,7 @@ func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) block.MiniBlock
 		expandedMbs = append(expandedMbs, mbSlice...)
 	}
 
-	return expandedMbs
+	return expandedMbs, nil
 }
 
 func (txs *transactions) createExpandedTxMiniBlocks(

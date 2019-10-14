@@ -1409,7 +1409,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body = append(body, miniBlock)
 	err = tc.ProcessBlockTransaction(body, 10, haveTime)
-	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
+	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
 func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
