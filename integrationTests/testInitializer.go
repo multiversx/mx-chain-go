@@ -190,6 +190,9 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}

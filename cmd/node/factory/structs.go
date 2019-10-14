@@ -890,6 +890,7 @@ func createMetaChainDataStoreFromConfig(
 	uniqueID string,
 ) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
+	var txUnit, miniBlockUnit, unsignedTxUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var err error
 
@@ -915,6 +916,15 @@ func createMetaChainDataStoreFromConfig(
 				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 					_ = shardHdrHashNonceUnits[i].DestroyUnit()
 				}
+			}
+			if txUnit != nil {
+				_ = txUnit.DestroyUnit()
+			}
+			if unsignedTxUnit != nil {
+				_ = unsignedTxUnit.DestroyUnit()
+			}
+			if miniBlockUnit != nil {
+				_ = miniBlockUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -981,12 +991,39 @@ func createMetaChainDataStoreFromConfig(
 		return nil, err
 	}
 
+	txUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.TxStorage.Cache),
+		getDBFromConfig(config.TxStorage.DB, uniqueID),
+		getBloomFromConfig(config.TxStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	unsignedTxUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
+		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
+		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlockUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MiniBlocksStorage.Cache),
+		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
+		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
 	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
+	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
+	store.AddStorer(dataRetriever.MiniBlockUnit, unsignedTxUnit)
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])

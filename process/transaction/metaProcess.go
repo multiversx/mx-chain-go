@@ -3,8 +3,6 @@ package transaction
 import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -19,12 +17,9 @@ type metaTxProcessor struct {
 // NewMetaTxProcessor creates a new txProcessor engine
 func NewMetaTxProcessor(
 	accounts state.AccountsAdapter,
-	hasher hashing.Hasher,
 	addressConv state.AddressConverter,
-	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
-	txFeeHandler process.TransactionFeeHandler,
 	txTypeHandler process.TxTypeHandler,
 	economicsFee process.FeeHandler,
 ) (*metaTxProcessor, error) {
