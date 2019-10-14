@@ -58,19 +58,19 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		expectedBalance)
 }
 
-func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./fibonacci_ewasmified.wasm", b.N, 32)
+func Benchmark_VmDeployWithFibbonacciAndExecuteOnWAVM(b *testing.B) {
+	runWAVMVMBenchmark(b, "./fibonacci_ewasmified.wasm", b.N, 32)
 }
 
-func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./cpucalculate_ewasmified.wasm", b.N, 8000)
+func Benchmark_VmDeployWithCPUCalculateAndExecuteOnWAVM(b *testing.B) {
+	runWAVMVMBenchmark(b, "./cpucalculate_ewasmified.wasm", b.N, 8000)
 }
 
-func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./stringconcat_ewasmified.wasm", b.N, 10000)
+func Benchmark_VmDeployWithStringConcatAndExecuteOnWAVM(b *testing.B) {
+	runWAVMVMBenchmark(b, "./stringconcat_ewasmified.wasm", b.N, 10000)
 }
 
-func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue uint64) {
+func runWAVMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue uint64) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(100000000)
@@ -130,7 +130,7 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 	}
 }
 
-func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
+func TestVmDeployWithTransferAndExecuteERC20_WABT(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(100000000)

@@ -13,5 +13,5 @@ func WASMLibLocation() string {
 	if err != nil {
 		return ""
 	}
-	return usr.HomeDir + "/elrond-vm-binaries/" + libName
+	return usr.HomeDir + "\\elrond-vm-binaries\\" + libName
 }
