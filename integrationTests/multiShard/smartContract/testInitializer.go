@@ -466,7 +466,7 @@ func createNetNode(
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 
 	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: &block.ArgBaseProcessor{
+		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
 				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
@@ -831,35 +831,39 @@ func createMetaNetNode(
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
-	blkProc, _ := block.NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		accntAdapter,
-		dPool,
-		&mock.ForkDetectorMock{
-			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
-				return nil
+
+	arguments := block.ArgMetaProcessor{
+		ArgBaseProcessor: block.ArgBaseProcessor{
+			Accounts: accntAdapter,
+			ForkDetector: &mock.ForkDetectorMock{
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+					return nil
+				},
+				GetHighestFinalBlockNonceCalled: func() uint64 {
+					return 0
+				},
+				ProbableHighestNonceCalled: func() uint64 {
+					return 0
+				},
 			},
-			GetHighestFinalBlockNonceCalled: func() uint64 {
-				return 0
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
+			Hasher:           testHasher,
+			Marshalizer:      testMarshalizer,
+			Store:            store,
+			ShardCoordinator: shardCoordinator,
+			NodesCoordinator: nodesCoordinator,
+			SpecialAddressHandler: mock.NewSpecialAddressHandlerMock(
+				testAddressConverter,
+				shardCoordinator,
+				nodesCoordinator,
+			),
+			Uint64Converter: uint64Converter,
+			StartHeaders:    genesisBlocks,
+			RequestHandler:  requestHandler,
+			Core:            &mock.ServiceContainerMock{},
 		},
-		shardCoordinator,
-		nodesCoordinator,
-		mock.NewSpecialAddressHandlerMock(
-			testAddressConverter,
-			shardCoordinator,
-			nodesCoordinator,
-		),
-		testHasher,
-		testMarshalizer,
-		store,
-		genesisBlocks,
-		requestHandler,
-		uint64Converter,
-	)
+		DataPool: dPool,
+	}
+	blkProc, _ := block.NewMetaProcessor(arguments)
 
 	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
 

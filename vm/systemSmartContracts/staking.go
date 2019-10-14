@@ -36,7 +36,10 @@ func NewStakingSmartContract(stakeValue *big.Int, eei vm.SystemEI) (*stakingSC, 
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
 
-	reg := &stakingSC{stakeValue: big.NewInt(0).Set(stakeValue), eei: eei}
+	reg := &stakingSC{
+		stakeValue: big.NewInt(0).Set(stakeValue),
+		eei:        eei,
+	}
 	return reg, nil
 }
 

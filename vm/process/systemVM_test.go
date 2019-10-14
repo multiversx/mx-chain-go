@@ -55,6 +55,10 @@ func TestSystemVM_RunSmartContractCreate(t *testing.T) {
 	vmOutput, err := systemVM.RunSmartContractCreate(nil)
 	assert.Nil(t, vmOutput)
 	assert.Equal(t, vm.ErrInputArgsIsNil, err)
+
+	vmOutput, err = systemVM.RunSmartContractCreate(&vmcommon.ContractCreateInput{})
+	assert.Nil(t, vmOutput)
+	assert.Equal(t, vm.ErrInputCallerAddrIsNil, err)
 }
 
 func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
