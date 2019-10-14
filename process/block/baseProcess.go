@@ -512,44 +512,37 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 }
 
 // checkProcessorNilParameters will check the imput parameters for nil values
-func checkProcessorNilParameters(
-	accounts state.AccountsAdapter,
-	forkDetector process.ForkDetector,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	store dataRetriever.StorageService,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	specialAddressHandler process.SpecialAddressHandler,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) error {
+func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if arguments.Accounts == nil || arguments.Accounts.IsInterfaceNil() {
 		return process.ErrNilAccountsAdapter
 	}
-	if forkDetector == nil || forkDetector.IsInterfaceNil() {
+	if arguments.ForkDetector == nil || arguments.ForkDetector.IsInterfaceNil() {
 		return process.ErrNilForkDetector
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if arguments.Hasher == nil || arguments.Hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if arguments.Store == nil || arguments.Store.IsInterfaceNil() {
 		return process.ErrNilStorage
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
+	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
 		return process.ErrNilNodesCoordinator
 	}
-	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {
+	if arguments.SpecialAddressHandler == nil || arguments.SpecialAddressHandler.IsInterfaceNil() {
 		return process.ErrNilSpecialAddressHandler
 	}
-	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
+	if arguments.Uint64Converter == nil || arguments.Uint64Converter.IsInterfaceNil() {
 		return process.ErrNilUint64Converter
+	}
+	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
+		return process.ErrNilRequestHandler
 	}
 
 	return nil
