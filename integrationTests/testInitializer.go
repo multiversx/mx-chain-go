@@ -54,8 +54,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// StepDelay is used so that transactions can disseminate properly
 var StepDelay = time.Second
+
+// StepSync is used so that nodes have enough time to sync
 var StepSync = time.Second * 2
+
+// P2pBootstrapStepDelay is used so that nodes have enough time to bootstrap
 var P2pBootstrapStepDelay = 5 * time.Second
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
