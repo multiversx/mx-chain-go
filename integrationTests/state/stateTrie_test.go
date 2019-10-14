@@ -1219,6 +1219,9 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	nonce++
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
 	fmt.Println("Generating transactions...")
 	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 0, 6)
 	fmt.Println("Delaying for disseminating transactions...")
@@ -1227,25 +1230,34 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	time.Sleep(time.Second * 5)
 
+	assert.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
 	shardIdToRollbackLastBlock := uint32(0)
 	integrationTests.ForkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
 	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 1)
 	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
 
-	nonces := []*uint64{new(uint64), new(uint64)}
-	atomic.AddUint64(nonces[0], 1)
-	atomic.AddUint64(nonces[1], 2)
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
+	nonces := []*uint64{new(uint64), new(uint64)}
+	atomic.AddUint64(nonces[0], 2)
+	atomic.AddUint64(nonces[1], 3)
+
+	numOfRounds := 6
 	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
 		idxProposers,
 		nonces,
-		6,
+		numOfRounds,
 	)
 
 	err := shardNode.AccntState.RecreateTrie(rootHash)
 	assert.Nil(t, err)
+	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(8), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 }
 
 func TestTriePruningWhenBlockIsFinal(t *testing.T) {
@@ -1307,6 +1319,9 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	nonce++
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
 	fmt.Println("Generating transactions...")
 	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 0, 6)
 	fmt.Println("Delaying for disseminating transactions...")
@@ -1316,6 +1331,9 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	for i := 0; i < roundsToWait; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
+
+	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err := shardNode.AccntState.RecreateTrie(rootHash)
 	assert.Equal(t, storage.ErrKeyNotFound, err)
