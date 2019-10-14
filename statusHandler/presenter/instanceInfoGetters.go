@@ -1,6 +1,10 @@
 package presenter
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"strings"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+)
 
 // GetAppVersion will return application version
 func (psh *PresenterStatusHandler) GetAppVersion() string {
@@ -40,4 +44,17 @@ func (psh *PresenterStatusHandler) GetCountLeader() uint64 {
 // GetCountAcceptedBlocks will return count of how many accepted blocks was proposed by the node
 func (psh *PresenterStatusHandler) GetCountAcceptedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCountAcceptedBlocks)
+}
+
+// CheckSoftwareVersion will check if node is the latest version and will return latest stable version
+func (psh *PresenterStatusHandler) CheckSoftwareVersion() (bool, string) {
+	latestStableVersion := psh.getFromCacheAsString(core.MetricLatestTagSoftwareVersion)
+	currentVersion := psh.getFromCacheAsString(core.MetricAppVersion)
+	currentVersion = strings.Split(currentVersion, "/")[0]
+
+	if latestStableVersion == currentVersion {
+		return false, latestStableVersion
+	}
+
+	return true, latestStableVersion
 }

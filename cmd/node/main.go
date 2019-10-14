@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
+	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -699,6 +700,11 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	softwareVersionChecker, err := softwareVersion.NewSoftwareVersionChecker(coreComponents.StatusHandler)
+	if err == nil {
+		softwareVersionChecker.StartCheckSoftwareVersion()
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {

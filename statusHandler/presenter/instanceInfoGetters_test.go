@@ -94,3 +94,33 @@ func TestPresenterStatusHandler_GetCountAcceptedBlocks(t *testing.T) {
 
 	assert.Equal(t, countAcceptedBlocks, result)
 }
+
+func TestPresenterStatusHandler_CheckSoftwareVersionNeedUpdate(t *testing.T) {
+	t.Parallel()
+
+	appVersion := "v20/go123/adsds"
+	softwareVersion := "v21"
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetStringValue(core.MetricAppVersion, appVersion)
+	presenterStatusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, softwareVersion)
+	needUpdate, latestSoftwareVersion := presenterStatusHandler.CheckSoftwareVersion()
+
+	assert.Equal(t, true, needUpdate)
+	assert.Equal(t, softwareVersion, latestSoftwareVersion)
+}
+
+func TestPresenterStatusHandler_CheckSoftwareVersion(t *testing.T) {
+	t.Parallel()
+
+	appVersion := "v21/go123/adsds"
+	softwareVersion := "v21"
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetStringValue(core.MetricAppVersion, appVersion)
+	presenterStatusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, softwareVersion)
+	needUpdate, latestSoftwareVersion := presenterStatusHandler.CheckSoftwareVersion()
+
+	assert.Equal(t, false, needUpdate)
+	assert.Equal(t, softwareVersion, latestSoftwareVersion)
+}
