@@ -44,6 +44,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
+
 	idxNodeShard0 := 0
 	idxNodeShard1 := 1
 	idxNodeMeta := 2
@@ -127,18 +128,47 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+	nodeProposerShard0 := integrationTests.NewTestProcessorNode(
+		maxShards,
+		0,
+		0,
+		advertiserAddr,
+	)
+	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(
+		maxShards,
+		0,
+		0,
+		advertiserAddr,
+	)
 
-	nodeProposerShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-
-	nodeProposerShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	nodeProposerShard1 := integrationTests.NewTestProcessorNode(
+		maxShards,
+		1,
+		1,
+		advertiserAddr,
+	)
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
-	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(
+		maxShards,
+		1,
+		1,
+		advertiserAddr,
+	)
 
-	nodeProposerMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
-	nodeValidatorMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeProposerMeta := integrationTests.NewTestProcessorNode(
+		maxShards,
+		sharding.MetachainShardId,
+		0,
+		advertiserAddr,
+	)
+	nodeValidatorMeta := integrationTests.NewTestProcessorNode(
+		maxShards,
+		sharding.MetachainShardId,
+		0,
+		advertiserAddr,
+	)
 
 	nodes := []*integrationTests.TestProcessorNode{
 		nodeProposerShard0,

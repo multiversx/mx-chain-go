@@ -185,10 +185,8 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 
 	var preservedHdrInfos []*headerInfo
 
-	bfd.mutHeaders.RLock()
+	bfd.mutHeaders.Lock()
 	hdrInfos := bfd.headers[nonce]
-	bfd.mutHeaders.RUnlock()
-
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hash) {
 			continue
@@ -197,7 +195,6 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 		preservedHdrInfos = append(preservedHdrInfos, hdrInfoStored)
 	}
 
-	bfd.mutHeaders.Lock()
 	if preservedHdrInfos == nil {
 		delete(bfd.headers, nonce)
 	} else {
@@ -449,4 +446,24 @@ func (bfd *baseForkDetector) shouldSignalFork(
 	shouldSignalFork := headerInfo.round > lastForkRound || higherHashForSameRound
 
 	return shouldSignalFork
+}
+
+func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
+	header data.HeaderHandler,
+	state process.BlockHeaderState,
+	finality int64,
+) error {
+
+	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(header.GetNonce())
+	isSyncing := state == process.BHReceived && noncesDifference > process.MaxNoncesDifference
+	if state == process.BHProcessed || isSyncing {
+		return nil
+	}
+
+	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-finality
+	if roundTooOld {
+		return ErrLowerRoundInBlock
+	}
+
+	return nil
 }

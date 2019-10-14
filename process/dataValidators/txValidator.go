@@ -14,13 +14,19 @@ var log = logger.DefaultLogger()
 
 // TxValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type TxValidator struct {
-	accounts         state.AccountsAdapter
-	shardCoordinator sharding.Coordinator
-	rejectedTxs      uint64
+	accounts             state.AccountsAdapter
+	shardCoordinator     sharding.Coordinator
+	rejectedTxs          uint64
+	maxNonceDeltaAllowed int
 }
 
 // NewTxValidator creates a new nil tx handler validator instance
-func NewTxValidator(accounts state.AccountsAdapter, shardCoordinator sharding.Coordinator) (*TxValidator, error) {
+func NewTxValidator(
+	accounts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
+	maxNonceDeltaAllowed int,
+) (*TxValidator, error) {
+
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
@@ -29,9 +35,10 @@ func NewTxValidator(accounts state.AccountsAdapter, shardCoordinator sharding.Co
 	}
 
 	return &TxValidator{
-		accounts:         accounts,
-		shardCoordinator: shardCoordinator,
-		rejectedTxs:      uint64(0),
+		accounts:             accounts,
+		shardCoordinator:     shardCoordinator,
+		rejectedTxs:          uint64(0),
+		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 	}, nil
 }
 
@@ -55,7 +62,9 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	accountNonce := accountHandler.GetNonce()
 	txNonce := interceptedTx.Nonce()
 	lowerNonceInTx := txNonce < accountNonce
-	if lowerNonceInTx {
+	veryHighNonceInTx := txNonce > accountNonce+uint64(tv.maxNonceDeltaAllowed)
+	isTxRejected := lowerNonceInTx || veryHighNonceInTx
+	if isTxRejected {
 		tv.rejectedTxs++
 		return false
 	}

@@ -28,8 +28,12 @@ const (
 	MetaPeerDataUnit UnitType = 6
 	// UnsignedTransactionUnit is the unsigned transaction unit identifier
 	UnsignedTransactionUnit UnitType = 7
+	// RewardTransactionUnit is the reward transaction unit identifier
+	RewardTransactionUnit UnitType = 8
 	// MetaHdrNonceHashDataUnit is the meta header nonce-hash pair data unit identifier
-	MetaHdrNonceHashDataUnit UnitType = 8
+	MetaHdrNonceHashDataUnit UnitType = 9
+	// HeartbeatUnit is the heartbeat storage unit identifier
+	HeartbeatUnit UnitType = 10
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -56,7 +60,8 @@ type HeaderResolver interface {
 type MiniBlocksResolver interface {
 	Resolver
 	RequestDataFromHashArray(hashes [][]byte) error
-	GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice // TODO miniblockresolver should not know about miniblockslice
+	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
@@ -196,6 +201,7 @@ type Uint64SyncMapCacher interface {
 type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
+	RewardTransactions() ShardedDataCacherNotifier
 	Headers() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
 	MiniBlocks() storage.Cacher

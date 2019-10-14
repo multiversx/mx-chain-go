@@ -5,6 +5,8 @@ const (
 	TransactionTopic = "transactions"
 	// UnsignedTransactionTopic is the topic used for sharing unsigned transactions
 	UnsignedTransactionTopic = "unsignedTransactions"
+	// RewardsTransactionTopic is the topic used for sharing fee transactions
+	RewardsTransactionTopic = "rewardsTransactions"
 	// HeadersTopic is the topic used for sharing block headers
 	HeadersTopic = "headers"
 	// MiniBlocksTopic is the topic used for sharing mini blocks

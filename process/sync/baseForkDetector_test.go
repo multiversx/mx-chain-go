@@ -761,3 +761,112 @@ func TestBasicForkDetector_GetProbableHighestNonce(t *testing.T) {
 	hInfos = bfd.GetHeaders(3)
 	assert.Equal(t, uint64(3), bfd.GetProbableHighestNonce(hInfos))
 }
+
+func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock)
+
+	hdr := &block.Header{Nonce: 1, Round: 1}
+	err := sfd.ShouldAddBlockInForkDetector(hdr, process.BHProcessed, process.ShardBlockFinality)
+	assert.Nil(t, err)
+
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
+	assert.Nil(t, err)
+
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference)
+	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
+	assert.Nil(t, err)
+
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
+	assert.Nil(t, err)
+}
+
+func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock)
+	hdr := &block.Header{Nonce: 1, Round: 1}
+
+	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality - 1)
+	err := sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+}
+
+func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	mfd, _ := sync.NewMetaForkDetector(rounderMock)
+
+	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
+	err := mfd.ShouldAddBlockInForkDetector(hdr, process.BHProcessed, process.MetaBlockFinality)
+	assert.Nil(t, err)
+
+	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
+	assert.Nil(t, err)
+
+	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference)
+	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
+	assert.Nil(t, err)
+
+	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
+	assert.Nil(t, err)
+}
+
+func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	mfd, _ := sync.NewMetaForkDetector(rounderMock)
+	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
+
+	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality - 1)
+	err := mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+
+	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+}
+
+func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock)
+	hdr1 := &block.Header{Nonce: 3, Round: 3}
+	hash1 := []byte("hash1")
+	hdr2 := &block.Header{Nonce: 1, Round: 1}
+	hash2 := []byte("hash2")
+	hdr3 := &block.Header{Nonce: 4, Round: 5}
+	hash3 := []byte("hash3")
+
+	hdrs := make([]data.HeaderHandler, 0)
+	hashes := make([][]byte, 0)
+	hdrs = append(hdrs, hdr1)
+	hashes = append(hashes, hash1)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr2)
+	hashes = append(hashes, hash2)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr3)
+	hashes = append(hashes, hash3)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
+}

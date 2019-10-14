@@ -48,15 +48,19 @@ func createMessenger(port int) p2p.Messenger {
 // Next message that the sender tries to send will cause a new error to be logged and no data to be sent
 // The fix consists in the full stream closing when an error occurs during writing.
 func TestIssueEN898_StreamResetError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	mes1 := createMessenger(23100)
 	mes2 := createMessenger(23101)
 
 	defer func() {
-		mes1.Close()
-		mes2.Close()
+		_ = mes1.Close()
+		_ = mes2.Close()
 	}()
 
-	mes1.ConnectToPeer(getConnectableAddress(mes2))
+	_ = mes1.ConnectToPeer(getConnectableAddress(mes2))
 
 	topic := "test topic"
 
@@ -74,8 +78,8 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 	smallPacketReceived := &atomic.Value{}
 	smallPacketReceived.Store(false)
 
-	mes2.CreateTopic(topic, false)
-	mes2.RegisterMessageProcessor(topic, &mock.MessageProcessorStub{
+	_ = mes2.CreateTopic(topic, false)
+	_ = mes2.RegisterMessageProcessor(topic, &mock.MessageProcessorStub{
 		ProcessMessageCalled: func(message p2p.MessageP2P) error {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)
@@ -90,12 +94,12 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 	})
 
 	fmt.Println("sending the large packet...")
-	mes1.SendToConnectedPeer(topic, largePacket, mes2.ID())
+	_ = mes1.SendToConnectedPeer(topic, largePacket, mes2.ID())
 
 	time.Sleep(time.Second)
 
 	fmt.Println("sending the small packet...")
-	mes1.SendToConnectedPeer(topic, smallPacket, mes2.ID())
+	_ = mes1.SendToConnectedPeer(topic, smallPacket, mes2.ID())
 
 	time.Sleep(time.Second)
 

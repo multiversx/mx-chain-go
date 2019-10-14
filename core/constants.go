@@ -152,3 +152,9 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 
 // MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
+
+// MaxMiniBlocksInBlock specifies the max number of mini blocks which can be added in one block
+const MaxMiniBlocksInBlock = 100
+
+//MetricHighestFinalBlockInShard is the metric that stores the highest nonce block notarized by metachain for current shard
+const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_metachain_for_current_shard"

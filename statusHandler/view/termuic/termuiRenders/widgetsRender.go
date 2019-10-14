@@ -239,6 +239,12 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
 	rows[4] = []string{fmt.Sprintf("Cross check block height: %s", crossCheckBlockHeight)}
 
+	shardId := wr.presenter.GetShardId()
+	if shardId != uint64(sharding.MetachainShardId) {
+		highestFinalBlockInShard := wr.presenter.GetHighestFinalBlockInShard()
+		rows[4][0] += fmt.Sprintf(", highest final block nonce in shard: %d", highestFinalBlockInShard)
+	}
+
 	consensusState := wr.presenter.GetConsensusState()
 	rows[5] = []string{fmt.Sprintf("Consensus state: %s", consensusState)}
 
@@ -275,8 +281,13 @@ func (wr *WidgetsRender) prepareListWithLogsForDisplay() {
 
 func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 	logDataLen := len(logData)
-	if logDataLen > size {
-		return logData[logDataLen-size : logDataLen]
+	maxSize := size - 2 // decrease 2 units as the total size of the log list includes also the header and the footer
+	if maxSize <= 0 {
+		return []string{} // there isn't place for any log line
+	}
+
+	if logDataLen > maxSize {
+		return logData[(logDataLen - maxSize):]
 	}
 
 	return logData
