@@ -21,7 +21,6 @@ func NewMetaTxProcessor(
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
 	txTypeHandler process.TxTypeHandler,
-	economicsFee process.FeeHandler,
 ) (*metaTxProcessor, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
@@ -60,6 +59,16 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction, r
 	}
 
 	adrSrc, adrDst, err := txProc.getAddresses(tx)
+	if err != nil {
+		return err
+	}
+
+	acntSnd, err := txProc.getAccountFromAddress(adrSrc)
+	if err != nil {
+		return err
+	}
+
+	err = txProc.checkTxValues(tx, acntSnd)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -107,4 +108,37 @@ func (txProc *baseTxProcessor) getAddresses(
 	}
 
 	return adrSrc, adrDst, nil
+}
+
+func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+		// transaction was already done at sender shard
+		return nil
+	}
+
+	if acntSnd.GetNonce() < tx.Nonce {
+		return process.ErrHigherNonceInTransaction
+	}
+	if acntSnd.GetNonce() > tx.Nonce {
+		return process.ErrLowerNonceInTransaction
+	}
+
+	cost := big.NewInt(0)
+	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost = cost.Add(cost, tx.Value)
+
+	if cost.Cmp(big.NewInt(0)) == 0 {
+		return nil
+	}
+
+	stAcc, ok := acntSnd.(*state.Account)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if stAcc.Balance.Cmp(cost) < 0 {
+		return process.ErrInsufficientFunds
+	}
+
+	return nil
 }
