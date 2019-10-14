@@ -307,6 +307,14 @@ func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.I
 	_, _ = accnts.Commit()
 }
 
+// SetAccountNonce will create an account (if it does not exists), update the nonce with required value,
+// save the account and commit the trie.
+func SetAccountNonce(accnts state.AccountsAdapter, addressBytes []byte, nonce uint64) {
+	accnt, _ := accnts.GetAccountWithJournal(CreateAddressFromAddrBytes(addressBytes))
+	_ = accnt.(*state.Account).SetNonceWithJournal(nonce)
+	_, _ = accnts.Commit()
+}
+
 // CreateAccount creates a new account and returns the address
 func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
 	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))

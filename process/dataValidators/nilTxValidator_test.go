@@ -21,5 +21,5 @@ func TestNilTxValidator_IsTxValidForProcessing(t *testing.T) {
 
 	ntv, _ := dataValidators.NewNilTxValidator()
 
-	assert.True(t, ntv.IsTxValidForProcessing(nil))
+	assert.Nil(t, ntv.CheckTxValidity(nil))
 }

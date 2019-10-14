@@ -31,6 +31,9 @@ var ErrNilPrivateKey = errors.New("trying to set nil private key")
 // ErrNilSingleSignKeyGen signals that a nil single key generator has been provided
 var ErrNilSingleSignKeyGen = errors.New("trying to set nil single sign key generator")
 
+// ErrNilKeyGenForBalances signals that a nil key generator for balances has been provided
+var ErrNilKeyGenForBalances = errors.New("trying to set nil key generator for balances")
+
 // ErrNilPublicKey signals that a nil public key has been provided
 var ErrNilPublicKey = errors.New("trying to set nil public key")
 

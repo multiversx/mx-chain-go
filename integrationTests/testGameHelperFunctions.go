@@ -100,7 +100,10 @@ func NodeCallsRewardAndSend(
 	winnerPlayer.Balance = winnerPlayer.Balance.Set(newBalance)
 
 	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
-	_, _ = nodes[idxNodeOwner].SendTransaction(txScCall)
+	_, err := nodes[idxNodeOwner].SendTransaction(txScCall)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
 	fmt.Println(MakeDisplayTable(nodes))
 }

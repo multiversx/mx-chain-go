@@ -140,6 +140,17 @@ func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 	}
 }
 
+// WithKeyGenForBalances sets up the key generator for balances option for the Node
+func WithKeyGenForBalances(keyGenForBalances crypto.KeyGenerator) Option {
+	return func(n *Node) error {
+		if keyGenForBalances == nil || keyGenForBalances.IsInterfaceNil() {
+			return ErrNilKeyGenForBalances
+		}
+		n.keyGenForBalances = keyGenForBalances
+		return nil
+	}
+}
+
 // WithInitialNodesPubKeys sets up the initial nodes public key option for the Node
 func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 	return func(n *Node) error {

@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -43,7 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -58,6 +60,9 @@ var TestAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x
 
 // TestMultiSig represents a mock multisig
 var TestMultiSig = mock.NewMultiSigner(1)
+
+// TestKeyGenForBalances represents a mock key generator for balances
+var TestKeyGenForBalances = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
 
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
@@ -554,6 +559,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithAccountsAdapter(tpn.AccntState),
 		node.WithKeyGen(tpn.OwnAccount.KeygenTxSign),
+		node.WithKeyGenForBalances(TestKeyGenForBalances),
 		node.WithShardCoordinator(tpn.ShardCoordinator),
 		node.WithNodesCoordinator(tpn.NodesCoordinator),
 		node.WithBlockChain(tpn.BlockChain),

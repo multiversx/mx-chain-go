@@ -247,7 +247,7 @@ func TestWithBlsPrivateKey_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
+func TestWithSingleSignKeyGenerator_NilSingleSignKeyGeneratorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
@@ -270,6 +270,32 @@ func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.keyGen == keyGen)
+	assert.Nil(t, err)
+}
+
+func TestWithKeyGenForBalances_NilKeyGenForBalancesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithKeyGenForBalances(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.keyGen)
+	assert.Equal(t, ErrNilKeyGenForBalances, err)
+}
+
+func TestWithKeyGenForBalances_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	keyGen := &mock.KeyGenMock{}
+
+	opt := WithKeyGenForBalances(keyGen)
+	err := opt(node)
+
+	assert.True(t, node.keyGenForBalances == keyGen)
 	assert.Nil(t, err)
 }
 

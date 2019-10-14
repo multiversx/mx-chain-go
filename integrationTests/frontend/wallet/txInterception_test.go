@@ -120,6 +120,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	signatureBytes, _ := hex.DecodeString(frontendSignature)
 
 	integrationTests.MintAddress(node.AccntState, sndAddrBytes, valMinting)
+	integrationTests.SetAccountNonce(node.AccntState, sndAddrBytes, frontendNonce)
 
 	txHexHash, err = node.SendTransaction(&transaction.Transaction{
 		Nonce:     frontendNonce,

@@ -599,8 +599,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 	}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := &mock.TxValidatorStub{
-		IsTxValidForProcessingCalled: func(txHandler process.TxValidatorHandler) bool {
-			return true
+		CheckTxValidityCalled: func(txHandler process.TxValidatorHandler) error {
+			return nil
 		},
 	}
 	signer := &mock.SignerMock{
@@ -754,8 +754,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	txValidator := &mock.TxValidatorStub{
-		IsTxValidForProcessingCalled: func(txHandler process.TxValidatorHandler) bool {
-			return true
+		CheckTxValidityCalled: func(txHandler process.TxValidatorHandler) error {
+			return nil
 		},
 	}
 	signer := &mock.SignerMock{
@@ -909,8 +909,8 @@ func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *
 		return pubKey, nil
 	}
 	txValidator := &mock.TxValidatorStub{
-		IsTxValidForProcessingCalled: func(txHandler process.TxValidatorHandler) bool {
-			return false
+		CheckTxValidityCalled: func(txHandler process.TxValidatorHandler) error {
+			return nil
 		},
 		RejectedTxsCalled: func() uint64 {
 			return 0

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/big"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -104,8 +105,8 @@ func TestTxValidator_IsTxValidForProcessingTxIsCrossShardShouldReturnTrue(t *tes
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(1, 1, addressMock, big.NewInt(0))
 
-	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
-	assert.Equal(t, true, result)
+	result := txValidator.CheckTxValidity(txValidatorHandler)
+	assert.Nil(t, result)
 }
 
 func TestTxValidator_IsTxValidForProcessingAccountNonceIsGreaterThanTxNonceShouldReturnFalse(t *testing.T) {
@@ -123,8 +124,9 @@ func TestTxValidator_IsTxValidForProcessingAccountNonceIsGreaterThanTxNonceShoul
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, big.NewInt(0))
 
-	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
-	assert.Equal(t, false, result)
+	result := txValidator.CheckTxValidity(txValidatorHandler)
+	assert.NotNil(t, result)
+	assert.True(t, strings.Contains(result.Error(), "nonce"))
 }
 
 func TestTxValidator_IsTxValidForProcessingTxNonceIsTooHigh(t *testing.T) {
@@ -142,8 +144,9 @@ func TestTxValidator_IsTxValidForProcessingTxNonceIsTooHigh(t *testing.T) {
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, big.NewInt(0))
 
-	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
-	assert.Equal(t, false, result)
+	result := txValidator.CheckTxValidity(txValidatorHandler)
+	assert.NotNil(t, result)
+	assert.True(t, strings.Contains(result.Error(), "nonce"))
 }
 
 func TestTxValidator_IsTxValidForProcessingAccountBalanceIsLessThanTxTotalValueShouldReturnFalse(t *testing.T) {
@@ -163,8 +166,9 @@ func TestTxValidator_IsTxValidForProcessingAccountBalanceIsLessThanTxTotalValueS
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, totalCost)
 
-	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
-	assert.Equal(t, false, result)
+	result := txValidator.CheckTxValidity(txValidatorHandler)
+	assert.NotNil(t, result)
+	assert.True(t, strings.Contains(result.Error(), "balance"))
 }
 
 func TestTxValidator_IsTxValidForProcessingNumOfRejectedTxShouldIncreaseShouldReturnFalse(t *testing.T) {
@@ -184,8 +188,9 @@ func TestTxValidator_IsTxValidForProcessingNumOfRejectedTxShouldIncreaseShouldRe
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(0, txNonce, addressMock, totalCost)
 
-	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
-	assert.Equal(t, false, result)
+	result := txValidator.CheckTxValidity(txValidatorHandler)
+	assert.NotNil(t, result)
+	assert.True(t, strings.Contains(result.Error(), "balance"))
 
 	numRejectedTx := txValidator.NumRejectedTxs()
 	assert.Equal(t, uint64(1), numRejectedTx)
@@ -205,8 +210,9 @@ func TestTxValidator_IsTxValidForProcessingAccountNotExitsShouldReturnFalse(t *t
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(0, 1, addressMock, big.NewInt(0))
 
-	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
-	assert.Equal(t, false, result)
+	result := txValidator.CheckTxValidity(txValidatorHandler)
+	assert.NotNil(t, result)
+	assert.True(t, strings.Contains(result.Error(), "sender address"))
 }
 
 func TestTxValidator_IsTxValidForProcessingWrongAccountTypeShouldReturnFalse(t *testing.T) {
@@ -223,8 +229,9 @@ func TestTxValidator_IsTxValidForProcessingWrongAccountTypeShouldReturnFalse(t *
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(0, 1, addressMock, big.NewInt(0))
 
-	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
-	assert.Equal(t, false, result)
+	result := txValidator.CheckTxValidity(txValidatorHandler)
+	assert.NotNil(t, result)
+	assert.True(t, strings.Contains(result.Error(), "convert account"))
 }
 
 func TestTxValidator_IsTxValidForProcessingTxIsOkShouldReturnTrue(t *testing.T) {
@@ -240,6 +247,6 @@ func TestTxValidator_IsTxValidForProcessingTxIsOkShouldReturnTrue(t *testing.T) 
 	addressMock := mock.NewAddressMock([]byte("address"))
 	txValidatorHandler := getTxValidatorHandler(0, 1, addressMock, big.NewInt(0))
 
-	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
-	assert.Equal(t, true, result)
+	result := txValidator.CheckTxValidity(txValidatorHandler)
+	assert.Nil(t, result)
 }

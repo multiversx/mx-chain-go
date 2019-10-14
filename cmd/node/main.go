@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -426,6 +427,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	keyGenForBalance := signing.NewKeyGenerator(getSuiteForBalances())
+
 	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
 	keyGen, privKey, pubKey, err := factory.GetSigningParams(
 		ctx,
@@ -683,6 +686,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		nodesConfig,
 		syncer,
 		keyGen,
+		keyGenForBalance,
 		privKey,
 		pubKey,
 		shardCoordinator,
@@ -777,6 +781,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func getSuiteForBalances() crypto.Suite {
+	return kyber.NewBlakeSHA256Ed25519()
 }
 
 func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
@@ -1203,6 +1211,7 @@ func createNode(
 	nodesConfig *sharding.NodesSetup,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
+	keyGenForBalances crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
@@ -1243,6 +1252,7 @@ func createNode(
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
+		node.WithKeyGenForBalances(keyGenForBalances),
 		node.WithTxSignPubKey(crypto.TxSignPubKey),
 		node.WithTxSignPrivKey(crypto.TxSignPrivKey),
 		node.WithPubKey(pubKey),

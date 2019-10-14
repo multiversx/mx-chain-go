@@ -2,6 +2,7 @@ package dataValidators
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -42,21 +43,23 @@ func NewTxValidator(
 	}, nil
 }
 
-// IsTxValidForProcessing will filter transactions that needs to be added in pools
-func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorHandler) bool {
+// CheckTxValidity will filter transactions that needs to be added in pools
+func (tv *TxValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
 	shardId := tv.shardCoordinator.SelfId()
 	txShardId := interceptedTx.SenderShardId()
 	senderIsInAnotherShard := shardId != txShardId
 	if senderIsInAnotherShard {
-		return true
+		return nil
 	}
 
 	sndAddr := interceptedTx.SenderAddress()
 	accountHandler, err := tv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
-		log.Debug(fmt.Sprintf("Transaction's sender address %s does not exist in current shard %d", sndAddr, shardId))
 		tv.rejectedTxs++
-		return false
+		sndAddrBytes := sndAddr.Bytes()
+		return errors.New(fmt.Sprintf("Transaction's sender address %s does not exist in current shard %d",
+			hex.EncodeToString(sndAddrBytes),
+			shardId))
 	}
 
 	accountNonce := accountHandler.GetNonce()
@@ -66,24 +69,23 @@ func (tv *TxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	isTxRejected := lowerNonceInTx || veryHighNonceInTx
 	if isTxRejected {
 		tv.rejectedTxs++
-		return false
+		return errors.New(fmt.Sprintf("Invalid nonce. Wanted %d, got %d", accountNonce, txNonce))
 	}
 
 	account, ok := accountHandler.(*state.Account)
 	if !ok {
 		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
-		log.Error(fmt.Sprintf("Cannot convert account handler in a state.Account %s", hexSenderAddr))
-		return false
+		return errors.New(fmt.Sprintf("Cannot convert account handler in a state.Account %s", hexSenderAddr))
 	}
 
 	accountBalance := account.Balance
 	txTotalValue := interceptedTx.TotalValue()
 	if accountBalance.Cmp(txTotalValue) < 0 {
 		tv.rejectedTxs++
-		return false
+		return errors.New(fmt.Sprintf("Insufficient balance. Needed %d ERD, account has %d ERD", txTotalValue, accountBalance))
 	}
 
-	return true
+	return nil
 }
 
 // NumRejectedTxs will return number of rejected transaction
