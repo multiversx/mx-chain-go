@@ -26,7 +26,7 @@ func generateRandomByteSlice(size int) []byte {
 
 func feeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
-		CheckTxHandlerCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
 		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
@@ -1087,7 +1087,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 
 	txCost := big.NewInt(16)
 	feeHandler := &mock.FeeHandlerStub{
-		CheckTxHandlerCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
 		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {

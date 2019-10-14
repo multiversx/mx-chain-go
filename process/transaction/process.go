@@ -125,7 +125,7 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 		return nil, nil
 	}
 
-	err := txProc.economicsFee.CheckTxHandler(tx)
+	err := txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return nil, err
 	}

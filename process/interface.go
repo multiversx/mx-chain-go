@@ -418,11 +418,9 @@ type RewardsHandler interface {
 
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
-	SetMinGasPrice(minGasPrice uint64)
-	SetMinGasLimit(minGasLimit uint64)
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeFee(tx TransactionWithFeeHandler) *big.Int
-	CheckTxHandler(tx TransactionWithFeeHandler) error
+	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	IsInterfaceNil() bool
 }
 

@@ -18,22 +18,22 @@ type RewardTx struct {
 }
 
 // Save saves the serialized data of a RewardTx into a stream through Capnp protocol
-func (scr *RewardTx) Save(w io.Writer) error {
+func (rtx *RewardTx) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	RewardTxGoToCapn(seg, scr)
+	RewardTxGoToCapn(seg, rtx)
 	_, err := seg.WriteTo(w)
 	return err
 }
 
 // Load loads the data from the stream into a RewardTx object through Capnp protocol
-func (scr *RewardTx) Load(r io.Reader) error {
+func (rtx *RewardTx) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
 		return err
 	}
 
 	z := capnp.ReadRootRewardTxCapn(capMsg)
-	RewardTxCapnToGo(z, scr)
+	RewardTxCapnToGo(z, rtx)
 	return nil
 }
 

@@ -102,7 +102,7 @@ type TestProcessorNode struct {
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
 
-	EconomicsData *economics.EconomicsData
+	EconomicsData *economics.TestEconomicsData
 
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
@@ -277,7 +277,9 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 		},
 	)
 
-	tpn.EconomicsData = economicsData
+	tpn.EconomicsData = &economics.TestEconomicsData{
+		EconomicsData: economicsData,
+	}
 }
 
 func (tpn *TestProcessorNode) initInterceptors() {
@@ -382,7 +384,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.SpecialAddressHandler,
 		tpn.Storage,
 		tpn.ShardDataPool,
-		tpn.EconomicsData,
+		tpn.EconomicsData.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()

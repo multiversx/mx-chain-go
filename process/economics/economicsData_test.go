@@ -1,6 +1,7 @@
 package economics_test
 
 import (
+	"fmt"
 	"math/big"
 	"strconv"
 	"testing"
@@ -264,15 +265,15 @@ func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-	economicsData.SetMinGasLimit(minGasLimit)
-	economicsData.SetMinGasPrice(minGasPrice)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice - 1,
 		GasLimit: minGasLimit,
 	}
 
-	err := economicsData.CheckTxHandler(tx)
+	err := economicsData.CheckValidityTxValues(tx)
 
 	assert.Equal(t, process.ErrInsufficientGasPriceInTx, err)
 }
@@ -283,15 +284,15 @@ func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-	economicsData.SetMinGasLimit(minGasLimit)
-	economicsData.SetMinGasPrice(minGasPrice)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit - 1,
 	}
 
-	err := economicsData.CheckTxHandler(tx)
+	err := economicsData.CheckValidityTxValues(tx)
 
 	assert.Equal(t, process.ErrInsufficientGasLimitInTx, err)
 }
@@ -302,15 +303,15 @@ func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-	economicsData.SetMinGasLimit(minGasLimit)
-	economicsData.SetMinGasPrice(minGasPrice)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit,
 	}
 
-	err := economicsData.CheckTxHandler(tx)
+	err := economicsData.CheckValidityTxValues(tx)
 
 	assert.Nil(t, err)
 }
@@ -321,15 +322,15 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
-	economicsData.SetMinGasLimit(minGasLimit)
-	economicsData.SetMinGasPrice(minGasPrice)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
 		GasLimit: minGasLimit + 1,
 	}
 
-	err := economicsData.CheckTxHandler(tx)
+	err := economicsData.CheckValidityTxValues(tx)
 
 	assert.Nil(t, err)
 }

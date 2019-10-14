@@ -435,7 +435,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
-			CheckTxHandlerCalled: func(tx process.TransactionWithFeeHandler) error {
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 				return nil
 			},
 			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {

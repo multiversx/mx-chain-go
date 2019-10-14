@@ -54,14 +54,14 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	//Step 1. Generate a signed transaction
 	txData := "tx notarized data"
 	//TODO change here when gas limit will no longer be linear with the tx data length
-	txNotarizedDataGasLimit := uint64(len(txData))
+	txDataCost := uint64(len(txData))
 	tx := transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
 		RcvAddr:  integrationTests.TestHasher.Compute("receiver"),
 		SndAddr:  buffPk1,
 		Data:     txData,
-		GasLimit: integrationTests.MinTxGasLimit + txNotarizedDataGasLimit,
+		GasLimit: integrationTests.MinTxGasLimit + txDataCost,
 		GasPrice: integrationTests.MinTxGasPrice,
 	}
 

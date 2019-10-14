@@ -7,11 +7,11 @@ import (
 )
 
 type FeeHandlerStub struct {
-	SetMinGasPriceCalled  func(minasPrice uint64)
-	SetMinGasLimitCalled  func(minGasLimit uint64)
-	ComputeGasLimitCalled func(tx process.TransactionWithFeeHandler) uint64
-	ComputeFeeCalled      func(tx process.TransactionWithFeeHandler) *big.Int
-	CheckTxHandlerCalled  func(tx process.TransactionWithFeeHandler) error
+	SetMinGasPriceCalled        func(minasPrice uint64)
+	SetMinGasLimitCalled        func(minGasLimit uint64)
+	ComputeGasLimitCalled       func(tx process.TransactionWithFeeHandler) uint64
+	ComputeFeeCalled            func(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValuesCalled func(tx process.TransactionWithFeeHandler) error
 }
 
 func (fhs *FeeHandlerStub) SetMinGasPrice(minGasPrice uint64) {
@@ -30,8 +30,8 @@ func (fhs *FeeHandlerStub) ComputeFee(tx process.TransactionWithFeeHandler) *big
 	return fhs.ComputeFeeCalled(tx)
 }
 
-func (fhs *FeeHandlerStub) CheckTxHandler(tx process.TransactionWithFeeHandler) error {
-	return fhs.CheckTxHandlerCalled(tx)
+func (fhs *FeeHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
+	return fhs.CheckValidityTxValuesCalled(tx)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

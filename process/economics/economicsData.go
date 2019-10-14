@@ -123,16 +123,6 @@ func (ed *EconomicsData) BurnPercentage() float64 {
 	return ed.burnPercentage
 }
 
-// SetMinGasPrice sets the minimum gas price for a transaction to be accepted
-func (ed *EconomicsData) SetMinGasPrice(minGasPrice uint64) {
-	ed.minGasPrice = minGasPrice
-}
-
-// SetMinGasLimit sets the minimum gas limit for a transaction to be accepted
-func (ed *EconomicsData) SetMinGasLimit(minGasLimit uint64) {
-	ed.minGasLimit = minGasLimit
-}
-
 // ComputeFee computes the provided transaction's fee
 func (ed *EconomicsData) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
 	gasPrice := big.NewInt(0).SetUint64(tx.GetGasPrice())
@@ -141,8 +131,8 @@ func (ed *EconomicsData) ComputeFee(tx process.TransactionWithFeeHandler) *big.I
 	return gasPrice.Mul(gasPrice, gasLimit)
 }
 
-// CheckTxHandler checks if the provided transaction is economically correct
-func (ed *EconomicsData) CheckTxHandler(tx process.TransactionWithFeeHandler) error {
+// CheckValidityTxValues checks if the provided transaction is economically correct
+func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
 	if ed.minGasPrice > tx.GetGasPrice() {
 		return process.ErrInsufficientGasPriceInTx
 	}

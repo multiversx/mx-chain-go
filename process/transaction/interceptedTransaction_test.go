@@ -49,7 +49,7 @@ func createKeyGenMock() crypto.KeyGenerator {
 
 func createFreeTxFeeHandler() process.FeeHandler {
 	return &mock.FeeHandlerStub{
-		CheckTxHandlerCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
@@ -442,7 +442,7 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 	}
 	errExpected := errors.New("insufficient fee")
 	feeHandler := &mock.FeeHandlerStub{
-		CheckTxHandlerCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return errExpected
 		},
 	}

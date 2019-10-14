@@ -152,7 +152,7 @@ func (inTx *InterceptedTransaction) integrity() error {
 		return process.ErrNegativeValue
 	}
 
-	return inTx.feeHandler.CheckTxHandler(inTx.tx)
+	return inTx.feeHandler.CheckValidityTxValues(inTx.tx)
 }
 
 // verifySig checks if the tx is correctly signed

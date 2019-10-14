@@ -281,7 +281,7 @@ func createMockTxFeeHandler() process.FeeHandler {
 
 			return fee
 		},
-		CheckTxHandlerCalled: func(tx process.TransactionWithFeeHandler) error {
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
 	}
