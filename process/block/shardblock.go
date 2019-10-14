@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -24,43 +23,26 @@ const maxCleanTime = time.Second
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	dataPool          dataRetriever.PoolsHolder
-	metaBlockFinality uint32
-
-	chRcvAllMetaHdrs chan bool
-
+	dataPool               dataRetriever.PoolsHolder
+	metaBlockFinality      uint32
+	chRcvAllMetaHdrs       chan bool
 	processedMiniBlocks    map[string]map[string]struct{}
 	mutProcessedMiniBlocks sync.RWMutex
-
-	core          serviceContainer.Core
-	txCoordinator process.TransactionCoordinator
-	txCounter     *transactionCounter
-
-	txsPoolsCleaner process.PoolsCleaner
+	core                   serviceContainer.Core
+	txCoordinator          process.TransactionCoordinator
+	txCounter              *transactionCounter
+	txsPoolsCleaner        process.PoolsCleaner
 }
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
-
-	err := checkProcessorNilParameters(
-		arguments.Accounts,
-		arguments.ForkDetector,
-		arguments.Hasher,
-		arguments.Marshalizer,
-		arguments.Store,
-		arguments.ShardCoordinator,
-		arguments.NodesCoordinator,
-		arguments.SpecialAddressHandler,
-		arguments.Uint64Converter)
+	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
 
 	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
-	}
-	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
-		return nil, process.ErrNilRequestHandler
 	}
 	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionCoordinator
@@ -458,62 +440,9 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	signersIndexes := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys)
-	roundInfo := indexer.RoundInfo{
-		Index:            header.GetRound(),
-		SignersIndexes:   signersIndexes,
-		BlockWasProposed: true,
-		ShardId:          shardId,
-		Timestamp:        time.Duration(header.GetTimeStamp()),
-	}
-
 	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
-	go sp.core.Indexer().SaveRoundInfo(roundInfo)
 
-	if lastBlockHeader == nil {
-		return
-	}
-
-	lastBlockRound := lastBlockHeader.GetRound()
-	currentBlockRound := header.GetRound()
-
-	roundDuration := sp.calculateRoundDuration(lastBlockHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
-	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
-		publicKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(lastBlockHeader.GetRandSeed(), i, shardId)
-		if err != nil {
-			continue
-		}
-		signersIndexes = sp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
-		roundInfo = indexer.RoundInfo{
-			Index:            i,
-			SignersIndexes:   signersIndexes,
-			BlockWasProposed: true,
-			ShardId:          shardId,
-			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
-		}
-
-		go sp.core.Indexer().SaveRoundInfo(roundInfo)
-	}
-}
-
-func (sp *shardProcessor) calculateRoundDuration(
-	lastBlockTimestamp uint64,
-	currentBlockTimestamp uint64,
-	lastBlockRound uint64,
-	currentBlockRound uint64,
-) uint64 {
-	if lastBlockTimestamp >= currentBlockTimestamp {
-		log.Error("last block timestamp is greater or equals than current block timestamp")
-		return 0
-	}
-	if lastBlockRound >= currentBlockRound {
-		log.Error("last block round is greater or equals than current block round")
-		return 0
-	}
-
-	diffTimeStamp := currentBlockTimestamp - lastBlockTimestamp
-	diffRounds := currentBlockRound - lastBlockRound
-
-	return diffTimeStamp / diffRounds
+	saveRoundInfoInElastic(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
