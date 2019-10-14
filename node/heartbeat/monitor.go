@@ -174,15 +174,15 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, erro
 	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
 	crtTime := m.timer.Now()
-	crtDuration := crtTime.Sub(receivedHbmi.timeStamp)
+	crtDuration := crtTime.Sub(receivedHbmi.lastUptimeDowntime)
 	crtDuration = maxDuration(0, crtDuration)
 	if receivedHbmi.isActive {
 		receivedHbmi.totalUpTime.Duration += crtDuration
+		receivedHbmi.timeStamp = crtTime
 	} else {
 		receivedHbmi.totalDownTime.Duration += crtDuration
 	}
 	receivedHbmi.lastUptimeDowntime = crtTime
-	receivedHbmi.timeStamp = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
 
 	return &receivedHbmi, nil

@@ -65,11 +65,11 @@ func TestMonitor_ObserverGapValidatorOffline(t *testing.T) {
 	time.Sleep(sleepDuration)
 	timer.SetSeconds(hundredFiftySeconds)
 	heartBeats = mon2.GetHeartbeats()
-	verifyHeartBeat(t, heartBeats[0], false, 0, 50)
+	verifyHeartBeat(t, heartBeats[0], false, 0, 150)
 
 	timer.SetSeconds(twoHundredSeconds)
 	heartBeats = mon2.GetHeartbeats()
-	verifyHeartBeat(t, heartBeats[0], false, 0, 100)
+	verifyHeartBeat(t, heartBeats[0], false, 0, 200)
 }
 
 // v: |_________________________________

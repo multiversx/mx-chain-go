@@ -143,8 +143,9 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 
 	mockTimer := mock.NewMockTimer()
 	genesisTime := mockTimer.Now()
+	maxUnresponsiveTime := 500 * time.Millisecond
 	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
-		500*time.Millisecond,
+		maxUnresponsiveTime,
 		false,
 		genesisTime,
 		mockTimer,
@@ -158,8 +159,8 @@ func TestHeartbeatMessageInfo_HeartbeatLongerDurationThanMaxShouldUpdateDownTime
 	mockTimer.IncrementSeconds(1)
 	hbmi.HeartbeatReceived(uint32(0), uint32(2), "v0.1", "undefined")
 
-	expectedDownDuration := time.Duration(2 * time.Second)
-	expectedUpDuration := time.Duration(0)
+	expectedDownDuration := time.Duration(1500 * time.Millisecond)
+	expectedUpDuration := time.Duration(maxUnresponsiveTime)
 	assert.Equal(t, expectedDownDuration, hbmi.GetTotalDownTime().Duration)
 	assert.Equal(t, expectedUpDuration, hbmi.GetTotalUpTime().Duration)
 	expectedTime := time.Unix(2, 0)
