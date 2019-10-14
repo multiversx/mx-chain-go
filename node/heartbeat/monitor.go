@@ -287,7 +287,7 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	hbChangedStateToInactiveMap := make(map[string]*heartbeatMessageInfo)
 	for key, v := range m.heartbeatMessages {
 		previousActive := v.isActive
-		v.computeActive(m.timer.Now())
+		v.updateTimes(m.timer.Now())
 
 		if v.isActive {
 			counterConnectedNodes++

@@ -57,14 +57,6 @@ func newHeartbeatMessageInfo(
 	return hbmi, nil
 }
 
-func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
-	hbmi.updateTimes(crtTime)
-}
-
-func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
-	hbmi.updateTimes(crtTime)
-}
-
 func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time) {
 	if crtTime.Sub(hbmi.genesisTime) < 0 {
 		return
@@ -133,8 +125,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
 
-	hbmi.updateFields(crtTime)
-	hbmi.updateMaxInactiveTimeDuration(crtTime)
+	hbmi.updateTimes(crtTime)
 	hbmi.timeStamp = crtTime
 	hbmi.isActive = true
 }
