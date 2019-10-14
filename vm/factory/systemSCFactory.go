@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
+// TODO var initialStakeValue = big.NewInt(500000).Mul(core.Erd) and add to config.toml
 var initialStakeValue = "500000000000000000000000"
 
 type systemSCFactory struct {

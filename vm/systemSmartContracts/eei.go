@@ -120,8 +120,8 @@ func (host *vmContext) Transfer(
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
 
-	senderAcc.BalanceDelta = big.NewInt(0).Sub(senderAcc.BalanceDelta, value)
-	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
+	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
+	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
 
 	return nil
 }
