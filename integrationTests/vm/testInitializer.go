@@ -315,9 +315,9 @@ func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, func
 
 func GetBytesValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) []byte {
 	vmContainer, _ := CreateVMsContainerAndBlockchainHook(accnts)
-	scgd, _ := smartContract.NewSCDataGetter(vmContainer)
+	scDataGetter, _ := smartContract.NewSCDataGetter(vmContainer)
 
-	returnedVals, _ := scgd.Get(scAddressBytes, funcName, args...)
+	returnedVals, _ := scDataGetter.Get(scAddressBytes, funcName, args...)
 
 	return returnedVals
 }
