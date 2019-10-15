@@ -28,7 +28,10 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			gasPrice: MinTxGasPrice,
 		})
 	nodes[senderIdx].OwnAccount.Nonce++
-	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
+	_, err := nodes[senderIdx].SendTransaction(txDeploy)
+	if err != nil {
+		fmt.Printf("invalid tx in DeployScTx: %s\n", err.Error())
+	}
 	fmt.Println("Delaying for disseminating the deploy tx...")
 	time.Sleep(stepDelay)
 
@@ -63,7 +66,10 @@ func PlayerJoinsGame(
 	player.Balance = player.Balance.Set(newBalance)
 
 	fmt.Printf("Join %s\n", hex.EncodeToString(player.Address.Bytes()))
-	_, _ = txDispatcherNode.SendTransaction(txScCall)
+	_, err := txDispatcherNode.SendTransaction(txScCall)
+	if err != nil {
+		fmt.Printf("invalid tx in PlayerJoinsGame: %s\n", err.Error())
+	}
 }
 
 // NodeCallsRewardAndSend - smart contract owner sends reward transaction
@@ -102,8 +108,10 @@ func NodeCallsRewardAndSend(
 	fmt.Printf("Reward %s\n", hex.EncodeToString(winnerAddress))
 	_, err := nodes[idxNodeOwner].SendTransaction(txScCall)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Printf("invalid tx in NodeCallsRewardAndSend: %s\n", err.Error())
 	}
+	fmt.Println("Delaying for SC owner to send reward txs")
+	time.Sleep(stepDelay)
 
 	fmt.Println(MakeDisplayTable(nodes))
 }
@@ -129,7 +137,10 @@ func NodeDoesWithdraw(
 			gasPrice: MinTxGasPrice,
 		})
 	nodes[idxNode].OwnAccount.Nonce++
-	_, _ = nodes[idxNode].SendTransaction(txScCall)
+	_, err := nodes[idxNode].SendTransaction(txScCall)
+	if err != nil {
+		fmt.Printf("invalid tx in NodeDoesWithdraw: %s\n", err.Error())
+	}
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
@@ -157,7 +168,10 @@ func NodeDoesTopUp(
 			gasPrice: MinTxGasPrice,
 		})
 	nodes[idxNode].OwnAccount.Nonce++
-	_, _ = nodes[idxNode].SendTransaction(txScCall)
+	_, err := nodes[idxNode].SendTransaction(txScCall)
+	if err != nil {
+		fmt.Printf("invalid tx in NodeDoesTopUp: %s\n", err.Error())
+	}
 	fmt.Println("Delaying for disseminating SC call tx...")
 	time.Sleep(stepDelay)
 
