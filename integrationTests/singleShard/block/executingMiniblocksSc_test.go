@@ -24,7 +24,6 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	// TODO : fix this test
 	log := logger.DefaultLogger()
 	log.SetLevel(logger.LogDebug)
 

@@ -545,7 +545,8 @@ func (n *Node) SendTransaction(
 }
 
 func (n *Node) validateTx(tx transaction.Transaction, senderShardId uint32) error {
-	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, 1)
+	// TODO refactor this when we'll have the new interceptors
+	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, 15000)
 	if err != nil {
 		return nil
 	}
