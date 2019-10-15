@@ -1,24 +1,20 @@
 package interceptedBlocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
-	hdr                 *block.MetaBlock
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	multiSigVerifier    crypto.MultiSigVerifier
-	chronologyValidator process.ChronologyValidator
-	shardCoordinator    sharding.Coordinator
-	hash                []byte
+	hdr              *block.MetaBlock
+	sigVerifier      *headerMultiSigVerifier
+	hasher           hashing.Hasher
+	shardCoordinator sharding.Coordinator
+	hash             []byte
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -33,14 +29,21 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		return nil, err
 	}
 
-	inHdr := &InterceptedMetaHeader{
-		hdr:                 hdr,
-		marshalizer:         arg.Marshalizer,
-		hasher:              arg.Hasher,
-		multiSigVerifier:    arg.MultiSigVerifier,
-		chronologyValidator: arg.ChronologyValidator,
-		shardCoordinator:    arg.ShardCoordinator,
+	sigVerifier := &headerMultiSigVerifier{
+		marshalizer:      arg.Marshalizer,
+		hasher:           arg.Hasher,
+		nodesCoordinator: arg.NodesCoordinator,
+		multiSigVerifier: arg.MultiSigVerifier,
 	}
+
+	inHdr := &InterceptedMetaHeader{
+		hdr:              hdr,
+		hasher:           arg.Hasher,
+		sigVerifier:      sigVerifier,
+		shardCoordinator: arg.ShardCoordinator,
+	}
+	//wire-up the "virtual" function
+	inHdr.sigVerifier.copyHeaderWithoutSig = inHdr.copyHeaderWithoutSig
 	inHdr.processFields(arg.HdrBuff)
 
 	return inHdr, nil
@@ -57,6 +60,17 @@ func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.Meta
 	}
 
 	return hdr, nil
+}
+
+func (imh *InterceptedMetaHeader) copyHeaderWithoutSig(header data.HeaderHandler) data.HeaderHandler {
+	//it is virtually impossible here to have a wrong type assertion case
+	hdr := header.(*block.MetaBlock)
+
+	headerCopy := *hdr
+	headerCopy.Signature = nil
+	headerCopy.PubKeysBitmap = nil
+
+	return &headerCopy
 }
 
 func (imh *InterceptedMetaHeader) processFields(txBuff []byte) {
@@ -80,7 +94,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	return imh.verifySig()
+	return imh.sigVerifier.verifySig(imh.hdr)
 }
 
 // integrity checks the integrity of the meta header block wrapper
@@ -95,19 +109,6 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		return err
 	}
 
-	return imh.chronologyValidator.ValidateReceivedBlock(
-		sharding.MetachainShardId,
-		imh.hdr.Epoch,
-		imh.hdr.Nonce,
-		imh.hdr.Round,
-	)
-}
-
-// verifySig verifies a signature
-func (imh *InterceptedMetaHeader) verifySig() error {
-	// TODO: Check block signature after multisig will be implemented
-	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
-	// TODO: verify that the block proposer is among the signers
 	return nil
 }
 

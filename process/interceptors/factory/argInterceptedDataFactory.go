@@ -13,17 +13,18 @@ import (
 // new instances
 type ArgShardInterceptedDataFactory struct {
 	*ArgMetaInterceptedDataFactory
-	KeyGen   crypto.KeyGenerator
-	Signer   crypto.SingleSigner
-	AddrConv state.AddressConverter
+	KeyGen     crypto.KeyGenerator
+	Signer     crypto.SingleSigner
+	AddrConv   state.AddressConverter
+	FeeHandler process.FeeHandler
 }
 
 // ArgMetaInterceptedDataFactory holds all dependencies required by the meta intercepted data factory in order to create
 // new instances
 type ArgMetaInterceptedDataFactory struct {
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	ShardCoordinator    sharding.Coordinator
-	MultiSigVerifier    crypto.MultiSigVerifier
-	ChronologyValidator process.ChronologyValidator
+	Marshalizer      marshal.Marshalizer
+	Hasher           hashing.Hasher
+	ShardCoordinator sharding.Coordinator
+	MultiSigVerifier crypto.MultiSigVerifier
+	NodesCoordinator sharding.NodesCoordinator
 }

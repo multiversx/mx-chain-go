@@ -32,20 +32,10 @@ func createMockInterceptorStub(checkCalledNum *int32, processCalledNum *int32) p
 	}
 }
 
-func createMockThrottler(throttlerStartNum *int32, throttlerEndNum *int32) process.InterceptorThrottler {
+func createMockThrottler() *mock.InterceptorThrottlerStub {
 	return &mock.InterceptorThrottlerStub{
 		CanProcessCalled: func() bool {
 			return true
-		},
-		StartProcessingCalled: func() {
-			if throttlerStartNum != nil {
-				atomic.AddInt32(throttlerStartNum, 1)
-			}
-		},
-		EndProcessingCalled: func() {
-			if throttlerEndNum != nil {
-				atomic.AddInt32(throttlerEndNum, 1)
-			}
 		},
 	}
 }
@@ -133,8 +123,6 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 			CanProcessCalled: func() bool {
 				return true
 			},
-			StartProcessingCalled: func() {},
-			EndProcessingCalled:   func() {},
 		},
 	)
 
@@ -151,9 +139,8 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttlerStartNum := int32(0)
-	throttlerEndNum := int32(0)
 	errExpected := errors.New("expected err")
+	throttler := createMockThrottler()
 	interceptedData := &mock.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return errExpected
@@ -170,7 +157,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+		throttler,
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -183,8 +170,8 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 	assert.Equal(t, errExpected, err)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldNotCallProcess(t *testing.T) {
@@ -192,8 +179,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttlerStartNum := int32(0)
-	throttlerEndNum := int32(0)
+	throttler := createMockThrottler()
 	interceptedData := &mock.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
@@ -210,7 +196,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+		throttler,
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -223,8 +209,8 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 	assert.Nil(t, err)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
@@ -232,8 +218,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttlerStartNum := int32(0)
-	throttlerEndNum := int32(0)
+	throttler := createMockThrottler()
 	interceptedData := &mock.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
@@ -250,7 +235,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+		throttler,
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -263,8 +248,8 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
 //------- IsInterfaceNil

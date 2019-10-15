@@ -326,7 +326,7 @@ func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T)
 		SndAddr:   senderAddress,
 		Signature: nil,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	err := txi.CheckValidity()
 
@@ -346,7 +346,7 @@ func TestInterceptedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	err := txi.CheckValidity()
 
@@ -366,7 +366,7 @@ func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testin
 		SndAddr:   nil,
 		Signature: sigOk,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	err := txi.CheckValidity()
 
@@ -386,7 +386,7 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	err := txi.CheckValidity()
 
@@ -406,7 +406,7 @@ func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testin
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	err := txi.CheckValidity()
 
@@ -446,6 +446,7 @@ func TestInterceptedTransaction_CheckValidityMarshalingCopiedTxFailsShouldErr(t 
 		&mock.SignerMock{},
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
+		createFreeTxFeeHandler(),
 	)
 
 	err := txi.CheckValidity()
@@ -466,7 +467,7 @@ func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T
 		SndAddr:   []byte(""),
 		Signature: sigOk,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	err := txi.CheckValidity()
 
@@ -486,7 +487,7 @@ func TestInterceptedTransaction_CheckValidityVerifyFailsShouldErr(t *testing.T) 
 		SndAddr:   senderAddress,
 		Signature: []byte("wrong sig"),
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	err := txi.CheckValidity()
 
@@ -506,7 +507,7 @@ func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	err := txi.CheckValidity()
 
@@ -527,7 +528,7 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 		Signature: sigOk,
 	}
 
-	txi, _ := createInterceptedTxFromPlainTx(tx)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
 	assert.Equal(t, senderShard, txi.SenderShardId())
 	assert.Equal(t, recvShard, txi.ReceiverShardId())

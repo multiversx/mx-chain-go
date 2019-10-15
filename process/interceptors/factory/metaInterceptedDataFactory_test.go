@@ -14,11 +14,11 @@ import (
 
 func createMockMetaArgument() *factory.ArgMetaInterceptedDataFactory {
 	return &factory.ArgMetaInterceptedDataFactory{
-		Marshalizer:         &mock.MarshalizerMock{},
-		Hasher:              mock.HasherMock{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		MultiSigVerifier:    mock.NewMultiSigner(),
-		ChronologyValidator: &mock.ChronologyValidatorStub{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		Hasher:           mock.HasherMock{},
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		MultiSigVerifier: mock.NewMultiSigner(),
+		NodesCoordinator: mock.NewNodesCoordinatorMock(),
 	}
 }
 
@@ -83,12 +83,12 @@ func TestNewMetaInterceptedDataFactory_NilChronologyValidatorShouldErr(t *testin
 	t.Parallel()
 
 	arg := createMockMetaArgument()
-	arg.ChronologyValidator = nil
+	arg.NodesCoordinator = nil
 
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
 
 	assert.Nil(t, midf)
-	assert.Equal(t, process.ErrNilChronologyValidator, err)
+	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 }
 
 func TestNewMetaInterceptedDataFactory_ShouldWork(t *testing.T) {

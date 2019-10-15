@@ -432,26 +432,10 @@ type BlockSizeThrottler interface {
 	IsInterfaceNil() bool
 }
 
-// TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
-type TxValidatorHandler interface {
-	SenderShardId() uint32
-	Nonce() uint64
-	SenderAddress() state.AddressContainer
-	TotalValue() *big.Int
-}
-
 // PoolsCleaner define the functionality that is needed for a pools cleaner
 type PoolsCleaner interface {
 	Clean(duration time.Duration) (bool, error)
 	NumRemovedTxs() uint64
-	IsInterfaceNil() bool
-}
-
-// InterceptorThrottler can determine if a new go routine can start
-type InterceptorThrottler interface {
-	CanProcess() bool
-	StartProcessing()
-	EndProcessing()
 	IsInterfaceNil() bool
 }
 

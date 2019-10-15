@@ -701,7 +701,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 	)
 
-	container, _ := icf.Create()
+	container, err := icf.Create()
 
 	numInterceptorTxs := noOfShards + 1
 	numInterceptorsUnsignedTxs := numInterceptorTxs
@@ -709,10 +709,9 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards
 	numInterceptorMetachainHeaders := 1
-	totalInterceptors := numInterceptorTxs + numInterceptorHeaders + numInterceptorMiniBlocks +
-		numInterceptorPeerChanges + numInterceptorMetachainHeaders + numInterceptorsUnsignedTxs +
-		numInterceptorsRewardTxs
-		numInterceptorMetachainHeaders + numInterceptorTxs
+	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
+		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders
 
+	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
 }

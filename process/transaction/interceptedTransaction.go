@@ -29,13 +29,7 @@ type InterceptedTransaction struct {
 	sndShard          uint32
 	isForCurrentShard bool
 	sndAddr           state.AddressContainer
-
-	hash                     []byte
-	rcvShard                 uint32
-	sndShard                 uint32
-	isAddressedToOtherShards bool
-	sndAddr                  state.AddressContainer
-	feeHandler               process.FeeHandler
+	feeHandler        process.FeeHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction

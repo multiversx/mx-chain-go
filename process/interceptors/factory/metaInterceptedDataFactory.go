@@ -20,7 +20,7 @@ type metaInterceptedDataFactory struct {
 	shardCoordinator    sharding.Coordinator
 	interceptedDataType InterceptedDataType
 	multiSigVerifier    crypto.MultiSigVerifier
-	chronologyValidator process.ChronologyValidator
+	nodesCoordinator    sharding.NodesCoordinator
 }
 
 // NewMetaInterceptedDataFactory creates an instance of interceptedDataFactory that can create
@@ -45,8 +45,8 @@ func NewMetaInterceptedDataFactory(
 	if check.IfNil(argument.MultiSigVerifier) {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if check.IfNil(argument.ChronologyValidator) {
-		return nil, process.ErrNilChronologyValidator
+	if check.IfNil(argument.NodesCoordinator) {
+		return nil, process.ErrNilNodesCoordinator
 	}
 
 	return &metaInterceptedDataFactory{
@@ -55,7 +55,7 @@ func NewMetaInterceptedDataFactory(
 		shardCoordinator:    argument.ShardCoordinator,
 		interceptedDataType: dataType,
 		multiSigVerifier:    argument.MultiSigVerifier,
-		chronologyValidator: argument.ChronologyValidator,
+		nodesCoordinator:    argument.NodesCoordinator,
 	}, nil
 }
 
@@ -74,12 +74,12 @@ func (midf *metaInterceptedDataFactory) Create(buff []byte) (process.Intercepted
 
 func (midf *metaInterceptedDataFactory) createInterceptedShardHeader(buff []byte) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:             buff,
-		Marshalizer:         midf.marshalizer,
-		Hasher:              midf.hasher,
-		MultiSigVerifier:    midf.multiSigVerifier,
-		ChronologyValidator: midf.chronologyValidator,
-		ShardCoordinator:    midf.shardCoordinator,
+		HdrBuff:          buff,
+		Marshalizer:      midf.marshalizer,
+		Hasher:           midf.hasher,
+		MultiSigVerifier: midf.multiSigVerifier,
+		NodesCoordinator: midf.nodesCoordinator,
+		ShardCoordinator: midf.shardCoordinator,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)
@@ -87,12 +87,12 @@ func (midf *metaInterceptedDataFactory) createInterceptedShardHeader(buff []byte
 
 func (midf *metaInterceptedDataFactory) createInterceptedMetaHeader(buff []byte) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:             buff,
-		Marshalizer:         midf.marshalizer,
-		Hasher:              midf.hasher,
-		MultiSigVerifier:    midf.multiSigVerifier,
-		ChronologyValidator: midf.chronologyValidator,
-		ShardCoordinator:    midf.shardCoordinator,
+		HdrBuff:          buff,
+		Marshalizer:      midf.marshalizer,
+		Hasher:           midf.hasher,
+		MultiSigVerifier: midf.multiSigVerifier,
+		NodesCoordinator: midf.nodesCoordinator,
+		ShardCoordinator: midf.shardCoordinator,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

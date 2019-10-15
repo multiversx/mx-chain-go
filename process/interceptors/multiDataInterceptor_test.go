@@ -113,7 +113,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 		},
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
-		createMockThrottler(nil, nil),
+		createMockThrottler(),
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -135,7 +135,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 		},
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
-		createMockThrottler(nil, nil),
+		createMockThrottler(),
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -154,8 +154,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testi
 	marshalizer := &mock.MarshalizerMock{}
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttlerStartNum := int32(0)
-	throttlerEndNum := int32(0)
+	throttler := createMockThrottler()
 	broadcastNum := int32(0)
 	errExpected := errors.New("expected err")
 	mdi, _ := interceptors.NewMultiDataInterceptor(
@@ -166,7 +165,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testi
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+		throttler,
 	)
 	bradcastCallback := func(buffToSend []byte) {
 		atomic.AddInt32(&broadcastNum, 1)
@@ -183,8 +182,8 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testi
 	assert.Equal(t, errExpected, err)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 	assert.Equal(t, int32(0), atomic.LoadInt32(&broadcastNum))
 }
 
@@ -198,8 +197,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 	marshalizer := &mock.MarshalizerMock{}
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttlerStartNum := int32(0)
-	throttlerEndNum := int32(0)
+	throttler := createMockThrottler()
 	broadcastNum := int32(0)
 	errExpected := errors.New("expected err")
 	interceptedData := &mock.InterceptedDataStub{
@@ -222,7 +220,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+		throttler,
 	)
 	bradcastCallback := func(buffToSend []byte) {
 		unmarshalledBuffs := make([][]byte, 0)
@@ -251,8 +249,8 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 	assert.Equal(t, errExpected, err)
 	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 	assert.Equal(t, int32(1), atomic.LoadInt32(&broadcastNum))
 }
 
@@ -264,8 +262,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 	marshalizer := &mock.MarshalizerMock{}
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttlerStartNum := int32(0)
-	throttlerEndNum := int32(0)
+	throttler := createMockThrottler()
 	errExpected := errors.New("expected err")
 	interceptedData := &mock.InterceptedDataStub{
 		CheckValidityCalled: func() error {
@@ -283,7 +280,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+		throttler,
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
@@ -297,8 +294,8 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 	assert.Equal(t, errExpected, err)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShouldRetNilAndNotProcess(t *testing.T) {
@@ -309,8 +306,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 	marshalizer := &mock.MarshalizerMock{}
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttlerStartNum := int32(0)
-	throttlerEndNum := int32(0)
+	throttler := createMockThrottler()
 	interceptedData := &mock.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
@@ -327,7 +323,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+		throttler,
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
@@ -341,8 +337,8 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 	assert.Nil(t, err)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *testing.T) {
@@ -353,8 +349,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	marshalizer := &mock.MarshalizerMock{}
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	throttlerStartNum := int32(0)
-	throttlerEndNum := int32(0)
+	throttler := createMockThrottler()
 	interceptedData := &mock.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
@@ -371,7 +366,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 			},
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		createMockThrottler(&throttlerStartNum, &throttlerEndNum),
+		throttler,
 	)
 
 	dataField, _ := marshalizer.Marshal(buffData)
@@ -385,8 +380,8 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	assert.Nil(t, err)
 	assert.Equal(t, int32(2), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(2), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerStartNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&throttlerEndNum))
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
 //------- IsInterfaceNil

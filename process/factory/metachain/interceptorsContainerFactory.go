@@ -28,7 +28,7 @@ type interceptorsContainerFactory struct {
 	shardCoordinator      sharding.Coordinator
 	messenger             process.TopicHandler
 	multiSigner           crypto.MultiSigner
-	nodesCoordinator	  sharding.NodesCoordinator
+	nodesCoordinator      sharding.NodesCoordinator
 	tpsBenchmark          *statistics.TpsBenchmark
 	argInterceptorFactory *interceptorFactory.ArgMetaInterceptedDataFactory
 	globalThrottler       process.InterceptorThrottler
@@ -72,11 +72,11 @@ func NewInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgMetaInterceptedDataFactory{
-		Marshalizer:         marshalizer,
-		Hasher:              hasher,
-		ShardCoordinator:    shardCoordinator,
-		nodesCoordinator: 	 nodesCoordinator,
-		MultiSigVerifier:    multiSigner,
+		Marshalizer:      marshalizer,
+		Hasher:           hasher,
+		ShardCoordinator: shardCoordinator,
+		NodesCoordinator: nodesCoordinator,
+		MultiSigVerifier: multiSigner,
 	}
 
 	icf := &interceptorsContainerFactory{
@@ -87,7 +87,7 @@ func NewInterceptorsContainerFactory(
 		hasher:                hasher,
 		multiSigner:           multiSigner,
 		dataPool:              dataPool,
-		chronologyValidator:   chronologyValidator,
+		nodesCoordinator:      nodesCoordinator,
 		argInterceptorFactory: argInterceptorFactory,
 	}
 
@@ -171,15 +171,6 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		hdrFactory,
 		hdrProcessor,
 		icf.globalThrottler,
-	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
-		icf.marshalizer,
-		icf.dataPool.MetaChainBlocks(),
-		icf.dataPool.HeadersNonces(),
-		hdrValidator,
-		icf.multiSigner,
-		icf.hasher,
-		icf.shardCoordinator,
-		icf.nodesCoordinator,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -227,15 +218,6 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 	hdrFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedShardHeader,
-	interceptor, err := interceptors.NewHeaderInterceptor(
-		icf.marshalizer,
-		icf.dataPool.ShardHeaders(),
-		icf.dataPool.HeadersNonces(),
-		hdrValidator,
-		icf.multiSigner,
-		icf.hasher,
-		icf.shardCoordinator,
-		icf.nodesCoordinator,
 	)
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{

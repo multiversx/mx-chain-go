@@ -22,7 +22,8 @@ type shardInterceptedDataFactory struct {
 	shardCoordinator    sharding.Coordinator
 	interceptedDataType InterceptedDataType
 	multiSigVerifier    crypto.MultiSigVerifier
-	chronologyValidator process.ChronologyValidator
+	nodesCoordinator    sharding.NodesCoordinator
+	feeHandler          process.FeeHandler
 }
 
 // NewShardInterceptedDataFactory creates an instance of interceptedDataFactory that can create
@@ -56,8 +57,11 @@ func NewShardInterceptedDataFactory(
 	if check.IfNil(argument.MultiSigVerifier) {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if check.IfNil(argument.ChronologyValidator) {
-		return nil, process.ErrNilChronologyValidator
+	if check.IfNil(argument.NodesCoordinator) {
+		return nil, process.ErrNilNodesCoordinator
+	}
+	if check.IfNil(argument.FeeHandler) {
+		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	return &shardInterceptedDataFactory{
@@ -69,7 +73,8 @@ func NewShardInterceptedDataFactory(
 		shardCoordinator:    argument.ShardCoordinator,
 		interceptedDataType: dataType,
 		multiSigVerifier:    argument.MultiSigVerifier,
-		chronologyValidator: argument.ChronologyValidator,
+		nodesCoordinator:    argument.NodesCoordinator,
+		feeHandler:          argument.FeeHandler,
 	}, nil
 }
 
@@ -101,6 +106,7 @@ func (sidf *shardInterceptedDataFactory) createInterceptedTx(buff []byte) (proce
 		sidf.singleSigner,
 		sidf.addrConverter,
 		sidf.shardCoordinator,
+		sidf.feeHandler,
 	)
 }
 
@@ -116,12 +122,12 @@ func (sidf *shardInterceptedDataFactory) createInterceptedUnsignedTx(buff []byte
 
 func (sidf *shardInterceptedDataFactory) createInterceptedShardHeader(buff []byte) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:             buff,
-		Marshalizer:         sidf.marshalizer,
-		Hasher:              sidf.hasher,
-		MultiSigVerifier:    sidf.multiSigVerifier,
-		ChronologyValidator: sidf.chronologyValidator,
-		ShardCoordinator:    sidf.shardCoordinator,
+		HdrBuff:          buff,
+		Marshalizer:      sidf.marshalizer,
+		Hasher:           sidf.hasher,
+		MultiSigVerifier: sidf.multiSigVerifier,
+		NodesCoordinator: sidf.nodesCoordinator,
+		ShardCoordinator: sidf.shardCoordinator,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)
@@ -129,12 +135,12 @@ func (sidf *shardInterceptedDataFactory) createInterceptedShardHeader(buff []byt
 
 func (sidf *shardInterceptedDataFactory) createInterceptedMetaHeader(buff []byte) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:             buff,
-		Marshalizer:         sidf.marshalizer,
-		Hasher:              sidf.hasher,
-		MultiSigVerifier:    sidf.multiSigVerifier,
-		ChronologyValidator: sidf.chronologyValidator,
-		ShardCoordinator:    sidf.shardCoordinator,
+		HdrBuff:          buff,
+		Marshalizer:      sidf.marshalizer,
+		Hasher:           sidf.hasher,
+		MultiSigVerifier: sidf.multiSigVerifier,
+		NodesCoordinator: sidf.nodesCoordinator,
+		ShardCoordinator: sidf.shardCoordinator,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

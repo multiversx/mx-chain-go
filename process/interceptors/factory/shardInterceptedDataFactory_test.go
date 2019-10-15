@@ -55,12 +55,17 @@ func createMockAddressConverter() state.AddressConverter {
 	}
 }
 
+func createMockFeeHandler() process.FeeHandler {
+	return &mock.FeeHandlerStub{}
+}
+
 func createMockShardArgument() *factory.ArgShardInterceptedDataFactory {
 	return &factory.ArgShardInterceptedDataFactory{
 		ArgMetaInterceptedDataFactory: createMockMetaArgument(),
 		KeyGen:                        createMockKeyGen(),
 		Signer:                        createMockSigner(),
 		AddrConv:                      createMockAddressConverter(),
+		FeeHandler:                    createMockFeeHandler(),
 	}
 }
 
@@ -161,12 +166,12 @@ func TestNewShardInterceptedDataFactory_NilChronologyValidatorShouldErr(t *testi
 	t.Parallel()
 
 	arg := createMockShardArgument()
-	arg.ChronologyValidator = nil
+	arg.NodesCoordinator = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, sidf)
-	assert.Equal(t, process.ErrNilChronologyValidator, err)
+	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 }
 
 func TestNewShardInterceptedDataFactory_ShouldWork(t *testing.T) {

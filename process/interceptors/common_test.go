@@ -51,19 +51,15 @@ func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testin
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to process"),
 	}
-	startProcessingCalled := false
 	throttler := &mock.InterceptorThrottlerStub{
 		CanProcessCalled: func() bool {
 			return true
-		},
-		StartProcessingCalled: func() {
-			startProcessingCalled = true
 		},
 	}
 	err := preProcessMesage(throttler, msg)
 
 	assert.Nil(t, err)
-	assert.True(t, startProcessingCalled)
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
 //------- processInterceptedData

@@ -1,25 +1,5 @@
 package mock
 
-type InterceptorThrottlerStub struct {
-	CanProcessCalled      func() bool
-	StartProcessingCalled func()
-	EndProcessingCalled   func()
-}
-
-func (its *InterceptorThrottlerStub) CanProcess() bool {
-	return its.CanProcessCalled()
-}
-
-func (its *InterceptorThrottlerStub) StartProcessing() {
-	its.StartProcessingCalled()
-}
-
-func (its *InterceptorThrottlerStub) EndProcessing() {
-	its.EndProcessingCalled()
-}
-
-func (its *InterceptorThrottlerStub) IsInterfaceNil() bool {
-	if its == nil {
 import "sync/atomic"
 
 type InterceptorThrottlerStub struct {
@@ -28,16 +8,16 @@ type InterceptorThrottlerStub struct {
 	endProcessingCount   int32
 }
 
-func (it *InterceptorThrottlerStub) CanProcess() bool {
-	return it.CanProcessCalled()
+func (its *InterceptorThrottlerStub) CanProcess() bool {
+	return its.CanProcessCalled()
 }
 
-func (it *InterceptorThrottlerStub) StartProcessing() {
-	atomic.AddInt32(&it.startProcessingCount, 1)
+func (its *InterceptorThrottlerStub) StartProcessing() {
+	atomic.AddInt32(&its.startProcessingCount, 1)
 }
 
-func (it *InterceptorThrottlerStub) EndProcessing() {
-	atomic.AddInt32(&it.endProcessingCount, 1)
+func (its *InterceptorThrottlerStub) EndProcessing() {
+	atomic.AddInt32(&its.endProcessingCount, 1)
 }
 
 func (it *InterceptorThrottlerStub) StartProcessingCount() int32 {
@@ -48,8 +28,8 @@ func (it *InterceptorThrottlerStub) EndProcessingCount() int32 {
 	return atomic.LoadInt32(&it.endProcessingCount)
 }
 
-func (it *InterceptorThrottlerStub) IsInterfaceNil() bool {
-	if it == nil {
+func (its *InterceptorThrottlerStub) IsInterfaceNil() bool {
+	if its == nil {
 		return true
 	}
 	return false
