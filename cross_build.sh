@@ -4,9 +4,9 @@ package=node
 package_split=(${package//\// })
 package_name=${package_split[-1]}
 
-platforms=("windows/amd64" "windows/386" "darwin/amd64" "darwin/386" "linux/amd64" "linux/386" "linux/arm" "linux/arm64")
+platforms=("windows/amd64" "darwin/amd64" "linux/amd64" "linux/arm64")
 BASEDIR=$(pwd)/cross_build
-
+APP_VER=$(git describe --tags --long --dirty)
 
 for platform in "${platforms[@]}"
 do
@@ -20,7 +20,7 @@ do
     fi
 
     pushd cmd/node
-    env GOOS=$GOOS GOARCH=$GOARCH go build -o $output_name
+    env GOOS=$GOOS GOARCH=$GOARCH go build -o $output_name -a -i -v -ldflags="-X main.appVersion=$APP_VER"
     popd
     if [ $? -ne 0 ]; then
         echo 'An error has occurred! '
