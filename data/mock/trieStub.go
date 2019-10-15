@@ -22,6 +22,7 @@ type TrieStub struct {
 	PruneCalled             func(rootHash []byte) error
 	ResetOldHashesCalled    func() [][]byte
 	AppendToOldHashesCalled func([][]byte)
+	SnapshotCalled          func() error
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -134,4 +135,11 @@ func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
 	if ts.AppendToOldHashesCalled != nil {
 		ts.AppendToOldHashesCalled(hashes)
 	}
+}
+
+func (ts *TrieStub) Snapshot() error {
+	if ts.SnapshotCalled != nil {
+		return ts.SnapshotCalled()
+	}
+	return nil
 }
