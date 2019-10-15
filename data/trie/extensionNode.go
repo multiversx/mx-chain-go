@@ -165,17 +165,20 @@ func (en *extensionNode) hashNode(marshalizer marshal.Marshalizer, hasher hashin
 	return encodeNodeAndGetHash(en, marshalizer, hasher)
 }
 
-func (en *extensionNode) commit(level byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (en *extensionNode) commit(force bool, level byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
-	if !en.dirty {
+
+	shouldNotCommit := !en.dirty && !force
+	if shouldNotCommit {
 		return nil
 	}
+
 	if en.child != nil {
-		err = en.child.commit(level, db, marshalizer, hasher)
+		err = en.child.commit(force, level, db, marshalizer, hasher)
 		if err != nil {
 			return err
 		}

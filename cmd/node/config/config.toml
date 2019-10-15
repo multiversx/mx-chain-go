@@ -154,9 +154,16 @@
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 1
-        MaxBatchSize = 1
+        BatchDelaySeconds = 5
+        MaxBatchSize = 10000
         MaxOpenFiles = 10
+
+[TrieSnapshotDB]
+     FilePath = "TrieSnapshot"
+     Type = "LvlDBSerial"
+     BatchDelaySeconds = 15
+     MaxBatchSize = 40000
+     MaxOpenFiles = 10
 
 [BadBlocksCache]
     Size = 1000

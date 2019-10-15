@@ -3,14 +3,19 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path"
+	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 const (
@@ -18,6 +23,8 @@ const (
 	leaf
 	branch
 )
+
+const maxSnapshots = 2
 
 var emptyTrieHash = make([]byte, 32)
 
@@ -28,6 +35,9 @@ type patriciaMerkleTrie struct {
 	hasher       hashing.Hasher
 	mutOperation sync.RWMutex
 
+	snapshots             []data.DBWriteCacher
+	snapshotId            int
+	snapshotDbCfg         config.DBConfig
 	dbEvictionWaitingList data.DBRemoveCacher
 	oldHashes             [][]byte
 	oldRoot               []byte
@@ -40,6 +50,7 @@ func NewTrie(
 	hsh hashing.Hasher,
 	evictionDb storage.Persister,
 	evictionWaitListSize int,
+	snapshotDbCfg config.DBConfig,
 ) (*patriciaMerkleTrie, error) {
 	if db == nil || db.IsInterfaceNil() {
 		return nil, ErrNilDatabase
@@ -67,6 +78,9 @@ func NewTrie(
 		dbEvictionWaitingList: evictionWaitList,
 		oldHashes:             make([][]byte, 0),
 		oldRoot:               make([]byte, 0),
+		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshotId:            0,
+		snapshotDbCfg:         snapshotDbCfg,
 		marshalizer:           msh,
 		hasher:                hsh,
 	}, nil
@@ -273,7 +287,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	}
 
 	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
-		err := tr.dbEvictionWaitingList.Put(tr.oldRoot, tr.oldHashes)
+		err = tr.dbEvictionWaitingList.Put(tr.oldRoot, tr.oldHashes)
 		if err != nil {
 			return err
 		}
@@ -281,7 +295,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		tr.oldHashes = make([][]byte, 0)
 	}
 
-	err = tr.root.commit(0, tr.db, tr.marshalizer, tr.hasher)
+	err = tr.root.commit(false, 0, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
@@ -293,11 +307,13 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize())
+	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize(), tr.snapshotDbCfg)
 	if err != nil {
 		return nil, err
 	}
 	newTr.dbEvictionWaitingList = tr.dbEvictionWaitingList
+	newTr.snapshots = tr.snapshots
+	newTr.snapshotId = tr.snapshotId
 
 	if emptyTrie(root) {
 		return newTr, nil
@@ -323,11 +339,13 @@ func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize())
+	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize(), tr.snapshotDbCfg)
 	if err != nil {
 		return nil, err
 	}
 	clonedTrie.dbEvictionWaitingList = tr.dbEvictionWaitingList
+	clonedTrie.snapshots = tr.snapshots
+	clonedTrie.snapshotId = tr.snapshotId
 
 	if tr.root == nil {
 		return clonedTrie, nil
@@ -369,26 +387,36 @@ func emptyTrie(root []byte) bool {
 	return false
 }
 
-// CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte) {
-	_, _ = tr.dbEvictionWaitingList.Evict(rootHash)
-}
-
 // Prune removes from the database all the old hashes that correspond to the given root hash
 func (tr *patriciaMerkleTrie) Prune(rootHash []byte) error {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
 	hashes, err := tr.dbEvictionWaitingList.Evict(rootHash)
 	if err != nil {
 		return err
 	}
 
 	for i := range hashes {
-		err := tr.db.Remove(hashes[i])
+		err = tr.db.Remove(hashes[i])
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
+func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte) {
+	tr.mutOperation.Lock()
+	_, _ = tr.dbEvictionWaitingList.Evict(rootHash)
+	tr.mutOperation.Unlock()
+}
+
+// AppendToOldHashes appends the given hashes to the trie's oldHashes variable
+func (tr *patriciaMerkleTrie) AppendToOldHashes(hashes [][]byte) {
+	tr.oldHashes = append(tr.oldHashes, hashes...)
 }
 
 // ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
@@ -400,7 +428,45 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	return oldHashes
 }
 
-// AppendToOldHashes appends the given hashes to the trie's oldHashes variable
-func (tr *patriciaMerkleTrie) AppendToOldHashes(hashes [][]byte) {
-	tr.oldHashes = append(tr.oldHashes, hashes...)
+// Snapshot creates a new database in which the current state of the trie is saved.
+// If the maximum number of snapshots has been reached, the oldest snapshot is removed.
+func (tr *patriciaMerkleTrie) Snapshot() error {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	err := tr.root.commit(false, 0, tr.db, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return err
+	}
+
+	db, err := storageUnit.NewDB(
+		storageUnit.DBType(tr.snapshotDbCfg.Type),
+		path.Join(tr.snapshotDbCfg.FilePath, strconv.Itoa(tr.snapshotId)),
+		tr.snapshotDbCfg.BatchDelaySeconds,
+		tr.snapshotDbCfg.MaxBatchSize,
+		tr.snapshotDbCfg.MaxOpenFiles,
+	)
+	if err != nil {
+		return err
+	}
+	tr.snapshotId++
+
+	err = tr.root.commit(true, 0, db, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return err
+	}
+
+	tr.snapshots = append(tr.snapshots, db)
+
+	if len(tr.snapshots) > maxSnapshots {
+		dbUniqueId := strconv.Itoa(tr.snapshotId - len(tr.snapshots))
+		tr.snapshots = tr.snapshots[1:]
+
+		err = os.RemoveAll(path.Join(tr.snapshotDbCfg.FilePath, dbUniqueId))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

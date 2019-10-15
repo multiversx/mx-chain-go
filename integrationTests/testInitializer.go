@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -203,7 +204,7 @@ func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, s
 	store := CreateMemUnit()
 	evictionWaitListSize := 100
 
-	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher, memorydb.New(), evictionWaitListSize)
+	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
 	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
@@ -456,7 +457,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	evictionWaitListSize := 100
-	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher, memorydb.New(), evictionWaitListSize)
+	tr, _ := trie.NewTrie(CreateMemUnit(), TestMarshalizer, TestHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
 	return tr
 }
 

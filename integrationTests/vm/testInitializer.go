@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -64,7 +65,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	store := CreateMemUnit()
 	evictionWaitListSize := 100
 
-	tr, _ := trie.NewTrie(store, marsh, testHasher, memorydb.New(), evictionWaitListSize)
+	tr, _ := trie.NewTrie(store, marsh, testHasher, memorydb.New(), evictionWaitListSize, config.DBConfig{})
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb

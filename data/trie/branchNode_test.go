@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -119,12 +120,13 @@ func TestBranchNode_setHash(t *testing.T) {
 func TestBranchNode_setRootHash(t *testing.T) {
 	t.Parallel()
 
+	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
 	cacheSize := 100
 
-	tr1, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
-	tr2, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
+	tr1, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize, cfg)
+	tr2, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize, cfg)
 
 	for i := 0; i < 100000; i++ {
 		val := hsh.Compute(string(i))
@@ -296,7 +298,7 @@ func TestBranchNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
 	_ = bn.setHash(marsh, hasher)
 
-	err := bn.commit(0, db, marsh, hasher)
+	err := bn.commit(false, 0, db, marsh, hasher)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -313,7 +315,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := bn.commit(0, db, marsh, hasher)
+	err := bn.commit(false, 0, db, marsh, hasher)
 	assert.Equal(t, ErrEmptyNode, err)
 }
 
@@ -324,7 +326,7 @@ func TestBranchNode_commitNilNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := bn.commit(0, db, marsh, hasher)
+	err := bn.commit(false, 0, db, marsh, hasher)
 	assert.Equal(t, ErrNilNode, err)
 }
 
@@ -373,7 +375,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 
 	_ = bn.setHash(marsh, hasher)
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 	resolved := newLeafNode([]byte("dog"), []byte("dog"))
 	resolved.dirty = false
 	resolved.hash = bn.EncodedChildren[childPos]
@@ -488,7 +490,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	_ = bn.setHash(marsh, hasher)
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -636,7 +638,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	node := newLeafNode(key, []byte("dogs"))
 
 	_ = bn.setHash(marsh, hasher)
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 
 	dirty, newBn, _, err := collapsedBn.insert(node, db, marsh)
 	assert.True(t, dirty)
@@ -656,7 +658,7 @@ func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 	node := newLeafNode(key, []byte("dogs"))
 
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 	bnHash := bn.getHash()
 	ln, _, _ := bn.getNext(key, db, marsh)
 	lnHash := ln.getHash()
@@ -680,7 +682,7 @@ func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
 	key := append([]byte{nilChildPos}, []byte("dog")...)
 	node := newLeafNode(key, []byte("dogs"))
 
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash}
 
@@ -779,7 +781,7 @@ func TestBranchNode_deleteFromStoredBn(t *testing.T) {
 	childPos := byte(2)
 	lnKey := append([]byte{childPos}, []byte("dog")...)
 
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 	bnHash := bn.getHash()
 	ln, _, _ := bn.getNext(lnKey, db, marsh)
 	lnHash := ln.getHash()
@@ -860,7 +862,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	_ = bn.setHash(marsh, hasher)
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -1026,7 +1028,7 @@ func newEmptyTrie() data.Trie {
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
 	cacheSize := 100
-	tr, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize)
+	tr, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize, config.DBConfig{})
 	return tr
 }
 

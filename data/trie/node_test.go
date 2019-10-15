@@ -1,11 +1,18 @@
 package trie
 
 import (
+	"io/ioutil"
+	"os"
+	"path"
+	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -152,7 +159,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	bn, collapsedBn := getBnAndCollapsedBn()
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -172,7 +179,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commit(0, db, marsh, hasher)
+	_ = en.commit(false, 0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -192,7 +199,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
-	_ = ln.commit(0, db, marsh, hasher)
+	_ = ln.commit(false, 0, db, marsh, hasher)
 
 	encNode, _ := marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -213,7 +220,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	childPos := byte(2)
 
-	_ = bn.commit(0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(collapsedBn, childPos, db, marsh)
 	assert.Nil(t, err)
@@ -227,7 +234,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	en, collapsedEn := getEnAndCollapsedEn()
 
-	_ = en.commit(0, db, marsh, hasher)
+	_ = en.commit(false, 0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(collapsedEn, 0, db, marsh)
 	assert.Nil(t, err)
@@ -241,7 +248,7 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 	ln := getLn()
 
-	_ = ln.commit(0, db, marsh, hasher)
+	_ = ln.commit(false, 0, db, marsh, hasher)
 
 	err := resolveIfCollapsed(ln, 0, db, marsh)
 	assert.Nil(t, err)
@@ -550,8 +557,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 		oldHashes:             make([][]byte, 0),
 		oldRoot:               make([]byte, 0),
 		marshalizer:           msh,
-
-		hasher: hsh,
+		hasher:                hsh,
 	}
 
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
@@ -639,4 +645,145 @@ func TestTrieAddHashesToOldHashes(t *testing.T) {
 	expectedHLength := len(tr.oldHashes) + len(hashes)
 	tr.AppendToOldHashes(hashes)
 	assert.Equal(t, expectedHLength, len(tr.oldHashes))
+}
+
+func TestRecreateTrieFromSnapshotDb(t *testing.T) {
+	t.Parallel()
+
+	testVals := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("doe"), []byte("reindeer")},
+		{[]byte("dog"), []byte("puppy")},
+		{[]byte("dogglesworth"), []byte("cat")},
+	}
+
+	msh, hsh := getTestMarshAndHasher()
+
+	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
+	cfg := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
+	}
+
+	tr := &patriciaMerkleTrie{
+		db:            mock.NewMemDbMock(),
+		snapshots:     make([]data.DBWriteCacher, 0),
+		snapshotDbCfg: cfg,
+		marshalizer:   msh,
+		hasher:        hsh,
+	}
+
+	for _, testVal := range testVals {
+		_ = tr.Update(testVal.key, testVal.value)
+	}
+
+	_ = tr.Snapshot()
+	collapsedRoot, _ := tr.root.getCollapsed(tr.marshalizer, tr.hasher)
+
+	snapshotTrie := &patriciaMerkleTrie{
+		root:        collapsedRoot,
+		db:          tr.snapshots[0],
+		marshalizer: msh,
+		hasher:      hsh,
+	}
+
+	for _, testVal := range testVals {
+		val, err := snapshotTrie.Get(testVal.key)
+		assert.Nil(t, err)
+		assert.Equal(t, testVal.value, val)
+	}
+}
+
+func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
+	t.Parallel()
+
+	testVals := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("doe"), []byte("reindeer")},
+		{[]byte("dog"), []byte("puppy")},
+		{[]byte("dogglesworth"), []byte("cat")},
+	}
+
+	msh, hsh := getTestMarshAndHasher()
+
+	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
+	cfg := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
+	}
+
+	tr := &patriciaMerkleTrie{
+		db:            mock.NewMemDbMock(),
+		snapshots:     make([]data.DBWriteCacher, 0),
+		snapshotId:    0,
+		snapshotDbCfg: cfg,
+		marshalizer:   msh,
+		hasher:        hsh,
+	}
+
+	for _, testVal := range testVals {
+		_ = tr.Update(testVal.key, testVal.value)
+		_ = tr.Snapshot()
+
+		snapshotId := strconv.Itoa(tr.snapshotId - 1)
+		snapshotPath := path.Join(tr.snapshotDbCfg.FilePath, snapshotId)
+		f, _ := os.Stat(snapshotPath)
+		assert.True(t, f.IsDir())
+	}
+
+	assert.Equal(t, len(testVals), tr.snapshotId)
+}
+
+func TestDeleteOldSnapshots(t *testing.T) {
+	t.Parallel()
+
+	testVals := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("doe"), []byte("reindeer")},
+		{[]byte("dog"), []byte("puppy")},
+		{[]byte("dogglesworth"), []byte("cat")},
+		{[]byte("horse"), []byte("mustang")},
+	}
+
+	msh, hsh := getTestMarshAndHasher()
+
+	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
+	cfg := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
+	}
+
+	tr := &patriciaMerkleTrie{
+		db:            mock.NewMemDbMock(),
+		snapshots:     make([]data.DBWriteCacher, 0),
+		snapshotId:    0,
+		snapshotDbCfg: cfg,
+		marshalizer:   msh,
+		hasher:        hsh,
+	}
+
+	for _, testVal := range testVals {
+		_ = tr.Update(testVal.key, testVal.value)
+		_ = tr.Snapshot()
+	}
+
+	snapshots, _ := ioutil.ReadDir(tr.snapshotDbCfg.FilePath)
+	assert.Equal(t, 2, len(snapshots))
+	assert.Equal(t, "2", snapshots[0].Name())
+	assert.Equal(t, "3", snapshots[1].Name())
 }
