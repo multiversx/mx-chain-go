@@ -102,7 +102,7 @@ type TestProcessorNode struct {
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
 
-	EconomicsData *economics.EconomicsData
+	EconomicsData *economics.TestEconomicsData
 
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
@@ -277,7 +277,9 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 		},
 	)
 
-	tpn.EconomicsData = economicsData
+	tpn.EconomicsData = &economics.TestEconomicsData{
+		EconomicsData: economicsData,
+	}
 }
 
 func (tpn *TestProcessorNode) initInterceptors() {
@@ -382,7 +384,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.SpecialAddressHandler,
 		tpn.Storage,
 		tpn.ShardDataPool,
-		tpn.EconomicsData,
+		tpn.EconomicsData.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -431,17 +433,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		&mock.FeeHandlerStub{
-			MinGasPriceCalled: func() uint64 {
-				return 0
-			},
-			MinGasLimitCalled: func() uint64 {
-				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
-		},
+		tpn.EconomicsData,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -458,17 +450,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
 		internalTxProducer,
-		&mock.FeeHandlerStub{
-			MinGasPriceCalled: func() uint64 {
-				return 0
-			},
-			MinGasLimitCalled: func() uint64 {
-				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
-		},
+		tpn.EconomicsData,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

@@ -33,13 +33,7 @@ import (
 
 func FeeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
-		MinGasPriceCalled: func() uint64 {
-			return 0
-		},
-		MinGasLimitCalled: func() uint64 {
-			return 5
-		},
-		MinTxFeeCalled: func() uint64 {
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
 	}

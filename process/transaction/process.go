@@ -3,7 +3,6 @@ package transaction
 import (
 	"bytes"
 	"math/big"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -27,7 +26,6 @@ type txProcessor struct {
 	shardCoordinator sharding.Coordinator
 	txTypeHandler    process.TxTypeHandler
 	economicsFee     process.FeeHandler
-	mutTxFee         sync.RWMutex
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -81,7 +79,6 @@ func NewTxProcessor(
 		txFeeHandler:     txFeeHandler,
 		txTypeHandler:    txTypeHandler,
 		economicsFee:     economicsFee,
-		mutTxFee:         sync.RWMutex{},
 	}, nil
 }
 
@@ -128,29 +125,18 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 		return nil, nil
 	}
 
-	cost := big.NewInt(0)
-	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-
-	txDataLen := int64(len(tx.Data))
-	txProc.mutTxFee.RLock()
-	minTxFee := big.NewInt(0).SetUint64(txProc.economicsFee.MinGasLimit())
-	minTxFee.Mul(minTxFee, big.NewInt(0).SetUint64(txProc.economicsFee.MinGasPrice()))
-
-	minFee := big.NewInt(0)
-	minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(txProc.economicsFee.MinGasPrice()))
-	minFee.Add(minFee, minTxFee)
-	txProc.mutTxFee.RUnlock()
-
-	if minFee.Cmp(cost) > 0 {
-		return nil, process.ErrNotEnoughFeeInTransactions
+	err := txProc.economicsFee.CheckValidityTxValues(tx)
+	if err != nil {
+		return nil, err
 	}
 
+	cost := txProc.economicsFee.ComputeFee(tx)
 	if acntSnd.Balance.Cmp(cost) < 0 {
 		return nil, process.ErrInsufficientFunds
 	}
 
 	operation := big.NewInt(0)
-	err := acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
+	err = acntSnd.SetBalanceWithJournal(operation.Sub(acntSnd.Balance, cost))
 	if err != nil {
 		return nil, err
 	}
