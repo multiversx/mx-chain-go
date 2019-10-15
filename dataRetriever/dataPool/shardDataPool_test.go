@@ -15,6 +15,7 @@ func TestNewShardedDataPool_NilTransactionsShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		nil,
 		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.CacherStub{},
@@ -30,6 +31,7 @@ func TestNewShardedDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		nil,
+		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.CacherStub{},
@@ -41,8 +43,25 @@ func TestNewShardedDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
+func TestNewShardedDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
+	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
+		nil,
+		&mock.CacherStub{},
+		&mock.Uint64SyncMapCacherStub{},
+		&mock.CacherStub{},
+		&mock.CacherStub{},
+		&mock.CacherStub{},
+	)
+
+	assert.Equal(t, dataRetriever.ErrNilRewardTransactionPool, err)
+	assert.Nil(t, tdp)
+}
+
 func TestNewShardedDataPool_NilHeadersShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		nil,
@@ -60,6 +79,7 @@ func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		nil,
 		&mock.CacherStub{},
@@ -73,6 +93,7 @@ func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 
 func TestNewShardedDataPool_NilTxBlocksShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
@@ -90,6 +111,7 @@ func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.CacherStub{},
@@ -103,6 +125,7 @@ func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 
 func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
+		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
@@ -119,6 +142,7 @@ func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	transactions := &mock.ShardedDataStub{}
 	scResults := &mock.ShardedDataStub{}
+	rewardTransactions := &mock.ShardedDataStub{}
 	headers := &mock.CacherStub{}
 	headerNonces := &mock.Uint64SyncMapCacherStub{}
 	txBlocks := &mock.CacherStub{}
@@ -127,6 +151,7 @@ func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	tdp, err := dataPool.NewShardedDataPool(
 		transactions,
 		scResults,
+		rewardTransactions,
 		headers,
 		headerNonces,
 		txBlocks,
@@ -137,6 +162,8 @@ func TestNewShardedDataPool_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	//pointer checking
 	assert.True(t, transactions == tdp.Transactions())
+	assert.True(t, scResults == tdp.UnsignedTransactions())
+	assert.True(t, rewardTransactions == tdp.RewardTransactions())
 	assert.True(t, headers == tdp.Headers())
 	assert.True(t, headerNonces == tdp.HeadersNonces())
 	assert.True(t, txBlocks == tdp.MiniBlocks())

@@ -837,3 +837,36 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
 	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
 }
+
+func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock)
+	hdr1 := &block.Header{Nonce: 3, Round: 3}
+	hash1 := []byte("hash1")
+	hdr2 := &block.Header{Nonce: 1, Round: 1}
+	hash2 := []byte("hash2")
+	hdr3 := &block.Header{Nonce: 4, Round: 5}
+	hash3 := []byte("hash3")
+
+	hdrs := make([]data.HeaderHandler, 0)
+	hashes := make([][]byte, 0)
+	hdrs = append(hdrs, hdr1)
+	hashes = append(hashes, hash1)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr2)
+	hashes = append(hashes, hash2)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr3)
+	hashes = append(hashes, hash3)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
+}

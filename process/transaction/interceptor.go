@@ -25,6 +25,8 @@ type TxInterceptor struct {
 	keyGen                   crypto.KeyGenerator
 	shardCoordinator         sharding.Coordinator
 	broadcastCallbackHandler func(buffToSend []byte)
+	throttler                process.InterceptorThrottler
+	feeHandler               process.FeeHandler
 }
 
 // NewTxInterceptor hooks a new interceptor for transactions
@@ -37,6 +39,8 @@ func NewTxInterceptor(
 	singleSigner crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
 	shardCoordinator sharding.Coordinator,
+	throttler process.InterceptorThrottler,
+	feeHandler process.FeeHandler,
 ) (*TxInterceptor, error) {
 
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {
@@ -63,6 +67,12 @@ func NewTxInterceptor(
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if throttler == nil || throttler.IsInterfaceNil() {
+		return nil, process.ErrNilThrottler
+	}
+	if feeHandler == nil || feeHandler.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	txIntercept := &TxInterceptor{
 		marshalizer:      marshalizer,
@@ -73,6 +83,8 @@ func NewTxInterceptor(
 		singleSigner:     singleSigner,
 		keyGen:           keyGen,
 		shardCoordinator: shardCoordinator,
+		throttler:        throttler,
+		feeHandler:       feeHandler,
 	}
 
 	return txIntercept, nil
@@ -81,10 +93,17 @@ func NewTxInterceptor(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+	canProcess := txi.throttler.CanProcess()
+	if !canProcess {
+		return process.ErrSystemBusy
+	}
+
+	txi.throttler.StartProcessing()
+	defer txi.throttler.EndProcessing()
+
 	if message == nil || message.IsInterfaceNil() {
 		return process.ErrNilMessage
 	}
-
 	if message.Data() == nil {
 		return process.ErrNilDataToProcess
 	}
@@ -108,7 +127,9 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			txi.keyGen,
 			txi.singleSigner,
 			txi.addrConverter,
-			txi.shardCoordinator)
+			txi.shardCoordinator,
+			txi.feeHandler,
+		)
 
 		if err != nil {
 			lastErrEncountered = err
@@ -123,6 +144,7 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			continue
 		}
 
+		//TODO: check if throttler needs to be applied also on the following go routine.
 		go txi.processTransaction(txIntercepted)
 	}
 

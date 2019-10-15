@@ -280,3 +280,7 @@ func (bfd *baseForkDetector) ShouldAddBlockInForkDetector(header data.HeaderHand
 func (bfd *baseForkDetector) SetProbableHighestNonce(nonce uint64) {
 	bfd.setProbableHighestNonce(nonce)
 }
+
+func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
+	sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
+}

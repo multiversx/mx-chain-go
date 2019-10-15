@@ -13,10 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stepDelay = time.Second
-var delayP2pBootstrap = time.Second * 2
-var stepSync = time.Second * 2
-
 func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -149,8 +145,8 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 
 	time.Sleep(stepSync)
 
-	pubKeysVariant1 := []byte("1")
-	pubKeysVariant2 := []byte("2")
+	pubKeysVariant1 := []byte{3}
+	pubKeysVariant2 := []byte{1}
 
 	proposeBlockWithPubKeyBitmap(nodes[idxProposerShard0], round, nonce, pubKeysVariant1)
 	proposeBlockWithPubKeyBitmap(nodes[1], round, nonce, pubKeysVariant2)
@@ -196,10 +192,4 @@ func testAllNodesHaveSameLastBlock(t *testing.T, nodes []*integrationTests.TestP
 	}
 
 	assert.Equal(t, 1, len(mapBlocksByHash))
-}
-
-func updateRound(nodes []*integrationTests.TestProcessorNode, round uint64) {
-	for _, n := range nodes {
-		n.Rounder.IndexField = int64(round)
-	}
 }

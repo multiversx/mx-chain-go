@@ -228,11 +228,13 @@ func (n *Node) generateAndSignSingleTx(
 	}
 
 	tx := transaction.Transaction{
-		Nonce:   nonce,
-		Value:   value,
-		RcvAddr: rcvAddrBytes,
-		SndAddr: sndAddrBytes,
-		Data:    data,
+		Nonce:    nonce,
+		Value:    value,
+		GasLimit: 100,
+		GasPrice: 10,
+		RcvAddr:  rcvAddrBytes,
+		SndAddr:  sndAddrBytes,
+		Data:     data,
 	}
 
 	marshalizedTx, err := n.marshalizer.Marshal(&tx)

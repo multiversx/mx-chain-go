@@ -15,16 +15,18 @@ import (
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	Accounts         state.AccountsAdapter
-	ForkDetector     process.ForkDetector
-	Hasher           hashing.Hasher
-	Marshalizer      marshal.Marshalizer
-	Store            dataRetriever.StorageService
-	ShardCoordinator sharding.Coordinator
-	Uint64Converter  typeConverters.Uint64ByteSliceConverter
-	StartHeaders     map[uint32]data.HeaderHandler
-	RequestHandler   process.RequestHandler
-	Core             serviceContainer.Core
+	Accounts              state.AccountsAdapter
+	ForkDetector          process.ForkDetector
+	Hasher                hashing.Hasher
+	Marshalizer           marshal.Marshalizer
+	Store                 dataRetriever.StorageService
+	ShardCoordinator      sharding.Coordinator
+	NodesCoordinator      sharding.NodesCoordinator
+	SpecialAddressHandler process.SpecialAddressHandler
+	Uint64Converter       typeConverters.Uint64ByteSliceConverter
+	StartHeaders          map[uint32]data.HeaderHandler
+	RequestHandler        process.RequestHandler
+	Core                  serviceContainer.Core
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -32,7 +34,6 @@ type ArgBaseProcessor struct {
 type ArgShardProcessor struct {
 	*ArgBaseProcessor
 	DataPool        dataRetriever.PoolsHolder
-	BlocksTracker   process.BlocksTracker
 	TxCoordinator   process.TransactionCoordinator
 	TxsPoolsCleaner process.PoolsCleaner
 }

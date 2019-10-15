@@ -3,12 +3,14 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -45,68 +47,58 @@ func generateTestUnit() storage.Storer {
 	return storer
 }
 
+func createShardedDataChacherNotifier(
+	handler data.TransactionHandler,
+	testHash []byte,
+) func() dataRetriever.ShardedDataCacherNotifier {
+	return func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{
+			RegisterHandlerCalled: func(i func(key []byte)) {},
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+				return &mock.CacherStub{
+					PeekCalled: func(key []byte) (value interface{}, ok bool) {
+						if reflect.DeepEqual(key, testHash) {
+							return handler, true
+						}
+						return nil, false
+					},
+					KeysCalled: func() [][]byte {
+						return [][]byte{[]byte("key1"), []byte("key2")}
+					},
+					LenCalled: func() int {
+						return 0
+					},
+				}
+			},
+			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if reflect.DeepEqual(key, []byte("tx1_hash")) {
+					return handler, true
+				}
+				return nil, false
+			},
+			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			},
+		}
+	}
+}
+
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {
+	rewardTx := &rewardTx.RewardTx{
+		Round:   1,
+		Epoch:   0,
+		Value:   big.NewInt(10),
+		RcvAddr: []byte("receiver"),
+		ShardId: 0,
+	}
+	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
+	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
+	rewardTransactionsCalled := createShardedDataChacherNotifier(rewardTx, testHash)
+
 	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, testHash) {
-								return &transaction.Transaction{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				},
-			}
-		},
-		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, testHash) {
-								return &transaction.Transaction{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				},
-			}
-		},
+		TransactionsCalled:         txCalled,
+		UnsignedTransactionsCalled: unsignedTxCalled,
+		RewardTransactionsCalled:   rewardTransactionsCalled,
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 			return &mock.Uint64SyncMapCacherStub{
 				MergeCalled: func(u uint64, syncMap dataRetriever.ShardIdHashMap) {},
@@ -254,7 +246,7 @@ func initStore() *dataRetriever.ChainStorer {
 	return store
 }
 
-func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) data.HeaderHandler {
+func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) *block.MetaBlock {
 	metaBlock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{
@@ -317,21 +309,29 @@ func (wr *wrongBody) IsInterfaceNil() bool {
 }
 
 func CreateMockArguments() blproc.ArgShardProcessor {
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	specialAddressHandler := mock.NewSpecialAddressHandlerMock(
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		nodesCoordinator,
+	)
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: &blproc.ArgBaseProcessor{
-			Accounts:         &mock.AccountsStub{},
-			ForkDetector:     &mock.ForkDetectorMock{},
-			Hasher:           &mock.HasherStub{},
-			Marshalizer:      &mock.MarshalizerMock{},
-			Store:            initStore(),
-			ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-			Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:     createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-			RequestHandler:   &mock.RequestHandlerMock{},
-			Core:             &mock.ServiceContainerMock{},
+			Accounts:              &mock.AccountsStub{},
+			ForkDetector:          &mock.ForkDetectorMock{},
+			Hasher:                &mock.HasherStub{},
+			Marshalizer:           &mock.MarshalizerMock{},
+			Store:                 initStore(),
+			ShardCoordinator:      shardCoordinator,
+			NodesCoordinator:      nodesCoordinator,
+			SpecialAddressHandler: specialAddressHandler,
+			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:          createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+			RequestHandler:        &mock.RequestHandlerMock{},
+			Core:                  &mock.ServiceContainerMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
-		BlocksTracker:   &mock.BlocksTrackerMock{},
 		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}

@@ -21,7 +21,6 @@ import (
 type Worker struct {
 	consensusService   ConsensusService
 	blockProcessor     process.BlockProcessor
-	blockTracker       process.BlocksTracker
 	bootstrapper       process.Bootstrapper
 	broadcastMessenger consensus.BroadcastMessenger
 	consensusState     *ConsensusState
@@ -47,7 +46,6 @@ type Worker struct {
 func NewWorker(
 	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
-	blockTracker process.BlocksTracker,
 	bootstrapper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
@@ -62,7 +60,6 @@ func NewWorker(
 	err := checkNewWorkerParams(
 		consensusService,
 		blockProcessor,
-		blockTracker,
 		bootstrapper,
 		broadcastMessenger,
 		consensusState,
@@ -81,7 +78,6 @@ func NewWorker(
 	wrk := Worker{
 		consensusService:   consensusService,
 		blockProcessor:     blockProcessor,
-		blockTracker:       blockTracker,
 		bootstrapper:       bootstrapper,
 		broadcastMessenger: broadcastMessenger,
 		consensusState:     consensusState,
@@ -108,7 +104,6 @@ func NewWorker(
 func checkNewWorkerParams(
 	consensusService ConsensusService,
 	blockProcessor process.BlockProcessor,
-	blockTracker process.BlocksTracker,
 	bootstrapper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
 	consensusState *ConsensusState,
@@ -125,9 +120,6 @@ func checkNewWorkerParams(
 	}
 	if blockProcessor == nil || blockProcessor.IsInterfaceNil() {
 		return ErrNilBlockProcessor
-	}
-	if blockTracker == nil || blockTracker.IsInterfaceNil() {
-		return ErrNilBlocksTracker
 	}
 	if bootstrapper == nil || bootstrapper.IsInterfaceNil() {
 		return ErrNilBootstrapper
@@ -392,29 +384,6 @@ func (wrk *Worker) Extend(subroundId int) {
 //GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 func (wrk *Worker) GetConsensusStateChangedChannel() chan bool {
 	return wrk.consensusStateChangedChannel
-}
-
-//BroadcastUnnotarisedBlocks broadcasts all blocks which are not notarised yet
-func (wrk *Worker) BroadcastUnnotarisedBlocks() {
-	headers := wrk.blockTracker.UnnotarisedBlocks()
-	for _, header := range headers {
-		broadcastRound := wrk.blockTracker.BlockBroadcastRound(header.GetNonce())
-		if broadcastRound >= wrk.consensusState.RoundIndex-MaxRoundsGap {
-			continue
-		}
-
-		err := wrk.broadcastMessenger.BroadcastHeader(header)
-		if err != nil {
-			log.Info(err.Error())
-			continue
-		}
-
-		wrk.blockTracker.SetBlockBroadcastRound(header.GetNonce(), wrk.consensusState.RoundIndex)
-
-		log.Info(fmt.Sprintf("%sStep 0: Unnotarised header with nonce %d has been broadcast to metachain\n",
-			wrk.syncTimer.FormattedCurrentTime(),
-			header.GetNonce()))
-	}
 }
 
 //ExecuteStoredMessages tries to execute all the messages received which are valid for execution
