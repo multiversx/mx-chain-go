@@ -759,11 +759,17 @@ func createMetaNetNode(
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	feeHandler := &mock.FeeHandlerStub{
-		MinGasPriceCalled: func() uint64 {
-			return integrationTests.MinTxGasPrice
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return tx.GetGasLimit()
 		},
-		MinGasLimitCalled: func() uint64 {
-			return integrationTests.MinTxGasLimit
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
+			fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
+
+			return fee
 		},
 	}
 
