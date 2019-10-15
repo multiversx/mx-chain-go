@@ -477,32 +477,47 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	}
 
 	compressedMiniBlocks := txs.compressMiniBlocks(miniBlocks)
-	if len(compressedMiniBlocks) > 0 {
-		return compressedMiniBlocks, nil
-	}
 
-	return miniBlocks, nil
+	return compressedMiniBlocks, nil
 }
 
 func (txs *transactions) compressMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
-	if len(miniBlocks) == 0 {
+	if len(miniBlocks) <= 1 {
 		return miniBlocks
 	}
 
-	compressedMbs := make(block.MiniBlockSlice, 0)
-	compressedMbs = append(compressedMbs, miniBlocks[0])
+	compressedMiniBlocks := make(block.MiniBlockSlice, 0)
+	compressedMiniBlocks = append(compressedMiniBlocks, miniBlocks[0])
 
 	for i := 1; i < len(miniBlocks); i++ {
-		compressedMbs = txs.merge(compressedMbs, miniBlocks[i])
+		compressedMiniBlocks = txs.merge(compressedMiniBlocks, miniBlocks[i])
 	}
 
-	log.Info(fmt.Sprintf("compressed from %d miniblocks to %d miniblocks", len(miniBlocks), len(compressedMbs)))
+	if len(miniBlocks) > len(compressedMiniBlocks) {
+		log.Info(fmt.Sprintf("compressed from %d miniblocks to %d miniblocks\n", len(miniBlocks), len(compressedMiniBlocks)))
+	}
 
-	return compressedMbs
+	return compressedMiniBlocks
 }
 
+//addedGasLimitPerCrossShardMiniblock := uint64(0)
+//currTxGasLimit := txs.economicsFee.MinGasLimit()
+//if isSmartContractAddress(orderedTxs[index].RcvAddr) {
+//currTxGasLimit = orderedTxs[index].GasLimit
+//}
+//
+//isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
+//if isGasLimitReached {
+//log.Info(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
+//len(miniBlock.TxHashes),
+//len(orderedTxs)))
+//continue
+//}
+//
+//addedGasLimitPerCrossShardMiniblock += currTxGasLimit
+
 func (txs *transactions) merge(mergedMiniBlocks block.MiniBlockSlice, miniBlock *block.MiniBlock) block.MiniBlockSlice {
-	// todo: check gas limit
+	//TODO: Check gas limit
 
 	for _, mergedMiniBlock := range mergedMiniBlocks {
 		sameType := miniBlock.Type == mergedMiniBlock.Type
@@ -511,6 +526,7 @@ func (txs *transactions) merge(mergedMiniBlocks block.MiniBlockSlice, miniBlock 
 
 		canMerge := sameSenderShard && sameReceiverShard && sameType
 		if canMerge {
+
 			mergedMiniBlock.TxHashes = append(mergedMiniBlock.TxHashes, miniBlock.TxHashes...)
 			return mergedMiniBlocks
 		}
@@ -521,41 +537,35 @@ func (txs *transactions) merge(mergedMiniBlocks block.MiniBlockSlice, miniBlock 
 	return mergedMiniBlocks
 }
 
-func (txs *transactions) expandTxBlockMiniBlocks(miniBlocks block.MiniBlockSlice) (block.MiniBlockSlice, error) {
-	if len(miniBlocks) == 0 || miniBlocks[0].Type != block.TxBlock {
-		return miniBlocks, nil
-	}
+func (txs *transactions) expandTxBlockMiniBlocks(miniBlockSlice block.MiniBlockSlice) (block.MiniBlockSlice, error) {
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	miniBlocksToExpand := make(block.MiniBlockSlice, 0)
 
-	expandedMbs := make(block.MiniBlockSlice, 0)
-	mbsToExpand := make(block.MiniBlockSlice, 0)
+	for i := 0; i < len(miniBlockSlice); i++ {
+		if miniBlockSlice[i].SenderShardID == txs.shardCoordinator.SelfId() {
 
-	for i := 0; i < len(miniBlocks); i++ {
-		if miniBlocks[i].SenderShardID == txs.shardCoordinator.SelfId() {
-			mbsToExpand = append(mbsToExpand, miniBlocks[i])
+			miniBlocksToExpand = append(miniBlocksToExpand, miniBlockSlice[i])
 			continue
 		}
 
-		expandedMbs = append(expandedMbs, miniBlocks[i])
+		miniBlocks = append(miniBlocks, miniBlockSlice[i])
 	}
 
-	if len(mbsToExpand) > 0 {
-		mbs, err := txs.expand(mbsToExpand)
+	if len(miniBlocksToExpand) > 0 {
+		expandedMiniBlocks, err := txs.expand(miniBlocksToExpand)
 		if err != nil {
 			return nil, err
 		}
 
-		expandedMbs = append(expandedMbs, mbs...)
+		miniBlocks = append(miniBlocks, expandedMiniBlocks...)
 	}
 
-	return expandedMbs, nil
+	return miniBlocks, nil
 }
 
 func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) (block.MiniBlockSlice, error) {
-	if len(miniBlocks) == 0 {
-		return miniBlocks, nil
-	}
-
 	txsInfo := make([][]*txInfo, txs.shardCoordinator.NumberOfShards())
+	mapSenderNonce := make(map[string]uint64)
 
 	for i := 0; i < len(miniBlocks); i++ {
 		miniBlock := miniBlocks[i]
@@ -567,11 +577,16 @@ func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) (block.MiniBloc
 			}
 
 			txsInfo[miniBlock.ReceiverShardID] = append(txsInfo[miniBlock.ReceiverShardID], txInfo)
+
+			nonce, ok := mapSenderNonce[string(txInfo.tx.GetSndAddress())]
+			if !ok || nonce > txInfo.tx.GetNonce() {
+				mapSenderNonce[string(txInfo.tx.GetSndAddress())] = txInfo.tx.GetNonce()
+				continue
+			}
 		}
 	}
 
 	expandedMbs := make(block.MiniBlockSlice, 0)
-	mapSenderNonce := make(map[string]uint64)
 
 	for {
 		mbSlice := txs.createExpandedTxMiniBlocks(txsInfo, mapSenderNonce)
@@ -592,9 +607,10 @@ func (txs *transactions) createExpandedTxMiniBlocks(
 
 	expandedMbs := make(block.MiniBlockSlice, 0)
 
+	var mb *block.MiniBlock
 	for i := 0; i < len(txsInfo); i++ {
 		if len(txsInfo[i]) > 0 {
-			mb := txs.createTxMiniBlockForShard(txsInfo[i][0].receiverShardID, txsInfo[i], mapSenderNonce)
+			mb, txsInfo[i] = txs.createTxMiniBlockForShard(txsInfo[i][0].receiverShardID, txsInfo[i], mapSenderNonce)
 			if len(mb.TxHashes) > 0 {
 				expandedMbs = append(expandedMbs, mb)
 			}
@@ -608,7 +624,7 @@ func (txs *transactions) createTxMiniBlockForShard(
 	shardId uint32,
 	txsInfo []*txInfo,
 	mapSenderNonce map[string]uint64,
-) *block.MiniBlock {
+) (*block.MiniBlock, []*txInfo) {
 
 	mb := &block.MiniBlock{}
 	mb.TxHashes = make([][]byte, 0)
@@ -619,11 +635,11 @@ func (txs *transactions) createTxMiniBlockForShard(
 	for {
 		nbTxHashes := len(mb.TxHashes)
 		for _, txInfo := range txsInfo {
-			nonce, ok := mapSenderNonce[string(txInfo.tx.GetSndAddress())]
-			if !ok || txInfo.tx.GetNonce() == nonce+1 {
-				mapSenderNonce[string(txInfo.tx.GetSndAddress())] = txInfo.tx.GetNonce()
+			nonce := mapSenderNonce[string(txInfo.tx.GetSndAddress())]
+			if txInfo.tx.GetNonce() == nonce {
+				mapSenderNonce[string(txInfo.tx.GetSndAddress())] = nonce + 1
 				mb.TxHashes = append(mb.TxHashes, txInfo.txHash)
-				removeItem(txsInfo, txInfo)
+				txsInfo = removeItem(txsInfo, txInfo)
 				break
 			}
 		}
@@ -633,21 +649,21 @@ func (txs *transactions) createTxMiniBlockForShard(
 		}
 	}
 
-	return mb
+	return mb, txsInfo
 }
 
-func removeItem(txsInfo []*txInfo, txInfo *txInfo) {
+func removeItem(txsInfo []*txInfo, txInfo *txInfo) []*txInfo {
 	for i := 0; i < len(txsInfo); i++ {
 		if txsInfo[i] == txInfo {
 			if i == len(txsInfo)-1 {
-				txsInfo = txsInfo[:i]
-			} else {
-				txsInfo = append(txsInfo[:i], txsInfo[i+1:]...)
+				return txsInfo[:i]
 			}
 
-			break
+			return append(txsInfo[:i], txsInfo[i+1:]...)
 		}
 	}
+
+	return txsInfo
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
