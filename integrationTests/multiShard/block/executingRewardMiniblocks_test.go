@@ -52,7 +52,14 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		seedAddress,
 	)
 
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	valToTransfer := big.NewInt(100)
+	nbTxsPerShard := uint32(100)
+	mintValue := big.NewInt(1000000)
+
 	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
 	}
 
@@ -64,12 +71,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 			}
 		}
 	}()
-
-	gasPrice := uint64(10)
-	gasLimit := uint64(100)
-	valToTransfer := big.NewInt(100)
-	nbTxsPerShard := uint32(100)
-	mintValue := big.NewInt(1000000)
 
 	generateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 
