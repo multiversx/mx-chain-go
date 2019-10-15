@@ -23,6 +23,8 @@ type metaProcessor struct {
 	*baseProcessor
 	core               serviceContainer.Core
 	dataPool           dataRetriever.MetaPoolsHolder
+	//TODO: add	txCoordinator process.TransactionCoordinator
+
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
 	chRcvAllHdrs       chan bool
@@ -134,6 +136,7 @@ func (mp *metaProcessor) ProcessBlock(
 	)
 
 	mp.createBlockStarted()
+
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
@@ -818,6 +821,13 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		}
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	}
+
+	// request miniblocks for which metachain is destination
+	for _, mb := range shardHeader.MiniBlockHeaders {
+		if mb.ReceiverShardID == mp.shardCoordinator.SelfId() {
+			//TODO continue implementation: go mp.onRequestMiniBlock(mb.Hash)
+		}
 	}
 }
 
