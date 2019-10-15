@@ -5,14 +5,13 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
