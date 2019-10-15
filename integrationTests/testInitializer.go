@@ -432,14 +432,17 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
 		&mock.FeeHandlerStub{
-			MinGasPriceCalled: func() uint64 {
-				return 0
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasLimit()
 			},
-			MinGasLimitCalled: func() uint64 {
-				return 5
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
 			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
+			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
+				fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
+
+				return fee
 			},
 		},
 	)
@@ -719,6 +722,14 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(p2pBootstrapStepDelay)
+}
+
+// SetEconomicsParameters will set minGasPrice and minGasLimits to provided nodes
+func SetEconomicsParameters(nodes []*TestProcessorNode, minGasPrice uint64, minGasLimit uint64) {
+	for _, n := range nodes {
+		n.EconomicsData.SetMinGasPrice(minGasPrice)
+		n.EconomicsData.SetMinGasLimit(minGasLimit)
+	}
 }
 
 // GenerateAndDisseminateTxs generates and sends multiple txs

@@ -47,21 +47,12 @@ func createKeyGenMock() crypto.KeyGenerator {
 	}
 }
 
-func createTxFeeHandler(gasPrice uint64, gasLimit uint64) process.FeeHandler {
-	feeHandler := &mock.FeeHandlerStub{
-		MinGasPriceCalled: func() uint64 {
-			return gasPrice
-		},
-		MinGasLimitCalled: func() uint64 {
-			return gasLimit
+func createFreeTxFeeHandler() process.FeeHandler {
+	return &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
 		},
 	}
-
-	return feeHandler
-}
-
-func createFreeTxFeeHandler() process.FeeHandler {
-	return createTxFeeHandler(0, 0)
 }
 
 func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandler process.FeeHandler) (*transaction.InterceptedTransaction, error) {
@@ -434,7 +425,7 @@ func TestNewInterceptedTransaction_InvalidSenderShouldErr(t *testing.T) {
 	assert.Equal(t, errSingleSignKeyGenMock, err)
 }
 
-func TestNewInterceptedTransaction_InsufficientGasPriceShouldErr(t *testing.T) {
+func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	gasLimit := uint64(3)
@@ -449,35 +440,17 @@ func TestNewInterceptedTransaction_InsufficientGasPriceShouldErr(t *testing.T) {
 		SndAddr:   []byte(""),
 		Signature: sigOk,
 	}
-	feeHandler := createTxFeeHandler(gasPrice+1, gasLimit)
-
-	txi, err := createInterceptedTxFromPlainTx(tx, feeHandler)
-
-	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrInsufficientGasPriceInTx, err)
-}
-
-func TestNewInterceptedTransaction_InsufficientGasLimitShouldErr(t *testing.T) {
-	t.Parallel()
-
-	gasLimit := uint64(3)
-	gasPrice := uint64(4)
-	tx := &dataTransaction.Transaction{
-		Nonce:     1,
-		Value:     big.NewInt(2),
-		Data:      "data",
-		GasLimit:  gasLimit,
-		GasPrice:  gasPrice,
-		RcvAddr:   recvAddress,
-		SndAddr:   []byte(""),
-		Signature: sigOk,
+	errExpected := errors.New("insufficient fee")
+	feeHandler := &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return errExpected
+		},
 	}
-	feeHandler := createTxFeeHandler(gasPrice, gasLimit+1)
 
 	txi, err := createInterceptedTxFromPlainTx(tx, feeHandler)
 
 	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrInsufficientGasLimitInTx, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewInterceptedTransaction_VerifyFailsShouldErr(t *testing.T) {

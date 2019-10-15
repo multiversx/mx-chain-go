@@ -417,11 +417,19 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// FeeHandler will return information about fees
+// FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
-	MinGasPrice() uint64
-	MinGasLimit() uint64
+	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
+	ComputeFee(tx TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	IsInterfaceNil() bool
+}
+
+// TransactionWithFeeHandler represents a transaction structure that has economics variables defined
+type TransactionWithFeeHandler interface {
+	GetGasLimit() uint64
+	GetGasPrice() uint64
+	GetData() string
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
