@@ -6,18 +6,28 @@ import (
 )
 
 type MetaPoolsHolderStub struct {
-	MetaChainBlocksCalled func() storage.Cacher
-	MiniBlockHashesCalled func() dataRetriever.ShardedDataCacherNotifier
-	ShardHeadersCalled    func() storage.Cacher
-	HeadersNoncesCalled   func() dataRetriever.Uint64SyncMapCacher
+	MetaChainBlocksCalled      func() storage.Cacher
+	MiniBlocksCalled           func() storage.Cacher
+	ShardHeadersCalled         func() storage.Cacher
+	HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
+	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
+	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
+}
+
+func (mphs *MetaPoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
+	return mphs.TransactionsCalled()
+}
+
+func (mphs *MetaPoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return mphs.UnsignedTransactionsCalled()
 }
 
 func (mphs *MetaPoolsHolderStub) MetaChainBlocks() storage.Cacher {
 	return mphs.MetaChainBlocksCalled()
 }
 
-func (mphs *MetaPoolsHolderStub) MiniBlockHashes() dataRetriever.ShardedDataCacherNotifier {
-	return mphs.MiniBlockHashesCalled()
+func (mphs *MetaPoolsHolderStub) MiniBlocks() storage.Cacher {
+	return mphs.MiniBlocksCalled()
 }
 
 func (mphs *MetaPoolsHolderStub) ShardHeaders() storage.Cacher {

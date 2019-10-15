@@ -699,6 +699,9 @@ func createTestMetaStore(coordinator sharding.Coordinator) dataRetriever.Storage
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), createMemUnit())
 	}
@@ -711,7 +714,7 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache}
-	miniblockHashes, _ := shardedData.NewShardedData(cacherCfg)
+	miniblocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -719,11 +722,16 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	headersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	headersNonces, _ := dataPool.NewNonceSyncMapCacher(headersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+
 	dPool, _ := dataPool.NewMetaDataPool(
 		metaBlocks,
-		miniblockHashes,
+		miniblocks,
 		shardHeaders,
 		headersNonces,
+		txPool,
+		uTxPool,
 	)
 
 	return dPool
@@ -750,6 +758,21 @@ func createMetaNetNode(
 	store := createTestMetaStore(shardCoordinator)
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
+	feeHandler := &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return tx.GetGasLimit()
+		},
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
+			fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
+
+			return fee
+		},
+	}
+
 	interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		nodesCoordinator,
@@ -759,11 +782,19 @@ func createMetaNetNode(
 		testHasher,
 		testMultiSig,
 		dPool,
+		accntAdapter,
+		testAddressConverter,
+		params.singleSigner,
+		params.keyGen,
+		maxTxNonceDeltaAllowed,
+		feeHandler,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+
+	dataPacker, _ := partitioning.NewSimpleDataPacker(testMarshalizer)
 
 	resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
@@ -772,11 +803,19 @@ func createMetaNetNode(
 		testMarshalizer,
 		dPool,
 		uint64Converter,
+		dataPacker,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
-	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(resolvers, factory.ShardHeadersForMetachainTopic, factory.MetachainBlocksTopic)
+	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(
+		resolvers,
+		factory.ShardHeadersForMetachainTopic,
+		factory.MetachainBlocksTopic,
+		factory.TransactionTopic,
+		factory.UnsignedTransactionTopic,
+		factory.MiniBlocksTopic,
+	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 

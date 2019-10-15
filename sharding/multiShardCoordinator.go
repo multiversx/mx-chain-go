@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+const metaChainIdentifier uint8 = 255
+
 // multiShardCoordinator struct defines the functionality for handling transaction dispatching to
 // the corresponding shards. The number of shards is currently passed as a constructor
 // parameter and later it should be calculated by this structure
@@ -44,6 +46,16 @@ func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
 	return (1 << uint(n)) - 1, (1 << uint(n-1)) - 1
 }
 
+func isMetaChainShardId(identifier []byte) bool {
+	for i := 0; i < len(identifier); i++ {
+		if identifier[i] != metaChainIdentifier {
+			return false
+		}
+	}
+
+	return true
+}
+
 // ComputeId calculates the shard for a given address used for transaction dispatching
 func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint32 {
 	bytesNeed := int(msc.numberOfShards/256) + 1
@@ -53,6 +65,9 @@ func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint
 	}
 
 	buffNeeded := address.Bytes()[startingIndex:]
+	if isMetaChainShardId(buffNeeded) {
+		return MetachainShardId
+	}
 
 	addr := uint32(0)
 	for i := 0; i < len(buffNeeded); i++ {
