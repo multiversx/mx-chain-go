@@ -105,6 +105,11 @@ func (scr *RewardTx) GetSndAddress() []byte {
 	return nil
 }
 
+// GetGasLimit returns the gas limit of the smart reward transaction
+func (scr *RewardTx) GetGasLimit() uint64 {
+	return 0
+}
+
 // SetValue sets the value of the reward transaction
 func (scr *RewardTx) SetValue(value *big.Int) {
 	scr.Value = value

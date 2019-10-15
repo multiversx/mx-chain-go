@@ -299,7 +299,7 @@ func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
 	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
 	for _, txHash := range mbTxHashes.txHashes {
-		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo, txHash: txHash}
+		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
 	}
 }
 
@@ -338,7 +338,7 @@ func (scr *smartContractResults) processSmartContractResult(
 
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	scr.scrForBlock.mutTxsForBlock.Lock()
-	scr.scrForBlock.txHashAndInfo[string(smartContractResultHash)] = &txInfo{tx: smartContractResult, txShardInfo: txShardInfo, txHash: smartContractResultHash}
+	scr.scrForBlock.txHashAndInfo[string(smartContractResultHash)] = &txInfo{tx: smartContractResult, txShardInfo: txShardInfo}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
 	return nil
@@ -454,7 +454,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockScrs[index], txShardInfo: txShardInfo, txHash: txHash}
+		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockScrs[index], txShardInfo: txShardInfo}
 	}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 

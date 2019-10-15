@@ -197,7 +197,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
-	expandedMiniBlocks, err := txs.expandTxBlockMiniBlocks(block.MiniBlockSlice(body))
+	expandedMiniBlocks, err := txs.expandMiniBlocks(block.MiniBlockSlice(body))
 	if err != nil {
 		return err
 	}
@@ -312,7 +312,7 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
 	txShardInfo := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
 	for _, txHash := range mbTxHashes.txHashes {
-		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo, txHash: txHash}
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfo}
 	}
 }
 
@@ -345,7 +345,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	txs.txsForCurrBlock.txHashAndInfo[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo, txHash: transactionHash}
+	txs.txsForCurrBlock.txHashAndInfo[string(transactionHash)] = &txInfo{tx: transaction, txShardInfo: txShardInfo}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return nil
@@ -476,49 +476,35 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		}
 	}
 
-	compressedMiniBlocks := txs.compressMiniBlocks(miniBlocks)
+	compactedMiniBlocks := txs.compactMiniBlocks(miniBlocks)
 
-	return compressedMiniBlocks, nil
+	return compactedMiniBlocks, nil
 }
 
-func (txs *transactions) compressMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
+func (txs *transactions) compactMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
 	if len(miniBlocks) <= 1 {
 		return miniBlocks
 	}
 
-	compressedMiniBlocks := make(block.MiniBlockSlice, 0)
-	compressedMiniBlocks = append(compressedMiniBlocks, miniBlocks[0])
+	compactedMiniBlocks := make(block.MiniBlockSlice, 0)
+	compactedMiniBlocks = append(compactedMiniBlocks, miniBlocks[0])
 
-	for i := 1; i < len(miniBlocks); i++ {
-		compressedMiniBlocks = txs.merge(compressedMiniBlocks, miniBlocks[i])
+	for index, miniBlock := range miniBlocks {
+		if index == 0 {
+			continue
+		}
+
+		compactedMiniBlocks = txs.merge(compactedMiniBlocks, miniBlock)
 	}
 
-	if len(miniBlocks) > len(compressedMiniBlocks) {
-		log.Info(fmt.Sprintf("compressed from %d miniblocks to %d miniblocks\n", len(miniBlocks), len(compressedMiniBlocks)))
+	if len(miniBlocks) > len(compactedMiniBlocks) {
+		log.Info(fmt.Sprintf("compacted from %d miniblocks to %d miniblocks\n", len(miniBlocks), len(compactedMiniBlocks)))
 	}
 
-	return compressedMiniBlocks
+	return compactedMiniBlocks
 }
 
-//addedGasLimitPerCrossShardMiniblock := uint64(0)
-//currTxGasLimit := txs.economicsFee.MinGasLimit()
-//if isSmartContractAddress(orderedTxs[index].RcvAddr) {
-//currTxGasLimit = orderedTxs[index].GasLimit
-//}
-//
-//isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
-//if isGasLimitReached {
-//log.Info(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
-//len(miniBlock.TxHashes),
-//len(orderedTxs)))
-//continue
-//}
-//
-//addedGasLimitPerCrossShardMiniblock += currTxGasLimit
-
 func (txs *transactions) merge(mergedMiniBlocks block.MiniBlockSlice, miniBlock *block.MiniBlock) block.MiniBlockSlice {
-	//TODO: Check gas limit
-
 	for _, mergedMiniBlock := range mergedMiniBlocks {
 		sameType := miniBlock.Type == mergedMiniBlock.Type
 		sameSenderShard := miniBlock.SenderShardID == mergedMiniBlock.SenderShardID
@@ -526,9 +512,11 @@ func (txs *transactions) merge(mergedMiniBlocks block.MiniBlockSlice, miniBlock 
 
 		canMerge := sameSenderShard && sameReceiverShard && sameType
 		if canMerge {
-
-			mergedMiniBlock.TxHashes = append(mergedMiniBlock.TxHashes, miniBlock.TxHashes...)
-			return mergedMiniBlocks
+			haveEnoughGasToMerge := txs.haveEnoughGasToMerge(mergedMiniBlock, miniBlock)
+			if haveEnoughGasToMerge {
+				mergedMiniBlock.TxHashes = append(mergedMiniBlock.TxHashes, miniBlock.TxHashes...)
+				return mergedMiniBlocks
+			}
 		}
 	}
 
@@ -537,18 +525,54 @@ func (txs *transactions) merge(mergedMiniBlocks block.MiniBlockSlice, miniBlock 
 	return mergedMiniBlocks
 }
 
-func (txs *transactions) expandTxBlockMiniBlocks(miniBlockSlice block.MiniBlockSlice) (block.MiniBlockSlice, error) {
+func (txs *transactions) haveEnoughGasToMerge(destMiniBlock *block.MiniBlock, srcMiniBlock *block.MiniBlock) bool {
+	gasUsedInDestMiniBlock, err := txs.getGasUsedInMiniBlock(destMiniBlock)
+	if err != nil {
+		log.Info(err.Error())
+		return false
+	}
+
+	gasUsedInSrcMiniBlock, err := txs.getGasUsedInMiniBlock(srcMiniBlock)
+	if err != nil {
+		log.Info(err.Error())
+		return false
+	}
+
+	haveEnoughGasToMerge := gasUsedInDestMiniBlock+gasUsedInSrcMiniBlock <= process.MaxGasLimitPerMiniBlock
+
+	return haveEnoughGasToMerge
+}
+
+func (txs *transactions) getGasUsedInMiniBlock(miniBlock *block.MiniBlock) (uint64, error) {
+	gasUsedInMiniBlock := uint64(0)
+	for _, txHash := range miniBlock.TxHashes {
+		txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+		if !ok {
+			return 0, process.ErrMissingTransaction
+		}
+
+		txGasLimit := txs.economicsFee.MinGasLimit()
+		if isSmartContractAddress(txInfo.tx.GetRecvAddress()) {
+			txGasLimit = txInfo.tx.GetGasLimit()
+		}
+
+		gasUsedInMiniBlock += txGasLimit
+	}
+
+	return gasUsedInMiniBlock, nil
+}
+
+func (txs *transactions) expandMiniBlocks(miniBlockSlice block.MiniBlockSlice) (block.MiniBlockSlice, error) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	miniBlocksToExpand := make(block.MiniBlockSlice, 0)
 
-	for i := 0; i < len(miniBlockSlice); i++ {
-		if miniBlockSlice[i].SenderShardID == txs.shardCoordinator.SelfId() {
-
-			miniBlocksToExpand = append(miniBlocksToExpand, miniBlockSlice[i])
+	for _, miniBlock := range miniBlockSlice {
+		if miniBlock.SenderShardID == txs.shardCoordinator.SelfId() {
+			miniBlocksToExpand = append(miniBlocksToExpand, miniBlock)
 			continue
 		}
 
-		miniBlocks = append(miniBlocks, miniBlockSlice[i])
+		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
 	if len(miniBlocksToExpand) > 0 {
@@ -564,106 +588,113 @@ func (txs *transactions) expandTxBlockMiniBlocks(miniBlockSlice block.MiniBlockS
 }
 
 func (txs *transactions) expand(miniBlocks block.MiniBlockSlice) (block.MiniBlockSlice, error) {
-	txsInfo := make([][]*txInfo, txs.shardCoordinator.NumberOfShards())
 	mapSenderNonce := make(map[string]uint64)
+	mapRemainedTxsHashes := make(map[string]struct{})
 
-	for i := 0; i < len(miniBlocks); i++ {
-		miniBlock := miniBlocks[i]
-		txsInfo[miniBlock.ReceiverShardID] = make([]*txInfo, 0)
+	for _, miniBlock := range miniBlocks {
 		for _, txHash := range miniBlock.TxHashes {
 			txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
 			if !ok {
 				return nil, process.ErrMissingTransaction
 			}
 
-			txsInfo[miniBlock.ReceiverShardID] = append(txsInfo[miniBlock.ReceiverShardID], txInfo)
-
 			nonce, ok := mapSenderNonce[string(txInfo.tx.GetSndAddress())]
 			if !ok || nonce > txInfo.tx.GetNonce() {
 				mapSenderNonce[string(txInfo.tx.GetSndAddress())] = txInfo.tx.GetNonce()
-				continue
 			}
+
+			mapRemainedTxsHashes[string(txHash)] = struct{}{}
 		}
 	}
 
-	expandedMbs := make(block.MiniBlockSlice, 0)
+	expandedMiniBlocks := make(block.MiniBlockSlice, 0)
 
-	for {
-		mbSlice := txs.createExpandedTxMiniBlocks(txsInfo, mapSenderNonce)
-		if len(mbSlice) == 0 {
+	for len(mapRemainedTxsHashes) > 0 {
+		createdMiniBlocks, err := txs.createExpandedMiniBlocks(miniBlocks, mapRemainedTxsHashes, mapSenderNonce)
+		if err != nil {
+			return nil, err
+		}
+
+		//if len(createdMiniBlocks) == 0 {
+		//	break
+		//}
+
+		expandedMiniBlocks = append(expandedMiniBlocks, createdMiniBlocks...)
+	}
+
+	return expandedMiniBlocks, nil
+}
+
+func (txs *transactions) createExpandedMiniBlocks(
+	miniBlocks block.MiniBlockSlice,
+	mapRemainedTxsHashes map[string]struct{},
+	mapSenderNonce map[string]uint64,
+) (block.MiniBlockSlice, error) {
+
+	expandedMiniBlocks := make(block.MiniBlockSlice, 0)
+
+	for _, miniBlock := range miniBlocks {
+		if len(mapRemainedTxsHashes) == 0 {
 			break
 		}
 
-		expandedMbs = append(expandedMbs, mbSlice...)
-	}
+		miniBlockForShard, err := txs.createMiniBlockForShard(miniBlock, mapRemainedTxsHashes, mapSenderNonce)
+		if err != nil {
+			return nil, err
+		}
 
-	return expandedMbs, nil
-}
-
-func (txs *transactions) createExpandedTxMiniBlocks(
-	txsInfo [][]*txInfo,
-	mapSenderNonce map[string]uint64,
-) block.MiniBlockSlice {
-
-	expandedMbs := make(block.MiniBlockSlice, 0)
-
-	var mb *block.MiniBlock
-	for i := 0; i < len(txsInfo); i++ {
-		if len(txsInfo[i]) > 0 {
-			mb, txsInfo[i] = txs.createTxMiniBlockForShard(txsInfo[i][0].receiverShardID, txsInfo[i], mapSenderNonce)
-			if len(mb.TxHashes) > 0 {
-				expandedMbs = append(expandedMbs, mb)
-			}
+		if len(miniBlockForShard.TxHashes) > 0 {
+			expandedMiniBlocks = append(expandedMiniBlocks, miniBlockForShard)
 		}
 	}
 
-	return expandedMbs
+	return expandedMiniBlocks, nil
 }
 
-func (txs *transactions) createTxMiniBlockForShard(
-	shardId uint32,
-	txsInfo []*txInfo,
+func (txs *transactions) createMiniBlockForShard(
+	miniBlock *block.MiniBlock,
+	mapRemainedTxsHashes map[string]struct{},
 	mapSenderNonce map[string]uint64,
-) (*block.MiniBlock, []*txInfo) {
+) (*block.MiniBlock, error) {
 
-	mb := &block.MiniBlock{}
-	mb.TxHashes = make([][]byte, 0)
-	mb.ReceiverShardID = shardId
-	mb.SenderShardID = txs.shardCoordinator.SelfId()
-	mb.Type = block.TxBlock
+	miniBlockForShard := &block.MiniBlock{}
+	miniBlockForShard.TxHashes = make([][]byte, 0)
+	miniBlockForShard.ReceiverShardID = miniBlock.ReceiverShardID
+	miniBlockForShard.SenderShardID = miniBlock.SenderShardID
+	miniBlockForShard.Type = block.TxBlock
 
 	for {
-		nbTxHashes := len(mb.TxHashes)
-		for _, txInfo := range txsInfo {
+		nbTxHashes := len(miniBlockForShard.TxHashes)
+
+		for _, txHash := range miniBlock.TxHashes {
+			if len(mapRemainedTxsHashes) == 0 {
+				break
+			}
+
+			_, ok := mapRemainedTxsHashes[string(txHash)]
+			if !ok {
+				continue
+			}
+
+			txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+			if !ok {
+				return nil, process.ErrMissingTransaction
+			}
+
 			nonce := mapSenderNonce[string(txInfo.tx.GetSndAddress())]
 			if txInfo.tx.GetNonce() == nonce {
 				mapSenderNonce[string(txInfo.tx.GetSndAddress())] = nonce + 1
-				mb.TxHashes = append(mb.TxHashes, txInfo.txHash)
-				txsInfo = removeItem(txsInfo, txInfo)
-				break
+				miniBlockForShard.TxHashes = append(miniBlockForShard.TxHashes, txHash)
+				delete(mapRemainedTxsHashes, string(txHash))
 			}
 		}
 
-		if len(mb.TxHashes) == nbTxHashes {
+		if len(miniBlockForShard.TxHashes) == nbTxHashes {
 			break
 		}
 	}
 
-	return mb, txsInfo
-}
-
-func removeItem(txsInfo []*txInfo, txInfo *txInfo) []*txInfo {
-	for i := 0; i < len(txsInfo); i++ {
-		if txsInfo[i] == txInfo {
-			if i == len(txsInfo)-1 {
-				return txsInfo[:i]
-			}
-
-			return append(txsInfo[:i], txsInfo[i+1:]...)
-		}
-	}
-
-	return txsInfo
+	return miniBlockForShard, nil
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
@@ -829,7 +860,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
-		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo, txHash: txHash}
+		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfo}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 

@@ -11,7 +11,7 @@ func (txs *transactions) AddTxHashToRequestedList(txHash []byte) {
 	if txs.txsForCurrBlock.txHashAndInfo == nil {
 		txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	}
-	txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}, txHash: txHash}
+	txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
 }
 
 func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
@@ -35,7 +35,7 @@ func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
 	if scr.scrForBlock.txHashAndInfo == nil {
 		scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
 	}
-	scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}, txHash: txHash}
+	scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{txShardInfo: &txShardInfo{}}
 }
 
 func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {

@@ -76,6 +76,7 @@ type TransactionHandler interface {
 	GetData() string
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
+	GetGasLimit() uint64
 
 	SetValue(*big.Int)
 	SetData(string)

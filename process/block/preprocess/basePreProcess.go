@@ -24,7 +24,6 @@ type txShardInfo struct {
 type txInfo struct {
 	tx data.TransactionHandler
 	*txShardInfo
-	txHash []byte
 }
 
 type txsHashesInfo struct {
@@ -191,7 +190,7 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 				continue
 			}
 
-			forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo, txHash: txHash}
+			forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfo}
 		}
 
 		if len(txHashes) > 0 {

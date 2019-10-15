@@ -125,6 +125,11 @@ func (tx *Transaction) GetSndAddress() []byte {
 	return tx.SndAddr
 }
 
+// GetGasLimit returns the gas limit of the transaction
+func (tx *Transaction) GetGasLimit() uint64 {
+	return tx.GasLimit
+}
+
 // SetValue sets the value of the transaction
 func (tx *Transaction) SetValue(value *big.Int) {
 	tx.Value = value
