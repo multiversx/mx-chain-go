@@ -1036,6 +1036,7 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 	if err != nil {
 		return nil, err
 	}
+
 	return cfg, nil
 }
 
@@ -1045,6 +1046,7 @@ func loadEconomicsConfig(filepath string, log *logger.Logger) (*config.ConfigEco
 	if err != nil {
 		return nil, err
 	}
+
 	return cfg, nil
 }
 
@@ -1054,6 +1056,7 @@ func loadPreferencesConfig(filepath string, log *logger.Logger) (*config.ConfigP
 	if err != nil {
 		return nil, err
 	}
+
 	return cfg, nil
 }
 
