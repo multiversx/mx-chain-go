@@ -237,7 +237,7 @@ VERSION:
 		Value: logger.LogInfo,
 	}
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
-	bootstrapRoundIndex = cli.UintFlag{
+	bootstrapRoundIndex = cli.Uint64Flag{
 		Name:  "bootstrap-round-index",
 		Usage: "Bootstrap round index specifies the round index from which node should bootstrap from storage",
 		Value: math.MaxUint64,
