@@ -3,8 +3,8 @@ package softwareVersion
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,13 +14,13 @@ func TestNewSoftwareVersionChecker_NilStatusHandlerShouldErr(t *testing.T) {
 	softwareChecker, err := NewSoftwareVersionChecker(nil)
 
 	assert.Nil(t, softwareChecker)
-	assert.Equal(t, appStatusPolling.ErrNilAppStatusHandler, err)
+	assert.Equal(t, core.ErrNilAppStatusHandler, err)
 }
 
 func TestNewSoftwareVersionChecker(t *testing.T) {
 	t.Parallel()
 
-	statusHandler := &mock.AppStatusHandlerMock{}
+	statusHandler := &mock.AppStatusHandlerStub{}
 	softwareChecker, err := NewSoftwareVersionChecker(statusHandler)
 
 	assert.Nil(t, err)

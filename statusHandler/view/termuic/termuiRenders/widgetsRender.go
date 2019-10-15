@@ -108,6 +108,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	appVersion := wr.presenter.GetAppVersion()
 	needUpdate, latestStableVersion := wr.presenter.CheckSoftwareVersion()
 	rows[0] = []string{fmt.Sprintf("App version: %s", appVersion)}
+
 	if needUpdate {
 		wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorRed, ui.ColorWhite, ui.ModifierBold)
 		rows[0][0] += fmt.Sprintf(" (version %s is available)", latestStableVersion)
