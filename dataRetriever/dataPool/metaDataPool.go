@@ -58,7 +58,7 @@ func (mdp *metaDataPool) MetaChainBlocks() storage.Cacher {
 	return mdp.metaBlocks
 }
 
-// MiniBlockHashes returns the holder for meta mini block hashes
+// MiniBlocks returns the holder for meta mini block hashes
 func (mdp *metaDataPool) MiniBlocks() storage.Cacher {
 	return mdp.miniBlocks
 }
@@ -74,7 +74,7 @@ func (mdp *metaDataPool) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return mdp.headersNonces
 }
 
-// Transaction returns the holder for transactions which interact the metachain
+// Transactions returns the holder for transactions which interact with the metachain
 func (mdp *metaDataPool) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return mdp.transactions
 }

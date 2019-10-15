@@ -446,9 +446,6 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
 		},
 	)
 

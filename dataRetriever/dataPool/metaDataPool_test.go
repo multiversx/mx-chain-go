@@ -12,6 +12,8 @@ import (
 //------- NewDataPool
 
 func TestNewMetaDataPool_NilMetaBlockShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewMetaDataPool(
 		nil,
 		&mock.CacherStub{},
@@ -26,6 +28,8 @@ func TestNewMetaDataPool_NilMetaBlockShouldErr(t *testing.T) {
 }
 
 func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
 		nil,
@@ -40,6 +44,8 @@ func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
 }
 
 func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -54,6 +60,8 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 }
 
 func TestNewMetaDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -68,6 +76,8 @@ func TestNewMetaDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 }
 
 func TestNewMetaDataPool_NilTxPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -82,6 +92,8 @@ func TestNewMetaDataPool_NilTxPoolShouldErr(t *testing.T) {
 }
 
 func TestNewMetaDataPool_NilUnsingedPoolNoncesShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -96,6 +108,8 @@ func TestNewMetaDataPool_NilUnsingedPoolNoncesShouldErr(t *testing.T) {
 }
 
 func TestNewMetaDataPool_ConfigOk(t *testing.T) {
+	t.Parallel()
+
 	metaChainBlocks := &mock.CacherStub{}
 	shardHeaders := &mock.CacherStub{}
 	miniBlocks := &mock.CacherStub{}

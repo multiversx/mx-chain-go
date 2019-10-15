@@ -308,9 +308,6 @@ func createNetNode(
 		MinGasLimitCalled: func() uint64 {
 			return integrationTests.MinTxGasLimit
 		},
-		MinTxFeeCalled: func() uint64 {
-			return integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice
-		},
 	}
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
@@ -417,9 +414,6 @@ func createNetNode(
 			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
@@ -443,9 +437,6 @@ func createNetNode(
 		&mock.FeeHandlerStub{
 			MinGasLimitCalled: func() uint64 {
 				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
 			},
 			MinGasPriceCalled: func() uint64 {
 				return 0
@@ -780,9 +771,6 @@ func createMetaNetNode(
 		},
 		MinGasLimitCalled: func() uint64 {
 			return integrationTests.MinTxGasLimit
-		},
-		MinTxFeeCalled: func() uint64 {
-			return integrationTests.MinTxGasLimit * integrationTests.MinTxGasPrice
 		},
 	}
 

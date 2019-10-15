@@ -417,7 +417,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 	shardC := icf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards+1)
-	interceptorSlice := make([]process.Interceptor, noOfShards+1)
+	interceptorsSlice := make([]process.Interceptor, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
@@ -428,7 +428,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 		}
 
 		keys[int(idx)] = identifierMiniBlocks
-		interceptorSlice[int(idx)] = interceptor
+		interceptorsSlice[int(idx)] = interceptor
 	}
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
@@ -439,9 +439,9 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 	}
 
 	keys[noOfShards] = identifierMiniBlocks
-	interceptorSlice[noOfShards] = interceptor
+	interceptorsSlice[noOfShards] = interceptor
 
-	return keys, interceptorSlice, nil
+	return keys, interceptorsSlice, nil
 }
 
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {

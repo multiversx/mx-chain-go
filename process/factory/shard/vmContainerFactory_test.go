@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestNewVMContainerFactory_NilAccounts(t *testing.T) {
+func TestNewVMContainerFactory_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
@@ -20,7 +20,7 @@ func TestNewVMContainerFactory_NilAccounts(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewVMContainerFactory_NilAddressConverter(t *testing.T) {
+func TestNewVMContainerFactory_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(

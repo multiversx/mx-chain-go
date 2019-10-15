@@ -448,9 +448,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
 		},
 	)
 
@@ -474,9 +471,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 			},
 			MinGasLimitCalled: func() uint64 {
 				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
 			},
 		},
 	)

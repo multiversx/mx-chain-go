@@ -227,21 +227,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 
 	txStorer := rcf.store.GetStorer(unit)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
-	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		rcf.messenger,
-		topic,
-		peerListCreator,
-		rcf.marshalizer,
-		rcf.intRandomizer,
-		uint32(0),
-	)
+	resolverSender, err := rcf.createOneResolverSender(topic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -366,19 +352,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := rcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		rcf.messenger,
-		topic,
-		peerListCreator,
-		rcf.marshalizer,
-		rcf.intRandomizer,
-		uint32(0),
-	)
+	resolverSender, err := rcf.createOneResolverSender(topic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -554,6 +528,33 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	}
 
 	return []string{identifierHdr}, []dataRetriever.Resolver{resolver}, nil
+}
+
+func (rcf *resolversContainerFactory) createOneResolverSender(
+	topic string,
+	excludedTopic string,
+) (dataRetriever.TopicResolverSender, error) {
+
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
+	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		topic,
+		peerListCreator,
+		rcf.marshalizer,
+		rcf.intRandomizer,
+		uint32(0),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolverSender, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

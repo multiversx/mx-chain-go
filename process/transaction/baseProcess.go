@@ -29,8 +29,8 @@ func (txProc *baseTxProcessor) getAccounts(
 	srcInShard := shardForSrc == shardForCurrentNode
 	dstInShard := shardForDst == shardForCurrentNode
 
-	if srcInShard && adrSrc == nil ||
-		dstInShard && adrDst == nil {
+	if srcInShard && (adrSrc == nil || adrSrc.IsInterfaceNil()) ||
+		dstInShard && (adrDst == nil || adrDst.IsInterfaceNil()) {
 		return nil, nil, process.ErrNilAddressContainer
 	}
 
@@ -124,8 +124,8 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 	}
 
 	cost := big.NewInt(0)
-	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost = cost.Add(cost, tx.Value)
+	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	cost.Add(cost, tx.Value)
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil
