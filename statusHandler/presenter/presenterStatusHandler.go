@@ -68,6 +68,22 @@ func (psh *PresenterStatusHandler) Increment(key string) {
 	psh.presenterMetrics.Store(key, keyValue)
 }
 
+// AddUint64 - will increase the value of a key with a value
+func (psh *PresenterStatusHandler) AddUint64(key string, value uint64) {
+	keyValueI, ok := psh.presenterMetrics.Load(key)
+	if !ok {
+		return
+	}
+
+	keyValue, ok := keyValueI.(uint64)
+	if !ok {
+		return
+	}
+
+	keyValue += value
+	psh.presenterMetrics.Store(key, keyValue)
+}
+
 // Decrement - will decrement the value of a key
 func (psh *PresenterStatusHandler) Decrement(key string) {
 }

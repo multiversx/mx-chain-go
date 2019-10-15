@@ -93,7 +93,24 @@ func saveMetricsForACommittedBlock(
 	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMetaNonce))
 }
 
-func estimateRewardsForMetachain(
+func saveMetachainCommitBlockMetrics(
+	appStatusHandler core.AppStatusHandler,
+	header *block.MetaBlock,
+	headerHash []byte,
+	nodesCoordinator sharding.NodesCoordinator,
+
+) {
+	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
+
+	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, sharding.MetachainShardId)
+	if err != nil {
+		log.Error("cannot get validators public keys", err)
+	}
+
+	countNotarizedHeaders(pubKeys, nodesCoordinator.GetOwnPublicKey(), appStatusHandler, len(header.ShardInfo))
+}
+
+func countNotarizedHeaders(
 	publicKeys []string,
 	ownPublicKey []byte,
 	appStatusHandler core.AppStatusHandler,
@@ -112,9 +129,7 @@ func estimateRewardsForMetachain(
 		return
 	}
 
-	for i := 0; i < numBlockHeaders; i++ {
-		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
-	}
+	appStatusHandler.AddUint64(core.MetricCountConsensusAcceptedBlocks, uint64(numBlockHeaders))
 }
 
 func saveRoundInfoInElastic(

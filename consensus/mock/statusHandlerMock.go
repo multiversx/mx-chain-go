@@ -11,6 +11,9 @@ func (ashs *AppStatusHandlerMock) IsInterfaceNil() bool {
 	return false
 }
 
+func (ashs *AppStatusHandlerMock) AddUint64(key string, value uint64) {
+}
+
 // Increment method won't do anything
 func (ashs *AppStatusHandlerMock) Increment(key string) {
 }

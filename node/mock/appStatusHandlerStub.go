@@ -2,6 +2,7 @@ package mock
 
 // AppStatusHandlerStub is a stub implementation of AppStatusHandler
 type AppStatusHandlerStub struct {
+	AddUint64Handler      func(key string, value uint64)
 	IncrementHandler      func(key string)
 	DecrementHandler      func(key string)
 	SetUInt64ValueHandler func(key string, value uint64)
@@ -15,6 +16,11 @@ func (ashs *AppStatusHandlerStub) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// AddUint64 will call the handler of the stub for incrementing
+func (ashs *AppStatusHandlerStub) AddUint64(key string, value uint64) {
+	ashs.AddUint64Handler(key, value)
 }
 
 // Increment will call the handler of the stub for incrementing

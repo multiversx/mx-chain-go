@@ -37,7 +37,7 @@ func (psh *PresenterStatusHandler) GetCountConsensus() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCountConsensus)
 }
 
-// GetCountConsensusAcceptedBlocks will return count of how many times node was in consensus group and
+// GetCountConsensusAcceptedBlocks will return a count if how many times the node was in consensus group and
 // a block was produced
 func (psh *PresenterStatusHandler) GetCountConsensusAcceptedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCountConsensusAcceptedBlocks)
@@ -53,7 +53,7 @@ func (psh *PresenterStatusHandler) GetCountAcceptedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCountAcceptedBlocks)
 }
 
-// GetNodeName will return node name
+// GetNodeName will return node's display name
 func (psh *PresenterStatusHandler) GetNodeName() string {
 	nodeName := psh.getFromCacheAsString(core.MetricNodeDisplayName)
 	if nodeName == "" {
@@ -63,7 +63,7 @@ func (psh *PresenterStatusHandler) GetNodeName() string {
 	return nodeName
 }
 
-// GetTotalRewardsValue will return total value of rewards and how rewards was increased on every second
+// GetTotalRewardsValue will return total value of rewards and how the rewards were increased on every second
 // Rewards estimation will be equal with :
 // (numSignedBlocks - numProposedBlocks) * communityPercentage * Rewards +
 // numProposedBlocks * leaderPercentage * Rewards
@@ -93,7 +93,7 @@ func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
 	return totalRewards.Text(10), difRewards.Text(10)
 }
 
-// CalculateRewardsPerHour will return an approximation of how many test ERDs a validator will earn per hour
+// CalculateRewardsPerHour will return an approximation of how many ERDs a validator will earn per hour
 // Rewards estimation per hour will be equals with :
 // (changeToBeInConsensus - changeToBeLeader) * roundsPerHour * hitRate * communityPercentage * Rewards +
 // changeToBeLeader * roundsPerHour * hitRate * leaderPercentage * Rewards
@@ -108,8 +108,8 @@ func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
 	communityPercentage := psh.getFloatFromStringMetric(core.MetricCommunityPercentage)
 	leaderPercentage := psh.getFloatFromStringMetric(core.MetricLeaderPercentage)
 
-	if consensusGroupSize == 0 || numValidators == 0 || totalBlocks == 0 ||
-		rounds == 0 || roundDuration == 0 || rewardsValue.Cmp(big.NewInt(0)) <= 0 {
+	areEqualsWithZero := areEqualsWithZero(consensusGroupSize, numValidators, totalBlocks, rounds, roundDuration)
+	if areEqualsWithZero || rewardsValue.Cmp(big.NewInt(0)) <= 0 {
 		return "0"
 	}
 

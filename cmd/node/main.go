@@ -1141,6 +1141,9 @@ func createNodesCoordinator(
 	}
 
 	pubKeyBytes, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
@@ -1176,7 +1179,7 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 	return uint32(val), err
 }
 
-// CreateElasticIndexer creates a new elasticIndexer where the server listens on the url,
+// createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func createElasticIndexer(
 	ctx *cli.Context,

@@ -2,8 +2,7 @@ package sharding
 
 import "github.com/ElrondNetwork/elrond-go/hashing"
 
-// ArgNodesCoordinator holds all dependencies required by the nodes coordinator in order to create
-//// new instances
+// ArgNodesCoordinator holds all dependencies required by the nodes coordinator in order to create new instances
 type ArgNodesCoordinator struct {
 	ShardConsensusGroupSize int
 	MetaConsensusGroupSize  int

@@ -150,8 +150,8 @@ func (sh *SpecialAddressHandlerMock) IsInterfaceNil() bool {
 	return false
 }
 
-// IsInConsensus calculate if current node was in consensus group
-func (sh *SpecialAddressHandlerMock) IsInConsensus() bool {
+// IsCurrentNodeInConsensus calculate if current node was in consensus group
+func (sh *SpecialAddressHandlerMock) IsCurrentNodeInConsensus() bool {
 	return false
 }
 

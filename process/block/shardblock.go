@@ -704,7 +704,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 	saveMetricsForACommittedBlock(
 		sp.appStatusHandler,
-		sp.specialAddressHandler.IsInConsensus(),
+		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
 		core.ToB64(headerHash),
 		highestFinalBlockNonce,
 		headerMeta.GetNonce(),

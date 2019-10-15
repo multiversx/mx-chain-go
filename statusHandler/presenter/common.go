@@ -55,3 +55,13 @@ func (psh *PresenterStatusHandler) getBigIntFromStringMetric(metric string) *big
 
 	return bigIntValue
 }
+
+func areEqualsWithZero(parameters ...uint64) bool {
+	for _, param := range parameters {
+		if param == 0 {
+			return true
+		}
+	}
+
+	return false
+}

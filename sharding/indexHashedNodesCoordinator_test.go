@@ -83,6 +83,55 @@ func TestNewIndexHashedGroupSelector_InvalidConsensusGroupSizeShouldErr(t *testi
 	assert.Equal(t, sharding.ErrInvalidConsensusGroupSize, err)
 }
 
+func TestNewIndexHashedNodesCoordinator_ZeroNbShardsShouldErr(t *testing.T) {
+	nodesMap := createDummyNodesMap()
+	arguments := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: 1,
+		MetaConsensusGroupSize:  1,
+		Hasher:                  &mock.HasherMock{},
+		NbShards:                0,
+		Nodes:                   nodesMap,
+		SelfPublicKey:           []byte("key"),
+	}
+	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
+
+	assert.Nil(t, ihgs)
+	assert.Equal(t, sharding.ErrInvalidNumberOfShards, err)
+}
+
+func TestNewIndexHashedNodesCoordinator_InvalidShardIdShouldErr(t *testing.T) {
+	nodesMap := createDummyNodesMap()
+	arguments := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: 1,
+		MetaConsensusGroupSize:  1,
+		Hasher:                  &mock.HasherMock{},
+		ShardId:                 2,
+		NbShards:                1,
+		Nodes:                   nodesMap,
+		SelfPublicKey:           []byte("key"),
+	}
+	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
+
+	assert.Nil(t, ihgs)
+	assert.Equal(t, sharding.ErrInvalidShardId, err)
+}
+
+func TestNewIndexHashedNodesCoordinator_NilSelfPublicKeyShouldErr(t *testing.T) {
+	nodesMap := createDummyNodesMap()
+	arguments := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: 1,
+		MetaConsensusGroupSize:  1,
+		Hasher:                  &mock.HasherMock{},
+		NbShards:                1,
+		Nodes:                   nodesMap,
+		SelfPublicKey:           nil,
+	}
+	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
+
+	assert.Nil(t, ihgs)
+	assert.Equal(t, sharding.ErrNilPubKey, err)
+}
+
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 

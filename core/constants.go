@@ -165,7 +165,7 @@ const MetricCountConsensusAcceptedBlocks = "erd_count_consensus_accepted_blocks"
 //MetricRewardsValue is the metric that stores rewards value
 const MetricRewardsValue = "erd_rewards_value"
 
-//MetricNodeDisplayName is the metric that stores of the node
+//MetricNodeDisplayName is the metric that stores the name of the node
 const MetricNodeDisplayName = "erd_node_display_name"
 
 //MetricConsensusGroupSize is the metric for consensus group size
@@ -177,5 +177,5 @@ const MetricNumValidators = "erd_metric_num_validators"
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"
 
-//MetricCommunityPercentage is the metric for consensus signer percentage
+//MetricCommunityPercentage is the metric for community rewards percentage
 const MetricCommunityPercentage = "erd_metric_community_percentage"

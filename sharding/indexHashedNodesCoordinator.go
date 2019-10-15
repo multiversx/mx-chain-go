@@ -49,19 +49,15 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
 		return ErrInvalidConsensusGroupSize
 	}
-
 	if arguments.NbShards < 1 {
 		return ErrInvalidNumberOfShards
 	}
-
 	if arguments.ShardId >= arguments.NbShards && arguments.ShardId != MetachainShardId {
 		return ErrInvalidShardId
 	}
-
 	if arguments.Hasher == nil {
 		return ErrNilHasher
 	}
-
 	if arguments.SelfPublicKey == nil {
 		return ErrNilPubKey
 	}

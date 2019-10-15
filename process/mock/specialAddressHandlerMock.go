@@ -147,6 +147,6 @@ func (sh *SpecialAddressHandlerMock) IsInterfaceNil() bool {
 	return false
 }
 
-func (sh *SpecialAddressHandlerMock) IsInConsensus() bool {
+func (sh *SpecialAddressHandlerMock) IsCurrentNodeInConsensus() bool {
 	return false
 }

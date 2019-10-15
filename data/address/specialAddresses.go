@@ -171,8 +171,8 @@ func (sp *specialAddresses) ShardIdForAddress(pubKey []byte) (uint32, error) {
 	return sp.shardCoordinator.ComputeId(convAdr), nil
 }
 
-// IsInConsensus calculates if current node is in consensus group
-func (sp *specialAddresses) IsInConsensus() bool {
+// IsCurrentNodeInConsensus calculates if current node is in consensus group
+func (sp *specialAddresses) IsCurrentNodeInConsensus() bool {
 	ownPublicKey := sp.nodesCoordinator.GetOwnPublicKey()
 
 	return foundKey(ownPublicKey, sp.shardConsensusData.PubKeys)

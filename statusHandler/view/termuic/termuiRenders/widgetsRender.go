@@ -149,16 +149,16 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	switch instanceType {
 	case string(core.NodeTypeValidator):
 		rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
-		rows[6] = []string{fmt.Sprintf("Rewards estimation:  %s TERD/h (without fees)", rewardsPerHour)}
+		rows[6] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
 
 		var rewardsInfo []string
 		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
 		if diffRewards != "0" {
 			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
-			rewardsInfo = []string{fmt.Sprintf("Total rewards %s TERD + %s", totalRewardsValue, diffRewards)}
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD + %s", totalRewardsValue, diffRewards)}
 		} else {
 			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
-			rewardsInfo = []string{fmt.Sprintf("Total rewards %s TERD", totalRewardsValue)}
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD", totalRewardsValue)}
 		}
 		rows[7] = rewardsInfo
 
