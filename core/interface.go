@@ -4,6 +4,7 @@ package core
 type AppStatusHandler interface {
 	IsInterfaceNil() bool
 	Increment(key string)
+	AddUint64(key string, val uint64)
 	Decrement(key string)
 	SetInt64Value(key string, value int64)
 	SetUInt64Value(key string, value uint64)

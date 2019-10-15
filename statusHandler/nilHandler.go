@@ -17,6 +17,9 @@ func (nsh *NilStatusHandler) IsInterfaceNil() bool {
 	return false
 }
 
+func (nsh *NilStatusHandler) AddUint64(key string, val uint64) {
+}
+
 // Increment method - won't do anything
 func (nsh *NilStatusHandler) Increment(key string) {
 }

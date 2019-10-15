@@ -1,6 +1,7 @@
 package presenter
 
 import (
+	"math/big"
 	"strings"
 	"sync"
 )
@@ -15,6 +16,7 @@ type PresenterStatusHandler struct {
 	mutLogLineWrite             sync.RWMutex
 	oldNonce                    uint64
 	synchronizationSpeedHistory []uint64
+	totalRewardsOld             *big.Int
 }
 
 // NewPresenterStatusHandler will return an instance of the struct
@@ -22,6 +24,7 @@ func NewPresenterStatusHandler() *PresenterStatusHandler {
 	psh := &PresenterStatusHandler{
 		presenterMetrics:            &sync.Map{},
 		synchronizationSpeedHistory: make([]uint64, 0),
+		totalRewardsOld:             big.NewInt(0),
 	}
 	return psh
 }
@@ -62,6 +65,22 @@ func (psh *PresenterStatusHandler) Increment(key string) {
 	}
 
 	keyValue++
+	psh.presenterMetrics.Store(key, keyValue)
+}
+
+// AddUint64 - will increase the value of a key with a value
+func (psh *PresenterStatusHandler) AddUint64(key string, value uint64) {
+	keyValueI, ok := psh.presenterMetrics.Load(key)
+	if !ok {
+		return
+	}
+
+	keyValue, ok := keyValueI.(uint64)
+	if !ok {
+		return
+	}
+
+	keyValue += value
 	psh.presenterMetrics.Store(key, keyValue)
 }
 

@@ -548,7 +548,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.indexBlock(header, lastMetaBlock)
 
-	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
+	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
 	go mp.headersCounter.displayLogInfo(
 		header,
