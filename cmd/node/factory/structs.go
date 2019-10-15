@@ -908,6 +908,7 @@ func createMetaChainDataStoreFromConfig(
 	uniqueID string,
 ) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
+	var txUnit, miniBlockUnit, unsignedTxUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var err error
 
@@ -933,6 +934,15 @@ func createMetaChainDataStoreFromConfig(
 				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 					_ = shardHdrHashNonceUnits[i].DestroyUnit()
 				}
+			}
+			if txUnit != nil {
+				_ = txUnit.DestroyUnit()
+			}
+			if unsignedTxUnit != nil {
+				_ = unsignedTxUnit.DestroyUnit()
+			}
+			if miniBlockUnit != nil {
+				_ = miniBlockUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -999,12 +1009,39 @@ func createMetaChainDataStoreFromConfig(
 		return nil, err
 	}
 
+	txUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.TxStorage.Cache),
+		getDBFromConfig(config.TxStorage.DB, uniqueID),
+		getBloomFromConfig(config.TxStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	unsignedTxUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
+		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
+		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlockUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MiniBlocksStorage.Cache),
+		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
+		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
 	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
+	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
+	store.AddStorer(dataRetriever.MiniBlockUnit, unsignedTxUnit)
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
@@ -1102,9 +1139,10 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	miniBlockHashes, err := shardedData.NewShardedData(getCacherFromConfig(config.MiniBlockHeaderHashesDataPool))
+	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
+	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating miniBlockHashes")
+		log.Info("error creating txBlockBody")
 		return nil, err
 	}
 
@@ -1126,7 +1164,19 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, headersNonces)
+	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
+	if err != nil {
+		log.Info("error creating txpool")
+		return nil, err
+	}
+
+	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
+	if err != nil {
+		log.Info("error creating smart contract result pool")
+		return nil, err
+	}
+
+	return dataPool.NewMetaDataPool(metaBlockBody, txBlockBody, shardHeaders, headersNonces, txPool, uTxPool)
 }
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
@@ -1246,6 +1296,8 @@ func newInterceptorAndResolverContainerFactory(
 			core,
 			crypto,
 			network,
+			state,
+			economics,
 		)
 	}
 
@@ -1311,6 +1363,8 @@ func newMetaInterceptorAndResolverContainerFactory(
 	core *Core,
 	crypto *Crypto,
 	network *Network,
+	state *State,
+	economics *economics.EconomicsData,
 ) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
 
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
@@ -1322,10 +1376,22 @@ func newMetaInterceptorAndResolverContainerFactory(
 		core.Hasher,
 		crypto.MultiSigner,
 		data.MetaDatapool,
+		state.AccountsAdapter,
+		state.AddressConverter,
+		crypto.SingleSigner,
+		crypto.TxSignKeyGen,
+		maxTxNonceDeltaAllowed,
+		economics,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		network.NetMessenger,
@@ -1333,6 +1399,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		core.Marshalizer,
 		data.MetaDatapool,
 		core.Uint64ByteSliceConverter,
+		dataPacker,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1772,10 +1839,15 @@ func newMetaBlockProcessor(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, error) {
+
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 		resolversFinder,
 		factory.ShardHeadersForMetachainTopic,
-		factory.MetachainBlocksTopic)
+		factory.MetachainBlocksTopic,
+		factory.TransactionTopic,
+		factory.UnsignedTransactionTopic,
+		factory.MiniBlocksTopic,
+	)
 	if err != nil {
 		return nil, err
 	}

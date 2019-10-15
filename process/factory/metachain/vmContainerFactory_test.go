@@ -1,11 +1,12 @@
-package shard
+package metachain
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewVMContainerFactory_NilAccountsShouldErr(t *testing.T) {
@@ -58,7 +59,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, container)
 
-	vm, err := container.Get(factory.IELEVirtualMachine)
+	vm, err := container.Get(factory.SystemVirtualMachine)
 	assert.Nil(t, err)
 	assert.NotNil(t, vm)
 
