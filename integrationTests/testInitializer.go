@@ -435,7 +435,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 			MinGasPriceCalled: func() uint64 {
 				return 0
 			},
-			MinGasLimitForTxCalled: func() uint64 {
+			MinGasLimitCalled: func() uint64 {
 				return 5
 			},
 			MinTxFeeCalled: func() uint64 {
@@ -1000,23 +1000,6 @@ func ComputeAndRequestMissingTransactions(
 	}
 }
 
-// ComputeAndRequestMissingRewardTxs computes the missing reward transactions for each node and requests them
-func ComputeAndRequestMissingRewardTxs(
-	nodes []*TestProcessorNode,
-	generatedDataHashes [][]byte,
-	shardResolver uint32,
-	shardRequesters ...uint32,
-) {
-	for _, n := range nodes {
-		if !Uint32InSlice(n.ShardCoordinator.SelfId(), shardRequesters) {
-			continue
-		}
-
-		neededData := getMissingRewardTxsForNode(n, generatedDataHashes)
-		requestMissingRewardTxs(n, shardResolver, neededData)
-	}
-}
-
 func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
 	neededTxs := make([][]byte, 0)
 
@@ -1030,32 +1013,11 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 	return neededTxs
 }
 
-func getMissingRewardTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
-	neededTxs := make([][]byte, 0)
-
-	for i := 0; i < len(generatedTxHashes); i++ {
-		_, ok := n.ShardDataPool.RewardTransactions().SearchFirstData(generatedTxHashes[i])
-		if !ok {
-			neededTxs = append(neededTxs, generatedTxHashes[i])
-		}
-	}
-
-	return neededTxs
-}
-
 func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, neededTxs [][]byte) {
 	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
 		_ = txResolver.RequestDataFromHash(neededTxs[i])
-	}
-}
-
-func requestMissingRewardTxs(n *TestProcessorNode, shardResolver uint32, neededData [][]byte) {
-	dataResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.RewardsTransactionTopic, shardResolver)
-
-	for i := 0; i < len(neededData); i++ {
-		_ = dataResolver.RequestDataFromHash(neededData[i])
 	}
 }
 
@@ -1322,4 +1284,22 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	}
 
 	return params
+}
+
+// CloseProcessorNodes closes the used TestProcessorNodes and advertiser
+func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
+	_ = advertiser.Close()
+	for _, n := range nodes {
+		_ = n.Messenger.Close()
+	}
+}
+
+// StartP2pBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
+func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(p2pBootstrapStepDelay)
 }

@@ -55,8 +55,11 @@ func createMockResolversFinder() *mock.ResolversFinderStub {
 
 			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
 				return &mock.MiniBlocksResolverMock{
-					GetMiniBlocksCalled: func(hashes [][]byte) block.MiniBlockSlice {
-						return make(block.MiniBlockSlice, 0)
+					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), make([][]byte, 0)
+					},
+					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), make([][]byte, 0)
 					},
 				}, nil
 			}
@@ -88,8 +91,11 @@ func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
 					RequestDataFromHashArrayCalled: func(hash [][]byte) error {
 						return nil
 					},
-					GetMiniBlocksCalled: func(hashes [][]byte) block.MiniBlockSlice {
-						return nil
+					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
+					},
+					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
 					},
 				}, nil
 			}
@@ -1963,7 +1969,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	mbHashes := make([][]byte, 0)
 	mbHashes = append(mbHashes, []byte("aaaa"))
 
-	mb := bs.GetMiniBlocks(mbHashes)
+	mb, _ := bs.GetMiniBlocks(mbHashes)
 	assert.True(t, reflect.DeepEqual(blk, mb))
 
 }
@@ -2625,12 +2631,12 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		account,
 		math.MaxUint32,
 	)
-	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
+	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.True(t, reflect.DeepEqual(txBlockRecovered, txBlock))
 }
 
-func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *testing.T) {
+func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySlice(t *testing.T) {
 	t.Parallel()
 
 	mbh := []byte("requested hash")
@@ -2679,9 +2685,9 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 		account,
 		math.MaxUint32,
 	)
-	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
+	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
-	assert.Nil(t, txBlockRecovered)
+	assert.Equal(t, 0, len(txBlockRecovered))
 }
 
 func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
@@ -2739,7 +2745,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		account,
 		math.MaxUint32,
 	)
-	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
+	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.Equal(t, txBlock, txBlockRecovered)
 }

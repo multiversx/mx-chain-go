@@ -133,9 +133,12 @@ func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *st
 
 	txDataLen := int64(len(tx.Data))
 	txProc.mutTxFee.RLock()
+	minTxFee := big.NewInt(0).SetUint64(txProc.economicsFee.MinGasLimit())
+	minTxFee.Mul(minTxFee, big.NewInt(0).SetUint64(txProc.economicsFee.MinGasPrice()))
+
 	minFee := big.NewInt(0)
-	minFee = minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(txProc.economicsFee.MinGasPrice()))
-	minFee = minFee.Add(minFee, big.NewInt(0).SetUint64(txProc.economicsFee.MinTxFee()))
+	minFee.Mul(big.NewInt(txDataLen), big.NewInt(0).SetUint64(txProc.economicsFee.MinGasPrice()))
+	minFee.Add(minFee, minTxFee)
 	txProc.mutTxFee.RUnlock()
 
 	if minFee.Cmp(cost) > 0 {
@@ -227,7 +230,6 @@ func (txProc *txProcessor) processSCInvoking(
 func (txProc *txProcessor) getAddresses(
 	tx *transaction.Transaction,
 ) (state.AddressContainer, state.AddressContainer, error) {
-	//for now we assume that the address = public key
 	adrSrc, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
 	if err != nil {
 		return nil, nil, err

@@ -17,8 +17,8 @@ import (
 
 func RewandsHandlerMock() *mock.RewardsHandlerMock {
 	return &mock.RewardsHandlerMock{
-		RewardsValueCalled: func() uint64 {
-			return 1000
+		RewardsValueCalled: func() *big.Int {
+			return big.NewInt(1000)
 		},
 		CommunityPercentageCalled: func() float64 {
 			return 0.10

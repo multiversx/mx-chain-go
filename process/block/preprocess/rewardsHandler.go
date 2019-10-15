@@ -73,7 +73,7 @@ func NewRewardTxHandler(
 		return nil, process.ErrNilEconomicsRewardsHandler
 	}
 
-	rewardValue := big.NewInt(int64(economicsRewards.RewardsValue()))
+	rewardValue := economicsRewards.RewardsValue()
 
 	rtxh := &rewardsHandler{
 		address:          address,
