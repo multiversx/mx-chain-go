@@ -52,13 +52,17 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	valMinting := big.NewInt(100000)
 	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{nRequester}, 0, []crypto.PrivateKey{nRequester.OwnAccount.SkTxSign}, valMinting)
 	//Step 1. Generate a signed transaction
+	txData := "tx notarized data"
+	//TODO change here when gas limit will no longer be linear with the tx data length
+	txDataCost := uint64(len(txData))
 	tx := transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
 		RcvAddr:  integrationTests.TestHasher.Compute("receiver"),
 		SndAddr:  buffPk1,
-		Data:     "tx notarized data",
-		GasLimit: integrationTests.MinTxGasLimit,
+		Data:     txData,
+		GasLimit: integrationTests.MinTxGasLimit + txDataCost,
+		GasPrice: integrationTests.MinTxGasPrice,
 	}
 
 	txBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)

@@ -416,11 +416,11 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := rcf.Create()
 
-	numResolverSCRs := noOfShards
-	numResolverTxs := noOfShards
-	numResolverRewardTxs := noOfShards
+	numResolverSCRs := noOfShards + 1
+	numResolverTxs := noOfShards + 1
+	numResolverRewardTxs := noOfShards + 1
 	numResolverHeaders := 1
-	numResolverMiniBlocks := noOfShards
+	numResolverMiniBlocks := noOfShards + 1
 	numResolverPeerChanges := 1
 	numResolverMetachainShardHeaders := 1
 	numResolverMetaBlockHeaders := 1

@@ -15,7 +15,14 @@ var timeoutSendRequests = time.Second * 2
 func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewMetaResolverRequestHandler(nil, "shard topic", "meta topic")
+	rrh, err := NewMetaResolverRequestHandler(
+		nil,
+		"shard topic",
+		"meta topic",
+		"tx topic",
+		"scr topic",
+		"miniblock topic",
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrNilResolverFinder, err)
@@ -24,7 +31,14 @@ func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
 func TestNewMetaResolverRequestShardHandlerEmptyTopic(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewMetaResolverRequestHandler(&mock.ResolversFinderStub{}, "", "meta topic")
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"",
+		"meta topic",
+		"tx topic",
+		"scr topic",
+		"miniblock topic",
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyShardHeaderRequestTopic, err)
@@ -33,17 +47,78 @@ func TestNewMetaResolverRequestShardHandlerEmptyTopic(t *testing.T) {
 func TestNewMetaResolverRequestMetaHandlerEmptyTopic(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewMetaResolverRequestHandler(&mock.ResolversFinderStub{}, "shard topic", "")
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"",
+		"tx topic",
+		"scr topic",
+		"miniblock topic",
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyMetaHeaderRequestTopic, err)
 }
 
+func TestNewMetaResolverRequestTxHandlerEmptyTopic(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"meta topic",
+		"",
+		"scr topic",
+		"miniblock topic",
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrEmptyTxRequestTopic, err)
+}
+
+func TestNewMetaResolverRequestScrHandlerEmptyTopic(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"meta topic",
+		"tx topic",
+		"",
+		"miniblock topic",
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrEmptyScrRequestTopic, err)
+}
+
+func TestNewMetaResolverRequestMiniBlockHandlerEmptyTopic(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"meta topic",
+		"tx topic",
+		"scr topic",
+		"",
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrEmptyMiniBlockRequestTopic, err)
+}
+
 func TestNewMetaResolverRequestHandler(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewMetaResolverRequestHandler(&mock.ResolversFinderStub{}, "shard topic", "meta topic")
-
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"meta topic",
+		"tx topic",
+		"scr topic",
+		"miniblock topic",
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rrh)
 }
@@ -605,6 +680,9 @@ func TestResolverRequestHandler_RequestHeaderByNonceMetaShouldRequest(t *testing
 				return hdrResolver, nil
 			},
 		},
+		"topic",
+		"topic",
+		"topic",
 		"topic",
 		"topic",
 	)
