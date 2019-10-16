@@ -17,9 +17,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
@@ -28,8 +30,44 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
+
+func createTestShardDataPool() dataRetriever.PoolsHolder {
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: 1}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	dPool, _ := dataPool.NewShardedDataPool(
+		txPool,
+		uTxPool,
+		rewardsTxPool,
+		hdrPool,
+		hdrNonces,
+		txBlockBody,
+		peerChangeBlockBody,
+		metaBlocks,
+	)
+
+	return dPool
+}
 
 //------- NewShardProcessor
 
@@ -2456,7 +2494,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	datapool := mock.NewPoolsHolderMock()
 
 	//we will have a metablock that will return 3 miniblock hashes
 	//1 miniblock hash will be in cache
@@ -2470,20 +2508,20 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		Nonce: 1,
 		Round: 1,
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				ShardId: 1,
 				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-					block.ShardMiniBlockHeader{Hash: miniBlockHash1, SenderShardId: 1, ReceiverShardId: 0},
-					block.ShardMiniBlockHeader{Hash: miniBlockHash2, SenderShardId: 1, ReceiverShardId: 0},
-					block.ShardMiniBlockHeader{Hash: miniBlockHash3, SenderShardId: 1, ReceiverShardId: 0},
+					{Hash: miniBlockHash1, SenderShardId: 1, ReceiverShardId: 0},
+					{Hash: miniBlockHash2, SenderShardId: 1, ReceiverShardId: 0},
+					{Hash: miniBlockHash3, SenderShardId: 1, ReceiverShardId: 0},
 				}},
 		}}
 
 	//put this metaBlock inside datapool
 	metaBlockHash := []byte("metablock hash")
-	dataPool.MetaBlocks().Put(metaBlockHash, metaBlock)
+	datapool.MetaBlocks().Put(metaBlockHash, metaBlock)
 	//put the existing miniblock inside datapool
-	dataPool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
 
 	miniBlockHash1Requested := int32(0)
 	miniBlockHash2Requested := int32(0)
@@ -2504,14 +2542,14 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	tc, _ := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		dataPool,
+		datapool,
 		requestHandler,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
 	arguments.RequestHandler = requestHandler
@@ -2534,7 +2572,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	datapool := mock.NewPoolsHolderMock()
 
 	//we will have a metablock that will return 3 miniblock hashes
 	//1 miniblock hash will be in cache
@@ -2546,18 +2584,23 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		Nonce: 1,
 		Round: 1,
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				ShardId: 1,
 				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-					block.ShardMiniBlockHeader{Hash: miniBlockHash1, SenderShardId: 1, ReceiverShardId: 0},
-				}},
+					{
+						Hash:            miniBlockHash1,
+						SenderShardId:   1,
+						ReceiverShardId: 0,
+					},
+				},
+			},
 		}}
 
 	//put this metaBlock inside datapool
 	metaBlockHash := []byte("metablock hash")
-	dataPool.MetaBlocks().Put(metaBlockHash, &metaBlock)
+	datapool.MetaBlocks().Put(metaBlockHash, &metaBlock)
 	//put the existing miniblock inside datapool
-	dataPool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
 
 	noOfMissingMiniBlocks := int32(0)
 
@@ -2568,14 +2611,14 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 	tc, _ := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		dataPool,
+		datapool,
 		requestHandler,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
 	arguments.RequestHandler = requestHandler
@@ -2770,7 +2813,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	datapool := mock.NewPoolsHolderMock()
 
 	//we will have a 3 txs in pool
 
@@ -2787,15 +2830,15 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 
 	//put the existing tx inside datapool
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
-	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
+	datapool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
 		Data:  string(txHash1),
 	}, cacheId)
-	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
+	datapool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
 		Data:  string(txHash2),
 	}, cacheId)
-	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
+	datapool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
 		Data:  string(txHash3),
 	}, cacheId)
@@ -2836,7 +2879,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		initStore(),
 		marshalizer,
 		hasher,
-		dataPool,
+		datapool,
 		&mock.AddressConverterMock{},
 		accntAdapter,
 		&mock.RequestHandlerMock{},
@@ -2846,7 +2889,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{
-			MinGasLimitCalled: func() uint64 {
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
 		},
@@ -2856,14 +2899,14 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accntAdapter,
-		dataPool,
+		datapool,
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
 	arguments.Accounts = accntAdapter
@@ -2898,7 +2941,7 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	datapool := mock.NewPoolsHolderMock()
 
 	miniblockHashes := make([][]byte, 6)
 
@@ -2911,19 +2954,19 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	//put 3 metablocks in pool
 	metaBlockHash1 := []byte("meta block 1")
 	metaBlock1 := createDummyMetaBlock(destShardId, destShards[0], miniblockHashes[0], miniblockHashes[1])
-	dataPool.MetaBlocks().Put(
+	datapool.MetaBlocks().Put(
 		metaBlockHash1,
 		metaBlock1,
 	)
 	metaBlockHash2 := []byte("meta block 2")
 	metaBlock2 := createDummyMetaBlock(destShardId, destShards[1], miniblockHashes[2], miniblockHashes[3])
-	dataPool.MetaBlocks().Put(
+	datapool.MetaBlocks().Put(
 		metaBlockHash2,
 		metaBlock2,
 	)
 	metaBlockHash3 := []byte("meta block 3")
 	metaBlock3 := createDummyMetaBlock(destShardId, destShards[2], miniblockHashes[4], miniblockHashes[5])
-	dataPool.MetaBlocks().Put(
+	datapool.MetaBlocks().Put(
 		metaBlockHash3,
 		metaBlock3,
 	)
@@ -2933,7 +2976,7 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	shardCoordinator.SetNoShards(destShardId + 1)
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
 	arguments.ShardCoordinator = shardCoordinator
@@ -3005,7 +3048,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	txHash := []byte("tx hash 1")
 
-	dataPool := mock.NewPoolsHolderMock()
+	datapool := mock.NewPoolsHolderMock()
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasherMock := &mock.HasherStub{}
 
@@ -3033,7 +3076,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		store,
 		marshalizerMock,
 		hasherMock,
-		dataPool,
+		datapool,
 		&mock.AddressConverterMock{},
 		initAccountsMock(),
 		&mock.RequestHandlerMock{},
@@ -3049,14 +3092,14 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		dataPool,
+		datapool,
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Store = store
 	arguments.Hasher = hasherMock
 	arguments.Marshalizer = marshalizerMock
@@ -3079,7 +3122,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	metablockHash := []byte("meta block hash 1")
 	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)
-	dataPool.MetaBlocks().Put(
+	datapool.MetaBlocks().Put(
 		metablockHash,
 		metablockHeader,
 	)
@@ -3099,8 +3142,8 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	err = sp.RestoreBlockIntoPools(&block.Header{MetaBlockHashes: [][]byte{metablockHash}, MiniBlockHeaders: []block.MiniBlockHeader{miniBlockHeader}}, body)
 
-	miniblockFromPool, _ := dataPool.MiniBlocks().Get(miniblockHash)
-	txFromPool, _ := dataPool.Transactions().SearchFirstData(txHash)
+	miniblockFromPool, _ := datapool.MiniBlocks().Get(miniblockHash)
+	txFromPool, _ := datapool.Transactions().SearchFirstData(txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, &miniblock, miniblockFromPool)
 	assert.Equal(t, &tx, txFromPool)
@@ -3161,11 +3204,11 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := initDataPool([]byte("tx_hash1"))
+	datapool := initDataPool([]byte("tx_hash1"))
 
 	shardNr := uint32(5)
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(shardNr)
@@ -3255,7 +3298,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	datapool := mock.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3272,7 +3315,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	shardNr := uint32(5)
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
@@ -3332,7 +3375,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	assert.Equal(t, 0, len(processedMetaHdrs))
 
 	// wrong header type in pool and defer called
-	dataPool.MetaBlocks().Put(currHash, shardHdr)
+	datapool.MetaBlocks().Put(currHash, shardHdr)
 	sp.SetHdrForCurrentBlock(currHash, shardHdr, true)
 
 	hashes := make([][]byte, 0)
@@ -3353,8 +3396,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	assert.Equal(t, firstNonce, sp.LastNotarizedHdrForShard(sharding.MetachainShardId).GetNonce())
 
 	// put headers in pool
-	dataPool.MetaBlocks().Put(currHash, currHdr)
-	dataPool.MetaBlocks().Put(prevHash, prevHdr)
+	datapool.MetaBlocks().Put(currHash, currHdr)
+	datapool.MetaBlocks().Put(prevHash, prevHdr)
 
 	sp.CreateBlockStarted()
 	sp.SetHdrForCurrentBlock(currHash, currHdr, true)
@@ -3407,7 +3450,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	datapool := mock.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3425,7 +3468,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	shardNr := uint32(5)
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
@@ -3509,8 +3552,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
 
 	// put headers in pool
-	dataPool.MetaBlocks().Put(currHash, currHdr)
-	dataPool.MetaBlocks().Put(prevHash, prevHdr)
+	datapool.MetaBlocks().Put(currHash, currHdr)
+	datapool.MetaBlocks().Put(prevHash, prevHdr)
 
 	sp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	sp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
@@ -3538,7 +3581,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	datapool := mock.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3555,7 +3598,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	shardNr := uint32(5)
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
@@ -3644,9 +3687,9 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
 
 	// put headers in pool
-	dataPool.MetaBlocks().Put(currHash, currHdr)
-	dataPool.MetaBlocks().Put(prevHash, prevHdr)
-	dataPool.MetaBlocks().Put([]byte("shouldNotRemove"), &block.MetaBlock{
+	datapool.MetaBlocks().Put(currHash, currHdr)
+	datapool.MetaBlocks().Put(prevHash, prevHdr)
+	datapool.MetaBlocks().Put([]byte("shouldNotRemove"), &block.MetaBlock{
 		Round:        12,
 		PrevRandSeed: []byte("nextrand"),
 		PrevHash:     currHash,
@@ -3903,14 +3946,14 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	t.Parallel()
 
 	processedHdrs := make([]data.HeaderHandler, 0)
-	dataPool := integrationTests.CreateTestShardDataPool(nil)
+	datapool := createTestShardDataPool()
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
@@ -3920,7 +3963,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 
 	shardInfo := make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardId: 1})
-	_ = dataPool.Headers().Put([]byte("hash"), &block.Header{ShardId: 0, Nonce: 1})
+	_ = datapool.Headers().Put([]byte("hash"), &block.Header{ShardId: 0, Nonce: 1})
 
 	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)
@@ -3934,7 +3977,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+	_ = datapool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	prevMetaHdr = currMetaHdr
@@ -3949,7 +3992,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+	_ = datapool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
@@ -3962,14 +4005,14 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 	t.Parallel()
 
 	processedHdrs := make([]data.HeaderHandler, 0)
-	dataPool := integrationTests.CreateTestShardDataPool(nil)
+	datapool := createTestShardDataPool()
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
@@ -3992,7 +4035,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+	_ = datapool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	prevMetaHdr = currMetaHdr
@@ -4007,7 +4050,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+	_ = datapool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
@@ -4019,14 +4062,14 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	t.Parallel()
 
 	processedHdrs := make([]data.HeaderHandler, 0)
-	dataPool := integrationTests.CreateTestShardDataPool(nil)
+	datapool := createTestShardDataPool()
 	store := initStore()
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = dataPool
+	arguments.DataPool = datapool
 	arguments.Store = store
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
@@ -4039,7 +4082,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 		Round: 1,
 	}
 	ownHash, _ := core.CalculateHash(marshalizer, hasher, ownHdr)
-	_ = dataPool.Headers().Put(ownHash, ownHdr)
+	_ = datapool.Headers().Put(ownHash, ownHdr)
 
 	shardInfo := make([]block.ShardData, 0)
 	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardId: 0})
@@ -4056,7 +4099,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ := core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+	_ = datapool.MetaBlocks().Put(currHash, currMetaHdr)
 
 	ownHdr = &block.Header{
 		Nonce: 2,
@@ -4081,7 +4124,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 		ShardInfo:    shardInfo,
 	}
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+	_ = datapool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	prevMetaHdr = currMetaHdr
@@ -4095,7 +4138,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 		RandSeed:     prevMetaHdr.GetRandSeed(),
 	}
 	currHash, _ = core.CalculateHash(marshalizer, hasher, currMetaHdr)
-	_ = dataPool.MetaBlocks().Put(currHash, currMetaHdr)
+	_ = datapool.MetaBlocks().Put(currHash, currMetaHdr)
 	processedHdrs = append(processedHdrs, currMetaHdr)
 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
@@ -4175,19 +4218,4 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	assert.Equal(t, meta, metaBlockRestored)
 	assert.Nil(t, err)
 	assert.True(t, sp.IsMiniBlockProcessed(metaHash, testMBHash))
-}
-
-func TestNewShardProcessor_CalculateRoundDuration(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments()
-	sp, _ := blproc.NewShardProcessor(arguments)
-	lastBlockTimestamp := uint64(80)
-	currentBlockTimestamp := uint64(100)
-	lastBlockRound := uint64(5)
-	currentBlockRound := uint64(10)
-	expectedRoundDuration := uint64(4)
-
-	roundDuration := sp.CalculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
-	assert.Equal(t, expectedRoundDuration, roundDuration)
 }

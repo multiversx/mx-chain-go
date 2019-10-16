@@ -61,7 +61,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		nodesCoordinator,
 	)
 	arguments := ArgShardProcessor{
-		ArgBaseProcessor: &ArgBaseProcessor{
+		ArgBaseProcessor: ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
 			ForkDetector:          &mock.ForkDetectorMock{},
 			Hasher:                &mock.HasherMock{},
@@ -81,25 +81,6 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 	}
 	shardProcessor, err := NewShardProcessor(arguments)
 	return shardProcessor, err
-}
-
-func NewMetaProcessorBasicSingleShard(mdp dataRetriever.MetaPoolsHolder, genesisBlocks map[uint32]data.HeaderHandler) (*metaProcessor, error) {
-	mp, err := NewMetaProcessor(
-		&mock.ServiceContainerMock{},
-		&mock.AccountsStub{},
-		mdp,
-		&mock.ForkDetectorMock{},
-		mock.NewOneShardCoordinatorMock(),
-		mock.NewNodesCoordinatorMock(),
-		&mock.SpecialAddressHandlerMock{},
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.ChainStorerMock{},
-		genesisBlocks,
-		&mock.RequestHandlerMock{},
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-	return mp, err
 }
 
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
@@ -318,17 +299,12 @@ func (bp *baseProcessor) SetHighestHdrNonceForCurrentBlock(shardId uint32, value
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
-func (sp *shardProcessor) CalculateRoundDuration(
-	lastBlockTimestamp uint64,
-	currentBlockTimestamp uint64,
-	lastBlockRound uint64,
-	currentBlockRound uint64,
-) uint64 {
-	return sp.calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
-}
-
 func (bp *baseProcessor) CreateBlockStarted() {
 	bp.createBlockStarted()
+}
+
+func (sp *shardProcessor) CreateBlockStarted() {
+	sp.createBlockStarted()
 }
 
 func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {

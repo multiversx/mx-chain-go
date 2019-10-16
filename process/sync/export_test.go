@@ -83,10 +83,6 @@ func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
-func (bfd *baseForkDetector) GetProbableHighestNonce(headersInfo []*headerInfo) uint64 {
-	return bfd.getProbableHighestNonce(headersInfo)
-}
-
 func (hi *headerInfo) Hash() []byte {
 	return hi.hash
 }
