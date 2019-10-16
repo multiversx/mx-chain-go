@@ -12,6 +12,3 @@
 [FeeSettings]
     MinGasPrice = "0"
     MinGasLimit = "5"
-
-    
-	

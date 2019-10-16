@@ -189,20 +189,24 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 				RegisterHandlerCalled: func(i func(key []byte)) {},
 			}
 		},
-		MiniBlockHashesCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			sdc := &mock.ShardedDataStub{}
-			sdc.RegisterHandlerCalled = func(i func(key []byte)) {
+		MiniBlocksCalled: func() storage.Cacher {
+			cs := &mock.CacherStub{}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
-			sdc.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("bbb"), key) {
-					return make(block.MiniBlockSlice, 0), true
+			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("mb_hash1"), key) {
+					return &block.Header{Nonce: 1}, true
 				}
-
 				return nil, false
 			}
-			sdc.RegisterHandlerCalled = func(i func(key []byte)) {}
-			sdc.RemoveDataCalled = func(key []byte, cacheId string) {}
-			return sdc
+			cs.LenCalled = func() int {
+				return 0
+			}
+			cs.RemoveCalled = func(key []byte) {}
+			cs.KeysCalled = func() [][]byte {
+				return nil
+			}
+			return cs
 		},
 		ShardHeadersCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
@@ -316,7 +320,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 		nodesCoordinator,
 	)
 	arguments := blproc.ArgShardProcessor{
-		ArgBaseProcessor: &blproc.ArgBaseProcessor{
+		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
 			ForkDetector:          &mock.ForkDetectorMock{},
 			Hasher:                &mock.HasherStub{},

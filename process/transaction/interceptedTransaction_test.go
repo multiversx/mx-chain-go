@@ -48,21 +48,12 @@ func createKeyGenMock() crypto.KeyGenerator {
 	}
 }
 
-func createTxFeeHandler(gasPrice uint64, gasLimit uint64) process.FeeHandler {
-	feeHandler := &mock.FeeHandlerStub{
-		MinGasPriceCalled: func() uint64 {
-			return gasPrice
-		},
-		MinGasLimitCalled: func() uint64 {
-			return gasLimit
+func createFreeTxFeeHandler() process.FeeHandler {
+	return &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
 		},
 	}
-
-	return feeHandler
-}
-
-func createFreeTxFeeHandler() process.FeeHandler {
-	return createTxFeeHandler(0, 0)
 }
 
 func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandler process.FeeHandler) (*transaction.InterceptedTransaction, error) {
@@ -413,44 +404,31 @@ func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testin
 	assert.Equal(t, process.ErrNegativeValue, err)
 }
 
-func TestInterceptedTransaction_CheckValidityMarshalingCopiedTxFailsShouldErr(t *testing.T) {
+func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected error")
-
+	gasLimit := uint64(3)
+	gasPrice := uint64(4)
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
 		Data:      "data",
-		GasLimit:  3,
-		GasPrice:  4,
+		GasLimit:  gasLimit,
+		GasPrice:  gasPrice,
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
-	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(tx)
-
-	txi, _ := transaction.NewInterceptedTransaction(
-		txBuff,
-		&mock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
-				return nil, errExpected
-			},
-			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return marshalizer.Unmarshal(obj, buff)
-			},
+	errExpected := errors.New("insufficient fee")
+	feeHandler := &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return errExpected
 		},
-		mock.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
-		mock.NewOneShardCoordinatorMock(),
-		createFreeTxFeeHandler(),
-	)
+	}
 
-	err := txi.CheckValidity()
+	txi, err := createInterceptedTxFromPlainTx(tx, feeHandler)
 
+	assert.Nil(t, txi)
 	assert.Equal(t, errExpected, err)
 }
 

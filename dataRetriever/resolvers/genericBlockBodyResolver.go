@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// GenericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
-type GenericBlockBodyResolver struct {
+// genericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
+type genericBlockBodyResolver struct {
 	dataRetriever.TopicResolverSender
 	miniBlockPool    storage.Cacher
 	miniBlockStorage storage.Storer
@@ -23,7 +23,8 @@ func NewGenericBlockBodyResolver(
 	senderResolver dataRetriever.TopicResolverSender,
 	miniBlockPool storage.Cacher,
 	miniBlockStorage storage.Storer,
-	marshalizer marshal.Marshalizer) (*GenericBlockBodyResolver, error) {
+	marshalizer marshal.Marshalizer,
+) (*genericBlockBodyResolver, error) {
 
 	if senderResolver == nil || senderResolver.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverSender
@@ -41,7 +42,7 @@ func NewGenericBlockBodyResolver(
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
 
-	bbResolver := &GenericBlockBodyResolver{
+	bbResolver := &genericBlockBodyResolver{
 		TopicResolverSender: senderResolver,
 		miniBlockPool:       miniBlockPool,
 		miniBlockStorage:    miniBlockStorage,
@@ -53,7 +54,7 @@ func NewGenericBlockBodyResolver(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (gbbRes *GenericBlockBodyResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (gbbRes *genericBlockBodyResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	rd := &dataRetriever.RequestData{}
 	err := rd.Unmarshal(gbbRes.marshalizer, message)
 	if err != nil {
@@ -73,7 +74,7 @@ func (gbbRes *GenericBlockBodyResolver) ProcessReceivedMessage(message p2p.Messa
 	return gbbRes.Send(buff, message.Peer())
 }
 
-func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetriever.RequestData) ([]byte, error) {
+func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetriever.RequestData) ([]byte, error) {
 	if rd.Value == nil {
 		return nil, dataRetriever.ErrNilValue
 	}
@@ -96,7 +97,7 @@ func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetrieve
 	return buff, nil
 }
 
-func (gbbRes *GenericBlockBodyResolver) miniBlockHashesFromRequestType(requestData *dataRetriever.RequestData) ([][]byte, error) {
+func (gbbRes *genericBlockBodyResolver) miniBlockHashesFromRequestType(requestData *dataRetriever.RequestData) ([][]byte, error) {
 	miniBlockHashes := make([][]byte, 0)
 
 	switch requestData.Type {
@@ -118,7 +119,7 @@ func (gbbRes *GenericBlockBodyResolver) miniBlockHashesFromRequestType(requestDa
 }
 
 // RequestDataFromHash requests a block body from other peers having input the block body hash
-func (gbbRes *GenericBlockBodyResolver) RequestDataFromHash(hash []byte) error {
+func (gbbRes *genericBlockBodyResolver) RequestDataFromHash(hash []byte) error {
 	return gbbRes.SendOnRequestTopic(&dataRetriever.RequestData{
 		Type:  dataRetriever.HashType,
 		Value: hash,
@@ -126,7 +127,7 @@ func (gbbRes *GenericBlockBodyResolver) RequestDataFromHash(hash []byte) error {
 }
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
-func (gbbRes *GenericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte) error {
+func (gbbRes *genericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte) error {
 	hash, err := gbbRes.marshalizer.Marshal(hashes)
 
 	if err != nil {
@@ -140,7 +141,7 @@ func (gbbRes *GenericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte
 }
 
 // GetMiniBlocks method returns a list of deserialized mini blocks from a given hash list either from data pool or from storage
-func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+func (gbbRes *genericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 	miniBlocks, missingMiniBlocksHashes := gbbRes.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) == 0 {
 		return miniBlocks, missingMiniBlocksHashes
@@ -153,7 +154,7 @@ func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) (block.Mi
 }
 
 // GetMiniBlocksFromPool method returns a list of deserialized mini blocks from a given hash list from data pool
-func (gbbRes *GenericBlockBodyResolver) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+func (gbbRes *genericBlockBodyResolver) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	missingMiniBlocksHashes := make([][]byte, 0)
 
@@ -177,7 +178,7 @@ func (gbbRes *GenericBlockBodyResolver) GetMiniBlocksFromPool(hashes [][]byte) (
 }
 
 // getMiniBlocksFromStorer returns a list of mini blocks from storage and a list of missing hashes
-func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+func (gbbRes *genericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	missingMiniBlocksHashes := make([][]byte, 0)
 
@@ -210,7 +211,7 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (gbbRes *GenericBlockBodyResolver) IsInterfaceNil() bool {
+func (gbbRes *genericBlockBodyResolver) IsInterfaceNil() bool {
 	if gbbRes == nil {
 		return true
 	}
