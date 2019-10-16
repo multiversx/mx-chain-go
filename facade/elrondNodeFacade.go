@@ -166,13 +166,6 @@ func (ef *ElrondNodeFacade) GetBalance(address string) (*big.Int, error) {
 	return ef.node.GetBalance(address)
 }
 
-// GenerateTransaction generates a transaction from a sender, receiver, value and data
-func (ef *ElrondNodeFacade) GenerateTransaction(senderHex string, receiverHex string, value *big.Int,
-	data string) (*transaction.Transaction,
-	error) {
-	return ef.node.GenerateTransaction(senderHex, receiverHex, value, data)
-}
-
 // CreateTransaction creates a transaction from all needed fields
 func (ef *ElrondNodeFacade) CreateTransaction(
 	nonce uint64,
@@ -223,28 +216,6 @@ func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
 // GetCurrentPublicKey gets the current nodes public Key
 func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
 	return ef.node.GetCurrentPublicKey()
-}
-
-// GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
-// for the receiver destination
-func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactions(
-	destination string,
-	value *big.Int,
-	nrTransactions uint64,
-) error {
-
-	return ef.node.GenerateAndSendBulkTransactions(destination, value, nrTransactions)
-}
-
-// GenerateAndSendBulkTransactionsOneByOne generates a number of nrTransactions of amount value
-// for the receiver destination in a one by one fashion
-func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactionsOneByOne(
-	destination string,
-	value *big.Int,
-	nrTransactions uint64,
-) error {
-
-	return ef.node.GenerateAndSendBulkTransactionsOneByOne(destination, value, nrTransactions)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
