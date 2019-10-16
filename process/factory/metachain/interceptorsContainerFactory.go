@@ -29,17 +29,17 @@ type interceptorsContainerFactory struct {
 	maxTxNonceDeltaAllowed int
 	txFeeHandler           process.FeeHandler
 	txInterceptorThrottler process.InterceptorThrottler
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
-	store                 dataRetriever.StorageService
-	dataPool              dataRetriever.MetaPoolsHolder
-	shardCoordinator      sharding.Coordinator
-	messenger             process.TopicHandler
-	multiSigner           crypto.MultiSigner
-	nodesCoordinator      sharding.NodesCoordinator
-	tpsBenchmark          *statistics.TpsBenchmark
-	argInterceptorFactory *interceptorFactory.ArgMetaInterceptedDataFactory
-	globalThrottler       process.InterceptorThrottler
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	store                  dataRetriever.StorageService
+	dataPool               dataRetriever.MetaPoolsHolder
+	shardCoordinator       sharding.Coordinator
+	messenger              process.TopicHandler
+	multiSigner            crypto.MultiSigner
+	nodesCoordinator       sharding.NodesCoordinator
+	tpsBenchmark           *statistics.TpsBenchmark
+	argInterceptorFactory  *interceptorFactory.ArgMetaInterceptedDataFactory
+	globalThrottler        process.InterceptorThrottler
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -84,25 +84,23 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(nodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
-
-	//---check
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addrConverter == nil || addrConverter.IsInterfaceNil() {
+	if check.IfNil(addrConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if keyGen == nil || keyGen.IsInterfaceNil() {
+	if check.IfNil(keyGen) {
 		return nil, process.ErrNilKeyGen
 	}
-	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
-	txInterceptorThrottler, err := throttler.NewNumGoRoutineThrottler(maxGoRoutineTxInterceptor)
+	txInterceptorThrottler, err := throttler.NewNumGoRoutineThrottler(numGoRoutines)
 	if err != nil {
 		return nil, err
 	}

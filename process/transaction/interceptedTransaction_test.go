@@ -425,10 +425,10 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 			return errExpected
 		},
 	}
+	txi, _ := createInterceptedTxFromPlainTx(tx, feeHandler)
 
-	txi, err := createInterceptedTxFromPlainTx(tx, feeHandler)
+	err := txi.CheckValidity()
 
-	assert.Nil(t, txi)
 	assert.Equal(t, errExpected, err)
 }
 
