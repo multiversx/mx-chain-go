@@ -66,6 +66,13 @@ func (psh *PrometheusStatusHandler) Increment(key string) {
 	}
 }
 
+// AddUint64 will be used for increase the value for a key with a specific value
+func (psh *PrometheusStatusHandler) AddUint64(key string, val uint64) {
+	if metric, ok := psh.prometheusGaugeMetrics.Load(key); ok {
+		metric.(prometheus.Gauge).Add(float64(val))
+	}
+}
+
 // Decrement will be used for decrementing the value for a key
 func (psh *PrometheusStatusHandler) Decrement(key string) {
 	if metric, ok := psh.prometheusGaugeMetrics.Load(key); ok {

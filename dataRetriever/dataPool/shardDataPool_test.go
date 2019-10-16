@@ -12,6 +12,8 @@ import (
 //------- NewDataPool
 
 func TestNewShardedDataPool_NilTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewShardedDataPool(
 		nil,
 		&mock.ShardedDataStub{},
@@ -28,6 +30,8 @@ func TestNewShardedDataPool_NilTransactionsShouldErr(t *testing.T) {
 }
 
 func TestNewShardedDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		nil,
@@ -44,6 +48,8 @@ func TestNewShardedDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 }
 
 func TestNewShardedDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
@@ -60,6 +66,8 @@ func TestNewShardedDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
 }
 
 func TestNewShardedDataPool_NilHeadersShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
@@ -76,6 +84,8 @@ func TestNewShardedDataPool_NilHeadersShouldErr(t *testing.T) {
 }
 
 func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
@@ -92,6 +102,8 @@ func TestNewShardedDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 }
 
 func TestNewShardedDataPool_NilTxBlocksShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
@@ -108,6 +120,8 @@ func TestNewShardedDataPool_NilTxBlocksShouldErr(t *testing.T) {
 }
 
 func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
@@ -124,6 +138,8 @@ func TestNewShardedDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 }
 
 func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
+	t.Parallel()
+
 	tdp, err := dataPool.NewShardedDataPool(
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},

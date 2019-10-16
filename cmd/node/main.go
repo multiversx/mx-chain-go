@@ -569,7 +569,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version)
+	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -596,6 +596,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
 	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
+	coreComponents.StatusHandler.SetStringValue(core.MetricNodeDisplayName, generalConfig.GeneralSettings.NodeDisplayName)
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
@@ -629,7 +630,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	if generalConfig.Explorer.Enabled {
 		serversConfigurationFileName := ctx.GlobalString(serversConfigurationFile.Name)
-		dbIndexer, err = CreateElasticIndexer(
+		dbIndexer, err = createElasticIndexer(
 			ctx,
 			serversConfigurationFileName,
 			generalConfig.Explorer.IndexerURL,
@@ -798,6 +799,7 @@ func initMetrics(
 	shardCoordinator sharding.Coordinator,
 	nodesConfig *sharding.NodesSetup,
 	version string,
+	economicsConfig *config.ConfigEconomics,
 ) {
 	shardId := uint64(shardCoordinator.SelfId())
 	roundDuration := nodesConfig.RoundDuration
@@ -829,6 +831,21 @@ func initMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
 	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
+	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
+	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
+	appStatusHandler.SetStringValue(core.MetricCommunityPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.CommunityPercentage))
+
+	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
+	if err != nil {
+		return
+	}
+
+	validatorsNodes := nodesConfig.InitialNodesInfo()
+	numValidators := len(validatorsNodes[shardCoordinator.SelfId()])
+
+	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
+	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
 }
 
 func startStatusPolling(
@@ -1123,14 +1140,21 @@ func createNodesCoordinator(
 		initValidators[shardId] = validators
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
-		shardConsensusGroupSize,
-		metaConsensusGroupSize,
-		hasher,
-		shardId,
-		nbShards,
-		initValidators,
-	)
+	pubKeyBytes, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: shardConsensusGroupSize,
+		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		Hasher:                  hasher,
+		ShardId:                 shardId,
+		NbShards:                nbShards,
+		Nodes:                   initValidators,
+		SelfPublicKey:           pubKeyBytes,
+	}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -1155,9 +1179,9 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 	return uint32(val), err
 }
 
-// CreateElasticIndexer creates a new elasticIndexer where the server listens on the url,
+// createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
-func CreateElasticIndexer(
+func createElasticIndexer(
 	ctx *cli.Context,
 	serversConfigurationFileName string,
 	url string,

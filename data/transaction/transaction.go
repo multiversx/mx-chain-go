@@ -149,3 +149,13 @@ func (tx *Transaction) SetRecvAddress(addr []byte) {
 func (tx *Transaction) SetSndAddress(addr []byte) {
 	tx.SndAddr = addr
 }
+
+// GetGasLimit returns the provided gas limit in the transaction
+func (tx *Transaction) GetGasLimit() uint64 {
+	return tx.GasLimit
+}
+
+// GetGasPrice returns the provided gas price in the transaction
+func (tx *Transaction) GetGasPrice() uint64 {
+	return tx.GasPrice
+}
