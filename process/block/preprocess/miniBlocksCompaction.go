@@ -47,7 +47,11 @@ func NewMiniBlocksCompaction(
 }
 
 // Compact method tries to compact the given mini blocks to have only one mini block per sender/received pair
-func (mbc *miniBlocksCompaction) Compact(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) block.MiniBlockSlice {
+func (mbc *miniBlocksCompaction) Compact(
+	miniBlocks block.MiniBlockSlice,
+	mapHashesAndTxs map[string]data.TransactionHandler,
+) block.MiniBlockSlice {
+
 	mbc.mutMiniBlocksCompaction.Lock()
 	defer mbc.mutMiniBlocksCompaction.Unlock()
 
@@ -69,13 +73,18 @@ func (mbc *miniBlocksCompaction) Compact(miniBlocks block.MiniBlockSlice, mapHas
 	}
 
 	if len(miniBlocks) > len(compactedMiniBlocks) {
-		log.Info(fmt.Sprintf("compacted from %d miniblocks to %d miniblocks\n", len(miniBlocks), len(compactedMiniBlocks)))
+		log.Info(fmt.Sprintf("compacted from %d miniblocks to %d miniblocks\n",
+			len(miniBlocks), len(compactedMiniBlocks)))
 	}
 
 	return compactedMiniBlocks
 }
 
-func (mbc *miniBlocksCompaction) merge(mergedMiniBlocks block.MiniBlockSlice, miniBlock *block.MiniBlock) block.MiniBlockSlice {
+func (mbc *miniBlocksCompaction) merge(
+	mergedMiniBlocks block.MiniBlockSlice,
+	miniBlock *block.MiniBlock,
+) block.MiniBlockSlice {
+
 	for _, mergedMiniBlock := range mergedMiniBlocks {
 		sameType := miniBlock.Type == mergedMiniBlock.Type
 		sameSenderShard := miniBlock.SenderShardID == mergedMiniBlock.SenderShardID
@@ -96,7 +105,11 @@ func (mbc *miniBlocksCompaction) merge(mergedMiniBlocks block.MiniBlockSlice, mi
 	return mergedMiniBlocks
 }
 
-func (mbc *miniBlocksCompaction) haveEnoughGasToMerge(destMiniBlock *block.MiniBlock, srcMiniBlock *block.MiniBlock) bool {
+func (mbc *miniBlocksCompaction) haveEnoughGasToMerge(
+	destMiniBlock *block.MiniBlock,
+	srcMiniBlock *block.MiniBlock,
+) bool {
+
 	gasUsedInDestMiniBlock, err := mbc.getGasUsedInMiniBlock(destMiniBlock)
 	if err != nil {
 		log.Info(err.Error())
@@ -134,7 +147,11 @@ func (mbc *miniBlocksCompaction) getGasUsedInMiniBlock(miniBlock *block.MiniBloc
 }
 
 // Expand method tries to expand the given mini blocks to their initial state before compaction
-func (mbc *miniBlocksCompaction) Expand(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+func (mbc *miniBlocksCompaction) Expand(
+	miniBlocks block.MiniBlockSlice,
+	mapHashesAndTxs map[string]data.TransactionHandler,
+) (block.MiniBlockSlice, error) {
+
 	mbc.mutMiniBlocksCompaction.Lock()
 	defer mbc.mutMiniBlocksCompaction.Unlock()
 
@@ -164,7 +181,8 @@ func (mbc *miniBlocksCompaction) Expand(miniBlocks block.MiniBlockSlice, mapHash
 	}
 
 	if len(miniBlocks) < len(expandedMiniBlocks) {
-		log.Info(fmt.Sprintf("expanded from %d miniblocks to %d miniblocks\n", len(miniBlocks), len(expandedMiniBlocks)))
+		log.Info(fmt.Sprintf("expanded from %d miniblocks to %d miniblocks\n",
+			len(miniBlocks), len(expandedMiniBlocks)))
 	}
 
 	return expandedMiniBlocks, nil
@@ -195,13 +213,20 @@ func (mbc *miniBlocksCompaction) expandMiniBlocks(miniBlocks block.MiniBlockSlic
 			return nil, err
 		}
 
+		if len(createdMiniBlocks) == 0 {
+			break
+		}
+
 		expandedMiniBlocks = append(expandedMiniBlocks, createdMiniBlocks...)
 	}
 
 	return expandedMiniBlocks, nil
 }
 
-func (mbc *miniBlocksCompaction) createExpandedMiniBlocks(miniBlocks block.MiniBlockSlice) (block.MiniBlockSlice, error) {
+func (mbc *miniBlocksCompaction) createExpandedMiniBlocks(
+	miniBlocks block.MiniBlockSlice,
+) (block.MiniBlockSlice, error) {
+
 	expandedMiniBlocks := make(block.MiniBlockSlice, 0)
 
 	for _, miniBlock := range miniBlocks {
