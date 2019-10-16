@@ -33,5 +33,5 @@ func TestCheckSoftwareVersion_Read(t *testing.T) {
 	tag, err := readJSONFromUrl(stableTagLocation)
 
 	assert.Nil(t, err)
-	assert.NotEqual(t, "", tag)
+	assert.NotNil(t, tag)
 }

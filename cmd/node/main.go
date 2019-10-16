@@ -21,14 +21,13 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -52,13 +51,12 @@ import (
 )
 
 const (
-	defaultLogPath      = "logs"
-	defaultStatsPath    = "stats"
-	defaultDBPath       = "db"
-	defaultEpochString  = "Epoch"
-	defaultShardString  = "Shard"
-	metachainShardName  = "metachain"
-	milisecondsInSecond = 1000
+	defaultLogPath     = "logs"
+	defaultStatsPath   = "stats"
+	defaultDBPath      = "db"
+	defaultEpochString = "Epoch"
+	defaultShardString = "Shard"
+	metachainShardName = "metachain"
 )
 
 var (
@@ -569,7 +567,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
 	}
 
-	initMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
+	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
@@ -595,8 +593,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
-	coreComponents.StatusHandler.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
-	coreComponents.StatusHandler.SetStringValue(core.MetricNodeDisplayName, generalConfig.GeneralSettings.NodeDisplayName)
+	metrics.SaveCurrentNodeNameAndPubKey(coreComponents.StatusHandler, txSignPk, generalConfig.GeneralSettings.NodeDisplayName)
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
@@ -726,7 +723,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	err = startStatusPolling(
+	err = metrics.StartStatusPolling(
 		currentNode.GetAppStatusHandler(),
 		generalConfig.GeneralSettings.StatusPollingIntervalSec,
 		networkComponents,
@@ -737,7 +734,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	updateMachineStatisticsDurationSec := 1
-	err = startMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDurationSec)
+	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDurationSec)
 	if err != nil {
 		return err
 	}
@@ -797,208 +794,6 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 	if validatorsPubKeys != nil {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
-}
-
-func initMetrics(
-	appStatusHandler core.AppStatusHandler,
-	pubKey crypto.PublicKey,
-	nodeType core.NodeType,
-	shardCoordinator sharding.Coordinator,
-	nodesConfig *sharding.NodesSetup,
-	version string,
-	economicsConfig *config.ConfigEconomics,
-) {
-	shardId := uint64(shardCoordinator.SelfId())
-	roundDuration := nodesConfig.RoundDuration
-	isSyncing := uint64(1)
-	initUint := uint64(0)
-	initString := ""
-
-	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
-	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
-	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
-	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/milisecondsInSecond)
-	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
-	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricCountLeader, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, initUint)
-	appStatusHandler.SetStringValue(core.MetricConsensusState, initString)
-	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, initString)
-	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "0")
-	appStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
-	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, initString)
-	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
-	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
-	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
-	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
-	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
-	appStatusHandler.SetStringValue(core.MetricCommunityPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.CommunityPercentage))
-
-	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
-	if err != nil {
-		return
-	}
-
-	validatorsNodes := nodesConfig.InitialNodesInfo()
-	numValidators := len(validatorsNodes[shardCoordinator.SelfId()])
-
-	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
-	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
-}
-
-func startStatusPolling(
-	ash core.AppStatusHandler,
-	pollingInterval int,
-	networkComponents *factory.Network,
-	processComponents *factory.Process,
-) error {
-
-	if ash == nil {
-		return errors.New("nil AppStatusHandler")
-	}
-
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
-	if err != nil {
-		return errors.New("cannot init AppStatusPolling")
-	}
-
-	err = registerPollConnectedPeers(appStatusPollingHandler, networkComponents)
-	if err != nil {
-		return err
-	}
-
-	err = registerPollProbableHighestNonce(appStatusPollingHandler, processComponents)
-	if err != nil {
-		return err
-	}
-
-	appStatusPollingHandler.Poll()
-
-	return nil
-}
-
-func registerPollConnectedPeers(
-	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	networkComponents *factory.Network,
-) error {
-
-	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-		numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
-		appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
-	}
-
-	err := appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
-	if err != nil {
-		return errors.New("cannot register handler func for num of connected peers")
-	}
-
-	return nil
-}
-
-//TODO: move out of main
-func registerPollProbableHighestNonce(
-	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	processComponents *factory.Process,
-) error {
-
-	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-		probableHigherNonce := processComponents.ForkDetector.ProbableHighestNonce()
-		appStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHigherNonce)
-	}
-
-	err := appStatusPollingHandler.RegisterPollingFunc(probableHighestNonceHandlerFunc)
-	if err != nil {
-		return errors.New("cannot register handler func for forkdetector's probable higher nonce")
-	}
-
-	return nil
-}
-
-func startMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval int) error {
-	if ash == nil {
-		return errors.New("nil AppStatusHandler")
-	}
-
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
-	if err != nil {
-		return errors.New("cannot init AppStatusPolling")
-	}
-
-	err = registerCpuStatistics(appStatusPollingHandler)
-	if err != nil {
-		return err
-	}
-
-	err = registerMemStatistics(appStatusPollingHandler)
-	if err != nil {
-		return err
-	}
-
-	err = registeNetStatistics(appStatusPollingHandler)
-	if err != nil {
-		return err
-	}
-
-	appStatusPollingHandler.Poll()
-
-	return nil
-}
-
-func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
-	memStats := &machine.MemStatistics{}
-	go func() {
-		for {
-			memStats.ComputeStatistics()
-		}
-	}()
-
-	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
-		appStatusHandler.SetUInt64Value(core.MetricMemTotal, memStats.TotalMemory())
-		appStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, memStats.MemoryUsedByGolang())
-		appStatusHandler.SetUInt64Value(core.MetricMemUsedSystem, memStats.MemoryUsedBySystem())
-	})
-}
-
-func registeNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
-	netStats := &machine.NetStatistics{}
-	go func() {
-		for {
-			netStats.ComputeStatistics()
-		}
-	}()
-
-	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBps, netStats.BpsRecv())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBpsPeak, netStats.BpsRecvPeak())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvPercent, netStats.PercentRecv())
-
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBps, netStats.BpsSent())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
-	})
-}
-
-func registerCpuStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
-	cpuStats := &machine.CpuStatistics{}
-	go func() {
-		for {
-			cpuStats.ComputeStatistics()
-		}
-	}()
-
-	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(core.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
-	})
 }
 
 func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {

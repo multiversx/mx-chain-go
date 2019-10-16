@@ -57,10 +57,9 @@ func (psh *PresenterStatusHandler) GetCountAcceptedBlocks() uint64 {
 // CheckSoftwareVersion will check if node is the latest version and will return latest stable version
 func (psh *PresenterStatusHandler) CheckSoftwareVersion() (bool, string) {
 	latestStableVersion := psh.getFromCacheAsString(core.MetricLatestTagSoftwareVersion)
-	currentVersion := psh.getFromCacheAsString(core.MetricAppVersion)
-	currentVersion = strings.Split(currentVersion, "/")[0]
+	appVersion := psh.getFromCacheAsString(core.MetricAppVersion)
 
-	if latestStableVersion == currentVersion {
+	if strings.Contains(appVersion, latestStableVersion) || latestStableVersion == "" {
 		return false, latestStableVersion
 	}
 
@@ -146,4 +145,3 @@ func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
 
 	return totalRewardsPerHour.Text(10)
 }
-

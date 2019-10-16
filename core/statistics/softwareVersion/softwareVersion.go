@@ -3,6 +3,7 @@ package softwareVersion
 import (
 	"bytes"
 	"encoding/json"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 )
 
-const checkInterval = time.Second
+const checkInterval = time.Hour + 5*time.Minute
 const stableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
 
 type tagVersion struct {
@@ -18,7 +19,9 @@ type tagVersion struct {
 }
 
 type SoftwareVersionChecker struct {
-	statusHandler core.AppStatusHandler
+	statusHandler             core.AppStatusHandler
+	mostRecentSoftwareVersion string
+	checkRandInterval         time.Duration
 }
 
 var log = logger.DefaultLogger()
@@ -29,8 +32,14 @@ func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler) (*Softwar
 		return nil, core.ErrNilAppStatusHandler
 	}
 
+	// check interval will be random in a interval [1hour, 1hour 15minutes]
+	randInterval := time.Duration(rand.Int() % 15)
+	checkRandInterval := checkInterval + randInterval*time.Minute
+
 	return &SoftwareVersionChecker{
-		statusHandler: appStatusHandler,
+		statusHandler:             appStatusHandler,
+		mostRecentSoftwareVersion: "",
+		checkRandInterval:         checkRandInterval,
 	}, nil
 }
 
@@ -40,7 +49,7 @@ func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
 		svc.readLatestStableVersion()
 		for {
 			select {
-			case <-time.After(checkInterval):
+			case <-time.After(svc.checkRandInterval):
 				svc.readLatestStableVersion()
 			}
 		}
@@ -53,8 +62,11 @@ func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 		log.Error("cannot read json with latest stable tag", err)
 		return
 	}
+	if tagVersion != "" {
+		svc.mostRecentSoftwareVersion = tagVersion
+	}
 
-	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, tagVersion)
+	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
 }
 
 func readJSONFromUrl(url string) (string, error) {
