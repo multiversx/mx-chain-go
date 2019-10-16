@@ -161,3 +161,24 @@ const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_metachain
 
 //MetricLatestTagSoftwareVersion is the metric that stores the latest tag software version
 const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
+
+//MetricCountConsensusAcceptedBlocks is the metric for monitoring number of blocks accepted when the node was in consensus group
+const MetricCountConsensusAcceptedBlocks = "erd_count_consensus_accepted_blocks"
+
+//MetricRewardsValue is the metric that stores rewards value
+const MetricRewardsValue = "erd_rewards_value"
+
+//MetricNodeDisplayName is the metric that stores the name of the node
+const MetricNodeDisplayName = "erd_node_display_name"
+
+//MetricConsensusGroupSize is the metric for consensus group size
+const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
+
+//MetricNumValidators is the metric for the number of validators
+const MetricNumValidators = "erd_metric_num_validators"
+
+//MetricLeaderPercentage is the metric for leader rewards percentage
+const MetricLeaderPercentage = "erd_metric_leader_percentage"
+
+//MetricCommunityPercentage is the metric for community rewards percentage
+const MetricCommunityPercentage = "erd_metric_community_percentage"

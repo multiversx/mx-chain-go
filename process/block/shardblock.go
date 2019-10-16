@@ -651,14 +651,6 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
-
-	headerMeta, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
-	if err != nil {
-		return err
-	}
-
-	sp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMeta.GetNonce()))
-
 	_, err = sp.accounts.Commit()
 	if err != nil {
 		return err
@@ -688,9 +680,6 @@ func (sp *shardProcessor) CommitBlock(
 		highestFinalBlockNonce,
 		sp.shardCoordinator.SelfId()))
 
-	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
-	sp.appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
-
 	hdrsToAttestPreviousFinal := uint32(header.Nonce-highestFinalBlockNonce) + 1
 	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
@@ -708,6 +697,18 @@ func (sp *shardProcessor) CommitBlock(
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
+
+	headerMeta, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		return err
+	}
+	saveMetricsForACommittedBlock(
+		sp.appStatusHandler,
+		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
+		core.ToB64(headerHash),
+		highestFinalBlockNonce,
+		headerMeta.GetNonce(),
+	)
 
 	go sp.cleanTxsPools()
 
