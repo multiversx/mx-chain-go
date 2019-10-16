@@ -21,8 +21,8 @@ do
 
     pushd cmd/node
     env GOOS=$GOOS GOARCH=$GOARCH go build -o $output_name -a -i -v -ldflags="-X main.appVersion=$APP_VER"
-    popd
     if [ $? -ne 0 ]; then
-        echo 'An error has occurred! '
+        echo 'An error has occurred!'
     fi
+    popd
 done

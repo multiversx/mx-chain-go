@@ -692,7 +692,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
-		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
 	)
