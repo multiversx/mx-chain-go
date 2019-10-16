@@ -1037,7 +1037,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 
 	_, missingMiniBlocksHashes := boot.miniBlockResolver.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
-		err := boot.miniBlockResolver.RequestDataFromHashArray(hashes)
+		err := boot.miniBlockResolver.RequestDataFromHashArray(missingMiniBlocksHashes)
 		if err != nil {
 			log.Error(err.Error())
 			return

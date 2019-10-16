@@ -1150,7 +1150,9 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	if metaBlock.GetRound() <= lastNotarizedHdr.GetRound() {
 		return
 	}
-	if metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance {
+
+	isMetaBlockHigherThanLastNotarized := metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
+	if isMetaBlockHigherThanLastNotarized {
 		return
 	}
 
