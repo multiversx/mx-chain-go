@@ -55,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -1728,6 +1729,11 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
+	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -1743,6 +1749,7 @@ func newShardBlockProcessor(
 		rewardsTxProcessor,
 		internalTransactionProducer,
 		economics,
+		miniBlocksCompacter,
 	)
 	if err != nil {
 		return nil, err

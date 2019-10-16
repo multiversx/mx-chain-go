@@ -39,6 +39,17 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 	}
 }
 
+func MiniBlocksCompacterMock() *mock.MiniBlocksCompacterMock {
+	return &mock.MiniBlocksCompacterMock{
+		CompactCalled: func(miniBlocks block.MiniBlockSlice, mpaHashesAndTxs map[string]data.TransactionHandler) block.MiniBlockSlice {
+			return miniBlocks
+		},
+		ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAntTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+			return miniBlocks, nil
+		},
+	}
+}
+
 func createShardedDataChacherNotifier(
 	handler data.TransactionHandler,
 	testHash []byte,
@@ -379,6 +390,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -422,6 +434,7 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -694,6 +707,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -785,6 +799,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1009,7 +1024,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
-	assert.Equal(t, 20, len(mbs))
+	assert.Equal(t, allTxs/numTxsToAdd, len(mbs))
 }
 
 func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.T) {
@@ -1265,6 +1280,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1420,6 +1436,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1458,7 +1475,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body = append(body, miniBlock)
 	err = tc.ProcessBlockTransaction(body, 10, haveTime)
-	assert.Equal(t, process.ErrMissingTransaction, err)
+	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
 func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
@@ -1541,6 +1558,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1657,6 +1675,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1764,6 +1783,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
