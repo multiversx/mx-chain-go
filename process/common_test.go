@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -34,7 +35,7 @@ func TestEmptyChannelShouldWorkOnBufferedChannel(t *testing.T) {
 	assert.Equal(t, 3, readsCnt)
 }
 
-func TestEmptyChannelShouldWorkOnNotBufferdChannel(t *testing.T) {
+func TestEmptyChannelShouldWorkOnNotBufferedChannel(t *testing.T) {
 	ch := make(chan bool)
 
 	assert.Equal(t, 0, len(ch))
@@ -43,19 +44,31 @@ func TestEmptyChannelShouldWorkOnNotBufferdChannel(t *testing.T) {
 	assert.Equal(t, 0, readsCnt)
 
 	wg := sync.WaitGroup{}
+	wgChanWasWritten := sync.WaitGroup{}
 	numConcurrentWrites := 100
 	wg.Add(numConcurrentWrites)
+	wgChanWasWritten.Add(numConcurrentWrites)
 	for i := 0; i < numConcurrentWrites; i++ {
 		go func() {
 			wg.Done()
+			time.Sleep(time.Millisecond)
 			ch <- true
+			wgChanWasWritten.Done()
 		}()
 	}
 
 	// wait for go routines to start
 	wg.Wait()
 
-	readsCnt = process.EmptyChannel(ch)
+	go func() {
+		for readsCnt < numConcurrentWrites {
+			readsCnt += process.EmptyChannel(ch)
+		}
+	}()
+
+	// wait for go routines to finish
+	wgChanWasWritten.Wait()
+
 	assert.Equal(t, 0, len(ch))
 	assert.Equal(t, numConcurrentWrites, readsCnt)
 }

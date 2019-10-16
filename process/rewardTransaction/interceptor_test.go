@@ -3,6 +3,7 @@ package rewardTransaction_test
 import (
 	"encoding/json"
 	"math/big"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -157,12 +158,12 @@ func TestRewardTxInterceptor_ProcessReceivedMessageNilDataShouldErr(t *testing.T
 func TestRewardTxInterceptor_ProcessReceivedMessageIntraShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := false
+	wasCalled := int32(0)
 	rti, _ := rewardTransaction.NewRewardTxInterceptor(
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{
 			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				wasCalled = true
+				atomic.StoreInt32(&wasCalled, 1)
 			},
 		},
 		&mock.StorerStub{},
@@ -198,14 +199,15 @@ func TestRewardTxInterceptor_ProcessReceivedMessageIntraShardShouldWork(t *testi
 
 	err := rti.ProcessReceivedMessage(message)
 	time.Sleep(20 * time.Millisecond)
+
 	assert.Nil(t, err)
-	assert.True(t, wasCalled)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&wasCalled))
 }
 
 func TestRewardTxInterceptor_ProcessReceivedMessageCrossShardShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := false
+	wasCalled := int32(0)
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		return uint32(1)
@@ -214,7 +216,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageCrossShardShouldNotAdd(t *tes
 		&mock.MarshalizerMock{},
 		&mock.ShardedDataStub{
 			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				wasCalled = true
+				atomic.StoreInt32(&wasCalled, 1)
 			},
 		},
 		&mock.StorerStub{},
@@ -252,7 +254,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageCrossShardShouldNotAdd(t *tes
 	time.Sleep(20 * time.Millisecond)
 	assert.Nil(t, err)
 	// check that AddData was not called, as tx is cross shard
-	assert.False(t, wasCalled)
+	assert.Equal(t, int32(0), atomic.LoadInt32(&wasCalled))
 }
 
 func TestRewardTxInterceptor_SetBroadcastCallback(t *testing.T) {
