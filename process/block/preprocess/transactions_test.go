@@ -989,8 +989,8 @@ func TestTransactions_CompressAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t
 		mbsValues = append(mbsValues, *mb)
 	}
 
-	compressedMbs := txs.compressMiniBlocks(mbsOrig)
-	expandedMbs, err := txs.expandTxBlockMiniBlocks(compressedMbs)
+	compressedMbs := txs.compactMiniBlocks(mbsOrig)
+	expandedMbs, err := txs.expandMiniBlocks(compressedMbs)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(mbsValues), len(expandedMbs))
