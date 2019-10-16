@@ -501,3 +501,6 @@ var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
+
+// ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
+var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")

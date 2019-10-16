@@ -77,6 +77,7 @@ type TransactionHandler interface {
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
 	GetGasLimit() uint64
+	GetGasPrice() uint64
 
 	SetValue(*big.Int)
 	SetData(string)

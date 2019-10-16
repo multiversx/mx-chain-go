@@ -116,6 +116,11 @@ func (scr *SmartContractResult) GetGasLimit() uint64 {
 	return 0
 }
 
+// GetGasPrice returns the gas price of the smart contract result
+func (scr *SmartContractResult) GetGasPrice() uint64 {
+	return 0
+}
+
 // SetValue sets the value of the smart contract result
 func (scr *SmartContractResult) SetValue(value *big.Int) {
 	scr.Value = value

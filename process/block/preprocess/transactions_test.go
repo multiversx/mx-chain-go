@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data"
+
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -898,7 +900,7 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 	}
 }
 
-func TestTransactions_CompressAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t *testing.T) {
+func TestTransactions_CompactAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
@@ -916,7 +918,7 @@ func TestTransactions_CompressAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t
 		mock.NewMultiShardsCoordinatorMock(2),
 		&mock.AccountsStub{},
 		requestTransaction,
-		FeeHandlerMock(),
+		feeHandlerMock(),
 	)
 
 	keygen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
@@ -927,9 +929,28 @@ func TestTransactions_CompressAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t
 	strCache01 := process.ShardCacherIdentifier(0, 1)
 
 	txHashesInMb1 := [][]byte{[]byte("tx00"), []byte("tx01"), []byte("tx02")}
-	txPool.AddData(txHashesInMb1[0], &transaction.Transaction{Nonce: 0, SndAddr: pkBytes}, strCache00)
-	txPool.AddData(txHashesInMb1[1], &transaction.Transaction{Nonce: 1, SndAddr: pkBytes}, strCache00)
-	txPool.AddData(txHashesInMb1[2], &transaction.Transaction{Nonce: 2, SndAddr: pkBytes}, strCache00)
+	txHashesInMb2 := [][]byte{[]byte("tx10"), []byte("tx11"), []byte("tx12")}
+	txHashesInMb3 := [][]byte{[]byte("tx20"), []byte("tx21"), []byte("tx22")}
+	txHashesInMb4 := [][]byte{[]byte("tx30"), []byte("tx31"), []byte("tx32")}
+
+	mapHashesAndTxs := map[string]data.TransactionHandler{
+		string(txHashesInMb1[0]): &transaction.Transaction{Nonce: 0, SndAddr: pkBytes},
+		string(txHashesInMb1[1]): &transaction.Transaction{Nonce: 1, SndAddr: pkBytes},
+		string(txHashesInMb1[2]): &transaction.Transaction{Nonce: 2, SndAddr: pkBytes},
+		string(txHashesInMb2[0]): &transaction.Transaction{Nonce: 3, SndAddr: pkBytes},
+		string(txHashesInMb2[1]): &transaction.Transaction{Nonce: 4, SndAddr: pkBytes},
+		string(txHashesInMb2[2]): &transaction.Transaction{Nonce: 5, SndAddr: pkBytes},
+		string(txHashesInMb3[0]): &transaction.Transaction{Nonce: 6, SndAddr: pkBytes},
+		string(txHashesInMb3[1]): &transaction.Transaction{Nonce: 7, SndAddr: pkBytes},
+		string(txHashesInMb3[2]): &transaction.Transaction{Nonce: 8, SndAddr: pkBytes},
+		string(txHashesInMb4[0]): &transaction.Transaction{Nonce: 9, SndAddr: pkBytes},
+		string(txHashesInMb4[1]): &transaction.Transaction{Nonce: 10, SndAddr: pkBytes},
+		string(txHashesInMb4[2]): &transaction.Transaction{Nonce: 11, SndAddr: pkBytes},
+	}
+
+	txPool.AddData(txHashesInMb1[0], mapHashesAndTxs[string(txHashesInMb1[0])], strCache00)
+	txPool.AddData(txHashesInMb1[1], mapHashesAndTxs[string(txHashesInMb1[1])], strCache00)
+	txPool.AddData(txHashesInMb1[2], mapHashesAndTxs[string(txHashesInMb1[2])], strCache00)
 	mb1 := block.MiniBlock{
 		TxHashes:        txHashesInMb1,
 		ReceiverShardID: 0,
@@ -937,10 +958,9 @@ func TestTransactions_CompressAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t
 		Type:            0,
 	}
 
-	txHashesInMb2 := [][]byte{[]byte("tx10"), []byte("tx11"), []byte("tx12")}
-	txPool.AddData(txHashesInMb2[0], &transaction.Transaction{Nonce: 3, SndAddr: pkBytes}, strCache01)
-	txPool.AddData(txHashesInMb2[1], &transaction.Transaction{Nonce: 4, SndAddr: pkBytes}, strCache01)
-	txPool.AddData(txHashesInMb2[2], &transaction.Transaction{Nonce: 5, SndAddr: pkBytes}, strCache01)
+	txPool.AddData(txHashesInMb2[0], mapHashesAndTxs[string(txHashesInMb2[0])], strCache01)
+	txPool.AddData(txHashesInMb2[1], mapHashesAndTxs[string(txHashesInMb2[1])], strCache01)
+	txPool.AddData(txHashesInMb2[2], mapHashesAndTxs[string(txHashesInMb2[2])], strCache01)
 	mb2 := block.MiniBlock{
 		TxHashes:        txHashesInMb2,
 		ReceiverShardID: 1,
@@ -948,10 +968,9 @@ func TestTransactions_CompressAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t
 		Type:            0,
 	}
 
-	txHashesInMb3 := [][]byte{[]byte("tx20"), []byte("tx21"), []byte("tx22")}
-	txPool.AddData(txHashesInMb3[0], &transaction.Transaction{Nonce: 6, SndAddr: pkBytes}, strCache00)
-	txPool.AddData(txHashesInMb3[1], &transaction.Transaction{Nonce: 7, SndAddr: pkBytes}, strCache00)
-	txPool.AddData(txHashesInMb3[2], &transaction.Transaction{Nonce: 8, SndAddr: pkBytes}, strCache00)
+	txPool.AddData(txHashesInMb3[0], mapHashesAndTxs[string(txHashesInMb3[0])], strCache00)
+	txPool.AddData(txHashesInMb3[1], mapHashesAndTxs[string(txHashesInMb3[1])], strCache00)
+	txPool.AddData(txHashesInMb3[2], mapHashesAndTxs[string(txHashesInMb3[2])], strCache00)
 	mb3 := block.MiniBlock{
 		TxHashes:        txHashesInMb3,
 		ReceiverShardID: 0,
@@ -959,10 +978,9 @@ func TestTransactions_CompressAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t
 		Type:            0,
 	}
 
-	txHashesInMb4 := [][]byte{[]byte("tx40"), []byte("tx41"), []byte("tx42")}
-	txPool.AddData(txHashesInMb4[0], &transaction.Transaction{Nonce: 9, SndAddr: pkBytes}, strCache01)
-	txPool.AddData(txHashesInMb4[1], &transaction.Transaction{Nonce: 10, SndAddr: pkBytes}, strCache01)
-	txPool.AddData(txHashesInMb4[2], &transaction.Transaction{Nonce: 11, SndAddr: pkBytes}, strCache01)
+	txPool.AddData(txHashesInMb4[0], mapHashesAndTxs[string(txHashesInMb4[0])], strCache01)
+	txPool.AddData(txHashesInMb4[1], mapHashesAndTxs[string(txHashesInMb4[1])], strCache01)
+	txPool.AddData(txHashesInMb4[2], mapHashesAndTxs[string(txHashesInMb4[2])], strCache01)
 	mb4 := block.MiniBlock{
 		TxHashes:        txHashesInMb4,
 		ReceiverShardID: 1,
@@ -983,8 +1001,8 @@ func TestTransactions_CompressAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t
 		mbsValues = append(mbsValues, *mb)
 	}
 
-	compressedMbs := txs.compactMiniBlocks(mbsOrig)
-	expandedMbs, err := txs.expandMiniBlocks(compressedMbs)
+	compactedMbs := txs.miniBlocksCompacter.Compact(mbsOrig, mapHashesAndTxs)
+	expandedMbs, err := txs.miniBlocksCompacter.Expand(compactedMbs, mapHashesAndTxs)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(mbsValues), len(expandedMbs))

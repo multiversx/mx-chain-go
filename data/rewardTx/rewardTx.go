@@ -110,6 +110,11 @@ func (scr *RewardTx) GetGasLimit() uint64 {
 	return 0
 }
 
+// GetGasPrice returns the gas price of the smart reward transaction
+func (scr *RewardTx) GetGasPrice() uint64 {
+	return 0
+}
+
 // SetValue sets the value of the reward transaction
 func (rtx *RewardTx) SetValue(value *big.Int) {
 	rtx.Value = value
