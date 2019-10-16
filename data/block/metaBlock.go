@@ -74,8 +74,7 @@ type MetaBlock struct {
 }
 
 // MetaBlockBody hold the data for metablock body
-type MetaBlockBody struct {
-}
+type MetaBlockBody []*MiniBlock
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
 func (p *PeerData) Save(w io.Writer) error {
@@ -435,12 +434,12 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.
-func (m *MetaBlockBody) IntegrityAndValidity() error {
+func (m MetaBlockBody) IntegrityAndValidity() error {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (m *MetaBlockBody) IsInterfaceNil() bool {
+func (m MetaBlockBody) IsInterfaceNil() bool {
 	if m == nil {
 		return true
 	}

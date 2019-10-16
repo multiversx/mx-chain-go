@@ -21,9 +21,9 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core               serviceContainer.Core
-	dataPool           dataRetriever.MetaPoolsHolder
-	//TODO: add	txCoordinator process.TransactionCoordinator
+	core          serviceContainer.Core
+	dataPool      dataRetriever.MetaPoolsHolder
+	txCoordinator process.TransactionCoordinator
 
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
@@ -43,6 +43,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if arguments.DataPool.ShardHeaders() == nil || arguments.DataPool.ShardHeaders().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
+	}
+	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
+		return nil, process.ErrNilTransactionCoordinator
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -76,6 +79,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		baseProcessor:  base,
 		dataPool:       arguments.DataPool,
 		headersCounter: NewHeaderCounter(),
+		txCoordinator:  arguments.TxCoordinator,
 	}
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
@@ -127,6 +131,16 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
+	body, ok := bodyHandler.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = mp.checkHeaderBodyCorrelation(header, body)
+	if err != nil {
+		return err
+	}
+
 	go getMetricsFromMetaHeader(
 		header,
 		mp.marshalizer,
@@ -135,12 +149,19 @@ func (mp *metaProcessor) ProcessBlock(
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
+	mp.txCoordinator.CreateBlockStarted()
 	mp.createBlockStarted()
+	mp.txCoordinator.RequestBlockTransactions(body)
 
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
 		return process.ErrTimeIsOut
+	}
+
+	err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
+	if err != nil {
+		return err
 	}
 
 	haveMissingShardHeaders := requestedShardHdrs > 0 || requestedFinalityAttestingShardHdrs > 0
@@ -184,6 +205,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
+
 	defer func() {
 		if err != nil {
 			mp.RevertAccountState()
@@ -195,8 +221,18 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.txCoordinator.ProcessBlockTransaction(body, header.Round, haveTime)
+	if err != nil {
+		return err
+	}
+
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	err = mp.txCoordinator.VerifyCreatedBlockTransactions(body)
+	if err != nil {
 		return err
 	}
 
@@ -360,9 +396,16 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 // CreateBlockBody creates block body of metachain
 func (mp *metaProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	log.Debug(fmt.Sprintf("started creating block body in round %d\n", round))
+	mp.txCoordinator.CreateBlockStarted()
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
-	return &block.MetaBlockBody{}, nil
+
+	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
+	if err != nil {
+		return nil, err
+	}
+
+	return miniBlocks, nil
 }
 
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
@@ -823,12 +866,7 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	// request miniblocks for which metachain is destination
-	for _, mb := range shardHeader.MiniBlockHeaders {
-		if mb.ReceiverShardID == mp.shardCoordinator.SelfId() {
-			//TODO continue implementation: go mp.onRequestMiniBlock(mb.Hash)
-		}
-	}
+	go mp.txCoordinator.RequestMiniBlocks(shardHeader)
 }
 
 // requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for processing the
