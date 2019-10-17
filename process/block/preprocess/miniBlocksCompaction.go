@@ -254,36 +254,36 @@ func (mbc *miniBlocksCompaction) createMiniBlockForShard(miniBlock *block.MiniBl
 	miniBlockForShard.SenderShardID = miniBlock.SenderShardID
 	miniBlockForShard.Type = block.TxBlock
 
-	for {
-		nbTxHashes := len(miniBlockForShard.TxHashes)
+	//for {
+	//	nbTxHashes := len(miniBlockForShard.TxHashes)
 
-		for _, txHash := range miniBlock.TxHashes {
-			if len(mbc.mapUnallocatedTxsHashes) == 0 {
-				break
-			}
-
-			_, ok := mbc.mapUnallocatedTxsHashes[string(txHash)]
-			if !ok {
-				continue
-			}
-
-			tx, ok := mbc.mapHashesAndTxs[string(txHash)]
-			if !ok {
-				return nil, process.ErrMissingTransaction
-			}
-
-			nonce := mbc.mapSenderNonce[string(tx.GetSndAddress())]
-			if tx.GetNonce() == nonce {
-				mbc.mapSenderNonce[string(tx.GetSndAddress())] = nonce + 1
-				miniBlockForShard.TxHashes = append(miniBlockForShard.TxHashes, txHash)
-				delete(mbc.mapUnallocatedTxsHashes, string(txHash))
-			}
-		}
-
-		if len(miniBlockForShard.TxHashes) == nbTxHashes {
+	for _, txHash := range miniBlock.TxHashes {
+		if len(mbc.mapUnallocatedTxsHashes) == 0 {
 			break
 		}
+
+		_, ok := mbc.mapUnallocatedTxsHashes[string(txHash)]
+		if !ok {
+			continue
+		}
+
+		tx, ok := mbc.mapHashesAndTxs[string(txHash)]
+		if !ok {
+			return nil, process.ErrMissingTransaction
+		}
+
+		nonce := mbc.mapSenderNonce[string(tx.GetSndAddress())]
+		if tx.GetNonce() == nonce {
+			mbc.mapSenderNonce[string(tx.GetSndAddress())] = nonce + 1
+			miniBlockForShard.TxHashes = append(miniBlockForShard.TxHashes, txHash)
+			delete(mbc.mapUnallocatedTxsHashes, string(txHash))
+		}
 	}
+
+	//	if len(miniBlockForShard.TxHashes) == nbTxHashes {
+	//		break
+	//	}
+	//}
 
 	return miniBlockForShard, nil
 }
