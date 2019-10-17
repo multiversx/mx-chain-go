@@ -386,10 +386,10 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		boot.requestsWithTimeout++
 	}
 
-	requestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	allowedRequestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
 	isInProperRound := boot.rounder.Index()%5 == 0
 
-	shouldRollBack := err != process.ErrTimeIsOut || (requestsWithTimeOutHaveReached && isInProperRound)
+	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutHaveReached && isInProperRound)
 	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 
