@@ -257,12 +257,18 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 	// consensus group size, could keep all the shard in sync mode, by creating fake blocks higher than current
 	// committed block + 1, which could not be verified by hash -> prev hash and only by rand seed -> prev random seed
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
-	if roundsWithoutReceivedBlock > maxRoundsToWait {
-		probableHighestNonce := bfd.ProbableHighestNonce()
-		checkpointNonce := bfd.lastCheckpoint().nonce
-		if probableHighestNonce > checkpointNonce {
-			bfd.setProbableHighestNonce(checkpointNonce)
-		}
+	isInProperRound := bfd.rounder.Index()%5 == 0
+	if roundsWithoutReceivedBlock > maxRoundsToWait && isInProperRound {
+		bfd.ResetProbableHighestNonce()
+	}
+}
+
+// ResetProbableHighestNonce resets the probableHighestNonce to checkpoint
+func (bfd *baseForkDetector) ResetProbableHighestNonce() {
+	probableHighestNonce := bfd.ProbableHighestNonce()
+	checkpointNonce := bfd.lastCheckpoint().nonce
+	if probableHighestNonce > checkpointNonce {
+		bfd.setProbableHighestNonce(checkpointNonce)
 	}
 }
 

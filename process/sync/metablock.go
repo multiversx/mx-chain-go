@@ -386,13 +386,17 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		boot.requestsWithTimeout++
 	}
 
-	shouldRollBack := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	requestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	isInProperRound := boot.rounder.Index()%5 == 0
+
+	shouldRollBack := err != process.ErrTimeIsOut || (requestsWithTimeOutHaveReached && isInProperRound)
 	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 
 		if hdr != nil {
 			hash := boot.removeHeaderFromPools(hdr)
 			boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
+			boot.forkDetector.ResetProbableHighestNonce()
 		}
 
 		errNotCritical := boot.forkChoice(false)

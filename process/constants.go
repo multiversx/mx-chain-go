@@ -39,4 +39,4 @@ const MaxNoncesDifference = 5
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
 const MaxGasLimitPerMiniBlock = uint64(100000)
-const MaxRequestsWithTimeoutAllowed = 10
+const MaxRequestsWithTimeoutAllowed = 3
