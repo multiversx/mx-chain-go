@@ -65,9 +65,10 @@ func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint
 	}
 
 	buffNeeded := address.Bytes()[startingIndex:]
-	if isMetaChainShardId(buffNeeded) {
-		return MetachainShardId
-	}
+	//TODO: This method should be changed, as value 0xFF in the last byte of the given address could exist also in shards
+	//if isMetaChainShardId(buffNeeded) {
+	//	return MetachainShardId
+	//}
 
 	addr := uint32(0)
 	for i := 0; i < len(buffNeeded); i++ {
