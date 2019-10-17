@@ -2,7 +2,6 @@ package sync
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"strings"
 	"sync"
@@ -214,7 +213,6 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) {
 	// is achieved. They should be received afterwards through sync mechanism.
 	if hdrInfo.state == process.BHProposed {
 		bfd.setLastProposedBlockNonce(hdrInfo.nonce)
-		log.Info(fmt.Sprintf("Proposed block with nonce: %d", hdrInfo.nonce))
 		return
 	}
 
