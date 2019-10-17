@@ -857,6 +857,8 @@ func (boot *ShardBootstrap) forkChoice(revertUsingForkNonce bool) error {
 			return ErrRollBackBehindFinalHeader
 		}
 
+		boot.statusHandler.Decrement(core.MetricCountConsensusAcceptedBlocks)
+
 		log.Info(fmt.Sprintf("roll back to header with nonce %d and hash %s as the highest final block nonce is %d\n",
 			header.Nonce-1,
 			core.ToB64(header.GetPrevHash()),

@@ -86,6 +86,21 @@ func (psh *PresenterStatusHandler) AddUint64(key string, value uint64) {
 
 // Decrement - will decrement the value of a key
 func (psh *PresenterStatusHandler) Decrement(key string) {
+	keyValueI, ok := psh.presenterMetrics.Load(key)
+	if !ok {
+		return
+	}
+
+	keyValue, ok := keyValueI.(uint64)
+	if !ok {
+		return
+	}
+	if keyValue == 0 {
+		return
+	}
+
+	keyValue--
+	psh.presenterMetrics.Store(key, keyValue)
 }
 
 // Close method - won't do anything
