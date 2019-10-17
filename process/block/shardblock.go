@@ -1081,8 +1081,8 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
-	isMetaBlockHigherThanLastNotarized := metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
-	if isMetaBlockHigherThanLastNotarized {
+	isMetaBlockOutOfRange := metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
+	if isMetaBlockOutOfRange {
 		return
 	}
 
