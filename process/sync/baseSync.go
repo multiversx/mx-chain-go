@@ -89,12 +89,15 @@ type baseBootstrap struct {
 	forkNonce      uint64
 	forkHash       []byte
 
-	mutRcvHdrInfo         sync.RWMutex
+	mutRcvHdrNonce        sync.RWMutex
+	mutRcvHdrHash         sync.RWMutex
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	bootstrapRoundIndex   uint64
 	requestsWithTimeout   uint32
+
+	requestMiniBlocks func(uint32, uint64)
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -346,8 +349,10 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		log.Debug(err.Error())
 	}
 
+	boot.mutRcvHdrHash.Lock()
 	hash := boot.requestedHeaderHash()
 	if hash == nil {
+		boot.mutRcvHdrHash.Unlock()
 		return
 	}
 
@@ -356,7 +361,10 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 			core.ToB64(hash),
 			headerHandler.GetNonce()))
 		boot.setRequestedHeaderHash(nil)
+		boot.mutRcvHdrHash.Unlock()
 		boot.chRcvHdrHash <- true
+	} else {
+		boot.mutRcvHdrHash.Unlock()
 	}
 }
 
@@ -367,8 +375,14 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 		nonce,
 		core.ToB64(hash)))
 
+	if boot.requestMiniBlocks != nil {
+		go boot.requestMiniBlocks(shardId, nonce)
+	}
+
+	boot.mutRcvHdrNonce.Lock()
 	n := boot.requestedHeaderNonce()
 	if n == nil {
+		boot.mutRcvHdrNonce.Unlock()
 		return
 	}
 
@@ -377,7 +391,10 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 			nonce,
 			core.ToB64(hash)))
 		boot.setRequestedHeaderNonce(nil)
+		boot.mutRcvHdrNonce.Unlock()
 		boot.chRcvHdrNonce <- true
+	} else {
+		boot.mutRcvHdrNonce.Unlock()
 	}
 }
 
@@ -575,7 +592,7 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	hdrRes dataRetriever.HeaderResolver) {
 
 	nbRequestedHdrs := 0
-	maxNonce := core.MinUint64(nonce+maxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
+	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
 		haveHeader := haveHeaderInPoolWithNonce(nonce)
 		if !haveHeader {

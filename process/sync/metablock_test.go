@@ -28,7 +28,7 @@ import (
 
 func createMockMetaPools() *mock.MetaPoolsHolderStub {
 	pools := &mock.MetaPoolsHolderStub{}
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{
 			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
 				return false, false
@@ -138,7 +138,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockMetaPools()
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		return nil
 	}
 
@@ -584,7 +584,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	wasCalled := 0
 
 	pools := &mock.MetaPoolsHolderStub{}
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
 		sds.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
@@ -820,7 +820,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	hash := []byte("aaa")
 
 	pools := &mock.MetaPoolsHolderStub{}
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
 		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
@@ -924,7 +924,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 	hash := []byte("aaa")
 	pools := &mock.MetaPoolsHolderStub{}
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
 		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
@@ -1011,7 +1011,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 	hash := []byte("aaa")
 	pools := &mock.MetaPoolsHolderStub{}
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
 		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
@@ -1278,7 +1278,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	}
 
 	pools := createMockMetaPools()
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
 	}
 
@@ -1339,7 +1339,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	}
 
 	pools := createMockMetaPools()
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
 	}
 
@@ -1417,7 +1417,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaChainBlocks(), pools.HeadersNonces())
+	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaBlocks(), pools.HeadersNonces())
 	assert.NotNil(t, bs)
 	assert.Nil(t, hdr)
 }
@@ -1429,7 +1429,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 	hash := []byte("aaa")
 	pools := createMockMetaPools()
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
 		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
@@ -1485,7 +1485,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		math.MaxUint32,
 	)
 
-	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaChainBlocks(), pools.HeadersNonces())
+	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaBlocks(), pools.HeadersNonces())
 	assert.NotNil(t, bs)
 	assert.True(t, hdr == hdr2)
 }
@@ -1499,7 +1499,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 	addedHdr := &block.MetaBlock{}
 
 	pools := createMockMetaPools()
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
@@ -1715,7 +1715,7 @@ func TestMetaBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 	shardId := uint32(sharding.MetachainShardId)
 
 	pools := createMockMetaPools()
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		return createHeadersDataPool(newHdrHash, remFlags)
 	}
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
@@ -1791,7 +1791,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 	shardId := uint32(sharding.MetachainShardId)
 
 	//data pool headers
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		return createHeadersDataPool(currentHdrHash, remFlags)
 	}
 	//data pool headers-nonces
@@ -1954,7 +1954,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 	shardId := uint32(sharding.MetachainShardId)
 
 	//data pool headers
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		return createHeadersDataPool(currentHdrHash, remFlags)
 	}
 	//data pool headers-nonces
@@ -2558,7 +2558,7 @@ func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := &mock.MetaPoolsHolderStub{}
-	pools.MetaChainBlocksCalled = func() storage.Cacher {
+	pools.MetaBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{}
 
 		sds.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
