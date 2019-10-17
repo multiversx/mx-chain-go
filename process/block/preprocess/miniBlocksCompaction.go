@@ -254,9 +254,6 @@ func (mbc *miniBlocksCompaction) createMiniBlockForShard(miniBlock *block.MiniBl
 	miniBlockForShard.SenderShardID = miniBlock.SenderShardID
 	miniBlockForShard.Type = block.TxBlock
 
-	//for {
-	//	nbTxHashes := len(miniBlockForShard.TxHashes)
-
 	for _, txHash := range miniBlock.TxHashes {
 		if len(mbc.mapUnallocatedTxsHashes) == 0 {
 			break
@@ -279,11 +276,6 @@ func (mbc *miniBlocksCompaction) createMiniBlockForShard(miniBlock *block.MiniBl
 			delete(mbc.mapUnallocatedTxsHashes, string(txHash))
 		}
 	}
-
-	//	if len(miniBlockForShard.TxHashes) == nbTxHashes {
-	//		break
-	//	}
-	//}
 
 	return miniBlockForShard, nil
 }
