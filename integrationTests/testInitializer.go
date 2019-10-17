@@ -58,11 +58,11 @@ import (
 // StepDelay is used so that transactions can disseminate properly
 var StepDelay = time.Second
 
-// StepSync is used so that nodes have enough time to sync
-var StepSync = time.Second * 2
+// SyncDelay is used so that nodes have enough time to sync
+var SyncDelay = time.Second * 2
 
-// P2pBootstrapStepDelay is used so that nodes have enough time to bootstrap
-var P2pBootstrapStepDelay = 5 * time.Second
+// P2pBootstrapDelay is used so that nodes have enough time to bootstrap
+var P2pBootstrapDelay = 5 * time.Second
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -726,7 +726,7 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	}
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(P2pBootstrapStepDelay)
+	time.Sleep(P2pBootstrapDelay)
 }
 
 // GenerateAndDisseminateTxs generates and sends multiple txs
@@ -1309,7 +1309,7 @@ func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(P2pBootstrapStepDelay)
+	time.Sleep(P2pBootstrapDelay)
 }
 
 // SetupSyncNodesOneShardAndMeta creates nodes with sync capabilities divided into one shard and a metachain
@@ -1450,14 +1450,14 @@ func ProposeBlocks(
 		crtRound := atomic.LoadUint64(round)
 		proposeBlocks(nodes, idxProposers, nonces, crtRound)
 
-		time.Sleep(StepSync)
+		time.Sleep(SyncDelay)
 
 		crtRound = IncrementAndPrintRound(crtRound)
 		atomic.StoreUint64(round, crtRound)
 		UpdateRound(nodes, crtRound)
 		IncrementNonces(nonces)
 	}
-	time.Sleep(StepSync)
+	time.Sleep(SyncDelay)
 }
 
 // IncrementNonces increments all the nonces

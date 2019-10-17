@@ -103,7 +103,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	numOfRoundsToWaitToCatchUp := numRoundsBlocksAreProposedCorrectly +
 		numRoundsBlocksAreProposedOnlyByMeta +
 		secondNumRoundsBlocksAreProposedCorrectly
-	time.Sleep(integrationTests.StepSync * time.Duration(numOfRoundsToWaitToCatchUp))
+	time.Sleep(integrationTests.SyncDelay * time.Duration(numOfRoundsToWaitToCatchUp))
 	integrationTests.UpdateRound(nodes, round)
 
 	nonceProposerMeta := nodes[idxProposerMeta].BlockChain.GetCurrentBlockHeader().GetNonce()

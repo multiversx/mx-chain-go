@@ -61,7 +61,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(integrationTests.P2pBootstrapStepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -73,14 +73,14 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 
-		time.Sleep(integrationTests.StepSync)
+		time.Sleep(integrationTests.SyncDelay)
 
 		round = integrationTests.IncrementAndPrintRound(round)
 		integrationTests.UpdateRound(nodes, round)
 		nonce++
 	}
 
-	time.Sleep(integrationTests.StepSync)
+	time.Sleep(integrationTests.SyncDelay)
 
 	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
 }
@@ -124,7 +124,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(integrationTests.P2pBootstrapStepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -136,14 +136,14 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 
-		time.Sleep(integrationTests.StepSync)
+		time.Sleep(integrationTests.SyncDelay)
 
 		round = integrationTests.IncrementAndPrintRound(round)
 		integrationTests.UpdateRound(nodes, round)
 		nonce++
 	}
 
-	time.Sleep(integrationTests.StepSync)
+	time.Sleep(integrationTests.SyncDelay)
 
 	pubKeysVariant1 := []byte{3}
 	pubKeysVariant2 := []byte{1}

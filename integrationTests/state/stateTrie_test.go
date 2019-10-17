@@ -2,7 +2,6 @@ package state
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"fmt"
 	"math/big"
@@ -1249,7 +1248,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	atomic.AddUint64(nonces[0], 2)
 	atomic.AddUint64(nonces[1], 3)
 
-	numOfRounds := 6
+	numOfRounds := 2
 	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
@@ -1260,8 +1259,8 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 
 	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
-	assert.Equal(t, uint64(8), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
 	assert.Equal(t, storage.ErrKeyNotFound, err)
@@ -1277,7 +1276,6 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	idxProposers := []int{0, 1}
 	senderShard := uint32(0)
 	round := uint64(0)
 	nonce := uint64(0)
@@ -1285,23 +1283,10 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
-	_ = advertiser.Bootstrap()
-
-	nodes := integrationTests.CreateNodes(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
-	)
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	defer func() {
-		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.Node.Stop()
-		}
-	}()
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
 
 	fmt.Println("Generating private keys for senders and receivers...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
