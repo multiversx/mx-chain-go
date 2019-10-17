@@ -905,7 +905,7 @@ func createMetaNetNode(
 	tn.accntState = accntAdapter
 	tn.shardId = sharding.MetachainShardId
 
-	dPool.MetaChainBlocks().RegisterHandler(func(key []byte) {
+	dPool.MetaBlocks().RegisterHandler(func(key []byte) {
 		atomic.AddInt32(&tn.metachainHdrRecv, 1)
 	})
 	dPool.ShardHeaders().RegisterHandler(func(key []byte) {
