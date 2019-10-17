@@ -846,7 +846,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 	err = tpn.BlockProcessor.ProcessBlock(
 		tpn.BlockChain,
 		header,
-		&dataBlock.Body{},
+		dataBlock.Body{},
 		func() time.Duration {
 			return time.Second * 2
 		},
@@ -855,7 +855,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, &dataBlock.Body{})
+	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, dataBlock.Body{})
 	if err != nil {
 		return err
 	}

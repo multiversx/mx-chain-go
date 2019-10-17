@@ -3,6 +3,7 @@ package sharding
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -56,6 +57,21 @@ func isMetaChainShardId(identifier []byte) bool {
 	return true
 }
 
+func isSmartContractAddress(rcvAddress []byte) bool {
+	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
+	if isEmptyAddress {
+		return true
+	}
+
+	isSCAddress := bytes.Equal(rcvAddress[:(hooks.NumInitCharactersForScAddress-hooks.VMTypeLen)],
+		make([]byte, hooks.NumInitCharactersForScAddress-hooks.VMTypeLen))
+	if isSCAddress {
+		return true
+	}
+
+	return false
+}
+
 // ComputeId calculates the shard for a given address used for transaction dispatching
 func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint32 {
 	bytesNeed := int(msc.numberOfShards/256) + 1
@@ -65,7 +81,7 @@ func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint
 	}
 
 	buffNeeded := address.Bytes()[startingIndex:]
-	if isMetaChainShardId(buffNeeded) {
+	if isMetaChainShardId(buffNeeded) && isSmartContractAddress(address.Bytes()) {
 		return MetachainShardId
 	}
 
