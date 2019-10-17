@@ -239,6 +239,111 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
+// check if header has the same miniblocks as presented in body
+func (mp *metaProcessor) checkHeaderBodyCorrelation(metaBlock *block.MetaBlock, body block.Body) error {
+	mbHashesFromHdr := make(map[string]*block.ShardMiniBlockHeader)
+	mbHeaders := 0
+	for _, shardInfo := range metaBlock.ShardInfo {
+		if shardInfo.ShardID != mp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		for _, mbHeader := range shardInfo.ShardMiniBlockHeaders {
+			mbHashesFromHdr[string(mbHeader.Hash)] = &mbHeader
+		}
+
+		mbHeaders += len(shardInfo.ShardMiniBlockHeaders)
+	}
+
+	if mbHeaders != len(body) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
+
+		mbBytes, err := mp.marshalizer.Marshal(miniBlock)
+		if err != nil {
+			return err
+		}
+		mbHash := mp.hasher.Compute(string(mbBytes))
+
+		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.SenderShardID != miniBlock.SenderShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
+	miniBlockMetaHashes, err := mp.getAllMiniBlockDstMeFromMeta(header)
+	if err != nil {
+		return err
+	}
+
+	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
+	for hash := range crossMiniBlockHashes {
+		if _, ok := miniBlockMetaHashes[hash]; !ok {
+			return process.ErrCrossShardMBWithoutConfirmationFromMeta
+		}
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) getAllMiniBlockDstMeFromMeta(metaHdr *block.MetaBlock) (map[string][]byte, error) {
+	miniBlockMetaHashes := make(map[string][]byte)
+
+	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for _, shardInfo := range metaHdr.ShardInfo {
+		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardInfo.HeaderHash)]
+		if !ok {
+			continue
+		}
+		shardHeader, ok := hdrInfo.hdr.(*block.Header)
+		if !ok {
+			continue
+		}
+
+		lastHdr, err := mp.getLastNotarizedHdr(shardInfo.ShardID)
+		if err != nil {
+			return nil, err
+		}
+
+		if shardHeader.GetRound() > metaHdr.Round {
+			continue
+		}
+		if shardHeader.GetRound() <= lastHdr.GetRound() {
+			continue
+		}
+		if shardHeader.GetNonce() <= lastHdr.GetNonce() {
+			continue
+		}
+
+		crossMiniBlockHashes := shardHeader.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
+		for hash := range crossMiniBlockHashes {
+			miniBlockMetaHashes[hash] = shardInfo.HeaderHash
+		}
+	}
+	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	return miniBlockMetaHashes, nil
+}
+
 // SetConsensusData - sets the reward addresses for the current consensus group
 func (mp *metaProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	// nothing to do
@@ -408,6 +513,152 @@ func (mp *metaProcessor) CreateBlockBody(round uint64, haveTime func() bool) (da
 	return miniBlocks, nil
 }
 
+func (mp *metaProcessor) createMiniBlocks(
+	maxItemsInBlock uint32,
+	round uint64,
+	haveTime func() bool,
+) (block.Body, error) {
+
+	miniBlocks := make(block.Body, 0)
+
+	if mp.accounts.JournalLen() != 0 {
+		return nil, process.ErrAccountStateDirty
+	}
+
+	if !haveTime() {
+		log.Info(fmt.Sprintf("time is up after entered in createMiniBlocks method\n"))
+		return nil, process.ErrTimeIsOut
+	}
+
+	txPool := mp.dataPool.Transactions()
+	if txPool == nil {
+		return nil, process.ErrNilTransactionPool
+	}
+
+	destMeMiniBlocks, nbTxs, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
+	if err != nil {
+		log.Info(err.Error())
+	}
+
+	log.Info(fmt.Sprintf("processed %d miniblocks and %d txs with destination in self shard\n", len(destMeMiniBlocks), nbTxs))
+
+	if len(destMeMiniBlocks) > 0 {
+		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
+	}
+
+	return miniBlocks, nil
+}
+
+// full verification through metachain header
+func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
+	maxItemsInBlock uint32,
+	round uint64,
+	haveTime func() bool,
+) (block.MiniBlockSlice, uint32, error) {
+
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	txsAdded := uint32(0)
+	hdrsAdded := uint32(0)
+	lastPushedHdr := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
+
+	orderedHdrs, orderedHdrHashes, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// save last committed header for verification
+	mp.mutNotarizedHdrs.RLock()
+	if mp.notarizedHdrs == nil {
+		mp.mutNotarizedHdrs.RUnlock()
+		return nil, 0, process.ErrNotarizedHdrsSliceIsNil
+	}
+	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
+		lastPushedHdr[shardId] = mp.lastNotarizedHdrForShard(shardId)
+	}
+	mp.mutNotarizedHdrs.RUnlock()
+
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	for i := 0; i < len(orderedHdrs); i++ {
+		if !haveTime() {
+			log.Info(fmt.Sprintf("time is up after putting %d cross txs with destination to current shard\n", txsAdded))
+			break
+		}
+
+		if len(miniBlocks) >= core.MaxMiniBlocksInBlock {
+			log.Info(fmt.Sprintf("%d max number of mini blocks allowed to be added in one shard block has been reached\n", len(miniBlocks)))
+			break
+		}
+
+		itemsAddedInHeader := uint32(len(mp.hdrsForCurrBlock.hdrHashAndInfo) + len(miniBlocks))
+		if itemsAddedInHeader >= maxItemsInBlock {
+			log.Info(fmt.Sprintf("%d max records allowed to be added in shard header has been reached\n", maxItemsInBlock))
+			break
+		}
+
+		hdr := orderedHdrs[i]
+		lastHdr, ok := lastPushedHdr[hdr.ShardId].(*block.Header)
+		if !ok {
+			continue
+		}
+
+		isFinal, _ := mp.isShardHeaderValidFinal(orderedHdrs[i], lastHdr, sortedHdrPerShard[hdr.ShardId])
+		if !isFinal {
+			continue
+		}
+
+		if len(hdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
+			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[i])] = &hdrInfo{hdr: hdr, usedInBlock: true}
+			hdrsAdded++
+			lastPushedHdr[hdr.ShardId] = hdr
+			continue
+		}
+
+		itemsAddedInBody := txsAdded
+		if itemsAddedInBody >= maxItemsInBlock {
+			continue
+		}
+
+		maxTxSpaceRemained := int32(maxItemsInBlock) - int32(itemsAddedInBody)
+		maxMbSpaceRemained := mp.getMaxMiniBlocksSpaceRemained(
+			maxItemsInBlock,
+			itemsAddedInHeader+1,
+			uint32(len(miniBlocks)))
+
+		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
+			snapshot := mp.accounts.JournalLen()
+			currMBProcessed, currTxsAdded, hdrProcessFinished := mp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+				hdr,
+				nil,
+				uint32(maxTxSpaceRemained),
+				uint32(maxMbSpaceRemained),
+				round,
+				haveTime)
+
+			if !hdrProcessFinished {
+				// shard header must be processed completely
+				errAccountState := mp.accounts.RevertToSnapshot(snapshot)
+				if errAccountState != nil {
+					// TODO: evaluate if reloading the trie from disk will might solve the problem
+					log.Error(errAccountState.Error())
+				}
+				break
+			}
+
+			// all txs processed, add to processed miniblocks
+			miniBlocks = append(miniBlocks, currMBProcessed...)
+			txsAdded = txsAdded + currTxsAdded
+
+			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[i])] = &hdrInfo{hdr: hdr, usedInBlock: true}
+			hdrsAdded++
+
+			lastPushedHdr[hdr.ShardId] = hdr
+		}
+	}
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	return miniBlocks, txsAdded, nil
+}
+
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
 	msg := ""
 	for i := 0; i < len(header.ShardInfo); i++ {
@@ -423,7 +674,7 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint
 				headerHash,
 				shardMiniBlockHeader,
 				round,
-				shardData.ShardId,
+				shardData.ShardID,
 			)
 
 			if err != nil {
@@ -499,7 +750,7 @@ func (mp *metaProcessor) CommitBlock(
 	syncMap.Store(headerHandler.GetShardID(), headerHash)
 	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
 
-	body, ok := bodyHandler.(*block.MetaBlockBody)
+	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
@@ -940,15 +1191,15 @@ func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.
 			mp.dataPool.ShardHeaders())
 
 		if err != nil {
-			missingHeadersHashes[shardData.ShardId] = append(missingHeadersHashes[shardData.ShardId], shardData.HeaderHash)
+			missingHeadersHashes[shardData.ShardID] = append(missingHeadersHashes[shardData.ShardID], shardData.HeaderHash)
 			mp.hdrsForCurrBlock.missingHdrs++
 			continue
 		}
 
 		mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)] = &hdrInfo{hdr: hdr, usedInBlock: true}
 
-		if hdr.Nonce > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardId] {
-			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardId] = hdr.Nonce
+		if hdr.Nonce > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] {
+			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.Nonce
 		}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
@@ -979,29 +1230,7 @@ func (mp *metaProcessor) createShardInfo(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	if !haveTime() {
-		log.Info(fmt.Sprintf("time is up after entered in createShardInfo method\n"))
-		return shardInfo, nil
-	}
-
-	mbHdrs := uint32(0)
-
-	timeBefore := time.Now()
-	orderedHdrs, orderedHdrHashes, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
-	timeAfter := time.Now()
-
-	if !haveTime() {
-		log.Info(fmt.Sprintf("time is up after ordered %d hdrs in %v sec\n", len(orderedHdrs), timeAfter.Sub(timeBefore).Seconds()))
-		return shardInfo, nil
-	}
-
-	log.Debug(fmt.Sprintf("time elapsed to ordered %d hdrs: %v sec\n", len(orderedHdrs), timeAfter.Sub(timeBefore).Seconds()))
-
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info(fmt.Sprintf("creating shard info has been started: have %d hdrs in pool\n", len(orderedHdrs)))
+	log.Info(fmt.Sprintf("creating shard info has been started \n"))
 
 	// save last committed header for verification
 	mp.mutNotarizedHdrs.RLock()
@@ -1015,94 +1244,42 @@ func (mp *metaProcessor) createShardInfo(
 	mp.mutNotarizedHdrs.RUnlock()
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	for index := range orderedHdrs {
-		shId := orderedHdrs[index].ShardId
-
-		lastHdr, ok := lastPushedHdr[shId].(*block.Header)
+	for hdrHash, hdrInfo := range mp.hdrsForCurrBlock.hdrHashAndInfo {
+		shardHdr, ok := hdrInfo.hdr.(*block.Header)
 		if !ok {
-			continue
+			return nil, process.ErrWrongTypeAssertion
 		}
-
-		isFinal, _ := mp.isShardHeaderValidFinal(orderedHdrs[index], lastHdr, sortedHdrPerShard[shId])
-		if !isFinal {
-			continue
-		}
-
-		lastPushedHdr[shId] = orderedHdrs[index]
 
 		shardData := block.ShardData{}
 		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
-		shardData.TxCount = orderedHdrs[index].TxCount
-		shardData.ShardId = orderedHdrs[index].ShardId
-		shardData.HeaderHash = orderedHdrHashes[index]
+		shardData.TxCount = shardHdr.TxCount
+		shardData.ShardID = shardHdr.ShardId
+		shardData.HeaderHash = []byte(hdrHash)
 
-		snapshot := mp.accounts.JournalLen()
-
-		for i := 0; i < len(orderedHdrs[index].MiniBlockHeaders); i++ {
-			if !haveTime() {
-				break
-			}
-
+		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
-			shardMiniBlockHeader.SenderShardId = orderedHdrs[index].MiniBlockHeaders[i].SenderShardID
-			shardMiniBlockHeader.ReceiverShardId = orderedHdrs[index].MiniBlockHeaders[i].ReceiverShardID
-			shardMiniBlockHeader.Hash = orderedHdrs[index].MiniBlockHeaders[i].Hash
-			shardMiniBlockHeader.TxCount = orderedHdrs[index].MiniBlockHeaders[i].TxCount
+			shardMiniBlockHeader.SenderShardID = shardHdr.MiniBlockHeaders[i].SenderShardID
+			shardMiniBlockHeader.ReceiverShardID = shardHdr.MiniBlockHeaders[i].ReceiverShardID
+			shardMiniBlockHeader.Hash = shardHdr.MiniBlockHeaders[i].Hash
+			shardMiniBlockHeader.TxCount = shardHdr.MiniBlockHeaders[i].TxCount
 
 			// execute shard miniblock to change the trie root hash
 			err := mp.checkAndProcessShardMiniBlockHeader(
-				orderedHdrHashes[index],
+				[]byte(hdrHash),
 				&shardMiniBlockHeader,
 				round,
-				shardData.ShardId,
+				shardData.ShardID,
 			)
 
 			if err != nil {
-				log.Error(err.Error())
-				err = mp.accounts.RevertToSnapshot(snapshot)
-				if err != nil {
-					log.Error(err.Error())
-				}
-				break
+				return nil, err
 			}
 
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
-			mbHdrs++
-
-			recordsAddedInHeader := mbHdrs + uint32(len(shardInfo))
-			spaceRemained := int32(maxItemsInBlock) - int32(recordsAddedInHeader) - 1
-
-			if spaceRemained <= 0 {
-				log.Info(fmt.Sprintf("max hdrs accepted in one block is reached: added %d hdrs from %d hdrs\n", mbHdrs, len(orderedHdrs)))
-
-				if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
-					shardInfo = append(shardInfo, shardData)
-					mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: orderedHdrs[index], usedInBlock: true}
-				}
-
-				log.Info(fmt.Sprintf("creating shard info has been finished: created %d shard data\n", len(shardInfo)))
-				mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-				return shardInfo, nil
-			}
 		}
 
-		if !haveTime() {
-			log.Info(fmt.Sprintf("time is up: added %d hdrs from %d hdrs\n", mbHdrs, len(orderedHdrs)))
-
-			if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
-				shardInfo = append(shardInfo, shardData)
-				mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: orderedHdrs[index], usedInBlock: true}
-			}
-
-			log.Info(fmt.Sprintf("creating shard info has been finished: created %d shard data\n", len(shardInfo)))
-			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-			return shardInfo, nil
-		}
-
-		if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
-			shardInfo = append(shardInfo, shardData)
-			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: orderedHdrs[index], usedInBlock: true}
-		}
+		shardInfo = append(shardInfo, shardData)
+		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)].usedInBlock = true
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1119,7 +1296,7 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 // CreateBlockHeader creates a miniblock header list given a block body
 func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
 	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
-	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
+
 	header := &block.MetaBlock{
 		ShardInfo:    make([]block.ShardData, 0),
 		PeerInfo:     make([]block.PeerData, 0),
@@ -1284,7 +1461,7 @@ func (mp *metaProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 		return nil
 	}
 
-	var body block.MetaBlockBody
+	var body block.Body
 
 	err := mp.marshalizer.Unmarshal(&body, dta)
 	if err != nil {

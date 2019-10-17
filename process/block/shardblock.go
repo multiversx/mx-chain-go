@@ -777,17 +777,17 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 	var errFound error
 	// search for own shard id in shardInfo from metaHeaders
 	for _, shardInfo := range hdr.ShardInfo {
-		if shardInfo.ShardId != shardId {
+		if shardInfo.ShardID != shardId {
 			continue
 		}
 
 		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			go sp.onRequestHeaderHandler(shardInfo.ShardId, shardInfo.HeaderHash)
+			go sp.onRequestHeaderHandler(shardInfo.ShardID, shardInfo.HeaderHash)
 
 			log.Info(fmt.Sprintf("requested missing shard header with hash %s for shard %d\n",
 				core.ToB64(shardInfo.HeaderHash),
-				shardInfo.ShardId))
+				shardInfo.ShardID))
 
 			errFound = err
 			continue
@@ -1660,16 +1660,4 @@ func (sp *shardProcessor) isMiniBlockProcessed(metaBlockHash []byte, miniBlockHa
 	sp.mutProcessedMiniBlocks.RUnlock()
 
 	return isProcessed
-}
-
-func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
-	maxItemsInBlock uint32,
-	itemsAddedInBlock uint32,
-	miniBlocksAddedInBlock uint32,
-) int32 {
-	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
-	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
-	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
-
-	return maxMbSpaceRemained
 }
