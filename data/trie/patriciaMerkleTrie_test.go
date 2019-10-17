@@ -487,10 +487,10 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
-	tr.CancelPrune(rootHash)
+	tr.CancelPrune(rootHash, data.OldRootIdentifier)
 
-	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash)))
-	err := tr.Prune(rootHash)
+	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(append(rootHash, data.OldRootIdentifier...))))
+	err := tr.Prune(rootHash, data.OldRootIdentifier)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -509,7 +509,7 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
-	_ = tr.Prune(rootHash)
+	_ = tr.Prune(rootHash, data.OldRootIdentifier)
 
 	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash)))
 	val, err := db.Get(rootHash)

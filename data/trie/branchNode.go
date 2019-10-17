@@ -563,3 +563,32 @@ func (bn *branchNode) deepClone() node {
 
 	return clonedNode
 }
+
+func (bn *branchNode) getDirtyHashes() ([][]byte, error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
+
+	dirtyHashes := make([][]byte, 0)
+
+	if !bn.isDirty() {
+		return dirtyHashes, nil
+	}
+
+	for i := range bn.children {
+		if bn.children[i] == nil {
+			continue
+		}
+
+		hashes, err := bn.children[i].getDirtyHashes()
+		if err != nil {
+			return nil, err
+		}
+
+		dirtyHashes = append(dirtyHashes, hashes...)
+	}
+
+	dirtyHashes = append(dirtyHashes, bn.getHash())
+	return dirtyHashes, nil
+}

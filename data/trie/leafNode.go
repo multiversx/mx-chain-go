@@ -290,3 +290,19 @@ func (ln *leafNode) deepClone() node {
 
 	return clonedNode
 }
+
+func (ln *leafNode) getDirtyHashes() ([][]byte, error) {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
+
+	dirtyHashes := make([][]byte, 0)
+
+	if !ln.isDirty() {
+		return dirtyHashes, nil
+	}
+
+	dirtyHashes = append(dirtyHashes, ln.getHash())
+	return dirtyHashes, nil
+}

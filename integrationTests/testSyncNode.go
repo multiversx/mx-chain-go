@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -128,6 +130,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
+	accountsStateWrapper, err := state.NewAccountsDbWrapperSync(tpn.AccntState)
+	if err != nil {
+		return nil, err
+	}
+
 	bootstrap, err := sync.NewShardBootstrap(
 		tpn.ShardDataPool,
 		tpn.Storage,
@@ -140,7 +147,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.ForkDetector,
 		tpn.ResolverFinder,
 		tpn.ShardCoordinator,
-		tpn.AccntState,
+		accountsStateWrapper,
 		1,
 	)
 	if err != nil {

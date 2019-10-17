@@ -1102,7 +1102,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	rootHash1, _ := adb.Commit()
 	_ = account.(*state.Account).SetBalanceWithJournal(big.NewInt(1))
 	rootHash2, _ := adb.Commit()
-	_ = tr.Prune(rootHash1)
+	_ = tr.Prune(rootHash1, data.OldRootIdentifier)
 
 	err := adb.RecreateTrie(rootHash2)
 	ok, err := adb.HasAccount(address1)
@@ -1149,7 +1149,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveDataTrie(state2)
 
 	newRootHash, _ := adb.Commit()
-	_ = tr.Prune(oldRootHash)
+	_ = tr.Prune(oldRootHash, data.OldRootIdentifier)
 
 	err := adb.RecreateTrie(newRootHash)
 	ok, err := adb.HasAccount(address1)
@@ -1214,11 +1214,12 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	integrationTests.CreateMintingForSenders(nodes, 0, sendersPrivateKeys, valMinting)
 
 	shardNode := nodes[0]
-	rootHash, _ := shardNode.AccntState.RootHash()
 
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
 
 	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
@@ -1230,6 +1231,8 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	time.Sleep(time.Second * 5)
+
+	rootHashOfRollbackedBlock, _ := shardNode.AccntState.RootHash()
 
 	assert.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
@@ -1255,10 +1258,13 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 		numOfRounds,
 	)
 
-	err := shardNode.AccntState.RecreateTrie(rootHash)
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(8), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
 }
 
 func TestTriePruningWhenBlockIsFinal(t *testing.T) {
@@ -1314,7 +1320,6 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
 
 	shardNode := nodes[0]
-	rootHash, _ := shardNode.AccntState.RootHash()
 
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
@@ -1322,6 +1327,8 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 
 	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
 
 	fmt.Println("Generating transactions...")
 	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 0, 6)
@@ -1336,6 +1343,6 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	err := shardNode.AccntState.RecreateTrie(rootHash)
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	assert.Equal(t, storage.ErrKeyNotFound, err)
 }

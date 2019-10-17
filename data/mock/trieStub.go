@@ -18,8 +18,8 @@ type TrieStub struct {
 	CommitCalled            func() error
 	RecreateCalled          func(root []byte) (data.Trie, error)
 	DeepCloneCalled         func() (data.Trie, error)
-	CancelPruneCalled       func(rootHash []byte)
-	PruneCalled             func(rootHash []byte) error
+	CancelPruneCalled       func(rootHash []byte, identifier []byte)
+	PruneCalled             func(rootHash []byte, identifier []byte) error
 	ResetOldHashesCalled    func() [][]byte
 	AppendToOldHashesCalled func([][]byte)
 	SnapshotCalled          func() error
@@ -106,16 +106,16 @@ func (ts *TrieStub) IsInterfaceNil() bool {
 }
 
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (ts *TrieStub) CancelPrune(rootHash []byte) {
+func (ts *TrieStub) CancelPrune(rootHash []byte, identifier []byte) {
 	if ts.CancelPruneCalled != nil {
-		ts.CancelPruneCalled(rootHash)
+		ts.CancelPruneCalled(rootHash, identifier)
 	}
 }
 
 // Prune removes from the database all the old hashes that correspond to the given root hash
-func (ts *TrieStub) Prune(rootHash []byte) error {
+func (ts *TrieStub) Prune(rootHash []byte, identifier []byte) error {
 	if ts.PruneCalled != nil {
-		return ts.PruneCalled(rootHash)
+		return ts.PruneCalled(rootHash, identifier)
 	}
 
 	return errNotImplemented

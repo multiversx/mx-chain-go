@@ -4,6 +4,12 @@ import (
 	"math/big"
 )
 
+// OldRootIdentifier is appended to the key when oldHashes are added to the evictionWaitingList
+var OldRootIdentifier = []byte("oldRoot")
+
+// NewRootIdentifier is appended to the key when newHashes are added to the evictionWaitingList
+var NewRootIdentifier = []byte("newRoot")
+
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
 	GetShardID() uint32
@@ -94,8 +100,8 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
-	CancelPrune(rootHash []byte)
-	Prune(rootHash []byte) error
+	CancelPrune(rootHash []byte, identifier []byte)
+	Prune(rootHash []byte, identifier []byte) error
 	Snapshot() error
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)

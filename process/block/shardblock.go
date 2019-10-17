@@ -799,6 +799,8 @@ func (sp *shardProcessor) CommitBlock(
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
+
+		sp.accounts.CancelPrune(finalHeaders[i].GetRootHash())
 	}
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()

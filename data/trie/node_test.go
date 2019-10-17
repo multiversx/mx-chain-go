@@ -578,7 +578,8 @@ func TestTrieDatabasePruning(t *testing.T) {
 
 	_ = tr.Update([]byte("dog"), []byte("doee"))
 	_ = tr.Commit()
-	err := tr.Prune(rootHash)
+
+	err := tr.Prune(rootHash, data.OldRootIdentifier)
 	assert.Nil(t, err)
 
 	for i := range oldHashes {
@@ -610,6 +611,9 @@ func TestTrieResetOldHashes(t *testing.T) {
 	_ = tr.Commit()
 
 	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
+
+	assert.NotEqual(t, 0, len(tr.oldHashes))
+	assert.NotEqual(t, 0, len(tr.oldRoot))
 
 	expectedHashes := tr.oldHashes
 	hashes := tr.ResetOldHashes()
@@ -786,4 +790,113 @@ func TestDeleteOldSnapshots(t *testing.T) {
 	assert.Equal(t, 2, len(snapshots))
 	assert.Equal(t, "2", snapshots[0].Name())
 	assert.Equal(t, "3", snapshots[1].Name())
+}
+
+func TestNode_getDirtyHashes(t *testing.T) {
+	t.Parallel()
+
+	testVals := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("doe"), []byte("reindeer")},
+		{[]byte("dog"), []byte("puppy")},
+		{[]byte("dogglesworth"), []byte("cat")},
+	}
+
+	msh, hsh := getTestMarshAndHasher()
+	evictionWaitList := &mock.EvictionWaitingList{
+		Cache:       make(map[string][][]byte),
+		CacheSize:   100,
+		Db:          mock.NewMemDbMock(),
+		Marshalizer: msh,
+	}
+
+	tr := &patriciaMerkleTrie{
+		db:                    mock.NewMemDbMock(),
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
+		marshalizer:           msh,
+		hasher:                hsh,
+	}
+
+	for _, testVal := range testVals {
+		_ = tr.Update(testVal.key, testVal.value)
+	}
+
+	hashes, err := tr.root.getDirtyHashes()
+	assert.Nil(t, err)
+	assert.NotNil(t, hashes)
+	assert.Equal(t, 6, len(hashes))
+}
+
+func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
+	t.Parallel()
+
+	testVals := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("doe"), []byte("reindeer")},
+		{[]byte("dog"), []byte("puppy")},
+		{[]byte("dogglesworth"), []byte("cat")},
+		{[]byte("horse"), []byte("stallion")},
+	}
+
+	msh, hsh := getTestMarshAndHasher()
+	evictionWaitList := &mock.EvictionWaitingList{
+		Cache:       make(map[string][][]byte),
+		CacheSize:   100,
+		Db:          mock.NewMemDbMock(),
+		Marshalizer: msh,
+	}
+
+	tr := &patriciaMerkleTrie{
+		db:                    mock.NewMemDbMock(),
+		dbEvictionWaitingList: evictionWaitList,
+		oldHashes:             make([][]byte, 0),
+		oldRoot:               make([]byte, 0),
+		marshalizer:           msh,
+		hasher:                hsh,
+	}
+
+	rootHashes := make([][]byte, 0)
+	rootHashes = append(rootHashes)
+	for _, testVal := range testVals {
+		_ = tr.Update(testVal.key, testVal.value)
+		_ = tr.Commit()
+		rootHashes = append(rootHashes, tr.root.getHash())
+	}
+
+	for i := 0; i < len(rootHashes); i++ {
+		_, err := tr.Recreate(rootHashes[i])
+		assert.Nil(t, err)
+	}
+
+	tr.CancelPrune(rootHashes[0], data.NewRootIdentifier)
+	finalizeTrieState(t, 1, tr, rootHashes)
+	finalizeTrieState(t, 2, tr, rootHashes)
+	rollbackTrieState(t, 3, tr, rootHashes)
+
+	_, err := tr.Recreate(rootHashes[2])
+	assert.Nil(t, err)
+}
+
+func finalizeTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
+	err := tr.Prune(rootHashes[index-1], data.OldRootIdentifier)
+	assert.Nil(t, err)
+	tr.CancelPrune(rootHashes[index], data.NewRootIdentifier)
+
+	_, err = tr.Recreate(rootHashes[index-1])
+	assert.NotNil(t, err)
+}
+
+func rollbackTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
+	err := tr.Prune(rootHashes[index], data.NewRootIdentifier)
+	assert.Nil(t, err)
+	tr.CancelPrune(rootHashes[index-1], data.OldRootIdentifier)
+
+	_, err = tr.Recreate(rootHashes[index])
+	assert.NotNil(t, err)
 }

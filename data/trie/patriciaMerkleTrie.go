@@ -286,7 +286,22 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
+	newRoot := tr.root.getHash()
+	newHashes, err := tr.root.getDirtyHashes()
+	if err != nil {
+		return err
+	}
+
+	if len(newHashes) > 0 && len(newRoot) > 0 {
+		newRoot = append(newRoot, data.NewRootIdentifier...)
+		err = tr.dbEvictionWaitingList.Put(newRoot, newHashes)
+		if err != nil {
+			return err
+		}
+	}
+
 	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
+		tr.oldRoot = append(tr.oldRoot, data.OldRootIdentifier...)
 		err = tr.dbEvictionWaitingList.Put(tr.oldRoot, tr.oldHashes)
 		if err != nil {
 			return err
@@ -388,10 +403,11 @@ func emptyTrie(root []byte) bool {
 }
 
 // Prune removes from the database all the old hashes that correspond to the given root hash
-func (tr *patriciaMerkleTrie) Prune(rootHash []byte) error {
+func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	rootHash = append(rootHash, identifier...)
 	hashes, err := tr.dbEvictionWaitingList.Evict(rootHash)
 	if err != nil {
 		return err
@@ -408,8 +424,9 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte) error {
 }
 
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte) {
+func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte, identifier []byte) {
 	tr.mutOperation.Lock()
+	rootHash = append(rootHash, identifier...)
 	_, _ = tr.dbEvictionWaitingList.Evict(rootHash)
 	tr.mutOperation.Unlock()
 }

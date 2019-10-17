@@ -374,6 +374,11 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	accountsWrapper, err := state.NewAccountsDbWrapperSync(n.accounts)
+	if err != nil {
+		return nil, err
+	}
+
 	bootstrap, err := sync.NewShardBootstrap(
 		n.dataPool,
 		n.store,
@@ -386,7 +391,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.forkDetector,
 		n.resolversFinder,
 		n.shardCoordinator,
-		n.accounts,
+		accountsWrapper,
 		n.bootstrapRoundIndex,
 	)
 	if err != nil {

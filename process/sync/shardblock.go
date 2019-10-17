@@ -905,6 +905,11 @@ func (boot *ShardBootstrap) rollback(header *block.Header) error {
 
 		boot.accounts.CancelPrune(newHeader.GetRootHash())
 
+		errNotCritical := boot.accounts.PruneTrie(header.RootHash)
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
+
 		newBody, err = boot.getTxBlockBody(newHeader)
 		if err != nil {
 			return err
