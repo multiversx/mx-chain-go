@@ -32,6 +32,9 @@ const maxRoundsToWait = 3
 // maxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing
 const maxHeadersToRequestInAdvance = 10
 
+// roundsMultipleStep defines the multiple step of rounds on which nodes could take some decisions
+const roundsMultipleStep = 5
+
 type notarizedInfo struct {
 	lastNotarized           map[uint32]uint64
 	finalNotarized          map[uint32]uint64
