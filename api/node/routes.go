@@ -1,7 +1,6 @@
 package node
 
 import (
-	"fmt"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -54,31 +53,8 @@ type shardStatisticsResponse struct {
 func Routes(router *gin.RouterGroup) {
 	router.GET("/address", Address)
 	router.GET("/heartbeatstatus", HeartbeatStatus)
-	router.GET("/start", StartNode)
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
-	router.GET("/stop", StopNode)
-}
-
-// StartNode will start the node instance
-func StartNode(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
-		return
-	}
-
-	if ef.IsNodeRunning() {
-		c.JSON(http.StatusOK, gin.H{"message": errors.ErrNodeAlreadyRunning.Error()})
-		return
-	}
-
-	err := ef.StartNode()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrBadInitOfNode.Error(), err.Error())})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
 // Address returns the information about the address passed as parameter
@@ -97,27 +73,6 @@ func Address(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"address": address.String()})
-}
-
-// StopNode will stop the node instance
-func StopNode(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
-		return
-	}
-
-	if !ef.IsNodeRunning() {
-		c.JSON(http.StatusOK, gin.H{"message": errors.ErrNodeAlreadyStopped.Error()})
-		return
-	}
-
-	err := ef.StopNode()
-	if err != nil && ef.IsNodeRunning() {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrCouldNotStopNode.Error(), err.Error())})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node
