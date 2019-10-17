@@ -815,3 +815,16 @@ func TestWithAppStatusHandler_OkAshShouldPass(t *testing.T) {
 	assert.IsType(t, &statusHandler.NilStatusHandler{}, node.appStatusHandler)
 	assert.Nil(t, err)
 }
+
+func TestWithIndexer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	indexer := &mock.IndexerMock{}
+	opt := WithIndexer(indexer)
+	err := opt(node)
+
+	assert.Equal(t, indexer, node.indexer)
+	assert.Nil(t, err)
+}

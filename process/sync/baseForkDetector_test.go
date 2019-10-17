@@ -475,34 +475,6 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	assert.Equal(t, 3, len(hInfos))
 }
 
-func TestBasicForkDetector_CheckForkShouldNotConsiderProposedBlocks(t *testing.T) {
-	t.Parallel()
-	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewShardForkDetector(rounderMock)
-	rounderMock.RoundIndex = 4
-	_ = bfd.AddHeader(
-		&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
-		[]byte("hash1"),
-		process.BHProcessed,
-		nil,
-		nil)
-	rounderMock.RoundIndex = 3
-	_ = bfd.AddHeader(
-		&block.Header{Nonce: 1, Round: 2, PrevRandSeed: []byte("X"), RandSeed: []byte("X")},
-		[]byte("hash2"),
-		process.BHProposed,
-		nil,
-		nil)
-
-	hInfos := bfd.GetHeaders(1)
-	assert.Equal(t, 2, len(hInfos))
-
-	forkDetected, lowestForkNonce, forkHash := bfd.CheckFork()
-	assert.False(t, forkDetected)
-	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
-	assert.Nil(t, forkHash)
-}
-
 func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}
@@ -729,39 +701,6 @@ func TestBasicForkDetector_ResetProbableHighestNonce(t *testing.T) {
 	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
 }
 
-func TestBasicForkDetector_GetProbableHighestNonce(t *testing.T) {
-	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock)
-
-	hdr1 := &block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
-	hash1 := []byte("hash1")
-	rounderMock.RoundIndex = 2
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
-	hInfos := bfd.GetHeaders(1)
-	assert.Equal(t, uint64(1), bfd.GetProbableHighestNonce(hInfos))
-
-	hdr2 := &block.MetaBlock{Nonce: 2, Round: 2, PubKeysBitmap: []byte("X")}
-	hash2 := []byte("hash2")
-	rounderMock.RoundIndex = 3
-	_ = bfd.AddHeader(hdr2, hash2, process.BHReceived, nil, nil)
-	hInfos = bfd.GetHeaders(2)
-	assert.Equal(t, uint64(2), bfd.GetProbableHighestNonce(hInfos))
-
-	hdr3 := &block.MetaBlock{Nonce: 3, Round: 3, PrevRandSeed: []byte("X"), RandSeed: []byte("X")}
-	hash3 := []byte("hash3")
-	rounderMock.RoundIndex = 4
-	_ = bfd.AddHeader(hdr3, hash3, process.BHProposed, nil, nil)
-	hInfos = bfd.GetHeaders(3)
-	assert.Equal(t, uint64(2), bfd.GetProbableHighestNonce(hInfos))
-
-	hdr4 := &block.MetaBlock{Nonce: 3, Round: 3, PubKeysBitmap: []byte("X")}
-	hash4 := []byte("hash4")
-	rounderMock.RoundIndex = 4
-	_ = bfd.AddHeader(hdr4, hash4, process.BHReceived, nil, nil)
-	hInfos = bfd.GetHeaders(3)
-	assert.Equal(t, uint64(3), bfd.GetProbableHighestNonce(hInfos))
-}
-
 func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
@@ -836,4 +775,37 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
 	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
 	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+}
+
+func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock)
+	hdr1 := &block.Header{Nonce: 3, Round: 3}
+	hash1 := []byte("hash1")
+	hdr2 := &block.Header{Nonce: 1, Round: 1}
+	hash2 := []byte("hash2")
+	hdr3 := &block.Header{Nonce: 4, Round: 5}
+	hash3 := []byte("hash3")
+
+	hdrs := make([]data.HeaderHandler, 0)
+	hashes := make([][]byte, 0)
+	hdrs = append(hdrs, hdr1)
+	hashes = append(hashes, hash1)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr2)
+	hashes = append(hashes, hash2)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr3)
+	hashes = append(hashes, hash3)
+	sfd.AddFinalHeaders(hdrs, hashes)
+	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
 }

@@ -1,6 +1,8 @@
 package address
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -63,10 +65,16 @@ func (sp *specialAddresses) SetShardConsensusData(randomness []byte, round uint6
 		return err
 	}
 
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, shardID)
+	if err != nil {
+		return err
+	}
+
 	sp.shardConsensusData = &data.ConsensusRewardData{
 		Round:     round,
 		Epoch:     epoch,
 		Addresses: consensusAddresses,
+		PubKeys:   pubKeys,
 	}
 
 	return nil
@@ -102,11 +110,15 @@ func (sp *specialAddresses) SetMetaConsensusData(randomness []byte, round uint64
 	if err != nil {
 		return err
 	}
-
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, sharding.MetachainShardId)
+	if err != nil {
+		return err
+	}
 	sp.metaConsensusData = append(sp.metaConsensusData, &data.ConsensusRewardData{
 		Round:     round,
 		Epoch:     epoch,
 		Addresses: rewardAddresses,
+		PubKeys:   pubKeys,
 	})
 
 	return nil
@@ -159,10 +171,26 @@ func (sp *specialAddresses) ShardIdForAddress(pubKey []byte) (uint32, error) {
 	return sp.shardCoordinator.ComputeId(convAdr), nil
 }
 
+// IsCurrentNodeInConsensus calculates if current node is in consensus group
+func (sp *specialAddresses) IsCurrentNodeInConsensus() bool {
+	ownPublicKey := sp.nodesCoordinator.GetOwnPublicKey()
+
+	return foundKey(ownPublicKey, sp.shardConsensusData.PubKeys)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *specialAddresses) IsInterfaceNil() bool {
 	if sp == nil {
 		return true
+	}
+	return false
+}
+
+func foundKey(key []byte, keys []string) bool {
+	for _, k := range keys {
+		if bytes.Equal(key, []byte(k)) {
+			return true
+		}
 	}
 	return false
 }

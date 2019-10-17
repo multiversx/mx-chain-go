@@ -11,14 +11,18 @@ import (
 
 type MetaPoolsHolderFake struct {
 	metaChainBlocks storage.Cacher
-	miniBlockHashes dataRetriever.ShardedDataCacherNotifier
+	miniBlocks      storage.Cacher
 	shardHeaders    storage.Cacher
 	headersNonces   dataRetriever.Uint64SyncMapCacher
+	transactions    dataRetriever.ShardedDataCacherNotifier
+	unsigned        dataRetriever.ShardedDataCacherNotifier
 }
 
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	mphf := &MetaPoolsHolderFake{}
-	mphf.miniBlockHashes, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	mphf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	mphf.transactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
+	mphf.unsigned, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache})
 	mphf.metaChainBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	mphf.shardHeaders, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 
@@ -30,12 +34,20 @@ func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	return mphf
 }
 
+func (mphf *MetaPoolsHolderFake) Transactions() dataRetriever.ShardedDataCacherNotifier {
+	return mphf.transactions
+}
+
+func (mphf *MetaPoolsHolderFake) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return mphf.unsigned
+}
+
 func (mphf *MetaPoolsHolderFake) MetaChainBlocks() storage.Cacher {
 	return mphf.metaChainBlocks
 }
 
-func (mphf *MetaPoolsHolderFake) MiniBlockHashes() dataRetriever.ShardedDataCacherNotifier {
-	return mphf.miniBlockHashes
+func (mphf *MetaPoolsHolderFake) MiniBlocks() storage.Cacher {
+	return mphf.miniBlocks
 }
 
 func (mphf *MetaPoolsHolderFake) ShardHeaders() storage.Cacher {

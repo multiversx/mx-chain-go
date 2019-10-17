@@ -27,6 +27,7 @@ type InterceptedTransaction struct {
 	sndShard                 uint32
 	isAddressedToOtherShards bool
 	sndAddr                  state.AddressContainer
+	feeHandler               process.FeeHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -38,6 +39,7 @@ func NewInterceptedTransaction(
 	signer crypto.SingleSigner,
 	addrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
+	feeHandler process.FeeHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -61,6 +63,9 @@ func NewInterceptedTransaction(
 	if coordinator == nil || coordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if feeHandler == nil || coordinator.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	tx := &transaction.Transaction{}
 	err := marshalizer.Unmarshal(tx, txBuff)
@@ -76,6 +81,7 @@ func NewInterceptedTransaction(
 		addrConv:     addrConv,
 		keyGen:       keyGen,
 		coordinator:  coordinator,
+		feeHandler:   feeHandler,
 	}
 
 	txBuffWithoutSig, err := inTx.processFields(txBuff)
@@ -133,24 +139,20 @@ func (inTx *InterceptedTransaction) integrity() error {
 	if inTx.tx.Signature == nil {
 		return process.ErrNilSignature
 	}
-
 	if inTx.tx.RcvAddr == nil {
 		return process.ErrNilRcvAddr
 	}
-
 	if inTx.tx.SndAddr == nil {
 		return process.ErrNilSndAddr
 	}
-
 	if inTx.tx.Value == nil {
 		return process.ErrNilValue
 	}
-
 	if inTx.tx.Value.Cmp(big.NewInt(0)) < 0 {
 		return process.ErrNegativeValue
 	}
 
-	return nil
+	return inTx.feeHandler.CheckValidityTxValues(inTx.tx)
 }
 
 // verifySig checks if the tx is correctly signed

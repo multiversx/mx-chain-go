@@ -26,6 +26,7 @@ type preProcessorsContainerFactory struct {
 	accounts           state.AccountsAdapter
 	requestHandler     process.RequestHandler
 	rewardsProducer    process.InternalTransactionProducer
+	economicsFee       process.FeeHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -43,6 +44,7 @@ func NewPreProcessorsContainerFactory(
 	scResultProcessor process.SmartContractResultProcessor,
 	rewardsTxProcessor process.RewardTransactionProcessor,
 	rewardsProducer process.InternalTransactionProducer,
+	economicsFee process.FeeHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -84,6 +86,9 @@ func NewPreProcessorsContainerFactory(
 	if rewardsProducer == nil || rewardsProducer.IsInterfaceNil() {
 		return nil, process.ErrNilInternalTransactionProducer
 	}
+	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:   shardCoordinator,
@@ -99,6 +104,7 @@ func NewPreProcessorsContainerFactory(
 		rewardsTxProcessor: rewardsTxProcessor,
 		requestHandler:     requestHandler,
 		rewardsProducer:    rewardsProducer,
+		economicsFee:       economicsFee,
 	}, nil
 }
 
@@ -149,6 +155,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestTransaction,
+		ppcm.economicsFee,
 	)
 
 	return txPreprocessor, err

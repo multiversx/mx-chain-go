@@ -17,48 +17,52 @@ type indexHashedNodesCoordinator struct {
 	nodesMap                map[uint32][]Validator
 	shardConsensusGroupSize int
 	metaConsensusGroupSize  int
+	selfPubKey              []byte
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
-func NewIndexHashedNodesCoordinator(
-	shardConsensusGroupSize int,
-	metaConsensusGroupSize int,
-	hasher hashing.Hasher,
-	shardId uint32,
-	nbShards uint32,
-	nodes map[uint32][]Validator,
-) (*indexHashedNodesCoordinator, error) {
-	if shardConsensusGroupSize < 1 || metaConsensusGroupSize < 1 {
-		return nil, ErrInvalidConsensusGroupSize
-	}
-
-	if nbShards < 1 {
-		return nil, ErrInvalidNumberOfShards
-	}
-
-	if shardId >= nbShards && shardId != MetachainShardId {
-		return nil, ErrInvalidShardId
-	}
-
-	if hasher == nil {
-		return nil, ErrNilHasher
+func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
+	err := checkArguments(arguments)
+	if err != nil {
+		return nil, err
 	}
 
 	ihgs := &indexHashedNodesCoordinator{
-		nbShards:                nbShards,
-		shardId:                 shardId,
-		hasher:                  hasher,
+		nbShards:                arguments.NbShards,
+		shardId:                 arguments.ShardId,
+		hasher:                  arguments.Hasher,
 		nodesMap:                make(map[uint32][]Validator),
-		shardConsensusGroupSize: shardConsensusGroupSize,
-		metaConsensusGroupSize:  metaConsensusGroupSize,
+		shardConsensusGroupSize: arguments.ShardConsensusGroupSize,
+		metaConsensusGroupSize:  arguments.MetaConsensusGroupSize,
+		selfPubKey:              arguments.SelfPublicKey,
 	}
 
-	err := ihgs.SetNodesPerShards(nodes)
+	err = ihgs.SetNodesPerShards(arguments.Nodes)
 	if err != nil {
 		return nil, err
 	}
 
 	return ihgs, nil
+}
+
+func checkArguments(arguments ArgNodesCoordinator) error {
+	if arguments.ShardConsensusGroupSize < 1 || arguments.MetaConsensusGroupSize < 1 {
+		return ErrInvalidConsensusGroupSize
+	}
+	if arguments.NbShards < 1 {
+		return ErrInvalidNumberOfShards
+	}
+	if arguments.ShardId >= arguments.NbShards && arguments.ShardId != MetachainShardId {
+		return ErrInvalidShardId
+	}
+	if arguments.Hasher == nil {
+		return ErrNilHasher
+	}
+	if arguments.SelfPublicKey == nil {
+		return ErrNilPubKey
+	}
+
+	return nil
 }
 
 // SetNodesPerShards loads the distribution of nodes per shard into the nodes management component
@@ -226,6 +230,35 @@ func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte,
 	return publicKeys, nil
 }
 
+// GetAllValidatorsPublicKeys will return all validators public keys for all shards
+func (ihgs *indexHashedNodesCoordinator) GetAllValidatorsPublicKeys() map[uint32][][]byte {
+	validatorsPubKeys := make(map[uint32][][]byte)
+
+	for shardId, shardEligible := range ihgs.nodesMap {
+		for i := 0; i < len(shardEligible); i++ {
+			validatorsPubKeys[shardId] = append(validatorsPubKeys[shardId], ihgs.nodesMap[shardId][i].PubKey())
+		}
+	}
+
+	return validatorsPubKeys
+}
+
+// GetValidatorsIndexes will return validators indexes for a block
+func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(publicKeys []string) []uint64 {
+	validatorsPubKeys := ihgs.GetAllValidatorsPublicKeys()
+	signersIndexes := make([]uint64, 0)
+
+	for _, pubKey := range publicKeys {
+		for index, value := range validatorsPubKeys[ihgs.shardId] {
+			if bytes.Equal([]byte(pubKey), value) {
+				signersIndexes = append(signersIndexes, uint64(index))
+			}
+		}
+	}
+
+	return signersIndexes
+}
+
 func (ihgs *indexHashedNodesCoordinator) expandEligibleList(shardId uint32) []Validator {
 	//TODO implement an expand eligible list variant
 	return ihgs.nodesMap[shardId]
@@ -285,6 +318,11 @@ func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(shardId uint32) int 
 	}
 
 	return ihgs.shardConsensusGroupSize
+}
+
+// GetOwnPublicKey will return current node public key  for block sign
+func (ihgs *indexHashedNodesCoordinator) GetOwnPublicKey() []byte {
+	return ihgs.selfPubKey
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -130,8 +130,8 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache}
-	miniblockHashes, _ := shardedData.NewShardedData(cacherCfg)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -139,11 +139,16 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	shardHeadersNonces, _ := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+
 	dPool, _ := dataPool.NewMetaDataPool(
 		metaBlocks,
-		miniblockHashes,
+		txBlockBody,
 		shardHeaders,
 		shardHeadersNonces,
+		txPool,
+		uTxPool,
 	)
 
 	return dPool
@@ -185,6 +190,9 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
@@ -431,6 +439,20 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasLimit()
+			},
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
+			},
+			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
+				fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
+
+				return fee
+			},
+		},
 	)
 
 	return txProcessor
@@ -710,6 +732,14 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	time.Sleep(p2pBootstrapStepDelay)
 }
 
+// SetEconomicsParameters will set minGasPrice and minGasLimits to provided nodes
+func SetEconomicsParameters(nodes []*TestProcessorNode, minGasPrice uint64, minGasLimit uint64) {
+	for _, n := range nodes {
+		n.EconomicsData.SetMinGasPrice(minGasPrice)
+		n.EconomicsData.SetMinGasLimit(minGasLimit)
+	}
+}
+
 // GenerateAndDisseminateTxs generates and sends multiple txs
 func GenerateAndDisseminateTxs(
 	n *TestProcessorNode,
@@ -738,8 +768,8 @@ type txArgs struct {
 	rcvAddr  []byte
 	sndAddr  []byte
 	data     string
-	gasPrice int
-	gasLimit int
+	gasPrice uint64
+	gasLimit uint64
 }
 
 func generateTransferTx(
@@ -778,8 +808,8 @@ func generateTx(
 		Value:    args.value,
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
-		GasPrice: uint64(args.gasPrice),
-		GasLimit: uint64(args.gasLimit),
+		GasPrice: args.gasPrice,
+		GasLimit: args.gasLimit,
 		Data:     args.data,
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
@@ -989,23 +1019,6 @@ func ComputeAndRequestMissingTransactions(
 	}
 }
 
-// ComputeAndRequestMissingRewardTxs computes the missing reward transactions for each node and requests them
-func ComputeAndRequestMissingRewardTxs(
-	nodes []*TestProcessorNode,
-	generatedDataHashes [][]byte,
-	shardResolver uint32,
-	shardRequesters ...uint32,
-) {
-	for _, n := range nodes {
-		if !Uint32InSlice(n.ShardCoordinator.SelfId(), shardRequesters) {
-			continue
-		}
-
-		neededData := getMissingRewardTxsForNode(n, generatedDataHashes)
-		requestMissingRewardTxs(n, shardResolver, neededData)
-	}
-}
-
 func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
 	neededTxs := make([][]byte, 0)
 
@@ -1019,32 +1032,11 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 	return neededTxs
 }
 
-func getMissingRewardTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]byte {
-	neededTxs := make([][]byte, 0)
-
-	for i := 0; i < len(generatedTxHashes); i++ {
-		_, ok := n.ShardDataPool.RewardTransactions().SearchFirstData(generatedTxHashes[i])
-		if !ok {
-			neededTxs = append(neededTxs, generatedTxHashes[i])
-		}
-	}
-
-	return neededTxs
-}
-
 func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, neededTxs [][]byte) {
 	txResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.TransactionTopic, shardResolver)
 
 	for i := 0; i < len(neededTxs); i++ {
 		_ = txResolver.RequestDataFromHash(neededTxs[i])
-	}
-}
-
-func requestMissingRewardTxs(n *TestProcessorNode, shardResolver uint32, neededData [][]byte) {
-	dataResolver, _ := n.ResolverFinder.CrossShardResolver(procFactory.RewardsTransactionTopic, shardResolver)
-
-	for i := 0; i < len(neededData); i++ {
-		_ = dataResolver.RequestDataFromHash(neededData[i])
 	}
 }
 
@@ -1311,4 +1303,22 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	}
 
 	return params
+}
+
+// CloseProcessorNodes closes the used TestProcessorNodes and advertiser
+func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
+	_ = advertiser.Close()
+	for _, n := range nodes {
+		_ = n.Messenger.Close()
+	}
+}
+
+// StartP2pBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
+func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(p2pBootstrapStepDelay)
 }

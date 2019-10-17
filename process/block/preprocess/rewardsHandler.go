@@ -16,13 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const communityPercentage = 0.1 // 1 = 100%, 0 = 0%
-const leaderPercentage = 0.5    // 1 = 100%, 0 = 0%
-const burnPercentage = 0.4      // 1 = 100%, 0 = 0%
-
-// TODO: Replace with valid reward value
-var rewardValue = big.NewInt(1000)
-
 type rewardsHandler struct {
 	address          process.SpecialAddressHandler
 	hasher           hashing.Hasher
@@ -40,6 +33,8 @@ type rewardsHandler struct {
 	mut               sync.Mutex
 	accumulatedFees   *big.Int
 	rewardTxsForBlock map[string]*rewardTx.RewardTx
+	economicsRewards  process.RewardsHandler
+	rewardValue       *big.Int
 }
 
 // NewRewardTxHandler constructor for the reward transaction handler
@@ -51,6 +46,7 @@ func NewRewardTxHandler(
 	adrConv state.AddressConverter,
 	store dataRetriever.StorageService,
 	rewardTxPool dataRetriever.ShardedDataCacherNotifier,
+	economicsRewards process.RewardsHandler,
 ) (*rewardsHandler, error) {
 	if address == nil || address.IsInterfaceNil() {
 		return nil, process.ErrNilSpecialAddressHandler
@@ -73,6 +69,11 @@ func NewRewardTxHandler(
 	if rewardTxPool == nil || rewardTxPool.IsInterfaceNil() {
 		return nil, process.ErrNilRewardTxDataPool
 	}
+	if economicsRewards == nil || economicsRewards.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsRewardsHandler
+	}
+
+	rewardValue := economicsRewards.RewardsValue()
 
 	rtxh := &rewardsHandler{
 		address:          address,
@@ -82,6 +83,8 @@ func NewRewardTxHandler(
 		marshalizer:      marshalizer,
 		store:            store,
 		rewardTxPool:     rewardTxPool,
+		economicsRewards: economicsRewards,
+		rewardValue:      rewardValue,
 	}
 
 	rtxh.accumulatedFees = big.NewInt(0)
@@ -288,7 +291,7 @@ func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, leaderPercentage)
+	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.LeaderPercentage())
 	currTx.RcvAddr = rtxh.address.LeaderAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
@@ -300,7 +303,7 @@ func (rtxh *rewardsHandler) createLeaderTx() *rewardTx.RewardTx {
 func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, burnPercentage)
+	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.BurnPercentage())
 	currTx.RcvAddr = rtxh.address.BurnAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
@@ -312,7 +315,7 @@ func (rtxh *rewardsHandler) createBurnTx() *rewardTx.RewardTx {
 func (rtxh *rewardsHandler) createCommunityTx() *rewardTx.RewardTx {
 	currTx := &rewardTx.RewardTx{}
 
-	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, communityPercentage)
+	currTx.Value = getPercentageOfValue(rtxh.accumulatedFees, rtxh.economicsRewards.CommunityPercentage())
 	currTx.RcvAddr = rtxh.address.ElrondCommunityAddress()
 	currTx.ShardId = rtxh.shardCoordinator.SelfId()
 	currTx.Epoch = rtxh.address.Epoch()
@@ -350,7 +353,7 @@ func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 	consensusRewardTxs := make([]data.TransactionHandler, 0)
 	for _, address := range consensusRewardData.Addresses {
 		rTx := &rewardTx.RewardTx{}
-		rTx.Value = rewardValue
+		rTx.Value = rtxh.rewardValue
 		rTx.RcvAddr = []byte(address)
 		rTx.ShardId = rtxh.shardCoordinator.SelfId()
 		rTx.Epoch = consensusRewardData.Epoch
@@ -380,7 +383,7 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 			}
 
 			rTx := &rewardTx.RewardTx{}
-			rTx.Value = rewardValue
+			rTx.Value = rtxh.rewardValue
 			rTx.RcvAddr = []byte(address)
 			rTx.ShardId = rtxh.shardCoordinator.SelfId()
 			rTx.Epoch = metaConsensusSet.Epoch

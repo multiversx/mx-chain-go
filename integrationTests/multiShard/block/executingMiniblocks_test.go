@@ -30,8 +30,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	valMinting := big.NewInt(100)
 	valToTransferPerTx := big.NewInt(2)
-	gasPricePerTx := uint64(2)
-	gasLimitPerTx := uint64(2)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -81,8 +79,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		sendersPrivateKeys,
 		receiversPublicKeys,
 		valToTransferPerTx,
-		gasPricePerTx,
-		gasLimitPerTx,
+		integrationTests.MinTxGasPrice,
+		integrationTests.MinTxGasLimit,
 	)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
@@ -94,8 +92,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}
 
-	gasPricePerTxBigInt := big.NewInt(int64(gasPricePerTx))
-	gasLimitPerTxBigInt := big.NewInt(int64(gasLimitPerTx))
+	gasPricePerTxBigInt := big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice)
+	gasLimitPerTxBigInt := big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit)
 	gasValue := big.NewInt(0).Mul(gasPricePerTxBigInt, gasLimitPerTxBigInt)
 	totalValuePerTx := big.NewInt(0).Add(gasValue, valToTransferPerTx)
 	fmt.Println("Test nodes from proposer shard to have the correct balances...")

@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// NodesCoordinator defines the behaviour of a struct able to do validator group selection
+// NodesCoordinatorMock defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
 	Validators                          map[uint32][]sharding.Validator
 	ShardConsensusSize                  uint32
@@ -54,6 +54,14 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		NbShards:           nbShards,
 		Validators:         validatorsMap,
 	}
+}
+
+func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string) []uint64 {
+	return nil
+}
+
+func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys() map[uint32][][]byte {
+	return nil
 }
 
 func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error) {
@@ -181,6 +189,10 @@ func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sh
 	}
 
 	return nil, 0, sharding.ErrValidatorNotFound
+}
+
+func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
+	panic("implement me")
 }
 
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {

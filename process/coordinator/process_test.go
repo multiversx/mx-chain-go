@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -30,10 +31,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func FeeHandlerMock() *mock.FeeHandlerStub {
+	return &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return 0
+		},
+	}
+}
+
 func createShardedDataChacherNotifier(
 	handler data.TransactionHandler,
 	testHash []byte,
-) (func() dataRetriever.ShardedDataCacherNotifier ) {
+) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte)) {},
@@ -369,6 +378,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -376,6 +386,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 }
 
 func createInterimProcessorContainer() process.IntermediateProcessorContainer {
+	economicsData := &economics.EconomicsData{}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
@@ -384,6 +395,7 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		&mock.SpecialAddressHandlerMock{},
 		initStore(),
 		initDataPool([]byte("test_hash1")),
+		economicsData,
 	)
 	container, _ := preFactory.Create()
 
@@ -409,6 +421,7 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -680,6 +693,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -770,6 +784,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1134,6 +1149,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1288,6 +1304,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1408,6 +1425,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1523,6 +1541,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1629,6 +1648,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		FeeHandlerMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1656,6 +1676,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testing.T) {
 	t.Parallel()
 
+	economicsData := &economics.EconomicsData{}
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -1668,6 +1689,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		tdp,
+		economicsData,
 	)
 	container, _ := preFactory.Create()
 
@@ -1701,6 +1723,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	t.Parallel()
 
+	economicsData := &economics.EconomicsData{}
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -1713,6 +1736,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		tdp,
+		economicsData,
 	)
 	container, _ := preFactory.Create()
 

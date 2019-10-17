@@ -11,34 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInterceptedTxFromFrontendGeneratedParamsWithoutData(t *testing.T) {
-	testInterceptedTxFromFrontendGeneratedParams(
-		t,
-		0,
-		big.NewInt(10),
-		"53669be65aac358a6add8e8a8b1251bb994dc1e4a0cc885956f5ecd53396f0d8",
-		"fe73b8960894941bcf100f7378dba2a6fa2591343413710073c2515817b27dc5",
-		"f2ae2ad6585f3b44bbbe84f93c3c5ec04a53799d24c04a1dd519666f2cd3dc3d7fbe6c75550b0eb3567fdc0708a8534ae3e5393d0dd9e03c70972f2e716a7007",
-		0,
-		0,
-		"",
-	)
-}
-
-func TestInterceptedTxFromFrontendGeneratedParams(t *testing.T) {
-	testInterceptedTxFromFrontendGeneratedParams(
-		t,
-		0,
-		big.NewInt(10),
-		"53669be65aac358a6add8e8a8b1251bb994dc1e4a0cc885956f5ecd53396f0d8",
-		"6c9f95220912dfe4d7be57c26f8f4d1594fee53fc6d958fb9009ed744a681a5a",
-		"e0e5d089dd7d47abfeabf17f4d4ab0022c32b844dfd8124e45c20370d1a1049202c50d8e9c4e8841ce65848b5f0503212e9879f0556706dc6a849d789dfdcb01",
-		0,
-		0,
-		"aa@bbbb@cccc",
-	)
-}
-
 func TestInterceptedTxFromFrontendGeneratedParamsAllParams(t *testing.T) {
 	testInterceptedTxFromFrontendGeneratedParams(
 		t,

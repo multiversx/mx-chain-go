@@ -41,6 +41,18 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsMap[sh] = validatorsList
 	}
 
+	validatorsList := make([]sharding.Validator, nodesPerShard)
+	for v := 0; v < nodesPerShard; v++ {
+		validatorsList[v], _ = sharding.NewValidator(
+			big.NewInt(10),
+			1,
+			[]byte(fmt.Sprintf("pubKey%d%d", sharding.MetachainShardId, v)),
+			[]byte(fmt.Sprintf("address%d%d", sharding.MetachainShardId, v)),
+		)
+	}
+
+	validatorsMap[sharding.MetachainShardId] = validatorsList
+
 	return &NodesCoordinatorMock{
 		ShardConsensusSize: 1,
 		MetaConsensusSize:  1,
@@ -48,6 +60,14 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		NbShards:           nbShards,
 		Validators:         validatorsMap,
 	}
+}
+
+func (ncm *NodesCoordinatorMock) GetAllValidatorsPublicKeys() map[uint32][][]byte {
+	return nil
+}
+
+func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(publicKeys []string) []uint64 {
+	return nil
 }
 
 func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error) {
@@ -175,6 +195,10 @@ func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sh
 	}
 
 	return nil, 0, sharding.ErrValidatorNotFound
+}
+
+func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
+	return []byte("key")
 }
 
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {

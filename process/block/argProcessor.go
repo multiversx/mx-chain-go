@@ -33,9 +33,15 @@ type ArgBaseProcessor struct {
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
 // new instances of shard processor
 type ArgShardProcessor struct {
-	*ArgBaseProcessor
+	ArgBaseProcessor
 	DataPool        dataRetriever.PoolsHolder
-	BlocksTracker   process.BlocksTracker
 	TxCoordinator   process.TransactionCoordinator
 	TxsPoolsCleaner process.PoolsCleaner
+}
+
+// ArgMetaProcessor holds all dependencies required by the process data factory in order to create
+// new instances of meta processor
+type ArgMetaProcessor struct {
+	ArgBaseProcessor
+	DataPool dataRetriever.MetaPoolsHolder
 }

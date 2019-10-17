@@ -201,7 +201,7 @@ func TestNewHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	assert.Nil(t, hi)
 }
 
-func TestNewHeaderInterceptor_NilChronologyValidatorShouldErr(t *testing.T) {
+func TestNewHeaderInterceptor_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.CacherStub{}
@@ -472,7 +472,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	nodes := generateValidatorsMap(3, 3, 1)
-	nodesCoordinator.SetNodesPerShards(nodes)
+	_ = nodesCoordinator.SetNodesPerShards(nodes)
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
@@ -615,7 +615,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsNotValidShouldNotAdd(t *testi
 
 	nodesCoordinator := mock.NewNodesCoordinatorMock()
 	nodes := generateValidatorsMap(3, 3, 1)
-	nodesCoordinator.SetNodesPerShards(nodes)
+	_ = nodesCoordinator.SetNodesPerShards(nodes)
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
@@ -696,7 +696,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNotForCurrentShardShouldNotAdd(
 	}
 
 	nodes := generateValidatorsMap(3, 3, 5)
-	nodesCoordinator.SetNodesPerShards(nodes)
+	_ = nodesCoordinator.SetNodesPerShards(nodes)
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,

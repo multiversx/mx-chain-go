@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -330,13 +331,6 @@ func createConsensusOnlyNode(
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
-	blockTracker := &mock.BlocksTrackerMock{
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			return make([]data.HeaderHandler, 0)
-		},
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int64) {
-		},
-	}
 	blockChain := createTestBlockChain()
 
 	header := &dataBlock.Header{
@@ -422,7 +416,6 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
-		node.WithBlockTracker(blockTracker),
 		node.WithPeerProcessor(&mock.PeerProcessorMock{}),
 	)
 
@@ -459,14 +452,16 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
-		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
-			consensusSize,
-			1,
-			createHasher(consensusType),
-			0,
-			1,
-			validatorsMap,
-		)
+
+		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			ShardConsensusGroupSize: consensusSize,
+			MetaConsensusGroupSize:  1,
+			Hasher:                  createHasher(consensusType),
+			NbShards:                1,
+			Nodes:                   validatorsMap,
+			SelfPublicKey:           []byte(strconv.Itoa(i)),
+		}
+		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
 			shardCoordinator,

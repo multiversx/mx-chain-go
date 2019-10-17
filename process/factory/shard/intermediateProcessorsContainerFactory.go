@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -20,6 +21,7 @@ type intermediateProcessorsContainerFactory struct {
 	specialAddressHandler process.SpecialAddressHandler
 	store                 dataRetriever.StorageService
 	poolsHolder           dataRetriever.PoolsHolder
+	economics             *economics.EconomicsData
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -31,6 +33,7 @@ func NewIntermediateProcessorsContainerFactory(
 	specialAddressHandler process.SpecialAddressHandler,
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
+	economics *economics.EconomicsData,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -63,6 +66,7 @@ func NewIntermediateProcessorsContainerFactory(
 		specialAddressHandler: specialAddressHandler,
 		store:                 store,
 		poolsHolder:           poolsHolder,
+		economics:             economics,
 	}, nil
 }
 
@@ -115,6 +119,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateP
 		ppcm.addrConverter,
 		ppcm.store,
 		ppcm.poolsHolder.RewardTransactions(),
+		ppcm.economics,
 	)
 
 	return irp, err

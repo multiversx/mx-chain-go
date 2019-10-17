@@ -106,8 +106,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	sr.BlocksTracker().SetBlockBroadcastRound(sr.Header.GetNonce(), sr.RoundIndex)
-
 	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	err = sr.broadcastMiniBlocksAndTransactions()
@@ -123,9 +121,15 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
-	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
+	sr.updateMetricsForLeader()
 
 	return true
+}
+
+func (sr *subroundEndRound) updateMetricsForLeader() {
+	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
+		fmt.Sprintf("valid block produced in %f sec", time.Now().Sub(sr.Rounder().TimeStamp()).Seconds()))
 }
 
 func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {

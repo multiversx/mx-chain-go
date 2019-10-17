@@ -2,6 +2,7 @@ package shard_test
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +21,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		dPool,
+		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -38,6 +40,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		dPool,
+		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -56,6 +59,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		dPool,
+		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -74,6 +78,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		dPool,
+		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -92,6 +97,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		&mock.SpecialAddressHandlerMock{},
 		nil,
 		dPool,
+		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -110,6 +116,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		dPool,
+		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, err)
@@ -128,6 +135,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.SpecialAddressHandlerMock{},
 		&mock.ChainStorerMock{},
 		dPool,
+		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, err)

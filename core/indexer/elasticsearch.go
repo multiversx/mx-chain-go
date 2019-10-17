@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +32,8 @@ const txBulkSize = 1000
 const txIndex = "transactions"
 const blockIndex = "blocks"
 const tpsIndex = "tps"
+const validatorsIndex = "validators"
+const roundIndex = "rounds"
 
 const metachainTpsDocID = "meta"
 const shardTpsDocIDPrefix = "shard"
@@ -50,6 +53,7 @@ type elasticIndexer struct {
 	hasher           hashing.Hasher
 	logger           *logger.Logger
 	options          *Options
+	isNilIndexer     bool
 }
 
 // NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
@@ -93,6 +97,7 @@ func NewElasticIndexer(
 		hasher,
 		logger,
 		options,
+		false,
 	}
 
 	err = indexer.checkAndCreateIndex(blockIndex, timestampMapping())
@@ -106,6 +111,16 @@ func NewElasticIndexer(
 	}
 
 	err = indexer.checkAndCreateIndex(tpsIndex, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = indexer.checkAndCreateIndex(validatorsIndex, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = indexer.checkAndCreateIndex(roundIndex, timestampMapping())
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +213,9 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 func (ei *elasticIndexer) SaveBlock(
 	bodyHandler data.BodyHandler,
 	headerhandler data.HeaderHandler,
-	txPool map[string]data.TransactionHandler) {
+	txPool map[string]data.TransactionHandler,
+	signersIndexes []uint64,
+) {
 
 	if headerhandler == nil || headerhandler.IsInterfaceNil() {
 		ei.logger.Warn(ErrNoHeader.Error())
@@ -211,7 +228,7 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	go ei.saveHeader(headerhandler)
+	go ei.saveHeader(headerhandler, signersIndexes)
 
 	if len(body) == 0 {
 		ei.logger.Warn(ErrNoMiniblocks.Error())
@@ -223,7 +240,100 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 }
 
-func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler) ([]byte, []byte) {
+// SaveMetaBlock will index a meta block in elastic search
+func (ei *elasticIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
+	if header == nil || header.IsInterfaceNil() {
+		ei.logger.Warn(ErrNoHeader.Error())
+		return
+	}
+
+	go ei.saveHeader(header, signersIndexes)
+}
+
+// SaveRoundInfo will save data about a round on elastic search
+func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
+	var buff bytes.Buffer
+
+	marshalizedRoundInfo, err := ei.marshalizer.Marshal(roundInfo)
+	if err != nil {
+		ei.logger.Warn("could not marshal signers indexes")
+		return
+	}
+
+	buff.Grow(len(marshalizedRoundInfo))
+	buff.Write(marshalizedRoundInfo)
+
+	req := esapi.IndexRequest{
+		Index:      roundIndex,
+		DocumentID: strconv.FormatUint(uint64(roundInfo.ShardId), 10) + "_" + strconv.FormatUint(roundInfo.Index, 10),
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	res, err := req.Do(context.Background(), ei.db)
+	if err != nil {
+		ei.logger.Warn(fmt.Sprintf("Could not index round informations: %s", err))
+		return
+	}
+
+	defer closeESResponseBody(res)
+
+	if res.IsError() {
+		ei.logger.Warn(res.String())
+	}
+}
+
+//SaveValidatorsPubKeys will send all validators public keys to elastic search
+func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
+	valPubKeys := make(map[uint32][]string, 0)
+	for shardId, shardPubKeys := range validatorsPubKeys {
+		for _, pubKey := range shardPubKeys {
+			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
+		}
+
+		go ei.saveShardValidatorsPubKeys(shardId, valPubKeys[shardId])
+	}
+}
+
+// IsNilIndexer will return a bool value that signals if the indexer's implementation is a NilIndexer
+func (ei *elasticIndexer) IsNilIndexer() bool {
+	return ei.isNilIndexer
+}
+
+func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string) {
+	var buff bytes.Buffer
+
+	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
+	marshalizedValidatorPubKeys, err := ei.marshalizer.Marshal(shardValPubKeys)
+	if err != nil {
+		ei.logger.Warn("could not marshal validators public keys")
+		return
+	}
+
+	buff.Grow(len(marshalizedValidatorPubKeys))
+	buff.Write(marshalizedValidatorPubKeys)
+
+	req := esapi.IndexRequest{
+		Index:      validatorsIndex,
+		DocumentID: strconv.FormatUint(uint64(shardId), 10),
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	res, err := req.Do(context.Background(), ei.db)
+	if err != nil {
+		ei.logger.Warn(fmt.Sprintf("Could not index validators public keys: %s", err))
+		return
+	}
+
+	defer closeESResponseBody(res)
+
+	if res.IsError() {
+		ei.logger.Warn(res.String())
+	}
+}
+
+func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler, signersIndexes []uint64) ([]byte, []byte) {
 	h, err := ei.marshalizer.Marshal(header)
 	if err != nil {
 		ei.logger.Warn("could not marshal header")
@@ -232,12 +342,12 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.Hea
 
 	headerHash := ei.hasher.Compute(string(h))
 	elasticBlock := Block{
-		Nonce:   header.GetNonce(),
-		ShardID: header.GetShardID(),
-		Hash:    hex.EncodeToString(headerHash),
-		// TODO: We should add functionality for proposer and validators
-		Proposer: hex.EncodeToString([]byte("mock proposer")),
-		//Validators: "mock validators",
+		Nonce:         header.GetNonce(),
+		Round:         header.GetRound(),
+		ShardID:       header.GetShardID(),
+		Hash:          hex.EncodeToString(headerHash),
+		Proposer:      signersIndexes[0],
+		Validators:    signersIndexes,
 		PubKeyBitmap:  hex.EncodeToString(header.GetPubKeysBitmap()),
 		Size:          int64(len(h)),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
@@ -255,10 +365,10 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.Hea
 	return serializedBlock, headerHash
 }
 
-func (ei *elasticIndexer) saveHeader(header data.HeaderHandler) {
+func (ei *elasticIndexer) saveHeader(header data.HeaderHandler, signersIndexes []uint64) {
 	var buff bytes.Buffer
 
-	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header)
+	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header, signersIndexes)
 
 	buff.Grow(len(serializedBlock))
 	buff.Write(serializedBlock)
@@ -529,7 +639,7 @@ func buildTransaction(
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         tx.Nonce,
 		Round:         header.GetRound(),
-		Value:         tx.Value,
+		Value:         tx.Value.String(),
 		Receiver:      hex.EncodeToString(tx.RcvAddr),
 		Sender:        hex.EncodeToString(tx.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
@@ -557,7 +667,7 @@ func buildSmartContractResult(
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         scr.Nonce,
 		Round:         header.GetRound(),
-		Value:         scr.Value,
+		Value:         scr.Value.String(),
 		Receiver:      hex.EncodeToString(scr.RcvAddr),
 		Sender:        hex.EncodeToString(scr.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
@@ -588,7 +698,7 @@ func buildRewardTransaction(
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         0,
 		Round:         rTx.Round,
-		Value:         rTx.Value,
+		Value:         rTx.Value.String(),
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
 		Sender:        shardIdStr,
 		ReceiverShard: mb.ReceiverShardID,

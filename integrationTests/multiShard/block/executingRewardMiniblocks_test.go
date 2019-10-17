@@ -19,9 +19,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getRewardValue() uint32 {
-	//TODO: this should be read from protocol config
-	return uint32(1000)
+func getRewardValue(node *integrationTests.TestProcessorNode) *big.Int {
+	return node.EconomicsData.RewardsValue()
+}
+
+func getLeaderPercentage(node *integrationTests.TestProcessorNode) float64 {
+	return node.EconomicsData.LeaderPercentage()
 }
 
 func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
@@ -49,7 +52,14 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		seedAddress,
 	)
 
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	valToTransfer := big.NewInt(100)
+	nbTxsPerShard := uint32(100)
+	mintValue := big.NewInt(1000000)
+
 	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
 	}
 
@@ -61,12 +71,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 			}
 		}
 	}()
-
-	gasPrice := uint64(10)
-	gasLimit := uint64(100)
-	valToTransfer := big.NewInt(100)
-	nbTxsPerShard := uint32(100)
-	mintValue := big.NewInt(1000000)
 
 	generateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 
@@ -324,14 +328,15 @@ func verifyRewardsForMetachain(
 	mapRewardsForMeta map[string]uint32,
 	nodes map[uint32][]*integrationTests.TestProcessorNode,
 ) {
-	rewardValue := getRewardValue()
+	rewardValue := getRewardValue(nodes[0][0])
 
 	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
 		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(metaAddr))
 		acc, err := nodes[0][0].AccntState.GetExistingAccount(addrContainer)
 		assert.Nil(t, err)
 
-		expectedBalance := big.NewInt(int64(numOfTimesRewarded * rewardValue))
+		expectedBalance := big.NewInt(0).SetUint64(uint64(numOfTimesRewarded))
+		expectedBalance.Mul(expectedBalance, rewardValue)
 		assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 	}
 }
@@ -344,9 +349,8 @@ func verifyRewardsForShards(
 	gasPrice uint64,
 	gasLimit uint64,
 ) {
-	rewardValue := getRewardValue()
-	// TODO: fee percentage should be read from protocol config
-	feePerTxForLeader := gasPrice * gasLimit / 2
+	rewardValue := getRewardValue(nodesMap[0][0])
+	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0])
 
 	for address, nbRewards := range mapRewardsForAddress {
 		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(address))
@@ -357,9 +361,14 @@ func verifyRewardsForShards(
 			assert.Nil(t, err)
 
 			nbProposedTxs := nbTxsForLeaderAddress[address]
-			expectedBalance := int64(nbRewards)*int64(rewardValue) + int64(nbProposedTxs)*int64(feePerTxForLeader)
+			expectedBalance := big.NewInt(0).SetUint64(uint64(nbRewards))
+			expectedBalance.Mul(expectedBalance, rewardValue)
+			totalFees := big.NewInt(0).SetUint64(uint64(nbProposedTxs))
+			totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
+
+			expectedBalance.Add(expectedBalance, totalFees)
 			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
-			assert.Equal(t, big.NewInt(expectedBalance), acc.(*state.Account).Balance)
+			assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 		}
 	}
 }
