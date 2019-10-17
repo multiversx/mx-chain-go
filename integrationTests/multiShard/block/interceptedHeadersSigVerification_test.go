@@ -144,7 +144,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 
 	// all nodes in metachain do not have the block in pool as interceptor does not validate it with a wrong consensus
 	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
-		v, ok := metaNode.MetaDataPool.MetaChainBlocks().Get(headerHash)
+		v, ok := metaNode.MetaDataPool.MetaBlocks().Get(headerHash)
 		assert.True(t, ok)
 		assert.Equal(t, header, v)
 	}
