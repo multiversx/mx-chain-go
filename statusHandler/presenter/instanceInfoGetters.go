@@ -1,11 +1,13 @@
 package presenter
 
 import (
-	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
+
+// denomination is equals with 10^-4
+var denominationCoefficient = big.NewFloat(0.0001)
 
 // GetAppVersion will return application version
 func (psh *PresenterStatusHandler) GetAppVersion() string {
@@ -65,26 +67,18 @@ func (psh *PresenterStatusHandler) GetNodeName() string {
 
 // GetTotalRewardsValue will return total value of rewards and how the rewards were increased on every second
 // Rewards estimation will be equal with :
-// (numSignedBlocks - numProposedBlocks) * communityPercentage * Rewards +
-// numProposedBlocks * leaderPercentage * Rewards
+// numSignedBlocks * denomination * Rewards
 func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
 	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
-	communityPercentage := psh.getFloatFromStringMetric(core.MetricCommunityPercentage)
-	leaderPercentage := psh.getFloatFromStringMetric(core.MetricLeaderPercentage)
 	numSignedBlocks := psh.getFromCacheAsUint64(core.MetricCountConsensusAcceptedBlocks)
-	numProposedBlocks := psh.getFromCacheAsUint64(core.MetricCountAcceptedBlocks)
 
-	rewardsCommunityCoefficient := math.Abs(float64(int(numSignedBlocks-numProposedBlocks))) * communityPercentage
-	consensusSignedBlocksRewards := big.NewFloat(rewardsCommunityCoefficient)
-	consensusSignedBlocksRewards.Mul(consensusSignedBlocksRewards, big.NewFloat(0).SetInt(rewardsValue))
+	rewardsCoefficient := float64(numSignedBlocks)
+	totalRewardsFloat := big.NewFloat(rewardsCoefficient)
+	totalRewardsFloat.Mul(totalRewardsFloat, denominationCoefficient)
+	totalRewardsFloat.Mul(totalRewardsFloat, big.NewFloat(0).SetInt(rewardsValue))
 
-	rewardsLeaderCoefficient := float64(numProposedBlocks) * leaderPercentage
-	leaderProposedBlocksRewards := big.NewFloat(rewardsLeaderCoefficient)
-	leaderProposedBlocksRewards.Mul(leaderProposedBlocksRewards, big.NewFloat(0).SetInt(rewardsValue))
-
-	totalRewardsBigFloat := big.NewFloat(0).Add(consensusSignedBlocksRewards, leaderProposedBlocksRewards)
 	totalRewards := new(big.Int)
-	totalRewardsBigFloat.Int(totalRewards)
+	totalRewardsFloat.Int(totalRewards)
 
 	difRewards := big.NewInt(0).Sub(totalRewards, psh.totalRewardsOld)
 	psh.totalRewardsOld.Set(totalRewards)
@@ -95,8 +89,7 @@ func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
 
 // CalculateRewardsPerHour will return an approximation of how many ERDs a validator will earn per hour
 // Rewards estimation per hour will be equals with :
-// (changeToBeInConsensus - changeToBeLeader) * roundsPerHour * hitRate * communityPercentage * Rewards +
-// changeToBeLeader * roundsPerHour * hitRate * leaderPercentage * Rewards
+// changeToBeInConsensus * roundsPerHour * hitRate * denominationCoefficient * Rewards
 func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
 	consensusGroupSize := psh.getFromCacheAsUint64(core.MetricConsensusGroupSize)
 	numValidators := psh.getFromCacheAsUint64(core.MetricNumValidators)
@@ -105,8 +98,6 @@ func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
 	roundDuration := psh.GetRoundTime()
 	secondsInAHour := uint64(3600)
 	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
-	communityPercentage := psh.getFloatFromStringMetric(core.MetricCommunityPercentage)
-	leaderPercentage := psh.getFloatFromStringMetric(core.MetricLeaderPercentage)
 
 	areEqualsWithZero := areEqualsWithZero(consensusGroupSize, numValidators, totalBlocks, rounds, roundDuration)
 	if areEqualsWithZero || rewardsValue.Cmp(big.NewInt(0)) <= 0 {
@@ -114,19 +105,14 @@ func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
 	}
 
 	chanceToBeInConsensus := float64(consensusGroupSize) / float64(numValidators)
-	chanceToBeLeader := 1 / float64(numValidators)
 	hitRate := float64(totalBlocks) / float64(rounds)
 	roundsPerHour := float64(secondsInAHour) / float64(roundDuration)
 
-	consensusCoefficient := (chanceToBeInConsensus - chanceToBeLeader) * hitRate * roundsPerHour * communityPercentage
-	consensusRewardsPerHour := big.NewFloat(consensusCoefficient)
-	consensusRewardsPerHour.Mul(consensusRewardsPerHour, big.NewFloat(0).SetInt(rewardsValue))
+	rewardsPerHourCoefficient := chanceToBeInConsensus * hitRate * roundsPerHour
+	totalRewardsPerHourFloat := big.NewFloat(rewardsPerHourCoefficient)
+	totalRewardsPerHourFloat.Mul(totalRewardsPerHourFloat, denominationCoefficient)
+	totalRewardsPerHourFloat.Mul(totalRewardsPerHourFloat, big.NewFloat(0).SetInt(rewardsValue))
 
-	leaderCoefficient := chanceToBeLeader * hitRate * roundsPerHour * leaderPercentage
-	leaderRewardsPerHour := big.NewFloat(leaderCoefficient)
-	leaderRewardsPerHour.Mul(leaderRewardsPerHour, big.NewFloat(0).SetInt(rewardsValue))
-
-	totalRewardsPerHourFloat := big.NewFloat(0).Add(consensusRewardsPerHour, leaderRewardsPerHour)
 	totalRewardsPerHour := new(big.Int)
 	totalRewardsPerHourFloat.Int(totalRewardsPerHour)
 
