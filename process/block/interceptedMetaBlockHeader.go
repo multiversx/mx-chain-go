@@ -91,14 +91,14 @@ func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) er
 	}
 
 	for _, sd := range imh.ShardInfo {
-		if sd.ShardId >= coordinator.NumberOfShards() {
+		if sd.ShardID >= coordinator.NumberOfShards() {
 			return process.ErrInvalidShardId
 		}
 		for _, smbh := range sd.ShardMiniBlockHeaders {
-			if smbh.SenderShardId >= coordinator.NumberOfShards() {
+			if smbh.SenderShardID >= coordinator.NumberOfShards() {
 				return process.ErrInvalidShardId
 			}
-			if smbh.ReceiverShardId >= coordinator.NumberOfShards() {
+			if smbh.ReceiverShardID >= coordinator.NumberOfShards() {
 				return process.ErrInvalidShardId
 			}
 		}

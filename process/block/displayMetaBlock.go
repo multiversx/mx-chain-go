@@ -101,7 +101,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 		shardData := header.ShardInfo[i]
 
 		lines = append(lines, display.NewLineData(false, []string{
-			fmt.Sprintf("ShardData_%d", shardData.ShardId),
+			fmt.Sprintf("ShardData_%d", shardData.ShardID),
 			"Header hash",
 			base64.StdEncoding.EncodeToString(shardData.HeaderHash)}))
 
@@ -112,8 +112,8 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 
 		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
 			if j == 0 || j >= len(shardData.ShardMiniBlockHeaders)-1 {
-				senderShard := shardData.ShardMiniBlockHeaders[j].SenderShardId
-				receiverShard := shardData.ShardMiniBlockHeaders[j].ReceiverShardId
+				senderShard := shardData.ShardMiniBlockHeaders[j].SenderShardID
+				receiverShard := shardData.ShardMiniBlockHeaders[j].ReceiverShardID
 
 				lines = append(lines, display.NewLineData(false, []string{
 					"",

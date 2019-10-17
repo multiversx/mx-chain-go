@@ -443,8 +443,16 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	if headerHandler == nil || headerHandler.IsInterfaceNil() {
 		return process.ErrNilMetaBlockHeader
 	}
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
+		return process.ErrNilTxBlockBody
+	}
 
 	header, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -462,6 +470,11 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	hdrHashes := make([][]byte, len(header.ShardInfo))
 	for i := 0; i < len(header.ShardInfo); i++ {
 		hdrHashes[i] = header.ShardInfo[i].HeaderHash
+	}
+
+	_, err := mp.txCoordinator.RestoreBlockDataFromStorage(body)
+	if err != nil {
+		return err
 	}
 
 	for _, hdrHash := range hdrHashes {
@@ -535,7 +548,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, nbTxs, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
+	destMeMiniBlocks, nbTxs, nbHdrs, err := mp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -546,6 +559,22 @@ func (mp *metaProcessor) createMiniBlocks(
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
 	}
 
+	maxTxSpaceRemained := int32(maxItemsInBlock) - int32(nbTxs)
+	maxMbSpaceRemained := mp.getMaxMiniBlocksSpaceRemained(
+		maxItemsInBlock,
+		uint32(len(destMeMiniBlocks))+nbHdrs,
+		uint32(len(miniBlocks)))
+
+	mbFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
+		uint32(maxTxSpaceRemained),
+		uint32(maxMbSpaceRemained),
+		round,
+		haveTime)
+
+	if len(mbFromMe) > 0 {
+		miniBlocks = append(miniBlocks, mbFromMe...)
+	}
+
 	return miniBlocks, nil
 }
 
@@ -554,7 +583,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
-) (block.MiniBlockSlice, uint32, error) {
+) (block.MiniBlockSlice, uint32, uint32, error) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	txsAdded := uint32(0)
@@ -563,14 +592,14 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 	orderedHdrs, orderedHdrHashes, sortedHdrPerShard, err := mp.getOrderedHdrs(round)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 
 	// save last committed header for verification
 	mp.mutNotarizedHdrs.RLock()
 	if mp.notarizedHdrs == nil {
 		mp.mutNotarizedHdrs.RUnlock()
-		return nil, 0, process.ErrNotarizedHdrsSliceIsNil
+		return nil, 0, 0, process.ErrNotarizedHdrsSliceIsNil
 	}
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
 		lastPushedHdr[shardId] = mp.lastNotarizedHdrForShard(shardId)
@@ -656,7 +685,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	return miniBlocks, txsAdded, nil
+	return miniBlocks, txsAdded, hdrsAdded, nil
 }
 
 func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
@@ -750,10 +779,26 @@ func (mp *metaProcessor) CommitBlock(
 	syncMap.Store(headerHandler.GetShardID(), headerHash)
 	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
 
-	body, ok := bodyHandler.(*block.Body)
+	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
+	}
+
+	err = mp.txCoordinator.SaveBlockDataToStorage(body)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(body); i++ {
+		buff, err = mp.marshalizer.Marshal(body[i])
+		if err != nil {
+			return err
+		}
+
+		miniBlockHash := mp.hasher.Compute(string(buff))
+		errNotCritical = mp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, buff)
+		log.LogIfError(errNotCritical)
 	}
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
@@ -808,6 +853,11 @@ func (mp *metaProcessor) CommitBlock(
 	errNotCritical = mp.removeBlockInfoFromPool(header)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
+	}
+
+	errNotCritical = mp.txCoordinator.RemoveBlockDataFromPool(body)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
 	}
 
 	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
@@ -1218,7 +1268,6 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 }
 
 func (mp *metaProcessor) createShardInfo(
-	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
 ) ([]block.ShardData, error) {
@@ -1308,7 +1357,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		go mp.checkAndRequestIfShardHeadersMissing(round)
 	}()
 
-	shardInfo, err := mp.createShardInfo(mp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
+	shardInfo, err := mp.createShardInfo(round, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1345,10 +1394,26 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
 
-	mrsData := make(map[uint32][]byte)
-	mrsTxs := make(map[string][][]byte)
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
+		return nil, nil, process.ErrNilMiniBlocks
+	}
 
-	// send headers which can validate the current header
+	body, ok := bodyHandler.(block.Body)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	mrsData := make(map[uint32][]byte)
+	bodies, mrsTxs := mp.txCoordinator.CreateMarshalizedData(body)
+
+	for shardId, subsetBlockBody := range bodies {
+		buff, err := mp.marshalizer.Marshal(subsetBlockBody)
+		if err != nil {
+			log.Debug(process.ErrMarshalWithoutSuccess.Error())
+			continue
+		}
+		mrsData[shardId] = buff
+	}
 
 	return mrsData, mrsTxs, nil
 }
@@ -1469,7 +1534,7 @@ func (mp *metaProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 		return nil
 	}
 
-	return &body
+	return body
 }
 
 // DecodeBlockHeader method decodes block header from a given byte array

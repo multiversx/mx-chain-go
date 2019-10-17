@@ -207,7 +207,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	}
 
 	for _, shardInfo := range header.ShardInfo {
-		shardStat, ok := s.shardStatistics[shardInfo.ShardId]
+		shardStat, ok := s.shardStatistics[shardInfo.ShardID]
 		if !ok {
 			return ErrInvalidShardId
 		}
@@ -224,7 +224,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 		newAverageTPS := big.NewInt(0).Quo(newTotalProcessedTxCount, roundsPassed)
 
 		updatedShardStats := &ShardStatistics{
-			shardID:               shardInfo.ShardId,
+			shardID:               shardInfo.ShardID,
 			roundTime:             s.roundTime,
 			currentBlockNonce:     header.Nonce,
 			totalProcessedTxCount: newTotalProcessedTxCount,
@@ -234,7 +234,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 			lastBlockTxCount: header.TxCount,
 		}
 
-		s.shardStatistics[shardInfo.ShardId] = updatedShardStats
+		s.shardStatistics[shardInfo.ShardID] = updatedShardStats
 	}
 
 	return nil
