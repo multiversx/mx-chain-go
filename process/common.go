@@ -563,3 +563,8 @@ func SortHeadersByNonce(headers []data.HeaderHandler) {
 		})
 	}
 }
+
+// IsInProperRound checks if the given round index satisfies the round modulus trigger
+func IsInProperRound(index int64) bool {
+	return index%RoundModulusTrigger == 0
+}
