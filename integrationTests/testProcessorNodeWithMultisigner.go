@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -80,14 +81,16 @@ func CreateNodesWithNodesCoordinator(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	for shardId, validatorList := range validatorsMap {
-		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(
-			shardConsensusGroupSize,
-			metaConsensusGroupSize,
-			TestHasher,
-			shardId,
-			uint32(nbShards),
-			validatorsMap,
-		)
+		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Hasher:                  TestHasher,
+			ShardId:                 shardId,
+			NbShards:                uint32(nbShards),
+			Nodes:                   validatorsMap,
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+		}
+		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		if err != nil {
 			fmt.Println("Error creating node coordinator")
@@ -259,7 +262,7 @@ func VerifyNodesHaveHeaders(
 
 		for _, metaNode := range nodesMap[sharding.MetachainShardId] {
 			if shHeader == sharding.MetachainShardId {
-				v, ok = metaNode.MetaDataPool.MetaChainBlocks().Get(headerHash)
+				v, ok = metaNode.MetaDataPool.MetaBlocks().Get(headerHash)
 			} else {
 				v, ok = metaNode.MetaDataPool.ShardHeaders().Get(headerHash)
 			}

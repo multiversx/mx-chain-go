@@ -18,22 +18,22 @@ type RewardTx struct {
 }
 
 // Save saves the serialized data of a RewardTx into a stream through Capnp protocol
-func (scr *RewardTx) Save(w io.Writer) error {
+func (rtx *RewardTx) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	RewardTxGoToCapn(seg, scr)
+	RewardTxGoToCapn(seg, rtx)
 	_, err := seg.WriteTo(w)
 	return err
 }
 
 // Load loads the data from the stream into a RewardTx object through Capnp protocol
-func (scr *RewardTx) Load(r io.Reader) error {
+func (rtx *RewardTx) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
 		return err
 	}
 
 	z := capnp.ReadRootRewardTxCapn(capMsg)
-	RewardTxCapnToGo(z, scr)
+	RewardTxCapnToGo(z, rtx)
 	return nil
 }
 
@@ -76,44 +76,44 @@ func RewardTxGoToCapn(seg *capn.Segment, src *RewardTx) capnp.RewardTxCapn {
 }
 
 // IsInterfaceNil verifies if underlying object is nil
-func (scr *RewardTx) IsInterfaceNil() bool {
-	return scr == nil
+func (rtx *RewardTx) IsInterfaceNil() bool {
+	return rtx == nil
 }
 
 // GetValue returns the value of the reward transaction
-func (scr *RewardTx) GetValue() *big.Int {
-	return scr.Value
+func (rtx *RewardTx) GetValue() *big.Int {
+	return rtx.Value
 }
 
 // GetData returns the data of the reward transaction
-func (scr *RewardTx) GetData() string {
+func (rtx *RewardTx) GetData() string {
 	return ""
 }
 
 // GetRecvAddress returns the receiver address from the reward transaction
-func (scr *RewardTx) GetRecvAddress() []byte {
-	return scr.RcvAddr
+func (rtx *RewardTx) GetRecvAddress() []byte {
+	return rtx.RcvAddr
 }
 
 // GetSndAddress returns the sender address from the reward transaction
-func (scr *RewardTx) GetSndAddress() []byte {
+func (rtx *RewardTx) GetSndAddress() []byte {
 	return nil
 }
 
 // SetValue sets the value of the reward transaction
-func (scr *RewardTx) SetValue(value *big.Int) {
-	scr.Value = value
+func (rtx *RewardTx) SetValue(value *big.Int) {
+	rtx.Value = value
 }
 
 // SetData sets the data of the reward transaction
-func (scr *RewardTx) SetData(data string) {
+func (rtx *RewardTx) SetData(data string) {
 }
 
 // SetRecvAddress sets the receiver address of the reward transaction
-func (scr *RewardTx) SetRecvAddress(addr []byte) {
-	scr.RcvAddr = addr
+func (rtx *RewardTx) SetRecvAddress(addr []byte) {
+	rtx.RcvAddr = addr
 }
 
 // SetSndAddress sets the sender address of the reward transaction
-func (scr *RewardTx) SetSndAddress(addr []byte) {
+func (rtx *RewardTx) SetSndAddress(addr []byte) {
 }

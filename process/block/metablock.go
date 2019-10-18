@@ -10,12 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -25,57 +21,28 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core     serviceContainer.Core
-	dataPool dataRetriever.MetaPoolsHolder
+	core               serviceContainer.Core
+	dataPool           dataRetriever.MetaPoolsHolder
+	//TODO: add	txCoordinator process.TransactionCoordinator
 
 	shardsHeadersNonce *sync.Map
-
 	shardBlockFinality uint32
-
-	chRcvAllHdrs chan bool
-
-	headersCounter *headersCounter
+	chRcvAllHdrs       chan bool
+	headersCounter     *headersCounter
 }
 
 // NewMetaProcessor creates a new metaProcessor object
-func NewMetaProcessor(
-	core serviceContainer.Core,
-	accounts state.AccountsAdapter,
-	dataPool dataRetriever.MetaPoolsHolder,
-	forkDetector process.ForkDetector,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	specialAddressHandler process.SpecialAddressHandler,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	store dataRetriever.StorageService,
-	startHeaders map[uint32]data.HeaderHandler,
-	requestHandler process.RequestHandler,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) (*metaProcessor, error) {
-
-	err := checkProcessorNilParameters(
-		accounts,
-		forkDetector,
-		hasher,
-		marshalizer,
-		store,
-		shardCoordinator,
-		nodesCoordinator,
-		specialAddressHandler,
-		uint64Converter)
+func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
+	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	if dataPool == nil || dataPool.IsInterfaceNil() {
+	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if dataPool.ShardHeaders() == nil || dataPool.ShardHeaders().IsInterfaceNil() {
+	if arguments.DataPool.ShardHeaders() == nil || arguments.DataPool.ShardHeaders().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
-	}
-	if requestHandler == nil || requestHandler.IsInterfaceNil() {
-		return nil, process.ErrNilRequestHandler
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -84,30 +51,30 @@ func NewMetaProcessor(
 	}
 
 	base := &baseProcessor{
-		accounts:                      accounts,
+		accounts:                      arguments.Accounts,
 		blockSizeThrottler:            blockSizeThrottler,
-		forkDetector:                  forkDetector,
-		hasher:                        hasher,
-		marshalizer:                   marshalizer,
-		store:                         store,
-		shardCoordinator:              shardCoordinator,
-		nodesCoordinator:              nodesCoordinator,
-		specialAddressHandler:         specialAddressHandler,
-		uint64Converter:               uint64Converter,
-		onRequestHeaderHandler:        requestHandler.RequestHeader,
-		onRequestHeaderHandlerByNonce: requestHandler.RequestHeaderByNonce,
+		forkDetector:                  arguments.ForkDetector,
+		hasher:                        arguments.Hasher,
+		marshalizer:                   arguments.Marshalizer,
+		store:                         arguments.Store,
+		shardCoordinator:              arguments.ShardCoordinator,
+		nodesCoordinator:              arguments.NodesCoordinator,
+		specialAddressHandler:         arguments.SpecialAddressHandler,
+		uint64Converter:               arguments.Uint64Converter,
+		onRequestHeaderHandler:        arguments.RequestHandler.RequestHeader,
+		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 	}
 
-	err = base.setLastNotarizedHeadersSlice(startHeaders)
+	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
 		return nil, err
 	}
 
 	mp := metaProcessor{
-		core:           core,
+		core:           arguments.Core,
 		baseProcessor:  base,
-		dataPool:       dataPool,
+		dataPool:       arguments.DataPool,
 		headersCounter: NewHeaderCounter(),
 	}
 
@@ -169,6 +136,7 @@ func (mp *metaProcessor) ProcessBlock(
 	)
 
 	mp.createBlockStarted()
+
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
@@ -264,18 +232,28 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 	return
 }
 
-func (mp *metaProcessor) indexBlock() {
+func (mp *metaProcessor) indexBlock(
+	metaBlock data.HeaderHandler,
+	lastMetaBlock data.HeaderHandler,
+) {
 	if mp.core == nil || mp.core.Indexer() == nil {
 		return
 	}
-
 	// Update tps benchmarks in the DB
 	tpsBenchmark := mp.core.TPSBenchmark()
 	if tpsBenchmark != nil {
 		go mp.core.Indexer().UpdateTPS(tpsBenchmark)
 	}
 
-	//TODO: maybe index metablocks also?
+	publicKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), sharding.MetachainShardId)
+	if err != nil {
+		return
+	}
+
+	signersIndexes := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
+	go mp.core.Indexer().SaveMetaBlock(metaBlock, signersIndexes)
+
+	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, sharding.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
@@ -469,14 +447,18 @@ func (mp *metaProcessor) CommitBlock(
 
 	headerNoncePool := mp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
-		err = process.ErrNilDataPoolHolder
+		err = process.ErrNilHeadersNoncesDataPool
 		return err
 	}
 
-	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(headerHandler.GetShardID(), headerHash)
-	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
+	metaBlockPool := mp.dataPool.MetaBlocks()
+	if metaBlockPool == nil {
+		err = process.ErrNilMetaBlockPool
+		return err
+	}
+
+	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
+	metaBlockPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {
@@ -550,6 +532,8 @@ func (mp *metaProcessor) CommitBlock(
 	hdrsToAttestPreviousFinal := mp.shardBlockFinality + 1
 	mp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
+	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
+
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
@@ -566,9 +550,9 @@ func (mp *metaProcessor) CommitBlock(
 		mp.core.TPSBenchmark().Update(header)
 	}
 
-	mp.indexBlock()
+	mp.indexBlock(header, lastMetaBlock)
 
-	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
+	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
 	go mp.headersCounter.displayLogInfo(
 		header,
@@ -841,6 +825,13 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		}
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	}
+
+	// request miniblocks for which metachain is destination
+	for _, mb := range shardHeader.MiniBlockHeaders {
+		if mb.ReceiverShardID == mp.shardCoordinator.SelfId() {
+			//TODO continue implementation: go mp.onRequestMiniBlock(mb.Hash)
+		}
 	}
 }
 

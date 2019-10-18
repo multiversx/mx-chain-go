@@ -152,21 +152,7 @@ func (inTx *InterceptedTransaction) integrity() error {
 		return process.ErrNegativeValue
 	}
 
-	return inTx.checkFeeValues()
-}
-
-func (inTx *InterceptedTransaction) checkFeeValues() error {
-	isLowerGasLimitInTx := inTx.tx.GasLimit < inTx.feeHandler.MinGasLimit()
-	if isLowerGasLimitInTx {
-		return process.ErrInsufficientGasLimitInTx
-	}
-
-	isLowerGasPrice := inTx.tx.GasPrice < inTx.feeHandler.MinGasPrice()
-	if isLowerGasPrice {
-		return process.ErrInsufficientGasPriceInTx
-	}
-
-	return nil
+	return inTx.feeHandler.CheckValidityTxValues(inTx.tx)
 }
 
 // verifySig checks if the tx is correctly signed
