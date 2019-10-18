@@ -14,9 +14,6 @@ var ErrNilSystemContractsContainer = errors.New("system contract container is ni
 // ErrNilVMType signals that the provided vm type is nil
 var ErrNilVMType = errors.New("vm type is nil")
 
-// ErrCannotCreateNewSystemSmartContract signals that creation of new system smart contracts is not available
-var ErrCannotCreateNewSystemSmartContract = errors.New("creation of new system smart contract is not enabled")
-
 // ErrInputArgsIsNil signals that input arguments are nil for system smart contract
 var ErrInputArgsIsNil = errors.New("input system smart contract arguments are nil")
 
@@ -38,6 +35,9 @@ var ErrInputGasProvidedIsNil = errors.New("input gas provided for system smart c
 // ErrInputGasPriceIsNil signals that input gas price value is nil for system smart contracts
 var ErrInputGasPriceIsNil = errors.New("input gas price for system smart contract is nil")
 
+// ErrInputHeaderIsNil signals that input header for system smart contract is nil
+var ErrInputHeaderIsNil = errors.New("input header for system smart contract is nil")
+
 // ErrNilBlockchainHook signals that blockchain hook is nil
 var ErrNilBlockchainHook = errors.New("blockchain hook is nil")
 
@@ -52,3 +52,6 @@ var ErrInvalidStakeValue = errors.New("bad config value for initial stake")
 
 // ErrNilInitialStakeValue signals that nil initial stake value was provided
 var ErrNilInitialStakeValue = errors.New("initial stake value is nil")
+
+// ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
+var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")

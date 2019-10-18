@@ -32,6 +32,9 @@ func NewStakingSmartContract(stakeValue *big.Int, eei vm.SystemEI) (*stakingSC, 
 	if stakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
+	if stakeValue.Cmp(big.NewInt(0)) == -1 {
+		return nil, vm.ErrNegativeInitialStakeValue
+	}
 	if eei == nil || eei.IsInterfaceNil() {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
@@ -86,7 +89,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	data := r.eei.GetStorage(args.CallerAddr)
 
 	if data != nil {
-		err := json.Unmarshal(data, registrationData)
+		err := json.Unmarshal(data, &registrationData)
 		if err != nil {
 			log.Error("unmarshal error on staking smart contract stake function " + err.Error())
 			return vmcommon.UserError
@@ -133,9 +136,14 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	err := json.Unmarshal(data, registrationData)
+	err := json.Unmarshal(data, &registrationData)
 	if err != nil {
 		log.Error("unmarshal error in unStake function of staking smart contract " + err.Error())
+		return vmcommon.UserError
+	}
+
+	if registrationData.Staked == false {
+		log.Error("unStake is not possible for address with is already unStaked")
 		return vmcommon.UserError
 	}
 
@@ -162,7 +170,7 @@ func (r *stakingSC) finalizeUnStake(args *vmcommon.ContractCallInput) vmcommon.R
 	var registrationData stakingData
 	for _, arg := range args.Arguments {
 		data := r.eei.GetStorage(arg.Bytes())
-		err := json.Unmarshal(data, registrationData)
+		err := json.Unmarshal(data, &registrationData)
 		if err != nil {
 			log.Error("unmarshal error on finalize unstake function" + err.Error())
 			return vmcommon.UserError
@@ -198,14 +206,13 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	var registrationData stakingData
 	data := r.eei.GetStorage(args.Arguments[0].Bytes())
-	err := json.Unmarshal(data, registrationData)
-	if err != nil {
-		log.Error("unmarshal error on slash function" + err.Error())
+	if data == nil {
 		return vmcommon.UserError
 	}
 
-	if len(data) == 0 {
-		log.Error("slash error: validator was not registered")
+	err := json.Unmarshal(data, &registrationData)
+	if err != nil {
+		log.Error("unmarshal error on slash function" + err.Error())
 		return vmcommon.UserError
 	}
 
