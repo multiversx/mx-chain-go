@@ -38,6 +38,7 @@ func NewValidatorStatisticsProcessor(
 	nodesCoordinator sharding.NodesCoordinator,
 	shardCoordinator sharding.Coordinator,
 	shardHeaderStorage storage.Storer,
+	marshalizer marshal.Marshalizer,
 ) (*validatorStatistics, error) {
 	if peerAdapter == nil {
 		return nil, process.ErrNilPeerAccountsAdapter
@@ -54,6 +55,9 @@ func NewValidatorStatisticsProcessor(
 	if shardHeaderStorage == nil || shardHeaderStorage.IsInterfaceNil() {
 		return nil, process.ErrNilShardHeaderStorage
 	}
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+		return nil, process.ErrNilMarshalizer
+	}
 
 	peerProcessor := &validatorStatistics{
 		peerAdapter: peerAdapter,
@@ -61,6 +65,7 @@ func NewValidatorStatisticsProcessor(
 		nodesCoordinator: nodesCoordinator,
 		shardCoordinator: shardCoordinator,
 		shardHeaderStorage: shardHeaderStorage,
+		marshalizer: marshalizer,
 	}
 
 	err := peerProcessor.LoadInitialState(in)

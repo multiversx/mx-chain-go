@@ -21,6 +21,7 @@ func TestNewPeerProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Nil(t, peerProcessor)
@@ -36,6 +37,7 @@ func TestNewPeerProcessor_NilAddressConverterShouldErr(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Nil(t, peerProcessor)
@@ -51,6 +53,7 @@ func TestNewPeerProcessor_NilNodesCoordinatorShouldErr(t *testing.T) {
 		nil,
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Nil(t, peerProcessor)
@@ -65,6 +68,7 @@ func TestNewPeerProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		nil,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Nil(t, peerProcessor)
@@ -79,6 +83,23 @@ func TestNewPeerProcessor_NilShardHeaderStorageShouldErr(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
+		nil,
+		&mock.MarshalizerMock{},
+	)
+
+	assert.Nil(t, peerProcessor)
+	assert.Equal(t, process.ErrNilShardHeaderStorage, err)
+}
+
+func TestNewPeerProcessor_NilMarshalizerShouldErr(t *testing.T) {
+	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
+	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
+		nil,
+		getAccountsMock(),
+		&mock.AddressConverterMock{},
+		&mock.NodesCoordinatorMock{},
+		shardCoordinatorMock,
+		&mock.StorerStub{},
 		nil,
 	)
 
@@ -95,6 +116,7 @@ func TestNewPeerProcessor(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.NotNil(t, peerProcessor)
@@ -110,6 +132,7 @@ func TestPeerProcessor_LoadInitialStateErrOnInvalidNode(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	initialNodes := []*sharding.InitialNode{{PubKey:"", Address: ""}}
@@ -134,6 +157,7 @@ func TestPeerProcessor_LoadInitialStateErrOnWrongAddressConverter(t *testing.T) 
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
@@ -164,6 +188,7 @@ func TestPeerProcessor_LoadInitialStateErrOnGetAccountFail(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Equal(t, adapterError, err)
@@ -191,6 +216,7 @@ func TestPeerProcessor_LoadInitialStateGetAccountReturnsInvalid(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Equal(t, process.ErrInvalidPeerAccount, err)
@@ -227,6 +253,7 @@ func TestPeerProcessor_LoadInitialStateSetAddressErrors(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Equal(t, saveAccountError, err)
@@ -266,6 +293,7 @@ func TestPeerProcessor_LoadInitialStateCommitErrors(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Equal(t, commitError, err)
@@ -304,6 +332,7 @@ func TestPeerProcessor_LoadInitialStateCommit(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	assert.Nil(t, err)
@@ -318,6 +347,7 @@ func TestPeerProcess_IsNodeValidEmptyAddressShoudErr(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	isValid := peerProcessor.IsNodeValid(&sharding.InitialNode{Address: "", PubKey: "aaaaa"})
@@ -333,6 +363,7 @@ func TestPeerProcess_IsNodeValidEmptyPubKeyShoudErr(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	isValid := peerProcessor.IsNodeValid(&sharding.InitialNode{Address: "aaaaa", PubKey: ""})
@@ -348,6 +379,7 @@ func TestPeerProcess_IsNodeValid(t *testing.T) {
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	isValid := peerProcessor.IsNodeValid(&sharding.InitialNode{Address: "aaaaa", PubKey: "aaaaaa"})
@@ -368,6 +400,7 @@ func TestPeerProcess_UpdatePeerStateComputeValidatorErrShouldError(t *testing.T)
 		},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	header := getHeaderHandler([]byte("header"))
@@ -395,6 +428,7 @@ func TestPeerProcess_UpdatePeerStateCreateAddressFromPublicKeyBytesErr(t *testin
 		},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	header := getHeaderHandler([]byte("header"))
@@ -426,6 +460,7 @@ func TestPeerProcess_UpdatePeerStateGetExistingAccountErr(t *testing.T) {
 		},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	header := getHeaderHandler([]byte("header"))
@@ -456,6 +491,7 @@ func TestPeerProcess_UpdatePeerStateGetExistingAccountInvalidType(t *testing.T) 
 		},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	header := getHeaderHandler([]byte("header"))
@@ -507,6 +543,7 @@ func TestPeerProcess_UpdatePeerStateCallsSuccessForLeader(t *testing.T) {
 		},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	header := getHeaderHandler([]byte("header"))
@@ -597,6 +634,7 @@ func TestPeerProcess_RevertPeerStateCallsSuccessForLeader(t *testing.T) {
 		},
 		shardCoordinatorMock,
 		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
 
 	header := getHeaderHandler([]byte("header"))

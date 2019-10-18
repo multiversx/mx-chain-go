@@ -505,6 +505,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	err = mp.updatePeerState(header)
 	if err != nil {
+		fmt.Println("Error updating peer state")
 		return err
 	}
 
@@ -568,6 +569,10 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 func (mp *metaProcessor) updatePeerState(header *block.MetaBlock) error {
+	if header.GetNonce() == 1 {
+		return nil
+	}
+
 	prevMetaHeader, err := mp.getPrevHeader(header)
 	if err != nil {
 		return err

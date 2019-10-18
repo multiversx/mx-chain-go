@@ -1261,7 +1261,6 @@ func createNode(
 		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(process.BlockProcessor),
-		node.WithPeerProcessor(process.PeerProcessor),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
 		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),

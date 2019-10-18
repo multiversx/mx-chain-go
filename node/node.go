@@ -64,7 +64,6 @@ type Node struct {
 	syncTimer                ntp.SyncTimer
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
-	peerProcessor            process.PeerProcessor
 	genesisTime              time.Time
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter

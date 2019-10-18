@@ -215,17 +215,6 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	}
 }
 
-// WithPeerProcessor sets up the peer processor option for the Node
-func WithPeerProcessor(peerProcessor process.PeerProcessor) Option {
-	return func(n *Node) error {
-		if peerProcessor == nil || peerProcessor.IsInterfaceNil() {
-			return ErrNilPeerProcessor
-		}
-		n.peerProcessor = peerProcessor
-		return nil
-	}
-}
-
 // WithGenesisTime sets up the genesis time option for the Node
 func WithGenesisTime(genesisTime time.Time) Option {
 	return func(n *Node) error {

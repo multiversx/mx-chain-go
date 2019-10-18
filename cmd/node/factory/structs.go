@@ -146,7 +146,6 @@ type Process struct {
 	Rounder               consensus.Rounder
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
-	PeerProcessor         process.PeerProcessor
 }
 
 type coreComponentsFactoryArgs struct {
@@ -532,18 +531,12 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	peerProcessor, err := newPeerProcessor(args)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Process{
 		InterceptorsContainer: interceptorsContainer,
 		ResolversFinder:       resolversFinder,
 		Rounder:               rounder,
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
-		PeerProcessor:         peerProcessor,
 	}, nil
 }
 
@@ -1892,6 +1885,7 @@ func newPeerProcessor(processComponents *processComponentsFactoryArgs) (process.
 		processComponents.nodesCoordinator,
 		processComponents.shardCoordinator,
 		headerStorage,
+		processComponents.core.Marshalizer,
 	)
 	if err != nil {
 		return nil, err
