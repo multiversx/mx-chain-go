@@ -46,6 +46,7 @@ func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
 	return (1 << uint(n)) - 1, (1 << uint(n-1)) - 1
 }
 
+//TODO: This method should be changed, as value 0xFF in the last byte of the given address could exist also in shards
 func isMetaChainShardId(identifier []byte) bool {
 	for i := 0; i < len(identifier); i++ {
 		if identifier[i] != metaChainIdentifier {
@@ -65,9 +66,6 @@ func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint
 	}
 
 	buffNeeded := address.Bytes()[startingIndex:]
-	if isMetaChainShardId(buffNeeded) {
-		return MetachainShardId
-	}
 
 	addr := uint32(0)
 	for i := 0; i < len(buffNeeded); i++ {
