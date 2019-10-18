@@ -214,7 +214,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:       icf.dataPool.MetaChainBlocks(),
+		Headers:       icf.dataPool.MetaBlocks(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
 	}
