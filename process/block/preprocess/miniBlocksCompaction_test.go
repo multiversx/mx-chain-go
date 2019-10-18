@@ -4,126 +4,292 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniBlocks(t *testing.T) {
+func TestNewMiniBlocksCompaction_NilEconomicsFeeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewTransactionPreprocessor(
-		txPool,
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
-				return nil
-			},
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, err := NewMiniBlocksCompaction(nil, msc)
+
+	assert.Nil(t, mbc)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewMiniBlocksCompaction_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mbc, err := NewMiniBlocksCompaction(feeHandlerMock(), nil)
+
+	assert.Nil(t, mbc)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewMiniBlocksCompaction_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, err := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+
+	assert.NotNil(t, mbc)
+	assert.Nil(t, err)
+	assert.False(t, mbc.IsInterfaceNil())
+}
+
+func TestMiniBlocksCompaction_CompactSingleMiniblockWontCompact(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+
+	mbs := block.MiniBlockSlice{&block.MiniBlock{
+		ReceiverShardID: 1,
+		SenderShardID:   2,
+	}}
+	mapHashesAndTxs := make(map[string]data.TransactionHandler)
+	newMbs := mbc.Compact(mbs, mapHashesAndTxs)
+
+	assert.Equal(t, mbs, newMbs)
+}
+
+func TestMiniBlocksCompaction_CompactSingleDifferentReceiversWontCompact(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+
+	mbs := block.MiniBlockSlice{
+		&block.MiniBlock{
+			ReceiverShardID: 1,
+			SenderShardID:   2,
 		},
-		mock.NewMultiShardsCoordinatorMock(2),
-		&mock.AccountsStub{},
-		requestTransaction,
-		feeHandlerMock(),
-		miniBlocksCompacterMock(),
+		&block.MiniBlock{
+			ReceiverShardID: 2,
+			SenderShardID:   2,
+		},
+	}
+	mapHashesAndTxs := make(map[string]data.TransactionHandler)
+	newMbs := mbc.Compact(mbs, mapHashesAndTxs)
+
+	assert.Equal(t, mbs, newMbs)
+}
+
+func TestMiniBlocksCompaction_CompactSingleDifferentSenderWontCompact(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+
+	mbs := block.MiniBlockSlice{
+		&block.MiniBlock{
+			ReceiverShardID: 1,
+			SenderShardID:   2,
+		},
+		&block.MiniBlock{
+			ReceiverShardID: 1,
+			SenderShardID:   1,
+		},
+	}
+	mapHashesAndTxs := make(map[string]data.TransactionHandler)
+	newMbs := mbc.Compact(mbs, mapHashesAndTxs)
+
+	assert.Equal(t, mbs, newMbs)
+}
+
+func TestMiniBlocksCompaction_CompactSingleDifferentMbTypesWontCompact(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+
+	mbs := block.MiniBlockSlice{
+		&block.MiniBlock{
+			Type: 2,
+		},
+		&block.MiniBlock{
+			Type: 1,
+		},
+	}
+	mapHashesAndTxs := make(map[string]data.TransactionHandler)
+	newMbs := mbc.Compact(mbs, mapHashesAndTxs)
+
+	assert.Equal(t, mbs, newMbs)
+}
+
+func TestMiniBlocksCompaction_CompactConditionsMetShouldCompact(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+
+	mbs := block.MiniBlockSlice{
+		&block.MiniBlock{
+			SenderShardID:   1,
+			ReceiverShardID: 2,
+			Type:            1,
+		},
+		&block.MiniBlock{
+			SenderShardID:   1,
+			ReceiverShardID: 2,
+			Type:            1,
+		},
+	}
+	mapHashesAndTxs := make(map[string]data.TransactionHandler)
+	newMbs := mbc.Compact(mbs, mapHashesAndTxs)
+
+	assert.NotEqual(t, mbs, newMbs)
+	assert.Equal(t, 1, len(newMbs))
+}
+
+func TestMiniBlocksCompaction_ExpandGasLimitExceededShouldNotCompact(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, _ := NewMiniBlocksCompaction(&mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return tx.GetGasLimit()
+		},
+	}, msc)
+
+	mbs := block.MiniBlockSlice{
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx0"), []byte("tx1")},
+			SenderShardID:   1,
+			ReceiverShardID: 2,
+			Type:            1,
+		},
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx2")},
+			SenderShardID:   1,
+			ReceiverShardID: 2,
+			Type:            1,
+		},
+	}
+	mapHashesAndTxs := make(map[string]data.TransactionHandler)
+	mapHashesAndTxs["tx0"] = &transaction.Transaction{
+		Nonce:    0,
+		GasLimit: 15000,
+	}
+	mapHashesAndTxs["tx1"] = &transaction.Transaction{
+		Nonce:    1,
+		GasLimit: 15000,
+	}
+	mapHashesAndTxs["tx2"] = &transaction.Transaction{
+		Nonce:    2,
+		GasLimit: 80000,
+	}
+	newMbs := mbc.Compact(mbs, mapHashesAndTxs)
+
+	// all mbs should not be compacted in the same miniblock as the total gas limit of them exceeds max gas limit per
+	// miniblock (100k). Therefore, the result miniblocks must be the same (no compaction)
+	assert.Equal(t, mbs, newMbs)
+	assert.NotEqual(t, 1, len(newMbs))
+}
+
+func TestMiniBlocksCompaction_ExpandConditionsMetShouldExpand(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, _ := NewMiniBlocksCompaction(&mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return tx.GetGasLimit()
+		},
+	},
+		msc,
 	)
 
-	keygen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
-	_, accPk := keygen.GeneratePair()
-	pkBytes, _ := accPk.ToByteArray()
-
-	strCache00 := process.ShardCacherIdentifier(0, 0)
-	strCache01 := process.ShardCacherIdentifier(0, 1)
-
-	txHashesInMb1 := [][]byte{[]byte("tx00"), []byte("tx01"), []byte("tx02")}
-	txHashesInMb2 := [][]byte{[]byte("tx10"), []byte("tx11"), []byte("tx12")}
-	txHashesInMb3 := [][]byte{[]byte("tx20"), []byte("tx21"), []byte("tx22")}
-	txHashesInMb4 := [][]byte{[]byte("tx30"), []byte("tx31"), []byte("tx32")}
-
-	mapHashesAndTxs := map[string]data.TransactionHandler{
-		string(txHashesInMb1[0]): &transaction.Transaction{Nonce: 0, SndAddr: pkBytes},
-		string(txHashesInMb1[1]): &transaction.Transaction{Nonce: 1, SndAddr: pkBytes},
-		string(txHashesInMb1[2]): &transaction.Transaction{Nonce: 2, SndAddr: pkBytes},
-		string(txHashesInMb2[0]): &transaction.Transaction{Nonce: 3, SndAddr: pkBytes},
-		string(txHashesInMb2[1]): &transaction.Transaction{Nonce: 4, SndAddr: pkBytes},
-		string(txHashesInMb2[2]): &transaction.Transaction{Nonce: 5, SndAddr: pkBytes},
-		string(txHashesInMb3[0]): &transaction.Transaction{Nonce: 6, SndAddr: pkBytes},
-		string(txHashesInMb3[1]): &transaction.Transaction{Nonce: 7, SndAddr: pkBytes},
-		string(txHashesInMb3[2]): &transaction.Transaction{Nonce: 8, SndAddr: pkBytes},
-		string(txHashesInMb4[0]): &transaction.Transaction{Nonce: 9, SndAddr: pkBytes},
-		string(txHashesInMb4[1]): &transaction.Transaction{Nonce: 10, SndAddr: pkBytes},
-		string(txHashesInMb4[2]): &transaction.Transaction{Nonce: 11, SndAddr: pkBytes},
+	mbs := block.MiniBlockSlice{
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx0"), []byte("tx1"), []byte("tx2")},
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+			Type:            1,
+		},
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx4")},
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			Type:            1,
+		},
 	}
-
-	txPool.AddData(txHashesInMb1[0], mapHashesAndTxs[string(txHashesInMb1[0])], strCache00)
-	txPool.AddData(txHashesInMb1[1], mapHashesAndTxs[string(txHashesInMb1[1])], strCache00)
-	txPool.AddData(txHashesInMb1[2], mapHashesAndTxs[string(txHashesInMb1[2])], strCache00)
-	mb1 := block.MiniBlock{
-		TxHashes:        txHashesInMb1,
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		Type:            0,
+	mapHashesAndTxs := make(map[string]data.TransactionHandler)
+	mapHashesAndTxs["tx0"] = &transaction.Transaction{
+		SndAddr:  []byte("sndr1"),
+		Nonce:    0,
+		GasLimit: 15000,
 	}
-
-	txPool.AddData(txHashesInMb2[0], mapHashesAndTxs[string(txHashesInMb2[0])], strCache01)
-	txPool.AddData(txHashesInMb2[1], mapHashesAndTxs[string(txHashesInMb2[1])], strCache01)
-	txPool.AddData(txHashesInMb2[2], mapHashesAndTxs[string(txHashesInMb2[2])], strCache01)
-	mb2 := block.MiniBlock{
-		TxHashes:        txHashesInMb2,
-		ReceiverShardID: 1,
-		SenderShardID:   0,
-		Type:            0,
+	mapHashesAndTxs["tx1"] = &transaction.Transaction{
+		SndAddr:  []byte("sndr1"),
+		Nonce:    1,
+		GasLimit: 6000,
 	}
-
-	txPool.AddData(txHashesInMb3[0], mapHashesAndTxs[string(txHashesInMb3[0])], strCache00)
-	txPool.AddData(txHashesInMb3[1], mapHashesAndTxs[string(txHashesInMb3[1])], strCache00)
-	txPool.AddData(txHashesInMb3[2], mapHashesAndTxs[string(txHashesInMb3[2])], strCache00)
-	mb3 := block.MiniBlock{
-		TxHashes:        txHashesInMb3,
-		ReceiverShardID: 0,
-		SenderShardID:   0,
-		Type:            0,
+	mapHashesAndTxs["tx2"] = &transaction.Transaction{
+		SndAddr:  []byte("sndr1"),
+		Nonce:    3,
+		GasLimit: 8000,
 	}
-
-	txPool.AddData(txHashesInMb4[0], mapHashesAndTxs[string(txHashesInMb4[0])], strCache01)
-	txPool.AddData(txHashesInMb4[1], mapHashesAndTxs[string(txHashesInMb4[1])], strCache01)
-	txPool.AddData(txHashesInMb4[2], mapHashesAndTxs[string(txHashesInMb4[2])], strCache01)
-	mb4 := block.MiniBlock{
-		TxHashes:        txHashesInMb4,
-		ReceiverShardID: 1,
-		SenderShardID:   0,
-		Type:            0,
+	mapHashesAndTxs["tx4"] = &transaction.Transaction{
+		SndAddr:  []byte("sndr1"),
+		Nonce:    2,
+		GasLimit: 1000,
 	}
-
-	_ = txs.ProcessMiniBlock(&mb1, haveTimeTrue, 0)
-	_ = txs.ProcessMiniBlock(&mb2, haveTimeTrue, 0)
-	_ = txs.ProcessMiniBlock(&mb3, haveTimeTrue, 0)
-	_ = txs.ProcessMiniBlock(&mb4, haveTimeTrue, 0)
-
-	mbsOrig := block.MiniBlockSlice{}
-	mbsOrig = append(mbsOrig, &mb1, &mb2, &mb3, &mb4)
-
-	mbsValues := make([]block.MiniBlock, 0)
-	for _, mb := range mbsOrig {
-		mbsValues = append(mbsValues, *mb)
-	}
-
-	compactedMbs := txs.miniBlocksCompacter.Compact(mbsOrig, mapHashesAndTxs)
-	expandedMbs, err := txs.miniBlocksCompacter.Expand(compactedMbs, mapHashesAndTxs)
+	newMbs, err := mbc.Expand(mbs, mapHashesAndTxs)
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(mbsValues), len(expandedMbs))
-	for i := 0; i < len(mbsValues); i++ {
-		assert.True(t, reflect.DeepEqual(mbsValues[i], *expandedMbs[i]))
+	// we should get 3 miniblocks as there are 2 continuous txs (with consecutive nonces) then a tx for other shard
+	// and also a tx for the same shard as the first 2
+	assert.Equal(t, 3, len(newMbs))
+}
+
+func TestMiniBlocksCompaction_ExpandConditionsNotMetShouldNotExpand(t *testing.T) {
+	t.Parallel()
+
+	msc := mock.NewMultiShardsCoordinatorMock(3)
+	mbc, _ := NewMiniBlocksCompaction(&mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return tx.GetGasLimit()
+		},
+	},
+		msc,
+	)
+
+	mbs := block.MiniBlockSlice{
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx0"), []byte("tx1")},
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+			Type:            block.TxBlock,
+		},
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("tx2")},
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			Type:            block.TxBlock,
+		},
 	}
+	mapHashesAndTxs := make(map[string]data.TransactionHandler)
+	mapHashesAndTxs["tx0"] = &transaction.Transaction{
+		SndAddr:  []byte("sndr1"),
+		Nonce:    0,
+		GasLimit: 15000,
+	}
+	mapHashesAndTxs["tx1"] = &transaction.Transaction{
+		SndAddr:  []byte("sndr1"),
+		Nonce:    1,
+		GasLimit: 6000,
+	}
+	mapHashesAndTxs["tx2"] = &transaction.Transaction{
+		SndAddr:  []byte("sndr2"),
+		Nonce:    3,
+		GasLimit: 8000,
+	}
+	newMbs, err := mbc.Expand(mbs, mapHashesAndTxs)
+	assert.Nil(t, err)
+	assert.True(t, reflect.DeepEqual(mbs, newMbs))
 }
