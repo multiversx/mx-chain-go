@@ -503,12 +503,12 @@ func (adb *AccountsDB) clearJournal() {
 
 // PruneTrie removes old values from the trie database
 func (adb *AccountsDB) PruneTrie(rootHash []byte) error {
-	return adb.mainTrie.Prune(rootHash, data.OldRootIdentifier)
+	return adb.mainTrie.Prune(rootHash, data.OldRoot)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
 func (adb *AccountsDB) CancelPrune(rootHash []byte) {
-	adb.mainTrie.CancelPrune(rootHash, data.NewRootIdentifier)
+	adb.mainTrie.CancelPrune(rootHash, data.NewRoot)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

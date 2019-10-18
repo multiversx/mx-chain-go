@@ -4,11 +4,15 @@ import (
 	"math/big"
 )
 
-// OldRootIdentifier is appended to the key when oldHashes are added to the evictionWaitingList
-var OldRootIdentifier = []byte("oldRoot")
+// TriePruningIdentifier is the type for trie pruning identifiers
+type TriePruningIdentifier byte
 
-// NewRootIdentifier is appended to the key when newHashes are added to the evictionWaitingList
-var NewRootIdentifier = []byte("newRoot")
+const (
+	// OldRoot is appended to the key when oldHashes are added to the evictionWaitingList
+	OldRoot TriePruningIdentifier = 0
+	// NewRoot is appended to the key when newHashes are added to the evictionWaitingList
+	NewRoot TriePruningIdentifier = 1
+)
 
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
@@ -100,8 +104,8 @@ type Trie interface {
 	Recreate(root []byte) (Trie, error)
 	String() string
 	DeepClone() (Trie, error)
-	CancelPrune(rootHash []byte, identifier []byte)
-	Prune(rootHash []byte, identifier []byte) error
+	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
+	Prune(rootHash []byte, identifier TriePruningIdentifier) error
 	Snapshot() error
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)

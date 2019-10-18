@@ -24,10 +24,10 @@ func NewAccountsDbWrapperSync(adapter AccountsAdapter) (*accountsDbWrapperSync, 
 
 // PruneTrie removes old values from the trie database
 func (adb *accountsDbWrapperSync) PruneTrie(rootHash []byte) error {
-	return adb.mainTrie.Prune(rootHash, data.NewRootIdentifier)
+	return adb.mainTrie.Prune(rootHash, data.NewRoot)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
 func (adb *accountsDbWrapperSync) CancelPrune(rootHash []byte) {
-	adb.mainTrie.CancelPrune(rootHash, data.OldRootIdentifier)
+	adb.mainTrie.CancelPrune(rootHash, data.OldRoot)
 }

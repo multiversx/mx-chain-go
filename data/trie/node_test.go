@@ -579,7 +579,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("doee"))
 	_ = tr.Commit()
 
-	err := tr.Prune(rootHash, data.OldRootIdentifier)
+	err := tr.Prune(rootHash, data.OldRoot)
 	assert.Nil(t, err)
 
 	for i := range oldHashes {
@@ -874,7 +874,7 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 		assert.Nil(t, err)
 	}
 
-	tr.CancelPrune(rootHashes[0], data.NewRootIdentifier)
+	tr.CancelPrune(rootHashes[0], data.NewRoot)
 	finalizeTrieState(t, 1, tr, rootHashes)
 	finalizeTrieState(t, 2, tr, rootHashes)
 	rollbackTrieState(t, 3, tr, rootHashes)
@@ -884,18 +884,18 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 }
 
 func finalizeTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
-	err := tr.Prune(rootHashes[index-1], data.OldRootIdentifier)
+	err := tr.Prune(rootHashes[index-1], data.OldRoot)
 	assert.Nil(t, err)
-	tr.CancelPrune(rootHashes[index], data.NewRootIdentifier)
+	tr.CancelPrune(rootHashes[index], data.NewRoot)
 
 	_, err = tr.Recreate(rootHashes[index-1])
 	assert.NotNil(t, err)
 }
 
 func rollbackTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
-	err := tr.Prune(rootHashes[index], data.NewRootIdentifier)
+	err := tr.Prune(rootHashes[index], data.NewRoot)
 	assert.Nil(t, err)
-	tr.CancelPrune(rootHashes[index-1], data.OldRootIdentifier)
+	tr.CancelPrune(rootHashes[index-1], data.OldRoot)
 
 	_, err = tr.Recreate(rootHashes[index])
 	assert.NotNil(t, err)
