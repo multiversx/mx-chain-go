@@ -150,6 +150,8 @@ func (s *syncTime) formatTime(time time.Time) string {
 
 // CurrentTime method gets the current time on which is added the current offset
 func (s *syncTime) CurrentTime() time.Time {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
 	return time.Now().Add(s.clockOffset)
 }
 

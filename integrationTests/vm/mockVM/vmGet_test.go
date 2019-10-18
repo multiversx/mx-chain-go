@@ -64,6 +64,6 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	destinationAddressBytes, _ := hex.DecodeString("000000000000000000001a2983b179a480a60c4308da48f13b4480dbb4d33132")
+	destinationAddressBytes, _ := hex.DecodeString("0000000000000000ffff1a2983b179a480a60c4308da48f13b4480dbb4d33132")
 	return accnts, destinationAddressBytes, big.NewInt(0).SetUint64(initialValueForInternalVariable)
 }

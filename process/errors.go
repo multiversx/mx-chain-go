@@ -91,11 +91,8 @@ var ErrNilRootHash = errors.New("root hash is nil")
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nonce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
-// ErrBlockHashDoesNotMatch signals the hash of the block is not matching with the previous one
+// ErrBlockHashDoesNotMatch signals that header hash does not match with the previous one
 var ErrBlockHashDoesNotMatch = errors.New("block hash does not match")
-
-// ErrHashDoesNotMatchInOtherChainBlock signals that header hash for one shard is not match with the previous one
-var ErrHashDoesNotMatchInOtherChainBlock = errors.New("block hash does not match with the last committed for this shard")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
@@ -106,8 +103,8 @@ var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 // ErrUnmarshalWithoutSuccess signals that unmarshal some data was not done with success
 var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 
-// ErrRootStateMissmatch signals that persist some data was not done with success
-var ErrRootStateMissmatch = errors.New("root state does not match")
+// ErrRootStateDoesNotMatch signals that root state does not match
+var ErrRootStateDoesNotMatch = errors.New("root state does not match")
 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
@@ -139,6 +136,9 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
+// ErrEmptyTxDataPool signals that a empty transaction pool has been provided
+var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
+
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
@@ -169,6 +169,9 @@ var ErrNegativeValue = errors.New("negative value")
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
+// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
 // ErrInvalidRcvAddr signals that an operation has been attempted to or with an invalid receiver address
 var ErrInvalidRcvAddr = errors.New("invalid receiver address")
 
@@ -180,6 +183,9 @@ var ErrNilKeyGen = errors.New("nil key generator")
 
 // ErrNilSingleSigner signals that a nil single signer is used
 var ErrNilSingleSigner = errors.New("nil single signer")
+
+// ErrBlockProposerSignatureMissing signals that block proposer signature is missing from the block aggregated sig
+var ErrBlockProposerSignatureMissing = errors.New("block proposer signature is missing")
 
 // ErrNilMultiSigVerifier signals that a nil multi-signature verifier is used
 var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
@@ -201,9 +207,6 @@ var ErrNilStorage = errors.New("nil storage")
 
 // ErrNilShardedDataCacherNotifier signals that a nil sharded data cacher notifier has been provided
 var ErrNilShardedDataCacherNotifier = errors.New("nil sharded data cacher notifier")
-
-// ErrNilBlocksTracker signals that a nil blocks tracker has been provided
-var ErrNilBlocksTracker = errors.New("nil blocks tracker")
 
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
 var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
@@ -228,6 +231,9 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 
 // ErrNilMetaBlockPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlockPool = errors.New("nil meta block pool")
+
+// ErrNilShardBlockPool signals that a nil shard blocks pool was used
+var ErrNilShardBlockPool = errors.New("nil shard block pool")
 
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
@@ -256,6 +262,9 @@ var ErrNilResolverContainer = errors.New("nil resolver container")
 // ErrNilRequestHandler signals that a nil request handler interface was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
+// ErrNilInternalTransactionProducer signals that a nil system transactions producer was provided
+var ErrNilInternalTransactionProducer = errors.New("nil internal transaction producere")
+
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
 
@@ -280,9 +289,6 @@ var ErrNoTransactionInMessage = errors.New("no transaction found in received mes
 // ErrNilBuffer signals that a provided byte buffer is nil
 var ErrNilBuffer = errors.New("provided byte buffer is nil")
 
-// ErrNilChronologyValidator signals that a nil chronology validator has been provided
-var ErrNilChronologyValidator = errors.New("provided chronology validator object is nil")
-
 // ErrNilRandSeed signals that a nil rand seed has been provided
 var ErrNilRandSeed = errors.New("provided rand seed is nil")
 
@@ -292,14 +298,11 @@ var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 // ErrNilRequestHeaderHandlerByNonce signals that a nil header request handler by nonce func was provided
 var ErrNilRequestHeaderHandlerByNonce = errors.New("nil request header handler by nonce")
 
-// ErrLowerRoundInOtherChainBlock signals that header round for one shard is too low for processing it
-var ErrLowerRoundInOtherChainBlock = errors.New("header round is lower than last committed for this shard")
-
-// ErrLowerRoundInBlock signals that a header round is too low for processing
+// ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
-// ErrRandSeedMismatch signals that random seeds are not equal
-var ErrRandSeedMismatch = errors.New("random seeds do not match")
+// ErrRandSeedDoesNotMatch signals that random seed does not match with the previous one
+var ErrRandSeedDoesNotMatch = errors.New("random seed do not match")
 
 // ErrHeaderNotFinal signals that header is not final and it should be
 var ErrHeaderNotFinal = errors.New("header in metablock is not final")
@@ -312,9 +315,6 @@ var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to c
 
 // ErrNotarizedHdrsSliceIsNil signals that the slice holding last notarized headers is nil
 var ErrNotarizedHdrsSliceIsNil = errors.New("notarized shard headers slice is nil")
-
-// ErrNoSortedHdrsForShard signals that there are no sorted hdrs in pool
-var ErrNoSortedHdrsForShard = errors.New("no sorted headers in pool")
 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
@@ -352,6 +352,9 @@ var ErrNilVMOutput = errors.New("nil vm output")
 // ErrNilBalanceFromSC signals that balance is nil
 var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
 
+// ErrNilValueFromRewardTransaction signals that the transfered value is nil
+var ErrNilValueFromRewardTransaction = errors.New("transferred value is nil in reward transaction")
+
 // ErrNilTemporaryAccountsHandler signals that temporary accounts handler is nil
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
@@ -361,17 +364,32 @@ var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in st
 // ErrNilSmartContractResult signals that the smart contract result is nil
 var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 
+// ErrNilRewardTransaction signals that the reward transaction is nil
+var ErrNilRewardTransaction = errors.New("reward transaction is nil")
+
+// ErrRewardTransactionNotFound is raised when reward transaction should be present but was not found
+var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
+
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
 // ErrNoUnsignedTransactionInMessage signals that message does not contain required data
 var ErrNoUnsignedTransactionInMessage = errors.New("no unsigned transactions in message")
 
+// ErrNoRewardTransactionInMessage signals that message does not contain required data
+var ErrNoRewardTransactionInMessage = errors.New("no reward transactions in message")
+
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
+// ErrNilRewardTxDataPool signals that the reward transactions pool is nil
+var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
+
 // ErrNilUTxStorage signals that unsigned transaction storage is nil
 var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
+
+// ErrNilRewardsTxStorage signals that rewards transaction storage is nil
+var ErrNilRewardsTxStorage = errors.New("reward transactions storage is nil")
 
 // ErrNilScAddress signals that a nil smart contract address has been provided
 var ErrNilScAddress = errors.New("nil SC address")
@@ -397,6 +415,9 @@ var ErrNilUint64Converter = errors.New("unit64converter is nil")
 // ErrNilSmartContractResultProcessor signals that smart contract result processor is nil
 var ErrNilSmartContractResultProcessor = errors.New("nil smart contract result processor")
 
+// ErrNilRewardsTxProcessor signals that the rewards transaction processor is nil
+var ErrNilRewardsTxProcessor = errors.New("nil rewards transaction processor")
+
 // ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
 var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
 
@@ -418,6 +439,24 @@ var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator prov
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 
+// ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
+var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
+
+// ErrRewardTxsDoNotMatch signals that reward txs do not match
+var ErrRewardTxsDoNotMatch = errors.New("calculated reward tx with block reward tx does not match")
+
+// ErrRewardTxNotFound signals that the reward transaction was not found
+var ErrRewardTxNotFound = errors.New("reward transaction not found")
+
+// ErrRewardTxsMismatchCreatedReceived signals a mismatch between the nb of created and received reward transactions
+var ErrRewardTxsMismatchCreatedReceived = errors.New("mismatch between created and received reward transactions")
+
+// ErrNilTxTypeHandler signals that tx type handler is nil
+var ErrNilTxTypeHandler = errors.New("nil tx type handler")
+
+// ErrNilSpecialAddressHandler signals that special address handler is nil
+var ErrNilSpecialAddressHandler = errors.New("nil special address handler")
+
 // ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
 var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
 
@@ -426,3 +465,39 @@ var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
+
+// ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
+var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
+
+// ErrZeroMaxCleanTime signals that cleaning time for pools is less or equal with 0
+var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")
+
+// ErrNilEconomicsRewardsHandler signals that rewards handler is nil
+var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
+
+// ErrNilEconomicsFeeHandler signals that fee handler is nil
+var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrSystemBusy signals that the system is busy
+var ErrSystemBusy = errors.New("system busy")
+
+// ErrInsufficientGasPriceInTx signals that a lower gas price than required was provided
+var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
+
+// ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
+var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
+
+// ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
+var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
+
+// ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
+var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
+
+// ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
+var ErrInvalidRewardsValue = errors.New("invalid rewards value")
+
+// ErrInvalidRewardsPercentages signals that rewards percentages are not correct
+var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")

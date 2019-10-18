@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -45,6 +46,11 @@ func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pro
 	err := tc.checkTxValidity(tx)
 	if err != nil {
 		return process.InvalidTransaction, err
+	}
+
+	_, isRewardTx := tx.(*rewardTx.RewardTx)
+	if isRewardTx {
+		return process.RewardTx, nil
 	}
 
 	isEmptyAddress := tc.isDestAddressEmpty(tx)

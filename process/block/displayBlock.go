@@ -180,7 +180,10 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 
-		part := fmt.Sprintf("MiniBlock_%d->%d", miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
+			miniBlock.Type.String(),
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID)
 
 		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{

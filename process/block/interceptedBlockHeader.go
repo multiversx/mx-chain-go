@@ -1,8 +1,11 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -11,21 +14,27 @@ import (
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
 	*block.Header
-	multiSigVerifier    crypto.MultiSigVerifier
-	chronologyValidator process.ChronologyValidator
-	hash                []byte
+	multiSigVerifier crypto.MultiSigVerifier
+	hash             []byte
+	nodesCoordinator sharding.NodesCoordinator
+	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedHeader(
 	multiSigVerifier crypto.MultiSigVerifier,
-	chronologyValidator process.ChronologyValidator,
+	nodesCoordinator sharding.NodesCoordinator,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
 ) *InterceptedHeader {
 
 	return &InterceptedHeader{
-		Header:              &block.Header{},
-		multiSigVerifier:    multiSigVerifier,
-		chronologyValidator: chronologyValidator,
+		Header:           &block.Header{},
+		multiSigVerifier: multiSigVerifier,
+		nodesCoordinator: nodesCoordinator,
+		marshalizer:      marshalizer,
+		hasher:           hasher,
 	}
 }
 
@@ -61,7 +70,7 @@ func (inHdr *InterceptedHeader) IntegrityAndValidity(coordinator sharding.Coordi
 		return err
 	}
 
-	return inHdr.validityCheck()
+	return nil
 }
 
 // Integrity checks the integrity of the state block wrapper
@@ -106,25 +115,49 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.Coordinator) erro
 	}
 }
 
-func (inHdr *InterceptedHeader) validityCheck() error {
-	if inHdr.chronologyValidator == nil {
-		return process.ErrNilChronologyValidator
+// VerifySig verifies the intercepted Header block signature
+func (inHdr *InterceptedHeader) VerifySig() error {
+	randSeed := inHdr.GetPrevRandSeed()
+	bitmap := inHdr.GetPubKeysBitmap()
+
+	if len(bitmap) == 0 {
+		return process.ErrNilPubKeysBitmap
 	}
 
-	return inHdr.chronologyValidator.ValidateReceivedBlock(
-		inHdr.ShardId,
-		inHdr.Epoch,
-		inHdr.Nonce,
-		inHdr.Round,
-	)
-}
+	if bitmap[0]&1 == 0 {
+		return process.ErrBlockProposerSignatureMissing
 
-// VerifySig verifies a signature
-func (inHdr *InterceptedHeader) VerifySig() error {
-	// TODO: Check block signature after multisig will be implemented
-	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
-	// TODO: verify that the block proposer is among the signers and in the bitmap
-	return nil
+	}
+
+	consensusPubKeys, err := inHdr.nodesCoordinator.GetValidatorsPublicKeys(randSeed, inHdr.Round, inHdr.ShardId)
+	if err != nil {
+		return err
+	}
+
+	verifier, err := inHdr.multiSigVerifier.Create(consensusPubKeys, 0)
+	if err != nil {
+		return err
+	}
+
+	err = verifier.SetAggregatedSig(inHdr.Signature)
+	if err != nil {
+		return err
+	}
+
+	// get marshalled block header without signature and bitmap
+	// as this is the message that was signed
+	headerCopy := *inHdr.Header
+	headerCopy.Signature = nil
+	headerCopy.PubKeysBitmap = nil
+
+	hash, err := core.CalculateHash(inHdr.marshalizer, inHdr.hasher, headerCopy)
+	if err != nil {
+		return err
+	}
+
+	err = verifier.Verify(hash, bitmap)
+
+	return err
 }
 
 func (inHdr *InterceptedHeader) validatePeerBlock() error {

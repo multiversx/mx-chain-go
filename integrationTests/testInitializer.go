@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -88,29 +89,31 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 // CreateTestShardDataPool creates a test data pool for shard nodes
 func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	if txPool == nil {
-		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+		txPool, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	}
 
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: 1}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	hdrNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	hdrNonces, _ := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
+		rewardsTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -126,8 +129,8 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache}
-	miniblockHashes, _ := shardedData.NewShardedData(cacherCfg)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -135,11 +138,16 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	shardHeadersNonces, _ := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+
 	dPool, _ := dataPool.NewMetaDataPool(
 		metaBlocks,
-		miniblockHashes,
+		txBlockBody,
 		shardHeaders,
 		shardHeadersNonces,
+		txPool,
+		uTxPool,
 	)
 
 	return dPool
@@ -164,6 +172,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
@@ -180,6 +189,9 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
@@ -188,18 +200,13 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 }
 
 // CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(shardCoordinator sharding.Coordinator) (*state.AccountsDB, data.Trie, storage.Storer) {
-
-	var accountFactory state.AccountFactory
-	if shardCoordinator == nil {
-		accountFactory = factory.NewAccountCreator()
-	} else {
-		accountFactory, _ = factory.NewAccountFactoryCreator(shardCoordinator)
-	}
-
+func CreateAccountsDB(accountType factory.Type) (*state.AccountsDB, data.Trie, storage.Storer) {
+	hasher := sha256.Sha256{}
 	store := CreateMemUnit()
-	tr, _ := trie.NewTrie(store, TestMarshalizer, TestHasher)
-	adb, _ := state.NewAccountsDB(tr, TestHasher, TestMarshalizer, accountFactory)
+
+	tr, _ := trie.NewTrie(store, TestMarshalizer, hasher)
+	accountFactory, _ := factory.NewAccountFactoryCreator(accountType)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
 	return adb, tr, store
 }
@@ -366,7 +373,7 @@ func CreateRandomHexString(chars int) string {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.AccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	adb, _, _ := CreateAccountsDB(nil)
+	adb, _, _ := CreateAccountsDB(factory.UserAccount)
 	account, _ := state.NewAccount(adr, adb)
 
 	return adr, account, adb
@@ -421,7 +428,30 @@ func AdbEmulateBalanceTxExecution(acntSrc, acntDest *state.Account, value *big.I
 // CreateSimpleTxProcessor returns a transaction processor
 func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	txProcessor, _ := txProc.NewTxProcessor(accnts, TestHasher, TestAddressConverter, TestMarshalizer, shardCoordinator, &mock.SCProcessorMock{})
+	txProcessor, _ := txProc.NewTxProcessor(
+		accnts,
+		TestHasher,
+		TestAddressConverter,
+		TestMarshalizer,
+		shardCoordinator,
+		&mock.SCProcessorMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.TxTypeHandlerMock{},
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasLimit()
+			},
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
+			},
+			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
+				fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
+
+				return fee
+			},
+		},
+	)
 
 	return txProcessor
 }
@@ -494,7 +524,12 @@ func IncrementAndPrintRound(round uint64) uint64 {
 // ProposeBlock proposes a block for every shard
 func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
 	fmt.Println("All shards propose blocks...")
+
 	for idx, n := range nodes {
+		// set the consensus reward addresses as rewards processor expects at least valid round
+		// otherwise the produced rewards will not be valid on verification
+		n.BlockProcessor.SetConsensusData([]byte("randomness"), round, 0, n.ShardCoordinator.SelfId())
+
 		if !IsIntInSlice(idx, idxProposers) {
 			continue
 		}
@@ -658,9 +693,9 @@ func CreateNodes(
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 
 	idx := 0
-	for shardId := 0; shardId < numOfShards; shardId++ {
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNode(uint32(numOfShards), uint32(shardId), uint32(shardId), serviceID)
+			n := NewTestProcessorNode(uint32(numOfShards), shardId, shardId, serviceID)
 
 			nodes[idx] = n
 			idx++
@@ -669,7 +704,7 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), sharding.MetachainShardId, 0, serviceID)
-		idx := i + numOfShards*nodesPerShard
+		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
 
@@ -695,31 +730,32 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	time.Sleep(p2pBootstrapStepDelay)
 }
 
+// SetEconomicsParameters will set minGasPrice and minGasLimits to provided nodes
+func SetEconomicsParameters(nodes []*TestProcessorNode, minGasPrice uint64, minGasLimit uint64) {
+	for _, n := range nodes {
+		n.EconomicsData.SetMinGasPrice(minGasPrice)
+		n.EconomicsData.SetMinGasLimit(minGasLimit)
+	}
+}
+
 // GenerateAndDisseminateTxs generates and sends multiple txs
 func GenerateAndDisseminateTxs(
 	n *TestProcessorNode,
 	senders []crypto.PrivateKey,
-	receiversPrivateKeys map[uint32][]crypto.PrivateKey,
+	receiversPublicKeysMap map[uint32][]crypto.PublicKey,
 	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
 ) {
 
 	for i := 0; i < len(senders); i++ {
 		senderKey := senders[i]
-		incrementalNonce := uint64(0)
-		for _, recvPrivateKeys := range receiversPrivateKeys {
-			receiverKey := recvPrivateKeys[i]
-			tx := generateTx(
-				senderKey,
-				n.OwnAccount.SingleSigner,
-				&txArgs{
-					nonce:   incrementalNonce,
-					value:   valToTransfer,
-					rcvAddr: skToPk(receiverKey),
-					sndAddr: skToPk(senderKey),
-				},
-			)
+		incrementalNonce := make([]uint64, len(senders))
+		for _, shardReceiversPublicKeys := range receiversPublicKeysMap {
+			receiverPubKey := shardReceiversPublicKeys[i]
+			tx := generateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
 			_, _ = n.SendTransaction(tx)
-			incrementalNonce++
+			incrementalNonce[i]++
 		}
 	}
 }
@@ -730,8 +766,34 @@ type txArgs struct {
 	rcvAddr  []byte
 	sndAddr  []byte
 	data     string
-	gasPrice int
-	gasLimit int
+	gasPrice uint64
+	gasLimit uint64
+}
+
+func generateTransferTx(
+	nonce uint64,
+	senderPrivateKey crypto.PrivateKey,
+	receiverPublicKey crypto.PublicKey,
+	valToTransfer *big.Int,
+	gasPrice uint64,
+	gasLimit uint64,
+) *transaction.Transaction {
+
+	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
+	tx := transaction.Transaction{
+		Nonce:    nonce,
+		Value:    valToTransfer,
+		RcvAddr:  receiverPubKeyBytes,
+		SndAddr:  skToPk(senderPrivateKey),
+		Data:     "",
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+	}
+	txBuff, _ := TestMarshalizer.Marshal(&tx)
+	signer := &singlesig.SchnorrSigner{}
+	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
+
+	return &tx
 }
 
 func generateTx(
@@ -744,8 +806,8 @@ func generateTx(
 		Value:    args.value,
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
-		GasPrice: uint64(args.gasPrice),
-		GasLimit: uint64(args.gasLimit),
+		GasPrice: args.gasPrice,
+		GasLimit: args.gasLimit,
 		Data:     args.data,
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
@@ -757,6 +819,14 @@ func generateTx(
 func skToPk(sk crypto.PrivateKey) []byte {
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 	return pkBuff
+}
+
+// TestPublicKeyHasBalance checks if the account corresponding to the given public key has the expected balance
+func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.PublicKey, expectedBalance *big.Int) {
+	pkBuff, _ := pk.ToByteArray()
+	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+	account, _ := n.AccntState.GetExistingAccount(addr)
+	assert.Equal(t, expectedBalance, account.(*state.Account).Balance)
 }
 
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
@@ -793,6 +863,11 @@ func GenerateSkAndPkInShard(
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 
+	if shardId == sharding.MetachainShardId {
+		// for metachain generate in shard 0
+		shardId = 0
+	}
+
 	for {
 		pkBytes, _ := pk.ToByteArray()
 		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
@@ -803,6 +878,55 @@ func GenerateSkAndPkInShard(
 	}
 
 	return sk, pk, keyGen
+}
+
+// CreateSendersAndReceiversInShard creates given number of sender private key and receiver public key pairs,
+// with account in same shard as given node
+func CreateSendersAndReceiversInShard(
+	nodeInShard *TestProcessorNode,
+	nbSenderReceiverPairs uint32,
+) ([]crypto.PrivateKey, []crypto.PublicKey) {
+	shardId := nodeInShard.ShardCoordinator.SelfId()
+	receiversPublicKeys := make([]crypto.PublicKey, nbSenderReceiverPairs)
+	sendersPrivateKeys := make([]crypto.PrivateKey, nbSenderReceiverPairs)
+
+	for i := uint32(0); i < nbSenderReceiverPairs; i++ {
+		sendersPrivateKeys[i], _, _ = GenerateSkAndPkInShard(nodeInShard.ShardCoordinator, shardId)
+		_, receiversPublicKeys[i], _ = GenerateSkAndPkInShard(nodeInShard.ShardCoordinator, shardId)
+	}
+
+	return sendersPrivateKeys, receiversPublicKeys
+}
+
+// CreateAndSendTransactions creates and sends transactions between given senders and receivers.
+func CreateAndSendTransactions(
+	nodes map[uint32][]*TestProcessorNode,
+	sendersPrivKeysMap map[uint32][]crypto.PrivateKey,
+	receiversPubKeysMap map[uint32][]crypto.PublicKey,
+	gasPricePerTx uint64,
+	gasLimitPerTx uint64,
+	valueToTransfer *big.Int,
+) {
+	for shardId := range nodes {
+		if shardId == sharding.MetachainShardId {
+			continue
+		}
+
+		nodeInShard := nodes[shardId][0]
+
+		fmt.Println("Generating transactions...")
+		GenerateAndDisseminateTxs(
+			nodeInShard,
+			sendersPrivKeysMap[shardId],
+			receiversPubKeysMap,
+			valueToTransfer,
+			gasPricePerTx,
+			gasLimitPerTx,
+		)
+	}
+
+	fmt.Println("Delaying for disseminating transactions...")
+	time.Sleep(time.Second * 5)
 }
 
 // CreateMintingForSenders creates account with balances for every node in a given shard
@@ -899,7 +1023,6 @@ func getMissingTxsForNode(n *TestProcessorNode, generatedTxHashes [][]byte) [][]
 	for i := 0; i < len(generatedTxHashes); i++ {
 		_, ok := n.ShardDataPool.Transactions().SearchFirstData(generatedTxHashes[i])
 		if !ok {
-			//tx is still missing
 			neededTxs = append(neededTxs, generatedTxHashes[i])
 		}
 	}
@@ -916,40 +1039,33 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 }
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
-func CreateRequesterDataPool(
-	t *testing.T,
-	recvTxs map[int]map[string]struct{},
-	mutRecvTxs *sync.Mutex,
-	nodeIndex int,
-) dataRetriever.PoolsHolder {
+func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int) dataRetriever.PoolsHolder {
 
 	//not allowed to request data from the same shard
-	return CreateTestShardDataPool(
-		&mock.ShardedDataStub{
-			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-				assert.Fail(t, "same-shard requesters should not be queried")
-				return nil, false
-			},
-			ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-				assert.Fail(t, "same-shard requesters should not be queried")
-				return nil
-			},
-			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-				mutRecvTxs.Lock()
-				defer mutRecvTxs.Unlock()
-
-				txMap := recvTxs[nodeIndex]
-				if txMap == nil {
-					txMap = make(map[string]struct{})
-					recvTxs[nodeIndex] = txMap
-				}
-
-				txMap[string(key)] = struct{}{}
-			},
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
+	return CreateTestShardDataPool(&mock.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			assert.Fail(t, "same-shard requesters should not be queried")
+			return nil, false
 		},
-	)
+		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
+			assert.Fail(t, "same-shard requesters should not be queried")
+			return nil
+		},
+		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			mutRecvTxs.Lock()
+			defer mutRecvTxs.Unlock()
+
+			txMap := recvTxs[nodeIndex]
+			if txMap == nil {
+				txMap = make(map[string]struct{})
+				recvTxs[nodeIndex] = txMap
+			}
+
+			txMap[string(key)] = struct{}{}
+		},
+		RegisterHandlerCalled: func(i func(key []byte)) {
+		},
+	})
 }
 
 // CreateResolversDataPool creates a datapool containing a given number of transactions
@@ -989,7 +1105,7 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts, _, _ := CreateAccountsDB(shardCoordinator)
+	accnts, _, _ := CreateAccountsDB(factory.UserAccount)
 	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
 	_, _ = accnts.GetAccountWithJournal(addrSender)
 	_, _ = accnts.Commit()
@@ -1113,4 +1229,94 @@ func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapin
 	for _, peer := range peers {
 		fmt.Printf("Peer %s is connected to %d peers\n", peer.ID().Pretty(), len(peer.ConnectedPeers()))
 	}
+}
+
+// PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
+func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]string {
+	keysMap := make(map[uint32][]string, 0)
+
+	for shardId, pairList := range keyPairMap {
+		shardKeys := make([]string, len(pairList))
+		for i, pair := range pairList {
+			b, _ := pair.Pk.ToByteArray()
+			shardKeys[i] = string(b)
+		}
+		keysMap[shardId] = shardKeys
+	}
+
+	return keysMap
+}
+
+// GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
+func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) map[uint32][]sharding.Validator {
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for shardId, shardNodesPks := range pubKeysMap {
+		shardValidators := make([]sharding.Validator, 0)
+		shardCoordinator, _ := sharding.NewMultiShardCoordinator(nbShards, shardId)
+		for i := 0; i < len(shardNodesPks); i++ {
+			_, pk, _ := GenerateSkAndPkInShard(shardCoordinator, shardId)
+			address, err := pk.ToByteArray()
+			if err != nil {
+				return nil
+			}
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), address)
+			shardValidators = append(shardValidators, v)
+		}
+		validatorsMap[shardId] = shardValidators
+	}
+
+	return validatorsMap
+}
+
+// CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
+func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
+	suite := kyber.NewSuitePairingBn256()
+	singleSigner := &singlesig.SchnorrSigner{}
+	keyGen := signing.NewKeyGenerator(suite)
+
+	keysMap := make(map[uint32][]*TestKeyPair)
+	keyPairs := make([]*TestKeyPair, nodesPerShard)
+	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		for n := 0; n < nodesPerShard; n++ {
+			kp := &TestKeyPair{}
+			kp.Sk, kp.Pk = keyGen.GeneratePair()
+			keyPairs[n] = kp
+		}
+		keysMap[shardId] = keyPairs
+	}
+
+	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	for n := 0; n < nbMetaNodes; n++ {
+		kp := &TestKeyPair{}
+		kp.Sk, kp.Pk = keyGen.GeneratePair()
+		keyPairs[n] = kp
+	}
+	keysMap[sharding.MetachainShardId] = keyPairs
+
+	params := &CryptoParams{
+		Keys:         keysMap,
+		KeyGen:       keyGen,
+		SingleSigner: singleSigner,
+	}
+
+	return params
+}
+
+// CloseProcessorNodes closes the used TestProcessorNodes and advertiser
+func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
+	_ = advertiser.Close()
+	for _, n := range nodes {
+		_ = n.Messenger.Close()
+	}
+}
+
+// StartP2pBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
+func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(p2pBootstrapStepDelay)
 }
