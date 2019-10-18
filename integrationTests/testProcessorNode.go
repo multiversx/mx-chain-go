@@ -102,7 +102,7 @@ type TestProcessorNode struct {
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
 
-	EconomicsData *economics.EconomicsData
+	EconomicsData *economics.TestEconomicsData
 
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
@@ -277,7 +277,9 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 		},
 	)
 
-	tpn.EconomicsData = economicsData
+	tpn.EconomicsData = &economics.TestEconomicsData{
+		EconomicsData: economicsData,
+	}
 }
 
 func (tpn *TestProcessorNode) initInterceptors() {
@@ -292,6 +294,12 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestHasher,
 			TestMultiSig,
 			tpn.MetaDataPool,
+			tpn.AccntState,
+			TestAddressConverter,
+			tpn.OwnAccount.SingleSigner,
+			tpn.OwnAccount.KeygenTxSign,
+			maxTxNonceDeltaAllowed,
+			tpn.EconomicsData,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -334,6 +342,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			TestMarshalizer,
 			tpn.MetaDataPool,
 			TestUint64Converter,
+			dataPacker,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -342,6 +351,9 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ResolverFinder,
 			factory.ShardHeadersForMetachainTopic,
 			factory.MetachainBlocksTopic,
+			factory.TransactionTopic,
+			factory.UnsignedTransactionTopic,
+			factory.MiniBlocksTopic,
 		)
 	} else {
 		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
@@ -382,7 +394,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.SpecialAddressHandler,
 		tpn.Storage,
 		tpn.ShardDataPool,
-		tpn.EconomicsData,
+		tpn.EconomicsData.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -431,17 +443,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		&mock.FeeHandlerStub{
-			MinGasPriceCalled: func() uint64 {
-				return 0
-			},
-			MinGasLimitCalled: func() uint64 {
-				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
-		},
+		tpn.EconomicsData,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -458,17 +460,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScProcessor.(process.SmartContractResultProcessor),
 		tpn.RewardsProcessor,
 		internalTxProducer,
-		&mock.FeeHandlerStub{
-			MinGasPriceCalled: func() uint64 {
-				return 0
-			},
-			MinGasLimitCalled: func() uint64 {
-				return 5
-			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
-			},
-		},
+		tpn.EconomicsData,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -615,7 +607,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.MetaDataPool.ShardHeaders().RegisterHandler(hdrHandlers)
-		tpn.MetaDataPool.MetaChainBlocks().RegisterHandler(metaHandlers)
+		tpn.MetaDataPool.MetaBlocks().RegisterHandler(metaHandlers)
 	} else {
 		txHandler := func(key []byte) {
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
@@ -776,7 +768,7 @@ func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.
 
 // GetMetaHeader returns the first *dataBlock.MetaBlock stored in datapools having the nonce provided as parameter
 func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock, error) {
-	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MetaChainBlocks() == nil || tpn.MetaDataPool.HeadersNonces() == nil
+	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MetaBlocks() == nil || tpn.MetaDataPool.HeadersNonces() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
@@ -791,7 +783,7 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 		return nil, errors.New(fmt.Sprintf("no hash-nonce hash in HeadersNonces for nonce %d", nonce))
 	}
 
-	headerObject, ok := tpn.MetaDataPool.MetaChainBlocks().Get(headerHash)
+	headerObject, ok := tpn.MetaDataPool.MetaBlocks().Get(headerHash)
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("no header found for hash %s", hex.EncodeToString(headerHash)))
 	}

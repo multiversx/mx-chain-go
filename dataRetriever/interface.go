@@ -212,10 +212,12 @@ type PoolsHolder interface {
 
 // MetaPoolsHolder defines getter for data pools for metachain
 type MetaPoolsHolder interface {
-	MetaChainBlocks() storage.Cacher
-	MiniBlockHashes() ShardedDataCacherNotifier
+	MetaBlocks() storage.Cacher
+	MiniBlocks() storage.Cacher
 	ShardHeaders() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
+	Transactions() ShardedDataCacherNotifier
+	UnsignedTransactions() ShardedDataCacherNotifier
 	IsInterfaceNil() bool
 }
 

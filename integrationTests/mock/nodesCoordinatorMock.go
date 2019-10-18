@@ -90,6 +90,10 @@ func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(publicKey []byte) (sh
 	panic("implement me")
 }
 
+func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
+	return []byte("key")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	if ncm == nil {
