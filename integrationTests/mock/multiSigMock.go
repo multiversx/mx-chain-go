@@ -40,10 +40,10 @@ func NewMultiSigner(nrConsens uint32) *BelNevMock {
 	multisigner.sigs = make([][]byte, nrConsens)
 	multisigner.pubkeys = make([]string, nrConsens)
 
-	multisigner.aggCom = []byte("commitment")
-	multisigner.commHash = []byte("commitment")
-	multisigner.commSecret = []byte("commitment")
-	multisigner.aggSig = []byte("commitment")
+	multisigner.aggCom = []byte("agg commitment")
+	multisigner.commHash = []byte("commitment hash")
+	multisigner.commSecret = []byte("commitment secret")
+	multisigner.aggSig = []byte("aggregated signature")
 
 	return multisigner
 }
@@ -92,7 +92,11 @@ func (bnm *BelNevMock) SetAggregatedSig(aggSig []byte) error {
 
 // Verify returns nil if the aggregateed signature is verified for the given public keys
 func (bnm *BelNevMock) Verify(msg []byte, bitmap []byte) error {
-	return bnm.VerifyMock(msg, bitmap)
+	if bnm.VerifyMock != nil {
+		return bnm.VerifyMock(msg, bitmap)
+	}
+
+	return nil
 }
 
 // CreateCommitment creates a secret commitment and the corresponding public commitment point

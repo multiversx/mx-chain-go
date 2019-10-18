@@ -27,7 +27,6 @@ func initWorker() *spos.Worker {
 		RevertAccountStateCalled: func() {
 		},
 	}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -54,7 +53,6 @@ func initWorker() *spos.Worker {
 	sposWorker, _ := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -85,7 +83,6 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -99,7 +96,6 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(nil,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -118,7 +114,6 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -133,7 +128,6 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(bnService,
 		nil,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -149,45 +143,10 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
-func TestWorker_NewWorkerBlockTrackerNilShouldFail(t *testing.T) {
-	t.Parallel()
-
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	bnService, _ := bn.NewConsensusService()
-
-	wrk, err := spos.NewWorker(bnService,
-		blockProcessor,
-		nil,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock)
-
-	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilBlocksTracker, err)
-}
-
 func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
 	forkDetectorMock := &mock.ForkDetectorMock{}
@@ -202,7 +161,6 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		nil,
 		broadcastMessengerMock,
 		consensusState,
@@ -222,7 +180,6 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	consensusState := initConsensusState()
 	forkDetectorMock := &mock.ForkDetectorMock{}
@@ -237,7 +194,6 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		nil,
 		consensusState,
@@ -256,7 +212,6 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	forkDetectorMock := &mock.ForkDetectorMock{}
@@ -271,7 +226,6 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		nil,
@@ -290,7 +244,6 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -305,7 +258,6 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -324,7 +276,6 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -339,7 +290,6 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -358,7 +308,6 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -373,7 +322,6 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -392,7 +340,6 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -407,7 +354,6 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -426,7 +372,6 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -441,7 +386,6 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -460,7 +404,6 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -475,7 +418,6 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -494,7 +436,6 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -509,7 +450,6 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -528,7 +468,6 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	blockTrackerMock := &mock.BlocksTrackerMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -544,7 +483,6 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	wrk, err := spos.NewWorker(
 		bnService,
 		blockProcessor,
-		blockTrackerMock,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		consensusState,
@@ -1380,142 +1318,4 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 
 	rcvMsg = wrk.ReceivedMessages()
 	assert.Equal(t, 0, len(rcvMsg[msgType]))
-}
-
-func TestWorker_BroadcastUnnotarisedBlocksShouldNotBroadcastWhenMaxRoundGapIsNotAchieved(t *testing.T) {
-	t.Parallel()
-
-	headerHasBeenBroadcast := false
-	broadcastInRound := int64(0)
-
-	wrk := *initWorker()
-	header := &block.Header{Nonce: 3}
-	roundIndex := int64(10)
-	blockTracker := &mock.BlocksTrackerMock{
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			headers := make([]data.HeaderHandler, 0)
-			headers = append(headers, header)
-			return headers
-		},
-		BlockBroadcastRoundCalled: func(nonce uint64) int64 {
-			return broadcastInRound
-		},
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int64) {
-			broadcastInRound = round
-		},
-	}
-
-	forkDetector := &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return header.Nonce
-		},
-	}
-
-	wrk.ConsensusState().RoundIndex = roundIndex
-	wrk.SetBlockTracker(blockTracker)
-	wrk.SetForkDetector(forkDetector)
-	bmm := &mock.BroadcastMessengerMock{
-		BroadcastHeaderCalled: func(handler data.HeaderHandler) error {
-			headerHasBeenBroadcast = true
-			return nil
-		},
-	}
-	wrk.SetBroadcastMessenger(bmm)
-	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, roundIndex-spos.MaxRoundsGap)
-
-	wrk.BroadcastUnnotarisedBlocks()
-	assert.False(t, headerHasBeenBroadcast)
-	assert.Equal(t, roundIndex-spos.MaxRoundsGap, wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
-}
-
-func TestWorker_BroadcastUnnotarisedBlocksShouldErrWhenBroadcastHeaderFails(t *testing.T) {
-	t.Parallel()
-
-	broadcastInRound := int64(0)
-
-	var err error
-	wrk := *initWorker()
-	header := &block.Header{Nonce: 3}
-	roundIndex := int64(10)
-	blockTracker := &mock.BlocksTrackerMock{
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			headers := make([]data.HeaderHandler, 0)
-			headers = append(headers, header)
-			return headers
-		},
-		BlockBroadcastRoundCalled: func(nonce uint64) int64 {
-			return broadcastInRound
-		},
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int64) {
-			broadcastInRound = round
-		},
-	}
-
-	forkDetector := &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return header.Nonce
-		},
-	}
-
-	wrk.ConsensusState().RoundIndex = roundIndex
-	wrk.SetBlockTracker(blockTracker)
-	wrk.SetForkDetector(forkDetector)
-	bmm := &mock.BroadcastMessengerMock{
-		BroadcastHeaderCalled: func(handler data.HeaderHandler) error {
-			err = errors.New("broadcast header error")
-			return err
-		},
-	}
-	wrk.SetBroadcastMessenger(bmm)
-	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, roundIndex-spos.MaxRoundsGap-1)
-
-	wrk.BroadcastUnnotarisedBlocks()
-	assert.NotNil(t, err)
-	assert.Equal(t, roundIndex-spos.MaxRoundsGap-1, wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
-}
-
-func TestWorker_BroadcastUnnotarisedBlocksShouldBroadcast(t *testing.T) {
-	t.Parallel()
-
-	headerHasBeenBroadcast := false
-	broadcastInRound := int64(0)
-
-	wrk := *initWorker()
-	header := &block.Header{Nonce: 3}
-	roundIndex := int64(10)
-	blockTracker := &mock.BlocksTrackerMock{
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			headers := make([]data.HeaderHandler, 0)
-			headers = append(headers, header)
-			return headers
-		},
-		BlockBroadcastRoundCalled: func(nonce uint64) int64 {
-			return broadcastInRound
-		},
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int64) {
-			broadcastInRound = round
-		},
-	}
-
-	forkDetector := &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return header.Nonce
-		},
-	}
-
-	wrk.ConsensusState().RoundIndex = roundIndex
-	wrk.SetBlockTracker(blockTracker)
-	wrk.SetForkDetector(forkDetector)
-	bmm := &mock.BroadcastMessengerMock{
-		BroadcastHeaderCalled: func(handler data.HeaderHandler) error {
-			headerHasBeenBroadcast = true
-			return nil
-		},
-	}
-	wrk.SetBroadcastMessenger(bmm)
-	wrk.BlockTracker().SetBlockBroadcastRound(header.Nonce, roundIndex-spos.MaxRoundsGap-1)
-
-	wrk.BroadcastUnnotarisedBlocks()
-	assert.True(t, headerHasBeenBroadcast)
-	assert.Equal(t, roundIndex, wrk.BlockTracker().BlockBroadcastRound(header.Nonce))
 }

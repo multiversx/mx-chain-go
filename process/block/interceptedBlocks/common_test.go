@@ -15,12 +15,8 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		MultiSigVerifier: mock.NewMultiSigner(),
 		Hasher:           mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
-		ChronologyValidator: &mock.ChronologyValidatorStub{
-			ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
-				return nil
-			},
-		},
-		HdrBuff: []byte("test buffer"),
+		NodesCoordinator: mock.NewNodesCoordinatorMock(),
+		HdrBuff:          []byte("test buffer"),
 	}
 
 	return arg
@@ -118,11 +114,11 @@ func TestCheckBlockHeaderArgument_NilChronologyValidatorShouldErr(t *testing.T) 
 	t.Parallel()
 
 	arg := createDefaultBlockHeaderArgument()
-	arg.ChronologyValidator = nil
+	arg.NodesCoordinator = nil
 
 	err := checkBlockHeaderArgument(arg)
 
-	assert.Equal(t, process.ErrNilChronologyValidator, err)
+	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 }
 
 func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {

@@ -27,17 +27,39 @@ type hashAndHdr struct {
 	hash []byte
 }
 
+type nonceAndHashInfo struct {
+	hash  []byte
+	nonce uint64
+}
+
+type hdrInfo struct {
+	usedInBlock bool
+	hdr         data.HeaderHandler
+}
+
+type hdrForBlock struct {
+	missingHdrs                  uint32
+	missingFinalityAttestingHdrs uint32
+	highestHdrNonce              map[uint32]uint64
+	mutHdrsForBlock              sync.RWMutex
+	hdrHashAndInfo               map[string]*hdrInfo
+}
+
 type mapShardHeaders map[uint32][]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator   sharding.Coordinator
-	accounts           state.AccountsAdapter
-	forkDetector       process.ForkDetector
-	hasher             hashing.Hasher
-	marshalizer        marshal.Marshalizer
-	store              dataRetriever.StorageService
-	uint64Converter    typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler process.BlockSizeThrottler
+	shardCoordinator      sharding.Coordinator
+	nodesCoordinator      sharding.NodesCoordinator
+	specialAddressHandler process.SpecialAddressHandler
+	accounts              state.AccountsAdapter
+	forkDetector          process.ForkDetector
+	hasher                hashing.Hasher
+	marshalizer           marshal.Marshalizer
+	store                 dataRetriever.StorageService
+	uint64Converter       typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler    process.BlockSizeThrottler
+
+	hdrsForCurrBlock hdrForBlock
 
 	mutNotarizedHdrs sync.RWMutex
 	notarizedHdrs    mapShardHeaders
@@ -112,28 +134,28 @@ func (bp *baseProcessor) checkBlockValidity(
 				return nil
 			}
 
-			log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
+			log.Info(fmt.Sprintf("hash does not match: local block hash is %s and node received block with previous hash %s\n",
 				core.ToB64(chainHandler.GetGenesisHeaderHash()),
 				core.ToB64(headerHandler.GetPrevHash())))
 
 			return process.ErrBlockHashDoesNotMatch
 		}
 
-		log.Info(fmt.Sprintf("nonce not match: local block nonce is 0 and node received block with nonce %d\n",
+		log.Info(fmt.Sprintf("nonce does not match: local block nonce is 0 and node received block with nonce %d\n",
 			headerHandler.GetNonce()))
 
 		return process.ErrWrongNonceInBlock
 	}
 
 	if headerHandler.GetRound() <= currentBlockHeader.GetRound() {
-		log.Info(fmt.Sprintf("round not match: local block round is %d and node received block with round %d\n",
+		log.Info(fmt.Sprintf("round does not match: local block round is %d and node received block with round %d\n",
 			currentBlockHeader.GetRound(), headerHandler.GetRound()))
 
 		return process.ErrLowerRoundInBlock
 	}
 
 	if headerHandler.GetNonce() != currentBlockHeader.GetNonce()+1 {
-		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
+		log.Info(fmt.Sprintf("nonce does not match: local block nonce is %d and node received block with nonce %d\n",
 			currentBlockHeader.GetNonce(), headerHandler.GetNonce()))
 
 		return process.ErrWrongNonceInBlock
@@ -144,18 +166,18 @@ func (bp *baseProcessor) checkBlockValidity(
 		return err
 	}
 
-	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
-		log.Info(fmt.Sprintf("random seed not match: local block random seed is %s and node received block with previous random seed %s\n",
-			core.ToB64(currentBlockHeader.GetRandSeed()), core.ToB64(headerHandler.GetPrevRandSeed())))
-
-		return process.ErrRandSeedMismatch
-	}
-
 	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
-		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
+		log.Info(fmt.Sprintf("hash does not match: local block hash is %s and node received block with previous hash %s\n",
 			core.ToB64(prevHeaderHash), core.ToB64(headerHandler.GetPrevHash())))
 
 		return process.ErrBlockHashDoesNotMatch
+	}
+
+	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
+		log.Info(fmt.Sprintf("random seed does not match: local block random seed is %s and node received block with previous random seed %s\n",
+			core.ToB64(currentBlockHeader.GetRandSeed()), core.ToB64(headerHandler.GetPrevRandSeed())))
+
+		return process.ErrRandSeedDoesNotMatch
 	}
 
 	if bodyHandler != nil {
@@ -202,7 +224,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 		}
 		// block with nonce 0 was already saved
 		if prevHdr.GetRootHash() != nil {
-			return process.ErrRootStateMissmatch
+			return process.ErrRootStateDoesNotMatch
 		}
 		return nil
 	}
@@ -210,10 +232,14 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	//TODO: add verification if rand seed was correctly computed add other verification
 	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
 	if prevHdr.GetRound() >= currHdr.GetRound() {
-		return process.ErrLowerRoundInOtherChainBlock
+		log.Debug(fmt.Sprintf("round does not match in shard %d: local block round is %d and node received block with round %d\n",
+			currHdr.GetShardID(), prevHdr.GetRound(), currHdr.GetRound()))
+		return process.ErrLowerRoundInBlock
 	}
 
 	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
+		log.Debug(fmt.Sprintf("nonce does not match in shard %d: local block nonce is %d and node received block with nonce %d\n",
+			currHdr.GetShardID(), prevHdr.GetNonce(), currHdr.GetNonce()))
 		return process.ErrWrongNonceInBlock
 	}
 
@@ -222,12 +248,16 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 		return err
 	}
 
-	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		return process.ErrRandSeedMismatch
+	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
+		log.Debug(fmt.Sprintf("block hash does not match in shard %d: local block hash is %s and node received block with previous hash %s\n",
+			currHdr.GetShardID(), core.ToB64(prevHeaderHash), core.ToB64(currHdr.GetPrevHash())))
+		return process.ErrBlockHashDoesNotMatch
 	}
 
-	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		return process.ErrHashDoesNotMatchInOtherChainBlock
+	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
+		log.Debug(fmt.Sprintf("random seed does not match in shard %d: local block random seed is %s and node received block with previous random seed %s\n",
+			currHdr.GetShardID(), core.ToB64(prevHdr.GetRandSeed()), core.ToB64(currHdr.GetPrevRandSeed())))
+		return process.ErrRandSeedDoesNotMatch
 	}
 
 	return nil
@@ -381,10 +411,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		return err
 	}
 
-	isLastNotarizedCloseToOurRound := maxRound-prevHdr.GetRound() <= process.MaxHeaderRequestsAllowed
-	if len(sortedHdrs) == 0 && isLastNotarizedCloseToOurRound {
-		return process.ErrNoSortedHdrsForShard
-	}
+	highestHdr := prevHdr
 
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
@@ -407,12 +434,15 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 				missingNonces = append(missingNonces, j)
 			}
 		}
+
+		highestHdr = currHdr
 	}
 
 	// ask for headers, if there most probably should be
-	if len(missingNonces) == 0 && !isLastNotarizedCloseToOurRound {
-		startNonce := prevHdr.GetNonce() + 1
-		for nonce := startNonce; nonce < startNonce+process.MaxHeaderRequestsAllowed; nonce++ {
+	if maxRound > highestHdr.GetRound() {
+		nbHeaderRequests := maxRound - highestHdr.GetRound()
+		startNonce := highestHdr.GetNonce() + 1
+		for nonce := startNonce; nonce < startNonce+nbHeaderRequests; nonce++ {
 			missingNonces = append(missingNonces, nonce)
 		}
 	}
@@ -482,37 +512,108 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 }
 
 // checkProcessorNilParameters will check the imput parameters for nil values
-func checkProcessorNilParameters(
-	accounts state.AccountsAdapter,
-	forkDetector process.ForkDetector,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	store dataRetriever.StorageService,
-	shardCoordinator sharding.Coordinator,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) error {
+func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if arguments.Accounts == nil || arguments.Accounts.IsInterfaceNil() {
 		return process.ErrNilAccountsAdapter
 	}
-	if forkDetector == nil || forkDetector.IsInterfaceNil() {
+	if arguments.ForkDetector == nil || arguments.ForkDetector.IsInterfaceNil() {
 		return process.ErrNilForkDetector
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if arguments.Hasher == nil || arguments.Hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if arguments.Store == nil || arguments.Store.IsInterfaceNil() {
 		return process.ErrNilStorage
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
+	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
+		return process.ErrNilNodesCoordinator
+	}
+	if arguments.SpecialAddressHandler == nil || arguments.SpecialAddressHandler.IsInterfaceNil() {
+		return process.ErrNilSpecialAddressHandler
+	}
+	if arguments.Uint64Converter == nil || arguments.Uint64Converter.IsInterfaceNil() {
 		return process.ErrNilUint64Converter
+	}
+	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
+		return process.ErrNilRequestHandler
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) createBlockStarted() {
+	bp.resetMissingHdrs()
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
+	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (bp *baseProcessor) resetMissingHdrs() {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.missingHdrs = 0
+	bp.hdrsForCurrBlock.missingFinalityAttestingHdrs = 0
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+//TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
+	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
+
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for _, hdrInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if hdrInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		hdrsForCurrentBlock[hdrInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[hdrInfo.hdr.GetShardID()], hdrInfo.hdr)
+	}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	// sort headers for each shard
+	for _, hdrsForShard := range hdrsForCurrentBlock {
+		process.SortHeadersByNonce(hdrsForShard)
+	}
+
+	return hdrsForCurrentBlock
+}
+
+//TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) map[uint32][][]byte {
+	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
+
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for metaBlockHash, hdrInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if hdrInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		hdrsForCurrentBlockInfo[hdrInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[hdrInfo.hdr.GetShardID()],
+			&nonceAndHashInfo{nonce: hdrInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
+	}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	for _, hdrsForShard := range hdrsForCurrentBlockInfo {
+		if len(hdrsForShard) > 1 {
+			sort.Slice(hdrsForShard, func(i, j int) bool {
+				return hdrsForShard[i].nonce < hdrsForShard[j].nonce
+			})
+		}
+	}
+
+	hdrsHashesForCurrentBlock := make(map[uint32][][]byte)
+	for shardId, hdrsForShard := range hdrsForCurrentBlockInfo {
+		for _, hdrForShard := range hdrsForShard {
+			hdrsHashesForCurrentBlock[shardId] = append(hdrsHashesForCurrentBlock[shardId], hdrForShard.hash)
+		}
+	}
+
+	return hdrsHashesForCurrentBlock
 }

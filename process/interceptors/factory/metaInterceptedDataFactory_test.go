@@ -5,22 +5,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
-
-func createMockMetaArgument() *factory.ArgMetaInterceptedDataFactory {
-	return &factory.ArgMetaInterceptedDataFactory{
-		Marshalizer:         &mock.MarshalizerMock{},
-		Hasher:              mock.HasherMock{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		MultiSigVerifier:    mock.NewMultiSigner(),
-		ChronologyValidator: &mock.ChronologyValidatorStub{},
-	}
-}
 
 func TestNewMetaInterceptedDataFactory_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -34,7 +26,7 @@ func TestNewMetaInterceptedDataFactory_NilArgumentShouldErr(t *testing.T) {
 func TestNewMetaInterceptedDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockMetaArgument()
+	arg := createMockArgument()
 	arg.Marshalizer = nil
 
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
@@ -46,7 +38,7 @@ func TestNewMetaInterceptedDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewMetaInterceptedDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockMetaArgument()
+	arg := createMockArgument()
 	arg.Hasher = nil
 
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
@@ -58,7 +50,7 @@ func TestNewMetaInterceptedDataFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewMetaInterceptedDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockMetaArgument()
+	arg := createMockArgument()
 	arg.ShardCoordinator = nil
 
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
@@ -70,7 +62,7 @@ func TestNewMetaInterceptedDataFactory_NilShardCoordinatorShouldErr(t *testing.T
 func TestNewMetaInterceptedDataFactory_NilMultiSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockMetaArgument()
+	arg := createMockArgument()
 	arg.MultiSigVerifier = nil
 
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
@@ -79,22 +71,70 @@ func TestNewMetaInterceptedDataFactory_NilMultiSigVerifierShouldErr(t *testing.T
 	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
 }
 
-func TestNewMetaInterceptedDataFactory_NilChronologyValidatorShouldErr(t *testing.T) {
+func TestNewMetaInterceptedDataFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockMetaArgument()
-	arg.ChronologyValidator = nil
+	arg := createMockArgument()
+	arg.NodesCoordinator = nil
 
 	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
 
 	assert.Nil(t, midf)
-	assert.Equal(t, process.ErrNilChronologyValidator, err)
+	assert.Equal(t, process.ErrNilNodesCoordinator, err)
+}
+
+func TestNewMetaInterceptedDataFactory_NilFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.FeeHandler = nil
+
+	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
+
+	assert.Nil(t, midf)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewMetaInterceptedDataFactory_NilKeyGenShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.KeyGen = nil
+
+	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
+
+	assert.Nil(t, midf)
+	assert.Equal(t, process.ErrNilKeyGen, err)
+}
+
+func TestNewMetaInterceptedDataFactory_NilSingleSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.Signer = nil
+
+	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
+
+	assert.Nil(t, midf)
+	assert.Equal(t, process.ErrNilSingleSigner, err)
+}
+
+func TestNewMetaInterceptedDataFactory_NilAddressConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.AddrConv = nil
+
+	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedShardHeader)
+
+	assert.Nil(t, midf)
+	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
 func TestNewMetaInterceptedDataFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	midf, err := factory.NewMetaInterceptedDataFactory(createMockMetaArgument(), factory.InterceptedShardHeader)
+	midf, err := factory.NewMetaInterceptedDataFactory(createMockArgument(), factory.InterceptedShardHeader)
 
 	assert.False(t, check.IfNil(midf))
 	assert.Nil(t, err)
@@ -106,7 +146,7 @@ func TestMetaInterceptedDataFactory_CreateUnknownDataTypeShouldErr(t *testing.T)
 	t.Parallel()
 
 	undefinedDataType := factory.InterceptedDataType("undefined data type")
-	midf, _ := factory.NewMetaInterceptedDataFactory(createMockMetaArgument(), undefinedDataType)
+	midf, _ := factory.NewMetaInterceptedDataFactory(createMockArgument(), undefinedDataType)
 
 	instance, err := midf.Create([]byte("buffer"))
 
@@ -120,7 +160,7 @@ func TestMetaInterceptedDataFactory_CreateInterceptedShardHdrShouldWork(t *testi
 	marshalizer := &mock.MarshalizerMock{}
 	emptyHdr := &block.Header{}
 	emptyHdrBuff, _ := marshalizer.Marshal(emptyHdr)
-	midf, _ := factory.NewMetaInterceptedDataFactory(createMockMetaArgument(), factory.InterceptedShardHeader)
+	midf, _ := factory.NewMetaInterceptedDataFactory(createMockArgument(), factory.InterceptedShardHeader)
 
 	instance, err := midf.Create(emptyHdrBuff)
 
@@ -136,7 +176,7 @@ func TestMetaInterceptedDataFactory_CreateInterceptedMetaHdrShouldWork(t *testin
 	marshalizer := &mock.MarshalizerMock{}
 	emptyHdr := &block.Header{}
 	emptyHdrBuff, _ := marshalizer.Marshal(emptyHdr)
-	midf, _ := factory.NewMetaInterceptedDataFactory(createMockMetaArgument(), factory.InterceptedMetaHeader)
+	midf, _ := factory.NewMetaInterceptedDataFactory(createMockArgument(), factory.InterceptedMetaHeader)
 
 	instance, err := midf.Create(emptyHdrBuff)
 
@@ -146,12 +186,28 @@ func TestMetaInterceptedDataFactory_CreateInterceptedMetaHdrShouldWork(t *testin
 	assert.True(t, ok)
 }
 
+func TestMetaInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	emptyTx := &transaction.Transaction{}
+	emptyHdrBuff, _ := marshalizer.Marshal(emptyTx)
+	midf, _ := factory.NewMetaInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
+
+	instance, err := midf.Create(emptyHdrBuff)
+
+	assert.NotNil(t, instance)
+	assert.Nil(t, err)
+	_, ok := instance.(*processTransaction.InterceptedTransaction)
+	assert.True(t, ok)
+}
+
 //------- IsInterfaceNil
 
 func TestMetaInterceptedDataFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	midf, _ := factory.NewMetaInterceptedDataFactory(createMockMetaArgument(), factory.InterceptedShardHeader)
+	midf, _ := factory.NewMetaInterceptedDataFactory(createMockArgument(), factory.InterceptedShardHeader)
 	midf = nil
 
 	assert.True(t, check.IfNil(midf))

@@ -3,8 +3,11 @@ package process_test
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -34,30 +37,42 @@ func TestEmptyChannelShouldWorkOnBufferedChannel(t *testing.T) {
 	assert.Equal(t, 3, readsCnt)
 }
 
-func TestEmptyChannelShouldWorkOnNotBufferdChannel(t *testing.T) {
+func TestEmptyChannelShouldWorkOnNotBufferedChannel(t *testing.T) {
 	ch := make(chan bool)
 
 	assert.Equal(t, 0, len(ch))
-	readsCnt := process.EmptyChannel(ch)
+	readsCnt := int32(process.EmptyChannel(ch))
 	assert.Equal(t, 0, len(ch))
-	assert.Equal(t, 0, readsCnt)
+	assert.Equal(t, int32(0), readsCnt)
 
 	wg := sync.WaitGroup{}
+	wgChanWasWritten := sync.WaitGroup{}
 	numConcurrentWrites := 100
 	wg.Add(numConcurrentWrites)
+	wgChanWasWritten.Add(numConcurrentWrites)
 	for i := 0; i < numConcurrentWrites; i++ {
 		go func() {
 			wg.Done()
+			time.Sleep(time.Millisecond)
 			ch <- true
+			wgChanWasWritten.Done()
 		}()
 	}
 
 	// wait for go routines to start
 	wg.Wait()
 
-	readsCnt = process.EmptyChannel(ch)
+	go func() {
+		for readsCnt < int32(numConcurrentWrites) {
+			atomic.AddInt32(&readsCnt, int32(process.EmptyChannel(ch)))
+		}
+	}()
+
+	// wait for go routines to finish
+	wgChanWasWritten.Wait()
+
 	assert.Equal(t, 0, len(ch))
-	assert.Equal(t, numConcurrentWrites, readsCnt)
+	assert.Equal(t, int32(numConcurrentWrites), atomic.LoadInt32(&readsCnt))
 }
 
 func TestGetShardHeaderShouldErrNilCacher(t *testing.T) {
@@ -2095,4 +2110,22 @@ func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, txFromPool, tx)
+}
+
+func TestSortHeadersByNonceShouldWork(t *testing.T) {
+	headers := []data.HeaderHandler{
+		&block.Header{Nonce: 3},
+		&block.Header{Nonce: 2},
+		&block.Header{Nonce: 1},
+	}
+
+	assert.Equal(t, uint64(3), headers[0].GetNonce())
+	assert.Equal(t, uint64(2), headers[1].GetNonce())
+	assert.Equal(t, uint64(1), headers[2].GetNonce())
+
+	process.SortHeadersByNonce(headers)
+
+	assert.Equal(t, uint64(1), headers[0].GetNonce())
+	assert.Equal(t, uint64(2), headers[1].GetNonce())
+	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }

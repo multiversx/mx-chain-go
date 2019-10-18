@@ -1,14 +1,15 @@
 package shard
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
-func TestNewVMContainerFactory_NilAccounts(t *testing.T) {
+func TestNewVMContainerFactory_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
@@ -20,7 +21,7 @@ func TestNewVMContainerFactory_NilAccounts(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewVMContainerFactory_NilAddressConverter(t *testing.T) {
+func TestNewVMContainerFactory_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
@@ -58,7 +59,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, container)
 
-	vm, err := container.Get([]byte(factory.IELEVirtualMachine))
+	vm, err := container.Get(factory.IELEVirtualMachine)
 	assert.Nil(t, err)
 	assert.NotNil(t, vm)
 

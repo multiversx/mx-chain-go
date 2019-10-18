@@ -55,12 +55,21 @@ func createMockAddressConverter() state.AddressConverter {
 	}
 }
 
-func createMockShardArgument() *factory.ArgShardInterceptedDataFactory {
-	return &factory.ArgShardInterceptedDataFactory{
-		ArgMetaInterceptedDataFactory: createMockMetaArgument(),
-		KeyGen:                        createMockKeyGen(),
-		Signer:                        createMockSigner(),
-		AddrConv:                      createMockAddressConverter(),
+func createMockFeeHandler() process.FeeHandler {
+	return &mock.FeeHandlerStub{}
+}
+
+func createMockArgument() *factory.ArgInterceptedDataFactory {
+	return &factory.ArgInterceptedDataFactory{
+		Marshalizer:      &mock.MarshalizerMock{},
+		Hasher:           mock.HasherMock{},
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		MultiSigVerifier: mock.NewMultiSigner(),
+		NodesCoordinator: mock.NewNodesCoordinatorMock(),
+		KeyGen:           createMockKeyGen(),
+		Signer:           createMockSigner(),
+		AddrConv:         createMockAddressConverter(),
+		FeeHandler:       createMockFeeHandler(),
 	}
 }
 
@@ -76,7 +85,7 @@ func TestNewShardInterceptedDataFactory_NilArgumentShouldErr(t *testing.T) {
 func TestNewShardInterceptedDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockShardArgument()
+	arg := createMockArgument()
 	arg.Marshalizer = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
@@ -88,7 +97,7 @@ func TestNewShardInterceptedDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewShardInterceptedDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockShardArgument()
+	arg := createMockArgument()
 	arg.Hasher = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
@@ -100,7 +109,7 @@ func TestNewShardInterceptedDataFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewShardInterceptedDataFactory_NilKeygenShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockShardArgument()
+	arg := createMockArgument()
 	arg.KeyGen = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
@@ -112,7 +121,7 @@ func TestNewShardInterceptedDataFactory_NilKeygenShouldErr(t *testing.T) {
 func TestNewShardInterceptedDataFactory_NilSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockShardArgument()
+	arg := createMockArgument()
 	arg.Signer = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
@@ -124,7 +133,7 @@ func TestNewShardInterceptedDataFactory_NilSignerShouldErr(t *testing.T) {
 func TestNewShardInterceptedDataFactory_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockShardArgument()
+	arg := createMockArgument()
 	arg.AddrConv = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
@@ -136,7 +145,7 @@ func TestNewShardInterceptedDataFactory_NilAddressConverterShouldErr(t *testing.
 func TestNewShardInterceptedDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockShardArgument()
+	arg := createMockArgument()
 	arg.ShardCoordinator = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
@@ -148,7 +157,7 @@ func TestNewShardInterceptedDataFactory_NilShardCoordinatorShouldErr(t *testing.
 func TestNewShardInterceptedDataFactory_NilMultiSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockShardArgument()
+	arg := createMockArgument()
 	arg.MultiSigVerifier = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
@@ -157,22 +166,34 @@ func TestNewShardInterceptedDataFactory_NilMultiSigVerifierShouldErr(t *testing.
 	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
 }
 
-func TestNewShardInterceptedDataFactory_NilChronologyValidatorShouldErr(t *testing.T) {
+func TestNewShardInterceptedDataFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockShardArgument()
-	arg.ChronologyValidator = nil
+	arg := createMockArgument()
+	arg.NodesCoordinator = nil
 
 	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
 
 	assert.Nil(t, sidf)
-	assert.Equal(t, process.ErrNilChronologyValidator, err)
+	assert.Equal(t, process.ErrNilNodesCoordinator, err)
+}
+
+func TestNewShardInterceptedDataFactory_NilFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.FeeHandler = nil
+
+	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTx)
+
+	assert.Nil(t, sidf)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
 func TestNewShardInterceptedDataFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	sidf, err := factory.NewShardInterceptedDataFactory(createMockShardArgument(), factory.InterceptedTx)
+	sidf, err := factory.NewShardInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 
 	assert.False(t, check.IfNil(sidf))
 	assert.Nil(t, err)
@@ -184,7 +205,7 @@ func TestShardInterceptedDataFactory_CreateUnknownDataTypeShouldErr(t *testing.T
 	t.Parallel()
 
 	undefinedDataType := factory.InterceptedDataType("undefined data type")
-	sidf, _ := factory.NewShardInterceptedDataFactory(createMockShardArgument(), undefinedDataType)
+	sidf, _ := factory.NewShardInterceptedDataFactory(createMockArgument(), undefinedDataType)
 
 	instance, err := sidf.Create([]byte("buffer"))
 
@@ -198,7 +219,7 @@ func TestShardInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T)
 	marshalizer := &mock.MarshalizerMock{}
 	emptyTx := &dataTransaction.Transaction{}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
-	sidf, _ := factory.NewShardInterceptedDataFactory(createMockShardArgument(), factory.InterceptedTx)
+	sidf, _ := factory.NewShardInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 
 	instance, err := sidf.Create(emptyTxBuff)
 
@@ -214,7 +235,7 @@ func TestShardInterceptedDataFactory_CreateInterceptedUnsignedTxShouldWork(t *te
 	marshalizer := &mock.MarshalizerMock{}
 	emptyTx := &smartContractResult.SmartContractResult{}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
-	idf, _ := factory.NewShardInterceptedDataFactory(createMockShardArgument(), factory.InterceptedUnsignedTx)
+	idf, _ := factory.NewShardInterceptedDataFactory(createMockArgument(), factory.InterceptedUnsignedTx)
 
 	instance, err := idf.Create(emptyTxBuff)
 
@@ -230,7 +251,7 @@ func TestShardInterceptedDataFactory_CreateInterceptedShardHdrShouldWork(t *test
 	marshalizer := &mock.MarshalizerMock{}
 	emptyHdr := &block.Header{}
 	emptyHdrBuff, _ := marshalizer.Marshal(emptyHdr)
-	sidf, _ := factory.NewShardInterceptedDataFactory(createMockShardArgument(), factory.InterceptedShardHeader)
+	sidf, _ := factory.NewShardInterceptedDataFactory(createMockArgument(), factory.InterceptedShardHeader)
 
 	instance, err := sidf.Create(emptyHdrBuff)
 
@@ -246,7 +267,7 @@ func TestShardInterceptedDataFactory_CreateInterceptedMetaHdrShouldWork(t *testi
 	marshalizer := &mock.MarshalizerMock{}
 	emptyHdr := &block.Header{}
 	emptyHdrBuff, _ := marshalizer.Marshal(emptyHdr)
-	midf, _ := factory.NewShardInterceptedDataFactory(createMockShardArgument(), factory.InterceptedMetaHeader)
+	midf, _ := factory.NewShardInterceptedDataFactory(createMockArgument(), factory.InterceptedMetaHeader)
 
 	instance, err := midf.Create(emptyHdrBuff)
 
@@ -264,7 +285,7 @@ func TestShardInterceptedDataFactory_CreateInterceptedTxBlockBodyShouldWork(t *t
 	emptyTxBlockBodyBuff, _ := marshalizer.Marshal(emptyTxBlockBody)
 
 	midf, _ := factory.NewShardInterceptedDataFactory(
-		createMockShardArgument(),
+		createMockArgument(),
 		factory.InterceptedTxBlockBody,
 	)
 
@@ -281,7 +302,7 @@ func TestShardInterceptedDataFactory_CreateInterceptedTxBlockBodyShouldWork(t *t
 func TestShardInterceptedDataFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	sidf, _ := factory.NewShardInterceptedDataFactory(createMockShardArgument(), factory.InterceptedTx)
+	sidf, _ := factory.NewShardInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 	sidf = nil
 
 	assert.True(t, check.IfNil(sidf))

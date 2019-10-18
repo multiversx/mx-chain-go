@@ -29,6 +29,7 @@ type InterceptedTransaction struct {
 	sndShard          uint32
 	isForCurrentShard bool
 	sndAddr           state.AddressContainer
+	feeHandler        process.FeeHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -40,6 +41,7 @@ func NewInterceptedTransaction(
 	signer crypto.SingleSigner,
 	addrConv state.AddressConverter,
 	coordinator sharding.Coordinator,
+	feeHandler process.FeeHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -63,6 +65,9 @@ func NewInterceptedTransaction(
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if feeHandler == nil || coordinator.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	tx, err := createTx(marshalizer, txBuff)
 	if err != nil {
@@ -77,6 +82,7 @@ func NewInterceptedTransaction(
 		addrConv:     addrConv,
 		keyGen:       keyGen,
 		coordinator:  coordinator,
+		feeHandler:   feeHandler,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -158,7 +164,7 @@ func (inTx *InterceptedTransaction) integrity() error {
 		return process.ErrNegativeValue
 	}
 
-	return nil
+	return inTx.feeHandler.CheckValidityTxValues(inTx.tx)
 }
 
 // verifySig checks if the tx is correctly signed

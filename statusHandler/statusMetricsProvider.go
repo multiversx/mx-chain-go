@@ -40,6 +40,22 @@ func (nd *statusMetrics) Increment(key string) {
 	nd.nodeMetrics.Store(key, keyValue)
 }
 
+// AddUint64 method increase a metric with a specific value
+func (nd *statusMetrics) AddUint64(key string, val uint64) {
+	keyValueI, ok := nd.nodeMetrics.Load(key)
+	if !ok {
+		return
+	}
+
+	keyValue, ok := keyValueI.(uint64)
+	if !ok {
+		return
+	}
+
+	keyValue += val
+	nd.nodeMetrics.Store(key, keyValue)
+}
+
 // Decrement method - decrement a metric
 func (nd *statusMetrics) Decrement(key string) {
 	keyValueI, ok := nd.nodeMetrics.Load(key)

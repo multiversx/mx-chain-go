@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -138,13 +138,17 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 
 	cns := internalInitConsensusState()
 
-	vgs := &mock.ValidatorGroupSelectorMock{}
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	err := errors.New("error")
-	vgs.ComputeValidatorsGroupCalled = func(randomness []byte) ([]consensus.Validator, error) {
+	nodesCoordinator.ComputeValidatorsGroupCalled = func(
+		randomness []byte,
+		round uint64,
+		shardId uint32,
+	) ([]sharding.Validator, error) {
 		return nil, err
 	}
 
-	_, err2 := cns.GetNextConsensusGroup("", vgs)
+	_, _, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoordinator)
 	assert.Equal(t, err, err2)
 }
 
@@ -153,11 +157,12 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	vgs := &mock.ValidatorGroupSelectorMock{}
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 
-	nextConsensusGroup, err := cns.GetNextConsensusGroup("", vgs)
+	nextConsensusGroup, rewardAddresses, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoordinator)
 	assert.Nil(t, err)
 	assert.NotNil(t, nextConsensusGroup)
+	assert.NotNil(t, rewardAddresses)
 }
 
 func TestConsensusState_IsConsensusDataSetShouldReturnTrue(t *testing.T) {
@@ -209,13 +214,13 @@ func TestConsensusState_IsJobDoneShouldReturnFalse(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.SetJobDone("1", bn.SrBlock, false)
+	_ = cns.SetJobDone("1", bn.SrBlock, false)
 	assert.False(t, cns.IsJobDone("1", bn.SrBlock))
 
-	cns.SetJobDone("1", bn.SrCommitment, true)
+	_ = cns.SetJobDone("1", bn.SrCommitment, true)
 	assert.False(t, cns.IsJobDone("1", bn.SrBlock))
 
-	cns.SetJobDone("2", bn.SrBlock, true)
+	_ = cns.SetJobDone("2", bn.SrBlock, true)
 	assert.False(t, cns.IsJobDone("1", bn.SrBlock))
 }
 
@@ -224,7 +229,7 @@ func TestConsensusState_IsJobDoneShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.SetJobDone("1", bn.SrBlock, true)
+	_ = cns.SetJobDone("1", bn.SrBlock, true)
 
 	assert.True(t, cns.IsJobDone("1", bn.SrBlock))
 }
@@ -234,13 +239,13 @@ func TestConsensusState_IsSelfJobDoneShouldReturnFalse(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
 	assert.False(t, cns.IsSelfJobDone(bn.SrBlock))
 
-	cns.SetJobDone(cns.SelfPubKey(), bn.SrCommitment, true)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrCommitment, true)
 	assert.False(t, cns.IsSelfJobDone(bn.SrBlock))
 
-	cns.SetJobDone(cns.SelfPubKey()+"X", bn.SrBlock, true)
+	_ = cns.SetJobDone(cns.SelfPubKey()+"X", bn.SrBlock, true)
 	assert.False(t, cns.IsSelfJobDone(bn.SrBlock))
 }
 
@@ -249,7 +254,7 @@ func TestConsensusState_IsSelfJobDoneShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
 
 	assert.True(t, cns.IsSelfJobDone(bn.SrBlock))
 }
@@ -348,7 +353,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenSelfJobIsDone(t *te
 	cns := internalInitConsensusState()
 
 	cns.Data = make([]byte, 0)
-	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
 
 	assert.False(t, cns.CanDoSubroundJob(bn.SrBlock))
 }
@@ -359,7 +364,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenCurrentRoundIsFinis
 	cns := internalInitConsensusState()
 
 	cns.Data = make([]byte, 0)
-	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
 	cns.SetStatus(bn.SrBlock, spos.SsFinished)
 
 	assert.False(t, cns.CanDoSubroundJob(bn.SrBlock))
@@ -371,7 +376,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnTrue(t *testing.T) {
 	cns := internalInitConsensusState()
 
 	cns.Data = make([]byte, 0)
-	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
 	cns.SetStatus(bn.SrBlock, spos.SsNotFinished)
 
 	assert.True(t, cns.CanDoSubroundJob(bn.SrBlock))
@@ -413,7 +418,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenJobIsDone(
 		PubKey:     []byte("1"),
 	}
 
-	cns.SetJobDone("1", bn.SrBlock, true)
+	_ = cns.SetJobDone("1", bn.SrBlock, true)
 
 	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 0, bn.SrBlock))
 }
@@ -455,7 +460,7 @@ func TestConsensusState_GenerateBitmapShouldWork(t *testing.T) {
 	selfIndexInConsensusGroup, _ := cns.SelfConsensusGroupIndex()
 	bitmapExpected[selfIndexInConsensusGroup/8] |= 1 << (uint16(selfIndexInConsensusGroup) % 8)
 
-	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
+	_ = cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
 	bitmap := cns.GenerateBitmap(bn.SrBlock)
 
 	assert.Equal(t, bitmapExpected, bitmap)

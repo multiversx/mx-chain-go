@@ -17,11 +17,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		MultiSigVerifier: mock.NewMultiSigner(),
 		Hasher:           testHasher,
 		Marshalizer:      testMarshalizer,
-		ChronologyValidator: &mock.ChronologyValidatorStub{
-			ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint64) error {
-				return nil
-			},
-		},
+		NodesCoordinator: &mock.NodesCoordinatorMock{},
 	}
 
 	hdr := createMockMetaHeader()
@@ -36,7 +32,7 @@ func createMockMetaHeader() *dataBlock.MetaBlock {
 		PrevHash:      []byte("prev hash"),
 		PrevRandSeed:  []byte("prev rand seed"),
 		RandSeed:      []byte("rand seed"),
-		PubKeysBitmap: []byte("bitmap"),
+		PubKeysBitmap: []byte{1},
 		TimeStamp:     0,
 		Round:         hdrRound,
 		Epoch:         hdrEpoch,
