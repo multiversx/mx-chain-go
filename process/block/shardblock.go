@@ -62,7 +62,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		store:                         arguments.Store,
 		shardCoordinator:              arguments.ShardCoordinator,
 		nodesCoordinator:              arguments.NodesCoordinator,
-		peerProcessor:                 arguments.PeerProcessor,
 		specialAddressHandler:         arguments.SpecialAddressHandler,
 		uint64Converter:               arguments.Uint64Converter,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
@@ -1536,25 +1535,6 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 		return process.ErrTimeIsOut
 	}
 }
-
-func (sp *shardProcessor) updatePeerState(headerHandler data.HeaderHandler) error {
-	prevHeader, err := sp.getPrevHeader(headerHandler)
-	if err != nil {
-		return err
-	}
-
-	return sp.peerProcessor.UpdatePeerState(headerHandler, prevHeader)
-}
-
-func (sp *shardProcessor) revertPeerState(headerHandler data.HeaderHandler) error {
-	prevHeader, err := sp.getPrevHeader(headerHandler)
-	if err != nil {
-		return err
-	}
-
-	return sp.peerProcessor.RevertPeerState(headerHandler, prevHeader)
-}
-
 
 func (sp *shardProcessor) getPrevHeader(headerHandler data.HeaderHandler) (data.HeaderHandler, error) {
 	headerStorer := sp.store.GetStorer(dataRetriever.BlockHeaderUnit)
