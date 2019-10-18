@@ -110,7 +110,7 @@ func TestNewMetaDataPool_NilUnsingedPoolNoncesShouldErr(t *testing.T) {
 func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 	t.Parallel()
 
-	metaChainBlocks := &mock.CacherStub{}
+	metaBlocks := &mock.CacherStub{}
 	shardHeaders := &mock.CacherStub{}
 	miniBlocks := &mock.CacherStub{}
 	hdrsNonces := &mock.Uint64SyncMapCacherStub{}
@@ -118,7 +118,7 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 	unsigned := &mock.ShardedDataStub{}
 
 	tdp, err := dataPool.NewMetaDataPool(
-		metaChainBlocks,
+		metaBlocks,
 		miniBlocks,
 		shardHeaders,
 		hdrsNonces,
@@ -128,7 +128,7 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 
 	assert.Nil(t, err)
 	//pointer checking
-	assert.True(t, metaChainBlocks == tdp.MetaChainBlocks())
+	assert.True(t, metaBlocks == tdp.MetaBlocks())
 	assert.True(t, shardHeaders == tdp.ShardHeaders())
 	assert.True(t, miniBlocks == tdp.MiniBlocks())
 	assert.True(t, hdrsNonces == tdp.HeadersNonces())

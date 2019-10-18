@@ -193,6 +193,7 @@ func TestNonceSyncMapCacher_RemoveShardIdWhenExists(t *testing.T) {
 			PeekCalled: func(key []byte) (interface{}, bool) {
 				return syncMap, true
 			},
+			RemoveCalled: func(key []byte) {},
 		},
 		mock.NewNonceHashConverterMock())
 
