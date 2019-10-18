@@ -52,7 +52,7 @@ func createDataPools() dataRetriever.MetaPoolsHolder {
 		MiniBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
 		},
-		MetaChainBlocksCalled: func() storage.Cacher {
+		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
 		},
 		HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {

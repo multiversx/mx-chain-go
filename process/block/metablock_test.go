@@ -612,7 +612,7 @@ func TestMetaProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	blkc := createTestBlockchain()
 	err := mp.CommitBlock(blkc, hdr, body)
 
-	assert.Equal(t, process.ErrNilDataPoolHolder, err)
+	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
 }
 
 func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {

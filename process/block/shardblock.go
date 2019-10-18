@@ -601,14 +601,18 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerNoncePool := sp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
-		err = process.ErrNilDataPoolHolder
+		err = process.ErrNilHeadersNoncesDataPool
 		return err
 	}
 
-	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(headerHandler.GetShardID(), headerHash)
-	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
+	headersPool := sp.dataPool.Headers()
+	if headersPool == nil {
+		err = process.ErrNilHeadersDataPool
+		return err
+	}
+
+	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
+	headersPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
@@ -1074,6 +1078,11 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 	if metaBlock.GetRound() <= lastNotarizedHdr.GetRound() {
+		return
+	}
+
+	isMetaBlockOutOfRange := metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
+	if isMetaBlockOutOfRange {
 		return
 	}
 

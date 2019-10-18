@@ -1728,7 +1728,7 @@ func TestShardProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	blkc := createTestBlockchain()
 	err := sp.CommitBlock(blkc, hdr, body)
 
-	assert.Equal(t, process.ErrNilDataPoolHolder, err)
+	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
 }
 
 func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
