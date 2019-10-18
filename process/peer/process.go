@@ -1,8 +1,6 @@
 package peer
 
 import (
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -11,10 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
-// ShardedPeerAdapters represents a list of peer account adapters organized by the shard id
-//  each validator account is alocated to
-type ShardedPeerAdapters map[uint32]state.AccountsAdapter
 
 type validatorActionType uint8
 
@@ -32,21 +26,20 @@ type validatorStatistics struct {
 	nodesCoordinator sharding.NodesCoordinator
 	shardCoordinator sharding.Coordinator
 	adrConv state.AddressConverter
-	peerAdapters ShardedPeerAdapters
-	mutPeerAdapters *sync.RWMutex
+	peerAdapter state.AccountsAdapter
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
 //  each validator actions in the consensus process
 func NewValidatorStatisticsProcessor(
 	in []*sharding.InitialNode,
-	peerAdapters ShardedPeerAdapters,
+	peerAdapter state.AccountsAdapter,
 	adrConv state.AddressConverter,
 	nodesCoordinator sharding.NodesCoordinator,
 	shardCoordinator sharding.Coordinator,
 	shardHeaderStorage storage.Storer,
 ) (*validatorStatistics, error) {
-	if peerAdapters == nil {
+	if peerAdapter == nil {
 		return nil, process.ErrNilPeerAccountsAdapter
 	}
 	if adrConv == nil || adrConv.IsInterfaceNil() {
@@ -63,8 +56,7 @@ func NewValidatorStatisticsProcessor(
 	}
 
 	peerProcessor := &validatorStatistics{
-		mutPeerAdapters: &sync.RWMutex{},
-		peerAdapters: peerAdapters,
+		peerAdapter: peerAdapter,
 		adrConv: adrConv,
 		nodesCoordinator: nodesCoordinator,
 		shardCoordinator: shardCoordinator,
@@ -88,11 +80,9 @@ func (p *validatorStatistics) LoadInitialState(in []*sharding.InitialNode) error
 		}
 	}
 
-	for _, peerAdapter := range p.peerAdapters {
-		_, err := peerAdapter.Commit()
-		if err != nil {
-			return err
-		}
+	_, err := p.peerAdapter.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -124,8 +114,38 @@ func (p *validatorStatistics) UpdatePeerState(header, previousHeader data.Header
 		return err
 	}
 
+	err = p.checkForMissedBlocks(header, previousHeader)
+	if err != nil {
+		return err
+	}
+
 	if header.GetShardID() == sharding.MetachainShardId {
 		err = p.updateShardDataPeerState(header)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *validatorStatistics) checkForMissedBlocks(header, previousHeader data.HeaderHandler) error {
+	if header.GetRound() - previousHeader.GetRound() <= 1 {
+		return nil
+	}
+
+	for i := previousHeader.GetRound() + 1; i < header.GetRound(); i++ {
+		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID())
+		if err != nil {
+			return err
+		}
+
+		leaderPeerAcc, err := p.getPeerAccount(consensusGroup[0].Address())
+		if err != nil {
+			return err
+		}
+
+		err = leaderPeerAcc.DecreaseLeaderSuccessRateWithJournal()
 		if err != nil {
 			return err
 		}
@@ -245,12 +265,7 @@ func (p *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*
 		return nil, err
 	}
 
-	peerAdapter, err := p.getPeerAdapter(node.AssignedShard())
-	if err != nil {
-		return nil, err
-	}
-
-	acc, err := peerAdapter.GetAccountWithJournal(address)
+	acc, err := p.peerAdapter.GetAccountWithJournal(address)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +300,7 @@ func (p *validatorStatistics) savePeerAccountData(peerAccount *state.PeerAccount
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := p.getPeerAccount(validatorList[i].Address(), shardId)
+		peerAcc, err := p.getPeerAccount(validatorList[i].Address())
 		if err != nil {
 			return err
 		}
@@ -316,7 +331,7 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 func (p *validatorStatistics) revertValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := p.getPeerAccount(validatorList[i].Address(), shardId)
+		peerAcc, err := p.getPeerAccount(validatorList[i].Address())
 		if err != nil {
 			return err
 		}
@@ -361,40 +376,23 @@ func (p *validatorStatistics) computeValidatorActionType(isLeader, validatorSign
 	return unknownAction
 }
 
-func (p *validatorStatistics) getPeerAccount(address []byte, shardId uint32) (*state.PeerAccount, error) {
-	peerAdapter, err := p.getPeerAdapter(shardId)
-	if err != nil {
-		return nil, err
-	}
-
+func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	addressContainer, err := p.adrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err
 	}
 
-	account, err := peerAdapter.GetExistingAccount(addressContainer)
+	account, err := p.peerAdapter.GetExistingAccount(addressContainer)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAccount, ok := account.(*state.PeerAccount)
+	peerAccount, ok := account.(state.PeerAccountHandler)
 	if !ok {
 		return nil, process.ErrInvalidPeerAccount
 	}
 
 	return peerAccount, nil
-}
-
-func (p *validatorStatistics) getPeerAdapter(shardId uint32) (state.AccountsAdapter, error) {
-	p.mutPeerAdapters.RLock()
-	defer p.mutPeerAdapters.RUnlock()
-
-	adapter, exists := p.peerAdapters[shardId]
-	if !exists {
-		return nil, process.ErrNilPeerAccountsAdapter
-	}
-
-	return adapter, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

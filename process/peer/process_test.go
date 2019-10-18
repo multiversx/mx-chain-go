@@ -28,11 +28,10 @@ func TestNewPeerProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
 }
 
 func TestNewPeerProcessor_NilAddressConverterShouldErr(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		nil,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -44,11 +43,10 @@ func TestNewPeerProcessor_NilAddressConverterShouldErr(t *testing.T) {
 }
 
 func TestNewPeerProcessor_NilNodesCoordinatorShouldErr(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		nil,
 		shardCoordinatorMock,
@@ -59,11 +57,10 @@ func TestNewPeerProcessor_NilNodesCoordinatorShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 }
 
-func TestNewPeerProcessor_ShardCoordinatorShouldErr(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
+func TestNewPeerProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
 		nil,
@@ -74,12 +71,11 @@ func TestNewPeerProcessor_ShardCoordinatorShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewPeerProcessor_ShardHeaderStorageShouldErr(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
+func TestNewPeerProcessor_NilShardHeaderStorageShouldErr(t *testing.T) {
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -91,11 +87,10 @@ func TestNewPeerProcessor_ShardHeaderStorageShouldErr(t *testing.T) {
 }
 
 func TestNewPeerProcessor(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -107,11 +102,10 @@ func TestNewPeerProcessor(t *testing.T) {
 }
 
 func TestPeerProcessor_LoadInitialStateErrOnInvalidNode(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -125,7 +119,6 @@ func TestPeerProcessor_LoadInitialStateErrOnInvalidNode(t *testing.T) {
 }
 
 func TestPeerProcessor_LoadInitialStateErrOnWrongAddressConverter(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
 	addressErr := errors.New("hex address error")
@@ -136,7 +129,7 @@ func TestPeerProcessor_LoadInitialStateErrOnWrongAddressConverter(t *testing.T) 
 	}
 	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -149,32 +142,9 @@ func TestPeerProcessor_LoadInitialStateErrOnWrongAddressConverter(t *testing.T) 
 	assert.Equal(t, addressErr, err)
 }
 
-func TestPeerProcessor_LoadInitialStateErrOnInvalidAssignedShard(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
-	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-
-	addressConverter := &mock.AddressConverterStub{
-		CreateAddressFromHexCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
-	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa",}}
-	_, err := peer.NewValidatorStatisticsProcessor(
-		initialNodes,
-		peerAdapters,
-		addressConverter,
-		&mock.NodesCoordinatorMock{},
-		shardCoordinatorMock,
-		&mock.StorerStub{},
-	)
-
-	assert.Equal(t, process.ErrNilPeerAccountsAdapter, err)
-}
-
 func TestPeerProcessor_LoadInitialStateErrOnGetAccountFail(t *testing.T) {
 	adapterError := errors.New("account error")
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
-	peerAdapters[0] = &mock.AccountsStub{
+	peerAdapters := &mock.AccountsStub{
 		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return nil, adapterError
 		},
@@ -200,8 +170,7 @@ func TestPeerProcessor_LoadInitialStateErrOnGetAccountFail(t *testing.T) {
 }
 
 func TestPeerProcessor_LoadInitialStateGetAccountReturnsInvalid(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
-	peerAdapters[0] = &mock.AccountsStub{
+	peerAdapter := &mock.AccountsStub{
 		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
@@ -217,7 +186,7 @@ func TestPeerProcessor_LoadInitialStateGetAccountReturnsInvalid(t *testing.T) {
 	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
 	_, err := peer.NewValidatorStatisticsProcessor(
 		initialNodes,
-		peerAdapters,
+		peerAdapter,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -229,7 +198,6 @@ func TestPeerProcessor_LoadInitialStateGetAccountReturnsInvalid(t *testing.T) {
 
 func TestPeerProcessor_LoadInitialStateSetAddressErrors(t *testing.T) {
 	saveAccountError := errors.New("save account error")
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {
 
@@ -238,7 +206,7 @@ func TestPeerProcessor_LoadInitialStateSetAddressErrors(t *testing.T) {
 			return saveAccountError
 		},
 	})
-	peerAdapters[0] = &mock.AccountsStub{
+	peerAdapter := &mock.AccountsStub{
 		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -254,7 +222,7 @@ func TestPeerProcessor_LoadInitialStateSetAddressErrors(t *testing.T) {
 	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
 	_, err := peer.NewValidatorStatisticsProcessor(
 		initialNodes,
-		peerAdapters,
+		peerAdapter,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -266,7 +234,6 @@ func TestPeerProcessor_LoadInitialStateSetAddressErrors(t *testing.T) {
 
 func TestPeerProcessor_LoadInitialStateCommitErrors(t *testing.T) {
 	commitError := errors.New("commit error")
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {
 
@@ -275,7 +242,7 @@ func TestPeerProcessor_LoadInitialStateCommitErrors(t *testing.T) {
 			return nil
 		},
 	})
-	peerAdapters[0] = &mock.AccountsStub{
+	peerAdapter := &mock.AccountsStub{
 		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -294,7 +261,7 @@ func TestPeerProcessor_LoadInitialStateCommitErrors(t *testing.T) {
 	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
 	_, err := peer.NewValidatorStatisticsProcessor(
 		initialNodes,
-		peerAdapters,
+		peerAdapter,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -305,7 +272,6 @@ func TestPeerProcessor_LoadInitialStateCommitErrors(t *testing.T) {
 }
 
 func TestPeerProcessor_LoadInitialStateCommit(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
 		JournalizeCalled: func(entry state.JournalEntry) {
 
@@ -314,7 +280,7 @@ func TestPeerProcessor_LoadInitialStateCommit(t *testing.T) {
 			return nil
 		},
 	})
-	peerAdapters[0] = &mock.AccountsStub{
+	peerAdapter := &mock.AccountsStub{
 		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -333,7 +299,7 @@ func TestPeerProcessor_LoadInitialStateCommit(t *testing.T) {
 	initialNodes := []*sharding.InitialNode{{PubKey:"aaaa", Address: "aaaa"}}
 	_, err := peer.NewValidatorStatisticsProcessor(
 		initialNodes,
-		peerAdapters,
+		peerAdapter,
 		addressConverter,
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -344,11 +310,10 @@ func TestPeerProcessor_LoadInitialStateCommit(t *testing.T) {
 }
 
 func TestPeerProcess_IsNodeValidEmptyAddressShoudErr(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -360,11 +325,10 @@ func TestPeerProcess_IsNodeValidEmptyAddressShoudErr(t *testing.T) {
 }
 
 func TestPeerProcess_IsNodeValidEmptyPubKeyShoudErr(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -376,11 +340,10 @@ func TestPeerProcess_IsNodeValidEmptyPubKeyShoudErr(t *testing.T) {
 }
 
 func TestPeerProcess_IsNodeValid(t *testing.T) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{},
 		shardCoordinatorMock,
@@ -393,11 +356,10 @@ func TestPeerProcess_IsNodeValid(t *testing.T) {
 
 func TestPeerProcess_UpdatePeerStateComputeValidatorErrShouldError(t *testing.T) {
 	computeValidatorsErr := errors.New("compute validators error")
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
 		nil,
-		peerAdapters,
+		getAccountsMock(),
 		&mock.AddressConverterMock{},
 		&mock.NodesCoordinatorMock{
 			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -415,10 +377,299 @@ func TestPeerProcess_UpdatePeerStateComputeValidatorErrShouldError(t *testing.T)
 	assert.Equal(t, computeValidatorsErr, err)
 }
 
+func TestPeerProcess_UpdatePeerStateCreateAddressFromPublicKeyBytesErr(t *testing.T) {
+	createAddressErr := errors.New("create address error")
+	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
+		getAccountsMock(),
+		&mock.AddressConverterStub{
+			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+				return nil, createAddressErr
+			},
+		},
+		&mock.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+				return []sharding.Validator{&mock.ValidatorMock{}}, nil
+			},
+		},
+		shardCoordinatorMock,
+		&mock.StorerStub{},
+	)
+
+	header := getHeaderHandler([]byte("header"))
+	prevHEader := getHeaderHandler([]byte("prevheader"))
+	err := peerProcessor.UpdatePeerState(header, prevHEader)
+
+	assert.Equal(t, createAddressErr, err)
+}
+
+func TestPeerProcess_UpdatePeerStateGetExistingAccountErr(t *testing.T) {
+	existingAccountErr := errors.New("existing account err")
+	adapter := getAccountsMock()
+	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return nil, existingAccountErr
+	}
+	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
+		adapter,
+		&mock.AddressConverterStub{
+			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+				return &mock.AddressMock{}, nil
+			},
+		},
+		&mock.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+				return []sharding.Validator{&mock.ValidatorMock{}}, nil
+			},
+		},
+		shardCoordinatorMock,
+		&mock.StorerStub{},
+	)
+
+	header := getHeaderHandler([]byte("header"))
+	prevHEader := getHeaderHandler([]byte("prevheader"))
+	err := peerProcessor.UpdatePeerState(header, prevHEader)
+
+	assert.Equal(t, existingAccountErr, err)
+}
+
+func TestPeerProcess_UpdatePeerStateGetExistingAccountInvalidType(t *testing.T) {
+	adapter := getAccountsMock()
+	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return &mock.AccountWrapMock{}, nil
+	}
+	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
+		adapter,
+		&mock.AddressConverterStub{
+			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+				return &mock.AddressMock{}, nil
+			},
+		},
+		&mock.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+				return []sharding.Validator{&mock.ValidatorMock{}}, nil
+			},
+		},
+		shardCoordinatorMock,
+		&mock.StorerStub{},
+	)
+
+	header := getHeaderHandler([]byte("header"))
+	prevHEader := getHeaderHandler([]byte("prevheader"))
+	err := peerProcessor.UpdatePeerState(header, prevHEader)
+
+	assert.Equal(t, process.ErrInvalidPeerAccount, err)
+}
+
+func TestPeerProcess_UpdatePeerStateCallsSuccessForLeader(t *testing.T) {
+	adapter := getAccountsMock()
+	increaseLeaderCalled := false
+	decreaseLeaderCalled := false
+	increaseValidatorCalled := false
+	decreaseValidatorCalled := false
+	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return &mock.PeerAccountHandlerMock{
+			IncreaseLeaderSuccessRateWithJournalCalled: func() error {
+				increaseLeaderCalled = true
+				return nil
+			},
+			DecreaseLeaderSuccessRateWithJournalCalled: func() error {
+				decreaseLeaderCalled = true
+				return nil
+			},
+			IncreaseValidatorSuccessRateWithJournalCalled: func() error {
+				increaseValidatorCalled = true
+				return nil
+			},
+			DecreaseValidatorSuccessRateWithJournalCalled: func() error {
+				decreaseValidatorCalled = true
+				return nil
+			},
+		}, nil
+	}
+	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
+		adapter,
+		&mock.AddressConverterStub{
+			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+				return &mock.AddressMock{}, nil
+			},
+		},
+		&mock.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+				return []sharding.Validator{&mock.ValidatorMock{}, &mock.ValidatorMock{}}, nil
+			},
+		},
+		shardCoordinatorMock,
+		&mock.StorerStub{},
+	)
+
+	header := getHeaderHandler([]byte("header"))
+	prevHEader := getHeaderHandler([]byte("prevheader"))
+	// {0} - nobody signed
+	// {1} - leader signed, validator did not
+	// {2} - validator signed, leader didn't
+	// {3} - everybody signed
+	bitmaps := [][]byte{{0}, {1}, {2}, {3}}
+	for _, bitmap := range bitmaps {
+		increaseLeaderCalled = false
+		decreaseLeaderCalled = false
+		increaseValidatorCalled = false
+		decreaseValidatorCalled = false
+
+		increaseLeaderShouldBeCalled := false
+		decreaseLeaderShouldBeCalled := false
+		increaseValidatorShouldBeCalled := false
+		decreaseValidatorShouldBeCalled := false
+
+		prevHEader.GetPubKeysBitmapCalled = func() []byte {
+			return bitmap
+		}
+		err := peerProcessor.UpdatePeerState(header, prevHEader)
+
+		leaderSigned := validatorSigned(0, bitmap)
+		validatorSigned := validatorSigned(1, bitmap)
+
+		if leaderSigned {
+			increaseLeaderShouldBeCalled = true
+		} else {
+			decreaseLeaderShouldBeCalled = true
+		}
+
+		if validatorSigned {
+			increaseValidatorShouldBeCalled = true
+		} else {
+			decreaseValidatorShouldBeCalled = true
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, increaseLeaderCalled, increaseLeaderShouldBeCalled)
+		assert.Equal(t, decreaseLeaderCalled, decreaseLeaderShouldBeCalled)
+		assert.Equal(t, increaseValidatorCalled, increaseValidatorShouldBeCalled)
+		assert.Equal(t, decreaseValidatorCalled, decreaseValidatorShouldBeCalled)
+	}
+}
+
+func TestPeerProcess_RevertPeerStateCallsSuccessForLeader(t *testing.T) {
+	adapter := getAccountsMock()
+	increaseLeaderCalled := false
+	decreaseLeaderCalled := false
+	increaseValidatorCalled := false
+	decreaseValidatorCalled := false
+	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return &mock.PeerAccountHandlerMock{
+			IncreaseLeaderSuccessRateWithJournalCalled: func() error {
+				increaseLeaderCalled = true
+				return nil
+			},
+			DecreaseLeaderSuccessRateWithJournalCalled: func() error {
+				decreaseLeaderCalled = true
+				return nil
+			},
+			IncreaseValidatorSuccessRateWithJournalCalled: func() error {
+				increaseValidatorCalled = true
+				return nil
+			},
+			DecreaseValidatorSuccessRateWithJournalCalled: func() error {
+				decreaseValidatorCalled = true
+				return nil
+			},
+		}, nil
+	}
+	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
+	peerProcessor, _ := peer.NewValidatorStatisticsProcessor(
+		nil,
+		adapter,
+		&mock.AddressConverterStub{
+			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+				return &mock.AddressMock{}, nil
+			},
+		},
+		&mock.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+				return []sharding.Validator{&mock.ValidatorMock{}, &mock.ValidatorMock{}}, nil
+			},
+		},
+		shardCoordinatorMock,
+		&mock.StorerStub{},
+	)
+
+	header := getHeaderHandler([]byte("header"))
+	prevHEader := getHeaderHandler([]byte("prevheader"))
+	// {0} - nobody signed
+	// {1} - leader signed, validator did not
+	// {2} - validator signed, leader didn't
+	// {3} - everybody signed
+	bitmaps := [][]byte{{0}, {1}, {2}, {3}}
+	for _, bitmap := range bitmaps {
+		increaseLeaderCalled = false
+		decreaseLeaderCalled = false
+		increaseValidatorCalled = false
+		decreaseValidatorCalled = false
+
+		increaseLeaderShouldBeCalled := false
+		decreaseLeaderShouldBeCalled := false
+		increaseValidatorShouldBeCalled := false
+		decreaseValidatorShouldBeCalled := false
+
+		prevHEader.GetPubKeysBitmapCalled = func() []byte {
+			return bitmap
+		}
+		err := peerProcessor.RevertPeerState(header, prevHEader)
+
+		leaderSigned := validatorSigned(0, bitmap)
+		validatorSigned := validatorSigned(1, bitmap)
+
+		if leaderSigned {
+			decreaseLeaderShouldBeCalled = true
+		} else {
+			increaseLeaderShouldBeCalled = true
+		}
+
+		if validatorSigned {
+			decreaseValidatorShouldBeCalled = true
+		} else {
+			increaseValidatorShouldBeCalled = true
+		}
+
+		assert.Nil(t, err)
+		assert.Equal(t, increaseLeaderCalled, increaseLeaderShouldBeCalled)
+		assert.Equal(t, decreaseLeaderCalled, decreaseLeaderShouldBeCalled)
+		assert.Equal(t, increaseValidatorCalled, increaseValidatorShouldBeCalled)
+		assert.Equal(t, decreaseValidatorCalled, decreaseValidatorShouldBeCalled)
+	}
+}
+
+func validatorSigned(i int, bitmap []byte) bool {
+	return (bitmap[i/8] & (1 << (uint16(i) % 8))) != 0
+}
+
 func getHeaderHandler(randSeed []byte) *mock.HeaderHandlerStub {
 	return &mock.HeaderHandlerStub{
 		GetPrevRandSeedCalled: func() []byte {
 			return randSeed
+		},
+		GetPubKeysBitmapCalled: func() []byte {
+			return randSeed
+		},
+		GetShardIDCalled: func() uint32 {
+			return 0
+		},
+	}
+}
+
+func getAccountsMock() *mock.AccountsStub {
+	return &mock.AccountsStub{
+		CommitCalled: func() (bytes []byte, e error) {
+			return make([]byte, 0), nil
+		},
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return &mock.AccountWrapMock{}, nil
 		},
 	}
 }

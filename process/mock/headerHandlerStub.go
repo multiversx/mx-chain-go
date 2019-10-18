@@ -4,9 +4,14 @@ type HeaderHandlerStub struct {
 	GetRandSeedCalled                func() []byte
 	GetPrevRandSeedCalled            func() []byte
 	GetMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
+	GetPubKeysBitmapCalled           func() []byte
+	GetShardIDCalled                 func() uint32
 }
 
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
+	if hhs.GetShardIDCalled != nil {
+		return hhs.GetShardIDCalled()
+	}
 	return 1
 }
 
@@ -49,6 +54,9 @@ func (hhs *HeaderHandlerStub) GetRandSeed() []byte {
 }
 
 func (hhs *HeaderHandlerStub) GetPubKeysBitmap() []byte {
+	if hhs.GetPubKeysBitmapCalled != nil {
+		return hhs.GetPubKeysBitmapCalled()
+	}
 	panic("implement me")
 }
 
