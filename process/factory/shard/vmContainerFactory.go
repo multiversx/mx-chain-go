@@ -60,16 +60,6 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
-	currVm, err = vmf.createHeraBinaryenVM()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.Add(factory.HeraWBinaryenVirtualMachine, currVm)
-	if err != nil {
-		return nil, err
-	}
-
 	currVm, err = vmf.createHeraWABTVM()
 	if err != nil {
 		return nil, err
@@ -106,12 +96,6 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
 	return ieleVM, nil
-}
-
-func (vmf *vmContainerFactory) createHeraBinaryenVM() (vmcommon.VMExecutionHandler, error) {
-	config := vm.WASMLibLocation() + ",engine=binaryen"
-	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWBinaryenVirtualMachine)
-	return wasmVM, err
 }
 
 func (vmf *vmContainerFactory) createHeraWABTVM() (vmcommon.VMExecutionHandler, error) {

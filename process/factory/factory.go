@@ -31,9 +31,6 @@ var HeraWABTVirtualMachine = []byte{2, 0}
 // HeraWAVMVirtualMachine is a byte array identifier for the smart contract address created for Hera WAVM VM
 var HeraWAVMVirtualMachine = []byte{3, 0}
 
-// HeraWBinaryenVirtualMachine is a byte array identifier for the smart contract address created for Hera Binaryen VM
-var HeraWBinaryenVirtualMachine = []byte{4, 0}
-
 // ArwenVirtualMachine is a byte array identifier for the smart contract address created for Arwen VM
 var ArwenVirtualMachine = []byte{5, 0}
 
