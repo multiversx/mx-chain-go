@@ -8,11 +8,13 @@ import (
 	"math/rand"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -20,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -1098,7 +1101,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	rootHash1, _ := adb.Commit()
 	_ = account.(*state.Account).SetBalanceWithJournal(big.NewInt(1))
 	rootHash2, _ := adb.Commit()
-	_ = tr.Prune(rootHash1)
+	_ = tr.Prune(rootHash1, data.OldRoot)
 
 	err := adb.RecreateTrie(rootHash2)
 	ok, err := adb.HasAccount(address1)
@@ -1145,7 +1148,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveDataTrie(state2)
 
 	newRootHash, _ := adb.Commit()
-	_ = tr.Prune(oldRootHash)
+	_ = tr.Prune(oldRootHash, data.OldRoot)
 
 	err := adb.RecreateTrie(newRootHash)
 	ok, err := adb.HasAccount(address1)
@@ -1171,4 +1174,160 @@ func collapseTrie(state state.AccountHandler, t *testing.T) {
 	assert.NotNil(t, stateNewTrie)
 
 	state.DataTrieTracker().SetDataTrie(stateNewTrie)
+}
+
+func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numNodesPerShard := 1
+	numNodesMeta := 1
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	integrationTests.StartP2pBootstrapOnProcessorNodes(nodes)
+	integrationTests.StartSyncingBlocks(nodes)
+
+	round := uint64(0)
+	nonce := uint64(0)
+
+	valMinting := big.NewInt(100)
+	valToTransferPerTx := big.NewInt(2)
+
+	fmt.Println("Generating private keys for senders and receivers...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), 0)
+	nrTxs := 20
+
+	//sender shard keys, receivers  keys
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrTxs)
+	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
+	for i := 0; i < nrTxs; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, 0)
+		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, 0)
+		receiversPublicKeys[0] = append(receiversPublicKeys[0], pk)
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, 0, sendersPrivateKeys, valMinting)
+
+	shardNode := nodes[0]
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	fmt.Println("Generating transactions...")
+	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 0, 6)
+	fmt.Println("Delaying for disseminating transactions...")
+	time.Sleep(time.Second * 5)
+
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	time.Sleep(time.Second * 5)
+
+	rootHashOfRollbackedBlock, _ := shardNode.AccntState.RootHash()
+
+	assert.Equal(t, uint64(2), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	shardIdToRollbackLastBlock := uint32(0)
+	integrationTests.ForkChoiceOneBlock(nodes, shardIdToRollbackLastBlock)
+	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 1)
+	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	nonces := []*uint64{new(uint64), new(uint64)}
+	atomic.AddUint64(nonces[0], 2)
+	atomic.AddUint64(nonces[1], 3)
+
+	numOfRounds := 2
+	integrationTests.ProposeBlocks(
+		nodes,
+		&round,
+		idxProposers,
+		nonces,
+		numOfRounds,
+	)
+
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
+}
+
+func TestTriePruningWhenBlockIsFinal(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	fmt.Println("Setup nodes...")
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	senderShard := uint32(0)
+	round := uint64(0)
+	nonce := uint64(0)
+
+	valMinting := big.NewInt(100)
+	valToTransferPerTx := big.NewInt(2)
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	fmt.Println("Generating private keys for senders and receivers...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
+	nrTxs := 20
+
+	//sender shard keys, receivers  keys
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrTxs)
+	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
+	for i := 0; i < nrTxs; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+		receiversPublicKeys[senderShard] = append(receiversPublicKeys[senderShard], pk)
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+
+	shardNode := nodes[0]
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
+
+	fmt.Println("Generating transactions...")
+	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 0, 6)
+	fmt.Println("Delaying for disseminating transactions...")
+	time.Sleep(time.Second * 5)
+
+	roundsToWait := 6
+	for i := 0; i < roundsToWait; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	assert.Equal(t, uint64(7), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
+	assert.Equal(t, uint64(7), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
+
+	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
 }

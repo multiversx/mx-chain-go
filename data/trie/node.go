@@ -38,6 +38,7 @@ type node interface {
 	isEmptyOrNil() error
 	print(writer io.Writer, index int)
 	deepClone() node
+	getDirtyHashes() ([][]byte, error)
 }
 
 type branchNode struct {

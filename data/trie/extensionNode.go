@@ -441,3 +441,25 @@ func (en *extensionNode) deepClone() node {
 
 	return clonedNode
 }
+
+func (en *extensionNode) getDirtyHashes() ([][]byte, error) {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
+
+	dirtyHashes := make([][]byte, 0)
+
+	if !en.isDirty() {
+		return dirtyHashes, nil
+	}
+
+	hashes, err := en.child.getDirtyHashes()
+	if err != nil {
+		return nil, err
+	}
+
+	dirtyHashes = append(dirtyHashes, hashes...)
+	dirtyHashes = append(dirtyHashes, en.hash)
+	return dirtyHashes, nil
+}
