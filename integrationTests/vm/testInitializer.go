@@ -1,3 +1,5 @@
+// +build cgo
+
 package vm
 
 import (
@@ -306,12 +308,18 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 }
 
 func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	vmContainer, _ := CreateVMsContainerAndBlockchainHook(accnts)
-	scgd, _ := smartContract.NewSCDataGetter(vmContainer)
-
-	returnedVals, _ := scgd.Get(scAddressBytes, funcName, args...)
+	returnedVals := GetBytesValueFromSC(accnts, scAddressBytes, funcName, args...)
 
 	return big.NewInt(0).SetBytes(returnedVals)
+}
+
+func GetBytesValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) []byte {
+	vmContainer, _ := CreateVMsContainerAndBlockchainHook(accnts)
+	scDataGetter, _ := smartContract.NewSCDataGetter(vmContainer)
+
+	returnedVals, _ := scDataGetter.Get(scAddressBytes, funcName, args...)
+
+	return returnedVals
 }
 
 func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
@@ -322,7 +330,7 @@ func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress [
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000,
-		Data:     "topUp",
+		Data:     "topUp@0",
 	}
 }
 
