@@ -32,9 +32,6 @@ const maxRoundsToWait = 3
 // maxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing
 const maxHeadersToRequestInAdvance = 10
 
-// roundModulusTrigger defines a round modulus on which a trigger for an action will be released
-const roundModulusTrigger = 5
-
 type notarizedInfo struct {
 	lastNotarized           map[uint32]uint64
 	finalNotarized          map[uint32]uint64
