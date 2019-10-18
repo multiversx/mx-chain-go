@@ -59,6 +59,7 @@ const (
 	defaultShardString  = "Shard"
 	metachainShardName  = "metachain"
 	milisecondsInSecond = 1000
+	DefaultRestApiPort  = "off"
 )
 
 var (
@@ -188,7 +189,7 @@ VERSION:
 	restApiPort = cli.StringFlag{
 		Name:  "rest-api-port",
 		Usage: "The port on which the rest API will start on",
-		Value: "8080",
+		Value: DefaultRestApiPort,
 	}
 
 	// networkID defines the version of the network. If set, will override the same parameter from config.toml

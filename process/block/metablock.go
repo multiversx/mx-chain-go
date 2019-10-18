@@ -447,14 +447,18 @@ func (mp *metaProcessor) CommitBlock(
 
 	headerNoncePool := mp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
-		err = process.ErrNilDataPoolHolder
+		err = process.ErrNilHeadersNoncesDataPool
 		return err
 	}
 
-	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(headerHandler.GetShardID(), headerHash)
-	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
+	metaBlockPool := mp.dataPool.MetaBlocks()
+	if metaBlockPool == nil {
+		err = process.ErrNilMetaBlockPool
+		return err
+	}
+
+	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
+	metaBlockPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {
