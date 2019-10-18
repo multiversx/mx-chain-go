@@ -6,9 +6,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -71,6 +74,48 @@ type testNode struct {
 	headersHashes    [][]byte
 	headers          []data.HeaderHandler
 	metachainHdrRecv int32
+}
+
+type keyPair struct {
+	sk crypto.PrivateKey
+	pk crypto.PublicKey
+}
+
+type cryptoParams struct {
+	keyGen       crypto.KeyGenerator
+	keys         map[uint32][]*keyPair
+	singleSigner crypto.SingleSigner
+}
+
+func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for shardId, shardNodesPks := range pubKeysMap {
+		shardValidators := make([]sharding.Validator, 0)
+		for i := 0; i < len(shardNodesPks); i++ {
+			address := fmt.Sprintf("addr_%d_%d", shardId, i)
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, []byte(shardNodesPks[i]), []byte(address))
+			shardValidators = append(shardValidators, v)
+		}
+		validatorsMap[shardId] = shardValidators
+	}
+
+	return validatorsMap
+}
+
+func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string {
+	keysMap := make(map[uint32][]string, 0)
+
+	for shardId, pairList := range keyPairMap {
+		shardKeys := make([]string, len(pairList))
+		for i, pair := range pairList {
+			b, _ := pair.pk.ToByteArray()
+			shardKeys[i] = string(b)
+		}
+		keysMap[shardId] = shardKeys
+	}
+
+	return keysMap
 }
 
 func createMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
@@ -148,6 +193,7 @@ func createTestStore() dataRetriever.StorageService {
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
@@ -167,6 +213,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
+		rewardsTxPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
@@ -191,21 +238,37 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	return adb
 }
 
-func initialPrivPubKeys(numConsensus int) ([]crypto.PrivateKey, []crypto.PublicKey, crypto.KeyGenerator) {
-	privKeys := make([]crypto.PrivateKey, 0)
-	pubKeys := make([]crypto.PublicKey, 0)
+func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
+	suite := kyber.NewSuitePairingBn256()
+	singleSigner := &singlesig.SchnorrSigner{}
+	keyGen := signing.NewKeyGenerator(suite)
 
-	testSuite := kyber.NewSuitePairingBn256()
-	testKeyGen := signing.NewKeyGenerator(testSuite)
-
-	for i := 0; i < numConsensus; i++ {
-		sk, pk := testKeyGen.GeneratePair()
-
-		privKeys = append(privKeys, sk)
-		pubKeys = append(pubKeys, pk)
+	keysMap := make(map[uint32][]*keyPair)
+	keyPairs := make([]*keyPair, nodesPerShard)
+	for shardId := 0; shardId < nbShards; shardId++ {
+		for n := 0; n < nodesPerShard; n++ {
+			kp := &keyPair{}
+			kp.sk, kp.pk = keyGen.GeneratePair()
+			keyPairs[n] = kp
+		}
+		keysMap[uint32(shardId)] = keyPairs
 	}
 
-	return privKeys, pubKeys, testKeyGen
+	keyPairs = make([]*keyPair, nbMetaNodes)
+	for n := 0; n < nbMetaNodes; n++ {
+		kp := &keyPair{}
+		kp.sk, kp.pk = keyGen.GeneratePair()
+		keyPairs[n] = kp
+	}
+	keysMap[sharding.MetachainShardId] = keyPairs
+
+	params := &cryptoParams{
+		keys:         keysMap,
+		keyGen:       keyGen,
+		singleSigner: singleSigner,
+	}
+
+	return params
 }
 
 func createHasher(consensusType string) hashing.Hasher {
@@ -217,6 +280,7 @@ func createHasher(consensusType string) hashing.Hasher {
 
 func createConsensusOnlyNode(
 	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	selfId uint32,
 	initialAddr string,
@@ -267,13 +331,6 @@ func createConsensusOnlyNode(
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
-	blockTracker := &mock.BlocksTrackerMock{
-		UnnotarisedBlocksCalled: func() []data.HeaderHandler {
-			return make([]data.HeaderHandler, 0)
-		},
-		SetBlockBroadcastRoundCalled: func(nonce uint64, round int64) {
-		},
-	}
 	blockChain := createTestBlockChain()
 
 	header := &dataBlock.Header{
@@ -348,6 +405,7 @@ func createConsensusOnlyNode(
 		node.WithAccountsAdapter(accntAdapter),
 		node.WithKeyGen(testKeyGen),
 		node.WithShardCoordinator(shardCoordinator),
+		node.WithNodesCoordinator(nodesCoordinator),
 		node.WithBlockChain(blockChain),
 		node.WithMultiSigner(testMultiSig),
 		node.WithTxSingleSigner(singlesigner),
@@ -358,7 +416,6 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
-		node.WithBlockTracker(blockTracker),
 	)
 
 	if err != nil {
@@ -374,41 +431,62 @@ func createNodes(
 	roundTime uint64,
 	serviceID string,
 	consensusType string,
-) []*testNode {
+) map[uint32][]*testNode {
 
-	privKeys, pubKeys, testKeyGen := initialPrivPubKeys(nodesPerShard)
-	//first node generated will have is pk belonging to firstSkShardId
-	nodes := make([]*testNode, nodesPerShard)
+	nodes := make(map[uint32][]*testNode)
+	cp := createCryptoParams(nodesPerShard, 1, 1)
+	keysMap := pubKeysMapFromKeysMap(cp.keys)
+	validatorsMap := genValidatorsFromPubKeys(keysMap)
+	nodesList := make([]*testNode, nodesPerShard)
+
+	pubKeys := make([]crypto.PublicKey, len(cp.keys[0]))
+	for idx, keyPairShard := range cp.keys[0] {
+		pubKeys[idx] = keyPairShard.pk
+	}
 
 	for i := 0; i < nodesPerShard; i++ {
 		testNode := &testNode{
 			shardId: uint32(0),
 		}
 
+		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
+
+		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			ShardConsensusGroupSize: consensusSize,
+			MetaConsensusGroupSize:  1,
+			Hasher:                  createHasher(consensusType),
+			NbShards:                1,
+			Nodes:                   validatorsMap,
+			SelfPublicKey:           []byte(strconv.Itoa(i)),
+		}
+		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
 			shardCoordinator,
+			nodesCoordinator,
 			testNode.shardId,
 			uint32(i),
 			serviceID,
 			uint32(consensusSize),
 			roundTime,
-			privKeys[i],
+			kp.sk,
 			pubKeys,
-			testKeyGen,
+			cp.keyGen,
 			consensusType,
 		)
 
 		testNode.node = n
 		testNode.node = n
-		testNode.sk = privKeys[i]
+		testNode.sk = kp.sk
 		testNode.mesenger = mes
-		testNode.pk = pubKeys[i]
+		testNode.pk = kp.pk
 		testNode.blkProcessor = blkProcessor
 		testNode.blkc = blkc
 
-		nodes[i] = testNode
+		nodesList[i] = testNode
 	}
+	nodes[0] = nodesList
 
 	return nodes
 }

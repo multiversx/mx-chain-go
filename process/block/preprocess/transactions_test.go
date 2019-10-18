@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -24,6 +26,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
+
+func feeHandlerMock() *mock.FeeHandlerStub {
+	return &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return 0
+		},
+	}
+}
 
 func initDataPool() *mock.PoolsHolderStub {
 	sdp := &mock.PoolsHolderStub{
@@ -46,6 +56,7 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
+				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -74,10 +85,40 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
+				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &smartContractResult.SmartContractResult{Nonce: 10}, true
+					}
+					return nil, false
+				},
+			}
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &mock.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, []byte("tx1_hash")) {
+								return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
+							}
+							return nil, false
+						},
+						KeysCalled: func() [][]byte {
+							return [][]byte{[]byte("key1"), []byte("key2")}
+						},
+						LenCalled: func() int {
+							return 0
+						},
+					}
+				},
+				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &rewardTx.RewardTx{Value: big.NewInt(100)}, true
 					}
 					return nil, false
 				},
@@ -154,6 +195,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -174,6 +216,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -194,6 +237,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -214,6 +258,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -234,6 +279,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -254,6 +300,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		nil,
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -274,6 +321,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -293,6 +341,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		nil,
+		feeHandlerMock(),
 	)
 
 	assert.Nil(t, txs)
@@ -312,6 +361,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 	txHash := []byte("tx1_hash")
 	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions())
@@ -333,6 +383,7 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
@@ -360,6 +411,7 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	shardId := uint32(1)
@@ -376,7 +428,7 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	t.Parallel()
 
-	dataPool := mock.NewPoolsHolderFake()
+	dataPool := mock.NewPoolsHolderMock()
 
 	shardedDataStub := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -402,6 +454,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	//add 3 tx hashes on requested list
@@ -435,7 +488,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderFake()
+	dataPool := mock.NewPoolsHolderMock()
 	senderShardId := uint32(0)
 	destinationShardId := uint32(1)
 
@@ -475,6 +528,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 
 	mb := &block.MiniBlock{
@@ -509,6 +563,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *test
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
 	assert.NotNil(t, err)
@@ -528,6 +583,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 	body := make(block.Body, 0)
 	txHash := []byte("txHash")
@@ -562,6 +618,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 	assert.NotNil(t, txs)
 
@@ -604,6 +661,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 	assert.NotNil(t, txs)
 
@@ -648,6 +706,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
+		feeHandlerMock(),
 	)
 	assert.NotNil(t, txs)
 
@@ -697,12 +756,12 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-func TestSortTxByNonce_NilCacherShouldErr(t *testing.T) {
+func TestSortTxByNonce_NilTxDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 	transactions, txHashes, err := SortTxByNonce(nil)
 	assert.Nil(t, transactions)
 	assert.Nil(t, txHashes)
-	assert.Equal(t, process.ErrNilCacher, err)
+	assert.Equal(t, process.ErrNilTxDataPool, err)
 }
 
 func TestSortTxByNonce_EmptyCacherShouldReturnEmpty(t *testing.T) {

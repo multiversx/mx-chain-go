@@ -112,7 +112,7 @@ func (bst *blockSizeThrottle) getMaxItemsWhenSucceed(lastActionMaxItems uint32) 
 		return noOfMaxItemsUsedWithoutSucceed
 	}
 
-	increasedNoOfItems := core.Max(1, uint32(float32(noOfMaxItemsUsedWithoutSucceed-lastActionMaxItems)*jumpAboveFactor))
+	increasedNoOfItems := core.MaxUint32(1, uint32(float32(noOfMaxItemsUsedWithoutSucceed-lastActionMaxItems)*jumpAboveFactor))
 	return lastActionMaxItems + increasedNoOfItems
 }
 
@@ -136,7 +136,7 @@ func (bst *blockSizeThrottle) getMaxItemsWhenNotSucceed(lastActionMaxItems uint3
 		return noOfMaxItemsUsedWithSucceed
 	}
 
-	decreasedNoOfItems := core.Max(1, uint32(float32(lastActionMaxItems-noOfMaxItemsUsedWithSucceed)*jumpBelowFactor))
+	decreasedNoOfItems := core.MaxUint32(1, uint32(float32(lastActionMaxItems-noOfMaxItemsUsedWithSucceed)*jumpBelowFactor))
 	return lastActionMaxItems - decreasedNoOfItems
 }
 

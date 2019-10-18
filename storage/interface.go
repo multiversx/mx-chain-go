@@ -83,7 +83,6 @@ type Storer interface {
 	Put(key, data []byte) error
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) error
-	HasOrAdd(key []byte, value []byte) error
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error

@@ -74,6 +74,7 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
+	mutNodeSynched     sync.RWMutex
 	isNodeSynchronized bool
 	hasLastBlock       bool
 	roundIndex         int64
@@ -82,12 +83,15 @@ type baseBootstrap struct {
 	forkNonce      uint64
 	forkHash       []byte
 
-	mutRcvHdrInfo         sync.RWMutex
+	mutRcvHdrNonce        sync.RWMutex
+	mutRcvHdrHash         sync.RWMutex
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	bootstrapRoundIndex   uint64
 	requestsWithTimeout   uint32
+
+	requestMiniBlocks func(uint32, uint64)
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -330,7 +334,7 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
-	log.Debug(fmt.Sprintf("receivedHeaders: received header with hash %s and nonce %d from network\n",
+	log.Debug(fmt.Sprintf("received header with hash %s and nonce %d from network\n",
 		core.ToB64(headerHash),
 		headerHandler.GetNonce()))
 
@@ -339,8 +343,10 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		log.Debug(err.Error())
 	}
 
+	boot.mutRcvHdrHash.Lock()
 	hash := boot.requestedHeaderHash()
 	if hash == nil {
+		boot.mutRcvHdrHash.Unlock()
 		return
 	}
 
@@ -349,28 +355,40 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 			core.ToB64(hash),
 			headerHandler.GetNonce()))
 		boot.setRequestedHeaderHash(nil)
+		boot.mutRcvHdrHash.Unlock()
 		boot.chRcvHdrHash <- true
+	} else {
+		boot.mutRcvHdrHash.Unlock()
 	}
 }
 
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, hash []byte) {
-	log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
+	log.Debug(fmt.Sprintf("received header with nonce %d and hash %s from network\n",
 		nonce,
 		core.ToB64(hash)))
 
+	if boot.requestMiniBlocks != nil {
+		go boot.requestMiniBlocks(shardId, nonce)
+	}
+
+	boot.mutRcvHdrNonce.Lock()
 	n := boot.requestedHeaderNonce()
 	if n == nil {
+		boot.mutRcvHdrNonce.Unlock()
 		return
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network and probable highest nonce is %d\n",
+		log.Info(fmt.Sprintf("received requested header with nonce %d and hash %s from network\n",
 			nonce,
-			boot.forkDetector.ProbableHighestNonce()))
+			core.ToB64(hash)))
 		boot.setRequestedHeaderNonce(nil)
+		boot.mutRcvHdrNonce.Unlock()
 		boot.chRcvHdrNonce <- true
+	} else {
+		boot.mutRcvHdrNonce.Unlock()
 	}
 }
 
@@ -432,6 +450,9 @@ func (boot *baseBootstrap) waitForHeaderHash() error {
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
 // synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *baseBootstrap) ShouldSync() bool {
+	boot.mutNodeSynched.Lock()
+	defer boot.mutNodeSynched.Unlock()
+
 	isNodeSynchronizedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized
 	if isNodeSynchronizedInCurrentRound {
 		return false
@@ -557,4 +578,33 @@ func isRandomSeedValid(header data.HeaderHandler) bool {
 	isRandSeedNilOrEmpty := len(randSeed) == 0
 
 	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
+}
+
+func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
+	nonce uint64,
+	haveHeaderInPoolWithNonce func(uint64) bool,
+	hdrRes dataRetriever.HeaderResolver) {
+
+	nbRequestedHdrs := 0
+	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
+	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
+		haveHeader := haveHeaderInPoolWithNonce(nonce)
+		if !haveHeader {
+			err := hdrRes.RequestDataFromNonce(currentNonce)
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			nbRequestedHdrs++
+		}
+	}
+
+	if nbRequestedHdrs > 0 {
+		log.Info(fmt.Sprintf("requested in advance %d headers from nonce %d to nonce %d and probable highest nonce is %d\n",
+			nbRequestedHdrs,
+			nonce,
+			maxNonce,
+			boot.forkDetector.ProbableHighestNonce()))
+	}
 }
