@@ -252,7 +252,7 @@ func (mbc *miniBlocksCompaction) createMiniBlockForShard(miniBlock *block.MiniBl
 	miniBlockForShard.TxHashes = make([][]byte, 0)
 	miniBlockForShard.ReceiverShardID = miniBlock.ReceiverShardID
 	miniBlockForShard.SenderShardID = miniBlock.SenderShardID
-	miniBlockForShard.Type = block.TxBlock
+	miniBlockForShard.Type = miniBlock.Type
 
 	for _, txHash := range miniBlock.TxHashes {
 		if len(mbc.mapUnallocatedTxsHashes) == 0 {
