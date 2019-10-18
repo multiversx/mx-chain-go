@@ -34,7 +34,7 @@ type interceptorsContainerFactory struct {
 	dataPool               dataRetriever.PoolsHolder
 	addrConverter          state.AddressConverter
 	nodesCoordinator       sharding.NodesCoordinator
-	argInterceptorFactory  *interceptorFactory.ArgShardInterceptedDataFactory
+	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalTxThrottler      process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
 }
@@ -96,18 +96,16 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
-	argInterceptorFactory := &interceptorFactory.ArgShardInterceptedDataFactory{
-		ArgMetaInterceptedDataFactory: &interceptorFactory.ArgMetaInterceptedDataFactory{
-			Marshalizer:      marshalizer,
-			Hasher:           hasher,
-			ShardCoordinator: shardCoordinator,
-			MultiSigVerifier: multiSigner,
-			NodesCoordinator: nodesCoordinator,
-		},
-		KeyGen:     keyGen,
-		Signer:     singleSigner,
-		AddrConv:   addrConverter,
-		FeeHandler: txFeeHandler,
+	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
+		Marshalizer:      marshalizer,
+		Hasher:           hasher,
+		ShardCoordinator: shardCoordinator,
+		MultiSigVerifier: multiSigner,
+		NodesCoordinator: nodesCoordinator,
+		KeyGen:           keyGen,
+		Signer:           singleSigner,
+		AddrConv:         addrConverter,
+		FeeHandler:       txFeeHandler,
 	}
 
 	icf := &interceptorsContainerFactory{
@@ -405,7 +403,6 @@ func (icf *interceptorsContainerFactory) createOneRewardTxInterceptor(identifier
 		icf.hasher,
 		icf.shardCoordinator,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -428,6 +425,9 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedShardHeader,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:       icf.dataPool.Headers(),
@@ -538,6 +538,9 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 		icf.argInterceptorFactory,
 		interceptorFactory.InterceptedMetaHeader,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:       icf.dataPool.MetaBlocks(),

@@ -29,7 +29,7 @@ type shardInterceptedDataFactory struct {
 // NewShardInterceptedDataFactory creates an instance of interceptedDataFactory that can create
 // instances of process.InterceptedData and is used on shard nodes
 func NewShardInterceptedDataFactory(
-	argument *ArgShardInterceptedDataFactory,
+	argument *ArgInterceptedDataFactory,
 	dataType InterceptedDataType,
 ) (*shardInterceptedDataFactory, error) {
 
