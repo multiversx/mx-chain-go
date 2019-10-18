@@ -1876,7 +1876,7 @@ func newMetaBlockProcessor(
 }
 
 func newPeerProcessor(processComponents *processComponentsFactoryArgs) (process.PeerProcessor, error) {
-	peerAdapters, err := getShardedPeerAdapters(processComponents)
+	peerAdapter, err := getPeerAdapter(processComponents)
 	if err != nil {
 		return nil, err
 	}
@@ -1887,7 +1887,7 @@ func newPeerProcessor(processComponents *processComponentsFactoryArgs) (process.
 
 	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
 		initialNodes,
-		peerAdapters,
+		peerAdapter,
 		processComponents.state.AddressConverter,
 		processComponents.nodesCoordinator,
 		processComponents.shardCoordinator,
@@ -1898,38 +1898,6 @@ func newPeerProcessor(processComponents *processComponentsFactoryArgs) (process.
 	}
 
 	return peerProcessor, nil
-}
-
-func getShardedPeerAdapters(processComponents *processComponentsFactoryArgs) (peer.ShardedPeerAdapters, error) {
-	peerAdapters := make(peer.ShardedPeerAdapters, 0)
-
-	if processComponents.shardCoordinator.SelfId() != sharding.MetachainShardId {
-		shardPeerAdapter, err := getPeerAdapter(processComponents)
-		if err != nil {
-			return nil, err
-		}
-
-		peerAdapters[processComponents.shardCoordinator.SelfId()] = shardPeerAdapter
-		return peerAdapters, nil
-	}
-
-	metaPeerAdapter, err := getPeerAdapter(processComponents)
-	if err != nil {
-		return nil, err
-	}
-
-	peerAdapters[sharding.MetachainShardId] = metaPeerAdapter
-
-	for i := uint32(0); i < processComponents.shardCoordinator.NumberOfShards(); i++ {
-		peerAdapter, err := getPeerAdapter(processComponents)
-		if err != nil {
-			return nil, err
-		}
-
-		peerAdapters[i] = peerAdapter
-	}
-
-	return peerAdapters, nil
 }
 
 func getPeerAdapter(processComponents *processComponentsFactoryArgs) (*state.PeerAccountsDB, error) {
