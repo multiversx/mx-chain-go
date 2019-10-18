@@ -7,6 +7,11 @@ type TestEconomicsData struct {
 	*EconomicsData
 }
 
+// SetMaxGasLimitPerMiniBlock sets the maximum gas limit allowed per one mini block
+func (ted *TestEconomicsData) SetMaxGasLimitPerMiniBlock(maxGasLimitPerMiniBlock uint64) {
+	ted.maxGasLimitPerMiniBlock = maxGasLimitPerMiniBlock
+}
+
 // SetMinGasPrice sets the minimum gas price for a transaction to be accepted
 func (ted *TestEconomicsData) SetMinGasPrice(minGasPrice uint64) {
 	ted.minGasPrice = minGasPrice

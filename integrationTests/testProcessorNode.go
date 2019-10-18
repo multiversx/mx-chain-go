@@ -62,12 +62,15 @@ var TestMultiSig = mock.NewMultiSigner(1)
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
-// MinTxGasPrice minimum gas price required by a transaction
+// MinTxGasPrice defines minimum gas price required by a transaction
 //TODO refactor all tests to pass with a non zero value
 var MinTxGasPrice = uint64(0)
 
-// MinTxGasLimit minimum gas limit required by a transaction
+// MinTxGasLimit defines minimum gas limit required by a transaction
 var MinTxGasLimit = uint64(4)
+
+// MaxGasLimitPerMiniBlock defines maximum gas limit allowed per one mini block
+var MaxGasLimitPerMiniBlock = uint64(100000)
 
 const maxTxNonceDeltaAllowed = 8000
 
@@ -255,7 +258,8 @@ func (tpn *TestProcessorNode) initChainHandler() {
 }
 
 func (tpn *TestProcessorNode) initEconomicsData() {
-	mingGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
+	maxGasLimitPerMiniBlock := strconv.FormatUint(MaxGasLimitPerMiniBlock, 10)
+	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
 
 	economicsData, _ := economics.NewEconomicsData(
@@ -271,8 +275,9 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MinGasPrice: mingGasPrice,
-				MinGasLimit: minGasLimit,
+				MaxGasLimitPerMiniBlock: maxGasLimitPerMiniBlock,
+				MinGasPrice:             minGasPrice,
+				MinGasLimit:             minGasLimit,
 			},
 		},
 	)

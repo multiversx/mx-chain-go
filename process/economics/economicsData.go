@@ -11,14 +11,15 @@ import (
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	rewardsValue        *big.Int
-	communityPercentage float64
-	leaderPercentage    float64
-	burnPercentage      float64
-	minGasPrice         uint64
-	minGasLimit         uint64
-	communityAddress    string
-	burnAddress         string
+	rewardsValue            *big.Int
+	communityPercentage     float64
+	leaderPercentage        float64
+	burnPercentage          float64
+	maxGasLimitPerMiniBlock uint64
+	minGasPrice             uint64
+	minGasLimit             uint64
+	communityAddress        string
+	burnAddress             string
 }
 
 const float64EqualityThreshold = 1e-9
@@ -26,7 +27,7 @@ const float64EqualityThreshold = 1e-9
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	//TODO check what happens if addresses are wrong
-	rewardsValue, minGasPrice, minGasLimit, err := convertValues(economics)
+	rewardsValue, maxGasLimitPerMiniBlock, minGasPrice, minGasLimit, err := convertValues(economics)
 	if err != nil {
 		return nil, err
 	}
@@ -41,39 +42,49 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
+	if maxGasLimitPerMiniBlock < minGasLimit {
+		return nil, process.ErrInvalidMaxGasLimitPerMiniBlock
+	}
+
 	return &EconomicsData{
-		rewardsValue:        rewardsValue,
-		communityPercentage: economics.RewardsSettings.CommunityPercentage,
-		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
-		burnPercentage:      economics.RewardsSettings.BurnPercentage,
-		minGasPrice:         minGasPrice,
-		minGasLimit:         minGasLimit,
-		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
-		burnAddress:         economics.EconomicsAddresses.BurnAddress,
+		rewardsValue:            rewardsValue,
+		communityPercentage:     economics.RewardsSettings.CommunityPercentage,
+		leaderPercentage:        economics.RewardsSettings.LeaderPercentage,
+		burnPercentage:          economics.RewardsSettings.BurnPercentage,
+		maxGasLimitPerMiniBlock: maxGasLimitPerMiniBlock,
+		minGasPrice:             minGasPrice,
+		minGasLimit:             minGasLimit,
+		communityAddress:        economics.EconomicsAddresses.CommunityAddress,
+		burnAddress:             economics.EconomicsAddresses.BurnAddress,
 	}, nil
 }
 
-func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64, error) {
+func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64, uint64, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
 	rewardsValue := new(big.Int)
 	rewardsValue, ok := rewardsValue.SetString(economics.RewardsSettings.RewardsValue, conversionBase)
 	if !ok {
-		return nil, 0, 0, process.ErrInvalidRewardsValue
+		return nil, 0, 0, 0, process.ErrInvalidRewardsValue
+	}
+
+	maxGasLimitPerMiniBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerMiniBlock, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, 0, 0, 0, process.ErrInvalidMaxGasLimitPerMiniBlock
 	}
 
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, process.ErrInvalidMinimumGasPrice
+		return nil, 0, 0, 0, process.ErrInvalidMinimumGasPrice
 	}
 
 	minGasLimit, err := strconv.ParseUint(economics.FeeSettings.MinGasLimit, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, process.ErrInvalidMinimumGasLimitForTx
+		return nil, 0, 0, 0, process.ErrInvalidMinimumGasLimitForTx
 	}
 
-	return rewardsValue, minGasPrice, minGasLimit, nil
+	return rewardsValue, maxGasLimitPerMiniBlock, minGasPrice, minGasLimit, nil
 }
 
 func checkValues(economics *config.ConfigEconomics) error {
@@ -140,6 +151,10 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 	requiredGasLimit := ed.ComputeGasLimit(tx)
 	if requiredGasLimit > tx.GetGasLimit() {
 		return process.ErrInsufficientGasLimitInTx
+	}
+
+	if requiredGasLimit > ed.maxGasLimitPerMiniBlock {
+		return process.ErrHigherGasLimitRequiredInTx
 	}
 
 	return nil
