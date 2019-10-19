@@ -1,8 +1,6 @@
 package mock
 
-import (
-	"sync"
-)
+import "sync"
 
 type CacherMock struct {
 	mut     sync.Mutex
