@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.DefaultLogger()
@@ -405,12 +406,21 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return nil
 }
 
-func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32, maxRound uint64) error {
+func (bp *baseProcessor) requestHeadersIfMissing(
+	sortedHdrs []data.HeaderHandler,
+	shardId uint32,
+	maxRound uint64,
+	cacher storage.Cacher,
+) error {
+
+	allowedSize := uint64(float64(cacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
+
 	prevHdr, err := bp.getLastNotarizedHdr(shardId)
 	if err != nil {
 		return err
 	}
 
+	lastNotarizedHdrNonce := prevHdr.GetNonce()
 	highestHdr := prevHdr
 
 	missingNonces := make([]uint64, 0)
@@ -452,6 +462,11 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		// do the request here
 		if bp.onRequestHeaderHandlerByNonce == nil {
 			return process.ErrNilRequestHeaderHandlerByNonce
+		}
+
+		isHeaderOutOfRange := nonce > lastNotarizedHdrNonce+allowedSize
+		if isHeaderOutOfRange {
+			break
 		}
 
 		if requested >= process.MaxHeaderRequestsAllowed {
@@ -616,4 +631,16 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	}
 
 	return hdrsHashesForCurrentBlock
+}
+
+func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher storage.Cacher) bool {
+	lastNotarizedHdr, err := bp.getLastNotarizedHdr(header.GetShardID())
+	if err != nil {
+		return false
+	}
+
+	allowedSize := uint64(float64(cacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
+	isHeaderOutOfRange := header.GetNonce() > lastNotarizedHdr.GetNonce()+allowedSize
+
+	return isHeaderOutOfRange
 }

@@ -1,6 +1,9 @@
 package mock
 
-import "sync"
+import (
+	"math"
+	"sync"
+)
 
 type CacherMock struct {
 	mut     sync.Mutex
@@ -88,6 +91,10 @@ func (cm *CacherMock) Len() int {
 	defer cm.mut.Unlock()
 
 	return len(cm.dataMap)
+}
+
+func (cm *CacherMock) MaxSize() int {
+	return math.MaxInt32
 }
 
 func (cm *CacherMock) RegisterHandler(func(key []byte)) {

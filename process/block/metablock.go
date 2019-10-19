@@ -21,8 +21,8 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core               serviceContainer.Core
-	dataPool           dataRetriever.MetaPoolsHolder
+	core     serviceContainer.Core
+	dataPool dataRetriever.MetaPoolsHolder
 	//TODO: add	txCoordinator process.TransactionCoordinator
 
 	shardsHeadersNonce *sync.Map
@@ -222,7 +222,7 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
 			sortedHdrs[j] = sortedHdrPerShard[i][j]
 		}
 
-		err := mp.requestHeadersIfMissing(sortedHdrs, i, round)
+		err := mp.requestHeadersIfMissing(sortedHdrs, i, round, mp.dataPool.ShardHeaders())
 		if err != nil {
 			log.Debug(err.Error())
 			continue
@@ -825,6 +825,11 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		}
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	}
+
+	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) {
+		shardHeaderPool.Remove(shardHeaderHash)
+		return
 	}
 
 	// request miniblocks for which metachain is destination

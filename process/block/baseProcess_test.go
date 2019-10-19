@@ -132,6 +132,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				},
 				RegisterHandlerCalled: func(i func(key []byte)) {},
 				RemoveCalled:          func(key []byte) {},
+				MaxSizeCalled: func() int {
+					return 10000
+				},
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
@@ -229,6 +232,9 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			cs.RemoveCalled = func(key []byte) {}
 			cs.KeysCalled = func() [][]byte {
 				return nil
+			}
+			cs.MaxSizeCalled = func() int {
+				return 10000
 			}
 			return cs
 		},

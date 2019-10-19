@@ -137,6 +137,11 @@ func (c *LRUCache) Len() int {
 	return c.cache.Len()
 }
 
+// MaxSize returns the maximum number of items which can be stored in cache.
+func (c *LRUCache) MaxSize() int {
+	return c.maxsize
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (c *LRUCache) IsInterfaceNil() bool {
 	if c == nil {
