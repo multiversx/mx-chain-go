@@ -1079,7 +1079,6 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	if err != nil {
 		return
 	}
-
 	if metaBlock.GetNonce() <= lastNotarizedHdr.GetNonce() {
 		return
 	}

@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"math"
 	"sync"
 )
 
@@ -94,7 +93,7 @@ func (cm *CacherMock) Len() int {
 }
 
 func (cm *CacherMock) MaxSize() int {
-	return math.MaxInt32
+	return 10000
 }
 
 func (cm *CacherMock) RegisterHandler(func(key []byte)) {
