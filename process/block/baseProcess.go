@@ -39,11 +39,12 @@ type hdrInfo struct {
 }
 
 type hdrForBlock struct {
-	missingHdrs                  uint32
-	missingFinalityAttestingHdrs uint32
-	highestHdrNonce              map[uint32]uint64
-	mutHdrsForBlock              sync.RWMutex
-	hdrHashAndInfo               map[string]*hdrInfo
+	missingHdrs                    uint32
+	missingFinalityAttestingHdrs   uint32
+	requestedFinalityAttestingHdrs map[uint32][]uint64
+	highestHdrNonce                map[uint32]uint64
+	mutHdrsForBlock                sync.RWMutex
+	hdrHashAndInfo                 map[string]*hdrInfo
 }
 
 type mapShardHeaders map[uint32][]data.HeaderHandler
@@ -568,6 +569,7 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
@@ -643,4 +645,19 @@ func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher st
 	isHeaderOutOfRange := header.GetNonce() > lastNotarizedHdr.GetNonce()+allowedSize
 
 	return isHeaderOutOfRange
+}
+
+func (bp *baseProcessor) wasHeaderRequested(shardId uint32, nonce uint64) bool {
+	requestedNonces, ok := bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId]
+	if !ok {
+		return false
+	}
+
+	for _, requestedNonce := range requestedNonces {
+		if requestedNonce == nonce {
+			return true
+		}
+	}
+
+	return false
 }

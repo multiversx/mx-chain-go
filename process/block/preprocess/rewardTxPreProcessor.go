@@ -106,12 +106,13 @@ func (rtp *rewardTxPreprocessor) waitForRewardTxHashes(waitTime time.Duration) e
 // IsDataPrepared returns non error if all the requested reward transactions arrived and were saved into the pool
 func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime func() time.Duration) error {
 	if requestedRewardTxs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing reward Txs\n", requestedRewardTxs))
+		log.Info(fmt.Sprintf("requested %d missing reward txs\n", requestedRewardTxs))
 		err := rtp.waitForRewardTxHashes(haveTime())
 		rtp.rewardTxsForBlock.mutTxsForBlock.RLock()
 		missingRewardTxs := rtp.rewardTxsForBlock.missingTxs
+		rtp.rewardTxsForBlock.missingTxs = 0
 		rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
-		log.Info(fmt.Sprintf("received %d missing reward Txs\n", requestedRewardTxs-missingRewardTxs))
+		log.Info(fmt.Sprintf("received %d missing reward txs\n", requestedRewardTxs-missingRewardTxs))
 		if err != nil {
 			return err
 		}
@@ -286,7 +287,10 @@ func (rtp *rewardTxPreprocessor) receivedRewardTransaction(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created reward transactions at this round
 func (rtp *rewardTxPreprocessor) CreateBlockStarted() {
+	_ = process.EmptyChannel(rtp.chReceivedAllRewardTxs)
+
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
+	rtp.rewardTxsForBlock.missingTxs = 0
 	rtp.rewardTxsForBlock.txHashAndInfo = make(map[string]*txInfo)
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 }

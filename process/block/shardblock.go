@@ -93,6 +93,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	sp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	sp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	sp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 	sp.processedMiniBlocks = make(map[string]map[string]struct{})
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
@@ -1053,8 +1054,6 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders()
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Info(fmt.Sprintf("received %d missing finality attesting meta headers\n", missingFinalityAttestingMetaHdrs))
-			} else {
-				log.Info(fmt.Sprintf("requested %d missing finality attesting meta headers\n", sp.hdrsForCurrBlock.missingFinalityAttestingHdrs))
 			}
 		}
 
@@ -1099,9 +1098,11 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 // which should be processed
 func (sp *shardProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 	requestedBlockHeaders := uint32(0)
+	missingFinalityAttestingHeaders := uint32(0)
+
 	highestHdrNonce := sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId]
 	if highestHdrNonce == uint64(0) {
-		return requestedBlockHeaders
+		return missingFinalityAttestingHeaders
 	}
 
 	lastFinalityAttestingHeader := sp.hdrsForCurrBlock.highestHdrNonce[sharding.MetachainShardId] + uint64(sp.metaBlockFinality)
@@ -1112,15 +1113,25 @@ func (sp *shardProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 			sp.dataPool.HeadersNonces())
 
 		if err != nil {
-			requestedBlockHeaders++
-			go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
+			missingFinalityAttestingHeaders++
+			wasHeaderRequested := sp.wasHeaderRequested(sharding.MetachainShardId, i)
+			if !wasHeaderRequested {
+				requestedBlockHeaders++
+				sp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[sharding.MetachainShardId] = append(sp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[sharding.MetachainShardId], i)
+				go sp.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
+			}
+
 			continue
 		}
 
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)] = &hdrInfo{hdr: metaBlock, usedInBlock: false}
 	}
 
-	return requestedBlockHeaders
+	if requestedBlockHeaders > 0 {
+		log.Info(fmt.Sprintf("requested %d missing finality attesting meta headers\n", requestedBlockHeaders))
+	}
+
+	return missingFinalityAttestingHeaders
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {

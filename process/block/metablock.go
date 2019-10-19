@@ -80,6 +80,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 
 	headerPool := mp.dataPool.ShardHeaders()
 	headerPool.RegisterHandler(mp.receivedShardHeader)
@@ -810,8 +811,6 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingHeaders()
 			if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Info(fmt.Sprintf("received %d missing finality attesting shard headers\n", missingFinalityAttestingShardHdrs))
-			} else {
-				log.Info(fmt.Sprintf("requested %d missing finality attesting shard headers\n", mp.hdrsForCurrBlock.missingFinalityAttestingHdrs))
 			}
 		}
 
@@ -845,6 +844,8 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 // to the block which should be processed
 func (mp *metaProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 	requestedBlockHeaders := uint32(0)
+	missingFinalityAttestingHeaders := uint32(0)
+
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
 		highestHdrNonce := mp.hdrsForCurrBlock.highestHdrNonce[shardId]
 		if highestHdrNonce == uint64(0) {
@@ -860,8 +861,14 @@ func (mp *metaProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 				mp.dataPool.HeadersNonces())
 
 			if err != nil {
-				requestedBlockHeaders++
-				go mp.onRequestHeaderHandlerByNonce(shardId, i)
+				missingFinalityAttestingHeaders++
+				wasHeaderRequested := mp.wasHeaderRequested(shardId, i)
+				if !wasHeaderRequested {
+					requestedBlockHeaders++
+					mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId] = append(mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId], i)
+					go mp.onRequestHeaderHandlerByNonce(shardId, i)
+				}
+
 				continue
 			}
 
@@ -869,7 +876,11 @@ func (mp *metaProcessor) requestMissingFinalityAttestingHeaders() uint32 {
 		}
 	}
 
-	return requestedBlockHeaders
+	if requestedBlockHeaders > 0 {
+		log.Info(fmt.Sprintf("requested %d missing finality attesting shard headers\n", requestedBlockHeaders))
+	}
+
+	return missingFinalityAttestingHeaders
 }
 
 func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {

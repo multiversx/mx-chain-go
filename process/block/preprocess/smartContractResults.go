@@ -106,6 +106,7 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 		err := scr.waitForScrHashes(haveTime())
 		scr.scrForBlock.mutTxsForBlock.RLock()
 		missingScrs := scr.scrForBlock.missingTxs
+		scr.scrForBlock.missingTxs = 0
 		scr.scrForBlock.mutTxsForBlock.RUnlock()
 		log.Info(fmt.Sprintf("received %d missing scr\n", requestedScrs-missingScrs))
 		if err != nil {
