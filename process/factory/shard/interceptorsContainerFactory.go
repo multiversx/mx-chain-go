@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const numGoRoutines = 100
+const numGoRoutines = 2000
 
 type interceptorsContainerFactory struct {
 	accounts               state.AccountsAdapter
