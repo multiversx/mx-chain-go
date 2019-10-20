@@ -358,9 +358,6 @@ var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
-// ErrNoUnsignedTransactionInMessage signals that message does not contain required data
-var ErrNoUnsignedTransactionInMessage = errors.New("no unsigned transactions in message")
-
 // ErrNoRewardTransactionInMessage signals that message does not contain required data
 var ErrNoRewardTransactionInMessage = errors.New("no reward transactions in message")
 
@@ -430,9 +427,6 @@ var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
 // ErrInterceptedDataTypeNotDefined signals that the required data type has not been defined
 var ErrInterceptedDataTypeNotDefined = errors.New("intercepted data type is not defined")
 
-// ErrNotEnoughFeeInTransactions signals that the transaction does not enough fee
-var ErrNotEnoughFeeInTransactions = errors.New("transaction fee is not enough")
-
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
@@ -484,9 +478,6 @@ var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
 
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
-
-// ErrNilThrottler signals that a nil throttler has been provided
-var ErrNilThrottler = errors.New("nil throttler")
 
 // ErrSystemBusy signals that the system is busy
 var ErrSystemBusy = errors.New("system busy")

@@ -29,7 +29,7 @@ func TestPreProcessMessage_NilDataShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
 
-func TestPreProcessMessage_CanNotProcessReturnsNil(t *testing.T) {
+func TestPreProcessMessage_CanNotProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
 	msg := &mock.P2PMessageMock{
@@ -40,9 +40,10 @@ func TestPreProcessMessage_CanNotProcessReturnsNil(t *testing.T) {
 			return false
 		},
 	}
+
 	err := preProcessMesage(throttler, msg)
 
-	assert.Nil(t, err)
+	assert.Equal(t, process.ErrSystemBusy, err)
 }
 
 func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testing.T) {

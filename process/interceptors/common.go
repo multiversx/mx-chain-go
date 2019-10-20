@@ -17,8 +17,7 @@ func preProcessMesage(throttler process.InterceptorThrottler, message p2p.Messag
 	}
 
 	if !throttler.CanProcess() {
-		//can not process current message, send it to other peers
-		return nil
+		return process.ErrSystemBusy
 	}
 
 	throttler.StartProcessing()
