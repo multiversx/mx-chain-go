@@ -42,6 +42,8 @@ type baseForkDetector struct {
 	mutHeaders sync.RWMutex
 	fork       forkInfo
 	mutFork    sync.RWMutex
+
+	blackList process.BlackListHandler
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -259,7 +261,16 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
 	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
 	if roundsWithoutReceivedBlock > maxRoundsToWait && isInProperRound {
+		bfd.addHeaderToBlackList()
 		bfd.ResetProbableHighestNonce()
+	}
+}
+
+func (bfd *baseForkDetector) addHeaderToBlackList() {
+	//TODO(Sebi) should add the block that was unable to be synced in the black list
+	err := bfd.blackList.Add("[header hash]")
+	if err != nil {
+		log.Error(err.Error())
 	}
 }
 

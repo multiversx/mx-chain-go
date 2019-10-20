@@ -499,3 +499,9 @@ var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
+
+// ErrNilBlackListHandler signals that a nil black list handler was provided
+var ErrNilBlackListHandler = errors.New("nil black list handler")
+
+// ErrHeaderIsBlackListed signals that the header provided is black listed
+var ErrHeaderIsBlackListed = errors.New("header is black listed")

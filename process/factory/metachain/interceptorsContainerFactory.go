@@ -38,6 +38,7 @@ type interceptorsContainerFactory struct {
 	messenger              process.TopicHandler
 	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
+	blackList              process.BlackListHandler
 	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
@@ -57,6 +58,7 @@ func NewInterceptorsContainerFactory(
 	addrConverter state.AddressConverter,
 	singleSigner crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
+	blackList process.BlackListHandler,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
 ) (*interceptorsContainerFactory, error) {
@@ -100,6 +102,9 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(blackList) {
+		return nil, process.ErrNilBlackListHandler
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
@@ -122,6 +127,7 @@ func NewInterceptorsContainerFactory(
 		multiSigner:            multiSigner,
 		dataPool:               dataPool,
 		nodesCoordinator:       nodesCoordinator,
+		blackList:              blackList,
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 		accounts:               accounts,
@@ -217,6 +223,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		Headers:       icf.dataPool.MetaBlocks(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
+		BlackList:     icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -284,6 +291,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 		Headers:       icf.dataPool.ShardHeaders(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
+		BlackList:     icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

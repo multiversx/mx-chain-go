@@ -58,6 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -333,6 +334,7 @@ func createNetNode(
 		testAddressConverter,
 		maxTxNonceDeltaAllowed,
 		createMockTxFeeHandler(),
+		timecache.NewTimeCache(time.Second),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -791,6 +793,7 @@ func createMetaNetNode(
 		testAddressConverter,
 		params.singleSigner,
 		params.keyGen,
+		timecache.NewTimeCache(time.Second),
 		maxTxNonceDeltaAllowed,
 		feeHandler,
 	)

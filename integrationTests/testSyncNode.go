@@ -95,7 +95,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.HeadersBlackList)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		arguments := block.ArgMetaProcessor{
@@ -106,7 +106,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.HeadersBlackList)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,

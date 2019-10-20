@@ -33,3 +33,6 @@ var ErrInvalidBatch = errors.New("batch is invalid")
 
 // ErrInvalidNumOpenFiles is raised when the max num of open files is less than 1
 var ErrInvalidNumOpenFiles = errors.New("maxOpenFiles is invalid")
+
+// ErrDuplicateKeyToAdd signals that a key can not be added as it already exists
+var ErrDuplicateKeyToAdd = errors.New("the key can not be added as it already exists")

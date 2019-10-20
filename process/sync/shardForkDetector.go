@@ -2,6 +2,7 @@ package sync
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -12,13 +13,21 @@ type shardForkDetector struct {
 }
 
 // NewShardForkDetector method creates a new shardForkDetector object
-func NewShardForkDetector(rounder consensus.Rounder) (*shardForkDetector, error) {
-	if rounder == nil || rounder.IsInterfaceNil() {
+func NewShardForkDetector(
+	rounder consensus.Rounder,
+	blackList process.BlackListHandler,
+) (*shardForkDetector, error) {
+
+	if check.IfNil(rounder) {
 		return nil, process.ErrNilRounder
+	}
+	if check.IfNil(blackList) {
+		return nil, process.ErrNilBlackListHandler
 	}
 
 	bfd := &baseForkDetector{
-		rounder: rounder,
+		rounder:   rounder,
+		blackList: blackList,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

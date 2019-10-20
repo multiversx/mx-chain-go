@@ -43,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
@@ -70,6 +71,9 @@ var MinTxGasPrice = uint64(0)
 var MinTxGasLimit = uint64(4)
 
 const maxTxNonceDeltaAllowed = 8000
+
+// TimeSpanForBadHeaders is the expiry time for an added block header hash
+var TimeSpanForBadHeaders = time.Second * 30
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -104,6 +108,7 @@ type TestProcessorNode struct {
 
 	EconomicsData *economics.TestEconomicsData
 
+	HeadersBlackList      process.BlackListHandler
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
@@ -284,6 +289,8 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 
 func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
+	tpn.HeadersBlackList = timecache.NewTimeCache(TimeSpanForBadHeaders)
+
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
@@ -298,6 +305,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestAddressConverter,
 			tpn.OwnAccount.SingleSigner,
 			tpn.OwnAccount.KeygenTxSign,
+			tpn.HeadersBlackList,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 		)
@@ -322,6 +330,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestAddressConverter,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
+			tpn.HeadersBlackList,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()

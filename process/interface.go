@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -222,38 +221,10 @@ type BlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// Checker provides functionality to checks the integrity and validity of a data structure
-type Checker interface {
-	// IntegrityAndValidity does both validity and integrity checks on the data structure
-	IntegrityAndValidity(coordinator sharding.Coordinator) error
-	// Integrity checks only the integrity of the data
-	Integrity(coordinator sharding.Coordinator) error
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
-// SigVerifier provides functionality to verify a signature of a signed data structure that holds also the verifying parameters
-type SigVerifier interface {
-	VerifySig() error
-}
-
-// SignedDataValidator provides functionality to check the validity and signature of a data structure
-type SignedDataValidator interface {
-	SigVerifier
-	Checker
-}
-
 // HashAccesser interface provides functionality over hashable objects
 type HashAccesser interface {
 	SetHash([]byte)
 	Hash() []byte
-}
-
-// InterceptedBlockBody interface provides functionality over intercepted blocks
-type InterceptedBlockBody interface {
-	Checker
-	HashAccesser
-	GetUnderlyingObject() interface{}
 }
 
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
@@ -359,30 +330,12 @@ type Interceptor interface {
 	IsInterfaceNil() bool
 }
 
-// MessageHandler defines the functionality needed by structs to send data to other peers
-type MessageHandler interface {
-	ConnectedPeersOnTopic(topic string) []p2p.PeerID
-	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
-	IsInterfaceNil() bool
-}
-
-type topicHandler interface {
+// TopicHandler defines the functionality needed by structs to manage topics and message processors
+type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
-}
-
-// TopicHandler defines the functionality needed by structs to manage topics and message processors
-type TopicHandler interface {
-	topicHandler
 	IsInterfaceNil() bool
-}
-
-// TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
-// to other peers
-type TopicMessageHandler interface {
-	MessageHandler
-	topicHandler
 }
 
 // DataPacker can split a large slice of byte slices in smaller packets
@@ -469,5 +422,12 @@ type TransactionWithFeeHandler interface {
 type EconomicsAddressesHandler interface {
 	CommunityAddress() string
 	BurnAddress() string
+	IsInterfaceNil() bool
+}
+
+// BlackListHandler can determine if a certain key is or not blacklisted
+type BlackListHandler interface {
+	Add(key string) error
+	Has(key string) bool
 	IsInterfaceNil() bool
 }
