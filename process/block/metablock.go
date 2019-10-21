@@ -563,9 +563,11 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 
-	log.Info(fmt.Sprintf("Pools len: MetaBlocks = %d   ShardHeaders = %d\n",
+	log.Info(fmt.Sprintf("pools info: MetaBlocks = %d from %d, ShardHeaders = %d from %d\n",
 		mp.dataPool.MetaBlocks().Len(),
+		mp.dataPool.MetaBlocks().MaxSize(),
 		mp.dataPool.ShardHeaders().Len(),
+		mp.dataPool.ShardHeaders().MaxSize(),
 	))
 
 	return nil
@@ -814,8 +816,9 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		if mp.hdrsForCurrBlock.missingHdrs == 0 {
 			missingFinalityAttestingShardHdrs := mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
 			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
-			if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
-				log.Info(fmt.Sprintf("received %d missing finality attesting shard headers\n", missingFinalityAttestingShardHdrs))
+			if missingFinalityAttestingShardHdrs > mp.hdrsForCurrBlock.missingFinalityAttestingHdrs {
+				log.Info(fmt.Sprintf("received %d missing finality attesting shard headers\n",
+					missingFinalityAttestingShardHdrs-mp.hdrsForCurrBlock.missingFinalityAttestingHdrs))
 			}
 		}
 
@@ -1281,7 +1284,11 @@ func (mp *metaProcessor) IsInterfaceNil() bool {
 	return false
 }
 
-func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(nonce uint64, shardId uint32) (data.HeaderHandler, []byte, error) {
+func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
+	nonce uint64,
+	shardId uint32,
+) (data.HeaderHandler, []byte, error) {
+
 	shardHeader, shardHeaderHash, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		shardId,

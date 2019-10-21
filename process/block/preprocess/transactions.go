@@ -353,6 +353,10 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 // RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
 func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+	if miniBlock == nil {
+		return 0
+	}
+
 	missingTxsForMiniBlock := txs.computeMissingTxsForMiniBlock(miniBlock)
 	if len(missingTxsForMiniBlock) > 0 {
 		txs.onRequestTransaction(miniBlock.SenderShardID, missingTxsForMiniBlock)

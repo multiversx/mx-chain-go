@@ -375,6 +375,10 @@ func (rtp *rewardTxPreprocessor) processRewardTransaction(
 
 // RequestTransactionsForMiniBlock requests missing reward transactions for a certain miniblock
 func (rtp *rewardTxPreprocessor) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+	if miniBlock == nil {
+		return 0
+	}
+
 	missingRewardTxsForMiniBlock := rtp.computeMissingRewardTxsForMiniBlock(miniBlock)
 	if len(missingRewardTxsForMiniBlock) > 0 {
 		rtp.onRequestRewardTx(miniBlock.SenderShardID, missingRewardTxsForMiniBlock)

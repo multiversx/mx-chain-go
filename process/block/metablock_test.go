@@ -707,6 +707,9 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		cs.LenCalled = func() int {
 			return 0
 		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
+		}
 		return cs
 	}
 

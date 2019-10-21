@@ -352,6 +352,10 @@ func (scr *smartContractResults) processSmartContractResult(
 
 // RequestTransactionsForMiniBlock requests missing smartContractResults for a certain miniblock
 func (scr *smartContractResults) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+	if miniBlock == nil {
+		return 0
+	}
+
 	missingScrsForMiniBlock := scr.computeMissingScrsForMiniBlock(miniBlock)
 	if len(missingScrsForMiniBlock) > 0 {
 		scr.onRequestSmartContractResult(miniBlock.SenderShardID, missingScrsForMiniBlock)

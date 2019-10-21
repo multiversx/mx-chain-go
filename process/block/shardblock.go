@@ -743,10 +743,13 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockSizeThrottler.Succeed(header.Round)
 
-	log.Info(fmt.Sprintf("Pools len: Headers = %d   MetaBlocks = %d   MiniBlocks = %d\n",
+	log.Info(fmt.Sprintf("pools info: Headers = %d from %d, MetaBlocks = %d from %d, MiniBlocks = %d from %d\n",
 		sp.dataPool.Headers().Len(),
+		sp.dataPool.Headers().MaxSize(),
 		sp.dataPool.MetaBlocks().Len(),
+		sp.dataPool.MetaBlocks().MaxSize(),
 		sp.dataPool.MiniBlocks().Len(),
+		sp.dataPool.MiniBlocks().MaxSize(),
 	))
 
 	return nil
@@ -1075,8 +1078,9 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 				sharding.MetachainShardId,
 				sp.metaBlockFinality,
 				sp.getMetaHeaderFromPoolWithNonce)
-			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
-				log.Info(fmt.Sprintf("received %d missing finality attesting meta headers\n", missingFinalityAttestingMetaHdrs))
+			if missingFinalityAttestingMetaHdrs > sp.hdrsForCurrBlock.missingFinalityAttestingHdrs {
+				log.Info(fmt.Sprintf("received %d missing finality attesting meta headers\n",
+					missingFinalityAttestingMetaHdrs-sp.hdrsForCurrBlock.missingFinalityAttestingHdrs))
 			}
 		}
 
@@ -1684,7 +1688,11 @@ func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
 	return maxMbSpaceRemained
 }
 
-func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(nonce uint64, shardId uint32) (data.HeaderHandler, []byte, error) {
+func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(
+	nonce uint64,
+	shardId uint32,
+) (data.HeaderHandler, []byte, error) {
+
 	metaHeader, metaHeaderHash, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		sp.dataPool.MetaBlocks(),
