@@ -1377,11 +1377,10 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	}
 
 	header.MiniBlockHeaders = miniBlockHeaders
-	header.TxCount = uint32(totalTxCount)
 	header.ShardInfo = shardInfo
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
-	header.TxCount = getTxCount(shardInfo)
+	header.TxCount = getTxCount(shardInfo) + uint32(totalTxCount)
 
 	mp.blockSizeThrottler.Add(
 		round,

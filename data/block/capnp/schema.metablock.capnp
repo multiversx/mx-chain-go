@@ -24,14 +24,6 @@ struct ShardDataCapn {
     txCount               @3: UInt32;
 }
 
-struct MiniBlockHeaderCapn {
-  hash            @0: Data;
-  receiverShardID @1: UInt32;
-  senderShardID   @2: UInt32;
-  txCount         @3: UInt32;
-  type            @4: UInt8;
-}
-
 struct MetaBlockCapn {
     nonce            @0:  UInt64;
     epoch            @1:  UInt32;
