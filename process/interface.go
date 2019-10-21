@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -305,8 +304,13 @@ type VirtualMachinesContainer interface {
 // VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
-	VMAccountsDB() *hooks.VMAccountsDB
+	VMAccountsDB() ExpandedBlockChainHook
 	IsInterfaceNil() bool
+}
+
+type ExpandedBlockChainHook interface {
+	TemporaryAccountsHandler
+	SetCurrentHeader(hdr data.HeaderHandler)
 }
 
 // Interceptor defines what a data interceptor should do

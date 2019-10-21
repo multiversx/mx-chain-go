@@ -707,10 +707,16 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(
-		stateComponents.AccountsAdapter,
-		stateComponents.AddressConverter,
-	)
+	argsBlockChainHook := hooks.ArgBlockChainHook{
+		Accounts:         stateComponents.AccountsAdapter,
+		AddrConv:         stateComponents.AddressConverter,
+		StorageService:   dataComponents.Store,
+		BlockChain:       dataComponents.Blkc,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      coreComponents.Marshalizer,
+		Uint64Converter:  coreComponents.Uint64ByteSliceConverter,
+	}
+	vmAccountsDB, err := hooks.NewVMAccountsDB(argsBlockChainHook)
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -1619,7 +1620,16 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         state.AccountsAdapter,
+		AddrConv:         state.AddressConverter,
+		StorageService:   data.Store,
+		BlockChain:       data.Blkc,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      core.Marshalizer,
+		Uint64Converter:  core.Uint64ByteSliceConverter,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsHook)
 	if err != nil {
 		return nil, err
 	}

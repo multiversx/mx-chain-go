@@ -1,43 +1,36 @@
 package shard
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestNewVMContainerFactory_NilAccountsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	vmf, err := NewVMContainerFactory(
-		nil,
-		&mock.AddressConverterMock{},
-	)
-
-	assert.Nil(t, vmf)
-	assert.Equal(t, process.ErrNilAccountsAdapter, err)
-}
-
-func TestNewVMContainerFactory_NilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	vmf, err := NewVMContainerFactory(
-		&mock.AccountsStub{},
-		nil,
-	)
-
-	assert.Nil(t, vmf)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
+	arguments := hooks.ArgBlockChainHook{
+		Accounts: &mock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+				return &mock.AccountWrapMock{}, nil
+			},
+		},
+		AddrConv:         mock.NewAddressConverterFake(32, ""),
+		StorageService:   &mock.ChainStorerMock{},
+		BlockChain:       &mock.BlockChainMock{},
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		Marshalizer:      &mock.MarshalizerMock{},
+		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+	}
+	return arguments
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockVMAccountsArguments(),
 	)
 
 	assert.NotNil(t, vmf)
@@ -48,8 +41,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockVMAccountsArguments(),
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
