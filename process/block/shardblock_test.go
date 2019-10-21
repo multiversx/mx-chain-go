@@ -34,6 +34,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const MaxGasLimitPerMiniBlock = uint64(100000)
+
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 
@@ -464,7 +466,14 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 0
+			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return MaxGasLimitPerMiniBlock
+			},
+		},
 	)
 	container, _ := factory.Create()
 
@@ -653,7 +662,14 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 0
+			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return MaxGasLimitPerMiniBlock
+			},
+		},
 	)
 	container, _ := factory.Create()
 
@@ -2891,6 +2907,9 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
+			},
+			MaxGasLimitPerMiniBlockCalled: func() uint64 {
+				return MaxGasLimitPerMiniBlock
 			},
 		},
 	)

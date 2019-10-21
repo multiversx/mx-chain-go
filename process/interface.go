@@ -420,6 +420,7 @@ type RewardsHandler interface {
 
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
+	MaxGasLimitPerMiniBlock() uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error

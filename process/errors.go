@@ -496,6 +496,9 @@ var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx"
 // ErrInvalidMaxGasLimitPerMiniBlock signals that an invalid max gas limit per mini block has been read from config file
 var ErrInvalidMaxGasLimitPerMiniBlock = errors.New("invalid max gas limit per mini block")
 
+// ErrHigherGasLimitRequiredInMiniBlock signals that a higher gas limit is required in mini block
+var ErrHigherGasLimitRequiredInMiniBlock = errors.New("higher gas limit required in mini block")
+
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 

@@ -160,6 +160,11 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 	return nil
 }
 
+// MaxGasLimitPerMiniBlock will return maximum gas limit allowed per mini block
+func (ed *EconomicsData) MaxGasLimitPerMiniBlock() uint64 {
+	return ed.maxGasLimitPerMiniBlock
+}
+
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
 func (ed *EconomicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
 	gasLimit := ed.minGasLimit

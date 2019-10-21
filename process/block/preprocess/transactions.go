@@ -38,7 +38,6 @@ type transactions struct {
 	orderedTxs           map[string][]*transaction.Transaction
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
-	economicsFee         process.FeeHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -78,11 +77,15 @@ func NewTransactionPreprocessor(
 	if onRequestTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
+	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	bpp := basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
+		economicsFee:     economicsFee,
 	}
 
 	txs := transactions{
@@ -92,7 +95,6 @@ func NewTransactionPreprocessor(
 		onRequestTransaction: onRequestTransaction,
 		txProcessor:          txProcessor,
 		accounts:             accounts,
-		economicsFee:         economicsFee,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -202,6 +204,15 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 		miniBlock := body[i]
 		if miniBlock.Type != block.TxBlock {
 			continue
+		}
+
+		gasLimitRequiredByMiniBlock, err := txs.computeGasLimitRequiredByMiniBlock(miniBlock, &txs.txsForCurrBlock)
+		if err != nil {
+			return err
+		}
+
+		if gasLimitRequiredByMiniBlock > txs.economicsFee.MaxGasLimitPerMiniBlock() {
+			return process.ErrHigherGasLimitRequiredInMiniBlock
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
@@ -524,7 +535,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}
 
-		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
+		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > txs.economicsFee.MaxGasLimitPerMiniBlock()
 		if isGasLimitReached {
 			log.Debug(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
 				len(miniBlock.TxHashes),

@@ -31,10 +31,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const MaxGasLimitPerMiniBlock = uint64(100000)
+
 func FeeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 0
+		},
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return MaxGasLimitPerMiniBlock
 		},
 	}
 }
@@ -935,7 +940,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
 	numTxsToAdd := 5
-	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
+	gasLimit := MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	addedTxs := make([]*transaction.Transaction, 0)
