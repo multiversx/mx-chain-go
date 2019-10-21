@@ -634,3 +634,28 @@ func (bp *baseProcessor) getMaxMiniBlocksSpaceRemained(
 
 	return maxMbSpaceRemained
 }
+
+func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.MiniBlockHeader, error) {
+	totalTxCount := 0
+	miniBlockHeaders := make([]block.MiniBlockHeader, len(body))
+
+	for i := 0; i < len(body); i++ {
+		txCount := len(body[i].TxHashes)
+		totalTxCount += txCount
+
+		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body[i])
+		if err != nil {
+			return 0, nil, err
+		}
+
+		miniBlockHeaders[i] = block.MiniBlockHeader{
+			Hash:            miniBlockHash,
+			SenderShardID:   body[i].SenderShardID,
+			ReceiverShardID: body[i].ReceiverShardID,
+			TxCount:         uint32(txCount),
+			Type:            body[i].Type,
+		}
+	}
+
+	return totalTxCount, miniBlockHeaders, nil
+}

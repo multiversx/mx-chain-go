@@ -1494,25 +1494,9 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body))
-
-	for i := 0; i < len(body); i++ {
-		txCount := len(body[i].TxHashes)
-		totalTxCount += txCount
-
-		miniBlockHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, body[i])
-		if err != nil {
-			return nil, err
-		}
-
-		miniBlockHeaders[i] = block.MiniBlockHeader{
-			Hash:            miniBlockHash,
-			SenderShardID:   body[i].SenderShardID,
-			ReceiverShardID: body[i].ReceiverShardID,
-			TxCount:         uint32(txCount),
-			Type:            body[i].Type,
-		}
+	totalTxCount, miniBlockHeaders, err := sp.createMiniBlockHeaders(body)
+	if err != nil {
+		return nil, err
 	}
 
 	header.MiniBlockHeaders = miniBlockHeaders

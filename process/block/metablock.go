@@ -1371,12 +1371,13 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	metaShardInfo, err := mp.createMetaShardInfo(body)
+	totalTxCount, miniBlockHeaders, err := mp.createMiniBlockHeaders(body)
 	if err != nil {
 		return nil, err
 	}
-	shardInfo = append(shardInfo, metaShardInfo)
 
+	header.MiniBlockHeaders = miniBlockHeaders
+	header.TxCount = uint32(totalTxCount)
 	header.ShardInfo = shardInfo
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
@@ -1387,34 +1388,6 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
-}
-
-func (mp *metaProcessor) createMetaShardInfo(body block.Body) (block.ShardData, error) {
-	metaShardInfo := block.ShardData{
-		ShardID:               sharding.MetachainShardId,
-		HeaderHash:            nil,
-		ShardMiniBlockHeaders: nil,
-		TxCount:               0,
-	}
-
-	for _, miniBlock := range body {
-		mbHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, miniBlock)
-		if err != nil {
-			return metaShardInfo, err
-		}
-
-		miniBlockHdr := block.ShardMiniBlockHeader{
-			Hash:            mbHash,
-			ReceiverShardID: miniBlock.ReceiverShardID,
-			SenderShardID:   miniBlock.SenderShardID,
-			TxCount:         uint32(len(miniBlock.TxHashes)),
-		}
-
-		metaShardInfo.TxCount += miniBlockHdr.TxCount
-		metaShardInfo.ShardMiniBlockHeaders = append(metaShardInfo.ShardMiniBlockHeaders, miniBlockHdr)
-	}
-
-	return metaShardInfo, nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
