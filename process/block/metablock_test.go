@@ -488,7 +488,7 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	mp.SetHighestHdrNonceForCurrentBlock(0, 1)
 	mp.SetHighestHdrNonceForCurrentBlock(1, 2)
 	mp.SetHighestHdrNonceForCurrentBlock(2, 3)
-	res := mp.RequestMissingFinalityAttestingHeaders()
+	res := mp.RequestMissingFinalityAttestingShardHeaders()
 	assert.Equal(t, res, uint32(3))
 }
 

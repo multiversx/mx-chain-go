@@ -589,12 +589,12 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for _, hdrInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if hdrInfo.usedInBlock != usedInBlock {
+	for _, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if headerInfo.usedInBlock != usedInBlock {
 			continue
 		}
 
-		hdrsForCurrentBlock[hdrInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[hdrInfo.hdr.GetShardID()], hdrInfo.hdr)
+		hdrsForCurrentBlock[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[headerInfo.hdr.GetShardID()], headerInfo.hdr)
 	}
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
@@ -611,13 +611,13 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for metaBlockHash, hdrInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if hdrInfo.usedInBlock != usedInBlock {
+	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if headerInfo.usedInBlock != usedInBlock {
 			continue
 		}
 
-		hdrsForCurrentBlockInfo[hdrInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[hdrInfo.hdr.GetShardID()],
-			&nonceAndHashInfo{nonce: hdrInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
+		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
+			&nonceAndHashInfo{nonce: headerInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
 	}
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
@@ -664,4 +664,50 @@ func (bp *baseProcessor) wasHeaderRequested(shardId uint32, nonce uint64) bool {
 	}
 
 	return false
+}
+
+// requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for
+// processing the current block. It requests the finality headers greater than the highest header, for given shard,
+// related to the block which should be processed
+func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
+	shardId uint32,
+	finality uint32,
+	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
+) uint32 {
+	requestedHeaders := uint32(0)
+	missingFinalityAttestingHeaders := uint32(0)
+
+	highestHdrNonce := bp.hdrsForCurrBlock.highestHdrNonce[shardId]
+	if highestHdrNonce == uint64(0) {
+		return missingFinalityAttestingHeaders
+	}
+
+	lastFinalityAttestingHeader := bp.hdrsForCurrBlock.highestHdrNonce[shardId] + uint64(finality)
+	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
+		header, headerHash, err := getHeaderFromPoolWithNonce(
+			i,
+			shardId)
+
+		if err != nil {
+			missingFinalityAttestingHeaders++
+			wasHeaderRequested := bp.wasHeaderRequested(shardId, i)
+			if !wasHeaderRequested {
+				requestedHeaders++
+				bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId] = append(bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId], i)
+				go bp.onRequestHeaderHandlerByNonce(shardId, i)
+			}
+
+			continue
+		}
+
+		bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
+	}
+
+	if requestedHeaders > 0 {
+		log.Info(fmt.Sprintf("requested %d missing finality attesting headers for shard %d\n",
+			requestedHeaders,
+			shardId))
+	}
+
+	return missingFinalityAttestingHeaders
 }

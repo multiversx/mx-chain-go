@@ -276,13 +276,13 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardHeaderHash := header.ShardInfo[i].HeaderHash
-		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
+		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrMissingHeader
 		}
 
-		shardBlock, ok := hdrInfo.hdr.(*block.Header)
+		shardBlock, ok := headerInfo.hdr.(*block.Header)
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
@@ -470,13 +470,13 @@ func (mp *metaProcessor) CommitBlock(
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardHeaderHash := header.ShardInfo[i].HeaderHash
-		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
+		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrMissingHeader
 		}
 
-		shardBlock, ok := hdrInfo.hdr.(*block.Header)
+		shardBlock, ok := headerInfo.hdr.(*block.Header)
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
@@ -624,13 +624,13 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for i := 0; i < len(header.ShardInfo); i++ {
 		shardHeaderHash := header.ShardInfo[i].HeaderHash
-		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
+		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrMissingHeader
 		}
 
-		shardHdr, ok := hdrInfo.hdr.(*block.Header)
+		shardHdr, ok := headerInfo.hdr.(*block.Header)
 		if !ok {
 			mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
@@ -813,7 +813,7 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 
 		if mp.hdrsForCurrBlock.missingHdrs == 0 {
 			missingFinalityAttestingShardHdrs := mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
-			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingHeaders()
+			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 			if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Info(fmt.Sprintf("received %d missing finality attesting shard headers\n", missingFinalityAttestingShardHdrs))
 			}
@@ -844,48 +844,22 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 	}
 }
 
-// requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for processing the
-// current block. It requests the shardBlockFinality headers greater than the highest shard header, for each shard, related
-// to the block which should be processed
-func (mp *metaProcessor) requestMissingFinalityAttestingHeaders() uint32 {
-	requestedBlockHeaders := uint32(0)
-	missingFinalityAttestingHeaders := uint32(0)
+// requestMissingFinalityAttestingShardHeaders requests the headers needed to accept the current selected headers for
+// processing the current block. It requests the shardBlockFinality headers greater than the highest shard header,
+// for each shard, related to the block which should be processed
+func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
+	missingFinalityAttestingShardHeaders := uint32(0)
 
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
-		highestHdrNonce := mp.hdrsForCurrBlock.highestHdrNonce[shardId]
-		if highestHdrNonce == uint64(0) {
-			continue
-		}
+		missingFinalityAttestingHeaders := mp.requestMissingFinalityAttestingHeaders(
+			shardId,
+			mp.shardBlockFinality,
+			mp.getShardHeaderFromPoolWithNonce)
 
-		lastFinalityAttestingHeader := mp.hdrsForCurrBlock.highestHdrNonce[shardId] + uint64(mp.shardBlockFinality)
-		for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-			shardHeader, shardHeaderHash, err := process.GetShardHeaderFromPoolWithNonce(
-				i,
-				shardId,
-				mp.dataPool.ShardHeaders(),
-				mp.dataPool.HeadersNonces())
-
-			if err != nil {
-				missingFinalityAttestingHeaders++
-				wasHeaderRequested := mp.wasHeaderRequested(shardId, i)
-				if !wasHeaderRequested {
-					requestedBlockHeaders++
-					mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId] = append(mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId], i)
-					go mp.onRequestHeaderHandlerByNonce(shardId, i)
-				}
-
-				continue
-			}
-
-			mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)] = &hdrInfo{hdr: shardHeader, usedInBlock: false}
-		}
+		missingFinalityAttestingShardHeaders += missingFinalityAttestingHeaders
 	}
 
-	if requestedBlockHeaders > 0 {
-		log.Info(fmt.Sprintf("requested %d missing finality attesting shard headers\n", requestedBlockHeaders))
-	}
-
-	return missingFinalityAttestingHeaders
+	return missingFinalityAttestingShardHeaders
 }
 
 func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
@@ -906,7 +880,7 @@ func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32
 	}
 
 	if mp.hdrsForCurrBlock.missingHdrs == 0 {
-		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingHeaders()
+		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 	}
 
 	requestedHdrs := mp.hdrsForCurrBlock.missingHdrs
@@ -1305,4 +1279,14 @@ func (mp *metaProcessor) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(nonce uint64, shardId uint32) (data.HeaderHandler, []byte, error) {
+	shardHeader, shardHeaderHash, err := process.GetShardHeaderFromPoolWithNonce(
+		nonce,
+		shardId,
+		mp.dataPool.ShardHeaders(),
+		mp.dataPool.HeadersNonces())
+
+	return shardHeader, shardHeaderHash, err
 }
