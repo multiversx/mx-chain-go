@@ -185,6 +185,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, m.timer)
 		if err != nil {
 			log.Error(err.Error())
+			m.mutHeartbeatMessages.Unlock()
 			return
 		}
 		m.heartbeatMessages[pubKeyStr] = hbmi
