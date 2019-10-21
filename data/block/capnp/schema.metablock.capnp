@@ -1,5 +1,6 @@
 @0xddffc3d7f7f36183;
 using Go = import "/go.capnp";
+using MiniBlockHeaderCapn = import "./schema.capnp".MiniBlockHeaderCapn;
 $Go.package("capnp");
 $Go.import("_");
 
@@ -22,14 +23,6 @@ struct ShardDataCapn {
     headerHash            @1: Data;
     shardMiniBlockHeaders @2: List(ShardMiniBlockHeaderCapn);
     txCount               @3: UInt32;
-}
-
-struct MiniBlockHeaderCapn {
-  hash            @0: Data;
-  receiverShardID @1: UInt32;
-  senderShardID   @2: UInt32;
-  txCount         @3: UInt32;
-  type            @4: UInt8;
 }
 
 struct MetaBlockCapn {
