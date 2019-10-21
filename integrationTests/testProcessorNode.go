@@ -502,6 +502,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		StartHeaders:          tpn.GenesisBlocks,
 		RequestHandler:        tpn.RequestHandler,
 		Core:                  nil,
+		BlockChainHook:        &mock.BlockChainHookHandlerMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -513,6 +514,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
+		argumentsBase.BlockChainHook = tpn.BlockchainHook.(process.BlockChainHookHandler)
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.ShardDataPool,
@@ -652,7 +654,23 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
+	initialHdr := &dataBlock.Header{}
+	initialHdr.SetRound(round)
+	initialHdr.SetNonce(nonce)
+	initialHdr.SetPubKeysBitmap([]byte{1})
+	sig, _ := TestMultiSig.AggregateSigs(nil)
+	initialHdr.SetSignature(sig)
+	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
+	if currHdr == nil {
+		currHdr = tpn.BlockChain.GetGenesisHeader()
+	}
+
+	buff, _ := TestMarshalizer.Marshal(currHdr)
+	initialHdr.SetPrevHash(TestHasher.Compute(string(buff)))
+	initialHdr.SetPrevRandSeed(currHdr.GetRandSeed())
+	initialHdr.SetRandSeed(sig)
+
+	blockBody, err := tpn.BlockProcessor.CreateBlockBody(initialHdr, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
@@ -663,20 +681,13 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return nil, nil, nil
 	}
 
-	blockHeader.SetRound(round)
-	blockHeader.SetNonce(nonce)
-	blockHeader.SetPubKeysBitmap([]byte{1})
-	sig, _ := TestMultiSig.AggregateSigs(nil)
-	blockHeader.SetSignature(sig)
-	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
-	if currHdr == nil {
-		currHdr = tpn.BlockChain.GetGenesisHeader()
-	}
-
-	buff, _ := TestMarshalizer.Marshal(currHdr)
-	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
-	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
-	blockHeader.SetRandSeed(sig)
+	blockHeader.SetRound(initialHdr.GetRound())
+	blockHeader.SetNonce(initialHdr.GetNonce())
+	blockHeader.SetPubKeysBitmap(initialHdr.GetPubKeysBitmap())
+	blockHeader.SetSignature(initialHdr.GetSignature())
+	blockHeader.SetPrevHash(initialHdr.GetPrevHash())
+	blockHeader.SetPrevRandSeed(initialHdr.GetPrevRandSeed())
+	blockHeader.SetRandSeed(initialHdr.GetRandSeed())
 
 	shardBlockBody, ok := blockBody.(dataBlock.Body)
 	txHashes := make([][]byte, 0)

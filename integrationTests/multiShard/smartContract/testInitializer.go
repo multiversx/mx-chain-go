@@ -478,6 +478,7 @@ func createNetNode(
 			StartHeaders:    genesisBlocks,
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
+			BlockChainHook:  blockChainHook,
 		},
 		DataPool:        dPool,
 		TxCoordinator:   tc,
@@ -852,6 +853,7 @@ func createMetaNetNode(
 			StartHeaders:    genesisBlocks,
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
+			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 		},
 		DataPool: dPool,
 	}

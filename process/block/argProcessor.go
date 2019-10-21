@@ -27,6 +27,7 @@ type ArgBaseProcessor struct {
 	StartHeaders          map[uint32]data.HeaderHandler
 	RequestHandler        process.RequestHandler
 	Core                  serviceContainer.Core
+	BlockChainHook        process.BlockChainHookHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

@@ -37,6 +37,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			StartHeaders:          createGenesisBlocks(shardCoordinator),
 			RequestHandler:        &mock.RequestHandlerMock{},
 			Core:                  &mock.ServiceContainerMock{},
+			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
 		},
 		DataPool: mdp,
 	}

@@ -2,6 +2,7 @@ package commonSubround
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -109,8 +110,14 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
 	}
 
+	initialHdrData, err := sr.createInitialHeaderData()
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
-		uint64(sr.Rounder().Index()),
+		initialHdrData,
 		haveTimeInCurrentSubround,
 	)
 	if err != nil {
@@ -186,22 +193,8 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 	return true
 }
 
-func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
-	maxTime := time.Duration(sr.EndTime())
-	haveTimeInCurrentSubround := func() bool {
-		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
-	}
-
-	hdr, err := sr.BlockProcessor().CreateBlockHeader(
-		sr.BlockBody,
-		uint64(sr.Rounder().Index()),
-		haveTimeInCurrentSubround)
-	if err != nil {
-		return nil, err
-	}
-
+func (sr *SubroundBlock) createInitialHeaderData() (data.HeaderHandler, error) {
+	hdr := &block.Header{}
 	hdr.SetRound(uint64(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 
@@ -226,6 +219,37 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
+
+	return hdr, nil
+}
+
+func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
+	startTime := time.Time{}
+	startTime = sr.RoundTimeStamp
+	maxTime := time.Duration(sr.EndTime())
+	haveTimeInCurrentSubround := func() bool {
+		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
+	}
+
+	hdr, err := sr.BlockProcessor().CreateBlockHeader(
+		sr.BlockBody,
+		uint64(sr.Rounder().Index()),
+		haveTimeInCurrentSubround)
+	if err != nil {
+		return nil, err
+	}
+
+	initialHdr, err := sr.createInitialHeaderData()
+	if err != nil {
+		return nil, err
+	}
+
+	hdr.SetRound(initialHdr.GetRound())
+	hdr.SetTimeStamp(initialHdr.GetTimeStamp())
+	hdr.SetNonce(initialHdr.GetNonce())
+	hdr.SetPrevHash(initialHdr.GetPrevHash())
+	hdr.SetPrevRandSeed(initialHdr.GetPrevRandSeed())
+	hdr.SetRandSeed(initialHdr.GetRandSeed())
 
 	return hdr, nil
 }

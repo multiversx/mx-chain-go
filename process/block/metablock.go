@@ -21,8 +21,8 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core               serviceContainer.Core
-	dataPool           dataRetriever.MetaPoolsHolder
+	core     serviceContainer.Core
+	dataPool dataRetriever.MetaPoolsHolder
 	//TODO: add	txCoordinator process.TransactionCoordinator
 
 	shardsHeadersNonce *sync.Map
@@ -64,6 +64,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		onRequestHeaderHandler:        arguments.RequestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -136,6 +137,7 @@ func (mp *metaProcessor) ProcessBlock(
 	)
 
 	mp.createBlockStarted()
+	mp.blockChainHook.SetCurrentHeader(headerHandler)
 
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
@@ -358,10 +360,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 }
 
 // CreateBlockBody creates block body of metachain
-func (mp *metaProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
-	log.Debug(fmt.Sprintf("started creating block body in round %d\n", round))
+func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+	log.Debug(fmt.Sprintf("started creating block body in round %d\n", initialHdrData.GetRound()))
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
+	mp.blockChainHook.SetCurrentHeader(initialHdrData)
+
 	return &block.MetaBlockBody{}, nil
 }
 

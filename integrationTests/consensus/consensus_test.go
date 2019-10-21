@@ -80,7 +80,7 @@ func initNodesAndTest(
 				return nil, process.ErrAccountStateDirty
 			}
 			nodes[0][i].blkProcessor.CreateBlockCalled = func(
-				round uint64,
+				header data.HeaderHandler,
 				haveTime func() bool,
 			) (handler data.BodyHandler, e error) {
 				return nil, process.ErrWrongTypeAssertion

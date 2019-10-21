@@ -54,7 +54,7 @@ func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, erro
 }
 
 // VMAccountsDB returns the created vmAccountsDB
-func (vmf *vmContainerFactory) VMAccountsDB() process.ExpandedBlockChainHook {
+func (vmf *vmContainerFactory) VMAccountsDB() process.BlockChainHookHandler {
 	return vmf.vmAccountsDB
 }
 

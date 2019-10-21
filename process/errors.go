@@ -504,3 +504,6 @@ var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
 // ErrInvalidNonceRequest signals that invalid nonce was requested
 var ErrInvalidNonceRequest = errors.New("invalid nonce request")
+
+// ErrNilBlockChainHook signals that nil blockchain hook has been provided
+var ErrNilBlockChainHook = errors.New("nil blockchain hook")
