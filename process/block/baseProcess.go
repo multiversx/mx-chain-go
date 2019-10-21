@@ -450,11 +450,15 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	// ask for headers, if there most probably should be
-	if maxRound > highestHdr.GetRound() {
-		nbHeaderRequests := maxRound - highestHdr.GetRound()
-		startNonce := highestHdr.GetNonce() + 1
-		for nonce := startNonce; nonce < startNonce+nbHeaderRequests; nonce++ {
-			missingNonces = append(missingNonces, nonce)
+	roundDiff := int64(maxRound) - int64(highestHdr.GetRound())
+	if roundDiff > 0 {
+		nonceDiff := int64(lastNotarizedHdrNonce) + process.MaxHeadersToRequestInAdvance - int64(highestHdr.GetNonce())
+		if nonceDiff > 0 {
+			nbHeadersToRequestInAdvance := core.MinUint64(uint64(roundDiff), uint64(nonceDiff))
+			startNonce := highestHdr.GetNonce() + 1
+			for nonce := startNonce; nonce < startNonce+nbHeadersToRequestInAdvance; nonce++ {
+				missingNonces = append(missingNonces, nonce)
+			}
 		}
 	}
 

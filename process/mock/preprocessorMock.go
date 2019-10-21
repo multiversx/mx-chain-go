@@ -17,7 +17,7 @@ type PreProcessorMock struct {
 	ProcessBlockTransactionsCalled        func(body block.Body, round uint64, haveTime func() bool) error
 	RequestBlockTransactionsCalled        func(body block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
-	RequestTransactionsForMiniBlockCalled func(mb block.MiniBlock) int
+	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
 	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
 	CreateAndProcessMiniBlocksCalled      func(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, error)
 	CreateAndProcessMiniBlockCalled       func(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
@@ -80,11 +80,11 @@ func (ppm *PreProcessorMock) CreateMarshalizedData(txHashes [][]byte) ([][]byte,
 	return ppm.CreateMarshalizedDataCalled(txHashes)
 }
 
-func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(mb block.MiniBlock) int {
+func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
 	if ppm.RequestTransactionsForMiniBlockCalled == nil {
 		return 0
 	}
-	return ppm.RequestTransactionsForMiniBlockCalled(mb)
+	return ppm.RequestTransactionsForMiniBlockCalled(miniBlock)
 }
 
 func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {

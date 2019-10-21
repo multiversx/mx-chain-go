@@ -157,6 +157,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
 			cs.RemoveCalled = func(key []byte) {}
+			cs.LenCalled = func() int {
+				return 0
+			}
 			return cs
 		},
 		HeadersCalled: func() storage.Cacher {
@@ -164,6 +167,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
 			cs.RemoveCalled = func(key []byte) {
+			}
+			cs.LenCalled = func() int {
+				return 0
 			}
 			return cs
 		},

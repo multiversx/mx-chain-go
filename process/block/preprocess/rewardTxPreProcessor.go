@@ -374,24 +374,26 @@ func (rtp *rewardTxPreprocessor) processRewardTransaction(
 }
 
 // RequestTransactionsForMiniBlock requests missing reward transactions for a certain miniblock
-func (rtp *rewardTxPreprocessor) RequestTransactionsForMiniBlock(mb block.MiniBlock) int {
-	missingRewardTxsForMiniBlock := rtp.computeMissingRewardTxsForMiniBlock(mb)
-	rtp.onRequestRewardTx(mb.SenderShardID, missingRewardTxsForMiniBlock)
+func (rtp *rewardTxPreprocessor) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+	missingRewardTxsForMiniBlock := rtp.computeMissingRewardTxsForMiniBlock(miniBlock)
+	if len(missingRewardTxsForMiniBlock) > 0 {
+		rtp.onRequestRewardTx(miniBlock.SenderShardID, missingRewardTxsForMiniBlock)
+	}
 
 	return len(missingRewardTxsForMiniBlock)
 }
 
 // computeMissingRewardTxsForMiniBlock computes missing reward transactions for a certain miniblock
-func (rtp *rewardTxPreprocessor) computeMissingRewardTxsForMiniBlock(mb block.MiniBlock) [][]byte {
+func (rtp *rewardTxPreprocessor) computeMissingRewardTxsForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
 	missingRewardTxs := make([][]byte, 0)
-	if mb.Type != block.RewardsBlock {
+	if miniBlock.Type != block.RewardsBlock {
 		return missingRewardTxs
 	}
 
-	for _, txHash := range mb.TxHashes {
+	for _, txHash := range miniBlock.TxHashes {
 		tx, _ := process.GetTransactionHandlerFromPool(
-			mb.SenderShardID,
-			mb.ReceiverShardID,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
 			txHash,
 			rtp.rewardTxPool,
 		)

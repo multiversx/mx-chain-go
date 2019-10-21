@@ -563,6 +563,11 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 
+	log.Info(fmt.Sprintf("Pools len: MetaBlocks = %d   ShardHeaders = %d\n",
+		mp.dataPool.MetaBlocks().Len(),
+		mp.dataPool.ShardHeaders().Len(),
+	))
+
 	return nil
 }
 

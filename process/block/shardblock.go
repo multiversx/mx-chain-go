@@ -411,6 +411,20 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 		log.Info(err.Error())
 	}
 
+	lastNotarizedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		log.Info(err.Error())
+	}
+
+	for i := 0; i < len(sortedHdrs); i++ {
+		isMetaBlockOutOfRange := sortedHdrs[i].GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
+		if isMetaBlockOutOfRange {
+			break
+		}
+
+		sp.txCoordinator.RequestMiniBlocks(sortedHdrs[i])
+	}
+
 	return
 }
 
@@ -728,6 +742,12 @@ func (sp *shardProcessor) CommitBlock(
 	)
 
 	sp.blockSizeThrottler.Succeed(header.Round)
+
+	log.Info(fmt.Sprintf("Pools len: Headers = %d   MetaBlocks = %d   MiniBlocks = %d\n",
+		sp.dataPool.Headers().Len(),
+		sp.dataPool.MetaBlocks().Len(),
+		sp.dataPool.MiniBlocks().Len(),
+	))
 
 	return nil
 }

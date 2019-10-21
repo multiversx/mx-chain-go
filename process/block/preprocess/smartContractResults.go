@@ -306,7 +306,7 @@ func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint3
 
 // computeMissingAndExistingSCResultsForShards calculates what smartContractResults are available and what are missing from block.Body
 func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body block.Body) map[uint32][]*txsHashesInfo {
-	onlyScrFromOthersBody := block.Body{}
+	scrTxs := block.Body{}
 	for _, mb := range body {
 		if mb.Type != block.SmartContractResultBlock {
 			continue
@@ -315,10 +315,15 @@ func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(bod
 			continue
 		}
 
-		onlyScrFromOthersBody = append(onlyScrFromOthersBody, mb)
+		scrTxs = append(scrTxs, mb)
 	}
 
-	missingTxsForShard := scr.computeExistingAndMissing(onlyScrFromOthersBody, &scr.scrForBlock, scr.chRcvAllScrs, block.SmartContractResultBlock, scr.scrPool)
+	missingTxsForShard := scr.computeExistingAndMissing(
+		scrTxs,
+		&scr.scrForBlock,
+		scr.chRcvAllScrs,
+		block.SmartContractResultBlock,
+		scr.scrPool)
 
 	return missingTxsForShard
 }
@@ -346,24 +351,26 @@ func (scr *smartContractResults) processSmartContractResult(
 }
 
 // RequestTransactionsForMiniBlock requests missing smartContractResults for a certain miniblock
-func (scr *smartContractResults) RequestTransactionsForMiniBlock(mb block.MiniBlock) int {
-	missingScrsForMiniBlock := scr.computeMissingScrsForMiniBlock(mb)
-	scr.onRequestSmartContractResult(mb.SenderShardID, missingScrsForMiniBlock)
+func (scr *smartContractResults) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+	missingScrsForMiniBlock := scr.computeMissingScrsForMiniBlock(miniBlock)
+	if len(missingScrsForMiniBlock) > 0 {
+		scr.onRequestSmartContractResult(miniBlock.SenderShardID, missingScrsForMiniBlock)
+	}
 
 	return len(missingScrsForMiniBlock)
 }
 
 // computeMissingScrsForMiniBlock computes missing smartContractResults for a certain miniblock
-func (scr *smartContractResults) computeMissingScrsForMiniBlock(mb block.MiniBlock) [][]byte {
+func (scr *smartContractResults) computeMissingScrsForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
 	missingSmartContractResults := make([][]byte, 0)
-	if mb.Type != block.SmartContractResultBlock {
+	if miniBlock.Type != block.SmartContractResultBlock {
 		return missingSmartContractResults
 	}
 
-	for _, txHash := range mb.TxHashes {
+	for _, txHash := range miniBlock.TxHashes {
 		tx, _ := process.GetTransactionHandlerFromPool(
-			mb.SenderShardID,
-			mb.ReceiverShardID,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
 			txHash,
 			scr.scrPool)
 
