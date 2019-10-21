@@ -21,9 +21,8 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core          serviceContainer.Core
-	dataPool      dataRetriever.MetaPoolsHolder
-	txCoordinator process.TransactionCoordinator
+	core     serviceContainer.Core
+	dataPool dataRetriever.MetaPoolsHolder
 
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
@@ -43,9 +42,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if arguments.DataPool.ShardHeaders() == nil || arguments.DataPool.ShardHeaders().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
-	}
-	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
-		return nil, process.ErrNilTransactionCoordinator
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -67,6 +63,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		onRequestHeaderHandler:        arguments.RequestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		txCoordinator:                 arguments.TxCoordinator,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -79,7 +76,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		baseProcessor:  base,
 		dataPool:       arguments.DataPool,
 		headersCounter: NewHeaderCounter(),
-		txCoordinator:  arguments.TxCoordinator,
 	}
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
@@ -149,7 +145,6 @@ func (mp *metaProcessor) ProcessBlock(
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
 	)
 
-	mp.txCoordinator.CreateBlockStarted()
 	mp.createBlockStarted()
 	mp.txCoordinator.RequestBlockTransactions(body)
 
@@ -290,7 +285,7 @@ func (mp *metaProcessor) checkHeaderBodyCorrelation(metaBlock *block.MetaBlock, 
 }
 
 func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
-	miniBlockMetaHashes, err := mp.getAllMiniBlockDstMeFromMeta(header)
+	miniBlockMetaHashes, err := mp.getAllMiniBlockDstMeta(header)
 	if err != nil {
 		return err
 	}
@@ -305,10 +300,12 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	return nil
 }
 
-func (mp *metaProcessor) getAllMiniBlockDstMeFromMeta(metaHdr *block.MetaBlock) (map[string][]byte, error) {
-	miniBlockMetaHashes := make(map[string][]byte)
+func (mp *metaProcessor) getAllMiniBlockDstMeta(metaHdr *block.MetaBlock) (map[string][]byte, error) {
+	miniBlockHashes := make(map[string][]byte)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
 	for _, shardInfo := range metaHdr.ShardInfo {
 		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardInfo.HeaderHash)]
 		if !ok {
@@ -336,12 +333,11 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromMeta(metaHdr *block.MetaBlock) 
 
 		crossMiniBlockHashes := shardHeader.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
-			miniBlockMetaHashes[hash] = shardInfo.HeaderHash
+			miniBlockHashes[hash] = shardInfo.HeaderHash
 		}
 	}
-	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-	return miniBlockMetaHashes, nil
+	return miniBlockHashes, nil
 }
 
 // SetConsensusData - sets the reward addresses for the current consensus group
@@ -514,7 +510,6 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 // CreateBlockBody creates block body of metachain
 func (mp *metaProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	log.Debug(fmt.Sprintf("started creating block body in round %d\n", round))
-	mp.txCoordinator.CreateBlockStarted()
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
 
@@ -1371,6 +1366,17 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		return nil, err
 	}
 
+	body, ok := bodyHandler.(block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	metaShardInfo, err := mp.createMetaShardInfo(body)
+	if err != nil {
+		return nil, err
+	}
+	shardInfo = append(shardInfo, metaShardInfo)
+
 	header.ShardInfo = shardInfo
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
@@ -1381,6 +1387,34 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
+}
+
+func (mp *metaProcessor) createMetaShardInfo(body block.Body) (block.ShardData, error) {
+	metaShardInfo := block.ShardData{
+		ShardID:               sharding.MetachainShardId,
+		HeaderHash:            nil,
+		ShardMiniBlockHeaders: nil,
+		TxCount:               0,
+	}
+
+	for _, miniBlock := range body {
+		mbHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, miniBlock)
+		if err != nil {
+			return metaShardInfo, err
+		}
+
+		miniBlockHdr := block.ShardMiniBlockHeader{
+			Hash:            mbHash,
+			ReceiverShardID: miniBlock.ReceiverShardID,
+			SenderShardID:   miniBlock.SenderShardID,
+			TxCount:         uint32(len(miniBlock.TxHashes)),
+		}
+
+		metaShardInfo.TxCount += miniBlockHdr.TxCount
+		metaShardInfo.ShardMiniBlockHeaders = append(metaShardInfo.ShardMiniBlockHeaders, miniBlockHdr)
+	}
+
+	return metaShardInfo, nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {

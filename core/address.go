@@ -23,12 +23,25 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 	return false
 }
 
-// IsMetaChainShardId verifies if the identifier is of type metachain
-func IsMetaChainShardId(identifier []byte) bool {
+// IsMetachainIdentifier verifies if the identifier is of type metachain
+func IsMetachainIdentifier(identifier []byte) bool {
 	for i := 0; i < len(identifier); i++ {
 		if identifier[i] != metaChainIdentifier {
 			return false
 		}
+	}
+
+	return true
+}
+
+// IsSmartContractOnMetachain verifies if an address is smart contract on metachain
+func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
+	if !IsMetachainIdentifier(identifier) {
+		return false
+	}
+
+	if !IsSmartContractAddress(rcvAddress) {
+		return false
 	}
 
 	return true

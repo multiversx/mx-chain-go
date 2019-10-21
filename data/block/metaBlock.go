@@ -58,19 +58,20 @@ type ShardData struct {
 
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
-	Nonce         uint64      `capid:"0"`
-	Epoch         uint32      `capid:"1"`
-	Round         uint64      `capid:"2"`
-	TimeStamp     uint64      `capid:"3"`
-	ShardInfo     []ShardData `capid:"4"`
-	PeerInfo      []PeerData  `capid:"5"`
-	Signature     []byte      `capid:"6"`
-	PubKeysBitmap []byte      `capid:"7"`
-	PrevHash      []byte      `capid:"8"`
-	PrevRandSeed  []byte      `capid:"9"`
-	RandSeed      []byte      `capid:"10"`
-	RootHash      []byte      `capid:"11"`
-	TxCount       uint32      `capid:"12"`
+	Nonce            uint64            `capid:"0"`
+	Epoch            uint32            `capid:"1"`
+	Round            uint64            `capid:"2"`
+	TimeStamp        uint64            `capid:"3"`
+	ShardInfo        []ShardData       `capid:"4"`
+	PeerInfo         []PeerData        `capid:"5"`
+	Signature        []byte            `capid:"6"`
+	PubKeysBitmap    []byte            `capid:"7"`
+	PrevHash         []byte            `capid:"8"`
+	PrevRandSeed     []byte            `capid:"9"`
+	RandSeed         []byte            `capid:"10"`
+	RootHash         []byte            `capid:"11"`
+	TxCount          uint32            `capid:"12"`
+	MiniBlockHeaders []MiniBlockHeader `capid:"13"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol

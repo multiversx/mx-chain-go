@@ -24,20 +24,29 @@ struct ShardDataCapn {
     txCount               @3: UInt32;
 }
 
+struct MiniBlockHeaderCapn {
+  hash            @0: Data;
+  receiverShardID @1: UInt32;
+  senderShardID   @2: UInt32;
+  txCount         @3: UInt32;
+  type            @4: UInt8;
+}
+
 struct MetaBlockCapn {
-    nonce         @0:  UInt64;
-    epoch         @1:  UInt32;
-    round         @2:  UInt64;
-    timeStamp     @3:  UInt64;
-    shardInfo     @4:  List(ShardDataCapn);
-    peerInfo      @5:  List(PeerDataCapn);
-    signature     @6:  Data;
-    pubKeysBitmap @7:  Data;
-    prevHash      @8:  Data;
-    prevRandSeed  @9:  Data;
-    randSeed      @10: Data;
-    rootHash      @11: Data;
-    txCount       @12: UInt32;
+    nonce            @0:  UInt64;
+    epoch            @1:  UInt32;
+    round            @2:  UInt64;
+    timeStamp        @3:  UInt64;
+    shardInfo        @4:  List(ShardDataCapn);
+    peerInfo         @5:  List(PeerDataCapn);
+    signature        @6:  Data;
+    pubKeysBitmap    @7:  Data;
+    prevHash         @8:  Data;
+    prevRandSeed     @9:  Data;
+    randSeed         @10: Data;
+    rootHash         @11: Data;
+    txCount          @12: UInt32;
+    miniBlockHeaders @13:  List(MiniBlockHeaderCapn);
 }
 
 ##compile with:

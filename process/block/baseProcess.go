@@ -58,6 +58,7 @@ type baseProcessor struct {
 	store                 dataRetriever.StorageService
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler    process.BlockSizeThrottler
+	txCoordinator         process.TransactionCoordinator
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -544,6 +545,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
 		return process.ErrNilRequestHandler
 	}
+	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
+		return process.ErrNilTransactionCoordinator
+	}
 
 	return nil
 }
@@ -554,6 +558,7 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	bp.txCoordinator.CreateBlockStarted()
 }
 
 func (bp *baseProcessor) resetMissingHdrs() {

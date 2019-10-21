@@ -54,7 +54,7 @@ func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint
 	}
 
 	buffNeeded := address.Bytes()[startingIndex:]
-	if core.IsMetaChainShardId(buffNeeded) && core.IsSmartContractAddress(address.Bytes()) {
+	if core.IsSmartContractOnMetachain(buffNeeded, address.Bytes()) {
 		return MetachainShardId
 	}
 

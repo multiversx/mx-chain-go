@@ -29,7 +29,6 @@ type shardProcessor struct {
 	processedMiniBlocks    map[string]map[string]struct{}
 	mutProcessedMiniBlocks sync.RWMutex
 	core                   serviceContainer.Core
-	txCoordinator          process.TransactionCoordinator
 	txCounter              *transactionCounter
 	txsPoolsCleaner        process.PoolsCleaner
 }
@@ -43,9 +42,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
-	}
-	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
-		return nil, process.ErrNilTransactionCoordinator
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -66,6 +62,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		uint64Converter:               arguments.Uint64Converter,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		txCoordinator:                 arguments.TxCoordinator,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -80,7 +77,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		core:            arguments.Core,
 		baseProcessor:   base,
 		dataPool:        arguments.DataPool,
-		txCoordinator:   arguments.TxCoordinator,
 		txCounter:       NewTransactionCounter(),
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
@@ -169,7 +165,6 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.txCoordinator.CreateBlockStarted()
 	sp.createBlockStarted()
 	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalityAttestingMetaHdrs := sp.requestMetaHeaders(header)
@@ -538,7 +533,6 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
 	log.Debug(fmt.Sprintf("started creating block body in round %d\n", round))
-	sp.txCoordinator.CreateBlockStarted()
 	sp.createBlockStarted()
 	sp.blockSizeThrottler.ComputeMaxItems()
 
