@@ -601,14 +601,18 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerNoncePool := sp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
-		err = process.ErrNilDataPoolHolder
+		err = process.ErrNilHeadersNoncesDataPool
 		return err
 	}
 
-	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(headerHandler.GetShardID(), headerHash)
-	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
+	headersPool := sp.dataPool.Headers()
+	if headersPool == nil {
+		err = process.ErrNilHeadersDataPool
+		return err
+	}
+
+	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
+	headersPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
@@ -651,14 +655,6 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
-
-	headerMeta, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
-	if err != nil {
-		return err
-	}
-
-	sp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMeta.GetNonce()))
-
 	_, err = sp.accounts.Commit()
 	if err != nil {
 		return err
@@ -688,9 +684,6 @@ func (sp *shardProcessor) CommitBlock(
 		highestFinalBlockNonce,
 		sp.shardCoordinator.SelfId()))
 
-	sp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
-	sp.appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
-
 	hdrsToAttestPreviousFinal := uint32(header.Nonce-highestFinalBlockNonce) + 1
 	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
@@ -708,6 +701,18 @@ func (sp *shardProcessor) CommitBlock(
 
 	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
+
+	headerMeta, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
+	if err != nil {
+		return err
+	}
+	saveMetricsForACommittedBlock(
+		sp.appStatusHandler,
+		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
+		core.ToB64(headerHash),
+		highestFinalBlockNonce,
+		headerMeta.GetNonce(),
+	)
 
 	go sp.cleanTxsPools()
 
@@ -1073,6 +1078,11 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 	if metaBlock.GetRound() <= lastNotarizedHdr.GetRound() {
+		return
+	}
+
+	isMetaBlockOutOfRange := metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
+	if isMetaBlockOutOfRange {
 		return
 	}
 

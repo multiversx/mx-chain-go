@@ -156,7 +156,7 @@ func TestMetaHeadersAreRequstedOnlyFromMetachain(t *testing.T) {
 	}
 
 	chanReceived := make(chan struct{}, 1000)
-	node4Meta.MetaDataPool.MetaChainBlocks().Put(metaHdrHashFromMetachain, metaHdrFromMetachain)
+	node4Meta.MetaDataPool.MetaBlocks().Put(metaHdrHashFromMetachain, metaHdrFromMetachain)
 	node1Shard0.ShardDataPool.MetaBlocks().Clear()
 	node1Shard0.ShardDataPool.MetaBlocks().RegisterHandler(func(key []byte) {
 		chanReceived <- struct{}{}

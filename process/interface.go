@@ -136,6 +136,7 @@ type SpecialAddressHandler interface {
 	ShardIdForAddress([]byte) (uint32, error)
 	Epoch() uint32
 	Round() uint64
+	IsCurrentNodeInConsensus() bool
 	IsInterfaceNil() bool
 }
 
@@ -232,6 +233,7 @@ type ForkDetector interface {
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonceIfNeeded()
+	ResetProbableHighestNonce()
 	IsInterfaceNil() bool
 }
 

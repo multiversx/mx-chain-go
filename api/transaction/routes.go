@@ -13,13 +13,10 @@ import (
 
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
-	GenerateTransaction(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	CreateTransaction(nonce uint64, value *big.Int, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
 	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
-	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
-	GenerateAndSendBulkTransactionsOneByOne(string, *big.Int, uint64) error
 	IsInterfaceNil() bool
 }
 
@@ -63,36 +60,9 @@ type TxResponse struct {
 
 // Routes defines transaction related routes
 func Routes(router *gin.RouterGroup) {
-	router.POST("/generate", GenerateTransaction)
-	router.POST("/generate-and-send-multiple", GenerateAndSendBulkTransactions)
-	router.POST("/generate-and-send-multiple-one-by-one", GenerateAndSendBulkTransactionsOneByOne)
 	router.POST("/send", SendTransaction)
 	router.POST("/send-multiple", SendMultipleTransactions)
 	router.GET("/:txhash", GetTransaction)
-}
-
-// GenerateTransaction generates a new transaction given a sender, receiver, value and data
-func GenerateTransaction(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TxService)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
-		return
-	}
-
-	var gtx = TxRequest{}
-	err := c.ShouldBindJSON(&gtx)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
-		return
-	}
-
-	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, gtx.Value, gtx.Data)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
 }
 
 // SendTransaction will receive a transaction from the client and propagate it for processing
@@ -167,54 +137,6 @@ func SendMultipleTransactions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"txsSent": numOfSentTxs})
-}
-
-// GenerateAndSendBulkTransactions generates multipleTransactions
-func GenerateAndSendBulkTransactions(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TxService)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
-		return
-	}
-
-	var gtx = MultipleTxRequest{}
-	err := c.ShouldBindJSON(&gtx)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
-		return
-	}
-
-	err = ef.GenerateAndSendBulkTransactions(gtx.Receiver, gtx.Value, uint64(gtx.TxCount))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrMultipleTxGenerationFailed.Error(), err.Error())})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%d", gtx.TxCount)})
-}
-
-// GenerateAndSendBulkTransactionsOneByOne generates multipleTransactions in a one-by-one fashion
-func GenerateAndSendBulkTransactionsOneByOne(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TxService)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
-		return
-	}
-
-	var gtx = MultipleTxRequest{}
-	err := c.ShouldBindJSON(&gtx)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
-		return
-	}
-
-	err = ef.GenerateAndSendBulkTransactionsOneByOne(gtx.Receiver, gtx.Value, uint64(gtx.TxCount))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrMultipleTxGenerationFailed.Error(), err.Error())})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%d", gtx.TxCount)})
 }
 
 // GetTransaction returns transaction details for a given txhash
