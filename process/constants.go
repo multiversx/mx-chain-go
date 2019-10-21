@@ -39,4 +39,10 @@ const MaxNoncesDifference = 5
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
 const MaxGasLimitPerMiniBlock = uint64(100000)
-const MaxRequestsWithTimeoutAllowed = 10
+const MaxRequestsWithTimeoutAllowed = 3
+
+// MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing
+const MaxHeadersToRequestInAdvance = 10
+
+// RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
+const RoundModulusTrigger = 5

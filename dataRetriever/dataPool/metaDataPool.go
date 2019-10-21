@@ -53,8 +53,8 @@ func NewMetaDataPool(
 	}, nil
 }
 
-// MetaChainBlocks returns the holder for meta blocks
-func (mdp *metaDataPool) MetaChainBlocks() storage.Cacher {
+// MetaBlocks returns the holder for meta blocks
+func (mdp *metaDataPool) MetaBlocks() storage.Cacher {
 	return mdp.metaBlocks
 }
 

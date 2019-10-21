@@ -51,7 +51,7 @@ func NewMetaBootstrap(
 	if poolsHolder.HeadersNonces() == nil || poolsHolder.HeadersNonces().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-	if poolsHolder.MetaChainBlocks() == nil || poolsHolder.MetaChainBlocks().IsInterfaceNil() {
+	if poolsHolder.MetaBlocks() == nil || poolsHolder.MetaBlocks().IsInterfaceNil() {
 		return nil, process.ErrNilMetaBlockPool
 	}
 
@@ -75,7 +75,7 @@ func NewMetaBootstrap(
 		blkc:                blkc,
 		blkExecutor:         blkExecutor,
 		store:               store,
-		headers:             poolsHolder.MetaChainBlocks(),
+		headers:             poolsHolder.MetaBlocks(),
 		headersNonces:       poolsHolder.HeadersNonces(),
 		rounder:             rounder,
 		waitTime:            waitTime,
@@ -386,13 +386,17 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		boot.requestsWithTimeout++
 	}
 
-	shouldRollBack := err != process.ErrTimeIsOut || boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	allowedRequestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	isInProperRound := process.IsInProperRound(boot.rounder.Index())
+
+	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutHaveReached && isInProperRound)
 	if shouldRollBack {
 		boot.requestsWithTimeout = 0
 
 		if hdr != nil {
 			hash := boot.removeHeaderFromPools(hdr)
 			boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
+			boot.forkDetector.ResetProbableHighestNonce()
 		}
 
 		errNotCritical := boot.forkChoice(false)
