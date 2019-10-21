@@ -853,7 +853,8 @@ func createMetaNetNode(
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
 		},
-		DataPool: dPool,
+		DataPool:      dPool,
+		TxCoordinator: &mock.TransactionCoordinatorMock{},
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
 

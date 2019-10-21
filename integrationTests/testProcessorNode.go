@@ -509,6 +509,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.MetaDataPool,
+			TxCoordinator:    &mock.TransactionCoordinatorMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -845,7 +846,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 	err = tpn.BlockProcessor.ProcessBlock(
 		tpn.BlockChain,
 		header,
-		&dataBlock.MetaBlockBody{},
+		dataBlock.Body{},
 		func() time.Duration {
 			return time.Second * 2
 		},
@@ -854,7 +855,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, &dataBlock.MetaBlockBody{})
+	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, dataBlock.Body{})
 	if err != nil {
 		return err
 	}

@@ -123,8 +123,8 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 	return hdrInfo.hdr == nil || hdrInfo.hdr.IsInterfaceNil()
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxItemsInBlock uint32, round uint64, haveTime func() bool) ([]block.ShardData, error) {
-	return mp.createShardInfo(maxItemsInBlock, round, haveTime)
+func (mp *metaProcessor) CreateShardInfo(round uint64, haveTime func() bool) ([]block.ShardData, error) {
+	return mp.createShardInfo(round, haveTime)
 }
 
 func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {

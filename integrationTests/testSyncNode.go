@@ -101,6 +101,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.MetaDataPool,
+			TxCoordinator:    &mock.TransactionCoordinatorMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

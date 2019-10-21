@@ -156,11 +156,11 @@ func TestInterceptedMetaHeader_IntegrityNilInvalidShardIdOnShardedDataShouldErr(
 	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
 		{
-			ShardId: 1,
+			ShardID: 1,
 			ShardMiniBlockHeaders: []block2.ShardMiniBlockHeader{
 				{
-					ReceiverShardId: 0,
-					SenderShardId:   0,
+					ReceiverShardID: 0,
+					SenderShardID:   0,
 				},
 			},
 		},
@@ -181,11 +181,11 @@ func TestInterceptedMetaHeader_IntegrityNilInvalidRecvShardIdOnShardedDataShould
 	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
 		{
-			ShardId: 0,
+			ShardID: 0,
 			ShardMiniBlockHeaders: []block2.ShardMiniBlockHeader{
 				{
-					ReceiverShardId: 1,
-					SenderShardId:   0,
+					ReceiverShardID: 1,
+					SenderShardID:   0,
 				},
 			},
 		},
@@ -206,11 +206,11 @@ func TestInterceptedMetaHeader_IntegrityNilInvalidSenderShardIdOnShardedDataShou
 	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
 		{
-			ShardId: 0,
+			ShardID: 0,
 			ShardMiniBlockHeaders: []block2.ShardMiniBlockHeader{
 				{
-					ReceiverShardId: 0,
-					SenderShardId:   1,
+					ReceiverShardID: 0,
+					SenderShardID:   1,
 				},
 			},
 		},
@@ -239,11 +239,11 @@ func TestInterceptedMetaHeader_IntegrityOkValsShouldWork(t *testing.T) {
 	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
 		{
-			ShardId: 0,
+			ShardID: 0,
 			ShardMiniBlockHeaders: []block2.ShardMiniBlockHeader{
 				{
-					ReceiverShardId: 0,
-					SenderShardId:   0,
+					ReceiverShardID: 0,
+					SenderShardID:   0,
 				},
 			},
 		},

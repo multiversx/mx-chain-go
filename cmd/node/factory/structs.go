@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -1851,6 +1852,8 @@ func newMetaBlockProcessor(
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.MetaDatapool,
+		//TODO add real transaction coordinator here
+		TxCoordinator: &mock.TransactionCoordinatorMock{},
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
