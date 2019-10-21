@@ -240,14 +240,14 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		return err
 	}
 
-	log.Info(fmt.Sprintf("consensus group for round %d is formed by next validators:\n",
+	log.Debug(fmt.Sprintf("consensus group for round %d is formed by next validators:\n",
 		roundIndex))
 
 	for i := 0; i < len(nextConsensusGroup); i++ {
-		log.Info(fmt.Sprintf("%s", core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i])))))
+		log.Debug(fmt.Sprintf("%s", core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i])))))
 	}
 
-	log.Info(fmt.Sprintf("\n"))
+	log.Debug(fmt.Sprintf("\n"))
 
 	sr.SetConsensusGroup(nextConsensusGroup)
 
