@@ -248,7 +248,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 	hdrNonceStore := rcf.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
-		rcf.dataPools.MetaChainBlocks(),
+		rcf.dataPools.MetaBlocks(),
 		rcf.dataPools.HeadersNonces(),
 		hdrStorer,
 		hdrNonceStore,

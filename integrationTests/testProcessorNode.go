@@ -608,7 +608,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		tpn.MetaDataPool.ShardHeaders().RegisterHandler(hdrHandlers)
-		tpn.MetaDataPool.MetaChainBlocks().RegisterHandler(metaHandlers)
+		tpn.MetaDataPool.MetaBlocks().RegisterHandler(metaHandlers)
 	} else {
 		txHandler := func(key []byte) {
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
@@ -769,7 +769,7 @@ func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.
 
 // GetMetaHeader returns the first *dataBlock.MetaBlock stored in datapools having the nonce provided as parameter
 func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock, error) {
-	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MetaChainBlocks() == nil || tpn.MetaDataPool.HeadersNonces() == nil
+	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MetaBlocks() == nil || tpn.MetaDataPool.HeadersNonces() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
@@ -784,7 +784,7 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 		return nil, errors.New(fmt.Sprintf("no hash-nonce hash in HeadersNonces for nonce %d", nonce))
 	}
 
-	headerObject, ok := tpn.MetaDataPool.MetaChainBlocks().Get(headerHash)
+	headerObject, ok := tpn.MetaDataPool.MetaBlocks().Get(headerHash)
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("no header found for hash %s", hex.EncodeToString(headerHash)))
 	}
