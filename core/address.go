@@ -5,7 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 )
 
-const metaChainIdentifier uint8 = 255
+const metaChainShardIdentifier uint8 = 255
+const numInitCharactersForOnMetachainSC = 5
 
 // IsSmartContractAddress verifies if a set address is of type smart contract
 func IsSmartContractAddress(rcvAddress []byte) bool {
@@ -26,7 +27,7 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 // IsMetachainIdentifier verifies if the identifier is of type metachain
 func IsMetachainIdentifier(identifier []byte) bool {
 	for i := 0; i < len(identifier); i++ {
-		if identifier[i] != metaChainIdentifier {
+		if identifier[i] != metaChainShardIdentifier {
 			return false
 		}
 	}
@@ -41,6 +42,12 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 	}
 
 	if !IsSmartContractAddress(rcvAddress) {
+		return false
+	}
+
+	isOnMetaChainSCAddress := bytes.Equal(rcvAddress[hooks.NumInitCharactersForScAddress:(hooks.NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC)],
+		make([]byte, numInitCharactersForOnMetachainSC))
+	if !isOnMetaChainSCAddress {
 		return false
 	}
 

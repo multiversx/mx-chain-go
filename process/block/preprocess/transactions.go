@@ -423,6 +423,19 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	newMBAdded := true
 	txSpaceRemained := int(maxTxSpaceRemained)
 
+	miniBlock, err := txs.CreateAndProcessMiniBlock(
+		txs.shardCoordinator.SelfId(),
+		sharding.MetachainShardId,
+		txSpaceRemained,
+		haveTime,
+		round)
+
+	if err == nil && len(miniBlock.TxHashes) > 0 {
+		txSpaceRemained -= len(miniBlock.TxHashes)
+		miniBlocks = append(miniBlocks, miniBlock)
+		newMBAdded = true
+	}
+
 	for newMBAdded {
 		newMBAdded = false
 		for shardId := uint32(0); shardId < txs.shardCoordinator.NumberOfShards(); shardId++ {

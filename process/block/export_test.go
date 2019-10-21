@@ -74,9 +74,9 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			StartHeaders:          genesisBlocks,
 			RequestHandler:        &mock.RequestHandlerMock{},
 			Core:                  &mock.ServiceContainerMock{},
+			TxCoordinator:         &mock.TransactionCoordinatorMock{},
 		},
 		DataPool:        tdp,
-		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 	shardProcessor, err := NewShardProcessor(arguments)
@@ -205,7 +205,7 @@ func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs [
 }
 
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr, body)
+	return sp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
 }
 
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {

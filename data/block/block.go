@@ -473,11 +473,6 @@ func (h *Header) SetTxCount(txCount uint32) {
 	h.TxCount = txCount
 }
 
-// GetMiniBlockHeaders returns all the miniblock headers saved in the current header
-func (h *Header) GetMiniBlockHeaders() []MiniBlockHeader {
-	return h.MiniBlockHeaders
-}
-
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	hashDst := make(map[string]uint32, 0)

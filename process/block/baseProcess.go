@@ -661,8 +661,7 @@ func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.M
 }
 
 // check if header has the same miniblocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(hdr data.HeaderHandler, body block.Body) error {
-	miniBlockHeaders := hdr.GetMiniBlockHeaders()
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body block.Body) error {
 	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]

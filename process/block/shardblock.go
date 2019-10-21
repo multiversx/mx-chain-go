@@ -144,7 +144,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
-	err = sp.checkHeaderBodyCorrelation(header, body)
+	err = sp.checkHeaderBodyCorrelation(header.MiniBlockHeaders, body)
 	if err != nil {
 		return err
 	}

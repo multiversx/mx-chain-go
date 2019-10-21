@@ -455,11 +455,6 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 	return hashDst
 }
 
-// GetMiniBlockHeaders returns all the miniblock headers saved in the current metablock
-func (m *MetaBlock) GetMiniBlockHeaders() []MiniBlockHeader {
-	return m.MiniBlockHeaders
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *MetaBlock) IsInterfaceNil() bool {
 	if m == nil {

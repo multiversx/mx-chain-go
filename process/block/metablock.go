@@ -132,7 +132,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = mp.checkHeaderBodyCorrelation(header, body)
+	err = mp.checkHeaderBodyCorrelation(header.MiniBlockHeaders, body)
 	if err != nil {
 		return err
 	}
@@ -1316,6 +1316,10 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 
 	defer func() {
 		go mp.checkAndRequestIfShardHeadersMissing(round)
+
+		mp.blockSizeThrottler.Add(
+			round,
+			core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 	}()
 
 	shardInfo, err := mp.createShardInfo(round, haveTime)
@@ -1326,6 +1330,15 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	peerInfo, err := mp.createPeerInfo()
 	if err != nil {
 		return nil, err
+	}
+
+	header.ShardInfo = shardInfo
+	header.PeerInfo = peerInfo
+	header.RootHash = mp.getRootHash()
+	header.TxCount = getTxCount(shardInfo)
+
+	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
+		return header, nil
 	}
 
 	body, ok := bodyHandler.(block.Body)
@@ -1339,14 +1352,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	}
 
 	header.MiniBlockHeaders = miniBlockHeaders
-	header.ShardInfo = shardInfo
-	header.PeerInfo = peerInfo
-	header.RootHash = mp.getRootHash()
-	header.TxCount = getTxCount(shardInfo) + uint32(totalTxCount)
-
-	mp.blockSizeThrottler.Add(
-		round,
-		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
+	header.TxCount += uint32(totalTxCount)
 
 	return header, nil
 }
