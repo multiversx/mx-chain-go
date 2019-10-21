@@ -814,11 +814,9 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		}
 
 		if mp.hdrsForCurrBlock.missingHdrs == 0 {
-			missingFinalityAttestingShardHdrs := mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
 			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
-			if missingFinalityAttestingShardHdrs > mp.hdrsForCurrBlock.missingFinalityAttestingHdrs {
-				log.Info(fmt.Sprintf("received %d missing finality attesting shard headers\n",
-					missingFinalityAttestingShardHdrs-mp.hdrsForCurrBlock.missingFinalityAttestingHdrs))
+			if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
+				log.Info(fmt.Sprintf("received all missing finality attesting shard headers\n"))
 			}
 		}
 

@@ -1073,14 +1073,12 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 
 		// attesting something
 		if sp.hdrsForCurrBlock.missingHdrs == 0 {
-			missingFinalityAttestingMetaHdrs := sp.hdrsForCurrBlock.missingFinalityAttestingHdrs
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 				sharding.MetachainShardId,
 				sp.metaBlockFinality,
 				sp.getMetaHeaderFromPoolWithNonce)
-			if missingFinalityAttestingMetaHdrs > sp.hdrsForCurrBlock.missingFinalityAttestingHdrs {
-				log.Info(fmt.Sprintf("received %d missing finality attesting meta headers\n",
-					missingFinalityAttestingMetaHdrs-sp.hdrsForCurrBlock.missingFinalityAttestingHdrs))
+			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
+				log.Info(fmt.Sprintf("received all missing finality attesting meta headers\n"))
 			}
 		}
 
