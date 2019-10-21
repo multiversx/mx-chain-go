@@ -11,14 +11,21 @@ import (
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	rewardsValue        *big.Int
-	communityPercentage float64
-	leaderPercentage    float64
-	burnPercentage      float64
-	minGasPrice         uint64
-	minGasLimit         uint64
-	communityAddress    string
-	burnAddress         string
+	rewardsValue                    *big.Int
+	communityPercentage             float64
+	leaderPercentage                float64
+	burnPercentage                  float64
+	minGasPrice                     uint64
+	minGasLimit                     uint64
+	communityAddress                string
+	burnAddress                     string
+	startRating                     int64
+	maxRating                       int64
+	minRating                       int64
+	increaseRatingStep              int64
+	decreaseRatingStep              int64
+	proposerExtraIncreaseRatingStep int64
+	proposerExtraDecreaseRatingStep int64
 }
 
 const float64EqualityThreshold = 1e-9
@@ -42,14 +49,21 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}
 
 	return &EconomicsData{
-		rewardsValue:        rewardsValue,
-		communityPercentage: economics.RewardsSettings.CommunityPercentage,
-		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
-		burnPercentage:      economics.RewardsSettings.BurnPercentage,
-		minGasPrice:         minGasPrice,
-		minGasLimit:         minGasLimit,
-		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
-		burnAddress:         economics.EconomicsAddresses.BurnAddress,
+		rewardsValue:                    rewardsValue,
+		communityPercentage:             economics.RewardsSettings.CommunityPercentage,
+		leaderPercentage:                economics.RewardsSettings.LeaderPercentage,
+		burnPercentage:                  economics.RewardsSettings.BurnPercentage,
+		minGasPrice:                     minGasPrice,
+		minGasLimit:                     minGasLimit,
+		communityAddress:                economics.EconomicsAddresses.CommunityAddress,
+		burnAddress:                     economics.EconomicsAddresses.BurnAddress,
+		startRating:                     economics.RatingSettings.StartRating,
+		minRating:                       economics.RatingSettings.MinRating,
+		maxRating:                       economics.RatingSettings.MaxRating,
+		increaseRatingStep:              economics.RatingSettings.IncreaseRatingStep,
+		decreaseRatingStep:              economics.RatingSettings.DecreaseRatingStep,
+		proposerExtraIncreaseRatingStep: economics.RatingSettings.ProposerExtraIncreaseRatingStep,
+		proposerExtraDecreaseRatingStep: economics.RatingSettings.ProposerExtraDecreaseRatingStep,
 	}, nil
 }
 
@@ -165,6 +179,41 @@ func (ed *EconomicsData) CommunityAddress() string {
 // BurnAddress will return burn address
 func (ed *EconomicsData) BurnAddress() string {
 	return ed.burnAddress
+}
+
+// StartRating will return the default rating
+func (ed *EconomicsData) StartRating() int64 {
+	return ed.startRating
+}
+
+// MaxRating will return the highest rating value
+func (ed *EconomicsData) MaxRating() int64 {
+	return ed.maxRating
+}
+
+// MinRating will return the lowest rating value
+func (ed *EconomicsData) MinRating() int64 {
+	return ed.minRating
+}
+
+// IncreaseRatingStep will return the step when an increase is called
+func (ed *EconomicsData) IncreaseRatingStep() int64 {
+	return ed.increaseRatingStep
+}
+
+// DecreaseRatingStep will return the step when an decrease is called
+func (ed *EconomicsData) DecreaseRatingStep() int64 {
+	return ed.decreaseRatingStep
+}
+
+// ProposerExtraIncreaseRatingStep will return the rating step increase extra for the Proposer
+func (ed *EconomicsData) ProposerExtraIncreaseRatingStep() int64 {
+	return ed.proposerExtraIncreaseRatingStep
+}
+
+// ProposerExtraDecreaseRatingStep will return the rating step decrease extra for the Proposer
+func (ed *EconomicsData) ProposerExtraDecreaseRatingStep() int64 {
+	return ed.proposerExtraDecreaseRatingStep
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1985,3 +1985,83 @@ func getSk(
 
 	return decodeAddress(string(encodedSk))
 }
+
+// BlockSigningRatingCoordinator defines the behaviour of a struct able to do ratings for validators
+type BlockSigningRatingCoordinator struct {
+	startRating                     int64
+	maxRating                       int64
+	minRating                       int64
+	increaseRatingStep              int64
+	decreaseRatingStep              int64
+	proposerExtraIncreaseRatingStep int64
+	proposerExtraDecreaseRatingStep int64
+	lastBlockHeader                 data.HeaderHandler
+	ratings                         map[string]int64
+}
+
+func NewRatingCoordinator(economicsData *economics.EconomicsData) *BlockSigningRatingCoordinator {
+	return &BlockSigningRatingCoordinator{
+		ratings:                         make(map[string]int64),
+		startRating:                     economicsData.StartRating(),
+		minRating:                       economicsData.MinRating(),
+		maxRating:                       economicsData.MaxRating(),
+		increaseRatingStep:              economicsData.IncreaseRatingStep(),
+		decreaseRatingStep:              economicsData.DecreaseRatingStep(),
+		proposerExtraIncreaseRatingStep: economicsData.ProposerExtraIncreaseRatingStep(),
+		proposerExtraDecreaseRatingStep: economicsData.ProposerExtraDecreaseRatingStep(),
+	}
+}
+
+func (rc *BlockSigningRatingCoordinator) IsInterfaceNil() bool {
+	return false
+}
+
+func (rc *BlockSigningRatingCoordinator) IncreaseRating(keys []string) {
+	logmsg := "Increasing Rating:"
+
+	proposer := keys[0]
+	rc.increase(proposer, rc.proposerExtraIncreaseRatingStep)
+
+	for _, val := range keys {
+		rc.increase(val, rc.increaseRatingStep)
+		logmsg += fmt.Sprintf("\n%s:%v", core.ToHex([]byte(val[:10])), rc.ratings[val])
+	}
+	//log.Info(logmsg)
+}
+
+func (rc *BlockSigningRatingCoordinator) DecreaseRating(keys []string) {
+	logmsg := "Decreasing Rating:"
+
+	proposer := keys[0]
+	rc.decrease(proposer, rc.proposerExtraDecreaseRatingStep)
+
+	for _, val := range keys {
+		rc.decrease(val, rc.decreaseRatingStep)
+		logmsg += fmt.Sprintf("\n%s:%v", core.ToHex([]byte(val[:10])), rc.ratings[val])
+	}
+	log.Info(logmsg)
+}
+
+func (rc *BlockSigningRatingCoordinator) increase(key string, value int64) {
+	rating, ok := rc.ratings[key]
+	if !ok {
+		rating = rc.startRating
+	}
+	rating = rating + value
+	if rating > rc.maxRating {
+		rating = rc.maxRating
+	}
+	rc.ratings[key] = rating
+}
+
+func (rc *BlockSigningRatingCoordinator) decrease(key string, value int64) {
+	rating, ok := rc.ratings[key]
+	if !ok {
+		rating = rc.startRating
+	}
+	rating = rating - value
+	if rating < rc.minRating {
+		rating = rc.minRating
+	}
+	rc.ratings[key] = rating
+}

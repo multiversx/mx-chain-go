@@ -11,6 +11,7 @@ import (
 )
 
 type indexHashedNodesCoordinator struct {
+	RatingCoordinator
 	nbShards                uint32
 	shardId                 uint32
 	hasher                  hashing.Hasher
@@ -28,6 +29,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	ihgs := &indexHashedNodesCoordinator{
+		RatingCoordinator:       arguments.RatingCoordinator,
 		nbShards:                arguments.NbShards,
 		shardId:                 arguments.ShardId,
 		hasher:                  arguments.Hasher,
