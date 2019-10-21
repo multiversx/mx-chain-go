@@ -1,5 +1,6 @@
 @0xddffc3d7f7f36183;
 using Go = import "/go.capnp";
+using MiniBlockHeaderCapn = import "./schema.capnp".MiniBlockHeaderCapn;
 $Go.package("capnp");
 $Go.import("_");
 
