@@ -659,3 +659,44 @@ func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.M
 
 	return totalTxCount, miniBlockHeaders, nil
 }
+
+// check if header has the same miniblocks as presented in body
+func (bp *baseProcessor) checkHeaderBodyCorrelation(hdr data.HeaderHandler, body block.Body) error {
+	miniBlockHeaders := hdr.GetMiniBlockHeaders()
+	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]
+	}
+
+	if len(miniBlockHeaders) != len(body) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
+
+		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.SenderShardID != miniBlock.SenderShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+	}
+
+	return nil
+}

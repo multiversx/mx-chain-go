@@ -234,65 +234,27 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-// check if header has the same miniblocks as presented in body
-func (mp *metaProcessor) checkHeaderBodyCorrelation(metaBlock *block.MetaBlock, body block.Body) error {
-	mbHashesFromHdr := make(map[string]*block.ShardMiniBlockHeader)
-	mbHeaders := 0
-	for _, shardInfo := range metaBlock.ShardInfo {
-		if shardInfo.ShardID != mp.shardCoordinator.SelfId() {
-			continue
-		}
-
-		for _, mbHeader := range shardInfo.ShardMiniBlockHeaders {
-			mbHashesFromHdr[string(mbHeader.Hash)] = &mbHeader
-		}
-
-		mbHeaders += len(shardInfo.ShardMiniBlockHeaders)
-	}
-
-	if mbHeaders != len(body) {
-		return process.ErrHeaderBodyMismatch
-	}
-
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-
-		mbBytes, err := mp.marshalizer.Marshal(miniBlock)
-		if err != nil {
-			return err
-		}
-		mbHash := mp.hasher.Compute(string(mbBytes))
-
-		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
-		if !ok {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		if mbHdr.SenderShardID != miniBlock.SenderShardID {
-			return process.ErrHeaderBodyMismatch
-		}
-	}
-
-	return nil
-}
-
 func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
-	miniBlockMetaHashes, err := mp.getAllMiniBlockDstMeta(header)
+	miniBlockShardsHashes, err := mp.getAllMiniBlockDstMeFromShards(header)
 	if err != nil {
 		return err
 	}
 
 	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
 	for hash := range crossMiniBlockHashes {
-		if _, ok := miniBlockMetaHashes[hash]; !ok {
+		if _, ok := miniBlockShardsHashes[hash]; !ok {
+			return process.ErrCrossShardMBWithoutConfirmationFromMeta
+		}
+	}
+
+	//if all miniblockshards hashes are in header miniblocks as well
+	mapMetaMiniBlockHdrs := make(map[string]struct{})
+	for _, metaMiniBlock := range header.MiniBlockHeaders {
+		mapMetaMiniBlockHdrs[string(metaMiniBlock.Hash)] = struct{}{}
+	}
+
+	for hash := range miniBlockShardsHashes {
+		if _, ok := mapMetaMiniBlockHdrs[hash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
 		}
 	}
@@ -300,8 +262,8 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	return nil
 }
 
-func (mp *metaProcessor) getAllMiniBlockDstMeta(metaHdr *block.MetaBlock) (map[string][]byte, error) {
-	miniBlockHashes := make(map[string][]byte)
+func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock) (map[string][]byte, error) {
+	miniBlockShardsHashes := make(map[string][]byte)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
@@ -333,11 +295,11 @@ func (mp *metaProcessor) getAllMiniBlockDstMeta(metaHdr *block.MetaBlock) (map[s
 
 		crossMiniBlockHashes := shardHeader.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
-			miniBlockHashes[hash] = shardInfo.HeaderHash
+			miniBlockShardsHashes[hash] = shardInfo.HeaderHash
 		}
 	}
 
-	return miniBlockHashes, nil
+	return miniBlockShardsHashes, nil
 }
 
 // SetConsensusData - sets the reward addresses for the current consensus group

@@ -1,6 +1,7 @@
 package data
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"math/big"
 )
 
@@ -18,6 +19,8 @@ type HeaderHandler interface {
 	GetSignature() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
+
+	GetMiniBlockHeaders() []block.MiniBlockHeader
 
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
