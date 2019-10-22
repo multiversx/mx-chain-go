@@ -11,6 +11,7 @@ type CacherStub struct {
 	RemoveOldestCalled    func()
 	KeysCalled            func() [][]byte
 	LenCalled             func() int
+	MaxSizeCalled         func() int
 	RegisterHandlerCalled func(func(key []byte))
 }
 
@@ -52,6 +53,10 @@ func (cs *CacherStub) Keys() [][]byte {
 
 func (cs *CacherStub) Len() int {
 	return cs.LenCalled()
+}
+
+func (cs *CacherStub) MaxSize() int {
+	return cs.MaxSizeCalled()
 }
 
 func (cs *CacherStub) RegisterHandler(handler func(key []byte)) {
