@@ -155,10 +155,7 @@ func (sr *SubroundBlock) sendBlockBody(header data.HeaderHandler) bool {
 
 // sendBlockHeader method job the proposed block header in the subround Block
 func (sr *SubroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
-	err := sr.BlockProcessor().ApplyBodyToHeader(
-		hdr,
-		sr.BlockBody,
-		uint64(sr.Rounder().Index()))
+	err := sr.BlockProcessor().ApplyBodyToHeader(hdr, sr.BlockBody)
 	if err != nil {
 		log.Error(err.Error())
 		return false

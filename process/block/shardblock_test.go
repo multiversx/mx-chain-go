@@ -2233,12 +2233,10 @@ func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 
 	bp, _ := blproc.NewShardProcessor(arguments)
-	mbHeaders, err := bp.ApplyBodyToHeader(nil, 0, func() bool {
-		return true
-	})
+	hdr := &block.Header{}
+	err := bp.ApplyBodyToHeader(hdr, nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, mbHeaders)
-	assert.Equal(t, 0, len(mbHeaders.(*block.Header).MiniBlockHeaders))
+	assert.NotNil(t, hdr)
 }
 
 func TestShardProcessor_ApplyBodyToHeaderShouldErrWhenMarshalizerErrors(t *testing.T) {
@@ -2264,11 +2262,9 @@ func TestShardProcessor_ApplyBodyToHeaderShouldErrWhenMarshalizerErrors(t *testi
 			TxHashes:        make([][]byte, 0),
 		},
 	}
-	mbHeaders, err := bp.ApplyBodyToHeader(body, 0, func() bool {
-		return true
-	})
+	hdr := &block.Header{}
+	err := bp.ApplyBodyToHeader(hdr, body)
 	assert.NotNil(t, err)
-	assert.Nil(t, mbHeaders)
 }
 
 func TestShardProcessor_ApplyBodyToHeaderReturnsOK(t *testing.T) {
@@ -2293,11 +2289,10 @@ func TestShardProcessor_ApplyBodyToHeaderReturnsOK(t *testing.T) {
 			TxHashes:        make([][]byte, 0),
 		},
 	}
-	mbHeaders, err := bp.ApplyBodyToHeader(body, 0, func() bool {
-		return true
-	})
+	hdr := &block.Header{}
+	err := bp.ApplyBodyToHeader(hdr, body)
 	assert.Nil(t, err)
-	assert.Equal(t, len(body), len(mbHeaders.(*block.Header).MiniBlockHeaders))
+	assert.Equal(t, len(body), len(hdr.MiniBlockHeaders))
 }
 
 func TestShardProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {

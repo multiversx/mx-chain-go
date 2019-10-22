@@ -16,7 +16,7 @@ type BlockProcessorMock struct {
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	ApplyBodyToHeaderCalled          func(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	ApplyBodyToHeaderCalled          func(hdr data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
@@ -47,8 +47,8 @@ func (blProcMock *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHa
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-func (blProcMock BlockProcessorMock) ApplyBodyToHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
-	return blProcMock.ApplyBodyToHeaderCalled(body, round, haveTime)
+func (blProcMock BlockProcessorMock) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error {
+	return blProcMock.ApplyBodyToHeaderCalled(hdr, body)
 }
 
 func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {

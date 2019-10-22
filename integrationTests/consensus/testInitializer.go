@@ -314,8 +314,8 @@ func createConsensusOnlyNode(
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (handler data.BodyHandler, e error) {
 			return &dataBlock.Body{}, nil
 		},
-		ApplyBodyToHeaderCalled: func(body data.BodyHandler, round uint64, haveTime func() bool) (handler data.HeaderHandler, e error) {
-			return &dataBlock.Header{Round: uint64(round)}, nil
+		ApplyBodyToHeaderCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+			return nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)

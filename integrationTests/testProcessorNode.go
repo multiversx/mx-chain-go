@@ -654,40 +654,32 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	initialHdr := &dataBlock.Header{}
-	initialHdr.SetRound(round)
-	initialHdr.SetNonce(nonce)
-	initialHdr.SetPubKeysBitmap([]byte{1})
+	blockHeader := &dataBlock.Header{}
+	blockHeader.SetRound(round)
+	blockHeader.SetNonce(nonce)
+	blockHeader.SetPubKeysBitmap([]byte{1})
 	sig, _ := TestMultiSig.AggregateSigs(nil)
-	initialHdr.SetSignature(sig)
+	blockHeader.SetSignature(sig)
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
 	if currHdr == nil {
 		currHdr = tpn.BlockChain.GetGenesisHeader()
 	}
 
 	buff, _ := TestMarshalizer.Marshal(currHdr)
-	initialHdr.SetPrevHash(TestHasher.Compute(string(buff)))
-	initialHdr.SetPrevRandSeed(currHdr.GetRandSeed())
-	initialHdr.SetRandSeed(sig)
+	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
+	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
+	blockHeader.SetRandSeed(sig)
 
-	blockBody, err := tpn.BlockProcessor.CreateBlockBody(initialHdr, haveTime)
+	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
-	blockHeader, err := tpn.BlockProcessor.ApplyBodyToHeader(blockBody, round, haveTime)
+	err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
-
-	blockHeader.SetRound(initialHdr.GetRound())
-	blockHeader.SetNonce(initialHdr.GetNonce())
-	blockHeader.SetPubKeysBitmap(initialHdr.GetPubKeysBitmap())
-	blockHeader.SetSignature(initialHdr.GetSignature())
-	blockHeader.SetPrevHash(initialHdr.GetPrevHash())
-	blockHeader.SetPrevRandSeed(initialHdr.GetPrevRandSeed())
-	blockHeader.SetRandSeed(initialHdr.GetRandSeed())
 
 	shardBlockBody, ok := blockBody.(dataBlock.Body)
 	txHashes := make([][]byte, 0)

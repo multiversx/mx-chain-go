@@ -791,11 +791,10 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldNotReturnNilWhenCreateShardInfoFai
 	arguments.DataPool = initMetaDataPool()
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	haveTime := func() bool { return true }
 
-	hdr, err := mp.ApplyBodyToHeader(nil, 0, haveTime)
+	hdr := &block.MetaBlock{}
+	err := mp.ApplyBodyToHeader(hdr, nil)
 	assert.NotNil(t, err)
-	assert.Nil(t, hdr)
 }
 
 func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
@@ -813,11 +812,10 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	arguments.DataPool = initMetaDataPool()
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	haveTime := func() bool { return true }
 
-	hdr, err := mp.ApplyBodyToHeader(nil, 0, haveTime)
+	hdr := &block.MetaBlock{}
+	err := mp.ApplyBodyToHeader(hdr, nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, hdr)
 }
 
 func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {

@@ -48,3 +48,11 @@ func (sr *SubroundBlock) IsBlockReceived(threshold int) bool {
 func (sr *SubroundBlock) CreateHeader() (data.HeaderHandler, error) {
 	return sr.createHeader()
 }
+
+func (sr *SubroundBlock) SendBlockBody(header data.HeaderHandler) bool {
+	return sr.sendBlockBody(header)
+}
+
+func (sr *SubroundBlock) SendBlockHeader(header data.HeaderHandler) bool {
+	return sr.sendBlockHeader(header)
+}

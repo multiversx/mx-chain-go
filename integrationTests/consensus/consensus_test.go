@@ -73,11 +73,10 @@ func initNodesAndTest(
 				return process.ErrBlockHashDoesNotMatch
 			}
 			nodes[0][i].blkProcessor.ApplyBodyToHeaderCalled = func(
+				header data.HeaderHandler,
 				body data.BodyHandler,
-				round uint64,
-				haveTime func() bool,
-			) (handler data.HeaderHandler, e error) {
-				return nil, process.ErrAccountStateDirty
+			) error {
+				return process.ErrAccountStateDirty
 			}
 			nodes[0][i].blkProcessor.CreateBlockCalled = func(
 				header data.HeaderHandler,

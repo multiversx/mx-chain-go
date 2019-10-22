@@ -1482,15 +1482,15 @@ func (sp *shardProcessor) createMiniBlocks(
 }
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler, round uint64) error {
-	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
+func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) error {
+	log.Debug(fmt.Sprintf("started creating block header in round %d\n", hdr.GetRound()))
 	shardHeader, ok := hdr.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
 	defer func() {
-		go sp.checkAndRequestIfMetaHeadersMissing(round)
+		go sp.checkAndRequestIfMetaHeadersMissing(hdr.GetRound())
 	}()
 
 	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
@@ -1532,7 +1532,7 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
 
 	sp.blockSizeThrottler.Add(
-		round,
+		hdr.GetRound(),
 		core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
 
 	return nil

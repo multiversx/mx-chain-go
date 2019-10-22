@@ -1087,8 +1087,8 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 }
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler, round uint64) error {
-	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
+func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error {
+	log.Debug(fmt.Sprintf("started creating block header in round %d\n", hdr.GetRound()))
 
 	metaHdr, ok := hdr.(*block.MetaBlock)
 	if !ok {
@@ -1096,10 +1096,10 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, body data.Bod
 	}
 
 	defer func() {
-		go mp.checkAndRequestIfShardHeadersMissing(round)
+		go mp.checkAndRequestIfShardHeadersMissing(hdr.GetRound())
 	}()
 
-	shardInfo, err := mp.createShardInfo(mp.blockSizeThrottler.MaxItemsToAdd(), round, func() bool {
+	shardInfo, err := mp.createShardInfo(mp.blockSizeThrottler.MaxItemsToAdd(), hdr.GetRound(), func() bool {
 		return true
 	})
 	if err != nil {
@@ -1117,7 +1117,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, body data.Bod
 	metaHdr.TxCount = getTxCount(shardInfo)
 
 	mp.blockSizeThrottler.Add(
-		round,
+		hdr.GetRound(),
 		core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
 
 	return nil

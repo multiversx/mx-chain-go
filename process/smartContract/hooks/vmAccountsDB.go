@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"encoding/binary"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"math/big"
 	"sync"
 
@@ -25,7 +26,7 @@ type VMAccountsDB struct {
 	marshalizer      marshal.Marshalizer
 	uint64Converter  typeConverters.Uint64ByteSliceConverter
 
-	mutCurrentHdr sync.Mutex
+	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
 
 	mutTempAccounts sync.Mutex
@@ -52,6 +53,14 @@ func NewVMAccountsDB(
 	}
 
 	vmAccountsDB.tempAccounts = make(map[string]state.AccountHandler, 0)
+
+	vmAccountsDB.mutCurrentHdr.Lock()
+	if vmAccountsDB.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		vmAccountsDB.currentHdr = &block.MetaBlock{}
+	} else {
+		vmAccountsDB.currentHdr = &block.Header{}
+	}
+	vmAccountsDB.mutCurrentHdr.Unlock()
 
 	return vmAccountsDB, nil
 }
@@ -230,56 +239,84 @@ func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 
 // LastNonce returns the nonce from from the last committed block
 func (vadb *VMAccountsDB) LastNonce() uint64 {
-	return vadb.blockChain.GetCurrentBlockHeader().GetNonce()
+	if vadb.blockChain.GetCurrentBlockHeader() != nil {
+		return vadb.blockChain.GetCurrentBlockHeader().GetNonce()
+	}
+	return 0
 }
 
 // LastRound returns the round from the last committed block
 func (vadb *VMAccountsDB) LastRound() uint64 {
-	return vadb.blockChain.GetCurrentBlockHeader().GetRound()
+	if vadb.blockChain.GetCurrentBlockHeader() != nil {
+		return vadb.blockChain.GetCurrentBlockHeader().GetRound()
+	}
+	return 0
 }
 
 // LastTimeStamp returns the timeStamp from the last committed block
 func (vadb *VMAccountsDB) LastTimeStamp() uint64 {
-	return vadb.blockChain.GetCurrentBlockHeader().GetTimeStamp()
+	if vadb.blockChain.GetCurrentBlockHeader() != nil {
+		return vadb.blockChain.GetCurrentBlockHeader().GetTimeStamp()
+	}
+	return 0
 }
 
 // LastRandomSeed returns the random seed from the last committed block
 func (vadb *VMAccountsDB) LastRandomSeed() []byte {
-	return vadb.blockChain.GetCurrentBlockHeader().GetRandSeed()
+	if vadb.blockChain.GetCurrentBlockHeader() != nil {
+		return vadb.blockChain.GetCurrentBlockHeader().GetRandSeed()
+	}
+	return []byte{}
 }
 
 // LastEpoch returns the epoch from the last committed block
 func (vadb *VMAccountsDB) LastEpoch() uint32 {
-	return vadb.blockChain.GetCurrentBlockHeader().GetEpoch()
+	if vadb.blockChain.GetCurrentBlockHeader() != nil {
+		return vadb.blockChain.GetCurrentBlockHeader().GetEpoch()
+	}
+	return 0
 }
 
 // GetStateRootHash returns the state root hash from the last committed block
 func (vadb *VMAccountsDB) GetStateRootHash() []byte {
-	return vadb.blockChain.GetCurrentBlockHeader().GetRootHash()
+	if vadb.blockChain.GetCurrentBlockHeader() != nil {
+		return vadb.blockChain.GetCurrentBlockHeader().GetRootHash()
+	}
+	return []byte{}
 }
 
 // CurrentNonce returns the nonce from the current block
 func (vadb *VMAccountsDB) CurrentNonce() uint64 {
+	vadb.mutCurrentHdr.RLock()
+	defer vadb.mutCurrentHdr.RUnlock()
 	return vadb.currentHdr.GetNonce()
 }
 
 // CurrentRound returns the round from the current block
 func (vadb *VMAccountsDB) CurrentRound() uint64 {
+	vadb.mutCurrentHdr.RLock()
+	defer vadb.mutCurrentHdr.RUnlock()
 	return vadb.currentHdr.GetRound()
 }
 
 // CurrentTimeStamp return the timestamp from the current block
 func (vadb *VMAccountsDB) CurrentTimeStamp() uint64 {
+	vadb.mutCurrentHdr.RLock()
+	defer vadb.mutCurrentHdr.RUnlock()
 	return vadb.currentHdr.GetTimeStamp()
 }
 
 // CurrentRandomSeed returns the random seed from the current header
 func (vadb *VMAccountsDB) CurrentRandomSeed() []byte {
+	vadb.mutCurrentHdr.RLock()
+	defer vadb.mutCurrentHdr.RUnlock()
 	return vadb.currentHdr.GetRandSeed()
 }
 
 // CurrentEpoch returns the current epoch
 func (vadb *VMAccountsDB) CurrentEpoch() uint32 {
+	vadb.mutCurrentHdr.RLock()
+	defer vadb.mutCurrentHdr.RUnlock()
 	return vadb.currentHdr.GetEpoch()
 }
 
