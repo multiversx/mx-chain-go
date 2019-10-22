@@ -1301,7 +1301,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	defer func() {
 		go mp.checkAndRequestIfShardHeadersMissing(round)
 
-		if err != nil {
+		if err == nil {
 			mp.blockSizeThrottler.Add(
 				round,
 				core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
@@ -1329,7 +1329,8 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		err = process.ErrWrongTypeAssertion
+		return nil, err
 	}
 
 	totalTxCount, miniBlockHeaders, err := mp.createMiniBlockHeaders(body)
