@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kbucket"
 )
 
 var peerDiscoveryTimeout = 10 * time.Second
@@ -101,11 +103,28 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 
 		kdd.mutKadDht.Lock()
 		go func() {
+			i := 0
 			for {
 				if kdd.initc {
 					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
-					if err != nil {
-						log.Warn("error bootstrapping: %s", err)
+					if err == kbucket.ErrLookupFailure {
+						log.Warn(fmt.Sprintf("KDD: no more peers, Reconnect to initial list"))
+						chanRecInit := kdd.connectToOnePeerFromInitialPeersList(
+							kdd.refreshInterval,
+							kdd.initialPeersList)
+						<-chanRecInit
+
+					} else if err != nil {
+						log.Warn(fmt.Sprintf("KDD: Error bootstrapping: %s", err))
+					}
+				} else {
+					i++
+					if (i % 20) == 0 {
+						log.Warn(fmt.Sprintf("KDD: Reconnect to initial list"))
+						chanRecInit := kdd.connectToOnePeerFromInitialPeersList(
+							kdd.refreshInterval,
+							kdd.initialPeersList)
+						<-chanRecInit
 					}
 				}
 				select {
