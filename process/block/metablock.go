@@ -1086,41 +1086,41 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 	return peerInfo, nil
 }
 
-// CreateBlockHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
+// ApplyBodyToHeader creates a miniblock header list given a block body
+func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler, round uint64) error {
 	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
-	// TODO: add PrevRandSeed and RandSeed when BLS signing is completed
-	header := &block.MetaBlock{
-		ShardInfo:    make([]block.ShardData, 0),
-		PeerInfo:     make([]block.PeerData, 0),
-		PrevRandSeed: make([]byte, 0),
-		RandSeed:     make([]byte, 0),
+
+	metaHdr, ok := hdr.(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
 	}
 
 	defer func() {
 		go mp.checkAndRequestIfShardHeadersMissing(round)
 	}()
 
-	shardInfo, err := mp.createShardInfo(mp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
+	shardInfo, err := mp.createShardInfo(mp.blockSizeThrottler.MaxItemsToAdd(), round, func() bool {
+		return true
+	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	peerInfo, err := mp.createPeerInfo()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	header.ShardInfo = shardInfo
-	header.PeerInfo = peerInfo
-	header.RootHash = mp.getRootHash()
-	header.TxCount = getTxCount(shardInfo)
+	metaHdr.ShardInfo = shardInfo
+	metaHdr.PeerInfo = peerInfo
+	metaHdr.RootHash = mp.getRootHash()
+	metaHdr.TxCount = getTxCount(shardInfo)
 
 	mp.blockSizeThrottler.Add(
 		round,
-		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
+		core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
 
-	return header, nil
+	return nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {

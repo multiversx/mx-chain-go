@@ -707,7 +707,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		},
 	}
 	bp := mock.InitBlockProcessorMock()
-	bp.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint64, haveTime func() bool) (header data.HeaderHandler, e error) {
+	bp.ApplyBodyToHeaderCalled = func(body data.BodyHandler, round uint64, haveTime func() bool) (header data.HeaderHandler, e error) {
 		return &block.Header{MiniBlockHeaders: mbHeaders, RootHash: []byte{}}, nil
 	}
 	container := mock.InitConsensusCore()
@@ -733,7 +733,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	expectedErr := errors.New("nil mini blocks")
 	bp := mock.InitBlockProcessorMock()
-	bp.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint64, haveTime func() bool) (header data.HeaderHandler, e error) {
+	bp.ApplyBodyToHeaderCalled = func(body data.BodyHandler, round uint64, haveTime func() bool) (header data.HeaderHandler, e error) {
 		return nil, expectedErr
 	}
 	container := mock.InitConsensusCore()

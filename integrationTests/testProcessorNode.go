@@ -675,7 +675,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		fmt.Println(err.Error())
 		return nil, nil, nil
 	}
-	blockHeader, err := tpn.BlockProcessor.CreateBlockHeader(blockBody, round, haveTime)
+	blockHeader, err := tpn.BlockProcessor.ApplyBodyToHeader(blockBody, round, haveTime)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, nil, nil

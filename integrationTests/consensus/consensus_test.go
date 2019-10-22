@@ -72,7 +72,7 @@ func initNodesAndTest(
 				)
 				return process.ErrBlockHashDoesNotMatch
 			}
-			nodes[0][i].blkProcessor.CreateBlockHeaderCalled = func(
+			nodes[0][i].blkProcessor.ApplyBodyToHeaderCalled = func(
 				body data.BodyHandler,
 				round uint64,
 				haveTime func() bool,

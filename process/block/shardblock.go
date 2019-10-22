@@ -1481,15 +1481,12 @@ func (sp *shardProcessor) createMiniBlocks(
 	return miniBlocks, nil
 }
 
-// CreateBlockHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
+// ApplyBodyToHeader creates a miniblock header list given a block body
+func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler, round uint64) error {
 	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
-	header := &block.Header{
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		RootHash:         sp.getRootHash(),
-		ShardId:          sp.shardCoordinator.SelfId(),
-		PrevRandSeed:     make([]byte, 0),
-		RandSeed:         make([]byte, 0),
+	shardHeader, ok := hdr.(*block.Header)
+	if !ok {
+		return process.ErrWrongTypeAssertion
 	}
 
 	defer func() {
@@ -1497,12 +1494,12 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 	}()
 
 	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
-		return header, nil
+		return nil
 	}
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return process.ErrWrongTypeAssertion
 	}
 
 	totalTxCount := 0
@@ -1514,7 +1511,7 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 
 		miniBlockHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, body[i])
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		miniBlockHeaders[i] = block.MiniBlockHeader{
@@ -1526,19 +1523,19 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		}
 	}
 
-	header.MiniBlockHeaders = miniBlockHeaders
-	header.TxCount = uint32(totalTxCount)
+	shardHeader.MiniBlockHeaders = miniBlockHeaders
+	shardHeader.TxCount = uint32(totalTxCount)
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
-	header.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
+	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
 
 	sp.blockSizeThrottler.Add(
 		round,
-		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
+		core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
 
-	return header, nil
+	return nil
 }
 
 func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {

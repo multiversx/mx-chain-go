@@ -87,12 +87,18 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	if !sr.sendBlockBody() ||
-		!sr.sendBlockHeader() {
+	hdr, err := sr.createHeader()
+	if err != nil {
+		log.Error(err.Error())
 		return false
 	}
 
-	err := sr.SetSelfJobDone(sr.Current(), true)
+	if !sr.sendBlockBody(hdr) ||
+		!sr.sendBlockHeader(hdr) {
+		return false
+	}
+
+	err = sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -102,7 +108,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 }
 
 // sendBlockBody method job the proposed block body in the subround Block
-func (sr *SubroundBlock) sendBlockBody() bool {
+func (sr *SubroundBlock) sendBlockBody(header data.HeaderHandler) bool {
 	startTime := time.Time{}
 	startTime = sr.RoundTimeStamp
 	maxTime := time.Duration(sr.EndTime())
@@ -110,14 +116,8 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
 	}
 
-	initialHdrData, err := sr.createInitialHeaderData()
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
 	blockBody, err := sr.BlockProcessor().CreateBlockBody(
-		initialHdrData,
+		header,
 		haveTimeInCurrentSubround,
 	)
 	if err != nil {
@@ -154,8 +154,11 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 }
 
 // sendBlockHeader method job the proposed block header in the subround Block
-func (sr *SubroundBlock) sendBlockHeader() bool {
-	hdr, err := sr.createHeader()
+func (sr *SubroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
+	err := sr.BlockProcessor().ApplyBodyToHeader(
+		hdr,
+		sr.BlockBody,
+		uint64(sr.Rounder().Index()))
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -193,7 +196,7 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 	return true
 }
 
-func (sr *SubroundBlock) createInitialHeaderData() (data.HeaderHandler, error) {
+func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr := &block.Header{}
 	hdr.SetRound(uint64(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
@@ -212,44 +215,12 @@ func (sr *SubroundBlock) createInitialHeaderData() (data.HeaderHandler, error) {
 	}
 
 	randSeed, err := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), prevRandSeed)
-	// Cannot propose block if unable to create random seed
 	if err != nil {
 		return nil, err
 	}
 
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
-
-	return hdr, nil
-}
-
-func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
-	startTime := time.Time{}
-	startTime = sr.RoundTimeStamp
-	maxTime := time.Duration(sr.EndTime())
-	haveTimeInCurrentSubround := func() bool {
-		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
-	}
-
-	hdr, err := sr.BlockProcessor().CreateBlockHeader(
-		sr.BlockBody,
-		uint64(sr.Rounder().Index()),
-		haveTimeInCurrentSubround)
-	if err != nil {
-		return nil, err
-	}
-
-	initialHdr, err := sr.createInitialHeaderData()
-	if err != nil {
-		return nil, err
-	}
-
-	hdr.SetRound(initialHdr.GetRound())
-	hdr.SetTimeStamp(initialHdr.GetTimeStamp())
-	hdr.SetNonce(initialHdr.GetNonce())
-	hdr.SetPrevHash(initialHdr.GetPrevHash())
-	hdr.SetPrevRandSeed(initialHdr.GetPrevRandSeed())
-	hdr.SetRandSeed(initialHdr.GetRandSeed())
 
 	return hdr, nil
 }

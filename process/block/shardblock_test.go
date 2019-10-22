@@ -2228,12 +2228,12 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp)
 }
 
-func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
+func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
 	t.Parallel()
 	arguments := CreateMockArgumentsMultiShard()
 
 	bp, _ := blproc.NewShardProcessor(arguments)
-	mbHeaders, err := bp.CreateBlockHeader(nil, 0, func() bool {
+	mbHeaders, err := bp.ApplyBodyToHeader(nil, 0, func() bool {
 		return true
 	})
 	assert.Nil(t, err)
@@ -2241,7 +2241,7 @@ func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 	assert.Equal(t, 0, len(mbHeaders.(*block.Header).MiniBlockHeaders))
 }
 
-func TestShardProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testing.T) {
+func TestShardProcessor_ApplyBodyToHeaderShouldErrWhenMarshalizerErrors(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2264,14 +2264,14 @@ func TestShardProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testi
 			TxHashes:        make([][]byte, 0),
 		},
 	}
-	mbHeaders, err := bp.CreateBlockHeader(body, 0, func() bool {
+	mbHeaders, err := bp.ApplyBodyToHeader(body, 0, func() bool {
 		return true
 	})
 	assert.NotNil(t, err)
 	assert.Nil(t, mbHeaders)
 }
 
-func TestShardProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
+func TestShardProcessor_ApplyBodyToHeaderReturnsOK(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2293,7 +2293,7 @@ func TestShardProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 			TxHashes:        make([][]byte, 0),
 		},
 	}
-	mbHeaders, err := bp.CreateBlockHeader(body, 0, func() bool {
+	mbHeaders, err := bp.ApplyBodyToHeader(body, 0, func() bool {
 		return true
 	})
 	assert.Nil(t, err)

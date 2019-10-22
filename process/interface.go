@@ -169,7 +169,7 @@ type BlockProcessor interface {
 	RevertAccountState()
 	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler, round uint64) error
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler

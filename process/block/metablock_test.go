@@ -779,7 +779,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
+func TestMetaProcessor_ApplyBodyToHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
@@ -793,12 +793,12 @@ func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFai
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	haveTime := func() bool { return true }
 
-	hdr, err := mp.CreateBlockHeader(nil, 0, haveTime)
+	hdr, err := mp.ApplyBodyToHeader(nil, 0, haveTime)
 	assert.NotNil(t, err)
 	assert.Nil(t, hdr)
 }
 
-func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
+func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
@@ -815,7 +815,7 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	haveTime := func() bool { return true }
 
-	hdr, err := mp.CreateBlockHeader(nil, 0, haveTime)
+	hdr, err := mp.ApplyBodyToHeader(nil, 0, haveTime)
 	assert.Nil(t, err)
 	assert.NotNil(t, hdr)
 }
