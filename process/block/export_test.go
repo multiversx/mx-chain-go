@@ -107,6 +107,10 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdr *block.Header, hdrHash []
 		mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
 	}
 
+	if mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs == nil {
+		mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64, mp.shardCoordinator.NumberOfShards())
+	}
+
 	mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)] = &hdrInfo{hdr: hdr, usedInBlock: true}
 	mp.hdrsForCurrBlock.missingHdrs++
 }
@@ -131,11 +135,11 @@ func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint
 	return mp.processBlockHeaders(header, round, haveTime)
 }
 
-func (mp *metaProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
+func (mp *metaProcessor) RequestMissingFinalityAttestingShardHeaders() uint32 {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	return mp.requestMissingFinalityAttestingHeaders()
+	return mp.requestMissingFinalityAttestingShardHeaders()
 }
 
 func (bp *baseProcessor) NotarizedHdrs() map[uint32][]data.HeaderHandler {
@@ -228,7 +232,10 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	return sp.requestMissingFinalityAttestingHeaders()
+	return sp.requestMissingFinalityAttestingHeaders(
+		sharding.MetachainShardId,
+		sp.metaBlockFinality,
+		sp.getMetaHeaderFromPoolWithNonce)
 }
 
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
