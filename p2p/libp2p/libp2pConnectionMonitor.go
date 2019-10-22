@@ -68,6 +68,14 @@ func (lcm *libp2pConnectionMonitor) ThresholdRandomTrim() int {
 	return math.MaxInt32
 }
 
+// Request a reconnet to initial list
+func (lcm *libp2pConnectionMonitor) doReconn() {
+	select {
+	case lcm.chDoReconnect <- struct{}{}:
+	default:
+	}
+}
+
 // Connected is called when a connection opened
 func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
 	if len(netw.Conns()) > lcm.ThresholdDiscoveryPause() {
@@ -78,6 +86,7 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 		for i := lcm.ThresholdDiscoveryPause(); i < len(sorted); i++ {
 			netw.ClosePeer(sorted[i])
 		}
+		lcm.doReconn()
 	}
 }
 
@@ -85,14 +94,12 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn network.Conn) {
 	currentConnCount := len(netw.Conns())
 	if currentConnCount < ThresholdMinimumConnectedPeers {
-		select {
-		case lcm.chDoReconnect <- struct{}{}:
-		default:
-		}
+		lcm.doReconn()
 	}
 
 	if currentConnCount < lcm.ThresholdDiscoveryResume() && lcm.reconnecter != nil {
 		lcm.reconnecter.Resume()
+		lcm.doReconn()
 	}
 }
 
