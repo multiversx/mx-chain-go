@@ -1480,6 +1480,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		return 2
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {}
+	forkDetector.ResetProbableHighestNonceCalled = func() {}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}

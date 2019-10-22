@@ -70,7 +70,7 @@ func NewResolversContainerFactory(
 	}, nil
 }
 
-// Create returns an interceptor container that will hold all interceptors in the system
+// Create returns a resolver container that will hold all resolvers in the system
 func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
 	container := containers.NewResolversContainer()
 
@@ -188,8 +188,8 @@ func (rcf *resolversContainerFactory) generateTxResolvers(
 
 	noOfShards := shardC.NumberOfShards()
 
-	keys := make([]string, noOfShards)
-	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
+	keys := make([]string, noOfShards+1)
+	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
@@ -204,6 +204,17 @@ func (rcf *resolversContainerFactory) generateTxResolvers(
 		keys[idx] = identifierTx
 	}
 
+	identifierTx := topic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	excludePeersFromTopic := topic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := rcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolverSlice[noOfShards] = resolver
+	keys[noOfShards] = identifierTx
+
 	return keys, resolverSlice, nil
 }
 
@@ -216,21 +227,7 @@ func (rcf *resolversContainerFactory) createTxResolver(
 
 	txStorer := rcf.store.GetStorer(unit)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
-	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		rcf.messenger,
-		topic,
-		peerListCreator,
-		rcf.marshalizer,
-		rcf.intRandomizer,
-		uint32(0),
-	)
+	resolverSender, err := rcf.createOneResolverSender(topic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -322,8 +319,8 @@ func (rcf *resolversContainerFactory) createTopicHeadersForMetachain() error {
 func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards)
-	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
+	keys := make([]string, noOfShards+1)
+	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
@@ -338,25 +335,24 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 		keys[idx] = identifierMiniBlocks
 	}
 
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	excludePeersFromTopic := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := rcf.createMiniBlocksResolver(identifierMiniBlocks, excludePeersFromTopic)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolverSlice[noOfShards] = resolver
+	keys[noOfShards] = identifierMiniBlocks
+
 	return keys, resolverSlice, nil
 }
 
 func (rcf *resolversContainerFactory) createMiniBlocksResolver(topic string, excludedTopic string) (dataRetriever.Resolver, error) {
 	miniBlocksStorer := rcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		rcf.messenger,
-		topic,
-		peerListCreator,
-		rcf.marshalizer,
-		rcf.intRandomizer,
-		uint32(0),
-	)
+	resolverSender, err := rcf.createOneResolverSender(topic, excludedTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -532,6 +528,33 @@ func (rcf *resolversContainerFactory) generateMetablockHeaderResolver() ([]strin
 	}
 
 	return []string{identifierHdr}, []dataRetriever.Resolver{resolver}, nil
+}
+
+func (rcf *resolversContainerFactory) createOneResolverSender(
+	topic string,
+	excludedTopic string,
+) (dataRetriever.TopicResolverSender, error) {
+
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, topic, excludedTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
+	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		topic,
+		peerListCreator,
+		rcf.marshalizer,
+		rcf.intRandomizer,
+		uint32(0),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolverSender, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

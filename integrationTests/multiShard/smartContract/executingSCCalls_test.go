@@ -135,7 +135,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShard(t *testing.T) {
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processor)
-	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
+	scDeploymentAdddress, _ := hex.DecodeString("0000000000000000ffffcca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Now that the SC is deployed, we test a call from an account located in the first shard
 	addValue := uint64(100)
@@ -220,7 +220,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processor)
-	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
+	scDeploymentAdddress, _ := hex.DecodeString("0000000000000000ffffcca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Now that the SC is deployed, we test a call from an account located in the second shard
 	addValue := uint64(100)
@@ -316,7 +316,7 @@ func TestProcessSCCallsInMultiShardArchitecture_FirstShardReceivesCallFromSecond
 	generalRoundNumber++
 
 	// setting the sc deployment address (printed by the transaction processor)
-	scDeploymentAdddress, _ := hex.DecodeString("00000000000000000000cca1490e8cd87c767da41cdab632a7a206c5703c3132")
+	scDeploymentAdddress, _ := hex.DecodeString("0000000000000000ffffcca1490e8cd87c767da41cdab632a7a206c5703c3132")
 
 	// Update the SC account balance so we can call withdraw function
 	createMintingForSenders(nodes[0], scShard, [][]byte{scDeploymentAdddress}, mintingValue)

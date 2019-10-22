@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -26,10 +27,11 @@ type checkpointInfo struct {
 }
 
 type forkInfo struct {
-	checkpoint           []*checkpointInfo
-	finalCheckpoint      *checkpointInfo
-	probableHighestNonce uint64
-	lastBlockRound       uint64
+	checkpoint             []*checkpointInfo
+	finalCheckpoint        *checkpointInfo
+	probableHighestNonce   uint64
+	lastBlockRound         uint64
+	lastProposedBlockNonce uint64
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -144,10 +146,13 @@ func (bfd *baseForkDetector) removeCheckpointsBehindNonce(nonce uint64) {
 // computeProbableHighestNonce computes the probable highest nonce from the valid received/processed headers
 func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 	probableHighestNonce := bfd.finalCheckpoint().nonce
+	lastProposedBlockNonce := bfd.lastProposedBlockNonce()
+	if lastProposedBlockNonce > 0 {
+		probableHighestNonce = core.MaxUint64(bfd.finalCheckpoint().nonce, lastProposedBlockNonce-1)
+	}
 
 	bfd.mutHeaders.RLock()
-	for _, headersInfo := range bfd.headers {
-		nonce := bfd.getProbableHighestNonce(headersInfo)
+	for nonce := range bfd.headers {
 		if nonce <= probableHighestNonce {
 			continue
 		}
@@ -156,27 +161,6 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 	bfd.mutHeaders.RUnlock()
 
 	return probableHighestNonce
-}
-
-func (bfd *baseForkDetector) getProbableHighestNonce(headersInfo []*headerInfo) uint64 {
-	maxNonce := uint64(0)
-
-	for _, headerInfo := range headersInfo {
-		nonce := headerInfo.nonce
-		// if header stored state is BHProposed, then the probable highest nonce should be set to its nonce-1, because
-		// at that point the consensus was not achieved on this block and the only certainty is that the probable
-		// highest nonce is nonce-1 on which this proposed block is constructed. This approach would avoid a situation
-		// in which a proposed block on which the consensus would not be achieved would set all the nodes in sync mode,
-		// because of the probable highest nonce set with its nonce instead of nonce-1.
-		if headerInfo.state == process.BHProposed {
-			nonce--
-		}
-		if nonce > maxNonce {
-			maxNonce = nonce
-		}
-	}
-
-	return maxNonce
 }
 
 // RemoveHeaders removes all the stored headers with a given nonce
@@ -225,6 +209,13 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
+	// Proposed blocks received do not count for fork choice, as they are not valid until the consensus
+	// is achieved. They should be received afterwards through sync mechanism.
+	if hdrInfo.state == process.BHProposed {
+		bfd.setLastProposedBlockNonce(hdrInfo.nonce)
+		return
+	}
+
 	hdrInfos := bfd.headers[hdrInfo.nonce]
 	isHdrInfosNilOrEmpty := hdrInfos == nil || len(hdrInfos) == 0
 	if isHdrInfosNilOrEmpty {
@@ -238,10 +229,8 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) {
 				// If the old appended header has the same hash with the new one received, than the state of the old
 				// record will be replaced if the new one is more important. Below is the hierarchy, from low to high,
 				// of the record state importance: (BHProposed, BHReceived, BHNotarized, BHProcessed)
-				if hdrInfo.state == process.BHNotarized {
-					hdrInfoStored.state = process.BHNotarized
-				} else if hdrInfo.state == process.BHProcessed {
-					hdrInfoStored.state = process.BHProcessed
+				if hdrInfo.state == process.BHNotarized || hdrInfo.state == process.BHProcessed {
+					hdrInfoStored.state = hdrInfo.state
 				}
 			}
 			return
@@ -268,12 +257,18 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 	// consensus group size, could keep all the shard in sync mode, by creating fake blocks higher than current
 	// committed block + 1, which could not be verified by hash -> prev hash and only by rand seed -> prev random seed
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
-	if roundsWithoutReceivedBlock > maxRoundsToWait {
-		probableHighestNonce := bfd.ProbableHighestNonce()
-		checkpointNonce := bfd.lastCheckpoint().nonce
-		if probableHighestNonce > checkpointNonce {
-			bfd.setProbableHighestNonce(checkpointNonce)
-		}
+	isInProperRound := bfd.rounder.Index()%roundModulusTrigger == 0
+	if roundsWithoutReceivedBlock > maxRoundsToWait && isInProperRound {
+		bfd.ResetProbableHighestNonce()
+	}
+}
+
+// ResetProbableHighestNonce resets the probableHighestNonce to checkpoint
+func (bfd *baseForkDetector) ResetProbableHighestNonce() {
+	probableHighestNonce := bfd.ProbableHighestNonce()
+	checkpointNonce := bfd.lastCheckpoint().nonce
+	if probableHighestNonce > checkpointNonce {
+		bfd.setProbableHighestNonce(checkpointNonce)
 	}
 }
 
@@ -338,6 +333,20 @@ func (bfd *baseForkDetector) lastBlockRound() uint64 {
 	return lastBlockRound
 }
 
+func (bfd *baseForkDetector) setLastProposedBlockNonce(nonce uint64) {
+	bfd.mutFork.Lock()
+	bfd.fork.lastProposedBlockNonce = nonce
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) lastProposedBlockNonce() uint64 {
+	bfd.mutFork.RLock()
+	lastProposedBlockNonce := bfd.fork.lastProposedBlockNonce
+	bfd.mutFork.RUnlock()
+
+	return lastProposedBlockNonce
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bfd *baseForkDetector) IsInterfaceNil() bool {
 	if bfd == nil {
@@ -371,12 +380,6 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 		forkHeaderHash = nil
 
 		for i := 0; i < len(hdrInfos); i++ {
-			// Proposed blocks received do not count for fork choice, as they are not valid until the consensus
-			// is achieved. They should be received afterwards through sync mechanism.
-			if hdrInfos[i].state == process.BHProposed {
-				continue
-			}
-
 			if hdrInfos[i].state == process.BHProcessed {
 				selfHdrInfo = hdrInfos[i]
 				continue

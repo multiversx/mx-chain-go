@@ -23,6 +23,8 @@ type metaProcessor struct {
 	*baseProcessor
 	core               serviceContainer.Core
 	dataPool           dataRetriever.MetaPoolsHolder
+	//TODO: add	txCoordinator process.TransactionCoordinator
+
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
 	chRcvAllHdrs       chan bool
@@ -134,6 +136,7 @@ func (mp *metaProcessor) ProcessBlock(
 	)
 
 	mp.createBlockStarted()
+
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
@@ -444,14 +447,18 @@ func (mp *metaProcessor) CommitBlock(
 
 	headerNoncePool := mp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
-		err = process.ErrNilDataPoolHolder
+		err = process.ErrNilHeadersNoncesDataPool
 		return err
 	}
 
-	//TODO: Should be analyzed if put in pool is really necessary or not (right now there is no action of removing them)
-	syncMap := &dataPool.ShardIdHashSyncMap{}
-	syncMap.Store(headerHandler.GetShardID(), headerHash)
-	headerNoncePool.Merge(headerHandler.GetNonce(), syncMap)
+	metaBlockPool := mp.dataPool.MetaBlocks()
+	if metaBlockPool == nil {
+		err = process.ErrNilMetaBlockPool
+		return err
+	}
+
+	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
+	metaBlockPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {
@@ -545,7 +552,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.indexBlock(header, lastMetaBlock)
 
-	mp.appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
+	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
 	go mp.headersCounter.displayLogInfo(
 		header,
@@ -818,6 +825,13 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		}
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	}
+
+	// request miniblocks for which metachain is destination
+	for _, mb := range shardHeader.MiniBlockHeaders {
+		if mb.ReceiverShardID == mp.shardCoordinator.SelfId() {
+			//TODO continue implementation: go mp.onRequestMiniBlock(mb.Hash)
+		}
 	}
 }
 

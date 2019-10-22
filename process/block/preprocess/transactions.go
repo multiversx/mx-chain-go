@@ -519,14 +519,14 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		currTxGasLimit := txs.economicsFee.MinGasLimit()
+		currTxGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
 		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}
 
 		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
 		if isGasLimitReached {
-			log.Info(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
+			log.Debug(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
 			continue
