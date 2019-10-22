@@ -74,8 +74,8 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body block.Body, round uint64, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
-	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool, gasLimitConsumed uint64) (block.MiniBlockSlice, uint32, bool, uint64)
+	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool, gasLimitConsumed uint64) (block.MiniBlockSlice, uint64)
 
 	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
 
@@ -155,9 +155,9 @@ type PreProcessor interface {
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
-	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
-	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64, gasLimitConsumed uint64) (uint64, error)
+	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64, gasLimitConsumed uint64) (*block.MiniBlock, uint64, error)
+	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool, gasLimitConsumed uint64) (block.MiniBlockSlice, uint64, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -420,7 +420,7 @@ type RewardsHandler interface {
 
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
-	MaxGasLimitPerMiniBlock() uint64
+	MaxGasLimitPerBlock() uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error

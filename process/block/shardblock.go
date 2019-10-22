@@ -1315,7 +1315,8 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
-) (block.MiniBlockSlice, uint32, uint32, error) {
+	gasLimitConsumed uint64,
+) (block.MiniBlockSlice, uint32, uint32, uint64, error) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	txsAdded := uint32(0)
@@ -1323,14 +1324,14 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, 0, gasLimitConsumed, err
 	}
 
 	log.Info(fmt.Sprintf("meta blocks ordered: %d\n", len(orderedMetaBlocks)))
 
 	lastMetaHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, 0, gasLimitConsumed, err
 	}
 
 	// do processing in order
@@ -1387,13 +1388,17 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
 			processedMiniBlocksHashes := sp.getProcessedMiniBlocksHashes(orderedMetaBlocks[i].hash)
-			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			var currMBProcessed block.MiniBlockSlice
+			var currTxsAdded uint32
+			var hdrProcessFinished bool
+			currMBProcessed, currTxsAdded, hdrProcessFinished, gasLimitConsumed = sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				hdr,
 				processedMiniBlocksHashes,
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
 				round,
-				haveTime)
+				haveTime,
+				gasLimitConsumed)
 
 			// all txs processed, add to processed miniblocks
 			miniBlocks = append(miniBlocks, currMBProcessed...)
@@ -1413,7 +1418,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	return miniBlocks, txsAdded, hdrsAdded, nil
+	return miniBlocks, txsAdded, hdrsAdded, gasLimitConsumed, nil
 }
 
 func (sp *shardProcessor) createMiniBlocks(
@@ -1422,6 +1427,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	haveTime func() bool,
 ) (block.Body, error) {
 
+	gasLimitConsumed := uint64(0)
 	miniBlocks := make(block.Body, 0)
 
 	if sp.accounts.JournalLen() != 0 {
@@ -1438,7 +1444,12 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
-	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
+	destMeMiniBlocks, nbTxs, nbHdrs, gasLimitConsumed, err := sp.createAndProcessCrossMiniBlocksDstMe(
+		maxItemsInBlock,
+		round,
+		haveTime,
+		gasLimitConsumed)
+
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -1465,11 +1476,12 @@ func (sp *shardProcessor) createMiniBlocks(
 		uint32(len(destMeMiniBlocks))+nbHdrs,
 		uint32(len(miniBlocks)))
 
-	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
+	mbFromMe, gasLimitConsumed := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
 		round,
-		haveTime)
+		haveTime,
+		gasLimitConsumed)
 
 	if len(mbFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbFromMe...)

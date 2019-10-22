@@ -374,13 +374,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	maxMbRemaining uint32,
 	round uint64,
 	haveTime func() bool,
-) (block.MiniBlockSlice, uint32, bool) {
+	gasLimitConsumed uint64,
+) (block.MiniBlockSlice, uint32, bool, uint64) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
 
 	if hdr == nil || hdr.IsInterfaceNil() {
-		return miniBlocks, nrTxAdded, true
+		return miniBlocks, nrTxAdded, true, gasLimitConsumed
 	}
 
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
@@ -414,7 +415,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		// overflow would happen if processing would continue
 		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxRemaining
 		if txOverFlow {
-			return miniBlocks, nrTxAdded, false
+			return miniBlocks, nrTxAdded, false, gasLimitConsumed
 		}
 
 		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
@@ -422,7 +423,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, round, haveTime)
+		gasLimitConsumed, err := tc.processCompleteMiniBlock(preproc, miniBlock, round, haveTime, gasLimitConsumed)
 		if err != nil {
 			continue
 		}
@@ -434,12 +435,12 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		mbOverFlow := uint32(len(miniBlocks)) >= maxMbRemaining
 		if mbOverFlow {
-			return miniBlocks, nrTxAdded, false
+			return miniBlocks, nrTxAdded, false, gasLimitConsumed
 		}
 	}
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
-	return miniBlocks, nrTxAdded, allMBsProcessed
+	return miniBlocks, nrTxAdded, allMBsProcessed, gasLimitConsumed
 }
 
 // CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
@@ -448,21 +449,26 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
-) block.MiniBlockSlice {
+	gasLimitConsumed uint64,
+) (block.MiniBlockSlice, uint64) {
+
+	var mbs block.MiniBlockSlice
+	var err error
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.keysTxPreProcs {
 
 		txPreProc := tc.getPreProcessor(blockType)
 		if txPreProc == nil || txPreProc.IsInterfaceNil() {
-			return nil
+			return nil, gasLimitConsumed
 		}
 
-		mbs, err := txPreProc.CreateAndProcessMiniBlocks(
+		mbs, gasLimitConsumed, err = txPreProc.CreateAndProcessMiniBlocks(
 			maxTxSpaceRemained,
 			maxMbSpaceRemained,
 			round,
 			haveTime,
+			gasLimitConsumed,
 		)
 
 		if err != nil {
@@ -479,7 +485,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
 
-	return miniBlocks
+	return miniBlocks, gasLimitConsumed
 }
 
 func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
@@ -686,10 +692,13 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	miniBlock *block.MiniBlock,
 	round uint64,
 	haveTime func() bool,
-) error {
+	gasLimitConsumed uint64,
+) (uint64, error) {
 
 	snapshot := tc.accounts.JournalLen()
-	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
+	currentGasLimitConsumed := gasLimitConsumed
+
+	gasLimitConsumed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, round, gasLimitConsumed)
 	if err != nil {
 		log.Error(err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
@@ -698,10 +707,10 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			log.Error(errAccountState.Error())
 		}
 
-		return err
+		return currentGasLimitConsumed, err
 	}
 
-	return nil
+	return gasLimitConsumed, nil
 }
 
 // VerifyCreatedBlockTransactions checks whether the created transactions are the same as the one proposed

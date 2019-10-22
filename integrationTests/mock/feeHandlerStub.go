@@ -7,17 +7,17 @@ import (
 )
 
 type FeeHandlerStub struct {
-	SetMaxGasLimitPerMiniBlockCalled func(maxGasLimitPerMiniBlock uint64)
-	SetMinGasPriceCalled             func(minGasPrice uint64)
-	SetMinGasLimitCalled             func(minGasLimit uint64)
-	MaxGasLimitPerMiniBlockCalled    func() uint64
-	ComputeGasLimitCalled            func(tx process.TransactionWithFeeHandler) uint64
-	ComputeFeeCalled                 func(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValuesCalled      func(tx process.TransactionWithFeeHandler) error
+	SetMaxGasLimitPerBlockCalled func(maxGasLimitPerBlock uint64)
+	SetMinGasPriceCalled         func(minGasPrice uint64)
+	SetMinGasLimitCalled         func(minGasLimit uint64)
+	MaxGasLimitPerBlockCalled    func() uint64
+	ComputeGasLimitCalled        func(tx process.TransactionWithFeeHandler) uint64
+	ComputeFeeCalled             func(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValuesCalled  func(tx process.TransactionWithFeeHandler) error
 }
 
-func (fhs *FeeHandlerStub) SetMaxGasLimitPerMiniBlock(maxGasLimitPerMiniBlock uint64) {
-	fhs.SetMaxGasLimitPerMiniBlockCalled(maxGasLimitPerMiniBlock)
+func (fhs *FeeHandlerStub) SetMaxGasLimitPerBlock(maxGasLimitPerBlock uint64) {
+	fhs.SetMaxGasLimitPerBlockCalled(maxGasLimitPerBlock)
 }
 
 func (fhs *FeeHandlerStub) SetMinGasPrice(minGasPrice uint64) {
@@ -28,8 +28,8 @@ func (fhs *FeeHandlerStub) SetMinGasLimit(minGasLimit uint64) {
 	fhs.SetMinGasLimitCalled(minGasLimit)
 }
 
-func (fhs *FeeHandlerStub) MaxGasLimitPerMiniBlock() uint64 {
-	return fhs.MaxGasLimitPerMiniBlockCalled()
+func (fhs *FeeHandlerStub) MaxGasLimitPerBlock() uint64 {
+	return fhs.MaxGasLimitPerBlockCalled()
 }
 
 func (fhs *FeeHandlerStub) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {

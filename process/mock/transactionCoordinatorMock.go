@@ -18,8 +18,8 @@ type TransactionCoordinatorMock struct {
 	RemoveBlockDataFromPoolCalled                        func(body block.Body) error
 	ProcessBlockTransactionCalled                        func(body block.Body, round uint64, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
-	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
-	CreateMbsAndProcessTransactionsFromMeCalled          func(maxTxRemaining uint32, maxMbRemaining uint32, round uint64, haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, round uint64, haveTime func() bool, gasLimitConsumed uint64) (block.MiniBlockSlice, uint32, bool, uint64)
+	CreateMbsAndProcessTransactionsFromMeCalled          func(maxTxRemaining uint32, maxMbRemaining uint32, round uint64, haveTime func() bool, gasLimitConsumed uint64) (block.MiniBlockSlice, uint64)
 	CreateMarshalizedDataCalled                          func(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled                 func(body block.Body) error
@@ -97,20 +97,20 @@ func (tcm *TransactionCoordinatorMock) CreateBlockStarted() {
 	tcm.CreateBlockStartedCalled()
 }
 
-func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, uint32, bool) {
+func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxRemaining uint32, maxMbRemaining uint32, round uint64, haveTime func() bool, gasLimitConsumed uint64) (block.MiniBlockSlice, uint32, bool, uint64) {
 	if tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled == nil {
-		return nil, 0, false
+		return nil, 0, false, gasLimitConsumed
 	}
 
-	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksHashes, maxTxRemaining, maxMbRemaining, round, haveTime)
+	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksHashes, maxTxRemaining, maxMbRemaining, round, haveTime, gasLimitConsumed)
 }
 
-func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, maxMbRemaining uint32, round uint64, haveTime func() bool) block.MiniBlockSlice {
+func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessTransactionsFromMe(maxTxRemaining uint32, maxMbRemaining uint32, round uint64, haveTime func() bool, gasLimitConsumed uint64) (block.MiniBlockSlice, uint64) {
 	if tcm.CreateMbsAndProcessTransactionsFromMeCalled == nil {
-		return nil
+		return nil, gasLimitConsumed
 	}
 
-	return tcm.CreateMbsAndProcessTransactionsFromMeCalled(maxTxRemaining, maxMbRemaining, round, haveTime)
+	return tcm.CreateMbsAndProcessTransactionsFromMeCalled(maxTxRemaining, maxMbRemaining, round, haveTime, gasLimitConsumed)
 }
 
 func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte) {

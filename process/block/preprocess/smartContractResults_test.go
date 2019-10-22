@@ -692,7 +692,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 
 	body = append(body, &miniblock)
 
-	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, 1)
+	_, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, 1, 0)
 
 	assert.Nil(t, err)
 }
@@ -727,7 +727,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 
 	body = append(body, &miniblock)
 
-	err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, 1)
+	_, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, 1, 0)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)

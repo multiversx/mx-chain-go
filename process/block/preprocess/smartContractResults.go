@@ -424,8 +424,15 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
-func (scr *smartContractResults) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
-	return nil, nil
+func (scr *smartContractResults) CreateAndProcessMiniBlock(
+	sndShardId, dstShardId uint32,
+	spaceRemained int,
+	haveTime func() bool,
+	round uint64,
+	gasLimitConsumed uint64,
+) (*block.MiniBlock, uint64, error) {
+
+	return nil, gasLimitConsumed, nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
@@ -435,30 +442,39 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	_ func() bool,
-) (block.MiniBlockSlice, error) {
-	return nil, nil
+	gasLimitConsumed uint64,
+) (block.MiniBlockSlice, uint64, error) {
+
+	return nil, gasLimitConsumed, nil
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
+func (scr *smartContractResults) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	round uint64,
+	gasLimitConsumed uint64,
+) (uint64, error) {
+
 	if miniBlock.Type != block.SmartContractResultBlock {
-		return process.ErrWrongTypeInMiniBlock
+		return gasLimitConsumed, process.ErrWrongTypeInMiniBlock
 	}
 
 	miniBlockScrs, miniBlockTxHashes, err := scr.getAllScrsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return err
+		return gasLimitConsumed, err
 	}
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
-			err = process.ErrTimeIsOut
-			return err
+			return gasLimitConsumed, process.ErrTimeIsOut
 		}
+
+		//TODO: Add gas limit check
 
 		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {
-			return err
+			return gasLimitConsumed, err
 		}
 	}
 
@@ -470,7 +486,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	}
 	scr.scrForBlock.mutTxsForBlock.Unlock()
 
-	return nil
+	return gasLimitConsumed, nil
 }
 
 // CreateMarshalizedData marshalizes smartContractResults and creates and saves them into a new structure

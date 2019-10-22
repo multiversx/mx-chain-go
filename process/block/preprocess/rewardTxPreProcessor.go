@@ -448,8 +448,15 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the reward transactions added into the miniblock
-func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
-	return nil, nil
+func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(
+	sndShardId, dstShardId uint32,
+	spaceRemained int,
+	haveTime func() bool,
+	round uint64,
+	gasLimitConsumed uint64,
+) (*block.MiniBlock, uint64, error) {
+
+	return nil, gasLimitConsumed, nil
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
@@ -459,7 +466,10 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	_ func() bool,
-) (block.MiniBlockSlice, error) {
+	gasLimitConsumed uint64,
+) (block.MiniBlockSlice, uint64, error) {
+
+	var err error
 
 	// always have time for rewards
 	haveTime := func() bool {
@@ -473,9 +483,10 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	}
 
 	snapshot := rtp.accounts.JournalLen()
+	currentGasLimitConsumed := gasLimitConsumed
 
 	for _, mb := range rewardMiniBlocksSlice {
-		err := rtp.ProcessMiniBlock(mb, haveTime, round)
+		gasLimitConsumed, err = rtp.ProcessMiniBlock(mb, haveTime, round, gasLimitConsumed)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -484,33 +495,41 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 				// TODO: evaluate if reloading the trie from disk will might solve the problem
 				log.Error(errAccountState.Error())
 			}
-			return nil, err
+			return nil, currentGasLimitConsumed, err
 		}
 	}
 
-	return rewardMiniBlocksSlice, nil
+	return rewardMiniBlocksSlice, gasLimitConsumed, nil
 }
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	round uint64,
+	gasLimitConsumed uint64,
+) (uint64, error) {
+
 	if miniBlock.Type != block.RewardsBlock {
-		return process.ErrWrongTypeInMiniBlock
+		return gasLimitConsumed, process.ErrWrongTypeInMiniBlock
 	}
 
 	miniBlockRewardTxs, miniBlockTxHashes, err := rtp.getAllRewardTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return err
+		return gasLimitConsumed, err
 	}
 
 	for index := range miniBlockRewardTxs {
 		if !haveTime() {
-			return process.ErrTimeIsOut
+			return gasLimitConsumed, process.ErrTimeIsOut
 		}
+
+		//TODO: Add gas limit check
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
-			return err
+			return gasLimitConsumed, err
 		}
 	}
 
@@ -522,7 +541,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 
-	return nil
+	return gasLimitConsumed, nil
 }
 
 // CreateMarshalizedData marshalizes reward transaction hashes and and saves them into a new structure

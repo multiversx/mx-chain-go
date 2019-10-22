@@ -200,6 +200,7 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
+	gasConsumedByBlock := uint64(0)
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -212,8 +213,8 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 			return err
 		}
 
-		if gasConsumedByMiniBlock > txs.economicsFee.MaxGasLimitPerMiniBlock() {
-			return process.ErrHigherGasLimitRequiredInMiniBlock
+		if gasConsumedByBlock+gasConsumedByMiniBlock > txs.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrHigherGasLimitRequiredInBlock
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
@@ -247,7 +248,10 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 				return err
 			}
 		}
+
+		gasConsumedByBlock += gasConsumedByMiniBlock
 	}
+
 	return nil
 }
 
@@ -458,7 +462,11 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
-) (block.MiniBlockSlice, error) {
+	gasLimitConsumed uint64,
+) (block.MiniBlockSlice, uint64, error) {
+
+	var miniBlock *block.MiniBlock
+	var err error
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	newMBAdded := true
@@ -476,12 +484,13 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				break
 			}
 
-			miniBlock, err := txs.CreateAndProcessMiniBlock(
+			miniBlock, gasLimitConsumed, err = txs.CreateAndProcessMiniBlock(
 				txs.shardCoordinator.SelfId(),
 				shardId,
 				txSpaceRemained,
 				haveTime,
-				round)
+				round,
+				gasLimitConsumed)
 			if err != nil {
 				continue
 			}
@@ -494,7 +503,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		}
 	}
 
-	return miniBlocks, nil
+	return miniBlocks, gasLimitConsumed, nil
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
@@ -504,7 +513,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,
-) (*block.MiniBlock, error) {
+	gasLimitConsumed uint64,
+) (*block.MiniBlock, uint64, error) {
 
 	var orderedTxs []*transaction.Transaction
 	var orderedTxHashes [][]byte
@@ -515,12 +525,12 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 
 	if err != nil {
 		log.Debug(err.Error())
-		return nil, err
+		return nil, gasLimitConsumed, err
 	}
 
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
-		return nil, process.ErrTimeIsOut
+		return nil, gasLimitConsumed, process.ErrTimeIsOut
 	}
 
 	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
@@ -532,7 +542,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	miniBlock.Type = block.TxBlock
 
 	addedTxs := 0
-	addedGasLimitPerCrossShardMiniblock := uint64(0)
 	for index := range orderedTxs {
 		if !haveTime() {
 			break
@@ -542,14 +551,14 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		currTxGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
+		txGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
 		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
-			currTxGasLimit = orderedTxs[index].GasLimit
+			txGasLimit = orderedTxs[index].GasLimit
 		}
 
-		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > txs.economicsFee.MaxGasLimitPerMiniBlock()
+		isGasLimitReached := gasLimitConsumed+txGasLimit > txs.economicsFee.MaxGasLimitPerBlock()
 		if isGasLimitReached {
-			log.Debug(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
+			log.Debug(fmt.Sprintf("max gas limit per block is reached: added %d txs from %d txs\n",
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
 			continue
@@ -577,17 +586,17 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
-		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
+		gasLimitConsumed += txGasLimit
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n",
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
-			return miniBlock, nil
+			return miniBlock, gasLimitConsumed, nil
 		}
 	}
 
-	return miniBlock, nil
+	return miniBlock, gasLimitConsumed, nil
 }
 
 func (txs *transactions) computeOrderedTxs(
@@ -634,25 +643,32 @@ func (txs *transactions) computeOrderedTxs(
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
-func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
+func (txs *transactions) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	round uint64,
+	gasLimitConsumed uint64,
+) (uint64, error) {
+
 	if miniBlock.Type != block.TxBlock {
-		return process.ErrWrongTypeInMiniBlock
+		return gasLimitConsumed, process.ErrWrongTypeInMiniBlock
 	}
 
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return err
+		return gasLimitConsumed, err
 	}
 
 	for index := range miniBlockTxs {
 		if !haveTime() {
-			err = process.ErrTimeIsOut
-			return err
+			return gasLimitConsumed, process.ErrTimeIsOut
 		}
+
+		//TODO: Add gas limit check
 
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
-			return err
+			return gasLimitConsumed, err
 		}
 	}
 
@@ -664,7 +680,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	return nil
+	return gasLimitConsumed, nil
 }
 
 // SortTxByNonce sort transactions according to nonces
