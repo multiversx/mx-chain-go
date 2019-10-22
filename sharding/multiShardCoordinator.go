@@ -3,11 +3,12 @@ package sharding
 import (
 	"bytes"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
+
+const metaChainIdentifier uint8 = 255
 
 // multiShardCoordinator struct defines the functionality for handling transaction dispatching to
 // the corresponding shards. The number of shards is currently passed as a constructor
@@ -45,6 +46,17 @@ func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
 	return (1 << uint(n)) - 1, (1 << uint(n-1)) - 1
 }
 
+//TODO: This method should be changed, as value 0xFF in the last byte of the given address could exist also in shards
+func isMetaChainShardId(identifier []byte) bool {
+	for i := 0; i < len(identifier); i++ {
+		if identifier[i] != metaChainIdentifier {
+			return false
+		}
+	}
+
+	return true
+}
+
 // ComputeId calculates the shard for a given address used for transaction dispatching
 func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint32 {
 	bytesNeed := int(msc.numberOfShards/256) + 1
@@ -54,9 +66,6 @@ func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint
 	}
 
 	buffNeeded := address.Bytes()[startingIndex:]
-	if core.IsMetaChainShardId(buffNeeded) && core.IsSmartContractAddress(address.Bytes()) {
-		return MetachainShardId
-	}
 
 	addr := uint32(0)
 	for i := 0; i < len(buffNeeded); i++ {
