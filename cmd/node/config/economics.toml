@@ -4,11 +4,11 @@
     BurnAddress = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
 [RewardsSettings]
-    RewardsValue = "1000"
+    RewardsValue = "2000"
     CommunityPercentage = 0.10
     LeaderPercentage = 0.50
     BurnPercentage = 0.40	
 
 [FeeSettings]
-    MinGasPrice = "0"
-    MinGasLimit = "5"
+    MinGasPrice = "10"
+    MinGasLimit = "100"
