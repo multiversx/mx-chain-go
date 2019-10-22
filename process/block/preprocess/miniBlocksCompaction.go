@@ -17,6 +17,7 @@ type miniBlocksCompaction struct {
 	mapHashToTx             map[string]data.TransactionHandler
 	mapMinSenderNonce       map[string]uint64
 	mapUnallocatedTxsHashes map[string]struct{}
+	mapMiniBlockGasConsumed map[int]uint64
 
 	mutMiniBlocksCompaction sync.RWMutex
 }
@@ -42,6 +43,7 @@ func NewMiniBlocksCompaction(
 	mbc.mapHashToTx = make(map[string]data.TransactionHandler)
 	mbc.mapMinSenderNonce = make(map[string]uint64)
 	mbc.mapUnallocatedTxsHashes = make(map[string]struct{})
+	mbc.mapMiniBlockGasConsumed = make(map[int]uint64)
 
 	return &mbc, nil
 }
@@ -59,7 +61,18 @@ func (mbc *miniBlocksCompaction) Compact(
 		return miniBlocks
 	}
 
+	var err error
+
 	mbc.mapHashToTx = mapHashToTx
+	mbc.mapMiniBlockGasConsumed = make(map[int]uint64)
+
+	for index, miniBlock := range miniBlocks {
+		mbc.mapMiniBlockGasConsumed[index], err = mbc.computeGasConsumedByMiniBlock(miniBlock)
+		if err != nil {
+			log.Error(err.Error())
+			return miniBlocks
+		}
+	}
 
 	compactedMiniBlocks := make(block.MiniBlockSlice, 0)
 	compactedMiniBlocks = append(compactedMiniBlocks, miniBlocks[0])
@@ -69,7 +82,7 @@ func (mbc *miniBlocksCompaction) Compact(
 			continue
 		}
 
-		compactedMiniBlocks = mbc.merge(compactedMiniBlocks, miniBlock)
+		compactedMiniBlocks = mbc.merge(compactedMiniBlocks, miniBlock, index)
 	}
 
 	if len(miniBlocks) > len(compactedMiniBlocks) {
@@ -83,18 +96,18 @@ func (mbc *miniBlocksCompaction) Compact(
 func (mbc *miniBlocksCompaction) merge(
 	mergedMiniBlocks block.MiniBlockSlice,
 	miniBlock *block.MiniBlock,
+	srcIndex int,
 ) block.MiniBlockSlice {
 
-	for _, mergedMiniBlock := range mergedMiniBlocks {
+	for dstIndex, mergedMiniBlock := range mergedMiniBlocks {
 		sameType := miniBlock.Type == mergedMiniBlock.Type
 		sameSenderShard := miniBlock.SenderShardID == mergedMiniBlock.SenderShardID
 		sameReceiverShard := miniBlock.ReceiverShardID == mergedMiniBlock.ReceiverShardID
 
 		canMerge := sameSenderShard && sameReceiverShard && sameType
 		if canMerge {
-			haveEnoughGasToMerge := mbc.isEnoughGasSpace(mergedMiniBlock, miniBlock)
-			if haveEnoughGasToMerge {
-				mergedMiniBlock.TxHashes = append(mergedMiniBlock.TxHashes, miniBlock.TxHashes...)
+			isFullyMerged := mbc.computeMerge(mergedMiniBlock, dstIndex, miniBlock, srcIndex)
+			if isFullyMerged {
 				return mergedMiniBlocks
 			}
 		}
@@ -105,45 +118,32 @@ func (mbc *miniBlocksCompaction) merge(
 	return mergedMiniBlocks
 }
 
-func (mbc *miniBlocksCompaction) isEnoughGasSpace(
-	destMiniBlock *block.MiniBlock,
-	srcMiniBlock *block.MiniBlock,
-) bool {
-
-	gasUsedInDestMiniBlock, err := mbc.calculateUsedGasInMiniblock(destMiniBlock)
-	if err != nil {
-		log.Info(err.Error())
-		return false
-	}
-
-	gasUsedInSrcMiniBlock, err := mbc.calculateUsedGasInMiniblock(srcMiniBlock)
-	if err != nil {
-		log.Info(err.Error())
-		return false
-	}
-
-	haveEnoughGasToMerge := gasUsedInDestMiniBlock+gasUsedInSrcMiniBlock <= process.MaxGasLimitPerMiniBlock
-
-	return haveEnoughGasToMerge
-}
-
-func (mbc *miniBlocksCompaction) calculateUsedGasInMiniblock(miniBlock *block.MiniBlock) (uint64, error) {
+func (mbc *miniBlocksCompaction) computeGasConsumedByMiniBlock(miniBlock *block.MiniBlock) (uint64, error) {
 	gasUsedInMiniBlock := uint64(0)
 	for _, txHash := range miniBlock.TxHashes {
-		tx, ok := mbc.mapHashToTx[string(txHash)]
-		if !ok {
-			return 0, process.ErrMissingTransaction
-		}
-
-		txGasLimit := mbc.economicsFee.ComputeGasLimit(tx)
-		if isSmartContractAddress(tx.GetRecvAddress()) {
-			txGasLimit = tx.GetGasLimit()
+		txGasLimit, err := mbc.computeGasConsumedByTx(txHash)
+		if err != nil {
+			return 0, err
 		}
 
 		gasUsedInMiniBlock += txGasLimit
 	}
 
 	return gasUsedInMiniBlock, nil
+}
+
+func (mbc *miniBlocksCompaction) computeGasConsumedByTx(txHash []byte) (uint64, error) {
+	tx, ok := mbc.mapHashToTx[string(txHash)]
+	if !ok {
+		return 0, process.ErrMissingTransaction
+	}
+
+	txGasLimit := mbc.economicsFee.ComputeGasLimit(tx)
+	if isSmartContractAddress(tx.GetRecvAddress()) {
+		txGasLimit = tx.GetGasLimit()
+	}
+
+	return txGasLimit, nil
 }
 
 // Expand method tries to expand the given mini blocks to their initial state before compaction
@@ -286,4 +286,65 @@ func (mbc *miniBlocksCompaction) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (mbc *miniBlocksCompaction) computeMerge(
+	dstMiniBlock *block.MiniBlock,
+	dstIndex int,
+	srcMiniBlock *block.MiniBlock,
+	srcIndex int,
+) bool {
+
+	canBeFullyMerged := mbc.mapMiniBlockGasConsumed[dstIndex]+mbc.mapMiniBlockGasConsumed[srcIndex] <= process.MaxGasLimitPerMiniBlock
+	if canBeFullyMerged {
+		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, srcMiniBlock.TxHashes...)
+		mbc.mapMiniBlockGasConsumed[dstIndex] += mbc.mapMiniBlockGasConsumed[srcIndex]
+		return true
+	}
+
+	txHashes := make([][]byte, 0)
+	dstMiniBlockGasConsumed := mbc.mapMiniBlockGasConsumed[dstIndex]
+	for _, txHash := range srcMiniBlock.TxHashes {
+		txGasLimit, err := mbc.computeGasConsumedByTx(txHash)
+		if err != nil {
+			break
+		}
+
+		isDstMiniBlockGasLimitReached := dstMiniBlockGasConsumed+txGasLimit > process.MaxGasLimitPerMiniBlock
+		if isDstMiniBlockGasLimitReached {
+			break
+		}
+
+		txHashes = append(txHashes, txHash)
+		dstMiniBlockGasConsumed += txGasLimit
+	}
+
+	if len(txHashes) > 0 {
+		miniBlockGasTransfered := dstMiniBlockGasConsumed - mbc.mapMiniBlockGasConsumed[dstIndex]
+		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, txHashes...)
+		srcMiniBlock.TxHashes = mbc.removeTxHashesFromMiniBlock(srcMiniBlock, txHashes)
+		mbc.mapMiniBlockGasConsumed[dstIndex] += miniBlockGasTransfered
+		mbc.mapMiniBlockGasConsumed[srcIndex] -= miniBlockGasTransfered
+	}
+
+	return false
+}
+
+func (mbc *miniBlocksCompaction) removeTxHashesFromMiniBlock(miniBlock *block.MiniBlock, txHashes [][]byte) [][]byte {
+	mapTxHashesToBeRemoved := make(map[string]struct{})
+	for _, txHash := range txHashes {
+		mapTxHashesToBeRemoved[string(txHash)] = struct{}{}
+	}
+
+	preservedTxHashes := make([][]byte, 0)
+	for _, txHash := range miniBlock.TxHashes {
+		_, ok := mapTxHashesToBeRemoved[string(txHash)]
+		if ok {
+			continue
+		}
+
+		preservedTxHashes = append(preservedTxHashes, txHash)
+	}
+
+	return preservedTxHashes
 }
