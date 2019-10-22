@@ -1234,7 +1234,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 	senderShardId := uint32(1)
 	receiverShardId := uint32(2)
 
-	miniBlock := block.MiniBlock{
+	miniBlock := &block.MiniBlock{
 		SenderShardID:   senderShardId,
 		ReceiverShardID: receiverShardId,
 		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
