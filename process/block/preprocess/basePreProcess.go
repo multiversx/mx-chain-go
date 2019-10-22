@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -42,7 +41,6 @@ type basePreProcess struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
-	economicsFee     process.FeeHandler
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
@@ -211,33 +209,4 @@ func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForB
 	forBlock.mutTxsForBlock.RUnlock()
 
 	return txAlreadyProcessed
-}
-
-func (bpp *basePreProcess) computeGasLimitUsedByMiniBlock(miniBlock *block.MiniBlock, forBlock *txsForBlock) (uint64, error) {
-	gasUsedInMiniBlock := uint64(0)
-
-	forBlock.mutTxsForBlock.RLock()
-	for _, txHash := range miniBlock.TxHashes {
-		txInfo, ok := forBlock.txHashAndInfo[string(txHash)]
-		if !ok {
-			forBlock.mutTxsForBlock.RUnlock()
-			return 0, process.ErrMissingTransaction
-		}
-
-		tx, ok := txInfo.tx.(*transaction.Transaction)
-		if !ok {
-			forBlock.mutTxsForBlock.RUnlock()
-			return 0, process.ErrWrongTypeAssertion
-		}
-
-		txGasLimit := bpp.economicsFee.ComputeGasLimit(tx)
-		if isSmartContractAddress(tx.GetRecvAddress()) {
-			txGasLimit = tx.GetGasLimit()
-		}
-
-		gasUsedInMiniBlock += txGasLimit
-	}
-	forBlock.mutTxsForBlock.RUnlock()
-
-	return gasUsedInMiniBlock, nil
 }

@@ -38,6 +38,7 @@ type transactions struct {
 	orderedTxs           map[string][]*transaction.Transaction
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
+	economicsFee         process.FeeHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -85,7 +86,6 @@ func NewTransactionPreprocessor(
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
-		economicsFee:     economicsFee,
 	}
 
 	txs := transactions{
@@ -95,6 +95,7 @@ func NewTransactionPreprocessor(
 		onRequestTransaction: onRequestTransaction,
 		txProcessor:          txProcessor,
 		accounts:             accounts,
+		economicsFee:         economicsFee,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -206,12 +207,12 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 			continue
 		}
 
-		gasLimitRequiredByMiniBlock, err := txs.computeGasLimitUsedByMiniBlock(miniBlock, &txs.txsForCurrBlock)
+		gasConsumedByMiniBlock, err := txs.computeGasConsumedByMiniBlock(miniBlock)
 		if err != nil {
 			return err
 		}
 
-		if gasLimitRequiredByMiniBlock > txs.economicsFee.MaxGasLimitPerMiniBlock() {
+		if gasConsumedByMiniBlock > txs.economicsFee.MaxGasLimitPerMiniBlock() {
 			return process.ErrHigherGasLimitRequiredInMiniBlock
 		}
 
@@ -762,4 +763,33 @@ func (txs *transactions) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (txs *transactions) computeGasConsumedByMiniBlock(miniBlock *block.MiniBlock) (uint64, error) {
+	gasUsedInMiniBlock := uint64(0)
+
+	txs.txsForCurrBlock.mutTxsForBlock.RLock()
+	for _, txHash := range miniBlock.TxHashes {
+		txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+		if !ok {
+			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
+			return 0, process.ErrMissingTransaction
+		}
+
+		tx, ok := txInfo.tx.(*transaction.Transaction)
+		if !ok {
+			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
+			return 0, process.ErrWrongTypeAssertion
+		}
+
+		txGasLimit := txs.economicsFee.ComputeGasLimit(tx)
+		if isSmartContractAddress(tx.GetRecvAddress()) {
+			txGasLimit = tx.GetGasLimit()
+		}
+
+		gasUsedInMiniBlock += txGasLimit
+	}
+	txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
+
+	return gasUsedInMiniBlock, nil
 }
