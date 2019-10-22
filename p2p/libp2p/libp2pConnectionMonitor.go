@@ -18,7 +18,7 @@ type libp2pConnectionMonitor struct {
 	chDoReconnect              chan struct{}
 	reconnecter                p2p.Reconnecter
 	thresholdMinConnectedPeers int
-	targetConnCount int
+	targetConnCount            int
 }
 
 func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int, targetConnCount int) (*libp2pConnectionMonitor, error) {
@@ -30,7 +30,7 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 		reconnecter:                reconnecter,
 		chDoReconnect:              make(chan struct{}, 0),
 		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
-		targetConnCount: targetConnCount,
+		targetConnCount:            targetConnCount,
 	}
 
 	if reconnecter != nil {
@@ -70,6 +70,14 @@ func (lcm *libp2pConnectionMonitor) ThresholdRandomTrim() int {
 	return math.MaxInt32
 }
 
+// Request a reconnet to initial list
+func (lcm *libp2pConnectionMonitor) doReconn() {
+	select {
+	case lcm.chDoReconnect <- struct{}{}:
+	default:
+	}
+}
+
 // Connected is called when a connection opened
 func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
 	if len(netw.Conns()) > lcm.ThresholdDiscoveryPause() {
@@ -81,6 +89,7 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 			log.Info("KDD: cutoff connection")
 			netw.ClosePeer(sorted[i])
 		}
+		lcm.doReconn()
 	}
 }
 
@@ -88,17 +97,15 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn network.Conn) {
 	lcm.doReconnectionIfNeeded(netw)
 
-	if  len(netw.Conns()) < lcm.ThresholdDiscoveryResume() {
+	if len(netw.Conns()) < lcm.ThresholdDiscoveryResume() {
 		lcm.reconnecter.Resume()
+		lcm.doReconn()
 	}
 }
 
 func (lcm *libp2pConnectionMonitor) doReconnectionIfNeeded(netw network.Network) {
 	if !lcm.isConnectedToTheNetwork(netw) {
-		select {
-		case lcm.chDoReconnect <- struct{}{}:
-		default:
-		}
+		lcm.doReconn()
 	}
 }
 
