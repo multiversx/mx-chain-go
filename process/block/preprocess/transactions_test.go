@@ -425,7 +425,7 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
-	mb := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
+	mb := &block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
 	txsRequested := txs.RequestTransactionsForMiniBlock(mb)
 	assert.Equal(t, 2, txsRequested)
 }
