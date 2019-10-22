@@ -11,6 +11,7 @@
    StatusPollingIntervalSec = 2
 
    # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
+   # Max Length should be less than 128 bytes
    NodeDisplayName = ""
 
 [Explorer]

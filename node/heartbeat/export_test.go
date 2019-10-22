@@ -70,3 +70,11 @@ func (hbmi *heartbeatMessageInfo) GetTotalDownTime() Duration {
 func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 	return hbmi.isActive
 }
+
+func Verify(hbmi *Heartbeat) error {
+	return verifyLengths(hbmi)
+}
+
+func GetMaxSizeInBytes() int {
+	return maxSizeInBytes
+}
