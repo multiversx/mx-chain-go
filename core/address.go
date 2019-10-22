@@ -10,6 +10,10 @@ const numInitCharactersForOnMetachainSC = 5
 
 // IsSmartContractAddress verifies if a set address is of type smart contract
 func IsSmartContractAddress(rcvAddress []byte) bool {
+	if len(rcvAddress) <= hooks.NumInitCharactersForScAddress {
+		return false
+	}
+
 	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
 	if isEmptyAddress {
 		return true

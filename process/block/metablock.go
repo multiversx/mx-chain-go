@@ -1227,7 +1227,6 @@ func (mp *metaProcessor) checkAndProcessShardMiniBlockHeader(
 
 func (mp *metaProcessor) createShardInfo(
 	round uint64,
-	haveTime func() bool,
 ) ([]block.ShardData, error) {
 
 	shardInfo := make([]block.ShardData, 0)
@@ -1274,7 +1273,6 @@ func (mp *metaProcessor) createShardInfo(
 		}
 
 		shardInfo = append(shardInfo, shardData)
-		mp.hdrsForCurrBlock.hdrHashAndInfo[hdrHash].usedInBlock = true
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1303,7 +1301,7 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		go mp.checkAndRequestIfShardHeadersMissing(round)
 	}()
 
-	shardInfo, err := mp.createShardInfo(round, haveTime)
+	shardInfo, err := mp.createShardInfo(round)
 	if err != nil {
 		return nil, err
 	}
