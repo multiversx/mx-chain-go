@@ -116,9 +116,12 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	rows[0] = []string{fmt.Sprintf("Node name: %s (Shard %s - %s)", nodeName, shardIdStr, strings.Title(instanceType))}
 
 	appVersion := wr.presenter.GetAppVersion()
+	needUpdate, latestStableVersion := wr.presenter.CheckSoftwareVersion()
 	rows[1] = []string{fmt.Sprintf("App version: %s", appVersion)}
-	if strings.Contains(appVersion, core.UnVersionedAppString) {
-		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorRed)
+
+	if needUpdate {
+		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorRed, ui.ColorWhite, ui.ModifierBold)
+		rows[1][0] += fmt.Sprintf(" (version %s is available)", latestStableVersion)
 	} else {
 		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorGreen)
 	}
