@@ -250,8 +250,9 @@ func (sp *shardProcessor) CreateAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
+	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	return sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
+	return sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime, gasConsumedByBlock)
 }
 
 func (bp *baseProcessor) SetBlockSizeThrottler(blockSizeThrottler process.BlockSizeThrottler) {

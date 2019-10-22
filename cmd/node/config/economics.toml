@@ -10,6 +10,6 @@
     BurnPercentage = 0.40	
 
 [FeeSettings]
-    MaxGasLimitPerMiniBlock = "100000"
+    MaxGasLimitPerBlock = "100000"
     MinGasPrice = "0"
     MinGasLimit = "5"

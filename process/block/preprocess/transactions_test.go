@@ -27,15 +27,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const MaxGasLimitPerMiniBlock = uint64(100000)
+const MaxGasLimitPerBlock = uint64(100000)
 
 func feeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
-			return MaxGasLimitPerMiniBlock
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return MaxGasLimitPerBlock
 		},
 	}
 }
@@ -641,7 +641,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10)
+	gasConsumedByBlock := uint64(0)
+	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10, &gasConsumedByBlock)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -674,7 +675,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 	dstShardId := uint32(1)
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
-	gasLimit := MaxGasLimitPerMiniBlock / uint64(5)
+	gasLimit := MaxGasLimitPerBlock / uint64(5)
 
 	addedTxs := make([]*transaction.Transaction, 0)
 	for i := 0; i < 10; i++ {
@@ -686,7 +687,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10)
+	gasConsumedByBlock := uint64(0)
+	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10, &gasConsumedByBlock)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(addedTxs), len(mb.TxHashes))
@@ -720,7 +722,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
 	numTxsToAdd := 5
-	gasLimit := MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
+	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	addedTxs := make([]*transaction.Transaction, 0)
@@ -733,7 +735,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10)
+	gasConsumedByBlock := uint64(0)
+	mb, err := txs.CreateAndProcessMiniBlock(sndShardId, dstShardId, process.MaxItemsInBlock, haveTimeTrue, 10, &gasConsumedByBlock)
 	assert.Nil(t, err)
 
 	assert.Equal(t, numTxsToAdd, len(mb.TxHashes))

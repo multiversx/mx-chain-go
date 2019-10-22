@@ -183,7 +183,13 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the smartContractResult from the block.Body, updates the state
-func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
+func (scr *smartContractResults) ProcessBlockTransactions(
+	body block.Body,
+	round uint64,
+	haveTime func() bool,
+	gasConsumedByBlock *uint64,
+) error {
+
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -197,6 +203,8 @@ func (scr *smartContractResults) ProcessBlockTransactions(body block.Body, round
 		if miniBlock.SenderShardID == scr.shardCoordinator.SelfId() {
 			continue
 		}
+
+		//TODO: Should be checked max gas limit per block also when a node processes smart contract result transactions from a received block?
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
@@ -424,7 +432,14 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
-func (scr *smartContractResults) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
+func (scr *smartContractResults) CreateAndProcessMiniBlock(
+	sndShardId, dstShardId uint32,
+	spaceRemained int,
+	haveTime func() bool,
+	round uint64,
+	gasConsumedByBlock *uint64,
+) (*block.MiniBlock, error) {
+
 	return nil, nil
 }
 
@@ -435,12 +450,20 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	_ func() bool,
+	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, error) {
+
 	return nil, nil
 }
 
 // ProcessMiniBlock processes all the smartContractResults from a and saves the processed smartContractResults in local cache complete miniblock
-func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
+func (scr *smartContractResults) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	round uint64,
+	gasConsumedByBlock *uint64,
+) error {
+
 	if miniBlock.Type != block.SmartContractResultBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}
@@ -452,9 +475,10 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
-			err = process.ErrTimeIsOut
-			return err
+			return process.ErrTimeIsOut
 		}
+
+		//TODO: Should be checked max gas limit per block also for smart contract result transaction with destination me?
 
 		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {

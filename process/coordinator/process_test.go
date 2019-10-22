@@ -31,15 +31,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const MaxGasLimitPerMiniBlock = uint64(100000)
+const MaxGasLimitPerBlock = uint64(100000)
 
 func FeeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
-			return MaxGasLimitPerMiniBlock
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return MaxGasLimitPerBlock
 		},
 	}
 }
@@ -588,7 +588,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -636,7 +637,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	haveTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -662,7 +664,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -728,7 +731,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
@@ -809,7 +813,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -833,7 +838,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 	haveTime := func() bool {
 		return false
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -857,7 +863,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -900,7 +907,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, int(nrShards), len(mbs))
 }
@@ -940,7 +948,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
 	numTxsToAdd := 5
-	gasLimit := MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
+	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	addedTxs := make([]*transaction.Transaction, 0)
@@ -956,9 +964,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
-	assert.Equal(t, allTxs/numTxsToAdd, len(mbs))
+	assert.Equal(t, 1, len(mbs))
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
@@ -1002,7 +1011,8 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		txPool.AddData(txHash, newTx, strCache)
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 	assert.Equal(t, int(nrShards), len(mbs))
 
 	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)
@@ -1565,7 +1575,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		return true
 	}
 	preproc := tc.getPreProcessor(block.TxBlock)
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime)
+	gasConsumedByBlock := uint64(0)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime, &gasConsumedByBlock)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -1672,7 +1683,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		return true
 	}
 	preproc := tc.getPreProcessor(block.TxBlock)
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime)
+	gasConsumedByBlock := uint64(0)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, 0, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)

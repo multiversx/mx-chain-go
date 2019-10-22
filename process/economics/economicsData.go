@@ -11,15 +11,15 @@ import (
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	rewardsValue            *big.Int
-	communityPercentage     float64
-	leaderPercentage        float64
-	burnPercentage          float64
-	maxGasLimitPerMiniBlock uint64
-	minGasPrice             uint64
-	minGasLimit             uint64
-	communityAddress        string
-	burnAddress             string
+	rewardsValue        *big.Int
+	communityPercentage float64
+	leaderPercentage    float64
+	burnPercentage      float64
+	maxGasLimitPerBlock uint64
+	minGasPrice         uint64
+	minGasLimit         uint64
+	communityAddress    string
+	burnAddress         string
 }
 
 const float64EqualityThreshold = 1e-9
@@ -27,7 +27,7 @@ const float64EqualityThreshold = 1e-9
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	//TODO check what happens if addresses are wrong
-	rewardsValue, maxGasLimitPerMiniBlock, minGasPrice, minGasLimit, err := convertValues(economics)
+	rewardsValue, maxGasLimitPerBlock, minGasPrice, minGasLimit, err := convertValues(economics)
 	if err != nil {
 		return nil, err
 	}
@@ -42,20 +42,20 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
-	if maxGasLimitPerMiniBlock < minGasLimit {
-		return nil, process.ErrInvalidMaxGasLimitPerMiniBlock
+	if maxGasLimitPerBlock < minGasLimit {
+		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
 
 	return &EconomicsData{
-		rewardsValue:            rewardsValue,
-		communityPercentage:     economics.RewardsSettings.CommunityPercentage,
-		leaderPercentage:        economics.RewardsSettings.LeaderPercentage,
-		burnPercentage:          economics.RewardsSettings.BurnPercentage,
-		maxGasLimitPerMiniBlock: maxGasLimitPerMiniBlock,
-		minGasPrice:             minGasPrice,
-		minGasLimit:             minGasLimit,
-		communityAddress:        economics.EconomicsAddresses.CommunityAddress,
-		burnAddress:             economics.EconomicsAddresses.BurnAddress,
+		rewardsValue:        rewardsValue,
+		communityPercentage: economics.RewardsSettings.CommunityPercentage,
+		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
+		burnPercentage:      economics.RewardsSettings.BurnPercentage,
+		maxGasLimitPerBlock: maxGasLimitPerBlock,
+		minGasPrice:         minGasPrice,
+		minGasLimit:         minGasLimit,
+		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
+		burnAddress:         economics.EconomicsAddresses.BurnAddress,
 	}, nil
 }
 
@@ -69,9 +69,9 @@ func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64,
 		return nil, 0, 0, 0, process.ErrInvalidRewardsValue
 	}
 
-	maxGasLimitPerMiniBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerMiniBlock, conversionBase, bitConversionSize)
+	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, 0, process.ErrInvalidMaxGasLimitPerMiniBlock
+		return nil, 0, 0, 0, process.ErrInvalidMaxGasLimitPerBlock
 	}
 
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
@@ -84,7 +84,7 @@ func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64,
 		return nil, 0, 0, 0, process.ErrInvalidMinimumGasLimitForTx
 	}
 
-	return rewardsValue, maxGasLimitPerMiniBlock, minGasPrice, minGasLimit, nil
+	return rewardsValue, maxGasLimitPerBlock, minGasPrice, minGasLimit, nil
 }
 
 func checkValues(economics *config.ConfigEconomics) error {
@@ -153,16 +153,16 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 		return process.ErrInsufficientGasLimitInTx
 	}
 
-	if requiredGasLimit > ed.maxGasLimitPerMiniBlock {
+	if requiredGasLimit > ed.maxGasLimitPerBlock {
 		return process.ErrHigherGasLimitRequiredInTx
 	}
 
 	return nil
 }
 
-// MaxGasLimitPerMiniBlock will return maximum gas limit allowed per mini block
-func (ed *EconomicsData) MaxGasLimitPerMiniBlock() uint64 {
-	return ed.maxGasLimitPerMiniBlock
+// MaxGasLimitPerBlock will return maximum gas limit allowed per block
+func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
+	return ed.maxGasLimitPerBlock
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed

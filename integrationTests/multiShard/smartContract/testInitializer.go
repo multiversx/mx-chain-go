@@ -76,7 +76,7 @@ var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 var opGas = int64(1)
 
 const maxTxNonceDeltaAllowed = 8000
-const mxaGasLimitPerMiniBlock = uint64(100000)
+const mxaGasLimitPerBlock = uint64(100000)
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -286,8 +286,8 @@ func createMockTxFeeHandler() process.FeeHandler {
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
-			return mxaGasLimitPerMiniBlock
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return mxaGasLimitPerBlock
 		},
 	}
 }

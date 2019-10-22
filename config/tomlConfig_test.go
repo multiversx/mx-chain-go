@@ -125,7 +125,7 @@ func TestTomlEconomicsParser(t *testing.T) {
 	communityPercentage := 0.1
 	leaderPercentage := 0.1
 	burnPercentage := 0.8
-	maxGasLimitPerMiniBlock := "18446744073709551615"
+	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
 	minGasLimit := "18446744073709551615"
 
@@ -141,9 +141,9 @@ func TestTomlEconomicsParser(t *testing.T) {
 			BurnPercentage:      burnPercentage,
 		},
 		FeeSettings: FeeSettings{
-			MaxGasLimitPerMiniBlock: maxGasLimitPerMiniBlock,
-			MinGasPrice:             minGasPrice,
-			MinGasLimit:             minGasLimit,
+			MaxGasLimitPerBlock: maxGasLimitPerBlock,
+			MinGasPrice:         minGasPrice,
+			MinGasLimit:         minGasLimit,
 		},
 	}
 
@@ -157,7 +157,7 @@ func TestTomlEconomicsParser(t *testing.T) {
     LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
     BurnPercentage = 	` + fmt.Sprintf("%.6f", burnPercentage) + `
 [FeeSettings]
-	MaxGasLimitPerMiniBlock = "` + maxGasLimitPerMiniBlock + `"
+	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"
     MinGasLimit = "` + minGasLimit + `"
 `

@@ -179,7 +179,13 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the reward transactions from the block.Body, updates the state
-func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
+func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
+	body block.Body,
+	round uint64,
+	haveTime func() bool,
+	gasConsumedByBlock *uint64,
+) error {
+
 	rewardMiniBlocksSlice := make(block.MiniBlockSlice, 0)
 	computedRewardsMbsMap := rtp.rewardsProducer.CreateAllInterMiniBlocks()
 	for _, mb := range computedRewardsMbsMap {
@@ -193,6 +199,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(body block.Body, round
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
+
+		//TODO: Should be checked max gas limit per block also when a node processes reward transactions from a received block?
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
@@ -448,7 +456,14 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the reward transactions added into the miniblock
-func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error) {
+func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(
+	sndShardId, dstShardId uint32,
+	spaceRemained int,
+	haveTime func() bool,
+	round uint64,
+	gasConsumedByBlock *uint64,
+) (*block.MiniBlock, error) {
+
 	return nil, nil
 }
 
@@ -459,6 +474,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	_ func() bool,
+	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, error) {
 
 	// always have time for rewards
@@ -473,9 +489,10 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	}
 
 	snapshot := rtp.accounts.JournalLen()
+	currentGasConsumedByBlock := *gasConsumedByBlock
 
 	for _, mb := range rewardMiniBlocksSlice {
-		err := rtp.ProcessMiniBlock(mb, haveTime, round)
+		err := rtp.ProcessMiniBlock(mb, haveTime, round, gasConsumedByBlock)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -484,6 +501,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 				// TODO: evaluate if reloading the trie from disk will might solve the problem
 				log.Error(errAccountState.Error())
 			}
+			*gasConsumedByBlock = currentGasConsumedByBlock
 			return nil, err
 		}
 	}
@@ -493,7 +511,13 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	round uint64,
+	gasLimitConsumed *uint64,
+) error {
+
 	if miniBlock.Type != block.RewardsBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}
@@ -507,6 +531,8 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		if !haveTime() {
 			return process.ErrTimeIsOut
 		}
+
+		//TODO: Should be checked max gas limit per block also for reward transactions from/to me?
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {

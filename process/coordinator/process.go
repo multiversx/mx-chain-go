@@ -344,6 +344,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
+	gasConsumedByBlock := uint64(0)
 	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
@@ -356,7 +357,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], round, haveTime)
+		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], round, haveTime, &gasConsumedByBlock)
 		if err != nil {
 			return err
 		}
@@ -370,10 +371,11 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksHashes map[string]struct{},
-	maxTxRemaining uint32,
-	maxMbRemaining uint32,
+	maxTxSpaceRemained uint32,
+	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
+	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, uint32, bool) {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
@@ -412,7 +414,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		// overflow would happen if processing would continue
-		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxRemaining
+		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxSpaceRemained
 		if txOverFlow {
 			return miniBlocks, nrTxAdded, false
 		}
@@ -422,7 +424,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, round, haveTime)
+		err := tc.processCompleteMiniBlock(preproc, miniBlock, round, haveTime, gasConsumedByBlock)
 		if err != nil {
 			continue
 		}
@@ -432,7 +434,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMiniBlocksProcessed++
 
-		mbOverFlow := uint32(len(miniBlocks)) >= maxMbRemaining
+		mbOverFlow := uint32(len(miniBlocks)) >= maxMbSpaceRemained
 		if mbOverFlow {
 			return miniBlocks, nrTxAdded, false
 		}
@@ -448,6 +450,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
+	gasConsumedByBlock *uint64,
 ) block.MiniBlockSlice {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -463,6 +466,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			maxMbSpaceRemained,
 			round,
 			haveTime,
+			gasConsumedByBlock,
 		)
 
 		if err != nil {
@@ -686,10 +690,13 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	miniBlock *block.MiniBlock,
 	round uint64,
 	haveTime func() bool,
+	gasConsumedByBlock *uint64,
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
-	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
+	currentGasConsumedByBlock := *gasConsumedByBlock
+
+	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round, gasConsumedByBlock)
 	if err != nil {
 		log.Error(err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
@@ -698,6 +705,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			log.Error(errAccountState.Error())
 		}
 
+		*gasConsumedByBlock = currentGasConsumedByBlock
 		return err
 	}
 

@@ -199,7 +199,13 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 }
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
-func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
+func (txs *transactions) ProcessBlockTransactions(
+	body block.Body,
+	round uint64,
+	haveTime func() bool,
+	gasConsumedByBlock *uint64,
+) error {
+
 	// basic validation already done in interceptors
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -212,8 +218,8 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 			return err
 		}
 
-		if gasConsumedByMiniBlock > txs.economicsFee.MaxGasLimitPerMiniBlock() {
-			return process.ErrHigherGasLimitRequiredInMiniBlock
+		if *gasConsumedByBlock+gasConsumedByMiniBlock > txs.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrMaxGasLimitPerBlockIsReached
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
@@ -247,7 +253,10 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 				return err
 			}
 		}
+
+		*gasConsumedByBlock += gasConsumedByMiniBlock
 	}
+
 	return nil
 }
 
@@ -458,6 +467,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
+	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, error) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -481,7 +491,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				shardId,
 				txSpaceRemained,
 				haveTime,
-				round)
+				round,
+				gasConsumedByBlock)
 			if err != nil {
 				continue
 			}
@@ -504,6 +515,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,
+	gasConsumedByBlock *uint64,
 ) (*block.MiniBlock, error) {
 
 	var orderedTxs []*transaction.Transaction
@@ -532,7 +544,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	miniBlock.Type = block.TxBlock
 
 	addedTxs := 0
-	addedGasLimitPerCrossShardMiniblock := uint64(0)
 	for index := range orderedTxs {
 		if !haveTime() {
 			break
@@ -542,14 +553,14 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		currTxGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
+		txGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
 		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
-			currTxGasLimit = orderedTxs[index].GasLimit
+			txGasLimit = orderedTxs[index].GasLimit
 		}
 
-		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > txs.economicsFee.MaxGasLimitPerMiniBlock()
+		isGasLimitReached := *gasConsumedByBlock+txGasLimit > txs.economicsFee.MaxGasLimitPerBlock()
 		if isGasLimitReached {
-			log.Debug(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
+			log.Debug(fmt.Sprintf("max gas limit per block is reached: added %d txs from %d txs\n",
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
 			continue
@@ -577,7 +588,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
-		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
+		*gasConsumedByBlock += txGasLimit
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n",
@@ -634,7 +645,13 @@ func (txs *transactions) computeOrderedTxs(
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
-func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error {
+func (txs *transactions) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	round uint64,
+	gasConsumedByBlock *uint64,
+) error {
+
 	if miniBlock.Type != block.TxBlock {
 		return process.ErrWrongTypeInMiniBlock
 	}
@@ -646,14 +663,25 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 
 	for index := range miniBlockTxs {
 		if !haveTime() {
-			err = process.ErrTimeIsOut
-			return err
+			return process.ErrTimeIsOut
+		}
+
+		txGasLimit := txs.economicsFee.ComputeGasLimit(miniBlockTxs[index])
+		if isSmartContractAddress(miniBlockTxs[index].RcvAddr) {
+			txGasLimit = miniBlockTxs[index].GasLimit
+		}
+
+		isGasLimitReached := *gasConsumedByBlock+txGasLimit > txs.economicsFee.MaxGasLimitPerBlock()
+		if isGasLimitReached {
+			return process.ErrMaxGasLimitPerBlockIsReached
 		}
 
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			return err
 		}
+
+		*gasConsumedByBlock += txGasLimit
 	}
 
 	txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
