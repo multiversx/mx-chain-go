@@ -206,7 +206,7 @@ func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64,
 			continue
 		}
 
-		gasLimitRequiredByMiniBlock, err := txs.computeGasLimitRequiredByMiniBlock(miniBlock, &txs.txsForCurrBlock)
+		gasLimitRequiredByMiniBlock, err := txs.computeGasLimitUsedByMiniBlock(miniBlock, &txs.txsForCurrBlock)
 		if err != nil {
 			return err
 		}

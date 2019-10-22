@@ -213,7 +213,7 @@ func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForB
 	return txAlreadyProcessed
 }
 
-func (bpp *basePreProcess) computeGasLimitRequiredByMiniBlock(miniBlock *block.MiniBlock, forBlock *txsForBlock) (uint64, error) {
+func (bpp *basePreProcess) computeGasLimitUsedByMiniBlock(miniBlock *block.MiniBlock, forBlock *txsForBlock) (uint64, error) {
 	gasUsedInMiniBlock := uint64(0)
 
 	forBlock.mutTxsForBlock.RLock()
