@@ -1297,8 +1297,15 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		RandSeed:     make([]byte, 0),
 	}
 
+	var err error
 	defer func() {
 		go mp.checkAndRequestIfShardHeadersMissing(round)
+
+		if err != nil {
+			mp.blockSizeThrottler.Add(
+				round,
+				core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
+		}
 	}()
 
 	shardInfo, err := mp.createShardInfo(round)
@@ -1332,10 +1339,6 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 
 	header.MiniBlockHeaders = miniBlockHeaders
 	header.TxCount += uint32(totalTxCount)
-
-	mp.blockSizeThrottler.Add(
-		round,
-		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
 }
