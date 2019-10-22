@@ -37,6 +37,10 @@ func IsMetachainIdentifier(identifier []byte) bool {
 
 // IsSmartContractOnMetachain verifies if an address is smart contract on metachain
 func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
+	if len(rcvAddress) <= hooks.NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC {
+		return false
+	}
+
 	if !IsMetachainIdentifier(identifier) {
 		return false
 	}
