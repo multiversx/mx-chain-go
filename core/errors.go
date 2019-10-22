@@ -42,3 +42,6 @@ var ErrInvalidIndex = errors.New("invalid private key index")
 
 // ErrNotPositiveValue signals that a 0 or negative value has been provided
 var ErrNotPositiveValue = errors.New("the provided value is not positive")
+
+// ErrNilAppStatusHandler signals that a nil status handler has been provided
+var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")

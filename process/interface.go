@@ -197,7 +197,7 @@ type PreProcessor interface {
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
-	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
+	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
 	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, error)
