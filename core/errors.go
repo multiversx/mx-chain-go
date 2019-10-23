@@ -7,8 +7,8 @@ import (
 // ErrNilMarshalizer signals that a nil marshalizer has been provided
 var ErrNilMarshalizer = errors.New("nil marshalizer provided")
 
-// ErrNilHasher signals that a nil marshalizer has been provided
-var ErrNilHasher = errors.New("nil hashser provided")
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher provided")
 
 // ErrNilCoordinator signals that a nil shardCoordinator has been provided
 var ErrNilCoordinator = errors.New("nil coordinator provided")
