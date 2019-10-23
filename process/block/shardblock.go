@@ -1442,6 +1442,10 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 		return process.ErrWrongTypeAssertion
 	}
 
+	shardHeader.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
+	shardHeader.RootHash = sp.getRootHash()
+	shardHeader.ShardId = sp.shardCoordinator.SelfId()
+
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing(hdr.GetRound())
 	}()
