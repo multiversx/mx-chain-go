@@ -13,6 +13,8 @@ import (
 )
 
 const saveInterval = 10 * time.Second
+
+//StatusMetricsDbEntry is key used to save metrics in storage
 const StatusMetricsDbEntry = "status_metrics_db_entry"
 
 var log = logger.DefaultLogger()
