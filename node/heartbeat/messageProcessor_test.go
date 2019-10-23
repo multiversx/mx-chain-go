@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/stretchr/testify/assert"
@@ -179,44 +180,54 @@ func TestNewMessageProcessor_VerifyMessageVersionNumberShouldWork(t *testing.T) 
 	assert.Nil(t, err)
 }
 
-//func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
-//	t.Parallel()
-//
-//	hb := heartbeat.Heartbeat{
-//		Payload:         []byte("Payload"),
-//		Pubkey:          []byte("PubKey"),
-//		Signature:       []byte("Signature"),
-//		ShardID:         0,
-//		VersionNumber:   "VersionNumber",
-//		NodeDisplayName: "NodeDisplayName",
-//	}
-//
-//	marshalizer := &mock.MarshalizerMock{}
-//
-//	marshalizer.UnmarshalHandler = func(obj interface{}, buff []byte) error {
-//		(obj.(*heartbeat.Heartbeat)).Pubkey = hb.Pubkey
-//		(obj.(*heartbeat.Heartbeat)).Payload = hb.Payload
-//		(obj.(*heartbeat.Heartbeat)).Signature = hb.Signature
-//		(obj.(*heartbeat.Heartbeat)).ShardID = hb.ShardID
-//		(obj.(*heartbeat.Heartbeat)).VersionNumber = hb.VersionNumber
-//		(obj.(*heartbeat.Heartbeat)).NodeDisplayName = hb.NodeDisplayName
-//
-//		return nil
-//	}
-//
-//	mon, err := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, marshalizer)
-//
-//	message := &mock.P2PMessageStub{
-//		FromField:      nil,
-//		DataField:      make([]byte, 5),
-//		SeqNoField:     nil,
-//		TopicIDsField:  nil,
-//		SignatureField: nil,
-//		KeyField:       nil,
-//		PeerField:      "",
-//	}
-//
-//	err,err := mon.CreateHeartbeatFromP2pMessage(message)
-//
-//	assert.Nil(t, err)
-//}
+func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
+	t.Parallel()
+
+	hb := heartbeat.Heartbeat{
+		Payload:         []byte("Payload"),
+		Pubkey:          []byte("PubKey"),
+		Signature:       []byte("Signature"),
+		ShardID:         0,
+		VersionNumber:   "VersionNumber",
+		NodeDisplayName: "NodeDisplayName",
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	marshalizer.UnmarshalHandler = func(obj interface{}, buff []byte) error {
+		(obj.(*heartbeat.Heartbeat)).Pubkey = hb.Pubkey
+		(obj.(*heartbeat.Heartbeat)).Payload = hb.Payload
+		(obj.(*heartbeat.Heartbeat)).Signature = hb.Signature
+		(obj.(*heartbeat.Heartbeat)).ShardID = hb.ShardID
+		(obj.(*heartbeat.Heartbeat)).VersionNumber = hb.VersionNumber
+		(obj.(*heartbeat.Heartbeat)).NodeDisplayName = hb.NodeDisplayName
+
+		return nil
+	}
+
+	singleSigner := &mock.SinglesignMock{
+		//validate
+	}
+	keyGen := &mock.KeyGenMock{
+		PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
+			return &mock.PublicKeyMock{}, nil
+		},
+	}
+
+	mon, err := heartbeat.NewMessageProcessor(singleSigner, keyGen, marshalizer)
+
+	message := &mock.P2PMessageStub{
+		FromField:      nil,
+		DataField:      make([]byte, 5),
+		SeqNoField:     nil,
+		TopicIDsField:  nil,
+		SignatureField: nil,
+		KeyField:       nil,
+		PeerField:      "",
+	}
+
+	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, ret)
+}

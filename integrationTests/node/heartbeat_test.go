@@ -100,7 +100,7 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(time.Second * 5)
 
-	fmt.Println("Sending first messages from both public keys...")
+	fmt.Println("Sending first messages with long name...")
 	_ = senders[1].SendHeartbeat()
 
 	time.Sleep(stepDelay)
