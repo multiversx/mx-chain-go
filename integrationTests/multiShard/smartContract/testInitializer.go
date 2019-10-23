@@ -479,9 +479,9 @@ func createNetNode(
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
 			BlockChainHook:  blockChainHook,
+			TxCoordinator:   tc,
 		},
 		DataPool:        dPool,
-		TxCoordinator:   tc,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
@@ -854,6 +854,7 @@ func createMetaNetNode(
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
 			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		},
 		DataPool: dPool,
 	}

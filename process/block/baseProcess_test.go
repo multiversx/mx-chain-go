@@ -258,15 +258,15 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 	metaBlock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{
-				ShardId:               senderShardId,
+				ShardID:               senderShardId,
 				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(miniBlockHashes)),
 			},
 		},
 	}
 
 	for idx, mbHash := range miniBlockHashes {
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardId = destShardId
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardId = senderShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardID = destShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardID = senderShardId
 		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].Hash = mbHash
 	}
 
@@ -339,9 +339,9 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			RequestHandler:        &mock.RequestHandlerMock{},
 			Core:                  &mock.ServiceContainerMock{},
 			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:   	   &mock.TransactionCoordinatorMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
-		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
@@ -355,7 +355,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	arguments.Hasher = &mock.HasherMock{}
 	bp, _ := blproc.NewShardProcessor(arguments)
 	blkc := createTestBlockchain()
-	body := &block.Body{}
+	body := block.Body{}
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.Round = 1

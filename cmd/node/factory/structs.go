@@ -1799,11 +1799,11 @@ func newShardBlockProcessor(
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
 		BlockChainHook:        vmFactory.VMAccountsDB(),
+		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.Datapool,
-		TxCoordinator:    txCoordinator,
 		TxsPoolsCleaner:  txPoolsCleaner,
 	}
 
@@ -1873,6 +1873,8 @@ func newMetaBlockProcessor(
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
 		BlockChainHook:        vmFactory.VMAccountsDB(),
+		//TODO add real transaction coordinator here
+		TxCoordinator: &mock.TransactionCoordinatorMock{},
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,

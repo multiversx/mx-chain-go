@@ -29,7 +29,6 @@ type shardProcessor struct {
 	processedMiniBlocks    map[string]map[string]struct{}
 	mutProcessedMiniBlocks sync.RWMutex
 	core                   serviceContainer.Core
-	txCoordinator          process.TransactionCoordinator
 	txCounter              *transactionCounter
 	txsPoolsCleaner        process.PoolsCleaner
 }
@@ -43,9 +42,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
-	}
-	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
-		return nil, process.ErrNilTransactionCoordinator
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -67,6 +63,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 		blockChainHook:                arguments.BlockChainHook,
+		txCoordinator:                 arguments.TxCoordinator,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -81,7 +78,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		core:            arguments.Core,
 		baseProcessor:   base,
 		dataPool:        arguments.DataPool,
-		txCoordinator:   arguments.TxCoordinator,
 		txCounter:       NewTransactionCounter(),
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
@@ -149,7 +145,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
-	err = sp.checkHeaderBodyCorrelation(header, body)
+	err = sp.checkHeaderBodyCorrelation(header.MiniBlockHeaders, body)
 	if err != nil {
 		return err
 	}
@@ -170,7 +166,6 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.txCoordinator.CreateBlockStarted()
 	sp.createBlockStarted()
 	sp.blockChainHook.SetCurrentHeader(headerHandler)
 
@@ -351,47 +346,6 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	return nil
 }
 
-// check if header has the same miniblocks as presented in body
-func (sp *shardProcessor) checkHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
-	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(hdr.MiniBlockHeaders))
-	for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
-		mbHashesFromHdr[string(hdr.MiniBlockHeaders[i].Hash)] = &hdr.MiniBlockHeaders[i]
-	}
-
-	if len(hdr.MiniBlockHeaders) != len(body) {
-		return process.ErrHeaderBodyMismatch
-	}
-
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
-
-		mbBytes, err := sp.marshalizer.Marshal(miniBlock)
-		if err != nil {
-			return err
-		}
-		mbHash := sp.hasher.Compute(string(mbBytes))
-
-		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
-		if !ok {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		if mbHdr.SenderShardID != miniBlock.SenderShardID {
-			return process.ErrHeaderBodyMismatch
-		}
-	}
-
-	return nil
-}
-
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	orderedMetaBlocks, err := sp.getOrderedMetaBlocks(round)
 	if err != nil {
@@ -541,7 +495,6 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (sp *shardProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	log.Debug(fmt.Sprintf("started creating block body in round %d\n", initialHdrData.GetRound()))
-	sp.txCoordinator.CreateBlockStarted()
 	sp.createBlockStarted()
 	sp.blockSizeThrottler.ComputeMaxItems()
 
@@ -786,17 +739,17 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 	var errFound error
 	// search for own shard id in shardInfo from metaHeaders
 	for _, shardInfo := range hdr.ShardInfo {
-		if shardInfo.ShardId != shardId {
+		if shardInfo.ShardID != shardId {
 			continue
 		}
 
 		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			go sp.onRequestHeaderHandler(shardInfo.ShardId, shardInfo.HeaderHash)
+			go sp.onRequestHeaderHandler(shardInfo.ShardID, shardInfo.HeaderHash)
 
 			log.Info(fmt.Sprintf("requested missing shard header with hash %s for shard %d\n",
 				core.ToB64(shardInfo.HeaderHash),
-				shardInfo.ShardId))
+				shardInfo.ShardID))
 
 			errFound = err
 			continue
@@ -1502,29 +1455,13 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 		return process.ErrWrongTypeAssertion
 	}
 
-	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body))
-
-	for i := 0; i < len(body); i++ {
-		txCount := len(body[i].TxHashes)
-		totalTxCount += txCount
-
-		miniBlockHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, body[i])
-		if err != nil {
-			return err
-		}
-
-		miniBlockHeaders[i] = block.MiniBlockHeader{
-			Hash:            miniBlockHash,
-			SenderShardID:   body[i].SenderShardID,
-			ReceiverShardID: body[i].ReceiverShardID,
-			TxCount:         uint32(txCount),
-			Type:            body[i].Type,
-		}
+	totalTxCount, miniBlockHeaders, err := sp.createMiniBlockHeaders(body)
+	if err != nil {
+		return nil, err
 	}
 
-	shardHeader.MiniBlockHeaders = miniBlockHeaders
-	shardHeader.TxCount = uint32(totalTxCount)
+	header.MiniBlockHeaders = miniBlockHeaders
+	header.TxCount = uint32(totalTxCount)
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
@@ -1671,16 +1608,4 @@ func (sp *shardProcessor) isMiniBlockProcessed(metaBlockHash []byte, miniBlockHa
 	sp.mutProcessedMiniBlocks.RUnlock()
 
 	return isProcessed
-}
-
-func (sp *shardProcessor) getMaxMiniBlocksSpaceRemained(
-	maxItemsInBlock uint32,
-	itemsAddedInBlock uint32,
-	miniBlocksAddedInBlock uint32,
-) int32 {
-	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
-	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
-	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
-
-	return maxMbSpaceRemained
 }
