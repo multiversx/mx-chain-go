@@ -313,7 +313,12 @@ func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes 
 
 // computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
 func (txs *transactions) computeMissingAndExistingTxsForShards(body block.Body) map[uint32][]*txsHashesInfo {
-	missingTxsForShard := txs.computeExistingAndMissing(body, &txs.txsForCurrBlock, txs.chRcvAllTxs, block.TxBlock, txs.txPool)
+	missingTxsForShard := txs.computeExistingAndMissing(
+		body,
+		&txs.txsForCurrBlock,
+		txs.chRcvAllTxs,
+		block.TxBlock,
+		txs.txPool)
 
 	return missingTxsForShard
 }
@@ -347,24 +352,30 @@ func (txs *transactions) processAndRemoveBadTransaction(
 }
 
 // RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
-func (txs *transactions) RequestTransactionsForMiniBlock(mb block.MiniBlock) int {
-	missingTxsForMiniBlock := txs.computeMissingTxsForMiniBlock(mb)
-	txs.onRequestTransaction(mb.SenderShardID, missingTxsForMiniBlock)
+func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int {
+	if miniBlock == nil {
+		return 0
+	}
+
+	missingTxsForMiniBlock := txs.computeMissingTxsForMiniBlock(miniBlock)
+	if len(missingTxsForMiniBlock) > 0 {
+		txs.onRequestTransaction(miniBlock.SenderShardID, missingTxsForMiniBlock)
+	}
 
 	return len(missingTxsForMiniBlock)
 }
 
 // computeMissingTxsForMiniBlock computes missing transactions for a certain miniblock
-func (txs *transactions) computeMissingTxsForMiniBlock(mb block.MiniBlock) [][]byte {
-	if mb.Type != block.TxBlock {
+func (txs *transactions) computeMissingTxsForMiniBlock(miniBlock *block.MiniBlock) [][]byte {
+	if miniBlock.Type != block.TxBlock {
 		return nil
 	}
 
 	missingTransactions := make([][]byte, 0)
-	for _, txHash := range mb.TxHashes {
+	for _, txHash := range miniBlock.TxHashes {
 		tx, _ := process.GetTransactionHandlerFromPool(
-			mb.SenderShardID,
-			mb.ReceiverShardID,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
 			txHash,
 			txs.txPool)
 

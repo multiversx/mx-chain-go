@@ -90,6 +90,10 @@ func (cm *CacherMock) Len() int {
 	return len(cm.dataMap)
 }
 
+func (cm *CacherMock) MaxSize() int {
+	return 10000
+}
+
 func (cm *CacherMock) RegisterHandler(func(key []byte)) {
 	panic("implement me")
 }
