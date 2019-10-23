@@ -213,9 +213,21 @@ func (txs *transactions) ProcessBlockTransactions(
 			continue
 		}
 
-		gasConsumedByMiniBlock, err := txs.computeGasConsumedByMiniBlock(miniBlock)
+		gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, err := txs.computeGasConsumedByMiniBlock(miniBlock)
 		if err != nil {
 			return err
+		}
+
+		if gasConsumedByMiniBlockInReceiverShard > txs.economicsFee.MaxGasLimitPerBlock() ||
+			gasConsumedByMiniBlockInSenderShard > txs.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrMaxGasLimitPerMiniBlockIsReached
+		}
+
+		var gasConsumedByMiniBlock uint64
+		if txs.shardCoordinator.SelfId() == miniBlock.SenderShardID {
+			gasConsumedByMiniBlock = gasConsumedByMiniBlockInSenderShard
+		} else {
+			gasConsumedByMiniBlock = gasConsumedByMiniBlockInReceiverShard
 		}
 
 		if *gasConsumedByBlock+gasConsumedByMiniBlock > txs.economicsFee.MaxGasLimitPerBlock() {
@@ -544,6 +556,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	miniBlock.Type = block.TxBlock
 
 	addedTxs := 0
+	gasConsumedByMiniBlock := uint64(0)
 	for index := range orderedTxs {
 		if !haveTime() {
 			break
@@ -553,14 +566,18 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		txGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
+		txGasLimitInSenderShard := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
+		txGasLimitInReceiverShard := txGasLimitInSenderShard
 		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
-			txGasLimit = orderedTxs[index].GasLimit
+			txGasLimitInReceiverShard = orderedTxs[index].GasLimit
 		}
 
-		isGasLimitReached := *gasConsumedByBlock+txGasLimit > txs.economicsFee.MaxGasLimitPerBlock()
-		if isGasLimitReached {
-			log.Debug(fmt.Sprintf("max gas limit per block is reached: added %d txs from %d txs\n",
+		isGasLimitReachedInMiniBlock := gasConsumedByMiniBlock+txGasLimitInReceiverShard > txs.economicsFee.MaxGasLimitPerBlock()
+		isGasLimitReachedInBlock := *gasConsumedByBlock+txGasLimitInSenderShard > txs.economicsFee.MaxGasLimitPerBlock()
+		if isGasLimitReachedInMiniBlock || isGasLimitReachedInBlock {
+			log.Debug(fmt.Sprintf("max gas limit per mini block %d / block %d is reached: added %d txs from %d txs\n",
+				gasConsumedByMiniBlock,
+				gasConsumedByBlock,
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
 			continue
@@ -588,7 +605,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
-		*gasConsumedByBlock += txGasLimit
+		gasConsumedByMiniBlock += txGasLimitInReceiverShard
+		*gasConsumedByBlock += txGasLimitInSenderShard
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n",
@@ -804,31 +822,34 @@ func (txs *transactions) IsInterfaceNil() bool {
 	return false
 }
 
-func (txs *transactions) computeGasConsumedByMiniBlock(miniBlock *block.MiniBlock) (uint64, error) {
-	gasUsedInMiniBlock := uint64(0)
+func (txs *transactions) computeGasConsumedByMiniBlock(miniBlock *block.MiniBlock) (uint64, uint64, error) {
+	gasUsedByMiniBlockInSenderShard := uint64(0)
+	gasUsedByMiniBlockInReceiverShard := uint64(0)
 
 	txs.txsForCurrBlock.mutTxsForBlock.RLock()
 	for _, txHash := range miniBlock.TxHashes {
 		txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
 		if !ok {
 			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
-			return 0, process.ErrMissingTransaction
+			return 0, 0, process.ErrMissingTransaction
 		}
 
 		tx, ok := txInfo.tx.(*transaction.Transaction)
 		if !ok {
 			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
-			return 0, process.ErrWrongTypeAssertion
+			return 0, 0, process.ErrWrongTypeAssertion
 		}
 
-		txGasLimit := txs.economicsFee.ComputeGasLimit(tx)
-		if isSmartContractAddress(tx.GetRecvAddress()) {
-			txGasLimit = tx.GetGasLimit()
+		txGasLimitInSenderShard := txs.economicsFee.ComputeGasLimit(tx)
+		txGasLimitInReceiverShard := txGasLimitInSenderShard
+		if isSmartContractAddress(tx.RcvAddr) {
+			txGasLimitInReceiverShard = tx.GasLimit
 		}
 
-		gasUsedInMiniBlock += txGasLimit
+		gasUsedByMiniBlockInSenderShard += txGasLimitInSenderShard
+		gasUsedByMiniBlockInReceiverShard += txGasLimitInReceiverShard
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
-	return gasUsedInMiniBlock, nil
+	return gasUsedByMiniBlockInSenderShard, gasUsedByMiniBlockInReceiverShard, nil
 }

@@ -515,7 +515,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 	round uint64,
-	gasLimitConsumed *uint64,
+	gasConsumedByBlock *uint64,
 ) error {
 
 	if miniBlock.Type != block.RewardsBlock {

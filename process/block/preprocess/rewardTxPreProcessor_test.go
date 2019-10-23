@@ -310,8 +310,8 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		Type:            0,
 	}
 
-	gasLimitConsumed := uint64(0)
-	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, 0, &gasLimitConsumed)
+	gasConsumedByBlock := uint64(0)
+	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, 0, &gasConsumedByBlock)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -340,8 +340,8 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		Type:            block.RewardsBlock,
 	}
 
-	gasLimitConsumed := uint64(0)
-	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, 0, &gasLimitConsumed)
+	gasConsumedByBlock := uint64(0)
+	err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, 0, &gasConsumedByBlock)
 	assert.Nil(t, err)
 
 	txsMap := rtp.GetAllCurrentUsedTxs()
@@ -506,8 +506,8 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	var blockBody block.Body
 	blockBody = append(blockBody, &mb1, &mb2)
 
-	gasLimitConsumed := uint64(0)
-	err := rtp.ProcessBlockTransactions(blockBody, 0, haveTimeTrue, &gasLimitConsumed)
+	gasConsumedByBlock := uint64(0)
+	err := rtp.ProcessBlockTransactions(blockBody, 0, haveTimeTrue, &gasConsumedByBlock)
 	assert.Nil(t, err)
 }
 
@@ -637,8 +637,8 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 		func(shardID uint32, txHashes [][]byte) {},
 	)
 
-	gasLimitConsumed := uint64(0)
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, 0, haveTimeTrue, &gasLimitConsumed)
+	gasConsumedByBlock := uint64(0)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, 0, haveTimeTrue, &gasConsumedByBlock)
 	assert.Nil(t, mBlocksSlice)
 	assert.Equal(t, process.ErrNilRewardTransaction, err)
 }
@@ -673,8 +673,8 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		func(shardID uint32, txHashes [][]byte) {},
 	)
 
-	gasLimitConsumed := uint64(0)
-	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, 0, haveTimeTrue, &gasLimitConsumed)
+	gasConsumedByBlock := uint64(0)
+	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, 0, haveTimeTrue, &gasConsumedByBlock)
 	assert.NotNil(t, mBlocksSlice)
 	assert.Nil(t, err)
 }

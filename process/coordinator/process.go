@@ -377,6 +377,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	haveTime func() bool,
 	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, uint32, bool) {
+
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0

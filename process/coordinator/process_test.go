@@ -967,7 +967,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	gasConsumedByBlock := uint64(0)
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
-	assert.Equal(t, 1, len(mbs))
+	assert.Equal(t, allTxs/numTxsToAdd, len(mbs))
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {

@@ -496,6 +496,9 @@ var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx"
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
+// ErrMaxGasLimitPerMiniBlockIsReached signals that max gas limit per mini block has been reached
+var ErrMaxGasLimitPerMiniBlockIsReached = errors.New("max gas limit per mini block is reached")
+
 // ErrMaxGasLimitPerBlockIsReached signals that max gas limit per block has been reached
 var ErrMaxGasLimitPerBlockIsReached = errors.New("max gas limit per block is reached")
 
