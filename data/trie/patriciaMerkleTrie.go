@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/opentracing/opentracing-go/log"
 )
 
 const (
@@ -38,6 +39,8 @@ type patriciaMerkleTrie struct {
 	snapshots             []data.DBWriteCacher
 	snapshotId            int
 	snapshotDbCfg         config.DBConfig
+	snapshotInProgress    bool
+	pruningBuffer         [][]byte
 	dbEvictionWaitingList data.DBRemoveCacher
 	oldHashes             [][]byte
 	oldRoot               []byte
@@ -310,7 +313,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		tr.oldHashes = make([][]byte, 0)
 	}
 
-	err = tr.root.commit(false, 0, tr.db, tr.marshalizer, tr.hasher)
+	err = tr.root.commit(false, 0, tr.db, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
@@ -322,7 +325,14 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	newTr, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize(), tr.snapshotDbCfg)
+	newTr, err := NewTrie(
+		tr.db,
+		tr.marshalizer,
+		tr.hasher,
+		memorydb.New(),
+		tr.dbEvictionWaitingList.GetSize(),
+		tr.snapshotDbCfg,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +364,14 @@ func (tr *patriciaMerkleTrie) DeepClone() (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	clonedTrie, err := NewTrie(tr.db, tr.marshalizer, tr.hasher, memorydb.New(), tr.dbEvictionWaitingList.GetSize(), tr.snapshotDbCfg)
+	clonedTrie, err := NewTrie(
+		tr.db,
+		tr.marshalizer,
+		tr.hasher,
+		memorydb.New(),
+		tr.dbEvictionWaitingList.GetSize(),
+		tr.snapshotDbCfg,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -408,16 +425,15 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 	defer tr.mutOperation.Unlock()
 
 	rootHash = append(rootHash, byte(identifier))
-	hashes, err := tr.dbEvictionWaitingList.Evict(rootHash)
-	if err != nil {
-		return err
+
+	if tr.snapshotInProgress {
+		tr.pruningBuffer = append(tr.pruningBuffer, rootHash)
+		return nil
 	}
 
-	for i := range hashes {
-		err = tr.db.Remove(hashes[i])
-		if err != nil {
-			return err
-		}
+	err := tr.removeFromDb(rootHash)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -451,10 +467,17 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	err := tr.root.commit(false, 0, tr.db, tr.marshalizer, tr.hasher)
+	if tr.snapshotInProgress {
+		return ErrSnapshotInProgress
+	}
+	tr.snapshotInProgress = true
+
+	err := tr.root.commit(false, 0, tr.db, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
+
+	rootHash := tr.root.getHash()
 
 	db, err := storageUnit.NewDB(
 		storageUnit.DBType(tr.snapshotDbCfg.Type),
@@ -468,18 +491,81 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	}
 	tr.snapshotId++
 
-	err = tr.root.commit(true, 0, db, tr.marshalizer, tr.hasher)
-	if err != nil {
-		return err
-	}
-
 	tr.snapshots = append(tr.snapshots, db)
 
 	if len(tr.snapshots) > maxSnapshots {
 		dbUniqueId := strconv.Itoa(tr.snapshotId - len(tr.snapshots))
 		tr.snapshots = tr.snapshots[1:]
 
-		err = os.RemoveAll(path.Join(tr.snapshotDbCfg.FilePath, dbUniqueId))
+		removePath := path.Join(tr.snapshotDbCfg.FilePath, dbUniqueId)
+		go func() {
+			err = os.RemoveAll(removePath)
+			if err != nil {
+				log.Error(err)
+			}
+		}()
+	}
+
+	newTrie, err := NewTrie(
+		tr.db,
+		tr.marshalizer,
+		tr.hasher,
+		memorydb.New(),
+		tr.dbEvictionWaitingList.GetSize(),
+		tr.snapshotDbCfg,
+	)
+	if err != nil {
+		return err
+	}
+
+	encRoot, err := tr.db.Get(rootHash)
+	if err != nil {
+		return err
+	}
+
+	newRoot, err := decodeNode(encRoot, tr.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	newRoot.setGivenHash(rootHash)
+	newTrie.root = newRoot
+
+	go tr.snapshot(newTrie, db)
+
+	return nil
+}
+
+func (tr *patriciaMerkleTrie) snapshot(newTrie *patriciaMerkleTrie, db data.DBWriteCacher) {
+	err := newTrie.root.commit(true, 0, newTrie.db, db, newTrie.marshalizer, newTrie.hasher)
+	if err != nil {
+		log.Error(err)
+	}
+
+	tr.mutOperation.Lock()
+	keys := tr.pruningBuffer
+	tr.pruningBuffer = make([][]byte, 0)
+	tr.snapshotInProgress = false
+	tr.mutOperation.Unlock()
+
+	for i := range keys {
+		tr.mutOperation.Lock()
+		err = tr.removeFromDb(keys[i])
+		if err != nil {
+			log.Error(err)
+		}
+		tr.mutOperation.Unlock()
+	}
+}
+
+func (tr *patriciaMerkleTrie) removeFromDb(hash []byte) error {
+	hashes, err := tr.dbEvictionWaitingList.Evict(hash)
+	if err != nil {
+		return err
+	}
+
+	for i := range hashes {
+		err = tr.db.Remove(hashes[i])
 		if err != nil {
 			return err
 		}

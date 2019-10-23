@@ -298,7 +298,7 @@ func TestBranchNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
 	_ = bn.setHash(marsh, hasher)
 
-	err := bn.commit(false, 0, db, marsh, hasher)
+	err := bn.commit(false, 0, db, db, marsh, hasher)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -315,7 +315,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := bn.commit(false, 0, db, marsh, hasher)
+	err := bn.commit(false, 0, db, db, marsh, hasher)
 	assert.Equal(t, ErrEmptyNode, err)
 }
 
@@ -326,7 +326,7 @@ func TestBranchNode_commitNilNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	marsh, hasher := getTestMarshAndHasher()
 
-	err := bn.commit(false, 0, db, marsh, hasher)
+	err := bn.commit(false, 0, db, db, marsh, hasher)
 	assert.Equal(t, ErrNilNode, err)
 }
 
@@ -375,7 +375,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	marsh, hasher := getTestMarshAndHasher()
 
 	_ = bn.setHash(marsh, hasher)
-	_ = bn.commit(false, 0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, db, marsh, hasher)
 	resolved := newLeafNode([]byte("dog"), []byte("dog"))
 	resolved.dirty = false
 	resolved.hash = bn.EncodedChildren[childPos]
@@ -490,7 +490,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	_ = bn.setHash(marsh, hasher)
-	_ = bn.commit(false, 0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, db, marsh, hasher)
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -638,7 +638,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	node := newLeafNode(key, []byte("dogs"))
 
 	_ = bn.setHash(marsh, hasher)
-	_ = bn.commit(false, 0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, db, marsh, hasher)
 
 	dirty, newBn, _, err := collapsedBn.insert(node, db, marsh)
 	assert.True(t, dirty)
@@ -658,7 +658,7 @@ func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 	node := newLeafNode(key, []byte("dogs"))
 
-	_ = bn.commit(false, 0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, db, marsh, hasher)
 	bnHash := bn.getHash()
 	ln, _, _ := bn.getNext(key, db, marsh)
 	lnHash := ln.getHash()
@@ -682,7 +682,7 @@ func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
 	key := append([]byte{nilChildPos}, []byte("dog")...)
 	node := newLeafNode(key, []byte("dogs"))
 
-	_ = bn.commit(false, 0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, db, marsh, hasher)
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash}
 
@@ -781,7 +781,7 @@ func TestBranchNode_deleteFromStoredBn(t *testing.T) {
 	childPos := byte(2)
 	lnKey := append([]byte{childPos}, []byte("dog")...)
 
-	_ = bn.commit(false, 0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, db, marsh, hasher)
 	bnHash := bn.getHash()
 	ln, _, _ := bn.getNext(lnKey, db, marsh)
 	lnHash := ln.getHash()
@@ -862,7 +862,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	_ = bn.setHash(marsh, hasher)
-	_ = bn.commit(false, 0, db, marsh, hasher)
+	_ = bn.commit(false, 0, db, db, marsh, hasher)
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)

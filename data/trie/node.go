@@ -26,7 +26,7 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode(marshal.Marshalizer) ([]byte, error)
-	commit(force bool, level byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	resolveCollapsed(pos byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) error
 	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
 	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
@@ -132,7 +132,7 @@ func resolveIfCollapsed(n node, pos byte, db data.DBWriteCacher, marshalizer mar
 	}
 
 	if n.isPosCollapsed(int(pos)) {
-		err := n.resolveCollapsed(pos, db, marshalizer)
+		err = n.resolveCollapsed(pos, db, marshalizer)
 		if err != nil {
 			return err
 		}
