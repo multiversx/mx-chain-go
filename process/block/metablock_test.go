@@ -528,6 +528,9 @@ func TestMetaProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.T
 
 			return []byte("obj"), nil
 		},
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return nil
+		},
 	}
 	arguments := createMockMetaArguments()
 	arguments.Accounts = accounts

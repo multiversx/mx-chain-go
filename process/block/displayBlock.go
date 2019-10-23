@@ -16,17 +16,19 @@ import (
 
 type transactionCounter struct {
 	mutex           sync.RWMutex
-	currentBlockTxs int
-	totalTxs        int
+	currentBlockTxs uint64
+	totalTxs        uint64
 }
 
 // NewTransactionCounter returns a new object that keeps track of how many transactions
 // were executed in total, and in the current block
-func NewTransactionCounter() *transactionCounter {
+func NewTransactionCounter(store dataRetriever.StorageService, marshalizer marshal.Marshalizer) *transactionCounter {
+	totalTxs := getNumFromStorage(store, marshalizer, core.MetricNumProcessedTxs)
+
 	return &transactionCounter{
 		mutex:           sync.RWMutex{},
 		currentBlockTxs: 0,
-		totalTxs:        0,
+		totalTxs:        totalTxs,
 	}
 }
 
@@ -73,7 +75,7 @@ func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRe
 // subtractRestoredTxs updated the total processed txs in case of restore
 func (txc *transactionCounter) subtractRestoredTxs(txsNr int) {
 	txc.mutex.Lock()
-	txc.totalTxs = txc.totalTxs - txsNr
+	txc.totalTxs = txc.totalTxs - uint64(txsNr)
 	txc.mutex.Unlock()
 }
 
@@ -214,8 +216,8 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	}
 
 	txc.mutex.Lock()
-	txc.currentBlockTxs = currentBlockTxs
-	txc.totalTxs += currentBlockTxs
+	txc.currentBlockTxs = uint64(currentBlockTxs)
+	txc.totalTxs += uint64(currentBlockTxs)
 	txc.mutex.Unlock()
 
 	return lines

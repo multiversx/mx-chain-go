@@ -81,7 +81,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		baseProcessor:   base,
 		dataPool:        arguments.DataPool,
 		txCoordinator:   arguments.TxCoordinator,
-		txCounter:       NewTransactionCounter(),
+		txCounter:       NewTransactionCounter(arguments.Store, arguments.Marshalizer),
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
 	sp.chRcvAllMetaHdrs = make(chan bool)

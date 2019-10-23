@@ -34,6 +34,8 @@ const (
 	MetaHdrNonceHashDataUnit UnitType = 9
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 10
+	//StatusMetricsUnit is the status metrics storage unit identifier
+	StatusMetricsUnit UnitType = 11
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

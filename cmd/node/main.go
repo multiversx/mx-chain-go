@@ -4,11 +4,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"math/big"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -31,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -42,8 +41,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
@@ -57,7 +54,7 @@ const (
 	defaultEpochString = "Epoch"
 	defaultShardString = "Shard"
 	metachainShardName = "metachain"
-	DefaultRestApiPort  = "off"
+	DefaultRestApiPort = "off"
 )
 
 var (
@@ -518,60 +515,23 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	var appStatusHandlers []core.AppStatusHandler
-	var views []factoryViews.Viewer
-
-	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(ctx)
-	if usePrometheusBool {
-		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
-		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer)
+	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
+	if err != nil {
+		return err
 	}
 
-	presenterStatusHandler := factory.CreateStatusHandlerPresenter()
-
-	useTermui := !ctx.GlobalBool(useLogView.Name)
-	if useTermui {
-
-		views, err = factory.CreateViews(presenterStatusHandler)
-		if err != nil {
-			return err
-		}
-
-		writer, ok := presenterStatusHandler.(io.Writer)
-		if ok {
-			err = log.ChangePrinterHookWriter(writer)
-			if err != nil {
-				return err
-			}
-		}
-
-		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
-		if ok {
-			appStatusHandlers = append(appStatusHandlers, appStatusHandler)
-		}
-	}
-
-	if views == nil {
-		log.Warn("No views for current node")
-	}
-
-	statusMetrics := statusHandler.NewStatusMetrics()
-	appStatusHandlers = append(appStatusHandlers, statusMetrics)
-
-	if len(appStatusHandlers) > 0 {
-		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
-		if err != nil {
-			log.Warn("Cannot init AppStatusFacade", err)
-		}
-	} else {
-		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
-		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
-	}
+	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
+	if err != nil {
+		return err
+	}
+
+	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
 		return err
 	}
@@ -719,7 +679,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
+	apiResolver, err := createApiResolver(vmAccountsDB, statusHandlersInfo.StatusMetrics)
 	if err != nil {
 		return err
 	}
@@ -740,14 +700,14 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	restAPIServerDebugMode := !useTermui
+	restAPIServerDebugMode := !statusHandlersInfo.UserTermui
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
 		RestApiPort:       ctx.GlobalString(restApiPort.Name),
 		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
-		Prometheus:        usePrometheusBool,
-		PrometheusJoinURL: prometheusJoinUrl,
+		Prometheus:        statusHandlersInfo.UsePrometheus,
+		PrometheusJoinURL: statusHandlersInfo.PrometheusJoinUrl,
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
@@ -795,35 +755,6 @@ func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sha
 	if validatorsPubKeys != nil {
 		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys)
 	}
-}
-
-func getPrometheusJoinURLIfAvailable(ctx *cli.Context) (string, bool) {
-	prometheusURLAvailable := true
-	prometheusJoinUrl, err := getPrometheusJoinURL(ctx.GlobalString(serversConfigurationFile.Name))
-	if err != nil || prometheusJoinUrl == "" {
-		prometheusURLAvailable = false
-	}
-	usePrometheusBool := ctx.GlobalBool(usePrometheus.Name) && prometheusURLAvailable
-
-	return prometheusJoinUrl, usePrometheusBool
-}
-
-func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
-	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
-	if err != nil {
-		return "", err
-	}
-	baseURL := serversConfig.Prometheus.PrometheusBaseURL
-	statusURL := baseURL + serversConfig.Prometheus.StatusRoute
-	resp, err := http.Get(statusURL)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("prometheus URL not available")
-	}
-	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
-	return joinURL, nil
 }
 
 func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {

@@ -75,7 +75,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		core:           arguments.Core,
 		baseProcessor:  base,
 		dataPool:       arguments.DataPool,
-		headersCounter: NewHeaderCounter(),
+		headersCounter: NewHeaderCounter(arguments.Store, arguments.Marshalizer),
 	}
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)

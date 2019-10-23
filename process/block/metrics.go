@@ -9,8 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/persistor"
 )
 
 func getMetricsFromMetaHeader(
@@ -63,7 +65,7 @@ func getMetricsFromBlockBody(
 func getMetricsFromHeader(
 	header *block.Header,
 	numTxWithDst uint64,
-	totalTx int,
+	totalTx uint64,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 ) {
@@ -75,7 +77,7 @@ func getMetricsFromHeader(
 
 	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
 	appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, numTxWithDst)
-	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, uint64(totalTx))
+	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, totalTx)
 }
 
 func saveMetricsForACommittedBlock(
@@ -194,4 +196,28 @@ func calculateRoundDuration(
 	diffRounds := currentBlockRound - lastBlockRound
 
 	return diffTimeStamp / diffRounds
+}
+
+func getNumFromStorage(store dataRetriever.StorageService, marshalizer marshal.Marshalizer, metricName string) uint64 {
+	if store == nil || marshalizer == nil {
+		return 0
+	}
+
+	dataBytes, err := store.Get(dataRetriever.StatusMetricsUnit, []byte(persistor.StatusMetricsDbEntry))
+	if err != nil {
+		return 0
+	}
+
+	var dataFromDb map[string]interface{}
+	err = marshalizer.Unmarshal(&dataFromDb, dataBytes)
+	if err != nil {
+		return 0
+	}
+
+	numTxs, ok := dataFromDb[metricName].(float64)
+	if !ok {
+		return 0
+	}
+
+	return uint64(numTxs)
 }

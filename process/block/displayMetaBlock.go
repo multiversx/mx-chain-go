@@ -7,7 +7,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 type headersCounter struct {
@@ -18,11 +20,13 @@ type headersCounter struct {
 
 // NewHeaderCounter returns a new object that keeps track of how many headers
 // were processed in total, and in the current block
-func NewHeaderCounter() *headersCounter {
+func NewHeaderCounter(store dataRetriever.StorageService, marshalizer marshal.Marshalizer) *headersCounter {
+	shardMBHeadersTotalProcessed := getNumFromStorage(store, marshalizer, core.MetricNumShardHeadersProcessed)
+
 	return &headersCounter{
 		shardMBHeaderCounterMutex:           sync.RWMutex{},
 		shardMBHeadersCurrentBlockProcessed: 0,
-		shardMBHeadersTotalProcessed:        0,
+		shardMBHeadersTotalProcessed:        shardMBHeadersTotalProcessed,
 	}
 }
 
