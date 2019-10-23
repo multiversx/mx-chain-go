@@ -116,7 +116,6 @@ func (psh *PersistentStatusHandler) saveMetricsInDb() {
 		log.Info("cannot save metrics map in storage", err)
 		return
 	}
-
 }
 
 // SetInt64Value method - will update the value for a key
