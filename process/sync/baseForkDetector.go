@@ -463,10 +463,10 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 		return nil
 	}
 
-	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-finality
-	if roundTooOld {
-		return ErrLowerRoundInBlock
-	}
+	//roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-finality
+	//if roundTooOld {
+	//	return ErrLowerRoundInBlock
+	//}
 
 	return nil
 }
