@@ -201,6 +201,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 	t.Parallel()
+
 	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
@@ -228,6 +229,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	t.Parallel()
+
 	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
