@@ -132,7 +132,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testin
 		&mock.HasherMock{},
 		mock.NewMultiShardsCoordinatorMock(3))
 
-	err := rti.ProcessReceivedMessage(nil)
+	err := rti.ProcessReceivedMessage(nil, nil)
 	assert.Equal(t, process.ErrNilMessage, err)
 }
 
@@ -151,7 +151,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageNilDataShouldErr(t *testing.T
 		DataField: nil,
 	}
 
-	err := rti.ProcessReceivedMessage(message)
+	err := rti.ProcessReceivedMessage(message, nil)
 	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
 
@@ -197,7 +197,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageIntraShardShouldWork(t *testi
 		DataField: rewardTxsBuff,
 	}
 
-	err := rti.ProcessReceivedMessage(message)
+	err := rti.ProcessReceivedMessage(message, nil)
 	time.Sleep(20 * time.Millisecond)
 
 	assert.Nil(t, err)
@@ -250,7 +250,7 @@ func TestRewardTxInterceptor_ProcessReceivedMessageCrossShardShouldNotAdd(t *tes
 		DataField: rewardTxsBuff,
 	}
 
-	err := rti.ProcessReceivedMessage(message)
+	err := rti.ProcessReceivedMessage(message, nil)
 	time.Sleep(20 * time.Millisecond)
 	assert.Nil(t, err)
 	// check that AddData was not called, as tx is cross shard

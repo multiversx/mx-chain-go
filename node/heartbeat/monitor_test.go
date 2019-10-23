@@ -228,7 +228,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		Pubkey: []byte(pubKey),
 	}
 	hbBytes, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, nil)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -286,7 +286,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 		Pubkey: []byte(pubKey),
 	}
 	hbBytes, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, nil)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -353,7 +353,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	buffToSend, err := json.Marshal(hb)
 	assert.Nil(t, err)
 
-	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
+	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
 	assert.Nil(t, err)
 
 	//a delay is mandatory for the go routine to finish its job
@@ -373,7 +373,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
+	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
 
 	time.Sleep(1 * time.Second)
 
@@ -452,6 +452,6 @@ func sendHbMessageFromPubKey(pubKey string, mon *heartbeat.Monitor) error {
 		Pubkey: []byte(pubKey),
 	}
 	buffToSend, _ := json.Marshal(hb)
-	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend})
+	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, nil)
 	return err
 }
