@@ -654,12 +654,16 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	blockHeader := &dataBlock.Header{}
+	var blockHeader data.HeaderHandler
+	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		blockHeader = &dataBlock.MetaBlock{}
+	} else {
+		blockHeader = &dataBlock.Header{}
+	}
+
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})
-	sig, _ := TestMultiSig.AggregateSigs(nil)
-	blockHeader.SetSignature(sig)
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
 	if currHdr == nil {
 		currHdr = tpn.BlockChain.GetGenesisHeader()
@@ -668,6 +672,8 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	buff, _ := TestMarshalizer.Marshal(currHdr)
 	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
+	sig, _ := TestMultiSig.AggregateSigs(nil)
+	blockHeader.SetSignature(sig)
 	blockHeader.SetRandSeed(sig)
 
 	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
