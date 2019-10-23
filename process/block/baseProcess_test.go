@@ -86,7 +86,7 @@ func createShardedDataChacherNotifier(
 }
 
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {
-	rewardTx := &rewardTx.RewardTx{
+	rwTx := &rewardTx.RewardTx{
 		Round:   1,
 		Epoch:   0,
 		Value:   big.NewInt(10),
@@ -95,7 +95,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	}
 	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
 	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
-	rewardTransactionsCalled := createShardedDataChacherNotifier(rewardTx, testHash)
+	rewardTransactionsCalled := createShardedDataChacherNotifier(rwTx, testHash)
 
 	sdp := &mock.PoolsHolderStub{
 		TransactionsCalled:         txCalled,
@@ -258,15 +258,15 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 	metaBlock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{
-				ShardId:               senderShardId,
+				ShardID:               senderShardId,
 				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(miniBlockHashes)),
 			},
 		},
 	}
 
 	for idx, mbHash := range miniBlockHashes {
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardId = destShardId
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardId = senderShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardID = destShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardID = senderShardId
 		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].Hash = mbHash
 	}
 
@@ -338,9 +338,9 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			StartHeaders:          createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 			RequestHandler:        &mock.RequestHandlerMock{},
 			Core:                  &mock.ServiceContainerMock{},
+			TxCoordinator:         &mock.TransactionCoordinatorMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
-		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
@@ -354,7 +354,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	arguments.Hasher = &mock.HasherMock{}
 	bp, _ := blproc.NewShardProcessor(arguments)
 	blkc := createTestBlockchain()
-	body := &block.Body{}
+	body := block.Body{}
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.Round = 1

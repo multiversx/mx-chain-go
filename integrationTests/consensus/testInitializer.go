@@ -312,7 +312,7 @@ func createConsensusOnlyNode(
 		RevertAccountStateCalled: func() {
 		},
 		CreateBlockCalled: func(round uint64, haveTime func() bool) (handler data.BodyHandler, e error) {
-			return &dataBlock.Body{}, nil
+			return dataBlock.Body{}, nil
 		},
 		CreateBlockHeaderCalled: func(body data.BodyHandler, round uint64, haveTime func() bool) (handler data.HeaderHandler, e error) {
 			return &dataBlock.Header{Round: uint64(round)}, nil
