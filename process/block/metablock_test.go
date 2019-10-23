@@ -957,7 +957,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, func() bool {
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err = mp.CreateBlockBody(metaHdr, func() bool {
 		return true
 	})
 	shardInfo, err = mp.CreateShardInfo(round)
@@ -1051,7 +1052,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, haveTime)
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
@@ -1196,7 +1198,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, haveTime)
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
@@ -1341,7 +1344,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, haveTime)
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))

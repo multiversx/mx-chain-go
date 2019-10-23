@@ -78,7 +78,6 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			TxCoordinator:         &mock.TransactionCoordinatorMock{},
 		},
 		DataPool:        tdp,
-		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 	shardProcessor, err := NewShardProcessor(arguments)

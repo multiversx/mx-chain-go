@@ -2,7 +2,7 @@ package hooks
 
 import (
 	"encoding/binary"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"math/big"
 	"sync"
 
@@ -52,15 +52,8 @@ func NewVMAccountsDB(
 		uint64Converter:  args.Uint64Converter,
 	}
 
+	vmAccountsDB.currentHdr = args.BlockChain.GetGenesisHeader()
 	vmAccountsDB.tempAccounts = make(map[string]state.AccountHandler, 0)
-
-	vmAccountsDB.mutCurrentHdr.Lock()
-	if vmAccountsDB.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmAccountsDB.currentHdr = &block.MetaBlock{}
-	} else {
-		vmAccountsDB.currentHdr = &block.Header{}
-	}
-	vmAccountsDB.mutCurrentHdr.Unlock()
 
 	return vmAccountsDB, nil
 }
@@ -87,6 +80,7 @@ func checkForNil(args ArgBlockChainHook) error {
 	if args.Uint64Converter == nil || args.Uint64Converter.IsInterfaceNil() {
 		return process.ErrNilUint64Converter
 	}
+
 	return nil
 }
 
@@ -330,7 +324,7 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64,
 		return nil, ErrAddressLengthNotCorrect
 	}
 
-	if len(vmType) != VMTypeLen {
+	if len(vmType) != core.VMTypeLen {
 		return nil, ErrVMTypeLengthIsNotCorrect
 	}
 
@@ -343,8 +337,8 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64,
 	prefixMask := createPrefixMask(vmType)
 	suffixMask := createSuffixMask(creatorAddress)
 
-	copy(base[:NumInitCharactersForScAddress], prefixMask)
-	copy(base[len(base)-ShardIdentiferLen:], suffixMask)
+	copy(base[:core.NumInitCharactersForScAddress], prefixMask)
+	copy(base[len(base)-core.ShardIdentiferLen:], suffixMask)
 
 	return base, nil
 }
@@ -359,7 +353,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 }
 
 func createPrefixMask(vmType []byte) []byte {
-	prefixMask := make([]byte, NumInitCharactersForScAddress-VMTypeLen)
+	prefixMask := make([]byte, core.NumInitCharactersForScAddress-core.VMTypeLen)
 	prefixMask = append(prefixMask, vmType...)
 
 	return prefixMask

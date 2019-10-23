@@ -471,7 +471,7 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	mp.blockSizeThrottler.ComputeMaxItems()
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
 
-	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
+	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), initialHdrData.GetRound(), haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1290,7 +1290,7 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 }
 
 // ApplyBodyToHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error {
+func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) error {
 	log.Debug(fmt.Sprintf("started creating block header in round %d\n", hdr.GetRound()))
 
 	metaHdr, ok := hdr.(*block.MetaBlock)
@@ -1304,12 +1304,12 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, body data.Bod
 
 		if err == nil {
 			mp.blockSizeThrottler.Add(
-				round,
-				core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
+				hdr.GetRound(),
+				core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
 		}
 	}()
 
-	shardInfo, err := mp.createShardInfo(round)
+	shardInfo, err := mp.createShardInfo(hdr.GetRound())
 	if err != nil {
 		return err
 	}
@@ -1325,22 +1325,22 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, body data.Bod
 	metaHdr.TxCount = getTxCount(shardInfo)
 
 	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
-		return header, nil
+		return nil
 	}
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
-		return nil, err
+		return err
 	}
 
 	totalTxCount, miniBlockHeaders, err := mp.createMiniBlockHeaders(body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	header.MiniBlockHeaders = miniBlockHeaders
-	header.TxCount += uint32(totalTxCount)
+	metaHdr.MiniBlockHeaders = miniBlockHeaders
+	metaHdr.TxCount += uint32(totalTxCount)
 
 	return nil
 }

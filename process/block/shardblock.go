@@ -1457,11 +1457,11 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 
 	totalTxCount, miniBlockHeaders, err := sp.createMiniBlockHeaders(body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	header.MiniBlockHeaders = miniBlockHeaders
-	header.TxCount = uint32(totalTxCount)
+	shardHeader.MiniBlockHeaders = miniBlockHeaders
+	shardHeader.TxCount = uint32(totalTxCount)
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
