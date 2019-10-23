@@ -338,9 +338,9 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			StartHeaders:          createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 			RequestHandler:        &mock.RequestHandlerMock{},
 			Core:                  &mock.ServiceContainerMock{},
+			TxCoordinator:         &mock.TransactionCoordinatorMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
-		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 

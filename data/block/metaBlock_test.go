@@ -73,20 +73,28 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		TxCount:               uint32(1),
 	}
 
+	mbHdr := block.MiniBlockHeader{
+		Hash:            []byte("mini block hash"),
+		ReceiverShardID: uint32(0),
+		SenderShardID:   uint32(10),
+		TxCount:         uint32(10),
+	}
+
 	mb := block.MetaBlock{
-		Nonce:         uint64(1),
-		Epoch:         uint32(1),
-		Round:         uint64(1),
-		TimeStamp:     uint64(100000),
-		ShardInfo:     []block.ShardData{sd},
-		PeerInfo:      []block.PeerData{pd},
-		Signature:     []byte("signature"),
-		PubKeysBitmap: []byte("pub keys"),
-		PrevHash:      []byte("previous hash"),
-		PrevRandSeed:  []byte("previous random seed"),
-		RandSeed:      []byte("random seed"),
-		RootHash:      []byte("root hash"),
-		TxCount:       uint32(1),
+		Nonce:            uint64(1),
+		Epoch:            uint32(1),
+		Round:            uint64(1),
+		TimeStamp:        uint64(100000),
+		ShardInfo:        []block.ShardData{sd},
+		PeerInfo:         []block.PeerData{pd},
+		Signature:        []byte("signature"),
+		PubKeysBitmap:    []byte("pub keys"),
+		PrevHash:         []byte("previous hash"),
+		PrevRandSeed:     []byte("previous random seed"),
+		RandSeed:         []byte("random seed"),
+		RootHash:         []byte("root hash"),
+		TxCount:          uint32(1),
+		MiniBlockHeaders: []block.MiniBlockHeader{mbHdr},
 	}
 	var b bytes.Buffer
 	_ = mb.Save(&b)

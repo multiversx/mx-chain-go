@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	capn "github.com/glycerine/go-capnproto"
+	"github.com/glycerine/go-capnproto"
 )
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
@@ -58,19 +58,20 @@ type ShardData struct {
 
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
-	Nonce         uint64      `capid:"0"`
-	Epoch         uint32      `capid:"1"`
-	Round         uint64      `capid:"2"`
-	TimeStamp     uint64      `capid:"3"`
-	ShardInfo     []ShardData `capid:"4"`
-	PeerInfo      []PeerData  `capid:"5"`
-	Signature     []byte      `capid:"6"`
-	PubKeysBitmap []byte      `capid:"7"`
-	PrevHash      []byte      `capid:"8"`
-	PrevRandSeed  []byte      `capid:"9"`
-	RandSeed      []byte      `capid:"10"`
-	RootHash      []byte      `capid:"11"`
-	TxCount       uint32      `capid:"12"`
+	Nonce            uint64            `capid:"0"`
+	Epoch            uint32            `capid:"1"`
+	Round            uint64            `capid:"2"`
+	TimeStamp        uint64            `capid:"3"`
+	ShardInfo        []ShardData       `capid:"4"`
+	PeerInfo         []PeerData        `capid:"5"`
+	Signature        []byte            `capid:"6"`
+	PubKeysBitmap    []byte            `capid:"7"`
+	PrevHash         []byte            `capid:"8"`
+	PrevRandSeed     []byte            `capid:"9"`
+	RandSeed         []byte            `capid:"10"`
+	RootHash         []byte            `capid:"11"`
+	TxCount          uint32            `capid:"12"`
+	MiniBlockHeaders []MiniBlockHeader `capid:"13"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -256,6 +257,16 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 		dest.SetPeerInfo(typedList)
 	}
 
+	if len(src.MiniBlockHeaders) > 0 {
+		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
+		pList := capn.PointerList(miniBlockList)
+
+		for i, elem := range src.MiniBlockHeaders {
+			_ = pList.Set(i, capn.Object(MiniBlockHeaderGoToCapn(seg, &elem)))
+		}
+		dest.SetMiniBlockHeaders(miniBlockList)
+	}
+
 	dest.SetSignature(src.Signature)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 	dest.SetPrevHash(src.PrevHash)
@@ -287,6 +298,13 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	for i := 0; i < n; i++ {
 		dest.PeerInfo[i] = *PeerDataCapnToGo(src.PeerInfo().At(i), nil)
 	}
+
+	mbLength := src.MiniBlockHeaders().Len()
+	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
+	for i := 0; i < mbLength; i++ {
+		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
+	}
+
 	dest.Signature = src.Signature()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
 	dest.PrevHash = src.PrevHash()
@@ -427,6 +445,13 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 			}
 		}
 	}
+
+	for _, val := range m.MiniBlockHeaders {
+		if val.ReceiverShardID == destId && val.SenderShardID != destId {
+			hashDst[string(val.Hash)] = val.SenderShardID
+		}
+	}
+
 	return hashDst
 }
 
@@ -446,11 +471,12 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 	}
 
 	itemsInHeader += len(m.PeerInfo)
+	itemsInHeader += len(m.MiniBlockHeaders)
 
 	return uint32(itemsInHeader)
 }
 
 // ItemsInBody gets the number of items(hashes) added in block body
 func (m *MetaBlock) ItemsInBody() uint32 {
-	return 0
+	return m.TxCount
 }

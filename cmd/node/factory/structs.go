@@ -1789,11 +1789,11 @@ func newShardBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.Datapool,
-		TxCoordinator:    txCoordinator,
 		TxsPoolsCleaner:  txPoolsCleaner,
 	}
 
@@ -1848,12 +1848,12 @@ func newMetaBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		//TODO add real transaction coordinator here
+		TxCoordinator: &mock.TransactionCoordinatorMock{},
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.MetaDatapool,
-		//TODO add real transaction coordinator here
-		TxCoordinator: &mock.TransactionCoordinatorMock{},
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

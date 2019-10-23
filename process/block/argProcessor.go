@@ -27,6 +27,7 @@ type ArgBaseProcessor struct {
 	StartHeaders          map[uint32]data.HeaderHandler
 	RequestHandler        process.RequestHandler
 	Core                  serviceContainer.Core
+	TxCoordinator         process.TransactionCoordinator
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -34,7 +35,6 @@ type ArgBaseProcessor struct {
 type ArgShardProcessor struct {
 	ArgBaseProcessor
 	DataPool        dataRetriever.PoolsHolder
-	TxCoordinator   process.TransactionCoordinator
 	TxsPoolsCleaner process.PoolsCleaner
 }
 
@@ -42,6 +42,5 @@ type ArgShardProcessor struct {
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	DataPool      dataRetriever.MetaPoolsHolder
-	TxCoordinator process.TransactionCoordinator
+	DataPool dataRetriever.MetaPoolsHolder
 }
