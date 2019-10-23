@@ -714,9 +714,9 @@ func (s ShardDataCapn_List) Set(i int, item ShardDataCapn) { C.PointerList(s).Se
 
 type MetaBlockCapn C.Struct
 
-func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(32, 8)) }
-func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(32, 8)) }
-func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(32, 8)) }
+func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(32, 9)) }
+func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(32, 9)) }
+func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(32, 9)) }
 func ReadRootMetaBlockCapn(s *C.Segment) MetaBlockCapn { return MetaBlockCapn(s.Root(0).ToStruct()) }
 func (s MetaBlockCapn) Nonce() uint64                  { return C.Struct(s).Get64(0) }
 func (s MetaBlockCapn) SetNonce(v uint64)              { C.Struct(s).Set64(0, v) }
@@ -748,6 +748,12 @@ func (s MetaBlockCapn) RootHash() []byte                { return C.Struct(s).Get
 func (s MetaBlockCapn) SetRootHash(v []byte)            { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) TxCount() uint32                 { return C.Struct(s).Get32(12) }
 func (s MetaBlockCapn) SetTxCount(v uint32)             { C.Struct(s).Set32(12, v) }
+func (s MetaBlockCapn) MiniBlockHeaders() MiniBlockHeaderCapn_List {
+	return MiniBlockHeaderCapn_List(C.Struct(s).GetObject(8))
+}
+func (s MetaBlockCapn) SetMiniBlockHeaders(v MiniBlockHeaderCapn_List) {
+	C.Struct(s).SetObject(8, C.Object(v))
+}
 func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -1024,6 +1030,39 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 			return err
 		}
 		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"miniBlockHeaders\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.MiniBlockHeaders()
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				err = s.WriteJSON(b)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
+		}
 		if err != nil {
 			return err
 		}
@@ -1320,6 +1359,39 @@ func (s MetaBlockCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("miniBlockHeaders = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.MiniBlockHeaders()
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				err = s.WriteCapLit(b)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
+		}
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -1336,7 +1408,7 @@ func (s MetaBlockCapn) MarshalCapLit() ([]byte, error) {
 type MetaBlockCapn_List C.PointerList
 
 func NewMetaBlockCapnList(s *C.Segment, sz int) MetaBlockCapn_List {
-	return MetaBlockCapn_List(s.NewCompositeList(32, 8, sz))
+	return MetaBlockCapn_List(s.NewCompositeList(32, 9, sz))
 }
 func (s MetaBlockCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s MetaBlockCapn_List) At(i int) MetaBlockCapn {

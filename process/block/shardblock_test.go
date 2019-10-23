@@ -937,8 +937,8 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
-		ReceiverShardId: mbHdr.ReceiverShardID,
-		SenderShardId:   mbHdr.SenderShardID,
+		ReceiverShardID: mbHdr.ReceiverShardID,
+		SenderShardID:   mbHdr.SenderShardID,
 		TxCount:         mbHdr.TxCount,
 		Hash:            mbHdr.Hash,
 	}
@@ -1075,8 +1075,8 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
-		ReceiverShardId: mbHdr.ReceiverShardID,
-		SenderShardId:   mbHdr.SenderShardID,
+		ReceiverShardID: mbHdr.ReceiverShardID,
+		SenderShardID:   mbHdr.SenderShardID,
 		TxCount:         mbHdr.TxCount,
 		Hash:            mbHdr.Hash,
 	}
@@ -1212,8 +1212,8 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
-		ReceiverShardId: mbHdr.ReceiverShardID,
-		SenderShardId:   mbHdr.SenderShardID,
+		ReceiverShardID: mbHdr.ReceiverShardID,
+		SenderShardID:   mbHdr.SenderShardID,
 		TxCount:         mbHdr.TxCount,
 		Hash:            mbHdr.Hash,
 	}
@@ -1325,8 +1325,8 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
-		ReceiverShardId: mbHdr.ReceiverShardID,
-		SenderShardId:   mbHdr.SenderShardID,
+		ReceiverShardID: mbHdr.ReceiverShardID,
+		SenderShardID:   mbHdr.SenderShardID,
 		TxCount:         mbHdr.TxCount,
 		Hash:            mbHdr.Hash,
 	}
@@ -1434,8 +1434,8 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	hdr := initBlockHeader(prevHash, randSeed, rootHash, mbHdrs)
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
-		ReceiverShardId: mbHdr.ReceiverShardID,
-		SenderShardId:   mbHdr.SenderShardID,
+		ReceiverShardID: mbHdr.ReceiverShardID,
+		SenderShardID:   mbHdr.SenderShardID,
 		TxCount:         mbHdr.TxCount,
 		Hash:            mbHdr.Hash,
 	}
@@ -2509,11 +2509,11 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		Round: 1,
 		ShardInfo: []block.ShardData{
 			{
-				ShardId: 1,
+				ShardID: 1,
 				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-					{Hash: miniBlockHash1, SenderShardId: 1, ReceiverShardId: 0},
-					{Hash: miniBlockHash2, SenderShardId: 1, ReceiverShardId: 0},
-					{Hash: miniBlockHash3, SenderShardId: 1, ReceiverShardId: 0},
+					{Hash: miniBlockHash1, SenderShardID: 1, ReceiverShardID: 0},
+					{Hash: miniBlockHash2, SenderShardID: 1, ReceiverShardID: 0},
+					{Hash: miniBlockHash3, SenderShardID: 1, ReceiverShardID: 0},
 				}},
 		}}
 
@@ -2585,12 +2585,12 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		Round: 1,
 		ShardInfo: []block.ShardData{
 			{
-				ShardId: 1,
+				ShardID: 1,
 				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
 					{
 						Hash:            miniBlockHash1,
-						SenderShardId:   1,
-						ReceiverShardId: 0,
+						SenderShardID:   1,
+						ReceiverShardID: 0,
 					},
 				},
 			},
@@ -2660,8 +2660,8 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	mbHdrs = append(mbHdrs, mbHdr)
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
-		ReceiverShardId: mbHdr.ReceiverShardID,
-		SenderShardId:   mbHdr.SenderShardID,
+		ReceiverShardID: mbHdr.ReceiverShardID,
+		SenderShardID:   mbHdr.SenderShardID,
 		TxCount:         mbHdr.TxCount,
 		Hash:            mbHdr.Hash,
 	}
@@ -3428,15 +3428,15 @@ func createShardData(hasher hashing.Hasher, marshalizer marshal.Marshalizer, min
 		hashed, _ := core.CalculateHash(marshalizer, hasher, string(marshaled))
 
 		shardMBHeader := block.ShardMiniBlockHeader{
-			ReceiverShardId: miniBlocks[i].ReceiverShardID,
-			SenderShardId:   miniBlocks[i].SenderShardID,
+			ReceiverShardID: miniBlocks[i].ReceiverShardID,
+			SenderShardID:   miniBlocks[i].SenderShardID,
 			TxCount:         uint32(len(miniBlocks[i].TxHashes)),
 			Hash:            hashed,
 		}
 		shardMBHeaders := make([]block.ShardMiniBlockHeader, 0)
 		shardMBHeaders = append(shardMBHeaders, shardMBHeader)
 
-		shardData[0].ShardId = miniBlocks[i].SenderShardID
+		shardData[0].ShardID = miniBlocks[i].SenderShardID
 		shardData[0].TxCount = 10
 		shardData[0].HeaderHash = []byte("headerHash")
 		shardData[0].ShardMiniBlockHeaders = shardMBHeaders
@@ -3892,15 +3892,15 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 	mbHash := hasher.Compute(string(mbbytes))
 
 	shardMiniBlock := block.ShardMiniBlockHeader{
-		ReceiverShardId: 0,
-		SenderShardId:   2,
+		ReceiverShardID: 0,
+		SenderShardID:   2,
 		TxCount:         uint32(len(txHashes)),
 		Hash:            mbHash,
 	}
 	shardMiniblockHdrs := make([]block.ShardMiniBlockHeader, 0)
 	shardMiniblockHdrs = append(shardMiniblockHdrs, shardMiniBlock)
 	shardHeader := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		ShardMiniBlockHeaders: shardMiniblockHdrs,
 	}
 	shardHdrs := make([]block.ShardData, 0)
@@ -3962,7 +3962,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	shardInfo := make([]block.ShardData, 0)
-	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardId: 1})
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardID: 1})
 	_ = datapool.Headers().Put([]byte("hash"), &block.Header{ShardId: 0, Nonce: 1})
 
 	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
@@ -4021,7 +4021,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	shardInfo := make([]block.ShardData, 0)
-	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardId: 0})
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: []byte("hash"), ShardID: 0})
 
 	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)
@@ -4085,7 +4085,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	_ = datapool.Headers().Put(ownHash, ownHdr)
 
 	shardInfo := make([]block.ShardData, 0)
-	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardId: 0})
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardID: 0})
 
 	prevMetaHdr := genesisBlocks[sharding.MetachainShardId]
 	prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMetaHdr)
@@ -4110,7 +4110,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	_ = store.Put(dataRetriever.BlockHeaderUnit, ownHash, mrsOwnHdr)
 
 	shardInfo = make([]block.ShardData, 0)
-	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardId: 0})
+	shardInfo = append(shardInfo, block.ShardData{HeaderHash: ownHash, ShardID: 0})
 
 	prevMetaHdr = currMetaHdr
 	prevHash, _ = core.CalculateHash(marshalizer, hasher, prevMetaHdr)
@@ -4168,13 +4168,13 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	testMBHash := []byte("hash")
 	shardMBHdr := block.ShardMiniBlockHeader{
 		Hash:            testMBHash,
-		SenderShardId:   shardC.SelfId() + 1,
-		ReceiverShardId: shardC.SelfId(),
+		SenderShardID:   shardC.SelfId() + 1,
+		ReceiverShardID: shardC.SelfId(),
 	}
 	shardMBHeaders := make([]block.ShardMiniBlockHeader, 0)
 	shardMBHeaders = append(shardMBHeaders, shardMBHdr)
 
-	shardHdr := block.ShardData{ShardMiniBlockHeaders: shardMBHeaders, ShardId: shardC.SelfId() + 1}
+	shardHdr := block.ShardData{ShardMiniBlockHeaders: shardMBHeaders, ShardID: shardC.SelfId() + 1}
 
 	shardInfos := make([]block.ShardData, 0)
 	shardInfos = append(shardInfos, shardHdr)

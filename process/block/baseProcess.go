@@ -58,6 +58,7 @@ type baseProcessor struct {
 	store                 dataRetriever.StorageService
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler    process.BlockSizeThrottler
+	txCoordinator         process.TransactionCoordinator
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -544,6 +545,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
 		return process.ErrNilRequestHandler
 	}
+	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
+		return process.ErrNilTransactionCoordinator
+	}
 
 	return nil
 }
@@ -554,6 +558,7 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	bp.txCoordinator.CreateBlockStarted()
 }
 
 func (bp *baseProcessor) resetMissingHdrs() {
@@ -616,4 +621,81 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	}
 
 	return hdrsHashesForCurrentBlock
+}
+
+func (bp *baseProcessor) getMaxMiniBlocksSpaceRemained(
+	maxItemsInBlock uint32,
+	itemsAddedInBlock uint32,
+	miniBlocksAddedInBlock uint32,
+) int32 {
+	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
+	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
+	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
+
+	return maxMbSpaceRemained
+}
+
+func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.MiniBlockHeader, error) {
+	totalTxCount := 0
+	miniBlockHeaders := make([]block.MiniBlockHeader, len(body))
+
+	for i := 0; i < len(body); i++ {
+		txCount := len(body[i].TxHashes)
+		totalTxCount += txCount
+
+		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body[i])
+		if err != nil {
+			return 0, nil, err
+		}
+
+		miniBlockHeaders[i] = block.MiniBlockHeader{
+			Hash:            miniBlockHash,
+			SenderShardID:   body[i].SenderShardID,
+			ReceiverShardID: body[i].ReceiverShardID,
+			TxCount:         uint32(txCount),
+			Type:            body[i].Type,
+		}
+	}
+
+	return totalTxCount, miniBlockHeaders, nil
+}
+
+// check if header has the same miniblocks as presented in body
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body block.Body) error {
+	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]
+	}
+
+	if len(miniBlockHeaders) != len(body) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
+
+		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.SenderShardID != miniBlock.SenderShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+	}
+
+	return nil
 }

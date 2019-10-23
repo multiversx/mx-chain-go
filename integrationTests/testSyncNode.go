@@ -98,6 +98,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
+		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.MetaDataPool,
@@ -108,10 +109,10 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	} else {
 		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
 		argumentsBase.ForkDetector = tpn.ForkDetector
+		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.ShardDataPool,
-			TxCoordinator:    tpn.TxCoordinator,
 			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 

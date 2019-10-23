@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -1788,11 +1789,11 @@ func newShardBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.Datapool,
-		TxCoordinator:    txCoordinator,
 		TxsPoolsCleaner:  txPoolsCleaner,
 	}
 
@@ -1847,6 +1848,8 @@ func newMetaBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		//TODO add real transaction coordinator here
+		TxCoordinator: &mock.TransactionCoordinatorMock{},
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,

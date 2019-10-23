@@ -452,7 +452,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.keysTxPreProcs {
-
 		txPreProc := tc.getPreProcessor(blockType)
 		if txPreProc == nil || txPreProc.IsInterfaceNil() {
 			return nil
@@ -464,7 +463,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			round,
 			haveTime,
 		)
-
 		if err != nil {
 			log.Error(err.Error())
 		}

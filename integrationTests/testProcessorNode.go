@@ -506,6 +506,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		argumentsBase.Core = &mock.ServiceContainerMock{}
+		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.MetaDataPool,
@@ -513,10 +514,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
+		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.ShardDataPool,
-			TxCoordinator:    tpn.TxCoordinator,
 			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
@@ -845,7 +846,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 	err = tpn.BlockProcessor.ProcessBlock(
 		tpn.BlockChain,
 		header,
-		&dataBlock.MetaBlockBody{},
+		dataBlock.Body{},
 		func() time.Duration {
 			return time.Second * 2
 		},
@@ -854,7 +855,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, &dataBlock.MetaBlockBody{})
+	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, dataBlock.Body{})
 	if err != nil {
 		return err
 	}
