@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -16,8 +17,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/opentracing/opentracing-go/log"
 )
+
+var log = logger.DefaultLogger()
 
 const (
 	extension = iota
@@ -501,7 +503,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 		go func() {
 			err = os.RemoveAll(removePath)
 			if err != nil {
-				log.Error(err)
+				log.Error(err.Error())
 			}
 		}()
 	}
@@ -539,7 +541,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 func (tr *patriciaMerkleTrie) snapshot(newTrie *patriciaMerkleTrie, db data.DBWriteCacher) {
 	err := newTrie.root.commit(true, 0, newTrie.db, db, newTrie.marshalizer, newTrie.hasher)
 	if err != nil {
-		log.Error(err)
+		log.Error(err.Error())
 	}
 
 	tr.mutOperation.Lock()
@@ -552,7 +554,7 @@ func (tr *patriciaMerkleTrie) snapshot(newTrie *patriciaMerkleTrie, db data.DBWr
 		tr.mutOperation.Lock()
 		err = tr.removeFromDb(keys[i])
 		if err != nil {
-			log.Error(err)
+			log.Error(err.Error())
 		}
 		tr.mutOperation.Unlock()
 	}
