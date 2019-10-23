@@ -695,6 +695,11 @@ func (sp *shardProcessor) cleanTxsPools() {
 	log.Info(fmt.Sprintf("%d txs have been removed from pools after cleaning\n", sp.txsPoolsCleaner.NumRemovedTxs()))
 }
 
+// CreateNewHeader creates a new header
+func (mp *shardProcessor) CreateNewHeader() data.HeaderHandler {
+	return &block.Header{}
+}
+
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain
 func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 	processedHdrs []data.HeaderHandler,

@@ -425,7 +425,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestHasher,
 		TestMarshalizer,
 		tpn.AccntState,
-		tpn.BlockchainHook.(*hooks.VMAccountsDB),
+		tpn.BlockchainHook.(*hooks.BlockChainHookImpl),
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,

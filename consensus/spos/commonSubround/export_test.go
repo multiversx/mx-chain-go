@@ -49,8 +49,12 @@ func (sr *SubroundBlock) CreateHeader() (data.HeaderHandler, error) {
 	return sr.createHeader()
 }
 
-func (sr *SubroundBlock) SendBlockBody(header data.HeaderHandler) bool {
-	return sr.sendBlockBody(header)
+func (sr *SubroundBlock) CreateBody(hdr data.HeaderHandler) (data.BodyHandler, error) {
+	return sr.createBody(hdr)
+}
+
+func (sr *SubroundBlock) SendBlockBody(body data.BodyHandler) bool {
+	return sr.sendBlockBody(body)
 }
 
 func (sr *SubroundBlock) SendBlockHeader(header data.HeaderHandler) bool {

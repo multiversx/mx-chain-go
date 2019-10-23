@@ -23,6 +23,7 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	SetConsensusDataCalled           func(randomness []byte, round uint64, epoch uint32, shardId uint32)
+	CreateNewHeaderCalled            func() data.HeaderHandler
 }
 
 // ProcessBlock mocks pocessing a block
@@ -38,6 +39,10 @@ func (blProcMock *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, 
 // RevertAccountState mocks revert of the accounts state
 func (blProcMock *BlockProcessorMock) RevertAccountState() {
 	blProcMock.RevertAccountStateCalled()
+}
+
+func (blProcMock *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
+	return blProcMock.CreateNewHeaderCalled()
 }
 
 // CreateTxBlockBody mocks the creation of a transaction block body

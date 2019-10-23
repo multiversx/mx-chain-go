@@ -10,8 +10,8 @@ import (
 )
 
 type vmContainerFactory struct {
-	vmAccountsDB *hooks.VMAccountsDB
-	cryptoHook   vmcommon.CryptoHook
+	blockChainHookImpl *hooks.BlockChainHookImpl
+	cryptoHook         vmcommon.CryptoHook
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -19,15 +19,15 @@ func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
 ) (*vmContainerFactory, error) {
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(argBlockChainHook)
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
 	if err != nil {
 		return nil, err
 	}
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
-		vmAccountsDB: vmAccountsDB,
-		cryptoHook:   cryptoHook,
+		blockChainHookImpl: blockChainHookImpl,
+		cryptoHook:         cryptoHook,
 	}, nil
 }
 
@@ -49,13 +49,13 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
-	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
+	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.blockChainHookImpl, vmf.cryptoHook)
 	return ieleVM, nil
 }
 
-// VMAccountsDB returns the created vmAccountsDB
-func (vmf *vmContainerFactory) VMAccountsDB() process.BlockChainHookHandler {
-	return vmf.vmAccountsDB
+// BlockChainHookImpl returns the created blockChainHookImpl
+func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
+	return vmf.blockChainHookImpl
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

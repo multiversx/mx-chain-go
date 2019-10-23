@@ -21,6 +21,7 @@ type BlockProcessorStub struct {
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	CreateNewHeaderCalled            func() data.HeaderHandler
 }
 
 // ProcessBlock mocks pocessing a block
@@ -74,6 +75,11 @@ func (blProcMock BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, process
 
 func (blProcMock BlockProcessorStub) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	panic("implement me")
+}
+
+// CreateNewHeader creates a new header
+func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
+	return blProcMock.CreateNewHeaderCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

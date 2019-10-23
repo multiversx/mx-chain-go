@@ -1,12 +1,12 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,6 +55,6 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, vm)
 
-	acc := vmf.VMAccountsDB()
+	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)
 }

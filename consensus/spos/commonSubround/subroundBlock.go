@@ -2,7 +2,6 @@ package commonSubround
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -93,7 +92,19 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	if !sr.sendBlockBody(hdr) ||
+	body, err := sr.createBody(hdr)
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	err = sr.BlockProcessor().ApplyBodyToHeader(hdr, sr.BlockBody)
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	if !sr.sendBlockBody(body) ||
 		!sr.sendBlockHeader(hdr) {
 		return false
 	}
@@ -107,8 +118,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 	return true
 }
 
-// sendBlockBody method job the proposed block body in the subround Block
-func (sr *SubroundBlock) sendBlockBody(header data.HeaderHandler) bool {
+func (sr *SubroundBlock) createBody(header data.HeaderHandler) (data.BodyHandler, error) {
 	startTime := time.Time{}
 	startTime = sr.RoundTimeStamp
 	maxTime := time.Duration(sr.EndTime())
@@ -121,10 +131,14 @@ func (sr *SubroundBlock) sendBlockBody(header data.HeaderHandler) bool {
 		haveTimeInCurrentSubround,
 	)
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return nil, err
 	}
 
+	return blockBody, nil
+}
+
+// sendBlockBody method job the proposed block body in the subround Block
+func (sr *SubroundBlock) sendBlockBody(blockBody data.BodyHandler) bool {
 	blkStr, err := sr.Marshalizer().Marshal(blockBody)
 	if err != nil {
 		log.Error(err.Error())
@@ -155,12 +169,6 @@ func (sr *SubroundBlock) sendBlockBody(header data.HeaderHandler) bool {
 
 // sendBlockHeader method job the proposed block header in the subround Block
 func (sr *SubroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
-	err := sr.BlockProcessor().ApplyBodyToHeader(hdr, sr.BlockBody)
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
 	hdrStr, err := sr.Marshalizer().Marshal(hdr)
 	if err != nil {
 		log.Error(err.Error())
@@ -194,9 +202,7 @@ func (sr *SubroundBlock) sendBlockHeader(hdr data.HeaderHandler) bool {
 }
 
 func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
-	hdr := &block.Header{}
-	hdr.SetRound(uint64(sr.Rounder().Index()))
-	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
+	hdr := sr.BlockProcessor().CreateNewHeader()
 
 	var prevRandSeed []byte
 	if sr.Blockchain().GetCurrentBlockHeader() == nil {
@@ -216,6 +222,8 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
+	hdr.SetRound(uint64(sr.Rounder().Index()))
+	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
 

@@ -21,6 +21,11 @@ type BlockProcessorMock struct {
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	CreateNewHeaderCalled            func() data.HeaderHandler
+}
+
+func (blProcMock *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
+	return blProcMock.CreateNewHeaderCalled()
 }
 
 // ProcessBlock mocks pocessing a block

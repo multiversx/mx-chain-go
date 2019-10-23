@@ -2,10 +2,10 @@ package hooks
 
 import (
 	"encoding/binary"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -16,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// VMAccountsDB is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
-type VMAccountsDB struct {
+// BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
+type BlockChainHookImpl struct {
 	accounts         state.AccountsAdapter
 	addrConv         state.AddressConverter
 	storageService   dataRetriever.StorageService
@@ -33,16 +33,16 @@ type VMAccountsDB struct {
 	tempAccounts    map[string]state.AccountHandler
 }
 
-// NewVMAccountsDB creates a new VMAccountsDB instance
-func NewVMAccountsDB(
+// NewBlockChainHookImpl creates a new BlockChainHookImpl instance
+func NewBlockChainHookImpl(
 	args ArgBlockChainHook,
-) (*VMAccountsDB, error) {
+) (*BlockChainHookImpl, error) {
 	err := checkForNil(args)
 	if err != nil {
 		return nil, err
 	}
 
-	vmAccountsDB := &VMAccountsDB{
+	blockChainHookImpl := &BlockChainHookImpl{
 		accounts:         args.Accounts,
 		addrConv:         args.AddrConv,
 		storageService:   args.StorageService,
@@ -52,10 +52,10 @@ func NewVMAccountsDB(
 		uint64Converter:  args.Uint64Converter,
 	}
 
-	vmAccountsDB.currentHdr = args.BlockChain.GetGenesisHeader()
-	vmAccountsDB.tempAccounts = make(map[string]state.AccountHandler, 0)
+	blockChainHookImpl.currentHdr = args.BlockChain.GetGenesisHeader()
+	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler, 0)
 
-	return vmAccountsDB, nil
+	return blockChainHookImpl, nil
 }
 
 func checkForNil(args ArgBlockChainHook) error {
@@ -85,8 +85,8 @@ func checkForNil(args ArgBlockChainHook) error {
 }
 
 // AccountExists checks if an account exists in provided AccountAdapter
-func (vadb *VMAccountsDB) AccountExists(address []byte) (bool, error) {
-	_, err := vadb.getAccountFromAddressBytes(address)
+func (bh *BlockChainHookImpl) AccountExists(address []byte) (bool, error) {
+	_, err := bh.getAccountFromAddressBytes(address)
 	if err != nil {
 		if err == state.ErrAccNotFound {
 			return false, nil
@@ -97,8 +97,8 @@ func (vadb *VMAccountsDB) AccountExists(address []byte) (bool, error) {
 }
 
 // GetBalance returns the balance of a shard account
-func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
-	exists, err := vadb.AccountExists(address)
+func (bh *BlockChainHookImpl) GetBalance(address []byte) (*big.Int, error) {
+	exists, err := bh.AccountExists(address)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
 		return big.NewInt(0), nil
 	}
 
-	shardAccount, err := vadb.getShardAccountFromAddressBytes(address)
+	shardAccount, err := bh.getShardAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -115,8 +115,8 @@ func (vadb *VMAccountsDB) GetBalance(address []byte) (*big.Int, error) {
 }
 
 // GetNonce returns the nonce of a shard account
-func (vadb *VMAccountsDB) GetNonce(address []byte) (uint64, error) {
-	exists, err := vadb.AccountExists(address)
+func (bh *BlockChainHookImpl) GetNonce(address []byte) (uint64, error) {
+	exists, err := bh.AccountExists(address)
 	if err != nil {
 		return 0, err
 	}
@@ -124,7 +124,7 @@ func (vadb *VMAccountsDB) GetNonce(address []byte) (uint64, error) {
 		return 0, nil
 	}
 
-	shardAccount, err := vadb.getShardAccountFromAddressBytes(address)
+	shardAccount, err := bh.getShardAccountFromAddressBytes(address)
 	if err != nil {
 		return 0, err
 	}
@@ -133,8 +133,8 @@ func (vadb *VMAccountsDB) GetNonce(address []byte) (uint64, error) {
 }
 
 // GetStorageData returns the storage value of a variable held in account's data trie
-func (vadb *VMAccountsDB) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
-	exists, err := vadb.AccountExists(accountAddress)
+func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
+	exists, err := bh.AccountExists(accountAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (vadb *VMAccountsDB) GetStorageData(accountAddress []byte, index []byte) ([
 		return make([]byte, 0), nil
 	}
 
-	account, err := vadb.getAccountFromAddressBytes(accountAddress)
+	account, err := bh.getAccountFromAddressBytes(accountAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +151,8 @@ func (vadb *VMAccountsDB) GetStorageData(accountAddress []byte, index []byte) ([
 }
 
 // IsCodeEmpty returns if the code is empty
-func (vadb *VMAccountsDB) IsCodeEmpty(address []byte) (bool, error) {
-	exists, err := vadb.AccountExists(address)
+func (bh *BlockChainHookImpl) IsCodeEmpty(address []byte) (bool, error) {
+	exists, err := bh.AccountExists(address)
 	if err != nil {
 		return false, err
 	}
@@ -160,7 +160,7 @@ func (vadb *VMAccountsDB) IsCodeEmpty(address []byte) (bool, error) {
 		return true, nil
 	}
 
-	account, err := vadb.getAccountFromAddressBytes(address)
+	account, err := bh.getAccountFromAddressBytes(address)
 	if err != nil {
 		return false, err
 	}
@@ -170,8 +170,8 @@ func (vadb *VMAccountsDB) IsCodeEmpty(address []byte) (bool, error) {
 }
 
 // GetCode retrieves the account's code
-func (vadb *VMAccountsDB) GetCode(address []byte) ([]byte, error) {
-	account, err := vadb.getAccountFromAddressBytes(address)
+func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
+	account, err := bh.getAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -185,12 +185,12 @@ func (vadb *VMAccountsDB) GetCode(address []byte) ([]byte, error) {
 }
 
 // GetBlockhash returns the header hash for a requested nonce delta
-func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
+func (bh *BlockChainHookImpl) GetBlockhash(offset *big.Int) ([]byte, error) {
 	if offset.Cmp(big.NewInt(0)) > 0 {
 		return nil, process.ErrInvalidNonceRequest
 	}
 
-	hdr := vadb.blockChain.GetCurrentBlockHeader()
+	hdr := bh.blockChain.GetCurrentBlockHeader()
 
 	requestedNonce := big.NewInt(0).SetUint64(hdr.GetNonce())
 	requestedNonce.Sub(requestedNonce, offset)
@@ -200,30 +200,17 @@ func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 	}
 
 	if offset.Cmp(big.NewInt(0)) == 0 {
-		return vadb.blockChain.GetCurrentBlockHeaderHash(), nil
-	}
-
-	if vadb.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		_, hash, err := process.GetMetaHeaderFromStorageWithNonce(
-			requestedNonce.Uint64(),
-			vadb.storageService,
-			vadb.uint64Converter,
-			vadb.marshalizer,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return hash, nil
+		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
 
 	_, hash, err := process.GetShardHeaderFromStorageWithNonce(
 		requestedNonce.Uint64(),
-		vadb.shardCoordinator.SelfId(),
-		vadb.storageService,
-		vadb.uint64Converter,
-		vadb.marshalizer,
+		bh.shardCoordinator.SelfId(),
+		bh.storageService,
+		bh.uint64Converter,
+		bh.marshalizer,
 	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -232,94 +219,94 @@ func (vadb *VMAccountsDB) GetBlockhash(offset *big.Int) ([]byte, error) {
 }
 
 // LastNonce returns the nonce from from the last committed block
-func (vadb *VMAccountsDB) LastNonce() uint64 {
-	if vadb.blockChain.GetCurrentBlockHeader() != nil {
-		return vadb.blockChain.GetCurrentBlockHeader().GetNonce()
+func (bh *BlockChainHookImpl) LastNonce() uint64 {
+	if bh.blockChain.GetCurrentBlockHeader() != nil {
+		return bh.blockChain.GetCurrentBlockHeader().GetNonce()
 	}
 	return 0
 }
 
 // LastRound returns the round from the last committed block
-func (vadb *VMAccountsDB) LastRound() uint64 {
-	if vadb.blockChain.GetCurrentBlockHeader() != nil {
-		return vadb.blockChain.GetCurrentBlockHeader().GetRound()
+func (bh *BlockChainHookImpl) LastRound() uint64 {
+	if bh.blockChain.GetCurrentBlockHeader() != nil {
+		return bh.blockChain.GetCurrentBlockHeader().GetRound()
 	}
 	return 0
 }
 
 // LastTimeStamp returns the timeStamp from the last committed block
-func (vadb *VMAccountsDB) LastTimeStamp() uint64 {
-	if vadb.blockChain.GetCurrentBlockHeader() != nil {
-		return vadb.blockChain.GetCurrentBlockHeader().GetTimeStamp()
+func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
+	if bh.blockChain.GetCurrentBlockHeader() != nil {
+		return bh.blockChain.GetCurrentBlockHeader().GetTimeStamp()
 	}
 	return 0
 }
 
 // LastRandomSeed returns the random seed from the last committed block
-func (vadb *VMAccountsDB) LastRandomSeed() []byte {
-	if vadb.blockChain.GetCurrentBlockHeader() != nil {
-		return vadb.blockChain.GetCurrentBlockHeader().GetRandSeed()
+func (bh *BlockChainHookImpl) LastRandomSeed() []byte {
+	if bh.blockChain.GetCurrentBlockHeader() != nil {
+		return bh.blockChain.GetCurrentBlockHeader().GetRandSeed()
 	}
 	return []byte{}
 }
 
 // LastEpoch returns the epoch from the last committed block
-func (vadb *VMAccountsDB) LastEpoch() uint32 {
-	if vadb.blockChain.GetCurrentBlockHeader() != nil {
-		return vadb.blockChain.GetCurrentBlockHeader().GetEpoch()
+func (bh *BlockChainHookImpl) LastEpoch() uint32 {
+	if bh.blockChain.GetCurrentBlockHeader() != nil {
+		return bh.blockChain.GetCurrentBlockHeader().GetEpoch()
 	}
 	return 0
 }
 
 // GetStateRootHash returns the state root hash from the last committed block
-func (vadb *VMAccountsDB) GetStateRootHash() []byte {
-	if vadb.blockChain.GetCurrentBlockHeader() != nil {
-		return vadb.blockChain.GetCurrentBlockHeader().GetRootHash()
+func (bh *BlockChainHookImpl) GetStateRootHash() []byte {
+	if bh.blockChain.GetCurrentBlockHeader() != nil {
+		return bh.blockChain.GetCurrentBlockHeader().GetRootHash()
 	}
 	return []byte{}
 }
 
 // CurrentNonce returns the nonce from the current block
-func (vadb *VMAccountsDB) CurrentNonce() uint64 {
-	vadb.mutCurrentHdr.RLock()
-	defer vadb.mutCurrentHdr.RUnlock()
-	return vadb.currentHdr.GetNonce()
+func (bh *BlockChainHookImpl) CurrentNonce() uint64 {
+	bh.mutCurrentHdr.RLock()
+	defer bh.mutCurrentHdr.RUnlock()
+	return bh.currentHdr.GetNonce()
 }
 
 // CurrentRound returns the round from the current block
-func (vadb *VMAccountsDB) CurrentRound() uint64 {
-	vadb.mutCurrentHdr.RLock()
-	defer vadb.mutCurrentHdr.RUnlock()
-	return vadb.currentHdr.GetRound()
+func (bh *BlockChainHookImpl) CurrentRound() uint64 {
+	bh.mutCurrentHdr.RLock()
+	defer bh.mutCurrentHdr.RUnlock()
+	return bh.currentHdr.GetRound()
 }
 
 // CurrentTimeStamp return the timestamp from the current block
-func (vadb *VMAccountsDB) CurrentTimeStamp() uint64 {
-	vadb.mutCurrentHdr.RLock()
-	defer vadb.mutCurrentHdr.RUnlock()
-	return vadb.currentHdr.GetTimeStamp()
+func (bh *BlockChainHookImpl) CurrentTimeStamp() uint64 {
+	bh.mutCurrentHdr.RLock()
+	defer bh.mutCurrentHdr.RUnlock()
+	return bh.currentHdr.GetTimeStamp()
 }
 
 // CurrentRandomSeed returns the random seed from the current header
-func (vadb *VMAccountsDB) CurrentRandomSeed() []byte {
-	vadb.mutCurrentHdr.RLock()
-	defer vadb.mutCurrentHdr.RUnlock()
-	return vadb.currentHdr.GetRandSeed()
+func (bh *BlockChainHookImpl) CurrentRandomSeed() []byte {
+	bh.mutCurrentHdr.RLock()
+	defer bh.mutCurrentHdr.RUnlock()
+	return bh.currentHdr.GetRandSeed()
 }
 
 // CurrentEpoch returns the current epoch
-func (vadb *VMAccountsDB) CurrentEpoch() uint32 {
-	vadb.mutCurrentHdr.RLock()
-	defer vadb.mutCurrentHdr.RUnlock()
-	return vadb.currentHdr.GetEpoch()
+func (bh *BlockChainHookImpl) CurrentEpoch() uint32 {
+	bh.mutCurrentHdr.RLock()
+	defer bh.mutCurrentHdr.RUnlock()
+	return bh.currentHdr.GetEpoch()
 }
 
 // NewAddress is a hook which creates a new smart contract address from the creators address and nonce
 // The address is created by applied keccak256 on the appended value off creator address and nonce
 // Prefix mask is applied for first 8 bytes 0, and for bytes 9-10 - VM type
 // Suffix mask is applied - last 2 bytes are for the shard ID - mask is applied as suffix mask
-func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
-	addressLength := vadb.addrConv.AddressLen()
+func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+	addressLength := bh.addrConv.AddressLen()
 	if len(creatorAddress) != addressLength {
 		return nil, ErrAddressLengthNotCorrect
 	}
@@ -328,7 +315,7 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64,
 		return nil, ErrVMTypeLengthIsNotCorrect
 	}
 
-	_, err := vadb.getShardAccountFromAddressBytes(creatorAddress)
+	_, err := bh.getShardAccountFromAddressBytes(creatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -363,22 +350,22 @@ func createSuffixMask(creatorAddress []byte) []byte {
 	return creatorAddress[len(creatorAddress)-2:]
 }
 
-func (vadb *VMAccountsDB) getAccountFromAddressBytes(address []byte) (state.AccountHandler, error) {
-	tempAcc, success := vadb.getAccountFromTemporaryAccounts(address)
+func (bh *BlockChainHookImpl) getAccountFromAddressBytes(address []byte) (state.AccountHandler, error) {
+	tempAcc, success := bh.getAccountFromTemporaryAccounts(address)
 	if success {
 		return tempAcc, nil
 	}
 
-	addr, err := vadb.addrConv.CreateAddressFromPublicKeyBytes(address)
+	addr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err
 	}
 
-	return vadb.accounts.GetExistingAccount(addr)
+	return bh.accounts.GetExistingAccount(addr)
 }
 
-func (vadb *VMAccountsDB) getShardAccountFromAddressBytes(address []byte) (*state.Account, error) {
-	account, err := vadb.getAccountFromAddressBytes(address)
+func (bh *BlockChainHookImpl) getShardAccountFromAddressBytes(address []byte) (*state.Account, error) {
+	account, err := bh.getAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -391,11 +378,11 @@ func (vadb *VMAccountsDB) getShardAccountFromAddressBytes(address []byte) (*stat
 	return shardAccount, nil
 }
 
-func (vadb *VMAccountsDB) getAccountFromTemporaryAccounts(address []byte) (state.AccountHandler, bool) {
-	vadb.mutTempAccounts.Lock()
-	defer vadb.mutTempAccounts.Unlock()
+func (bh *BlockChainHookImpl) getAccountFromTemporaryAccounts(address []byte) (state.AccountHandler, bool) {
+	bh.mutTempAccounts.Lock()
+	defer bh.mutTempAccounts.Unlock()
 
-	if tempAcc, ok := vadb.tempAccounts[string(address)]; ok {
+	if tempAcc, ok := bh.tempAccounts[string(address)]; ok {
 		return tempAcc, true
 	}
 
@@ -403,22 +390,22 @@ func (vadb *VMAccountsDB) getAccountFromTemporaryAccounts(address []byte) (state
 }
 
 // AddTempAccount will add a temporary account in temporary store
-func (vadb *VMAccountsDB) AddTempAccount(address []byte, balance *big.Int, nonce uint64) {
-	vadb.mutTempAccounts.Lock()
-	vadb.tempAccounts[string(address)] = &state.Account{Balance: balance, Nonce: nonce}
-	vadb.mutTempAccounts.Unlock()
+func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, nonce uint64) {
+	bh.mutTempAccounts.Lock()
+	bh.tempAccounts[string(address)] = &state.Account{Balance: balance, Nonce: nonce}
+	bh.mutTempAccounts.Unlock()
 }
 
 // CleanTempAccounts cleans the map holding the temporary accounts
-func (vadb *VMAccountsDB) CleanTempAccounts() {
-	vadb.mutTempAccounts.Lock()
-	vadb.tempAccounts = make(map[string]state.AccountHandler, 0)
-	vadb.mutTempAccounts.Unlock()
+func (bh *BlockChainHookImpl) CleanTempAccounts() {
+	bh.mutTempAccounts.Lock()
+	bh.tempAccounts = make(map[string]state.AccountHandler, 0)
+	bh.mutTempAccounts.Unlock()
 }
 
 // TempAccount can retrieve a temporary account from provided address
-func (vadb *VMAccountsDB) TempAccount(address []byte) state.AccountHandler {
-	tempAcc, success := vadb.getAccountFromTemporaryAccounts(address)
+func (bh *BlockChainHookImpl) TempAccount(address []byte) state.AccountHandler {
+	tempAcc, success := bh.getAccountFromTemporaryAccounts(address)
 	if success {
 		return tempAcc
 	}
@@ -427,16 +414,16 @@ func (vadb *VMAccountsDB) TempAccount(address []byte) state.AccountHandler {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (vadb *VMAccountsDB) IsInterfaceNil() bool {
-	if vadb == nil {
+func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
+	if bh == nil {
 		return true
 	}
 	return false
 }
 
 // SetCurrentHeader sets current header to be used by smart contracts
-func (vadb *VMAccountsDB) SetCurrentHeader(hdr data.HeaderHandler) {
-	vadb.mutCurrentHdr.Lock()
-	vadb.currentHdr = hdr
-	vadb.mutCurrentHdr.Unlock()
+func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
+	bh.mutCurrentHdr.Lock()
+	bh.currentHdr = hdr
+	bh.mutCurrentHdr.Unlock()
 }

@@ -54,6 +54,6 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, vm)
 
-	acc := vmf.VMAccountsDB()
+	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)
 }

@@ -322,6 +322,9 @@ func createConsensusOnlyNode(
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
 		},
+		CreateNewHeaderCalled: func() data.HeaderHandler {
+			return &dataBlock.Header{}
+		},
 	}
 
 	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {

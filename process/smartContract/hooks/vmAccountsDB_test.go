@@ -32,96 +32,96 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	return arguments
 }
 
-func TestNewVMAccountsDB_NilAccountsAdapterShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = nil
-	vadb, err := hooks.NewVMAccountsDB(args)
+	bh, err := hooks.NewBlockChainHookImpl(args)
 
-	assert.Nil(t, vadb)
+	assert.Nil(t, bh)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewVMAccountsDB_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
 	args.AddrConv = nil
-	vadb, err := hooks.NewVMAccountsDB(args)
+	bh, err := hooks.NewBlockChainHookImpl(args)
 
-	assert.Nil(t, vadb)
+	assert.Nil(t, bh)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
-func TestNewVMAccountsDB_NilStorageServiceShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilStorageServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
 	args.StorageService = nil
-	vadb, err := hooks.NewVMAccountsDB(args)
+	bh, err := hooks.NewBlockChainHookImpl(args)
 
-	assert.Nil(t, vadb)
+	assert.Nil(t, bh)
 	assert.Equal(t, process.ErrNilStorage, err)
 }
 
-func TestNewVMAccountsDB_NilBlockChainShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilBlockChainShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
 	args.BlockChain = nil
-	vadb, err := hooks.NewVMAccountsDB(args)
+	bh, err := hooks.NewBlockChainHookImpl(args)
 
-	assert.Nil(t, vadb)
+	assert.Nil(t, bh)
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
 
-func TestNewVMAccountsDB_NilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
 	args.ShardCoordinator = nil
-	vadb, err := hooks.NewVMAccountsDB(args)
+	bh, err := hooks.NewBlockChainHookImpl(args)
 
-	assert.Nil(t, vadb)
+	assert.Nil(t, bh)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewVMAccountsDB_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
 	args.Marshalizer = nil
-	vadb, err := hooks.NewVMAccountsDB(args)
+	bh, err := hooks.NewBlockChainHookImpl(args)
 
-	assert.Nil(t, vadb)
+	assert.Nil(t, bh)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewVMAccountsDB_NilUint64ConverterShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilUint64ConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
 	args.Uint64Converter = nil
-	vadb, err := hooks.NewVMAccountsDB(args)
+	bh, err := hooks.NewBlockChainHookImpl(args)
 
-	assert.Nil(t, vadb)
+	assert.Nil(t, bh)
 	assert.Equal(t, process.ErrNilUint64Converter, err)
 }
 
-func TestNewVMAccountsDB_ShouldWork(t *testing.T) {
+func TestNewBlockChainHookImpl_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
-	vadb, err := hooks.NewVMAccountsDB(args)
+	bh, err := hooks.NewBlockChainHookImpl(args)
 
-	assert.NotNil(t, vadb)
+	assert.NotNil(t, bh)
 	assert.Nil(t, err)
 }
 
 //------- AccountExists
 
-func TestVMAccountsDB_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
+func TestBlockChainHookImpl_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
@@ -133,15 +133,15 @@ func TestVMAccountsDB_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
 		},
 	}
 	args.AddrConv = mock.NewAddressConverterFake(32, "")
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	accountsExists, err := vadb.AccountExists(make([]byte, 0))
+	accountsExists, err := bh.AccountExists(make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
 	assert.False(t, accountsExists)
 }
 
-func TestVMAccountsDB_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.T) {
+func TestBlockChainHookImpl_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
@@ -151,21 +151,21 @@ func TestVMAccountsDB_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.T) {
 		},
 	}
 	args.AddrConv = mock.NewAddressConverterFake(32, "")
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	accountsExists, err := vadb.AccountExists(make([]byte, 0))
+	accountsExists, err := bh.AccountExists(make([]byte, 0))
 
 	assert.False(t, accountsExists)
 	assert.Nil(t, err)
 }
 
-func TestVMAccountsDB_AccountExistsDoesExistsRetTrueAndNil(t *testing.T) {
+func TestBlockChainHookImpl_AccountExistsDoesExistsRetTrueAndNil(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	accountsExists, err := vadb.AccountExists(make([]byte, 0))
+	accountsExists, err := bh.AccountExists(make([]byte, 0))
 
 	assert.Nil(t, err)
 	assert.True(t, accountsExists)
@@ -173,19 +173,19 @@ func TestVMAccountsDB_AccountExistsDoesExistsRetTrueAndNil(t *testing.T) {
 
 //------- GetBalance
 
-func TestVMAccountsDB_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
+func TestBlockChainHookImpl_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	balance, err := vadb.GetBalance(make([]byte, 0))
+	balance, err := bh.GetBalance(make([]byte, 0))
 
 	assert.Equal(t, state.ErrWrongTypeAssertion, err)
 	assert.Nil(t, balance)
 }
 
-func TestVMAccountsDB_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
+func TestBlockChainHookImpl_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
@@ -195,15 +195,15 @@ func TestVMAccountsDB_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 			return nil, errExpected
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	balance, err := vadb.GetBalance(make([]byte, 0))
+	balance, err := bh.GetBalance(make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
 	assert.Nil(t, balance)
 }
 
-func TestVMAccountsDB_GetBalanceShouldWork(t *testing.T) {
+func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt := &state.Account{
@@ -217,9 +217,9 @@ func TestVMAccountsDB_GetBalanceShouldWork(t *testing.T) {
 			return accnt, nil
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	balance, err := vadb.GetBalance(make([]byte, 0))
+	balance, err := bh.GetBalance(make([]byte, 0))
 
 	assert.Nil(t, err)
 	assert.Equal(t, accnt.Balance, balance)
@@ -227,7 +227,7 @@ func TestVMAccountsDB_GetBalanceShouldWork(t *testing.T) {
 
 //------- GetNonce
 
-func TestVMAccountsDB_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
+func TestBlockChainHookImpl_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
@@ -238,15 +238,15 @@ func TestVMAccountsDB_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 			return nil, errExpected
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	nonce, err := vadb.GetNonce(make([]byte, 0))
+	nonce, err := bh.GetNonce(make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
 	assert.Equal(t, nonce, uint64(0))
 }
 
-func TestVMAccountsDB_GetNonceShouldWork(t *testing.T) {
+func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt := &state.Account{
@@ -260,9 +260,9 @@ func TestVMAccountsDB_GetNonceShouldWork(t *testing.T) {
 			return accnt, nil
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	nonce, err := vadb.GetNonce(make([]byte, 0))
+	nonce, err := bh.GetNonce(make([]byte, 0))
 
 	assert.Nil(t, err)
 	assert.Equal(t, accnt.Nonce, nonce)
@@ -270,7 +270,7 @@ func TestVMAccountsDB_GetNonceShouldWork(t *testing.T) {
 
 //------- GetStorageData
 
-func TestVMAccountsDB_GetStorageAccountErrorsShouldErr(t *testing.T) {
+func TestBlockChainHookImpl_GetStorageAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
@@ -281,15 +281,15 @@ func TestVMAccountsDB_GetStorageAccountErrorsShouldErr(t *testing.T) {
 			return nil, errExpected
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	value, err := vadb.GetStorageData(make([]byte, 0), make([]byte, 0))
+	value, err := bh.GetStorageData(make([]byte, 0), make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
 	assert.Nil(t, value)
 }
 
-func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
+func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	variableIdentifier := []byte("variable")
@@ -303,9 +303,9 @@ func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
 			return accnt, nil
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	value, err := vadb.GetStorageData(make([]byte, 0), variableIdentifier)
+	value, err := bh.GetStorageData(make([]byte, 0), variableIdentifier)
 
 	assert.Nil(t, err)
 	assert.Equal(t, variableValue, value)
@@ -313,7 +313,7 @@ func TestVMAccountsDB_GetStorageDataShouldWork(t *testing.T) {
 
 //------- IsCodeEmpty
 
-func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *testing.T) {
+func TestBlockChainHookImpl_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
@@ -323,15 +323,15 @@ func TestVMAccountsDB_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *testing.T)
 			return nil, errExpected
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	isEmpty, err := vadb.IsCodeEmpty(make([]byte, 0))
+	isEmpty, err := bh.IsCodeEmpty(make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
 	assert.False(t, isEmpty)
 }
 
-func TestVMAccountsDB_IsCodeEmptyShouldWork(t *testing.T) {
+func TestBlockChainHookImpl_IsCodeEmptyShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt := mock.NewAccountWrapMock(nil, nil)
@@ -342,9 +342,9 @@ func TestVMAccountsDB_IsCodeEmptyShouldWork(t *testing.T) {
 			return accnt, nil
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	isEmpty, err := vadb.IsCodeEmpty(make([]byte, 0))
+	isEmpty, err := bh.IsCodeEmpty(make([]byte, 0))
 
 	assert.Nil(t, err)
 	assert.True(t, isEmpty)
@@ -352,7 +352,7 @@ func TestVMAccountsDB_IsCodeEmptyShouldWork(t *testing.T) {
 
 //------- GetCode
 
-func TestVMAccountsDB_GetCodeAccountErrorsShouldErr(t *testing.T) {
+func TestBlockChainHookImpl_GetCodeAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected err")
@@ -362,15 +362,15 @@ func TestVMAccountsDB_GetCodeAccountErrorsShouldErr(t *testing.T) {
 			return nil, errExpected
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	retrievedCode, err := vadb.GetCode(make([]byte, 0))
+	retrievedCode, err := bh.GetCode(make([]byte, 0))
 
 	assert.Equal(t, errExpected, err)
 	assert.Nil(t, retrievedCode)
 }
 
-func TestVMAccountsDB_GetCodeShouldWork(t *testing.T) {
+func TestBlockChainHookImpl_GetCodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	code := []byte("code")
@@ -383,59 +383,59 @@ func TestVMAccountsDB_GetCodeShouldWork(t *testing.T) {
 			return accnt, nil
 		},
 	}
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	retrievedCode, err := vadb.GetCode(make([]byte, 0))
+	retrievedCode, err := bh.GetCode(make([]byte, 0))
 
 	assert.Nil(t, err)
 	assert.Equal(t, code, retrievedCode)
 }
 
-func TestVMAccountsDB_CleanFakeAccounts(t *testing.T) {
+func TestBlockChainHookImpl_CleanFakeAccounts(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	address := []byte("test")
-	vadb.AddTempAccount(address, big.NewInt(10), 10)
-	vadb.CleanTempAccounts()
+	bh.AddTempAccount(address, big.NewInt(10), 10)
+	bh.CleanTempAccounts()
 
-	acc := vadb.TempAccount(address)
+	acc := bh.TempAccount(address)
 	assert.Nil(t, acc)
 }
 
-func TestVMAccountsDB_CreateAndGetFakeAccounts(t *testing.T) {
+func TestBlockChainHookImpl_CreateAndGetFakeAccounts(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	address := []byte("test")
 	nonce := uint64(10)
-	vadb.AddTempAccount(address, big.NewInt(10), nonce)
+	bh.AddTempAccount(address, big.NewInt(10), nonce)
 
-	acc := vadb.TempAccount(address)
+	acc := bh.TempAccount(address)
 	assert.NotNil(t, acc)
 	assert.Equal(t, nonce, acc.GetNonce())
 }
 
-func TestVMAccountsDB_GetNonceFromFakeAccount(t *testing.T) {
+func TestBlockChainHookImpl_GetNonceFromFakeAccount(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	address := []byte("test")
 	nonce := uint64(10)
-	vadb.AddTempAccount(address, big.NewInt(10), nonce)
+	bh.AddTempAccount(address, big.NewInt(10), nonce)
 
-	getNonce, err := vadb.GetNonce(address)
+	getNonce, err := bh.GetNonce(address)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, getNonce)
 }
 
-func TestVMAccountsDB_NewAddressLengthNoGood(t *testing.T) {
+func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	t.Parallel()
 
 	adrConv := mock.NewAddressConverterFake(32, "")
@@ -451,22 +451,22 @@ func TestVMAccountsDB_NewAddressLengthNoGood(t *testing.T) {
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
 	args.Accounts = acnts
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	address := []byte("test")
 	nonce := uint64(10)
 
-	scAddress, err := vadb.NewAddress(address, nonce, []byte("00"))
+	scAddress, err := bh.NewAddress(address, nonce, []byte("00"))
 	assert.Equal(t, hooks.ErrAddressLengthNotCorrect, err)
 	assert.Nil(t, scAddress)
 
 	address = []byte("1234567890123456789012345678901234567890")
-	scAddress, err = vadb.NewAddress(address, nonce, []byte("00"))
+	scAddress, err = bh.NewAddress(address, nonce, []byte("00"))
 	assert.Equal(t, hooks.ErrAddressLengthNotCorrect, err)
 	assert.Nil(t, scAddress)
 }
 
-func TestVMAccountsDB_NewAddressShardIdIncorrect(t *testing.T) {
+func TestBlockChainHookImpl_NewAddressShardIdIncorrect(t *testing.T) {
 	t.Parallel()
 
 	adrConv := mock.NewAddressConverterFake(32, "")
@@ -478,17 +478,17 @@ func TestVMAccountsDB_NewAddressShardIdIncorrect(t *testing.T) {
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
 	args.Accounts = acnts
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	address := []byte("012345678901234567890123456789ff")
 	nonce := uint64(10)
 
-	scAddress, err := vadb.NewAddress(address, nonce, []byte("00"))
+	scAddress, err := bh.NewAddress(address, nonce, []byte("00"))
 	assert.Equal(t, testErr, err)
 	assert.Nil(t, scAddress)
 }
 
-func TestVMAccountsDB_NewAddressVMTypeTooLong(t *testing.T) {
+func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	t.Parallel()
 
 	adrConv := mock.NewAddressConverterFake(32, "")
@@ -504,18 +504,18 @@ func TestVMAccountsDB_NewAddressVMTypeTooLong(t *testing.T) {
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
 	args.Accounts = acnts
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	address := []byte("01234567890123456789012345678900")
 	nonce := uint64(10)
 
 	vmType := []byte("010")
-	scAddress, err := vadb.NewAddress(address, nonce, vmType)
+	scAddress, err := bh.NewAddress(address, nonce, vmType)
 	assert.Equal(t, hooks.ErrVMTypeLengthIsNotCorrect, err)
 	assert.Nil(t, scAddress)
 }
 
-func TestVMAccountsDB_NewAddress(t *testing.T) {
+func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	t.Parallel()
 
 	adrConv := mock.NewAddressConverterFake(32, "")
@@ -531,13 +531,13 @@ func TestVMAccountsDB_NewAddress(t *testing.T) {
 	args := createMockVMAccountsArguments()
 	args.AddrConv = adrConv
 	args.Accounts = acnts
-	vadb, _ := hooks.NewVMAccountsDB(args)
+	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	address := []byte("01234567890123456789012345678900")
 	nonce := uint64(10)
 
 	vmType := []byte("11")
-	scAddress1, err := vadb.NewAddress(address, nonce, vmType)
+	scAddress1, err := bh.NewAddress(address, nonce, vmType)
 	assert.Nil(t, err)
 
 	for i := 0; i < 8; i++ {
@@ -546,7 +546,7 @@ func TestVMAccountsDB_NewAddress(t *testing.T) {
 	assert.True(t, bytes.Equal(vmType, scAddress1[8:10]))
 
 	nonce++
-	scAddress2, err := vadb.NewAddress(address, nonce, []byte("00"))
+	scAddress2, err := bh.NewAddress(address, nonce, []byte("00"))
 	assert.Nil(t, err)
 
 	assert.False(t, bytes.Equal(scAddress1, scAddress2))

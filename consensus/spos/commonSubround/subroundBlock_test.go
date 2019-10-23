@@ -654,7 +654,9 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	sr := *initSubroundBlock(blockChain, container)
 	_ = sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
-	_ = sr.SendBlockBody(header)
+	body, _ := sr.CreateBody(header)
+	_ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	_ = sr.SendBlockBody(body)
 	_ = sr.SendBlockHeader(header)
 
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
@@ -679,9 +681,11 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	_ = sr.BlockChain().SetCurrentBlockHeader(&block.Header{
 		Nonce: 1,
 	})
-	header, _ := sr.CreateHeader()
 
-	_ = sr.SendBlockBody(header)
+	header, _ := sr.CreateHeader()
+	body, _ := sr.CreateBody(header)
+	_ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	_ = sr.SendBlockBody(body)
 	_ = sr.SendBlockHeader(header)
 
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
@@ -726,7 +730,9 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	container.SetBlockchain(&blockChainMock)
 
 	header, _ := sr.CreateHeader()
-	_ = sr.SendBlockBody(header)
+	body, _ := sr.CreateBody(header)
+	_ = sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	_ = sr.SendBlockBody(body)
 	_ = sr.SendBlockHeader(header)
 
 	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
@@ -756,11 +762,10 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 		Nonce: 1,
 	})
 	header, _ := sr.CreateHeader()
-	sent := sr.SendBlockBody(header)
-	assert.True(t, sent)
+	body, _ := sr.CreateBody(header)
 
-	sent = sr.SendBlockHeader(header)
-	assert.False(t, sent)
+	err := sr.BlockProcessor().ApplyBodyToHeader(header, body)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestSubroundBlock_CallFuncRemainingTimeWithStructShouldWork(t *testing.T) {

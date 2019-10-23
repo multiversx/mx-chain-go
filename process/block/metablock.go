@@ -1354,6 +1354,11 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 	}
 }
 
+// CreateNewHeader creates a new header
+func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
+	return &block.MetaBlock{}
+}
+
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	header data.HeaderHandler,

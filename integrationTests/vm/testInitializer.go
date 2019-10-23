@@ -91,7 +91,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 	}
 
-	blockChainHook, _ := hooks.NewVMAccountsDB(args)
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = opGas
 
@@ -144,13 +144,13 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		Marshalizer:      testMarshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 	}
-	blockChainHook, _ := hooks.NewVMAccountsDB(args)
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 
 	return vm
 }
 
-func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
+func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.BlockChainHookImpl) {
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
 		AddrConv:         addrConv,
@@ -160,7 +160,7 @@ func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecuti
 		Marshalizer:      testMarshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 	}
-	blockChainHook, _ := hooks.NewVMAccountsDB(args)
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	cryptoHook := hooks.NewVMCryptoHook()
 	vm := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 	//Uncomment this to enable trace printing of the vm

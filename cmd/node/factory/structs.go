@@ -7,8 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -48,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -64,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1685,7 +1685,7 @@ func newShardBlockProcessor(
 		core.Hasher,
 		core.Marshalizer,
 		state.AccountsAdapter,
-		vmFactory.VMAccountsDB(),
+		vmFactory.BlockChainHookImpl(),
 		state.AddressConverter,
 		shardCoordinator,
 		scForwarder,
@@ -1799,7 +1799,7 @@ func newShardBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
-		BlockChainHook:        vmFactory.VMAccountsDB(),
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgShardProcessor{
@@ -1873,7 +1873,7 @@ func newMetaBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
-		BlockChainHook:        vmFactory.VMAccountsDB(),
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		//TODO add real transaction coordinator here
 		TxCoordinator: &mock.TransactionCoordinatorMock{},
 	}

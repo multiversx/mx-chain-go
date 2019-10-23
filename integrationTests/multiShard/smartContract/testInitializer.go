@@ -982,7 +982,7 @@ func createMintingForSenders(
 func createVMAndBlockchainHook(
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
+) (vmcommon.VMExecutionHandler, *hooks.BlockChainHookImpl) {
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
 		AddrConv:         addrConv,
@@ -993,7 +993,7 @@ func createVMAndBlockchainHook(
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 	}
 
-	blockChainHook, _ := hooks.NewVMAccountsDB(args)
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = uint64(opGas)
 

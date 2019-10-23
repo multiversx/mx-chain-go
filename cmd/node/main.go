@@ -716,12 +716,12 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		Marshalizer:      coreComponents.Marshalizer,
 		Uint64Converter:  coreComponents.Uint64ByteSliceConverter,
 	}
-	vmAccountsDB, err := hooks.NewVMAccountsDB(argsBlockChainHook)
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsBlockChainHook)
 	if err != nil {
 		return err
 	}
 
-	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
+	apiResolver, err := createApiResolver(blockChainHookImpl, statusMetrics)
 	if err != nil {
 		return err
 	}
@@ -1392,10 +1392,10 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
+func createApiResolver(blockChainHookImpl vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
 	//TODO replace this with a vm factory
 	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
+	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHookImpl, cryptoHook)
 
 	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
 	if err != nil {
