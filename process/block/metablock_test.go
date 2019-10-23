@@ -953,14 +953,15 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	haveTime := func() bool { return true }
 	round := uint64(10)
-	shardInfo, err := mp.CreateShardInfo(round, haveTime)
+	shardInfo, err := mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, haveTime)
-	shardInfo, err = mp.CreateShardInfo(round, haveTime)
+	_, err = mp.CreateBlockBody(round, func() bool {
+		return true
+	})
+	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 }
@@ -1047,12 +1048,12 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	mp.SetShardBlockFinality(0)
 	round := uint64(40)
-	shardInfo, err := mp.CreateShardInfo(round, haveTime)
+	shardInfo, err := mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
 	_, err = mp.CreateBlockBody(round, haveTime)
-	shardInfo, err = mp.CreateShardInfo(round, haveTime)
+	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1192,12 +1193,12 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 
 	mp.SetShardBlockFinality(1)
 	round := uint64(15)
-	shardInfo, err := mp.CreateShardInfo(round, haveTime)
+	shardInfo, err := mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
 	_, err = mp.CreateBlockBody(round, haveTime)
-	shardInfo, err = mp.CreateShardInfo(round, haveTime)
+	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1337,12 +1338,12 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 	mp.SetShardBlockFinality(1)
 	round := uint64(20)
-	shardInfo, err := mp.CreateShardInfo(round, haveTime)
+	shardInfo, err := mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
 	_, err = mp.CreateBlockBody(round, haveTime)
-	shardInfo, err = mp.CreateShardInfo(round, haveTime)
+	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }

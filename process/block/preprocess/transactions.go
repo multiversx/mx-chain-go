@@ -433,7 +433,6 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	if err == nil && len(miniBlock.TxHashes) > 0 {
 		txSpaceRemained -= len(miniBlock.TxHashes)
 		miniBlocks = append(miniBlocks, miniBlock)
-		newMBAdded = true
 	}
 
 	for newMBAdded {
