@@ -72,9 +72,12 @@ type TransactionHandler interface {
 	IsInterfaceNil() bool
 
 	GetValue() *big.Int
+	GetNonce() uint64
 	GetData() string
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
+	GetGasLimit() uint64
+	GetGasPrice() uint64
 
 	SetValue(*big.Int)
 	SetData(string)
