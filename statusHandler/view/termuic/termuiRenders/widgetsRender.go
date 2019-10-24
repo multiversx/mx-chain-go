@@ -149,9 +149,26 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
 	rows[5] = []string{fmt.Sprintf("Consensus leader accepted / proposed blocks : %d / %d", countAcceptedBlocks, countLeader)}
 
-	//TODO: The rewards calculation for printing should be fixed
-	rows[6] = []string{""}
-	rows[7] = []string{""}
+	switch instanceType {
+	case string(core.NodeTypeValidator):
+		rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
+		rows[6] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
+
+		var rewardsInfo []string
+		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
+		if diffRewards != "0" {
+			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD + %s", totalRewardsValue, diffRewards)}
+		} else {
+			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD", totalRewardsValue)}
+		}
+		rows[7] = rewardsInfo
+
+	default:
+		rows[6] = []string{""}
+		rows[7] = []string{""}
+	}
 
 	wr.instanceInfo.Title = "Elrond instance info"
 	wr.instanceInfo.RowSeparator = false
@@ -250,12 +267,12 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	rows[3] = []string{fmt.Sprintf("Current block hash : %s", currentBlockHash)}
 
 	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
-	rows[4] = []string{fmt.Sprintf("Block height: %s", crossCheckBlockHeight)}
+	rows[4] = []string{fmt.Sprintf("Cross check: %s", crossCheckBlockHeight)}
 
 	shardId := wr.presenter.GetShardId()
 	if shardId != uint64(sharding.MetachainShardId) {
 		highestFinalBlockInShard := wr.presenter.GetHighestFinalBlockInShard()
-		rows[4][0] += fmt.Sprintf(", highest final block nonce: %d", highestFinalBlockInShard)
+		rows[4][0] += fmt.Sprintf(" ,final nonce: %d", highestFinalBlockInShard)
 	}
 
 	consensusState := wr.presenter.GetConsensusState()

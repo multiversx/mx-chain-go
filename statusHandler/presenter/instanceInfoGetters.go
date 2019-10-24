@@ -7,9 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
-// denomination is equals with 10^-4
-var denominationCoefficient = big.NewFloat(0.0001)
-
 // GetAppVersion will return application version
 func (psh *PresenterStatusHandler) GetAppVersion() string {
 	return psh.getFromCacheAsString(core.MetricAppVersion)
@@ -82,13 +79,11 @@ func (psh *PresenterStatusHandler) GetNodeName() string {
 // Rewards estimation will be equal with :
 // numSignedBlocks * denomination * Rewards
 func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
-	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
 	numSignedBlocks := psh.getFromCacheAsUint64(core.MetricCountConsensusAcceptedBlocks)
+	rewardsInErd := psh.computeRewardsInErd()
 
-	rewardsCoefficient := float64(numSignedBlocks)
-	totalRewardsFloat := big.NewFloat(rewardsCoefficient)
-	totalRewardsFloat.Mul(totalRewardsFloat, denominationCoefficient)
-	totalRewardsFloat.Mul(totalRewardsFloat, big.NewFloat(0).SetInt(rewardsValue))
+	totalRewardsFloat := big.NewFloat(float64(numSignedBlocks))
+	totalRewardsFloat.Mul(totalRewardsFloat, rewardsInErd)
 
 	totalRewards := new(big.Int)
 	totalRewardsFloat.Int(totalRewards)
@@ -102,29 +97,18 @@ func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
 
 // CalculateRewardsPerHour will return an approximation of how many ERDs a validator will earn per hour
 // Rewards estimation per hour will be equals with :
-// changeToBeInConsensus * roundsPerHour * hitRate * denominationCoefficient * Rewards
+// chanceToBeInConsensus * roundsPerHour * hitRate * denominationCoefficient * Rewards
 func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
-	consensusGroupSize := psh.getFromCacheAsUint64(core.MetricConsensusGroupSize)
-	numValidators := psh.getFromCacheAsUint64(core.MetricNumValidators)
-	totalBlocks := psh.GetProbableHighestNonce()
-	rounds := psh.GetCurrentRound()
-	roundDuration := psh.GetRoundTime()
-	secondsInAHour := uint64(3600)
-	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
-
-	areEqualsWithZero := areEqualsWithZero(consensusGroupSize, numValidators, totalBlocks, rounds, roundDuration)
-	if areEqualsWithZero || rewardsValue.Cmp(big.NewInt(0)) <= 0 {
+	chanceToBeInConsensus := psh.computeChanceToBeInConsensus()
+	roundsPerHourAccordingToHitRate := psh.computeRoundsPerHourAccordingToHitRate()
+	rewardsInErd := psh.computeRewardsInErd()
+	if chanceToBeInConsensus == 0 || roundsPerHourAccordingToHitRate == 0 || rewardsInErd.Cmp(big.NewFloat(0)) <= 0 {
 		return "0"
 	}
 
-	chanceToBeInConsensus := float64(consensusGroupSize) / float64(numValidators)
-	hitRate := float64(totalBlocks) / float64(rounds)
-	roundsPerHour := float64(secondsInAHour) / float64(roundDuration)
-
-	rewardsPerHourCoefficient := chanceToBeInConsensus * hitRate * roundsPerHour
+	rewardsPerHourCoefficient := chanceToBeInConsensus * roundsPerHourAccordingToHitRate
 	totalRewardsPerHourFloat := big.NewFloat(rewardsPerHourCoefficient)
-	totalRewardsPerHourFloat.Mul(totalRewardsPerHourFloat, denominationCoefficient)
-	totalRewardsPerHourFloat.Mul(totalRewardsPerHourFloat, big.NewFloat(0).SetInt(rewardsValue))
+	totalRewardsPerHourFloat.Mul(totalRewardsPerHourFloat, rewardsInErd)
 
 	totalRewardsPerHour := new(big.Int)
 	totalRewardsPerHourFloat.Int(totalRewardsPerHour)
