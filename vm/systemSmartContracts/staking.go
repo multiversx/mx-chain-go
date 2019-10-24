@@ -68,6 +68,13 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 }
 
 func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 1 {
+		return vmcommon.UserError
+	}
+
+	value := r.eei.GetStorage(args.Arguments[0].Bytes())
+	r.eei.Finish(value)
+
 	return vmcommon.Ok
 }
 
