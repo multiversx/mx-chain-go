@@ -166,7 +166,7 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil))
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), nil)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
 }
 
@@ -183,7 +183,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)))
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)), nil)
 	assert.Equal(t, dataRetriever.ErrResolveTypeUnknown, err)
 
 }
@@ -223,7 +223,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData))
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), nil)
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
 	assert.True(t, sendWasCalled)
@@ -270,7 +270,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData))
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), nil)
 	assert.Equal(t, errExpected, err)
 }
 
@@ -315,7 +315,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData))
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), nil)
 	assert.Nil(t, err)
 	assert.True(t, wasGotFromStorage)
 	assert.True(t, wasSent)
@@ -338,7 +338,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte("aaa")))
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte("aaa")), nil)
 	assert.Equal(t, dataRetriever.ErrInvalidNonceByteSlice, err)
 }
 
@@ -375,9 +375,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		nonceConverter,
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(
-		dataRetriever.NonceType,
-		nonceConverter.ToByteSlice(requestedNonce)))
+	err := hdrRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
+		nil,
+	)
 	assert.Nil(t, err)
 	assert.False(t, wasSent)
 }
@@ -438,9 +439,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		nonceConverter,
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(
-		dataRetriever.NonceType,
-		nonceConverter.ToByteSlice(requestedNonce)))
+	err := hdrRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
+		nil,
+	)
 
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
@@ -508,9 +510,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		nonceConverter,
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(
-		dataRetriever.NonceType,
-		nonceConverter.ToByteSlice(requestedNonce)))
+	err := hdrRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
+		nil,
+	)
 
 	assert.Nil(t, err)
 	assert.True(t, wasResolved)
@@ -575,9 +578,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		nonceConverter,
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(
-		dataRetriever.NonceType,
-		nonceConverter.ToByteSlice(requestedNonce)))
+	err := hdrRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
+		nil,
+	)
 
 	assert.Equal(t, errExpected, err)
 }

@@ -596,7 +596,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 	)
 
-	container, _ := icf.Create()
+	container, err := icf.Create()
 
 	numInterceptorsMetablock := 1
 	numInterceptorsShardHeadersForMetachain := noOfShards
@@ -605,5 +605,6 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain
 
+	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
 }
