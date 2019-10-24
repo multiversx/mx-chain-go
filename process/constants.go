@@ -34,7 +34,7 @@ const ShardBlockFinality = 1
 const MetaBlockFinality = 1
 const MaxHeaderRequestsAllowed = 10
 const MaxItemsInBlock = 15000
-const MinItemsInBlock = 15000
+const MinItemsInBlock = 25
 const MaxNoncesDifference = 5
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds

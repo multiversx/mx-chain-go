@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -20,6 +21,7 @@ import (
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
 	consensusService   ConsensusService
+	blockChain         data.ChainHandler
 	blockProcessor     process.BlockProcessor
 	bootstrapper       process.Bootstrapper
 	broadcastMessenger consensus.BroadcastMessenger
@@ -45,6 +47,7 @@ type Worker struct {
 // NewWorker creates a new Worker object
 func NewWorker(
 	consensusService ConsensusService,
+	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	bootstrapper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
@@ -59,6 +62,7 @@ func NewWorker(
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
+		blockChain,
 		blockProcessor,
 		bootstrapper,
 		broadcastMessenger,
@@ -77,6 +81,7 @@ func NewWorker(
 
 	wrk := Worker{
 		consensusService:   consensusService,
+		blockChain:         blockChain,
 		blockProcessor:     blockProcessor,
 		bootstrapper:       bootstrapper,
 		broadcastMessenger: broadcastMessenger,
@@ -103,6 +108,7 @@ func NewWorker(
 
 func checkNewWorkerParams(
 	consensusService ConsensusService,
+	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	bootstrapper process.Bootstrapper,
 	broadcastMessenger consensus.BroadcastMessenger,
@@ -117,6 +123,9 @@ func checkNewWorkerParams(
 ) error {
 	if consensusService == nil || consensusService.IsInterfaceNil() {
 		return ErrNilConsensusService
+	}
+	if blockChain == nil || blockChain.IsInterfaceNil() {
+		return ErrNilBlockChain
 	}
 	if blockProcessor == nil || blockProcessor.IsInterfaceNil() {
 		return ErrNilBlockProcessor
@@ -381,6 +390,31 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Debug(fmt.Sprintf("account state is reverted to snapshot\n"))
 
 	wrk.blockProcessor.RevertAccountState()
+
+	if wrk.consensusState.IsSelfLeaderInCurrentRound() {
+		wrk.broadcastLastCommitedBlock()
+	}
+}
+
+func (wrk *Worker) broadcastLastCommitedBlock() {
+	header := wrk.blockChain.GetCurrentBlockHeader()
+	body := wrk.blockChain.GetCurrentBlockBody()
+
+	if header == nil || header.IsInterfaceNil() {
+		return
+	}
+
+	// broadcast block body and header
+	err := wrk.broadcastMessenger.BroadcastBlock(body, header)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	// broadcast header to metachain
+	err = wrk.broadcastMessenger.BroadcastHeader(header)
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 //GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
