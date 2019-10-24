@@ -259,33 +259,6 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 	assert.Equal(t, errExpected, err)
 }
 
-func TestNewInterceptedTransaction_MarshalingCopiedTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected error")
-
-	txi, err := transaction.NewInterceptedTransaction(
-		make([]byte, 0),
-		&mock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
-				return nil, errExpected
-			},
-			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return nil
-			},
-		},
-		mock.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.FeeHandlerStub{},
-	)
-
-	assert.Nil(t, txi)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -391,7 +364,7 @@ func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testin
 	assert.Equal(t, process.ErrNilSndAddr, err)
 }
 
-func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
+func TestInterceptedTransaction_CheckValidityEmptyValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &dataTransaction.Transaction{
@@ -409,6 +382,26 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 	err := txi.CheckValidity()
 
 	assert.Equal(t, process.ErrNilValue, err)
+}
+
+func TestInterceptedTransaction_CheckValidityNotAnumberValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     "NaN",
+		Data:      "data",
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+
+	err := txi.CheckValidity()
+
+	assert.Equal(t, process.ErrInvalidValue, err)
 }
 
 func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testing.T) {
@@ -464,7 +457,7 @@ func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
