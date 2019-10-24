@@ -48,3 +48,6 @@ test-agario-join-reward:
 
 test-miniblocks-sc-v:
 	go test -count=1 -v ./integrationTests/multiShard/block/executingMiniblocksSc_test.go
+
+cross:
+	./cross_build.sh
