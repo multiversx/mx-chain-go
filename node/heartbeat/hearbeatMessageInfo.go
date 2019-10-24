@@ -68,9 +68,11 @@ func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
 }
 
 func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
+	hbmi.updateMutex.Lock()
 	validDuration := computeValidDuration(crtTime, hbmi)
 	hbmi.isActive = hbmi.isActive && validDuration
 	hbmi.updateTimes(crtTime, hbmi.isActive)
+	hbmi.updateMutex.Unlock()
 }
 
 func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time, previousActive bool) {

@@ -250,7 +250,6 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	counterActiveValidators := 0
 	counterConnectedNodes := 0
 	for _, v := range m.heartbeatMessages {
-		v.updateMutex.Lock()
 		v.computeActive(m.timer.Now())
 		if v.isActive {
 			counterConnectedNodes++
@@ -259,7 +258,6 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 				counterActiveValidators++
 			}
 		}
-		v.updateMutex.Unlock()
 	}
 	m.mutHeartbeatMessages.Unlock()
 
