@@ -13,6 +13,7 @@ import (
 var log = logger.DefaultLogger()
 
 const ownerKey = "owner"
+const initialStakeKey = "initialStake"
 
 type stakingData struct {
 	StartNonce    uint64   `json:"StartNonce"`
@@ -71,11 +72,15 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
+	r.eei.SetStorage([]byte(initialStakeKey), r.stakeValue.Bytes())
 	return vmcommon.Ok
 }
 
 func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if args.CallValue.Cmp(r.stakeValue) != 0 {
+	stakeValueBytes := r.eei.GetStorage([]byte(initialStakeKey))
+	stakeValue := big.NewInt(0).SetBytes(stakeValueBytes)
+
+	if args.CallValue.Cmp(stakeValue) != 0 || args.CallValue.Sign() <= 0 {
 		return vmcommon.UserError
 	}
 
