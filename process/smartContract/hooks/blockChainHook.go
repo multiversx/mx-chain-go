@@ -203,7 +203,7 @@ func (bh *BlockChainHookImpl) GetBlockhash(offset *big.Int) ([]byte, error) {
 		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
 
-	_, hash, err := process.GetShardHeaderFromStorageWithNonce(
+	_, hash, err := process.GetHeaderFromStorageWithNonce(
 		requestedNonce.Uint64(),
 		bh.shardCoordinator.SelfId(),
 		bh.storageService,
