@@ -979,7 +979,8 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 		_ = tr.Prune(currentRootHash, data.NewRoot)
 		rootHashes = append(rootHashes, currentRootHash)
 	}
-	assert.Equal(t, 21, len(evictionWaitList.Cache))
+	numKeysToBeEvicted := 21
+	assert.Equal(t, numKeysToBeEvicted, len(evictionWaitList.Cache))
 	assert.NotEqual(t, 0, len(tr.pruningBuffer))
 
 	for len(tr.pruningBuffer) != 0 {
