@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 )
 
@@ -55,9 +56,5 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 
 	isOnMetaChainSCAddress := bytes.Equal(rcvAddress[hooks.NumInitCharactersForScAddress:(hooks.NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC)],
 		make([]byte, numInitCharactersForOnMetachainSC))
-	if !isOnMetaChainSCAddress {
-		return false
-	}
-
-	return true
+	return isOnMetaChainSCAddress
 }
