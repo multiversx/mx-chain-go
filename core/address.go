@@ -64,9 +64,5 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 
 	isOnMetaChainSCAddress := bytes.Equal(rcvAddress[NumInitCharactersForScAddress:(NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC)],
 		make([]byte, numInitCharactersForOnMetachainSC))
-	if !isOnMetaChainSCAddress {
-		return false
-	}
-
-	return true
+	return isOnMetaChainSCAddress
 }
