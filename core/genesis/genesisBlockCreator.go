@@ -62,7 +62,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
-func CreateMetaGenesisBlock(genesisTime uint64, initialPubKeys map[uint32][]string) (data.HeaderHandler, error) {
+func CreateMetaGenesisBlock(genesisTime uint64, _ map[uint32][]string) (data.HeaderHandler, error) {
 	//TODO create the right metachain genesis block here
 	rootHash := []byte("root hash")
 	header := &block.MetaBlock{
@@ -150,7 +150,7 @@ func initSystemSmartContracts(
 	scKeys := smartContracts.Keys()
 
 	tx := &transaction.Transaction{
-		Value:   big.NewInt(0),
+		Value:   "0",
 		RcvAddr: make([]byte, adrConv.AddressLen()),
 	}
 	for _, scKey := range scKeys {

@@ -86,7 +86,7 @@ func createAccounts(tx *transaction.Transaction) (state.AccountHandler, state.Ac
 	}
 
 	acntSrc, _ := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
+	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.GetValue())
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, totalFee)
@@ -128,7 +128,7 @@ func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = big.NewInt(45)
+	tx.Value = "45"
 
 	tx = nil
 	_, err = tth.ComputeTransactionType(tx)
@@ -151,7 +151,7 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = nil
-	tx.Value = big.NewInt(45)
+	tx.Value = "45"
 
 	_, err = tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.ErrWrongTransaction, err)
@@ -175,7 +175,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = big.NewInt(45)
+	tx.Value = "45"
 
 	txType, err := tth.ComputeTransactionType(tx)
 	assert.Nil(t, err)
@@ -191,7 +191,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = big.NewInt(45)
+	tx.Value = "45"
 
 	_, acntDst := createAccounts(tx)
 	acntDst.SetCode([]byte("code"))
@@ -222,7 +222,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
 	tx.Data = "data"
-	tx.Value = big.NewInt(45)
+	tx.Value = "45"
 
 	_, acntDst := createAccounts(tx)
 

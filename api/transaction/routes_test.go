@@ -44,7 +44,7 @@ func init() {
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := big.NewInt(10)
+	value := "10"
 	data := "data"
 	hash := "hash"
 	facade := mock.Facade{
@@ -78,7 +78,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := big.NewInt(10)
+	value := "10"
 	data := "data"
 	hs := "hash"
 	wrongHash := "wronghash"
@@ -177,7 +177,7 @@ func TestSendTransaction_InvalidHexSignatureShouldError(t *testing.T) {
 	facade := mock.Facade{}
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":%s, "signature":"%s", "data":"%s"}`,
+	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "data":"%s"}`,
 		sender,
 		receiver,
 		value,
@@ -208,14 +208,14 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value *big.Int,
+		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value string,
 			gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error) {
 			return "", errors.New(errorString)
 		},
 	}
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":%s, "signature":"%s", "data":"%s"}`,
+	jsonStr := fmt.Sprintf(`{"sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "data":"%s"}`,
 		sender,
 		receiver,
 		value,
@@ -247,7 +247,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	txHash := "tx hash"
 
 	facade := mock.Facade{
-		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value *big.Int,
+		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value string,
 			gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error) {
 			return txHash, nil
 		},
@@ -255,7 +255,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	ws := startNodeServer(&facade)
 
 	jsonStr := fmt.Sprintf(
-		`{"nonce": %d, "sender": "%s", "receiver": "%s", "value": %s, "signature": "%s", "data": "%s"}`,
+		`{"nonce": %d, "sender": "%s", "receiver": "%s", "value": "%s", "signature": "%s", "data": "%s"}`,
 		nonce,
 		sender,
 		receiver,

@@ -477,7 +477,7 @@ func (n *Node) SendTransaction(
 	nonce uint64,
 	senderHex string,
 	receiverHex string,
-	value *big.Int,
+	value string,
 	gasPrice uint64,
 	gasLimit uint64,
 	transactionData string,
@@ -601,7 +601,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 
 func (n *Node) CreateTransaction(
 	nonce uint64,
-	value *big.Int,
+	value string,
 	receiverHex string,
 	senderHex string,
 	gasPrice uint64,

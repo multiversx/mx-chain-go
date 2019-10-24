@@ -267,7 +267,7 @@ func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 		transactions = append(transactions, &Transaction{
 			Transaction: transaction.Transaction{
 				Nonce:     uint64(rand.Int63n(10000)),
-				Value:     val,
+				Value:     val.String(),
 				RcvAddr:   []byte(RandomStr(32)),
 				SndAddr:   []byte(RandomStr(32)),
 				GasPrice:  uint64(rand.Int63n(10000)),

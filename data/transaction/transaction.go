@@ -10,15 +10,15 @@ import (
 
 // Transaction holds all the data needed for a value transfer
 type Transaction struct {
-	Nonce     uint64   `capid:"0" json:"nonce"`
-	Value     *big.Int `capid:"1" json:"value"`
-	RcvAddr   []byte   `capid:"2" json:"receiver"`
-	SndAddr   []byte   `capid:"3" json:"sender"`
-	GasPrice  uint64   `capid:"4" json:"gasPrice,omitempty"`
-	GasLimit  uint64   `capid:"5" json:"gasLimit,omitempty"`
-	Data      string   `capid:"6" json:"data,omitempty"`
-	Signature []byte   `capid:"7" json:"signature,omitempty"`
-	Challenge []byte   `capid:"8" json:"challenge,omitempty"`
+	Nonce     uint64 `capid:"0" json:"nonce"`
+	Value     string `capid:"1" json:"value"`
+	RcvAddr   []byte `capid:"2" json:"receiver"`
+	SndAddr   []byte `capid:"3" json:"sender"`
+	GasPrice  uint64 `capid:"4" json:"gasPrice,omitempty"`
+	GasLimit  uint64 `capid:"5" json:"gasLimit,omitempty"`
+	Data      string `capid:"6" json:"data,omitempty"`
+	Signature []byte `capid:"7" json:"signature,omitempty"`
+	Challenge []byte `capid:"8" json:"challenge,omitempty"`
 }
 
 // Save saves the serialized data of a Transaction into a stream through Capnp protocol
@@ -46,18 +46,14 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 		dest = &Transaction{}
 	}
 
-	if dest.Value == nil {
-		dest.Value = big.NewInt(0)
+	if dest.Value == "" {
+		dest.Value = "0"
 	}
 
 	// Nonce
 	dest.Nonce = src.Nonce()
 	// Value
-	err := dest.Value.GobDecode(src.Value())
-
-	if err != nil {
-		return nil
-	}
+	dest.Value = string(src.Value())
 
 	// RcvAddr
 	dest.RcvAddr = src.RcvAddr()
@@ -81,9 +77,8 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionCapn {
 	dest := capnp.AutoNewTransactionCapn(seg)
 
-	value, _ := src.Value.GobEncode()
 	dest.SetNonce(src.Nonce)
-	dest.SetValue(value)
+	dest.SetValue([]byte(src.Value))
 	dest.SetRcvAddr(src.RcvAddr)
 	dest.SetSndAddr(src.SndAddr)
 	dest.SetGasPrice(src.GasPrice)
@@ -102,7 +97,8 @@ func (tx *Transaction) IsInterfaceNil() bool {
 
 // GetValue returns the value of the transaction
 func (tx *Transaction) GetValue() *big.Int {
-	return tx.Value
+	val, _ := big.NewInt(0).SetString(tx.Value, 10)
+	return val
 }
 
 // GetData returns the data of the transaction
@@ -122,7 +118,7 @@ func (tx *Transaction) GetSndAddress() []byte {
 
 // SetValue sets the value of the transaction
 func (tx *Transaction) SetValue(value *big.Int) {
-	tx.Value = value
+	tx.Value = value.String()
 }
 
 // SetData sets the data of the transaction

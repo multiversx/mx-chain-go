@@ -125,7 +125,7 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 
 	cost := big.NewInt(0)
 	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost.Add(cost, tx.Value)
+	cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil

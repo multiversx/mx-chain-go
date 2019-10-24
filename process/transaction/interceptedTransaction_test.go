@@ -310,7 +310,7 @@ func TestNewInterceptedTransaction_NilSignatureShouldErr(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -330,7 +330,7 @@ func TestNewInterceptedTransaction_NilSenderAddressShouldErr(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -350,7 +350,7 @@ func TestNewInterceptedTransaction_NilRecvAddressShouldErr(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -370,7 +370,7 @@ func TestNewInterceptedTransaction_NilValueShouldErr(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     nil,
+		Value:     "",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -390,7 +390,7 @@ func TestNewInterceptedTransaction_NilNegativeValueShouldErr(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(-2),
+		Value:     "-2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -410,7 +410,7 @@ func TestNewInterceptedTransaction_InvalidSenderShouldErr(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -432,7 +432,7 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 	gasPrice := uint64(4)
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  gasLimit,
 		GasPrice:  gasPrice,
@@ -458,7 +458,7 @@ func TestNewInterceptedTransaction_VerifyFailsShouldErr(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -478,7 +478,7 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -499,7 +499,7 @@ func TestNewInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -526,7 +526,7 @@ func TestNewInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -577,7 +577,7 @@ func TestNewInterceptedTransaction_GetNonce(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     nonce,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -597,7 +597,7 @@ func TestNewInterceptedTransaction_SenderShardId(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -625,7 +625,7 @@ func TestNewInterceptedTransaction_GetTotalValue(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
-		Value:     txValue,
+		Value:     txValue.String(),
 		Data:      "data",
 		GasLimit:  gasPrice,
 		GasPrice:  gasLimit,
@@ -645,7 +645,7 @@ func TestNewInterceptedTransaction_GetSenderAddress(t *testing.T) {
 
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,

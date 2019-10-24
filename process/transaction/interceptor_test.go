@@ -3,7 +3,6 @@ package transaction_test
 import (
 	"bytes"
 	"errors"
-	"math/big"
 	"testing"
 	"time"
 
@@ -561,7 +560,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -629,7 +628,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 
 	tx1 := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -641,7 +640,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 
 	tx2 := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -716,7 +715,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -784,7 +783,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -863,7 +862,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,
@@ -953,7 +952,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageTxNotValidShouldNotAdd(t *
 
 	txNewer := &dataTransaction.Transaction{
 		Nonce:     1,
-		Value:     big.NewInt(2),
+		Value:     "2",
 		Data:      "data",
 		GasLimit:  3,
 		GasPrice:  4,

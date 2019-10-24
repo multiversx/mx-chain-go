@@ -573,7 +573,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	)
 
 	nonce := uint64(0)
-	value := new(big.Int).SetInt64(10)
+	value := "10"
 	receiver := ""
 	sender := ""
 	gasPrice := uint64(10)
@@ -603,7 +603,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	)
 
 	nonce := uint64(0)
-	value := new(big.Int).SetInt64(10)
+	value := "10"
 	receiver := ""
 	sender := ""
 	gasPrice := uint64(10)
@@ -634,7 +634,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	)
 
 	nonce := uint64(0)
-	value := new(big.Int).SetInt64(10)
+	value := "10"
 	receiver := "rcv"
 	sender := "snd"
 	gasPrice := uint64(10)
@@ -665,7 +665,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	)
 
 	nonce := uint64(0)
-	value := new(big.Int).SetInt64(10)
+	value := "10"
 	receiver := "rcv"
 	sender := "snd"
 	gasPrice := uint64(10)
@@ -725,7 +725,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	)
 
 	nonce := uint64(50)
-	value := big.NewInt(567)
+	value := "567"
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
@@ -1713,7 +1713,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	var txsToSend []*transaction.Transaction
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     10,
-		Value:     new(big.Int).SetInt64(15),
+		Value:     "15",
 		RcvAddr:   []byte("receiver1"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  5,
@@ -1725,7 +1725,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     11,
-		Value:     new(big.Int).SetInt64(25),
+		Value:     "25",
 		RcvAddr:   []byte("receiver2"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  6,
@@ -1737,7 +1737,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     12,
-		Value:     new(big.Int).SetInt64(35),
+		Value:     "35",
 		RcvAddr:   []byte("receiver3"),
 		SndAddr:   []byte("senderShard1"),
 		GasPrice:  7,

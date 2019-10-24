@@ -68,7 +68,7 @@ func createTx(
 	txData := fmt.Sprintf("%s@%X", scCodeOrFunc, scValue)
 	tx := &transaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value,
+		Value:    value.String(),
 		RcvAddr:  receiverAddressBytes,
 		SndAddr:  senderAddressBytes,
 		GasPrice: uint64(gasPrice),

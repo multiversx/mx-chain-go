@@ -12,7 +12,7 @@ import (
 func TestTransaction_SaveLoad(t *testing.T) {
 	tx := transaction.Transaction{
 		Nonce:     uint64(1),
-		Value:     big.NewInt(1),
+		Value:     "1",
 		RcvAddr:   []byte("receiver_address"),
 		SndAddr:   []byte("sender_address"),
 		GasPrice:  uint64(10000),
@@ -28,7 +28,7 @@ func TestTransaction_SaveLoad(t *testing.T) {
 	loadTx := transaction.Transaction{}
 	_ = loadTx.Load(&b)
 
-	assert.Equal(t, loadTx, tx)
+	assert.Equal(t, tx, loadTx)
 }
 
 func TestTransaction_GetData(t *testing.T) {
@@ -61,7 +61,7 @@ func TestTransaction_GetSndAddr(t *testing.T) {
 func TestTransaction_GetValue(t *testing.T) {
 	t.Parallel()
 
-	value := big.NewInt(10)
+	value := "10"
 	tx := &transaction.Transaction{Value: value}
 
 	assert.Equal(t, value, tx.Value)
@@ -104,5 +104,5 @@ func TestTransaction_SetValue(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.SetValue(value)
 
-	assert.Equal(t, value, tx.Value)
+	assert.Equal(t, value.String(), tx.Value)
 }

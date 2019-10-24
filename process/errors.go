@@ -501,3 +501,6 @@ var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
+
+// ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
+var ErrInvalidValue = errors.New("invalid value")

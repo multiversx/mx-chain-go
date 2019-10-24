@@ -223,7 +223,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 		nonce = acntSnd.GetNonce()
 	}
 
-	txValue := big.NewInt(0).Set(tx.Value)
+	txValue := big.NewInt(0).Set(tx.GetValue())
 	sc.tempAccounts.AddTempAccount(tx.SndAddr, txValue, nonce)
 
 	return nil
@@ -366,7 +366,7 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	if err != nil {
 		return nil, err
 	}
-	vmInput.CallValue = tx.Value
+	vmInput.CallValue = tx.GetValue()
 	vmInput.GasPrice = big.NewInt(int64(tx.GasPrice))
 	vmInput.GasProvided = big.NewInt(int64(tx.GasLimit))
 
@@ -396,7 +396,7 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 
 	cost := big.NewInt(0)
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost = cost.Add(cost, tx.Value)
+	cost = cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil
@@ -457,7 +457,7 @@ func (sc *scProcessor) processVMOutput(
 		}
 
 		totalCost := big.NewInt(0)
-		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.Value))
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -598,7 +598,7 @@ func (sc *scProcessor) refundGasToSender(
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
 func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx *transaction.Transaction) error {
 	sumOfAllDiff := big.NewInt(0)
-	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.Value)
+	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
 	zero := big.NewInt(0)
 	for i := 0; i < len(outputAccounts); i++ {
