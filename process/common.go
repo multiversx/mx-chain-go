@@ -276,6 +276,21 @@ func GetMetaHeaderFromPoolWithNonce(
 	return hdr, hash, nil
 }
 
+// GetHeaderFromStorageWithNonce method returns a block header from storage with a given nonce and shardId
+func GetHeaderFromStorageWithNonce(
+	nonce uint64,
+	shardId uint32,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	marshalizer marshal.Marshalizer,
+) (data.HeaderHandler, []byte, error) {
+
+	if shardId == sharding.MetachainShardId {
+		return GetMetaHeaderFromStorageWithNonce(nonce, storageService, uint64Converter, marshalizer)
+	}
+	return GetShardHeaderFromStorageWithNonce(nonce, shardId, storageService, uint64Converter, marshalizer)
+}
+
 // GetShardHeaderFromStorageWithNonce method returns a shard block header from storage with a given nonce and shardId
 func GetShardHeaderFromStorageWithNonce(
 	nonce uint64,

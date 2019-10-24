@@ -499,6 +499,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		StartHeaders:          tpn.GenesisBlocks,
 		RequestHandler:        tpn.RequestHandler,
 		Core:                  nil,
+		BlockChainHook:        &mock.BlockChainHookHandlerMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -512,6 +513,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
+		argumentsBase.BlockChainHook = tpn.BlockchainHook.(process.BlockChainHookHandler)
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
@@ -651,22 +653,16 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	blockBody, err := tpn.BlockProcessor.CreateBlockBody(round, haveTime)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil, nil, nil
-	}
-	blockHeader, err := tpn.BlockProcessor.CreateBlockHeader(blockBody, round, haveTime)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil, nil, nil
+	var blockHeader data.HeaderHandler
+	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		blockHeader = &dataBlock.MetaBlock{}
+	} else {
+		blockHeader = &dataBlock.Header{}
 	}
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})
-	sig, _ := TestMultiSig.AggregateSigs(nil)
-	blockHeader.SetSignature(sig)
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
 	if currHdr == nil {
 		currHdr = tpn.BlockChain.GetGenesisHeader()
@@ -675,7 +671,20 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	buff, _ := TestMarshalizer.Marshal(currHdr)
 	blockHeader.SetPrevHash(TestHasher.Compute(string(buff)))
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
+	sig, _ := TestMultiSig.AggregateSigs(nil)
+	blockHeader.SetSignature(sig)
 	blockHeader.SetRandSeed(sig)
+
+	blockBody, err := tpn.BlockProcessor.CreateBlockBody(blockHeader, haveTime)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, nil, nil
+	}
+	err = tpn.BlockProcessor.ApplyBodyToHeader(blockHeader, blockBody)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, nil, nil
+	}
 
 	shardBlockBody, ok := blockBody.(dataBlock.Body)
 	txHashes := make([][]byte, 0)

@@ -68,6 +68,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		onRequestHeaderHandler:        arguments.RequestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 	}
 
@@ -152,6 +153,7 @@ func (mp *metaProcessor) ProcessBlock(
 	)
 
 	mp.createBlockStarted()
+	mp.blockChainHook.SetCurrentHeader(headerHandler)
 	mp.txCoordinator.RequestBlockTransactions(body)
 
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
@@ -469,12 +471,13 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 }
 
 // CreateBlockBody creates block body of metachain
-func (mp *metaProcessor) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
-	log.Debug(fmt.Sprintf("started creating block body in round %d\n", round))
+func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+	log.Debug(fmt.Sprintf("started creating block body in round %d\n", initialHdrData.GetRound()))
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
+	mp.blockChainHook.SetCurrentHeader(initialHdrData)
 
-	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), round, haveTime)
+	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), initialHdrData.GetRound(), haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1292,62 +1295,60 @@ func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
 	return peerInfo, nil
 }
 
-// CreateBlockHeader creates a miniblock header list given a block body
-func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
-	log.Debug(fmt.Sprintf("started creating block header in round %d\n", round))
+// ApplyBodyToHeader creates a miniblock header list given a block body
+func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler data.BodyHandler) error {
+	log.Debug(fmt.Sprintf("started creating block header in round %d\n", hdr.GetRound()))
 
-	header := &block.MetaBlock{
-		ShardInfo:    make([]block.ShardData, 0),
-		PeerInfo:     make([]block.PeerData, 0),
-		PrevRandSeed: make([]byte, 0),
-		RandSeed:     make([]byte, 0),
+	metaHdr, ok := hdr.(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
 	}
 
 	var err error
 	defer func() {
-		go mp.checkAndRequestIfShardHeadersMissing(round)
+		go mp.checkAndRequestIfShardHeadersMissing(hdr.GetRound())
 
 		if err == nil {
 			mp.blockSizeThrottler.Add(
-				round,
-				core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
+				hdr.GetRound(),
+				core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
 		}
 	}()
 
-	shardInfo, err := mp.createShardInfo(round)
+	shardInfo, err := mp.createShardInfo(hdr.GetRound())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	peerInfo, err := mp.createPeerInfo()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	header.ShardInfo = shardInfo
-	header.PeerInfo = peerInfo
-	header.RootHash = mp.getRootHash()
-	header.TxCount = getTxCount(shardInfo)
+	metaHdr.ShardInfo = shardInfo
+	metaHdr.PeerInfo = peerInfo
+	metaHdr.RootHash = mp.getRootHash()
+	metaHdr.TxCount = getTxCount(shardInfo)
 
 	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
-		return header, nil
+		return nil
 	}
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
-		return nil, err
+		return err
 	}
 
 	totalTxCount, miniBlockHeaders, err := mp.createMiniBlockHeaders(body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	header.MiniBlockHeaders = miniBlockHeaders
-	header.TxCount += uint32(totalTxCount)
+	metaHdr.MiniBlockHeaders = miniBlockHeaders
+	metaHdr.TxCount += uint32(totalTxCount)
 
-	return header, nil
+	return nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
@@ -1357,6 +1358,11 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 	case <-time.After(waitTime):
 		return process.ErrTimeIsOut
 	}
+}
+
+// CreateNewHeader creates a new header
+func (mp *metaProcessor) CreateNewHeader() data.HeaderHandler {
+	return &block.MetaBlock{}
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination

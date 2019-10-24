@@ -28,6 +28,7 @@ type ArgBaseProcessor struct {
 	StartHeaders          map[uint32]data.HeaderHandler
 	RequestHandler        process.RequestHandler
 	Core                  serviceContainer.Core
+	BlockChainHook        process.BlockChainHookHandler
 	TxCoordinator         process.TransactionCoordinator
 }
 

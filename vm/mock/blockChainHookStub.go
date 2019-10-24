@@ -13,6 +13,50 @@ type BlockChainHookStub struct {
 	GetBlockHashCalled   func(offset *big.Int) ([]byte, error)
 }
 
+func (b *BlockChainHookStub) LastNonce() uint64 {
+	return 0
+}
+
+func (b *BlockChainHookStub) LastRound() uint64 {
+	return 0
+}
+
+func (b *BlockChainHookStub) LastTimeStamp() uint64 {
+	return 0
+}
+
+func (b *BlockChainHookStub) LastRandomSeed() []byte {
+	return []byte("random")
+}
+
+func (b *BlockChainHookStub) LastEpoch() uint32 {
+	return 0
+}
+
+func (b *BlockChainHookStub) GetStateRootHash() []byte {
+	return []byte("roothash")
+}
+
+func (b *BlockChainHookStub) CurrentNonce() uint64 {
+	return 0
+}
+
+func (b *BlockChainHookStub) CurrentRound() uint64 {
+	return 0
+}
+
+func (b *BlockChainHookStub) CurrentTimeStamp() uint64 {
+	return 0
+}
+
+func (b *BlockChainHookStub) CurrentRandomSeed() []byte {
+	return []byte("random")
+}
+
+func (b *BlockChainHookStub) CurrentEpoch() uint32 {
+	return 0
+}
+
 func (b *BlockChainHookStub) AccountExists(address []byte) (bool, error) {
 	if b.AccountExtistsCalled != nil {
 		return b.AccountExtistsCalled(address)

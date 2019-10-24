@@ -706,12 +706,21 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
-	apiResolver, err := createApiResolver(
-		stateComponents.AccountsAdapter,
-		stateComponents.AddressConverter,
-		shardCoordinator,
-		statusMetrics,
-	)
+	argsBlockChainHook := hooks.ArgBlockChainHook{
+		Accounts:         stateComponents.AccountsAdapter,
+		AddrConv:         stateComponents.AddressConverter,
+		StorageService:   dataComponents.Store,
+		BlockChain:       dataComponents.Blkc,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      coreComponents.Marshalizer,
+		Uint64Converter:  coreComponents.Uint64ByteSliceConverter,
+	}
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsBlockChainHook)
+	if err != nil {
+		return err
+	}
+
+	apiResolver, err := createApiResolver(blockChainHookImpl, statusMetrics)
 	if err != nil {
 		return err
 	}
@@ -1382,7 +1391,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(accounts state.AccountsAdapter, converter state.AddressConverter, shardCoordinator sharding.Coordinator, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
+func createApiResolver(blockChainHookImpl vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {

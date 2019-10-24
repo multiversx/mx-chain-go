@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -13,35 +12,24 @@ import (
 )
 
 type vmContainerFactory struct {
-	accounts         state.AccountsAdapter
-	addressConverter state.AddressConverter
-	vmAccountsDB     *hooks.VMAccountsDB
-	cryptoHook       vmcommon.CryptoHook
+	blockChainHookImpl *hooks.BlockChainHookImpl
+	cryptoHook         vmcommon.CryptoHook
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
-	accounts state.AccountsAdapter,
-	addressConverter state.AddressConverter,
+	argBlockChainHook hooks.ArgBlockChainHook,
 ) (*vmContainerFactory, error) {
-	if accounts == nil || accounts.IsInterfaceNil() {
-		return nil, process.ErrNilAccountsAdapter
-	}
-	if addressConverter == nil || addressConverter.IsInterfaceNil() {
-		return nil, process.ErrNilAddressConverter
-	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(accounts, addressConverter)
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
 	if err != nil {
 		return nil, err
 	}
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
-		accounts:         accounts,
-		addressConverter: addressConverter,
-		vmAccountsDB:     vmAccountsDB,
-		cryptoHook:       cryptoHook,
+		blockChainHookImpl: blockChainHookImpl,
+		cryptoHook:         cryptoHook,
 	}, nil
 }
 
@@ -63,7 +51,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
-	systemEI, err := systemSmartContracts.NewVMContext(vmf.vmAccountsDB, vmf.cryptoHook)
+	systemEI, err := systemSmartContracts.NewVMContext(vmf.blockChainHookImpl, vmf.cryptoHook)
 	if err != nil {
 		return nil, err
 	}
@@ -86,9 +74,9 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	return systemVM, nil
 }
 
-// VMAccountsDB returns the created vmAccountsDB
-func (vmf *vmContainerFactory) VMAccountsDB() *hooks.VMAccountsDB {
-	return vmf.vmAccountsDB
+// BlockChainHookImpl returns the created blockChainHookImpl
+func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
+	return vmf.blockChainHookImpl
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

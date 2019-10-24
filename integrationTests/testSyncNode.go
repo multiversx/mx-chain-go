@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"context"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -92,6 +93,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		StartHeaders:          tpn.GenesisBlocks,
 		RequestHandler:        tpn.RequestHandler,
 		Core:                  nil,
+		BlockChainHook:        &mock.BlockChainHookHandlerMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -110,6 +112,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	} else {
 		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
 		argumentsBase.ForkDetector = tpn.ForkDetector
+		argumentsBase.BlockChainHook = tpn.BlockchainHook.(process.BlockChainHookHandler)
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
