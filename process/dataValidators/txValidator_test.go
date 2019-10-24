@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -242,4 +243,17 @@ func TestTxValidator_IsTxValidForProcessingTxIsOkShouldReturnTrue(t *testing.T) 
 
 	result := txValidator.IsTxValidForProcessing(txValidatorHandler)
 	assert.Equal(t, true, result)
+}
+
+//------- IsInterfaceNil
+
+func TestTxValidator_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	accounts := getAccAdapter(0, big.NewInt(0))
+	shardCoordinator := createMockCoordinator("_", 0)
+	txValidator, _ := dataValidators.NewTxValidator(accounts, shardCoordinator, 100)
+	txValidator = nil
+
+	assert.True(t, check.IfNil(txValidator))
 }
