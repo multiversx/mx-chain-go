@@ -118,7 +118,11 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		scProcessor,
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
+			},
+		},
 	)
 
 	return txProcessor
@@ -179,7 +183,14 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(
 		scProcessor,
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
+			},
+			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(int64(tx.GetGasLimit() * tx.GetGasPrice()))
+			},
+		},
 	)
 
 	return txProcessor, blockChainHook

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -16,6 +17,96 @@ import (
 )
 
 var agarioFile = "../../agarioV3.hex"
+
+func TestScMoveBalanceAndFuncCallBeforeScDeploy(t *testing.T) {
+	scCode, _ := ioutil.ReadFile(agarioFile)
+	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(100000000)
+	txValueForMinting := big.NewInt(0).Div(ownerBalance, big.NewInt(10))
+	txValueForDeploy := big.NewInt(0).Mul(txValueForMinting, big.NewInt(3))
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(1000000)
+
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddressBytes, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.IELEVirtualMachine)
+	fmt.Println(hex.EncodeToString(scAddressBytes))
+
+	// check that the account for SC address is not yet created
+	_, ok := getAccount(accnts, scAddressBytes)
+	assert.False(t, ok)
+
+	txRun := vm.CreateTx(
+		t,
+		ownerAddressBytes,
+		scAddressBytes,
+		ownerNonce,
+		txValueForMinting,
+		gasPrice,
+		gasLimit,
+		"",
+	)
+
+	err := txProc.ProcessTransaction(txRun, round)
+	assert.Nil(t, err)
+
+	// check if sc account received the amount
+	scAccount, ok := getAccount(accnts, scAddressBytes)
+	assert.True(t, ok)
+	assert.Equal(t, txValueForMinting.Uint64(), scAccount.Balance.Uint64())
+
+	ownerNonce++
+	deployContract(
+		t,
+		ownerAddressBytes,
+		ownerNonce,
+		txValueForDeploy,
+		gasPrice,
+		gasLimit,
+		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
+		round,
+		txProc,
+		accnts,
+	)
+
+	ownerNonce++
+
+	// check owner account
+	ownerAccount, ok := getAccount(accnts, ownerAddressBytes)
+	assert.True(t, ok)
+	assert.Equal(t, ownerNonce, ownerAccount.Nonce)
+
+	assert.True(t,
+		ownerBalance.Sub(ownerBalance, txValueForMinting).Cmp(ownerAccount.Balance) > 0 &&
+			ownerAccount.Balance.Cmp(big.NewInt(0)) > 0)
+	fmt.Println(fmt.Sprintf("owner balance: %d", ownerAccount.Balance))
+
+	// check sc account
+	scAccount, ok = getAccount(accnts, scAddressBytes)
+	assert.True(t, ok)
+	assert.Equal(t, uint64(0), scAccount.Nonce)
+	expectedBalance := txValueForDeploy.Uint64() + txValueForMinting.Uint64()
+	// TODO: a fix should be made so the following assert will pass
+	if !assert.Equal(t, expectedBalance, scAccount.Balance.Uint64()) {
+		fmt.Println(fmt.Sprintf("[FAIL] expected SC account balance %d, but got %d", expectedBalance, scAccount.Balance))
+	}
+	assert.Nil(t, scAccount.CodeHash)
+	assert.Nil(t, scAccount.RootHash)
+}
+
+func getAccount(accnts state.AccountsAdapter, addressBytes []byte) (*state.Account, bool) {
+	address, err1 := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
+	recovAccount, err2 := accnts.GetExistingAccount(address)
+	recovAccountShardAccount, ok := recovAccount.(*state.Account)
+	if !ok ||
+		err1 != nil ||
+		err2 != nil {
+		return nil, false
+	}
+
+	return recovAccountShardAccount, true
+}
 
 func TestDeployAgarioContract(t *testing.T) {
 	scCode, err := ioutil.ReadFile(agarioFile)
