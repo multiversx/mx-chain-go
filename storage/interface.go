@@ -58,6 +58,8 @@ type Cacher interface {
 	Keys() [][]byte
 	// Len returns the number of items in the cache.
 	Len() int
+	// MaxSize returns the maximum number of items which can be stored in the cache.
+	MaxSize() int
 	// RegisterHandler registers a new handler to be called when a new data is added
 	RegisterHandler(func(key []byte))
 	// IsInterfaceNil returns true if there is no value under the interface
