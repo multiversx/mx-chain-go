@@ -62,6 +62,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1620,7 +1621,16 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         state.AccountsAdapter,
+		AddrConv:         state.AddressConverter,
+		StorageService:   data.Store,
+		BlockChain:       data.Blkc,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      core.Marshalizer,
+		Uint64Converter:  core.Uint64ByteSliceConverter,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -1675,7 +1685,7 @@ func newShardBlockProcessor(
 		core.Hasher,
 		core.Marshalizer,
 		state.AccountsAdapter,
-		vmFactory.VMAccountsDB(),
+		vmFactory.BlockChainHookImpl(),
 		state.AddressConverter,
 		shardCoordinator,
 		scForwarder,
@@ -1789,6 +1799,7 @@ func newShardBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgShardProcessor{
@@ -1824,12 +1835,21 @@ func newMetaBlockProcessor(
 	economics *economics.EconomicsData,
 ) (process.BlockProcessor, error) {
 
-	argsParser, err := smartContract.NewAtArgumentParser()
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         state.AccountsAdapter,
+		AddrConv:         state.AddressConverter,
+		StorageService:   data.Store,
+		BlockChain:       data.Blkc,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      core.Marshalizer,
+		Uint64Converter:  core.Uint64ByteSliceConverter,
+	}
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook)
 	if err != nil {
 		return nil, err
 	}
 
-	vmFactory, err := metachain.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
+	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
 		return nil, err
 	}
@@ -1866,7 +1886,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		core.Marshalizer,
 		state.AccountsAdapter,
-		vmFactory.VMAccountsDB(),
+		vmFactory.BlockChainHookImpl(),
 		state.AddressConverter,
 		shardCoordinator,
 		scForwarder,
@@ -1949,6 +1969,7 @@ func newMetaBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgMetaProcessor{

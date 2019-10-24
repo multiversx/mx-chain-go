@@ -13,14 +13,15 @@ type BlockProcessorStub struct {
 	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
-	CreateBlockBodyCalled            func(round uint64, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockBodyCalled            func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	SetOnRequestTransactionCalled    func(f func(destShardID uint32, txHash []byte))
-	CreateBlockHeaderCalled          func(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	ApplyBodyToHeaderCalled          func(header data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	CreateNewHeaderCalled            func() data.HeaderHandler
 }
 
 // ProcessBlock mocks pocessing a block
@@ -44,16 +45,16 @@ func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*bi
 }
 
 // CreateTxBlockBody mocks the creation of a transaction block body
-func (blProcMock *BlockProcessorStub) CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error) {
-	return blProcMock.CreateBlockBodyCalled(round, haveTime)
+func (blProcMock *BlockProcessorStub) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
+	return blProcMock.CreateBlockBodyCalled(initialHdrData, haveTime)
 }
 
 func (blProcMock *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
 }
 
-func (blProcMock BlockProcessorStub) CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
-	return blProcMock.CreateBlockHeaderCalled(body, round, haveTime)
+func (blProcMock BlockProcessorStub) ApplyBodyToHeader(header data.HeaderHandler, body data.BodyHandler) error {
+	return blProcMock.ApplyBodyToHeaderCalled(header, body)
 }
 
 func (blProcMock BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
@@ -74,6 +75,11 @@ func (blProcMock BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, process
 
 func (blProcMock BlockProcessorStub) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	panic("implement me")
+}
+
+// CreateNewHeader creates a new header
+func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
+	return blProcMock.CreateNewHeaderCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

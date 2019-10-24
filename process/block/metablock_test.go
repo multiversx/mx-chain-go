@@ -37,6 +37,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			StartHeaders:          createGenesisBlocks(shardCoordinator),
 			RequestHandler:        &mock.RequestHandlerMock{},
 			Core:                  &mock.ServiceContainerMock{},
+			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:         &mock.TransactionCoordinatorMock{},
 		},
 		DataPool: mdp,
@@ -779,7 +780,7 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
+func TestMetaProcessor_ApplyBodyToHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
@@ -791,14 +792,13 @@ func TestMetaProcessor_CreateBlockHeaderShouldNotReturnNilWhenCreateShardInfoFai
 	arguments.DataPool = initMetaDataPool()
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	haveTime := func() bool { return true }
 
-	hdr, err := mp.CreateBlockHeader(nil, 0, haveTime)
+	hdr := &block.MetaBlock{}
+	err := mp.ApplyBodyToHeader(hdr, nil)
 	assert.NotNil(t, err)
-	assert.Nil(t, hdr)
 }
 
-func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
+func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
@@ -813,11 +813,10 @@ func TestMetaProcessor_CreateBlockHeaderShouldWork(t *testing.T) {
 	arguments.DataPool = initMetaDataPool()
 	arguments.Store = initStore()
 	mp, _ := blproc.NewMetaProcessor(arguments)
-	haveTime := func() bool { return true }
 
-	hdr, err := mp.CreateBlockHeader(nil, 0, haveTime)
+	hdr := &block.MetaBlock{}
+	err := mp.ApplyBodyToHeader(hdr, nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, hdr)
 }
 
 func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
@@ -958,7 +957,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, func() bool {
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err = mp.CreateBlockBody(metaHdr, func() bool {
 		return true
 	})
 	shardInfo, err = mp.CreateShardInfo(round)
@@ -1052,7 +1052,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, haveTime)
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
@@ -1197,7 +1198,8 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, haveTime)
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
@@ -1342,7 +1344,8 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	_, err = mp.CreateBlockBody(round, haveTime)
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err = mp.CreateBlockBody(metaHdr, haveTime)
 	shardInfo, err = mp.CreateShardInfo(round)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))

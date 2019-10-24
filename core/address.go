@@ -2,16 +2,24 @@ package core
 
 import (
 	"bytes"
-
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 )
+
+// NumInitCharactersForScAddress numbers of characters for smart contract address identifier
+const NumInitCharactersForScAddress = 10
+
+// VMTypeLen number of characters with VMType identifier in an address, these are the last 2 characters from the
+// initial identifier
+const VMTypeLen = 2
+
+// ShardIdentiferLen number of characters for shard identifier in an address
+const ShardIdentiferLen = 2
 
 const metaChainShardIdentifier uint8 = 255
 const numInitCharactersForOnMetachainSC = 5
 
 // IsSmartContractAddress verifies if a set address is of type smart contract
 func IsSmartContractAddress(rcvAddress []byte) bool {
-	if len(rcvAddress) <= hooks.NumInitCharactersForScAddress {
+	if len(rcvAddress) <= NumInitCharactersForScAddress {
 		return false
 	}
 
@@ -20,8 +28,8 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 		return true
 	}
 
-	isSCAddress := bytes.Equal(rcvAddress[:(hooks.NumInitCharactersForScAddress-hooks.VMTypeLen)],
-		make([]byte, hooks.NumInitCharactersForScAddress-hooks.VMTypeLen))
+	isSCAddress := bytes.Equal(rcvAddress[:(NumInitCharactersForScAddress-VMTypeLen)],
+		make([]byte, NumInitCharactersForScAddress-VMTypeLen))
 	if isSCAddress {
 		return true
 	}
@@ -42,7 +50,7 @@ func IsMetachainIdentifier(identifier []byte) bool {
 
 // IsSmartContractOnMetachain verifies if an address is smart contract on metachain
 func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
-	if len(rcvAddress) <= hooks.NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC {
+	if len(rcvAddress) <= NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC {
 		return false
 	}
 
@@ -54,7 +62,7 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 		return false
 	}
 
-	isOnMetaChainSCAddress := bytes.Equal(rcvAddress[hooks.NumInitCharactersForScAddress:(hooks.NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC)],
+	isOnMetaChainSCAddress := bytes.Equal(rcvAddress[NumInitCharactersForScAddress:(NumInitCharactersForScAddress+numInitCharactersForOnMetachainSC)],
 		make([]byte, numInitCharactersForOnMetachainSC))
 	return isOnMetaChainSCAddress
 }
