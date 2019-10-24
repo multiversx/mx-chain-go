@@ -86,7 +86,7 @@ func NewSmartContractProcessor(
 	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if txFeeHandler == nil {
+	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
 
