@@ -14,7 +14,7 @@ var ThresholdMinimumConnectedPeers = 3
 
 // DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() to often
 // when there are a lot of peers disconnecting and reconnection to initial nodes succeed
-var DurationBetweenReconnectAttempts = time.Duration(time.Second * 5)
+var DurationBetweenReconnectAttempts = time.Second * 5
 
 type libp2pConnectionMonitor struct {
 	chDoReconnect chan struct{}
