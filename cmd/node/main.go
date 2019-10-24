@@ -57,7 +57,7 @@ const (
 	defaultEpochString = "Epoch"
 	defaultShardString = "Shard"
 	metachainShardName = "metachain"
-	DefaultRestApiPort  = "off"
+	DefaultRestApiPort = "off"
 )
 
 var (
@@ -607,7 +607,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
-	metrics.SaveCurrentNodeNameAndPubKey(coreComponents.StatusHandler, txSignPk, generalConfig.GeneralSettings.NodeDisplayName)
+	metrics.SaveCurrentNodeNameAndPubKey(coreComponents.StatusHandler, txSignPk, preferencesConfig.Preferences.NodeDisplayName)
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
