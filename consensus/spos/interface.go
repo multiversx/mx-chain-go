@@ -61,6 +61,8 @@ type ConsensusService interface {
 	CanProceed(*ConsensusState, consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
+	//IsMessageWithSignature returns if the current messageType is about signature
+	IsMessageWithSignature(consensus.MessageType) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

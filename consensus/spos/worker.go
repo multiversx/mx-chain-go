@@ -42,6 +42,9 @@ type Worker struct {
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
+
+	mapRoundHash    map[int64]map[string]int
+	mutMapRoundHash sync.RWMutex
 }
 
 // NewWorker creates a new Worker object
@@ -102,6 +105,8 @@ func NewWorker(
 	wrk.initReceivedMessages()
 
 	go wrk.checkChannels()
+
+	wrk.mapRoundHash = make(map[int64]map[string]int)
 
 	return &wrk, nil
 }
@@ -258,6 +263,26 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		if errNotCritical != nil {
 			log.Debug(errNotCritical.Error())
 		}
+
+		log.Info(fmt.Sprintf("received proposed block with nonce %d and hash %s and previous hash %s and round %d\n",
+			header.GetNonce(),
+			core.ToB64(cnsDta.BlockHeaderHash),
+			core.ToB64(header.GetPrevHash()),
+			header.GetRound(),
+		))
+	}
+
+	if wrk.consensusService.IsMessageWithSignature(msgType) {
+		wrk.mutMapRoundHash.Lock()
+		mapHashSigs, ok := wrk.mapRoundHash[cnsDta.RoundIndex]
+		if !ok {
+			mapHashSigs = make(map[string]int)
+		}
+
+		hash := cnsDta.BlockHeaderHash
+		mapHashSigs[string(hash)]++
+		wrk.mapRoundHash[cnsDta.RoundIndex] = mapHashSigs
+		wrk.mutMapRoundHash.Unlock()
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsDta)
@@ -394,6 +419,8 @@ func (wrk *Worker) Extend(subroundId int) {
 	if wrk.consensusState.IsSelfLeaderInCurrentRound() {
 		wrk.broadcastLastCommitedBlock()
 	}
+
+	wrk.dysplaySignatureStatistic()
 }
 
 func (wrk *Worker) broadcastLastCommitedBlock() {
@@ -415,6 +442,21 @@ func (wrk *Worker) broadcastLastCommitedBlock() {
 	if err != nil {
 		log.Error(err.Error())
 	}
+}
+
+func (wrk *Worker) dysplaySignatureStatistic() {
+	wrk.mutMapRoundHash.RLock()
+	mapHashSigs, ok := wrk.mapRoundHash[wrk.consensusState.RoundIndex]
+
+	if ok {
+		for hash, sigs := range mapHashSigs {
+			log.Info(fmt.Sprintf("in round %d, proposed header with hash %s has received %d signatures\n",
+				wrk.consensusState.RoundIndex,
+				core.ToB64([]byte(hash)),
+				sigs))
+		}
+	}
+	wrk.mutMapRoundHash.RUnlock()
 }
 
 //GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
