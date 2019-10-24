@@ -2,8 +2,8 @@ package smartContract
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"math"
 	"math/big"
 	"sync"
@@ -56,7 +56,7 @@ func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte)
 	scdg.mutRunSc.Lock()
 	defer scdg.mutRunSc.Unlock()
 
-	vmType := scAddress[hooks.NumInitCharactersForScAddress-hooks.VMTypeLen : hooks.NumInitCharactersForScAddress]
+	vmType := scAddress[core.NumInitCharactersForScAddress-core.VMTypeLen : core.NumInitCharactersForScAddress]
 	vm, err := scdg.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err

@@ -16,15 +16,30 @@ type PeerAction uint8
 // Constants mapping the actions that a node can take
 const (
 	PeerRegistrantion PeerAction = iota + 1
+	PeerUnstaking
 	PeerDeregistration
+	PeerJailed
+	PeerUnJailed
+	PeerSlashed
+	PeerReStake
 )
 
 func (pa PeerAction) String() string {
 	switch pa {
 	case PeerRegistrantion:
 		return "PeerRegistration"
+	case PeerUnstaking:
+		return "PeerUnstaking"
 	case PeerDeregistration:
 		return "PeerDeregistration"
+	case PeerJailed:
+		return "PeerJailed"
+	case PeerUnJailed:
+		return "PeerUnjailed"
+	case PeerSlashed:
+		return "PeerSlashed"
+	case PeerReStake:
+		return "PeerReStake"
 	default:
 		return fmt.Sprintf("Unknown type (%d)", pa)
 	}
@@ -34,10 +49,11 @@ func (pa PeerAction) String() string {
 //  - a peer can register with an amount to become a validator
 //  - a peer can choose to deregister and get back the deposited value
 type PeerData struct {
-	PublicKey []byte     `capid:"0"`
-	Action    PeerAction `capid:"1"`
-	TimeStamp uint64     `capid:"2"`
-	Value     *big.Int   `capid:"3"`
+	Address     []byte     `capid:"0"`
+	PublicKey   []byte     `capid:"0"`
+	Action      PeerAction `capid:"1"`
+	TimeStamp   uint64     `capid:"2"`
+	ValueChange *big.Int   `capid:"3"`
 }
 
 // ShardMiniBlockHeader holds data for one shard miniblock header

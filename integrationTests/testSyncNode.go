@@ -112,7 +112,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	} else {
 		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
 		argumentsBase.ForkDetector = tpn.ForkDetector
-		argumentsBase.BlockChainHook = tpn.BlockchainHook.(process.BlockChainHookHandler)
+		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl.(process.BlockChainHookHandler)
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,

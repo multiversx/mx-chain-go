@@ -444,3 +444,11 @@ type EconomicsAddressesHandler interface {
 	BurnAddress() string
 	IsInterfaceNil() bool
 }
+
+// TxForCurrentBlockHandler defines the methods for the local cacher, info for current round
+type TxForCurrentBlockHandler interface {
+	Clean()
+	GetTx(txHash []byte) (data.TransactionHandler, error)
+	SetTx(txHash []byte, tx data.TransactionHandler)
+	IsInterfaceNil() bool
+}

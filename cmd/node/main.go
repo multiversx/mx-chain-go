@@ -4,6 +4,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"io"
 	"io/ioutil"
 	"math"
@@ -706,21 +710,16 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
-	argsBlockChainHook := hooks.ArgBlockChainHook{
-		Accounts:         stateComponents.AccountsAdapter,
-		AddrConv:         stateComponents.AddressConverter,
-		StorageService:   dataComponents.Store,
-		BlockChain:       dataComponents.Blkc,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      coreComponents.Marshalizer,
-		Uint64Converter:  coreComponents.Uint64ByteSliceConverter,
-	}
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsBlockChainHook)
-	if err != nil {
-		return err
-	}
-
-	apiResolver, err := createApiResolver(blockChainHookImpl, statusMetrics)
+	apiResolver, err := createApiResolver(
+		stateComponents.AccountsAdapter,
+		stateComponents.AddressConverter,
+		dataComponents.Store,
+		dataComponents.Blkc,
+		coreComponents.Marshalizer,
+		coreComponents.Uint64ByteSliceConverter,
+		shardCoordinator,
+		statusMetrics,
+	)
 	if err != nil {
 		return err
 	}
@@ -1391,16 +1390,36 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(blockChainHookImpl vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
+func createApiResolver(
+	accnts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	storageService dataRetriever.StorageService,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	statusMetrics external.StatusMetricsHandler,
+) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
+
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   storageService,
+		BlockChain:       blockChain,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      marshalizer,
+		Uint64Converter:  uint64Converter,
+	}
+
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(accounts, converter)
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		vmFactory, err = shard.NewVMContainerFactory(accounts, converter)
+		vmFactory, err = shard.NewVMContainerFactory(argsHook)
 		if err != nil {
 			return nil, err
 		}
@@ -1411,7 +1430,7 @@ func createApiResolver(blockChainHookImpl vmcommon.BlockchainHook, statusMetrics
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCDataGetter(converter, vmContainer)
+	scDataGetter, err := smartContract.NewSCDataGetter(addrConv, vmContainer)
 	if err != nil {
 		return nil, err
 	}

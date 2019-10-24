@@ -583,8 +583,3 @@ func SortHeadersByNonce(headers []data.HeaderHandler) {
 func IsInProperRound(index int64) bool {
 	return index%RoundModulusTrigger == 0
 }
-
-// GetTxForCurrentBlock
-func GetTxForCurrentBlock(txHash []byte) (data.TransactionHandler, error) {
-	return &transaction.Transaction{}, nil
-}

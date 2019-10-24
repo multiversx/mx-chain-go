@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -116,6 +117,7 @@ type TestProcessorNode struct {
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
+	BlockChainHookImpl     process.BlockChainHookHandler
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -406,14 +408,25 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		rewardsInter,
 	)
 
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         tpn.AccntState,
+		AddrConv:         TestAddressConverter,
+		StorageService:   tpn.Storage,
+		BlockChain:       tpn.BlockChain,
+		ShardCoordinator: tpn.ShardCoordinator,
+		Marshalizer:      TestMarshalizer,
+		Uint64Converter:  TestUint64Converter,
+	}
+
 	var vmFactory process.VirtualMachinesContainerFactory
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, _ = metaProcess.NewVMContainerFactory(tpn.AccntState, TestAddressConverter)
+		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook)
 	} else {
-		vmFactory, _ = shard.NewVMContainerFactory(tpn.AccntState, TestAddressConverter)
+		vmFactory, _ = shard.NewVMContainerFactory(argsHook)
 	}
 
 	tpn.VMContainer, _ = vmFactory.Create()
+	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
@@ -422,7 +435,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestHasher,
 		TestMarshalizer,
 		tpn.AccntState,
-		vmFactory.VMAccountsDB(),
+		vmFactory.BlockChainHookImpl(),
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
@@ -513,7 +526,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		argumentsBase.BlockChainHook = tpn.BlockchainHook.(process.BlockChainHookHandler)
+		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,

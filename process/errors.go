@@ -510,3 +510,12 @@ var ErrNilBlockChainHook = errors.New("nil blockchain hook")
 
 // ErrNilSCDataGetter signals that a nil sc data getter has been provided
 var ErrNilSCDataGetter = errors.New("nil sc data getter")
+
+// ErrPeerChangesHashDoesNotMatch signals that peer changes from header does not match the created ones
+var ErrPeerChangesHashDoesNotMatch = errors.New("peer changes hash does not match")
+
+// ErrNilPeerAccountsAdapter signals that nil peer accounts has been provided
+var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts adapter")
+
+// ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
+var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
