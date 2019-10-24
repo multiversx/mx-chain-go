@@ -20,7 +20,7 @@ type PreProcessorMock struct {
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
 	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool, round uint64, gasConsumedByBlock *uint64) error
 	CreateAndProcessMiniBlocksCalled      func(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool, gasConsumedByBlock *uint64) (block.MiniBlockSlice, error)
-	CreateAndProcessMiniBlockCalled       func(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64, gasConsumedByBlock *uint64) (*block.MiniBlock, error)
+	CreateAndProcessMiniBlockCalled       func(senderShardId, receiverShardId uint32, spaceRemained int, haveTime func() bool, round uint64, gasConsumedByBlock *uint64) (*block.MiniBlock, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 }
 
@@ -111,7 +111,7 @@ func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(
 }
 
 func (ppm *PreProcessorMock) CreateAndProcessMiniBlock(
-	sndShardId, dstShardId uint32,
+	senderShardId, receiverShardId uint32,
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,
@@ -121,7 +121,7 @@ func (ppm *PreProcessorMock) CreateAndProcessMiniBlock(
 	if ppm.CreateAndProcessMiniBlockCalled == nil {
 		return nil, nil
 	}
-	return ppm.CreateAndProcessMiniBlockCalled(sndShardId, dstShardId, spaceRemained, haveTime, round, gasConsumedByBlock)
+	return ppm.CreateAndProcessMiniBlockCalled(senderShardId, receiverShardId, spaceRemained, haveTime, round, gasConsumedByBlock)
 }
 
 func (ppm *PreProcessorMock) GetAllCurrentUsedTxs() map[string]data.TransactionHandler {

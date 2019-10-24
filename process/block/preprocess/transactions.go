@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -17,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -198,6 +196,27 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 	return txsRestored, nil
 }
 
+func (txs *transactions) getMapHashTxFromMiniBlock(
+	miniBlock *block.MiniBlock,
+) (map[string]data.TransactionHandler, error) {
+
+	mapHashTx := make(map[string]data.TransactionHandler)
+
+	txs.txsForCurrBlock.mutTxsForBlock.RLock()
+	for _, txHash := range miniBlock.TxHashes {
+		txInfo := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
+		if txInfo == nil || txInfo.tx == nil {
+			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
+			return nil, process.ErrMissingTransaction
+		}
+
+		mapHashTx[string(txHash)] = txInfo.tx
+	}
+	txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
+
+	return mapHashTx, nil
+}
+
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(
 	body block.Body,
@@ -213,25 +232,19 @@ func (txs *transactions) ProcessBlockTransactions(
 			continue
 		}
 
-		gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, err := txs.computeGasConsumedByMiniBlock(miniBlock)
+		mapHashTx, err := txs.getMapHashTxFromMiniBlock(miniBlock)
 		if err != nil {
 			return err
 		}
 
-		if gasConsumedByMiniBlockInReceiverShard > txs.economicsFee.MaxGasLimitPerBlock() ||
-			gasConsumedByMiniBlockInSenderShard > txs.economicsFee.MaxGasLimitPerBlock() {
-			return process.ErrMaxGasLimitPerMiniBlockIsReached
-		}
+		gasConsumedByMiniBlock, err := process.ComputeGasConsumedByMiniBlockInShard(
+			txs.shardCoordinator.SelfId(),
+			miniBlock,
+			mapHashTx,
+			txs.economicsFee)
 
-		var gasConsumedByMiniBlock uint64
-		if txs.shardCoordinator.SelfId() == miniBlock.SenderShardID {
-			gasConsumedByMiniBlock = gasConsumedByMiniBlockInSenderShard
-		} else {
-			gasConsumedByMiniBlock = gasConsumedByMiniBlockInReceiverShard
-		}
-
-		if *gasConsumedByBlock+gasConsumedByMiniBlock > txs.economicsFee.MaxGasLimitPerBlock() {
-			return process.ErrMaxGasLimitPerBlockIsReached
+		if err != nil {
+			return err
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
@@ -456,22 +469,6 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	return transactions, txHashes, nil
 }
 
-//TODO move this to smart contract address calculation component
-func isSmartContractAddress(rcvAddress []byte) bool {
-	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
-	if isEmptyAddress {
-		return true
-	}
-
-	isSCAddress := bytes.Equal(rcvAddress[:(hooks.NumInitCharactersForScAddress-hooks.VMTypeLen)],
-		make([]byte, hooks.NumInitCharactersForScAddress-hooks.VMTypeLen))
-	if isSCAddress {
-		return true
-	}
-
-	return false
-}
-
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
 func (txs *transactions) CreateAndProcessMiniBlocks(
@@ -522,8 +519,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
 func (txs *transactions) CreateAndProcessMiniBlock(
-	sndShardId uint32,
-	dstShardId uint32,
+	senderShardId uint32,
+	receiverShardId uint32,
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,
@@ -534,7 +531,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	var orderedTxHashes [][]byte
 
 	timeBefore := time.Now()
-	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(sndShardId, dstShardId)
+	orderedTxs, orderedTxHashes, err := txs.computeOrderedTxs(senderShardId, receiverShardId)
 	timeAfter := time.Now()
 
 	if err != nil {
@@ -550,13 +547,14 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
 
 	miniBlock := &block.MiniBlock{}
-	miniBlock.SenderShardID = sndShardId
-	miniBlock.ReceiverShardID = dstShardId
+	miniBlock.SenderShardID = senderShardId
+	miniBlock.ReceiverShardID = receiverShardId
 	miniBlock.TxHashes = make([][]byte, 0)
 	miniBlock.Type = block.TxBlock
 
 	addedTxs := 0
-	gasConsumedByMiniBlock := uint64(0)
+	gasConsumedByMiniBlockInSenderShard := uint64(0)
+	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	for index := range orderedTxs {
 		if !haveTime() {
 			break
@@ -566,27 +564,49 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			continue
 		}
 
-		txGasLimitInSenderShard := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
-		txGasLimitInReceiverShard := txGasLimitInSenderShard
-		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
-			txGasLimitInReceiverShard = orderedTxs[index].GasLimit
+		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := process.ComputeGasConsumedByTx(
+			orderedTxs[index],
+			txs.economicsFee)
+
+		if err != nil {
+			continue
 		}
 
-		isGasLimitReachedInMiniBlock := gasConsumedByMiniBlock+txGasLimitInReceiverShard > txs.economicsFee.MaxGasLimitPerBlock()
-		isGasLimitReachedInBlock := *gasConsumedByBlock+txGasLimitInSenderShard > txs.economicsFee.MaxGasLimitPerBlock()
-		if isGasLimitReachedInMiniBlock || isGasLimitReachedInBlock {
-			log.Debug(fmt.Sprintf("max gas limit per mini block %d / block %d is reached: added %d txs from %d txs\n",
-				gasConsumedByMiniBlock,
-				gasConsumedByBlock,
+		gasConsumedByTxInSelfShard, err := process.ComputeGasConsumedInShard(
+			txs.shardCoordinator.SelfId(),
+			senderShardId,
+			receiverShardId,
+			gasConsumedByTxInSenderShard,
+			gasConsumedByTxInReceiverShard)
+
+		if err != nil {
+			continue
+		}
+
+		isMaxGasLimitReached := process.IsMaxGasLimitReached(
+			gasConsumedByTxInSenderShard,
+			gasConsumedByTxInReceiverShard,
+			gasConsumedByTxInSelfShard,
+			gasConsumedByMiniBlockInSenderShard,
+			gasConsumedByMiniBlockInReceiverShard,
+			*gasConsumedByBlock,
+			txs.economicsFee.MaxGasLimitPerBlock())
+
+		if isMaxGasLimitReached {
+			log.Debug(fmt.Sprintf("max gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
+				gasConsumedByMiniBlockInSenderShard,
+				gasConsumedByMiniBlockInReceiverShard,
+				*gasConsumedByBlock,
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
+
 			continue
 		}
 
 		snapshot := txs.accounts.JournalLen()
 
 		// execute transaction to change the trie root hash
-		err := txs.processAndRemoveBadTransaction(
+		err = txs.processAndRemoveBadTransaction(
 			orderedTxHashes[index],
 			orderedTxs[index],
 			round,
@@ -605,8 +625,9 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
-		gasConsumedByMiniBlock += txGasLimitInReceiverShard
-		*gasConsumedByBlock += txGasLimitInSenderShard
+		gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
+		gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+		*gasConsumedByBlock += gasConsumedByTxInSelfShard
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n",
@@ -685,7 +706,7 @@ func (txs *transactions) ProcessMiniBlock(
 		}
 
 		txGasLimit := txs.economicsFee.ComputeGasLimit(miniBlockTxs[index])
-		if isSmartContractAddress(miniBlockTxs[index].RcvAddr) {
+		if core.IsSmartContractAddress(miniBlockTxs[index].RcvAddr) {
 			txGasLimit = miniBlockTxs[index].GasLimit
 		}
 
@@ -820,36 +841,4 @@ func (txs *transactions) IsInterfaceNil() bool {
 		return true
 	}
 	return false
-}
-
-func (txs *transactions) computeGasConsumedByMiniBlock(miniBlock *block.MiniBlock) (uint64, uint64, error) {
-	gasUsedByMiniBlockInSenderShard := uint64(0)
-	gasUsedByMiniBlockInReceiverShard := uint64(0)
-
-	txs.txsForCurrBlock.mutTxsForBlock.RLock()
-	for _, txHash := range miniBlock.TxHashes {
-		txInfo, ok := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
-		if !ok {
-			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
-			return 0, 0, process.ErrMissingTransaction
-		}
-
-		tx, ok := txInfo.tx.(*transaction.Transaction)
-		if !ok {
-			txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
-			return 0, 0, process.ErrWrongTypeAssertion
-		}
-
-		txGasLimitInSenderShard := txs.economicsFee.ComputeGasLimit(tx)
-		txGasLimitInReceiverShard := txGasLimitInSenderShard
-		if isSmartContractAddress(tx.RcvAddr) {
-			txGasLimitInReceiverShard = tx.GasLimit
-		}
-
-		gasUsedByMiniBlockInSenderShard += txGasLimitInSenderShard
-		gasUsedByMiniBlockInReceiverShard += txGasLimitInReceiverShard
-	}
-	txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
-
-	return gasUsedByMiniBlockInSenderShard, gasUsedByMiniBlockInReceiverShard, nil
 }

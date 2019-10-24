@@ -433,7 +433,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the smartContractResults added into the miniblock
 func (scr *smartContractResults) CreateAndProcessMiniBlock(
-	sndShardId, dstShardId uint32,
+	senderShardId, receiverShardId uint32,
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,

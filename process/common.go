@@ -3,6 +3,7 @@ package process
 import (
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -567,4 +568,148 @@ func SortHeadersByNonce(headers []data.HeaderHandler) {
 // IsInProperRound checks if the given round index satisfies the round modulus trigger
 func IsInProperRound(index int64) bool {
 	return index%RoundModulusTrigger == 0
+}
+
+func ComputeGasConsumedByMiniBlockInShard(
+	shardId uint32,
+	miniBlock *block.MiniBlock,
+	mapHashTx map[string]data.TransactionHandler,
+	economicsFee FeeHandler,
+) (uint64, error) {
+
+	gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, err := ComputeGasConsumedByMiniBlock(
+		miniBlock,
+		mapHashTx,
+		economicsFee)
+
+	if err != nil {
+		return 0, err
+	}
+
+	gasConsumedByMiniBlock, err := ComputeGasConsumedInShard(
+		shardId,
+		miniBlock.SenderShardID,
+		miniBlock.ReceiverShardID,
+		gasConsumedByMiniBlockInSenderShard,
+		gasConsumedByMiniBlockInReceiverShard)
+
+	return gasConsumedByMiniBlock, err
+}
+
+func ComputeGasConsumedByMiniBlock(
+	miniBlock *block.MiniBlock,
+	mapHashTx map[string]data.TransactionHandler,
+	economicsFee FeeHandler,
+) (uint64, uint64, error) {
+
+	gasConsumedByMiniBlockInSenderShard := uint64(0)
+	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+
+	for _, txHash := range miniBlock.TxHashes {
+		txHandler, ok := mapHashTx[string(txHash)]
+		if !ok {
+			return 0, 0, ErrMissingTransaction
+		}
+
+		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := ComputeGasConsumedByTx(txHandler, economicsFee)
+		if err != nil {
+			return 0, 0, err
+		}
+
+		gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
+		gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+	}
+
+	return gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, nil
+}
+
+func ComputeGasConsumedByTxInShard(
+	shardId uint32,
+	txSenderShardId uint32,
+	txReceiverShardId uint32,
+	txHandler data.TransactionHandler,
+	economicsFee FeeHandler,
+) (uint64, error) {
+
+	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := ComputeGasConsumedByTx(txHandler, economicsFee)
+	if err != nil {
+		return 0, err
+	}
+
+	gasConsumedByTx, err := ComputeGasConsumedInShard(
+		shardId,
+		txSenderShardId,
+		txReceiverShardId,
+		gasConsumedByTxInSenderShard,
+		gasConsumedByTxInReceiverShard)
+
+	return gasConsumedByTx, nil
+}
+
+func ComputeGasConsumedByTx(
+	txHandler data.TransactionHandler,
+	economicsFee FeeHandler,
+) (uint64, uint64, error) {
+
+	tx, ok := txHandler.(*transaction.Transaction)
+	if !ok {
+		return 0, 0, ErrWrongTypeAssertion
+	}
+
+	gasConsumedByTxInSenderShard := economicsFee.ComputeGasLimit(tx)
+	gasConsumedByTxInReceiverShard := gasConsumedByTxInSenderShard
+	if core.IsSmartContractAddress(tx.RcvAddr) {
+		gasConsumedByTxInReceiverShard = tx.GasLimit
+	}
+
+	return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
+}
+
+func ComputeGasConsumedInShard(
+	shardId uint32,
+	senderShardId uint32,
+	receiverShardId uint32,
+	gasConsumedInSenderShard uint64,
+	gasConsumedInReceiverShard uint64,
+) (uint64, error) {
+
+	var gasConsumedInShard uint64
+
+	switch shardId {
+	case senderShardId:
+		gasConsumedInShard = gasConsumedInSenderShard
+		break
+	case receiverShardId:
+		gasConsumedInShard = gasConsumedInReceiverShard
+		break
+	default:
+		return 0, ErrInvalidShardId
+	}
+
+	return gasConsumedInShard, nil
+}
+
+func IsMaxGasLimitReached(
+	gasConsumedByTxInSenderShard uint64,
+	gasConsumedByTxInReceiverShard uint64,
+	gasConsumedByTxInSelfShard uint64,
+	currentGasConsumedByMiniBlockInSenderShard uint64,
+	currentGasConsumedByMiniBlockInReceiverShard uint64,
+	currentGasConsumedByBlockInSelfShard uint64,
+	maxGasLimitPerBlock uint64,
+) bool {
+
+	gasConsumedByMiniBlockInSenderShard := currentGasConsumedByMiniBlockInSenderShard + gasConsumedByTxInSenderShard
+	gasConsumedByMiniBlockInReceiverShard := currentGasConsumedByMiniBlockInReceiverShard + gasConsumedByTxInReceiverShard
+	gasConsumedByBlockInSelfShard := currentGasConsumedByBlockInSelfShard + gasConsumedByTxInSelfShard
+
+	isGasLimitPerMiniBlockInSenderShardReached := gasConsumedByMiniBlockInSenderShard > maxGasLimitPerBlock
+	isGasLimitPerMiniBlockInReceiverShardReached := gasConsumedByMiniBlockInReceiverShard > maxGasLimitPerBlock
+	isGasLimitPerBlockInSelfShardReached := gasConsumedByBlockInSelfShard > maxGasLimitPerBlock
+
+	isMaxGasLimitReached := isGasLimitPerMiniBlockInSenderShardReached ||
+		isGasLimitPerMiniBlockInReceiverShardReached ||
+		isGasLimitPerBlockInSelfShardReached
+
+	return isMaxGasLimitReached
 }
