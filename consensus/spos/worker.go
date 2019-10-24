@@ -460,13 +460,15 @@ func (wrk *Worker) dysplaySignatureStatistic() {
 	if ok {
 		for hash, pubKeys := range mapHashSigs {
 			log.Info(fmt.Sprintf("in round %d, proposed header with hash %s has received %d signatures from:\n",
-				len(pubKeys),
 				wrk.consensusState.RoundIndex,
-				core.ToB64([]byte(hash))))
+				core.ToB64([]byte(hash)),
+				len(pubKeys)))
 
 			for _, pubKey := range pubKeys {
 				log.Info(fmt.Sprintf("%s", core.ToHex([]byte(pubKey))))
 			}
+
+			log.Info("")
 		}
 	}
 	wrk.mutMapRoundHash.RUnlock()
