@@ -235,7 +235,7 @@ func TestOutgoingChannelLoadBalancer_CollectOneElementFromChannelsShouldWork(t *
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	oclb.AddChannel("test")
+	_ = oclb.AddChannel("test")
 
 	obj1 := &p2p.SendableData{Topic: "test"}
 	obj2 := &p2p.SendableData{Topic: "default"}
