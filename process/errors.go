@@ -507,3 +507,6 @@ var ErrInvalidNonceRequest = errors.New("invalid nonce request")
 
 // ErrNilBlockChainHook signals that nil blockchain hook has been provided
 var ErrNilBlockChainHook = errors.New("nil blockchain hook")
+
+// ErrNilCoreService signals that nil core service has been provided
+var ErrNilCoreService = errors.New("nil core service")
