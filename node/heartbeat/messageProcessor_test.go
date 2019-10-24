@@ -1,6 +1,7 @@
 package heartbeat_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -187,7 +188,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 	hb := heartbeat.Heartbeat{
 		Payload:         []byte("Payload"),
 		Pubkey:          []byte("PubKey"),
-		Signature:       []byte("Signature"),
+		Signature:       []byte("signed"),
 		ShardID:         0,
 		VersionNumber:   "VersionNumber",
 		NodeDisplayName: "NodeDisplayName",
@@ -206,9 +207,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 		return nil
 	}
 
-	singleSigner := &mock.SinglesignMock{
-		//validate
-	}
+	singleSigner := &mock.SinglesignMock{}
 	keyGen := &mock.KeyGenMock{
 		PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
 			return &mock.PublicKeyMock{}, nil
@@ -231,4 +230,122 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
+}
+
+func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {
+	t.Parallel()
+
+	message := &mock.P2PMessageStub{
+		FromField:      nil,
+		DataField:      nil,
+		SeqNoField:     nil,
+		TopicIDsField:  nil,
+		SignatureField: nil,
+		KeyField:       nil,
+		PeerField:      "",
+	}
+
+	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{})
+
+	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+
+	assert.Nil(t, ret)
+	assert.Equal(t, heartbeat.ErrNilDataToProcess, err)
+}
+
+func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableDataShouldErr(t *testing.T) {
+	t.Parallel()
+
+	message := &mock.P2PMessageStub{
+		FromField:      nil,
+		DataField:      ([]byte("hello")),
+		SeqNoField:     nil,
+		TopicIDsField:  nil,
+		SignatureField: nil,
+		KeyField:       nil,
+		PeerField:      "",
+	}
+
+	expectedErr := errors.New("Marshal didn't work")
+
+	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{
+		UnmarshalHandler: func(obj interface{}, buff []byte) error {
+			return expectedErr
+		},
+	})
+
+	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+
+	assert.Nil(t, ret)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	length := 129
+	buff := make([]byte, length)
+
+	for i := 0; i < length; i++ {
+		buff[i] = byte(97)
+	}
+	bigNodeName := string(buff)
+
+	hb := heartbeat.Heartbeat{
+		Payload:         []byte("Payload"),
+		Pubkey:          []byte("PubKey"),
+		Signature:       []byte("signed"),
+		ShardID:         0,
+		VersionNumber:   "VersionNumber",
+		NodeDisplayName: bigNodeName,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	marshalizer.UnmarshalHandler = func(obj interface{}, buff []byte) error {
+		(obj.(*heartbeat.Heartbeat)).Pubkey = hb.Pubkey
+		(obj.(*heartbeat.Heartbeat)).Payload = hb.Payload
+		(obj.(*heartbeat.Heartbeat)).Signature = hb.Signature
+		(obj.(*heartbeat.Heartbeat)).ShardID = hb.ShardID
+		(obj.(*heartbeat.Heartbeat)).VersionNumber = hb.VersionNumber
+		(obj.(*heartbeat.Heartbeat)).NodeDisplayName = hb.NodeDisplayName
+
+		return nil
+	}
+
+	singleSigner := &mock.SinglesignMock{}
+
+	keyGen := &mock.KeyGenMock{
+		PublicKeyFromByteArrayMock: func(b []byte) (key crypto.PublicKey, e error) {
+			return &mock.PublicKeyMock{}, nil
+		},
+	}
+
+	mon, err := heartbeat.NewMessageProcessor(singleSigner, keyGen, marshalizer)
+
+	message := &mock.P2PMessageStub{
+		FromField:      nil,
+		DataField:      make([]byte, 5),
+		SeqNoField:     nil,
+		TopicIDsField:  nil,
+		SignatureField: nil,
+		KeyField:       nil,
+		PeerField:      "",
+	}
+
+	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
+
+	assert.Nil(t, ret)
+	assert.Equal(t, heartbeat.ErrPropertyTooLong, err)
+}
+
+func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mon, _ := heartbeat.NewMessageProcessor(&mock.SinglesignMock{}, &mock.KeyGenMock{}, &mock.MarshalizerMock{})
+
+	ret, err := mon.CreateHeartbeatFromP2pMessage(nil)
+
+	assert.Nil(t, ret)
+	assert.Equal(t, heartbeat.ErrNilMessage, err)
 }
