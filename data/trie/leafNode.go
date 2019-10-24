@@ -53,15 +53,27 @@ func leafNodeCapnToGo(src capnp.LeafNodeCapn, dest *leafNode) *leafNode {
 	return dest
 }
 
-func newLeafNode(key, value []byte) *leafNode {
+func newLeafNode(key, value []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*leafNode, error) {
+	if db == nil || db.IsInterfaceNil() {
+		return nil, ErrNilDatabase
+	}
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+		return nil, ErrNilMarshalizer
+	}
+	if hasher == nil || hasher.IsInterfaceNil() {
+		return nil, ErrNilHasher
+	}
+
 	return &leafNode{
 		CollapsedLn: protobuf.CollapsedLn{
 			Key:   key,
 			Value: value,
 		},
-		hash:  nil,
-		dirty: true,
-	}
+		dirty:  true,
+		db:     db,
+		marsh:  marshalizer,
+		hasher: hasher,
+	}, nil
 }
 
 func (ln *leafNode) getHash() []byte {
@@ -76,11 +88,35 @@ func (ln *leafNode) isDirty() bool {
 	return ln.dirty
 }
 
-func (ln *leafNode) getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func (ln *leafNode) getMarshalizer() marshal.Marshalizer {
+	return ln.marsh
+}
+
+func (ln *leafNode) setMarshalizer(marshalizer marshal.Marshalizer) {
+	ln.marsh = marshalizer
+}
+
+func (ln *leafNode) getHasher() hashing.Hasher {
+	return ln.hasher
+}
+
+func (ln *leafNode) setHasher(hasher hashing.Hasher) {
+	ln.hasher = hasher
+}
+
+func (ln *leafNode) getDb() data.DBWriteCacher {
+	return ln.db
+}
+
+func (ln *leafNode) setDb(db data.DBWriteCacher) {
+	ln.db = db
+}
+
+func (ln *leafNode) getCollapsed() (node, error) {
 	return ln, nil
 }
 
-func (ln *leafNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (ln *leafNode) setHash() error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -88,7 +124,7 @@ func (ln *leafNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hash
 	if ln.getHash() != nil {
 		return nil
 	}
-	hash, err := hashChildrenAndNode(ln, marshalizer, hasher)
+	hash, err := hashChildrenAndNode(ln)
 	if err != nil {
 		return err
 	}
@@ -96,31 +132,31 @@ func (ln *leafNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hash
 	return nil
 }
 
-func (ln *leafNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
-	err := ln.setHash(marshalizer, hasher)
+func (ln *leafNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
+	err := ln.setHash()
 	if err != nil {
 		c <- err
 	}
 	wg.Done()
 }
 
-func (ln *leafNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
-	return ln.setHash(marshalizer, hasher)
+func (ln *leafNode) setRootHash() error {
+	return ln.setHash()
 }
 
-func (ln *leafNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (ln *leafNode) hashChildren() error {
 	return nil
 }
 
-func (ln *leafNode) hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
+func (ln *leafNode) hashNode() ([]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, err
 	}
-	return encodeNodeAndGetHash(ln, marshalizer, hasher)
+	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commit(force bool, level byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (ln *leafNode) commit(force bool, level byte) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -132,15 +168,15 @@ func (ln *leafNode) commit(force bool, level byte, db data.DBWriteCacher, marsha
 	}
 
 	ln.dirty = false
-	return encodeNodeAndCommitToDB(ln, db, marshalizer, hasher)
+	return encodeNodeAndCommitToDB(ln)
 }
 
-func (ln *leafNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, error) {
+func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, err
 	}
-	marshaledNode, err := marshalizer.Marshal(ln)
+	marshaledNode, err := ln.marsh.Marshal(ln)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +184,7 @@ func (ln *leafNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, err
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(pos byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (ln *leafNode) resolveCollapsed(pos byte) error {
 	return nil
 }
 
@@ -160,7 +196,7 @@ func (ln *leafNode) isPosCollapsed(pos int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
+func (ln *leafNode) tryGet(key []byte) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
 		return nil, err
@@ -172,7 +208,7 @@ func (ln *leafNode) tryGet(key []byte, db data.DBWriteCacher, marshalizer marsha
 	return nil, nil
 }
 
-func (ln *leafNode) getNext(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+func (ln *leafNode) getNext(key []byte) (node, []byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, err
@@ -183,7 +219,7 @@ func (ln *leafNode) getNext(key []byte, dbw data.DBWriteCacher, marshalizer mars
 	return nil, nil, ErrNodeNotFound
 }
 
-func (ln *leafNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
+func (ln *leafNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return false, nil, [][]byte{}, err
@@ -202,23 +238,42 @@ func (ln *leafNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marsh
 	}
 
 	keyMatchLen := prefixLen(n.Key, ln.Key)
-	branch := newBranchNode()
+	branch, err := newBranchNode(ln.db, ln.marsh, ln.hasher)
+	if err != nil {
+		return false, nil, [][]byte{}, err
+	}
+
 	oldChildPos := ln.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return false, nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 
-	branch.children[oldChildPos] = newLeafNode(ln.Key[keyMatchLen+1:], ln.Value)
-	branch.children[newChildPos] = newLeafNode(n.Key[keyMatchLen+1:], n.Value)
+	newLnOldChildPos, err := newLeafNode(ln.Key[keyMatchLen+1:], ln.Value, ln.db, ln.marsh, ln.hasher)
+	if err != nil {
+		return false, nil, [][]byte{}, err
+	}
+	branch.children[oldChildPos] = newLnOldChildPos
+
+	newLnNewChildPos, err := newLeafNode(n.Key[keyMatchLen+1:], n.Value, ln.db, ln.marsh, ln.hasher)
+	if err != nil {
+		return false, nil, [][]byte{}, err
+	}
+	branch.children[newChildPos] = newLnNewChildPos
 
 	if keyMatchLen == 0 {
 		return true, branch, oldHash, nil
 	}
-	return true, newExtensionNode(ln.Key[:keyMatchLen], branch), oldHash, nil
+
+	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], branch, ln.db, ln.marsh, ln.hasher)
+	if err != nil {
+		return false, nil, [][]byte{}, err
+	}
+
+	return true, newEn, oldHash, nil
 }
 
-func (ln *leafNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
+func (ln *leafNode) delete(key []byte) (bool, node, [][]byte, error) {
 	keyMatchLen := prefixLen(key, ln.Key)
 	if keyMatchLen == len(key) {
 		oldHash := make([][]byte, 0)
@@ -231,9 +286,15 @@ func (ln *leafNode) delete(key []byte, db data.DBWriteCacher, marshalizer marsha
 	return false, ln, [][]byte{}, nil
 }
 
-func (ln *leafNode) reduceNode(pos int) node {
+func (ln *leafNode) reduceNode(pos int) (node, error) {
 	k := append([]byte{byte(pos)}, ln.Key...)
-	return newLeafNode(k, ln.Value)
+
+	newLn, err := newLeafNode(k, ln.Value, ln.db, ln.marsh, ln.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	return newLn, nil
 }
 
 func (ln *leafNode) isEmptyOrNil() error {
@@ -287,6 +348,9 @@ func (ln *leafNode) deepClone() node {
 	}
 
 	clonedNode.dirty = ln.dirty
+	clonedNode.db = ln.db
+	clonedNode.marsh = ln.marsh
+	clonedNode.hasher = ln.hasher
 
 	return clonedNode
 }

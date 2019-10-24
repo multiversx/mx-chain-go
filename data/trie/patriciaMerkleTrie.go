@@ -97,7 +97,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	return tr.root.tryGet(hexKey, tr.db, tr.marshalizer)
+	return tr.root.tryGet(hexKey)
 }
 
 // Update updates the value at the given key.
@@ -108,10 +108,19 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	defer tr.mutOperation.Unlock()
 
 	hexKey := keyBytesToHex(key)
-	node := newLeafNode(hexKey, value)
+	newLn, err := newLeafNode(hexKey, value, tr.db, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return err
+	}
+
 	if len(value) != 0 {
 		if tr.root == nil {
-			tr.root = newLeafNode(hexKey, value)
+			newRoot, err := newLeafNode(hexKey, value, tr.db, tr.marshalizer, tr.hasher)
+			if err != nil {
+				return err
+			}
+
+			tr.root = newRoot
 			return nil
 		}
 
@@ -119,7 +128,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err := tr.root.insert(node, tr.db, tr.marshalizer)
+		_, newRoot, oldHashes, err := tr.root.insert(newLn)
 		if err != nil {
 			return err
 		}
@@ -134,7 +143,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
+		_, newRoot, oldHashes, err := tr.root.delete(hexKey)
 		if err != nil {
 			return err
 		}
@@ -159,7 +168,7 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.db, tr.marshalizer)
+	_, newRoot, oldHashes, err := tr.root.delete(hexKey)
 	if err != nil {
 		return err
 	}
@@ -182,7 +191,7 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 	if hash != nil {
 		return hash, nil
 	}
-	err := tr.root.setRootHash(tr.marshalizer, tr.hasher)
+	err := tr.root.setRootHash()
 	if err != nil {
 		return nil, err
 	}
@@ -202,19 +211,19 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 	hexKey := keyBytesToHex(key)
 	node := tr.root
 
-	err := node.setRootHash(tr.marshalizer, tr.hasher)
+	err := node.setRootHash()
 	if err != nil {
 		return nil, err
 	}
 
 	for {
-		encNode, err := node.getEncodedNode(tr.marshalizer)
+		encNode, err := node.getEncodedNode()
 		if err != nil {
 			return nil, err
 		}
 		proof = append(proof, encNode)
 
-		node, hexKey, err = node.getNext(hexKey, tr.db, tr.marshalizer)
+		node, hexKey, err = node.getNext(hexKey)
 		if err != nil {
 			return nil, err
 		}
@@ -246,7 +255,7 @@ func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, er
 			return false, nil
 		}
 
-		n, err := decodeNode(encNode, tr.marshalizer)
+		n, err := decodeNode(encNode, tr.db, tr.marshalizer, tr.hasher)
 		if err != nil {
 			return false, err
 		}
@@ -281,7 +290,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if tr.root.isCollapsed() {
 		return nil
 	}
-	err := tr.root.setRootHash(tr.marshalizer, tr.hasher)
+	err := tr.root.setRootHash()
 	if err != nil {
 		return err
 	}
@@ -310,7 +319,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		tr.oldHashes = make([][]byte, 0)
 	}
 
-	err = tr.root.commit(false, 0, tr.db, tr.marshalizer, tr.hasher)
+	err = tr.root.commit(false, 0)
 	if err != nil {
 		return err
 	}
@@ -339,7 +348,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		return nil, err
 	}
 
-	newRoot, err := decodeNode(encRoot, tr.marshalizer)
+	newRoot, err := decodeNode(encRoot, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +460,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	err := tr.root.commit(false, 0, tr.db, tr.marshalizer, tr.hasher)
+	err := tr.root.commit(false, 0)
 	if err != nil {
 		return err
 	}
@@ -468,7 +477,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	}
 	tr.snapshotId++
 
-	err = tr.root.commit(true, 0, db, tr.marshalizer, tr.hasher)
+	err = tr.root.commit(true, 0)
 	if err != nil {
 		return err
 	}

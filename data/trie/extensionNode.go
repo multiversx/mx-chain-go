@@ -53,16 +53,28 @@ func extensionNodeCapnToGo(src capnp.ExtensionNodeCapn, dest *extensionNode) *ex
 	return dest
 }
 
-func newExtensionNode(key []byte, child node) *extensionNode {
+func newExtensionNode(key []byte, child node, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*extensionNode, error) {
+	if db == nil || db.IsInterfaceNil() {
+		return nil, ErrNilDatabase
+	}
+	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+		return nil, ErrNilMarshalizer
+	}
+	if hasher == nil || hasher.IsInterfaceNil() {
+		return nil, ErrNilHasher
+	}
+
 	return &extensionNode{
 		CollapsedEn: protobuf.CollapsedEn{
 			Key:          key,
 			EncodedChild: nil,
 		},
-		child: child,
-		hash:  nil,
-		dirty: true,
-	}
+		child:  child,
+		dirty:  true,
+		db:     db,
+		marsh:  marshalizer,
+		hasher: hasher,
+	}, nil
 }
 
 func (en *extensionNode) getHash() []byte {
@@ -77,7 +89,31 @@ func (en *extensionNode) isDirty() bool {
 	return en.dirty
 }
 
-func (en *extensionNode) getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func (en *extensionNode) getMarshalizer() marshal.Marshalizer {
+	return en.marsh
+}
+
+func (en *extensionNode) setMarshalizer(marshalizer marshal.Marshalizer) {
+	en.marsh = marshalizer
+}
+
+func (en *extensionNode) getHasher() hashing.Hasher {
+	return en.hasher
+}
+
+func (en *extensionNode) setHasher(hasher hashing.Hasher) {
+	en.hasher = hasher
+}
+
+func (en *extensionNode) getDb() data.DBWriteCacher {
+	return en.db
+}
+
+func (en *extensionNode) setDb(db data.DBWriteCacher) {
+	en.db = db
+}
+
+func (en *extensionNode) getCollapsed() (node, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, err
@@ -91,7 +127,7 @@ func (en *extensionNode) getCollapsed(marshalizer marshal.Marshalizer, hasher ha
 		return nil, err
 	}
 	if !ok {
-		err := en.child.setHash(marshalizer, hasher)
+		err := en.child.setHash()
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +137,7 @@ func (en *extensionNode) getCollapsed(marshalizer marshal.Marshalizer, hasher ha
 	return collapsed, nil
 }
 
-func (en *extensionNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (en *extensionNode) setHash() error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -110,14 +146,14 @@ func (en *extensionNode) setHash(marshalizer marshal.Marshalizer, hasher hashing
 		return nil
 	}
 	if en.isCollapsed() {
-		hash, err := encodeNodeAndGetHash(en, marshalizer, hasher)
+		hash, err := encodeNodeAndGetHash(en)
 		if err != nil {
 			return err
 		}
 		en.hash = hash
 		return nil
 	}
-	hash, err := hashChildrenAndNode(en, marshalizer, hasher)
+	hash, err := hashChildrenAndNode(en)
 	if err != nil {
 		return err
 	}
@@ -125,24 +161,24 @@ func (en *extensionNode) setHash(marshalizer marshal.Marshalizer, hasher hashing
 	return nil
 }
 
-func (en *extensionNode) setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error) {
-	err := en.setHash(marshalizer, hasher)
+func (en *extensionNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
+	err := en.setHash()
 	if err != nil {
 		c <- err
 	}
 	wg.Done()
 }
-func (en *extensionNode) setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
-	return en.setHash(marshalizer, hasher)
+func (en *extensionNode) setRootHash() error {
+	return en.setHash()
 }
 
-func (en *extensionNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (en *extensionNode) hashChildren() error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
 	if en.child != nil {
-		err = en.child.setHash(marshalizer, hasher)
+		err = en.child.setHash()
 		if err != nil {
 			return err
 		}
@@ -150,22 +186,22 @@ func (en *extensionNode) hashChildren(marshalizer marshal.Marshalizer, hasher ha
 	return nil
 }
 
-func (en *extensionNode) hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
+func (en *extensionNode) hashNode() ([]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, err
 	}
 	if en.child != nil {
-		encChild, err := encodeNodeAndGetHash(en.child, marshalizer, hasher)
+		encChild, err := encodeNodeAndGetHash(en.child)
 		if err != nil {
 			return nil, err
 		}
 		en.EncodedChild = encChild
 	}
-	return encodeNodeAndGetHash(en, marshalizer, hasher)
+	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commit(force bool, level byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (en *extensionNode) commit(force bool, level byte) error {
 	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -178,19 +214,19 @@ func (en *extensionNode) commit(force bool, level byte, db data.DBWriteCacher, m
 	}
 
 	if en.child != nil {
-		err = en.child.commit(force, level, db, marshalizer, hasher)
+		err = en.child.commit(force, level)
 		if err != nil {
 			return err
 		}
 	}
 
 	en.dirty = false
-	err = encodeNodeAndCommitToDB(en, db, marshalizer, hasher)
+	err = encodeNodeAndCommitToDB(en)
 	if err != nil {
 		return err
 	}
 	if level == maxTrieLevelAfterCommit {
-		collapsed, err := en.getCollapsed(marshalizer, hasher)
+		collapsed, err := en.getCollapsed()
 		if err != nil {
 			return err
 		}
@@ -201,12 +237,12 @@ func (en *extensionNode) commit(force bool, level byte, db data.DBWriteCacher, m
 	return nil
 }
 
-func (en *extensionNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, error) {
+func (en *extensionNode) getEncodedNode() ([]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, err
 	}
-	marshaledNode, err := marshalizer.Marshal(en)
+	marshaledNode, err := en.marsh.Marshal(en)
 	if err != nil {
 		return nil, err
 	}
@@ -214,12 +250,12 @@ func (en *extensionNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) resolveCollapsed(pos byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (en *extensionNode) resolveCollapsed(pos byte) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
-	child, err := getNodeFromDBAndDecode(en.EncodedChild, db, marshalizer)
+	child, err := getNodeFromDBAndDecode(en.EncodedChild, en.db, en.marsh, en.hasher)
 	if err != nil {
 		return err
 	}
@@ -236,7 +272,7 @@ func (en *extensionNode) isPosCollapsed(pos int) bool {
 	return en.isCollapsed()
 }
 
-func (en *extensionNode) tryGet(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
+func (en *extensionNode) tryGet(key []byte) (value []byte, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
 		return nil, err
@@ -250,15 +286,15 @@ func (en *extensionNode) tryGet(key []byte, db data.DBWriteCacher, marshalizer m
 		return nil, nil
 	}
 	key = key[len(en.Key):]
-	err = resolveIfCollapsed(en, 0, db, marshalizer)
+	err = resolveIfCollapsed(en, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	return en.child.tryGet(key, db, marshalizer)
+	return en.child.tryGet(key)
 }
 
-func (en *extensionNode) getNext(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+func (en *extensionNode) getNext(key []byte) (node, []byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, err
@@ -271,7 +307,7 @@ func (en *extensionNode) getNext(key []byte, db data.DBWriteCacher, marshalizer 
 	if keysDontMatch {
 		return nil, nil, ErrNodeNotFound
 	}
-	err = resolveIfCollapsed(en, 0, db, marshalizer)
+	err = resolveIfCollapsed(en, 0)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -280,12 +316,12 @@ func (en *extensionNode) getNext(key []byte, db data.DBWriteCacher, marshalizer 
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
+func (en *extensionNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return false, nil, [][]byte{}, err
 	}
-	err = resolveIfCollapsed(en, 0, db, marshalizer)
+	err = resolveIfCollapsed(en, 0)
 	if err != nil {
 		return false, nil, [][]byte{}, err
 	}
@@ -295,7 +331,7 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
 		n.Key = n.Key[keyMatchLen:]
-		dirty, newNode, oldHashes, err := en.child.insert(n, db, marshalizer)
+		dirty, newNode, oldHashes, err := en.child.insert(n)
 		if !dirty || err != nil {
 			return false, nil, [][]byte{}, err
 		}
@@ -304,7 +340,12 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 			oldHashes = append(oldHashes, en.hash)
 		}
 
-		return true, newExtensionNode(en.Key, newNode), oldHashes, nil
+		newEn, err := newExtensionNode(en.Key, newNode, en.db, en.marsh, en.hasher)
+		if err != nil {
+			return false, nil, [][]byte{}, err
+		}
+
+		return true, newEn, oldHashes, nil
 	}
 
 	oldHash := make([][]byte, 0)
@@ -313,14 +354,22 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 	}
 
 	// Otherwise branch out at the index where they differ.
-	branch := newBranchNode()
+	branch, err := newBranchNode(en.db, en.marsh, en.hasher)
+	if err != nil {
+		return false, nil, [][]byte{}, err
+	}
+
 	oldChildPos := en.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return false, nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 
-	followingExtensionNode := newExtensionNode(en.Key[keyMatchLen+1:], en.child)
+	followingExtensionNode, err := newExtensionNode(en.Key[keyMatchLen+1:], en.child, en.db, en.marsh, en.hasher)
+	if err != nil {
+		return false, nil, [][]byte{}, err
+	}
+
 	if len(followingExtensionNode.Key) < 1 {
 		branch.children[oldChildPos] = en.child
 	} else {
@@ -333,10 +382,15 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher, marshalizer 
 		return true, branch, oldHash, nil
 	}
 
-	return true, newExtensionNode(en.Key[:keyMatchLen], branch), oldHash, nil
+	newEn, err := newExtensionNode(en.Key[:keyMatchLen], branch, en.db, en.marsh, en.hasher)
+	if err != nil {
+		return false, nil, [][]byte{}, err
+	}
+
+	return true, newEn, oldHash, nil
 }
 
-func (en *extensionNode) delete(key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error) {
+func (en *extensionNode) delete(key []byte) (bool, node, [][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return false, nil, [][]byte{}, err
@@ -348,12 +402,12 @@ func (en *extensionNode) delete(key []byte, db data.DBWriteCacher, marshalizer m
 	if keyMatchLen < len(en.Key) {
 		return false, en, [][]byte{}, nil
 	}
-	err = resolveIfCollapsed(en, 0, db, marshalizer)
+	err = resolveIfCollapsed(en, 0)
 	if err != nil {
 		return false, nil, [][]byte{}, err
 	}
 
-	dirty, newNode, oldHashes, err := en.child.delete(key[len(en.Key):], db, marshalizer)
+	dirty, newNode, oldHashes, err := en.child.delete(key[len(en.Key):])
 	if !dirty || err != nil {
 		return false, en, [][]byte{}, err
 	}
@@ -364,17 +418,38 @@ func (en *extensionNode) delete(key []byte, db data.DBWriteCacher, marshalizer m
 
 	switch newNode := newNode.(type) {
 	case *leafNode:
-		return true, newLeafNode(concat(en.Key, newNode.Key...), newNode.Value), oldHashes, nil
+		newLn, err := newLeafNode(concat(en.Key, newNode.Key...), newNode.Value, en.db, en.marsh, en.hasher)
+		if err != nil {
+			return false, nil, [][]byte{}, err
+		}
+
+		return true, newLn, oldHashes, nil
 	case *extensionNode:
-		return true, newExtensionNode(concat(en.Key, newNode.Key...), newNode.child), oldHashes, nil
+		newEn, err := newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.db, en.marsh, en.hasher)
+		if err != nil {
+			return false, nil, [][]byte{}, err
+		}
+
+		return true, newEn, oldHashes, nil
 	default:
-		return true, newExtensionNode(en.Key, newNode), oldHashes, nil
+		newEn, err := newExtensionNode(en.Key, newNode, en.db, en.marsh, en.hasher)
+		if err != nil {
+			return false, nil, [][]byte{}, err
+		}
+
+		return true, newEn, oldHashes, nil
 	}
 }
 
-func (en *extensionNode) reduceNode(pos int) node {
+func (en *extensionNode) reduceNode(pos int) (node, error) {
 	k := append([]byte{byte(pos)}, en.Key...)
-	return newExtensionNode(k, en.child)
+
+	newEn, err := newExtensionNode(k, en.child, en.db, en.marsh, en.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	return newEn, nil
 }
 
 func (en *extensionNode) clone() *extensionNode {
@@ -438,6 +513,10 @@ func (en *extensionNode) deepClone() node {
 	if en.child != nil {
 		clonedNode.child = en.child.deepClone()
 	}
+
+	clonedNode.db = en.db
+	clonedNode.marsh = en.marsh
+	clonedNode.hasher = en.hasher
 
 	return clonedNode
 }
