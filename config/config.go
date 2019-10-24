@@ -144,7 +144,6 @@ type GeneralSettingsConfig struct {
 	DestinationShardAsObserver string
 	NetworkID                  string
 	StatusPollingIntervalSec   int
-	NodeDisplayName            string
 }
 
 // ExplorerConfig will hold the configuration for the explorer indexer
