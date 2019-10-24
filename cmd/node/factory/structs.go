@@ -46,7 +46,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -1855,11 +1854,6 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	vmFactory, err := metachain.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
-	if err != nil {
-		return nil, err
-	}
-
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, err
@@ -1892,7 +1886,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		core.Marshalizer,
 		state.AccountsAdapter,
-		vmFactory.VMAccountsDB(),
+		vmFactory.BlockChainHookImpl(),
 		state.AddressConverter,
 		shardCoordinator,
 		scForwarder,

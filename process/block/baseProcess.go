@@ -552,9 +552,6 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
 		return process.ErrNilTransactionCoordinator
 	}
-	if arguments.Core == nil || arguments.Core.IsInterfaceNil() {
-		return process.ErrNilCoreService
-	}
 
 	return nil
 }
