@@ -43,7 +43,7 @@ type Worker struct {
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
 
-	mapRoundHash    map[int64]map[string]int
+	mapRoundHash    map[int64]map[string][]string
 	mutMapRoundHash sync.RWMutex
 }
 
@@ -106,7 +106,7 @@ func NewWorker(
 
 	go wrk.checkChannels()
 
-	wrk.mapRoundHash = make(map[int64]map[string]int)
+	wrk.mapRoundHash = make(map[int64]map[string][]string)
 
 	return &wrk, nil
 }
@@ -218,16 +218,19 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if message == nil || message.IsInterfaceNil() {
+		log.Info("nil message in ProcessReceivedMessage\n")
 		return ErrNilMessage
 	}
 
 	if message.Data() == nil {
+		log.Info("nil data to process in ProcessReceivedMessage\n")
 		return ErrNilDataToProcess
 	}
 
 	cnsDta := &consensus.Message{}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
+		log.Info("unmarshal not ok in ProcessReceivedMessage\n")
 		return err
 	}
 
@@ -242,15 +245,21 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
+		log.Info("sender not ok in ProcessReceivedMessage\n")
 		return ErrSenderNotOk
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
+		log.Info(fmt.Sprintf("wrk.consensusState.RoundIndex = %d and cnsDta.RoundIndex = %d with message %s\n",
+			wrk.consensusState.RoundIndex,
+			cnsDta.RoundIndex,
+			wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.MsgType))))
 		return ErrMessageForPastRound
 	}
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
+		log.Info("invalid signature in ProcessReceivedMessage\n")
 		return ErrInvalidSignature
 	}
 
@@ -276,11 +285,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		wrk.mutMapRoundHash.Lock()
 		mapHashSigs, ok := wrk.mapRoundHash[cnsDta.RoundIndex]
 		if !ok {
-			mapHashSigs = make(map[string]int)
+			mapHashSigs = make(map[string][]string)
 		}
 
 		hash := cnsDta.BlockHeaderHash
-		mapHashSigs[string(hash)]++
+		mapHashSigs[string(hash)] = append(mapHashSigs[string(hash)], string(cnsDta.PubKey))
 		wrk.mapRoundHash[cnsDta.RoundIndex] = mapHashSigs
 		wrk.mutMapRoundHash.Unlock()
 	}
@@ -449,11 +458,15 @@ func (wrk *Worker) dysplaySignatureStatistic() {
 	mapHashSigs, ok := wrk.mapRoundHash[wrk.consensusState.RoundIndex]
 
 	if ok {
-		for hash, sigs := range mapHashSigs {
-			log.Info(fmt.Sprintf("in round %d, proposed header with hash %s has received %d signatures\n",
+		for hash, pubKeys := range mapHashSigs {
+			log.Info(fmt.Sprintf("in round %d, proposed header with hash %s has received %d signatures from:\n",
+				len(pubKeys),
 				wrk.consensusState.RoundIndex,
-				core.ToB64([]byte(hash)),
-				sigs))
+				core.ToB64([]byte(hash))))
+
+			for _, pubKey := range pubKeys {
+				log.Info(fmt.Sprintf("%s", core.ToHex([]byte(pubKey))))
+			}
 		}
 	}
 	wrk.mutMapRoundHash.RUnlock()
