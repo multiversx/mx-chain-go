@@ -40,10 +40,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -113,9 +111,7 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	VmProcessor            vmcommon.VMExecutionHandler
-	VmDataGetter           vmcommon.VMExecutionHandler
-	BlockchainHook         vmcommon.BlockchainHook
+	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
@@ -226,7 +222,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
+	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.addHandlersForCounters()
 }
 
@@ -410,22 +406,23 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		rewardsInter,
 	)
 
-	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
-	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
+	var vmFactory process.VirtualMachinesContainerFactory
+	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		vmFactory, _ = metaProcess.NewVMContainerFactory(tpn.AccntState, TestAddressConverter)
+	} else {
+		vmFactory, _ = shard.NewVMContainerFactory(tpn.AccntState, TestAddressConverter)
+	}
 
-	vmContainer := &mock.VMContainerMock{
-		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-			return tpn.VmProcessor, nil
-		}}
+	tpn.VMContainer, _ = vmFactory.Create()
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
-		vmContainer,
+		tpn.VMContainer,
 		tpn.ArgsParser,
 		TestHasher,
 		TestMarshalizer,
 		tpn.AccntState,
-		tpn.BlockchainHook.(*hooks.VMAccountsDB),
+		vmFactory.VMAccountsDB(),
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
@@ -510,6 +507,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.MetaDataPool,
+			SCDataGetter:     &mock.ScDataGetterMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

@@ -1936,6 +1936,11 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	scDataGetter, err := smartContract.NewSCDataGetter(state.AddressConverter, vmContainer)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:              state.AccountsAdapter,
 		ForkDetector:          forkDetector,
@@ -1954,6 +1959,7 @@ func newMetaBlockProcessor(
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
 		DataPool:         data.MetaDatapool,
+		SCDataGetter:     scDataGetter,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

@@ -501,3 +501,6 @@ var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
+
+// ErrNilSCDataGetter signals that a nil sc data getter has been provided
+var ErrNilSCDataGetter = errors.New("nil sc data getter")

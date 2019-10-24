@@ -3,6 +3,8 @@ package mockVM
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
 	"testing"
 
@@ -17,7 +19,10 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	accnts, destinationAddressBytes, expectedValueForVar := deploySmartContract(t)
 
 	mockVM := vm.CreateOneSCExecutorMockVM(accnts)
-	scgd, _ := smartContract.NewSCDataGetter(mockVM)
+	vmContainer := &mock.VMContainerMock{GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return mockVM, nil
+	}}
+	scgd, _ := smartContract.NewSCDataGetter(&mock.AddressConverterMock{}, vmContainer)
 
 	functionName := "Get"
 	returnedVals, err := scgd.Get(destinationAddressBytes, functionName)

@@ -72,7 +72,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
+	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.addHandlersForCounters()
 }
 
@@ -102,6 +102,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.MetaDataPool,
+			SCDataGetter:     &mock.ScDataGetterMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

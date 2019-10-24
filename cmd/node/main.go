@@ -38,15 +38,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
-	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -707,15 +706,12 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(
+	apiResolver, err := createApiResolver(
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
+		shardCoordinator,
+		statusMetrics,
 	)
-	if err != nil {
-		return err
-	}
-
-	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
 	if err != nil {
 		return err
 	}
@@ -1386,12 +1382,27 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
-	//TODO replace this with a vm factory
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
+func createApiResolver(accounts state.AccountsAdapter, converter state.AddressConverter, shardCoordinator sharding.Coordinator, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
+	var vmFactory process.VirtualMachinesContainerFactory
+	var err error
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		vmFactory, err = metachain.NewVMContainerFactory(accounts, converter)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		vmFactory, err = shard.NewVMContainerFactory(accounts, converter)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	scDataGetter, err := smartContract.NewSCDataGetter(converter, vmContainer)
 	if err != nil {
 		return nil, err
 	}

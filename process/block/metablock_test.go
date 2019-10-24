@@ -39,7 +39,8 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Core:                  &mock.ServiceContainerMock{},
 			TxCoordinator:         &mock.TransactionCoordinatorMock{},
 		},
-		DataPool: mdp,
+		DataPool:     mdp,
+		SCDataGetter: &mock.ScDataGetterMock{},
 	}
 	return arguments
 }

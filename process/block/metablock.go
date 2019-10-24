@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"sort"
 	"sync"
 	"time"
@@ -21,8 +22,9 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core     serviceContainer.Core
-	dataPool dataRetriever.MetaPoolsHolder
+	core         serviceContainer.Core
+	dataPool     dataRetriever.MetaPoolsHolder
+	scDataGetter external.ScDataGetter
 
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
@@ -42,6 +44,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if arguments.DataPool.ShardHeaders() == nil || arguments.DataPool.ShardHeaders().IsInterfaceNil() {
 		return nil, process.ErrNilHeadersDataPool
+	}
+	if arguments.SCDataGetter == nil || arguments.SCDataGetter.IsInterfaceNil() {
+		return nil, process.ErrNilSCDataGetter
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -76,6 +81,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		baseProcessor:  base,
 		dataPool:       arguments.DataPool,
 		headersCounter: NewHeaderCounter(),
+		scDataGetter:   arguments.SCDataGetter,
 	}
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)

@@ -60,9 +60,15 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.finalizeUnStake(args)
 	case "slash":
 		return r.slash(args)
+	case "get":
+		return r.get(args)
 	}
 
 	return vmcommon.UserError
+}
+
+func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.Ok
 }
 
 func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
