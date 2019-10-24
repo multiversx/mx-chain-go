@@ -71,7 +71,7 @@ func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 	return hbmi.isActive
 }
 
-func Verify(hbmi *Heartbeat) error {
+func VerifyLengths(hbmi *Heartbeat) error {
 	return verifyLengths(hbmi)
 }
 

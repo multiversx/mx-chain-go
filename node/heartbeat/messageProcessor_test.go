@@ -1,11 +1,12 @@
 package heartbeat_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func CreateHeartbeat() *heartbeat.Heartbeat {
@@ -60,7 +61,7 @@ func TestNewMessageProcessor_VerifyMessageAllSmallerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hbmi := CreateHeartbeat()
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.Nil(t, err)
 }
@@ -75,7 +76,7 @@ func TestNewMessageProcessor_VerifyMessageAllNilShouldWork(t *testing.T) {
 	hbmi.VersionNumber = ""
 	hbmi.NodeDisplayName = ""
 
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.Nil(t, err)
 }
@@ -85,7 +86,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerPublicKeyShouldErr(t *testing.T)
 
 	hbmi := CreateHeartbeat()
 	hbmi.Pubkey = make([]byte, heartbeat.GetMaxSizeInBytes()+1)
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.NotNil(t, err)
 }
@@ -95,7 +96,7 @@ func TestNewMessageProcessor_VerifyMessageAllSmallerPublicKeyShouldWork(t *testi
 
 	hbmi := CreateHeartbeat()
 	hbmi.Pubkey = make([]byte, heartbeat.GetMaxSizeInBytes())
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.Nil(t, err)
 }
@@ -105,7 +106,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerPayloadShouldErr(t *testing.T) {
 
 	hbmi := CreateHeartbeat()
 	hbmi.Payload = make([]byte, heartbeat.GetMaxSizeInBytes()+1)
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.NotNil(t, err)
 }
@@ -115,7 +116,7 @@ func TestNewMessageProcessor_VerifyMessageSmallerPayloadShouldWork(t *testing.T)
 
 	hbmi := CreateHeartbeat()
 	hbmi.Payload = make([]byte, heartbeat.GetMaxSizeInBytes())
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.Nil(t, err)
 }
@@ -125,7 +126,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerSignatureShouldErr(t *testing.T)
 
 	hbmi := CreateHeartbeat()
 	hbmi.Signature = make([]byte, heartbeat.GetMaxSizeInBytes()+1)
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.NotNil(t, err)
 }
@@ -135,7 +136,7 @@ func TestNewMessageProcessor_VerifyMessageSignatureShouldWork(t *testing.T) {
 
 	hbmi := CreateHeartbeat()
 	hbmi.Signature = make([]byte, heartbeat.GetMaxSizeInBytes()-1)
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.Nil(t, err)
 }
@@ -145,7 +146,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerNodeDisplayNameShouldErr(t *test
 
 	hbmi := CreateHeartbeat()
 	hbmi.NodeDisplayName = string(make([]byte, heartbeat.GetMaxSizeInBytes()+1))
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.NotNil(t, err)
 }
@@ -155,7 +156,7 @@ func TestNewMessageProcessor_VerifyMessageNodeDisplayNameShouldWork(t *testing.T
 
 	hbmi := CreateHeartbeat()
 	hbmi.NodeDisplayName = string(make([]byte, heartbeat.GetMaxSizeInBytes()))
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.Nil(t, err)
 }
@@ -165,7 +166,7 @@ func TestNewMessageProcessor_VerifyMessageBiggerVersionNumberShouldErr(t *testin
 
 	hbmi := CreateHeartbeat()
 	hbmi.VersionNumber = string(make([]byte, heartbeat.GetMaxSizeInBytes()+1))
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.NotNil(t, err)
 }
@@ -175,7 +176,7 @@ func TestNewMessageProcessor_VerifyMessageVersionNumberShouldWork(t *testing.T) 
 
 	hbmi := CreateHeartbeat()
 	hbmi.VersionNumber = string(make([]byte, heartbeat.GetMaxSizeInBytes()))
-	err := heartbeat.Verify(hbmi)
+	err := heartbeat.VerifyLengths(hbmi)
 
 	assert.Nil(t, err)
 }
