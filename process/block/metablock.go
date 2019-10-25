@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -199,6 +200,17 @@ func (mp *metaProcessor) ProcessBlock(
 
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	if err != nil {
+		return err
+
+	}
+
+	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
+		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
 	}
 

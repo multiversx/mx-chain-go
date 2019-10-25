@@ -100,6 +100,9 @@ var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 // ErrRootStateDoesNotMatch signals that root state does not match
 var ErrRootStateDoesNotMatch = errors.New("root state does not match")
 
+// ErrValidatorStatsRootHashDoesNotMatch signals that the root hash for the validator statistics does not match
+var ErrValidatorStatsRootHashDoesNotMatch = errors.New("root hash for validator statistics does not match")
+
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
 
