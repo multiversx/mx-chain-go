@@ -1,13 +1,20 @@
 package mock
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 type MockTimer struct {
-	seconds int64
+	secondsMutex sync.RWMutex
+	seconds      int64
 }
 
 func (m *MockTimer) Now() time.Time {
-	return time.Unix(m.seconds, 0)
+	m.secondsMutex.RLock()
+	currentSeconds := time.Unix(m.seconds, 0)
+	m.secondsMutex.RUnlock()
+	return currentSeconds
 }
 
 func (m *MockTimer) IsInterfaceNil() bool {
@@ -18,9 +25,13 @@ func (m *MockTimer) IsInterfaceNil() bool {
 }
 
 func (m *MockTimer) IncrementSeconds(value int) {
+	m.secondsMutex.Lock()
 	m.seconds += int64(value)
+	m.secondsMutex.Unlock()
 }
 
 func (m *MockTimer) SetSeconds(value int) {
+	m.secondsMutex.Lock()
 	m.seconds = int64(value)
+	m.secondsMutex.Unlock()
 }
