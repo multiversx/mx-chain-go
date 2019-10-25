@@ -14,6 +14,11 @@ type PoolsHolderStub struct {
 	RewardTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
 	MiniBlocksCalled           func() storage.Cacher
 	MetaBlocksCalled           func() storage.Cacher
+	CurrBlockTxsCalled         func() dataRetriever.TxsForCurrentBlockHandler
+}
+
+func (phs *PoolsHolderStub) CurrentBlocksTxs() dataRetriever.TxsForCurrentBlockHandler {
+	return phs.CurrBlockTxsCalled()
 }
 
 func (phs *PoolsHolderStub) Headers() storage.Cacher {

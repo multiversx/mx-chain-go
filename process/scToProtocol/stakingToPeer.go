@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -24,7 +25,7 @@ type ArgStakingToPeer struct {
 	BaseState   state.AccountsAdapter
 
 	ArgParser    process.ArgumentsParser
-	CurrTxs      process.TxForCurrentBlockHandler
+	CurrTxs      dataRetriever.TxsForCurrentBlockHandler
 	ScDataGetter external.ScDataGetter
 }
 
@@ -38,7 +39,7 @@ type stakingToPeer struct {
 	baseState   state.AccountsAdapter
 
 	argParser    process.ArgumentsParser
-	currTxs      process.TxForCurrentBlockHandler
+	currTxs      dataRetriever.TxsForCurrentBlockHandler
 	scDataGetter external.ScDataGetter
 
 	mutPeerChanges sync.Mutex

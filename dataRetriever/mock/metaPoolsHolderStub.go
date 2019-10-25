@@ -12,6 +12,11 @@ type MetaPoolsHolderStub struct {
 	HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
 	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
+	CurrBlockTxsCalled         func() dataRetriever.TxsForCurrentBlockHandler
+}
+
+func (mphs *MetaPoolsHolderStub) CurrentBlocksTxs() dataRetriever.TxsForCurrentBlockHandler {
+	return mphs.CurrBlockTxsCalled()
 }
 
 func (mphs *MetaPoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
