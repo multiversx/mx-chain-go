@@ -39,6 +39,7 @@ type transactions struct {
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
 	economicsFee         process.FeeHandler
+	miniBlocksCompacter  process.MiniBlocksCompacter
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -52,6 +53,7 @@ func NewTransactionPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
 	economicsFee process.FeeHandler,
+	miniBlocksCompacter process.MiniBlocksCompacter,
 ) (*transactions, error) {
 
 	if hasher == nil || hasher.IsInterfaceNil() {
@@ -78,6 +80,12 @@ func NewTransactionPreprocessor(
 	if onRequestTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
+	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if miniBlocksCompacter == nil || miniBlocksCompacter.IsInterfaceNil() {
+		return nil, process.ErrNilMiniBlocksCompacter
+	}
 
 	bpp := basePreProcess{
 		hasher:           hasher,
@@ -93,6 +101,7 @@ func NewTransactionPreprocessor(
 		txProcessor:          txProcessor,
 		accounts:             accounts,
 		economicsFee:         economicsFee,
+		miniBlocksCompacter:  miniBlocksCompacter,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -197,9 +206,15 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(body block.Body, round uint64, haveTime func() bool) error {
+	mapHashesAndTxs := txs.GetAllCurrentUsedTxs()
+	expandedMiniBlocks, err := txs.miniBlocksCompacter.Expand(block.MiniBlockSlice(body), mapHashesAndTxs)
+	if err != nil {
+		return err
+	}
+
 	// basic validation already done in interceptors
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(expandedMiniBlocks); i++ {
+		miniBlock := expandedMiniBlocks[i]
 		if miniBlock.Type != block.TxBlock {
 			continue
 		}
@@ -482,7 +497,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 		}
 	}
 
-	return miniBlocks, nil
+	mapHashesAndTxs := txs.GetAllCurrentUsedTxs()
+	compactedMiniBlocks := txs.miniBlocksCompacter.Compact(miniBlocks, mapHashesAndTxs)
+
+	return compactedMiniBlocks, nil
 }
 
 // CreateAndProcessMiniBlock creates the miniblock from storage and processes the transactions added into the miniblock
