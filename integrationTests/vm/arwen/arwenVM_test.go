@@ -73,10 +73,11 @@ func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
 func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue uint64) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(100000000)
+	ownerBalance := big.NewInt(int64(0xfffffffffffffff))
+	ownerBalance = ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	round := uint64(444)
 	gasPrice := uint64(1)
-	gasLimit := uint64(100000)
+	gasLimit := uint64(0xFFFFFFFFFFFFFFFF)
 	transferOnCalls := big.NewInt(1)
 
 	scCode, err := ioutil.ReadFile(fileSC)
@@ -115,7 +116,7 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
 		GasPrice:  0,
-		GasLimit:  5000,
+		GasLimit:  gasLimit,
 		Data:      "_main",
 		Signature: nil,
 		Challenge: nil,
