@@ -70,6 +70,9 @@ func createShardedDataChacherNotifier(
 					LenCalled: func() int {
 						return 0
 					},
+					MaxSizeCalled: func() int {
+						return 1000
+					},
 				}
 			},
 			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
@@ -124,6 +127,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				LenCalled: func() int {
 					return 0
 				},
+				MaxSizeCalled: func() int {
+					return 1000
+				},
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -154,6 +160,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
 			cs.RemoveCalled = func(key []byte) {}
+			cs.LenCalled = func() int {
+				return 0
+			}
+			cs.MaxSizeCalled = func() int {
+				return 300
+			}
 			return cs
 		},
 		HeadersCalled: func() storage.Cacher {
@@ -161,6 +173,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
 			cs.RemoveCalled = func(key []byte) {
+			}
+			cs.LenCalled = func() int {
+				return 0
+			}
+			cs.MaxSizeCalled = func() int {
+				return 1000
 			}
 			return cs
 		},
@@ -183,6 +201,9 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 				},
 				LenCalled: func() int {
 					return 0
+				},
+				MaxSizeCalled: func() int {
+					return 1000
 				},
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -207,6 +228,9 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			cs.LenCalled = func() int {
 				return 0
 			}
+			cs.MaxSizeCalled = func() int {
+				return 300
+			}
 			cs.RemoveCalled = func(key []byte) {}
 			cs.KeysCalled = func() [][]byte {
 				return nil
@@ -225,6 +249,9 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			}
 			cs.LenCalled = func() int {
 				return 0
+			}
+			cs.MaxSizeCalled = func() int {
+				return 1000
 			}
 			cs.RemoveCalled = func(key []byte) {}
 			cs.KeysCalled = func() [][]byte {

@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -120,6 +121,7 @@ type TestProcessorNode struct {
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
+	MiniBlocksCompacter    process.MiniBlocksCompacter
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -447,6 +449,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 	)
 
+	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator)
+
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -462,6 +466,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.RewardsProcessor,
 		internalTxProducer,
 		tpn.EconomicsData,
+		tpn.MiniBlocksCompacter,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

@@ -489,7 +489,7 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	mp.SetHighestHdrNonceForCurrentBlock(0, 1)
 	mp.SetHighestHdrNonceForCurrentBlock(1, 2)
 	mp.SetHighestHdrNonceForCurrentBlock(2, 3)
-	res := mp.RequestMissingFinalityAttestingHeaders()
+	res := mp.RequestMissingFinalityAttestingShardHeaders()
 	assert.Equal(t, res, uint32(3))
 }
 
@@ -712,6 +712,9 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		}
 		cs.LenCalled = func() int {
 			return 0
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
 		}
 		return cs
 	}
