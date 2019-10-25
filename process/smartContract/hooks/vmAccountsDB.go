@@ -18,6 +18,61 @@ type VMAccountsDB struct {
 	tempAccounts    map[string]state.AccountHandler
 }
 
+// LastNonce returns the nonce from from the last committed block
+func (v *VMAccountsDB) LastNonce() uint64 {
+	panic("not implemented")
+}
+
+// LastRound returns the round from the last committed block
+func (v *VMAccountsDB) LastRound() uint64 {
+	panic("not implemented")
+}
+
+// LastTimeStamp returns the timeStamp from the last committed block
+func (v *VMAccountsDB) LastTimeStamp() uint64 {
+	panic("not implemented")
+}
+
+// LastRandomSeed returns the random seed from the last committed block
+func (v *VMAccountsDB) LastRandomSeed() []byte {
+	panic("not implemented")
+}
+
+// LastEpoch returns the epoch from the last committed block
+func (v *VMAccountsDB) LastEpoch() uint32 {
+	panic("not implemented")
+}
+
+// GetStateRootHash returns the state root hash from the last committed block
+func (v *VMAccountsDB) GetStateRootHash() []byte {
+	panic("not implemented")
+}
+
+// CurrentNonce returns the nonce from the current block
+func (v *VMAccountsDB) CurrentNonce() uint64 {
+	panic("not implemented")
+}
+
+// CurrentRound returns the round from the current block
+func (v *VMAccountsDB) CurrentRound() uint64 {
+	panic("not implemented")
+}
+
+// CurrentTimeStamp return the timestamp from the current block
+func (v *VMAccountsDB) CurrentTimeStamp() uint64 {
+	panic("not implemented")
+}
+
+// CurrentRandomSeed returns the random seed from the current header
+func (v *VMAccountsDB) CurrentRandomSeed() []byte {
+	panic("not implemented")
+}
+
+// CurrentEpoch returns the current epoch
+func (v *VMAccountsDB) CurrentEpoch() uint32 {
+	panic("not implemented")
+}
+
 // NewVMAccountsDB creates a new VMAccountsDB instance
 func NewVMAccountsDB(
 	accounts state.AccountsAdapter,
