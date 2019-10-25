@@ -84,15 +84,13 @@ func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
 
 	totalRewardsFloat := big.NewFloat(float64(numSignedBlocks))
 	totalRewardsFloat.Mul(totalRewardsFloat, rewardsInErd)
+	difRewards := big.NewFloat(0).Sub(totalRewardsFloat, psh.totalRewardsOld)
 
-	totalRewards := new(big.Int)
-	totalRewardsFloat.Int(totalRewards)
+	defer func() {
+		psh.totalRewardsOld = totalRewardsFloat
+	}()
 
-	difRewards := big.NewInt(0).Sub(totalRewards, psh.totalRewardsOld)
-	psh.totalRewardsOld.Set(totalRewards)
-	totalRewards.Sub(totalRewards, difRewards)
-
-	return totalRewards.Text(10), difRewards.Text(10)
+	return psh.totalRewardsOld.Text('f', 2), difRewards.Text('f', 2)
 }
 
 // CalculateRewardsPerHour will return an approximation of how many ERDs a validator will earn per hour
@@ -110,8 +108,5 @@ func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
 	totalRewardsPerHourFloat := big.NewFloat(rewardsPerHourCoefficient)
 	totalRewardsPerHourFloat.Mul(totalRewardsPerHourFloat, rewardsInErd)
 
-	totalRewardsPerHour := new(big.Int)
-	totalRewardsPerHourFloat.Int(totalRewardsPerHour)
-
-	return totalRewardsPerHour.Text(10)
+	return totalRewardsPerHourFloat.Text('f', 2)
 }

@@ -156,12 +156,12 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 
 		var rewardsInfo []string
 		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
-		if diffRewards != "0" {
+		if diffRewards != "0.00" {
 			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
-			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD + %s", totalRewardsValue, diffRewards)}
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %s + %s ERD (without fees)", totalRewardsValue, diffRewards)}
 		} else {
 			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
-			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD", totalRewardsValue)}
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD (without fees)", totalRewardsValue)}
 		}
 		rows[7] = rewardsInfo
 
