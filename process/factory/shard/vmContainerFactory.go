@@ -2,7 +2,6 @@ package shard
 
 import (
 	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
-	vm "github.com/ElrondNetwork/elrond-go/core/libLocator"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -10,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
-	"github.com/ElrondNetwork/hera/evmc/bindings/go/evmc"
 )
 
 type vmContainerFactory struct {
@@ -60,26 +58,6 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
-	currVm, err = vmf.createHeraWABTVM()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.Add(factory.HeraWABTVirtualMachine, currVm)
-	if err != nil {
-		return nil, err
-	}
-
-	currVm, err = vmf.createHeraWAVMVM()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.Add(factory.HeraWAVMVirtualMachine, currVm)
-	if err != nil {
-		return nil, err
-	}
-
 	currVm, err = vmf.createArwenVM()
 	if err != nil {
 		return nil, err
@@ -96,18 +74,6 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
 	return ieleVM, nil
-}
-
-func (vmf *vmContainerFactory) createHeraWABTVM() (vmcommon.VMExecutionHandler, error) {
-	config := vm.WASMLibLocation() + ",engine=wabt"
-	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWABTVirtualMachine)
-	return wasmVM, err
-}
-
-func (vmf *vmContainerFactory) createHeraWAVMVM() (vmcommon.VMExecutionHandler, error) {
-	config := vm.WASMLibLocation() + ",engine=wavm"
-	wasmVM, err := evmc.NewWASMInstance(config, vmf.vmAccountsDB, vmf.cryptoHook, factory.HeraWAVMVirtualMachine)
-	return wasmVM, err
 }
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
