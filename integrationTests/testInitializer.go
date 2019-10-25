@@ -287,8 +287,19 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 // CreateIeleVMAndBlockchainHook creates a new instance of a iele VM
 func CreateIeleVMAndBlockchainHook(
 	accnts state.AccountsAdapter,
-) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, TestAddressConverter)
+) (vmcommon.VMExecutionHandler, *hooks.BlockChainHookImpl) {
+
+	args := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         TestAddressConverter,
+		StorageService:   &mock.ChainStorerMock{},
+		BlockChain:       &mock.BlockChainMock{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
+		Marshalizer:      TestMarshalizer,
+		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+	}
+
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	cryptoHook := hooks.NewVMCryptoHook()
 	vm := endpoint.NewElrondIeleVM(procFactory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 

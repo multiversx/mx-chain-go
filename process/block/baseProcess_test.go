@@ -26,7 +26,7 @@ import (
 )
 
 func haveTime() time.Duration {
-	return time.Duration(2000 * time.Millisecond)
+	return 2000 * time.Millisecond
 }
 
 func createTestBlockchain() *mock.BlockChainMock {
@@ -86,7 +86,7 @@ func createShardedDataChacherNotifier(
 }
 
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {
-	rwTx := &rewardTx.RewardTx{
+	rwdTx := &rewardTx.RewardTx{
 		Round:   1,
 		Epoch:   0,
 		Value:   big.NewInt(10),
@@ -95,7 +95,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	}
 	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
 	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
-	rewardTransactionsCalled := createShardedDataChacherNotifier(rwTx, testHash)
+	rewardTransactionsCalled := createShardedDataChacherNotifier(rwdTx, testHash)
 
 	sdp := &mock.PoolsHolderStub{
 		TransactionsCalled:         txCalled,
@@ -338,7 +338,8 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			StartHeaders:          createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 			RequestHandler:        &mock.RequestHandlerMock{},
 			Core:                  &mock.ServiceContainerMock{},
-			TxCoordinator:         &mock.TransactionCoordinatorMock{},
+			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:   	   &mock.TransactionCoordinatorMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -585,7 +586,7 @@ func createShardProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.Header{
 			Nonce:         i,
-			Round:         uint64(i),
+			Round:         i,
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,
@@ -616,7 +617,7 @@ func createMetaProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.MetaBlock{
 			Nonce:         i,
-			Round:         uint64(i),
+			Round:         i,
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,

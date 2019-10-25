@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -168,9 +167,10 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error)
+	CreateNewHeader() data.HeaderHandler
+	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
@@ -305,8 +305,13 @@ type VirtualMachinesContainer interface {
 // VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
-	VMAccountsDB() *hooks.VMAccountsDB
+	BlockChainHookImpl() BlockChainHookHandler
 	IsInterfaceNil() bool
+}
+
+type BlockChainHookHandler interface {
+	TemporaryAccountsHandler
+	SetCurrentHeader(hdr data.HeaderHandler)
 }
 
 // Interceptor defines what a data interceptor should do
