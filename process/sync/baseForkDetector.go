@@ -42,6 +42,7 @@ type baseForkDetector struct {
 	mutHeaders sync.RWMutex
 	fork       forkInfo
 	mutFork    sync.RWMutex
+	forceFork  bool
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -357,6 +358,10 @@ func (bfd *baseForkDetector) IsInterfaceNil() bool {
 
 // CheckFork method checks if the node could be on the fork
 func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
+	if bfd.forceFork {
+		return true, math.MaxUint64, nil
+	}
+
 	var (
 		lowestForkNonce        uint64
 		hashOfLowestForkNonce  []byte
@@ -463,8 +468,17 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 		return nil
 	}
 
-	//TODO: Here should be added a check to avoid older blocks, newer than final but older than last check point,
-	//to be added in fork detector which could trigger some forks and roll backs
+	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-finality
+	if roundTooOld {
+		return ErrLowerRoundInBlock
+	}
 
 	return nil
+}
+
+func (bfd *baseForkDetector) shouldForceFork() bool {
+	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
+	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
+	shouldForceFork := roundsWithoutReceivedBlock > process.MaxRoundsToWait && isInProperRound
+	return shouldForceFork
 }

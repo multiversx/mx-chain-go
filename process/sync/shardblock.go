@@ -652,14 +652,19 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		return nil
 	}
 
+	forceFork := boot.isForkDetected && boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
 	if boot.isForkDetected {
-		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
-			boot.forkNonce,
-			core.ToB64(boot.forkHash)))
+		if forceFork {
+			log.Info(fmt.Sprintf("fork has been forced\n"))
+		} else {
+			log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
+				boot.forkNonce,
+				core.ToB64(boot.forkHash)))
+		}
 
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
-		err := boot.forkChoice(true)
+		err := boot.forkChoice(!forceFork)
 		if err != nil {
 			log.Info(err.Error())
 		}
@@ -680,7 +685,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 		}
 	}()
 
-	if boot.isForkDetected {
+	if boot.isForkDetected && !forceFork {
 		hdr, err = boot.getHeaderWithHashRequestingIfMissing(boot.forkHash)
 	} else {
 		hdr, err = boot.getHeaderWithNonceRequestingIfMissing(nonce)

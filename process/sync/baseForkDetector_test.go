@@ -229,7 +229,7 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 
 func TestBasicForkDetector_CheckForkMetaHeaderNotProcessedYetShouldReturnFalse(t *testing.T) {
 	t.Parallel()
-	rounderMock := &mock.RounderMock{RoundIndex: 100}
+	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock)
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
@@ -728,6 +728,21 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 	assert.Nil(t, err)
 }
 
+func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock)
+	hdr := &block.Header{Nonce: 1, Round: 1}
+
+	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality - 1)
+	err := sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+
+	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+}
+
 func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
@@ -749,6 +764,21 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
 	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
 	assert.Nil(t, err)
+}
+
+func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	mfd, _ := sync.NewMetaForkDetector(rounderMock)
+	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
+
+	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality - 1)
+	err := mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+
+	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.MaxNoncesDifference + 1)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
 }
 
 func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
