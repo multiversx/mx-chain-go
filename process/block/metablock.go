@@ -459,7 +459,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
-	metaBlockPool.Remove(headerHash)
+	//metaBlockPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {

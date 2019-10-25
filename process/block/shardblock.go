@@ -627,7 +627,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
-	headersPool.Remove(headerHash)
+	//headersPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
