@@ -324,7 +324,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		tr.oldHashes = make([][]byte, 0)
 	}
 
-	err = tr.root.commit(false, 0, tr.db, tr.db, tr.marshalizer, tr.hasher)
+	err = tr.root.commit(false, 0, tr.db)
 	if err != nil {
 		return err
 	}
@@ -483,7 +483,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	}
 	tr.snapshotInProgress = true
 
-	err := tr.root.commit(false, 0, tr.db, tr.db, tr.marshalizer, tr.hasher)
+	err := tr.root.commit(false, 0, tr.db)
 	if err != nil {
 		return err
 	}
@@ -534,7 +534,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 		return err
 	}
 
-	newRoot, err := decodeNode(encRoot, tr.marshalizer)
+	newRoot, err := decodeNode(encRoot, tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
@@ -548,7 +548,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 }
 
 func (tr *patriciaMerkleTrie) snapshot(newTrie *patriciaMerkleTrie, db data.DBWriteCacher) {
-	err := newTrie.root.commit(true, 0, newTrie.db, db, newTrie.marshalizer, newTrie.hasher)
+	err := newTrie.root.commit(true, 0, db)
 	if err != nil {
 		log.Error(err.Error())
 	}

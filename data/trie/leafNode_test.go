@@ -153,7 +153,7 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln)
 	_ = ln.setHash()
 
-	err := ln.commit(false, 0)
+	err := ln.commit(false, 0, ln.db)
 	assert.Nil(t, err)
 
 	encNode, _ := ln.db.Get(hash)
@@ -168,7 +168,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 
 	ln := &leafNode{}
 
-	err := ln.commit(false, 0)
+	err := ln.commit(false, 0, nil)
 	assert.Equal(t, ErrEmptyNode, err)
 }
 
@@ -177,7 +177,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	err := ln.commit(false, 0)
+	err := ln.commit(false, 0, nil)
 	assert.Equal(t, ErrNilNode, err)
 }
 
@@ -350,7 +350,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 
 	ln := getLn(getTestDbMarshAndHasher())
 	node, _ := newLeafNode([]byte("dog"), []byte("dogs"), ln.db, ln.marsh, ln.hasher)
-	_ = ln.commit(false, 0)
+	_ = ln.commit(false, 0, ln.db)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.insert(node)
@@ -365,7 +365,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	db, marsh, hasher := getTestDbMarshAndHasher()
 	ln, _ := newLeafNode([]byte{1, 2, 3}, []byte("dog"), db, marsh, hasher)
 	node, _ := newLeafNode([]byte{4, 5, 6}, []byte("dogs"), db, marsh, hasher)
-	_ = ln.commit(false, 0)
+	_ = ln.commit(false, 0, ln.db)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.insert(node)
@@ -425,7 +425,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestDbMarshAndHasher())
-	_ = ln.commit(false, 0)
+	_ = ln.commit(false, 0, ln.db)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.delete([]byte("dog"))
@@ -438,7 +438,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestDbMarshAndHasher())
-	_ = ln.commit(false, 0)
+	_ = ln.commit(false, 0, ln.db)
 	wrongKey := []byte{1, 2, 3}
 
 	dirty, _, oldHashes, err := ln.delete(wrongKey)

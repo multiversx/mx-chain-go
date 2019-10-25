@@ -119,7 +119,7 @@ func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	encNode = append(encNode, branch)
 	nodeHash := collapsedBn.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(collapsedBn)
+	err := encodeNodeAndCommitToDB(collapsedBn, collapsedBn.db)
 	assert.Nil(t, err)
 
 	val, _ := collapsedBn.db.Get(nodeHash)
@@ -134,7 +134,7 @@ func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	encNode = append(encNode, extension)
 	nodeHash := collapsedEn.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(collapsedEn)
+	err := encodeNodeAndCommitToDB(collapsedEn, collapsedEn.db)
 	assert.Nil(t, err)
 
 	val, _ := collapsedEn.db.Get(nodeHash)
@@ -149,7 +149,7 @@ func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(ln)
+	err := encodeNodeAndCommitToDB(ln, ln.db)
 	assert.Nil(t, err)
 
 	val, _ := ln.db.Get(nodeHash)
@@ -160,7 +160,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	t.Parallel()
 
 	bn, collapsedBn := getBnAndCollapsedBn(getTestDbMarshAndHasher())
-	_ = bn.commit(false, 0)
+	_ = bn.commit(false, 0, bn.db)
 
 	encNode, _ := bn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -178,7 +178,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	t.Parallel()
 
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commit(false, 0)
+	_ = en.commit(false, 0, en.db)
 
 	encNode, _ := en.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -196,7 +196,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestDbMarshAndHasher())
-	_ = ln.commit(false, 0)
+	_ = ln.commit(false, 0, ln.db)
 
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -215,7 +215,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 
 	bn, collapsedBn := getBnAndCollapsedBn(getTestDbMarshAndHasher())
 	childPos := byte(2)
-	_ = bn.commit(false, 0)
+	_ = bn.commit(false, 0, bn.db)
 
 	err := resolveIfCollapsed(collapsedBn, childPos)
 	assert.Nil(t, err)
@@ -226,7 +226,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 	t.Parallel()
 
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commit(false, 0)
+	_ = en.commit(false, 0, en.db)
 
 	err := resolveIfCollapsed(collapsedEn, 0)
 	assert.Nil(t, err)
@@ -237,7 +237,7 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestDbMarshAndHasher())
-	_ = ln.commit(false, 0)
+	_ = ln.commit(false, 0, ln.db)
 
 	err := resolveIfCollapsed(ln, 0)
 	assert.Nil(t, err)
@@ -913,7 +913,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	index := 0
 	var rootHashes [][]byte
 
-	msh, hsh := getTestMarshAndHasher()
+	db, msh, hsh := getTestDbMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
@@ -927,7 +927,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	}
 
 	tr := &patriciaMerkleTrie{
-		db:                    mock.NewMemDbMock(),
+		db:                    db,
 		snapshots:             make([]data.DBWriteCacher, 0),
 		snapshotDbCfg:         cfg,
 		dbEvictionWaitingList: evictionWaitList,

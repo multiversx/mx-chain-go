@@ -297,7 +297,7 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func (bn *branchNode) commit(force bool, level byte, db data.DBWriteCacher) error {
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -311,7 +311,7 @@ func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher
 
 	for i := range bn.children {
 		if force {
-			err = resolveIfCollapsed(bn, byte(i), originDb, marshalizer)
+			err = resolveIfCollapsed(bn, byte(i))
 			if err != nil {
 				return err
 			}
@@ -321,13 +321,13 @@ func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher
 			continue
 		}
 
-		err = bn.children[i].commit(force, level, originDb, targetDb, marshalizer, hasher)
+		err = bn.children[i].commit(force, level, db)
 		if err != nil {
 			return err
 		}
 	}
 	bn.dirty = false
-	err = encodeNodeAndCommitToDB(bn, targetDb, marshalizer, hasher)
+	err = encodeNodeAndCommitToDB(bn, db)
 	if err != nil {
 		return err
 	}

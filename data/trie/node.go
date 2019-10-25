@@ -26,7 +26,7 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	commit(force bool, level byte) error
+	commit(force bool, level byte, db data.DBWriteCacher) error
 	resolveCollapsed(pos byte) error
 	hashNode() ([]byte, error)
 	hashChildren() error
@@ -98,7 +98,7 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 	return hash, nil
 }
 
-func encodeNodeAndCommitToDB(n node) error {
+func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 	key := n.getHash()
 	if key == nil {
 		err := n.setHash()
@@ -118,7 +118,7 @@ func encodeNodeAndCommitToDB(n node) error {
 		return err
 	}
 
-	err = n.getDb().Put(key, val)
+	err = db.Put(key, val)
 
 	return err
 }
