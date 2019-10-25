@@ -703,6 +703,60 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 	_ = mes2.Close()
 }
 
+func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines(t *testing.T) {
+	port := 4000
+	msg := []byte("test message")
+	numBroadcasts := 10000
+
+	_, sk := createLibP2PCredentialsMessenger()
+	ch := make(chan *p2p.SendableData)
+
+	mes, _ := libp2p.NewNetworkMessenger(
+		context.Background(),
+		port,
+		sk,
+		nil,
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
+			},
+			GetChannelOrDefaultCalled: func(pipe string) chan *p2p.SendableData {
+				return ch
+			},
+		},
+		discovery.NewNullDiscoverer(),
+		libp2p.ListenLocalhostAddrWithIp4AndTcp,
+	)
+
+	wg := sync.WaitGroup{}
+	wg.Add(numBroadcasts - libp2p.BroadcastGoRoutines)
+	for i := 0; i < numBroadcasts; i++ {
+		go func() {
+			err := mes.BroadcastOnChannelBlocking("test", "test", msg)
+			if err != nil {
+				wg.Done()
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	assert.True(t, libp2p.BroadcastGoRoutines >= emptyChannel(ch))
+}
+
+func emptyChannel(ch chan *p2p.SendableData) int {
+	readsCnt := 0
+	for {
+		select {
+		case <-ch:
+			readsCnt++
+		default:
+			return readsCnt
+		}
+	}
+}
+
 func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *testing.T) {
 	msg := make([]byte, libp2p.MaxSendBuffSize)
 
