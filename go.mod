@@ -51,7 +51,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
-	go.dedis.ch/kyber/v3 v3.0.2
+	go.dedis.ch/kyber/v3 v3.0.7
 	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
 	golang.org/x/sys v0.0.0-20190825160603-fb81701db80f // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
