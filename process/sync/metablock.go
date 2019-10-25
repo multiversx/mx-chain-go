@@ -92,6 +92,7 @@ func NewMetaBootstrap(
 	}
 
 	base.storageBootstrapper = &boot
+	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
@@ -690,4 +691,12 @@ func (boot *MetaBootstrap) haveMetaHeaderInPoolWithNonce(nonce uint64) bool {
 		boot.headersNonces)
 
 	return err == nil
+}
+
+func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
+	header, err := process.GetMetaHeaderFromPool(
+		headerHash,
+		boot.headers)
+
+	return header, err
 }

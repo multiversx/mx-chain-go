@@ -43,8 +43,8 @@ type Worker struct {
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
 
-	mapRoundHash    map[int64]map[string][]string
-	mutMapRoundHash sync.RWMutex
+	mapHashConsensusMessage map[string][]*consensus.Message
+	mutHashConsensusMessage sync.RWMutex
 }
 
 // NewWorker creates a new Worker object
@@ -106,7 +106,7 @@ func NewWorker(
 
 	go wrk.checkChannels()
 
-	wrk.mapRoundHash = make(map[int64]map[string][]string)
+	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
 
 	return &wrk, nil
 }
@@ -233,7 +233,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	msgType := consensus.MessageType(cnsDta.MsgType)
 
-	log.Debug(fmt.Sprintf("received %s from %s for consensus message with with header hash %s and round %d\n",
+	log.Debug(fmt.Sprintf("received %s from %s for consensus message with header hash %s and round %d\n",
 		wrk.consensusService.GetStringValue(msgType),
 		core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 		base64.StdEncoding.EncodeToString(cnsDta.BlockHeaderHash),
@@ -246,10 +246,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
-		log.Info(fmt.Sprintf("wrk.consensusState.RoundIndex = %d and cnsDta.RoundIndex = %d with message %s\n",
-			wrk.consensusState.RoundIndex,
+		log.Debug(fmt.Sprintf("received late message %s from %s for round %d in round %d\n",
+			wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.MsgType)),
+			core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
 			cnsDta.RoundIndex,
-			wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.MsgType))))
+			wrk.consensusState.RoundIndex))
 		return ErrMessageForPastRound
 	}
 
@@ -261,32 +262,31 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if wrk.consensusService.IsMessageWithBlockHeader(msgType) {
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.SubRoundData)
+
 		//TODO: Block validity should be checked here and also on interceptors side, taking into consideration the following:
 		//(previous random seed, round, shard id and current random seed to verify if the block has been sent by the right proposer)
-		errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-		}
+		isHeaderValid := header != nil && !header.IsInterfaceNil() && headerHash != nil
 
-		log.Info(fmt.Sprintf("received proposed block from %s with round %d, nonce %d, hash %s and previous hash %s\n",
-			core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
-			header.GetRound(),
-			header.GetNonce(),
-			core.ToB64(cnsDta.BlockHeaderHash),
-			core.ToB64(header.GetPrevHash()),
-		))
+		if isHeaderValid {
+			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
+			if errNotCritical != nil {
+				log.Debug(errNotCritical.Error())
+			}
+
+			log.Info(fmt.Sprintf("received proposed block from %s with round: %d, nonce: %d, hash: %s and previous hash: %s\n",
+				core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
+				header.GetRound(),
+				header.GetNonce(),
+				core.ToB64(cnsDta.BlockHeaderHash),
+				core.ToB64(header.GetPrevHash()),
+			))
+		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.mutMapRoundHash.Lock()
-		mapHashSigs, ok := wrk.mapRoundHash[cnsDta.RoundIndex]
-		if !ok {
-			mapHashSigs = make(map[string][]string)
-		}
-
-		mapHashSigs[string(cnsDta.BlockHeaderHash)] = append(mapHashSigs[string(cnsDta.BlockHeaderHash)], string(cnsDta.PubKey))
-		wrk.mapRoundHash[cnsDta.RoundIndex] = mapHashSigs
-		wrk.mutMapRoundHash.Unlock()
+		wrk.mutHashConsensusMessage.Lock()
+		wrk.mapHashConsensusMessage[string(cnsDta.BlockHeaderHash)] = append(wrk.mapHashConsensusMessage[string(cnsDta.BlockHeaderHash)], cnsDta)
+		wrk.mutHashConsensusMessage.Unlock()
 	}
 
 	errNotCritical := wrk.checkSelfState(cnsDta)
@@ -420,14 +420,21 @@ func (wrk *Worker) Extend(subroundId int) {
 
 	wrk.blockProcessor.RevertAccountState()
 
-	if wrk.consensusState.IsSelfLeaderInCurrentRound() {
-		wrk.broadcastLastCommitedBlock()
+	shouldBroadcastLastCommittedBlock := wrk.consensusState.IsSelfLeaderInCurrentRound() &&
+		wrk.consensusService.IsSubroundSignature(subroundId)
+
+	if shouldBroadcastLastCommittedBlock {
+		wrk.broadcastLastCommittedBlock()
 	}
 
 	wrk.dysplaySignatureStatistic()
+
+	wrk.mutHashConsensusMessage.Lock()
+	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
+	wrk.mutHashConsensusMessage.Unlock()
 }
 
-func (wrk *Worker) broadcastLastCommitedBlock() {
+func (wrk *Worker) broadcastLastCommittedBlock() {
 	header := wrk.blockChain.GetCurrentBlockHeader()
 	body := wrk.blockChain.GetCurrentBlockBody()
 
@@ -449,23 +456,19 @@ func (wrk *Worker) broadcastLastCommitedBlock() {
 }
 
 func (wrk *Worker) dysplaySignatureStatistic() {
-	wrk.mutMapRoundHash.RLock()
-	mapHashSigs, ok := wrk.mapRoundHash[wrk.consensusState.RoundIndex]
+	wrk.mutHashConsensusMessage.RLock()
+	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
+		log.Info(fmt.Sprintf("proposed header with hash %s has received %d signatures\n",
+			core.ToB64([]byte(hash)),
+			len(consensusMessages)))
 
-	if ok {
-		for hash, pubKeys := range mapHashSigs {
-			log.Info(fmt.Sprintf("proposed header with hash %s has received %d signatures from:\n",
-				core.ToB64([]byte(hash)),
-				len(pubKeys)))
-
-			for _, pubKey := range pubKeys {
-				log.Info(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex([]byte(pubKey)))))
-			}
-
-			log.Info("")
+		for _, consensusMessage := range consensusMessages {
+			log.Debug(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex([]byte(consensusMessage.PubKey)))))
 		}
+
+		log.Debug("")
 	}
-	wrk.mutMapRoundHash.RUnlock()
+	wrk.mutHashConsensusMessage.RUnlock()
 }
 
 //GetConsensusStateChangedChannel gets the channel for the consensusStateChanged

@@ -105,6 +105,7 @@ func NewShardBootstrap(
 
 	base.storageBootstrapper = &boot
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
+	base.getHeaderFromPool = boot.getShardHeaderFromPool
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
@@ -1051,4 +1052,12 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 			len(missingMiniBlocksHashes),
 			header.Nonce))
 	}
+}
+
+func (boot *ShardBootstrap) getShardHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
+	header, err := process.GetShardHeaderFromPool(
+		headerHash,
+		boot.headers)
+
+	return header, err
 }

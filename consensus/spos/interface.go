@@ -63,6 +63,8 @@ type ConsensusService interface {
 	IsMessageWithBlockHeader(consensus.MessageType) bool
 	//IsMessageWithSignature returns if the current messageType is about signature
 	IsMessageWithSignature(consensus.MessageType) bool
+	//IsSubroundSignature returns if the current subround is about signature
+	IsSubroundSignature(int) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
