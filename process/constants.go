@@ -34,11 +34,11 @@ const ShardBlockFinality = 1
 const MetaBlockFinality = 1
 const MaxHeaderRequestsAllowed = 10
 const MaxItemsInBlock = 15000
-const MinItemsInBlock = 0
+const MinItemsInBlock = 15000
 const MaxNoncesDifference = 5
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
-const MaxGasLimitPerMiniBlock = uint64(1500000)
+const MaxGasLimitPerMiniBlock = uint64(100000)
 const MaxRequestsWithTimeoutAllowed = 3
 
 // MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing

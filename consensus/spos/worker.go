@@ -217,7 +217,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
-	if message == nil || message.IsInterfaceNil(){
+	if message == nil || message.IsInterfaceNil() {
 		return ErrNilMessage
 	}
 
@@ -285,7 +285,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
 		wrk.mutHashConsensusMessage.Lock()
-		wrk.mapHashConsensusMessage[string(cnsDta.BlockHeaderHash)] = append(wrk.mapHashConsensusMessage[string(cnsDta.BlockHeaderHash)], cnsDta)
+		hash := string(cnsDta.BlockHeaderHash)
+		wrk.mapHashConsensusMessage[hash] = append(wrk.mapHashConsensusMessage[hash], cnsDta)
 		wrk.mutHashConsensusMessage.Unlock()
 	}
 

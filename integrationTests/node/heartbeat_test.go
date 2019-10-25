@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -13,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -33,10 +33,10 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-	maxUnresposiveTime := time.Second * 10
+	maxUnresposiveTime := time.Second * 2
 
 	monitor := createMonitor(maxUnresposiveTime)
-	nodes, senders, pks := prepareNodes(advertiserAddr, monitor, 3, "nodeName")
+	nodes, senders, pks := prepareNodes(advertiserAddr, monitor)
 
 	defer func() {
 		_ = advertiser.Close()
@@ -69,61 +69,13 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 	checkReceivedMessages(t, monitor, pks, []int{0})
 }
 
-func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-	maxUnresposiveTime := time.Second * 10
-
-	length := 129
-	buff := make([]byte, length)
-
-	for i := 0; i < length; i++ {
-		buff[i] = byte(97)
-	}
-	bigNodeName := string(buff)
-
-	monitor := createMonitor(maxUnresposiveTime)
-	nodes, senders, pks := prepareNodes(advertiserAddr, monitor, 3, bigNodeName)
-
-	defer func() {
-		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.Close()
-		}
-	}()
-
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
-
-	fmt.Println("Sending first messages from both public keys...")
-	_ = senders[1].SendHeartbeat()
-
-	time.Sleep(stepDelay)
-
-	secondPK := pks[1]
-
-	pkHeartBeats := monitor.GetHeartbeats()
-
-	assert.True(t, isPkActive(pkHeartBeats, secondPK))
-	expectedLen := 128
-	nodeName := pkHeartBeats[1].NodeDisplayName
-	actualLen := len(nodeName)
-	assert.Equal(t, expectedLen, actualLen)
-}
-
 func prepareNodes(
 	advertiserAddr string,
 	monitor *heartbeat.Monitor,
-	interactingNodes int,
-	defaultNodeName string,
 ) ([]p2p.Messenger, []*heartbeat.Sender, []crypto.PublicKey) {
 
 	senderIdxs := []int{0, 1}
+	interactingNodes := 3
 	nodes := make([]p2p.Messenger, interactingNodes)
 	topicHeartbeat := "topic"
 	senders := make([]*heartbeat.Sender, 0)
@@ -135,7 +87,7 @@ func prepareNodes(
 
 		isSender := integrationTests.IsIntInSlice(i, senderIdxs)
 		if isSender {
-			sender, pk := createSenderWithName(nodes[i], topicHeartbeat, defaultNodeName)
+			sender, pk := createSender(nodes[i], topicHeartbeat)
 			senders = append(senders, sender)
 			pks = append(pks, pk)
 		} else {
@@ -187,12 +139,14 @@ func isPkActive(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) boo
 	return false
 }
 
-func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string) (*heartbeat.Sender, crypto.PublicKey) {
+func createSender(messenger p2p.Messenger, topic string) (*heartbeat.Sender, crypto.PublicKey) {
 	suite := kyber.NewBlakeSHA256Ed25519()
 	signer := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
+
 	version := "v01"
+	nodeName := "nodeName"
 	sender, _ := heartbeat.NewSender(
 		messenger,
 		signer,
@@ -203,23 +157,24 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		version,
 		nodeName,
 	)
+
 	return sender, pk
 }
 
 func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor {
-	suite := kyber.NewBlakeSHA256Ed25519()
-	singlesigner := &singlesig.SchnorrSigner{}
-	keyGen := signing.NewKeyGenerator(suite)
-	marshalizer := &marshal.JsonMarshalizer{}
-
-	mp, _ := heartbeat.NewMessageProcessor(singlesigner, keyGen, marshalizer)
 
 	monitor, _ := heartbeat.NewMonitor(
 		integrationTests.TestMarshalizer,
 		maxDurationPeerUnresponsive,
 		map[uint32][]string{0: {""}},
 		time.Now(),
-		mp,
+		&mock.MessageHandlerStub{
+			CreateHeartbeatFromP2pMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+				var hb heartbeat.Heartbeat
+				_ = json.Unmarshal(message.Data(), &hb)
+				return &hb, nil
+			},
+		},
 		&mock.HeartbeatStorerStub{
 			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
 				return nil

@@ -464,7 +464,7 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 	}
 
 	//TODO: Here should be added a check to avoid older blocks, newer than final but older than last check point,
-	// to be added in fork detector which could trigger some forks and roll backs
+	//to be added in fork detector which could trigger some forks and roll backs
 
 	return nil
 }
