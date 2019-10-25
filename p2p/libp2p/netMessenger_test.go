@@ -742,7 +742,7 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 
 	wg.Wait()
 
-	assert.Equal(t, libp2p.BroadcastGoRoutines, emptyChannel(ch))
+	assert.True(t, libp2p.BroadcastGoRoutines >= emptyChannel(ch))
 }
 
 func emptyChannel(ch chan *p2p.SendableData) int {
