@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"math/big"
 	"sort"
 	"sync"
 )
@@ -46,6 +47,7 @@ type stakingToPeer struct {
 	peerChanges    map[string]block.PeerData
 }
 
+// NewStakingToPeer creates the component which moves from staking sc state to peer state
 func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	err := checkIfNil(args)
 	if err != nil {
@@ -98,8 +100,10 @@ func checkIfNil(args ArgStakingToPeer) error {
 }
 
 // UpdateProtocol applies changes from staking smart contract to peer state and creates the actual peer changes
-func (stp *stakingToPeer) UpdateProtocol(body block.Body) error {
+func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
+	stp.mutPeerChanges.Lock()
 	stp.peerChanges = make(map[string]block.PeerData)
+	stp.mutPeerChanges.Unlock()
 
 	affectedStates, err := stp.getAllModifiedStates(body)
 	if err != nil {
@@ -107,17 +111,6 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body) error {
 	}
 
 	for key := range affectedStates {
-		data, err := stp.scDataGetter.Get(factory.StakingSCAddress, "get", []byte(key))
-		if err != nil {
-			return err
-		}
-
-		var stakingData systemSmartContracts.StakingData
-		err = stp.marshalizer.Unmarshal(&stakingData, data)
-		if err != nil {
-			return err
-		}
-
 		adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes([]byte(key))
 		if err != nil {
 			return err
@@ -133,7 +126,32 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body) error {
 			return process.ErrWrongTypeAssertion
 		}
 
-		err = stp.updatePeerAccount(stakingData, peerAcc)
+		data, err := stp.scDataGetter.Get(factory.StakingSCAddress, "get", []byte(key))
+		if err != nil {
+			return err
+		}
+
+		// no data under key -> peer can be deleted from trie
+		if len(data) == 0 {
+			err = stp.peerUnregistered(peerAcc, nonce)
+			if err != nil {
+				return err
+			}
+			return stp.peerState.RemoveAccount(adrSrc)
+		}
+
+		var stakingData systemSmartContracts.StakingData
+		err = stp.marshalizer.Unmarshal(&stakingData, data)
+		if err != nil {
+			return err
+		}
+
+		err = stp.createPeerChangeData(stakingData, peerAcc, nonce)
+		if err != nil {
+			return err
+		}
+
+		err = stp.updatePeerState(stakingData, peerAcc, nonce)
 		if err != nil {
 			return err
 		}
@@ -142,7 +160,116 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body) error {
 	return nil
 }
 
-func (stp *stakingToPeer) updatePeerAccount(stakingData systemSmartContracts.StakingData, account *state.PeerAccount) error {
+func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uint64) error {
+	stp.mutPeerChanges.Lock()
+	defer stp.mutPeerChanges.Unlock()
+
+	actualPeerChange := block.PeerData{
+		Address:     account.Address,
+		PublicKey:   account.BLSPublicKey,
+		Action:      block.PeerDeregistration,
+		TimeStamp:   nonce,
+		ValueChange: big.NewInt(0).Set(account.Stake),
+	}
+
+	peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
+	if err != nil {
+		return err
+	}
+
+	stp.peerChanges[string(peerHash)] = actualPeerChange
+	return nil
+}
+
+func (stp *stakingToPeer) updatePeerState(
+	stakingData systemSmartContracts.StakingData,
+	account *state.PeerAccount,
+	nonce uint64,
+) error {
+	if !bytes.Equal(stakingData.BlsPubKey, account.BLSPublicKey) {
+		err := account.SetBLSPublicKeyWithJournal(stakingData.BlsPubKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	if stakingData.StakeValue.Cmp(account.Stake) != 0 {
+		err := account.SetStakeWithJournal(stakingData.StakeValue)
+		if err != nil {
+			return err
+		}
+	}
+
+	if stakingData.StartNonce != account.Nonce {
+		err := account.SetNonceWithJournal(stakingData.StartNonce)
+		if err != nil {
+			return err
+		}
+
+		err = account.SetNodeInWaitingListWithJournal(true)
+		if err != nil {
+			return err
+		}
+	}
+
+	if stakingData.UnStakedNonce != account.UnStakedNonce {
+		err := account.SetUnStakedNonceWithJournal(stakingData.UnStakedNonce)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (stp *stakingToPeer) createPeerChangeData(
+	stakingData systemSmartContracts.StakingData,
+	account *state.PeerAccount,
+	nonce uint64,
+) error {
+	stp.mutPeerChanges.Lock()
+	defer stp.mutPeerChanges.Unlock()
+
+	actualPeerChange := block.PeerData{
+		Address:     account.Address,
+		PublicKey:   account.BLSPublicKey,
+		Action:      0,
+		TimeStamp:   nonce,
+		ValueChange: big.NewInt(0),
+	}
+
+	if len(account.BLSPublicKey) == 0 {
+		actualPeerChange.Action = block.PeerRegistrantion
+		actualPeerChange.TimeStamp = stakingData.StartNonce
+		actualPeerChange.ValueChange.Set(stakingData.StakeValue)
+
+		peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
+		if err != nil {
+			return err
+		}
+
+		stp.peerChanges[string(peerHash)] = actualPeerChange
+
+		return nil
+	}
+
+	if account.Stake.Cmp(stakingData.StakeValue) != 0 {
+		actualPeerChange.ValueChange.Sub(account.Stake, stakingData.StakeValue)
+		if account.Stake.Cmp(stakingData.StakeValue) < 0 {
+			actualPeerChange.Action = block.PeerSlashed
+		} else {
+			actualPeerChange.Action = block.PeerReStake
+		}
+	}
+
+	if stakingData.StartNonce == nonce {
+		actualPeerChange.Action = block.PeerRegistrantion
+	}
+
+	if stakingData.UnStakedNonce == nonce {
+		actualPeerChange.Action = block.PeerUnstaking
+	}
+
 	return nil
 }
 
@@ -217,4 +344,12 @@ func (stp *stakingToPeer) VerifyPeerChanges(peerChanges []block.PeerData) error 
 	}
 
 	return nil
+}
+
+// IsInterfaceNil
+func (stp *stakingToPeer) IsInterfaceNil() bool {
+	if stp == nil {
+		return true
+	}
+	return false
 }
