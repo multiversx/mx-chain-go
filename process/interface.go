@@ -449,6 +449,6 @@ type EconomicsAddressesHandler interface {
 type TxForCurrentBlockHandler interface {
 	Clean()
 	GetTx(txHash []byte) (data.TransactionHandler, error)
-	SetTx(txHash []byte, tx data.TransactionHandler)
+	AddTx(txHash []byte, tx data.TransactionHandler)
 	IsInterfaceNil() bool
 }

@@ -12,10 +12,10 @@ import (
 
 func TestPeerData_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
-		PublicKey: []byte("public key"),
-		Action:    block.PeerRegistrantion,
-		TimeStamp: uint64(1234),
-		Value:     big.NewInt(1),
+		PublicKey:   []byte("public key"),
+		Action:      block.PeerRegistrantion,
+		TimeStamp:   uint64(1234),
+		ValueChange: big.NewInt(1),
 	}
 	var b bytes.Buffer
 	_ = pd.Save(&b)
@@ -53,10 +53,10 @@ func TestShardData_SaveLoad(t *testing.T) {
 
 func TestMetaBlock_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
-		PublicKey: []byte("public key"),
-		Action:    block.PeerRegistrantion,
-		TimeStamp: uint64(1234),
-		Value:     big.NewInt(1),
+		PublicKey:   []byte("public key"),
+		Action:      block.PeerRegistrantion,
+		TimeStamp:   uint64(1234),
+		ValueChange: big.NewInt(1),
 	}
 
 	mbh := block.ShardMiniBlockHeader{

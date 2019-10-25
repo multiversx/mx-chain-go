@@ -150,7 +150,7 @@ func (m *MetaBlock) Load(r io.Reader) error {
 // PeerDataGoToCapn is a helper function to copy fields from a Peer Data object to a PeerDataCapn object
 func PeerDataGoToCapn(seg *capn.Segment, src *PeerData) capnp.PeerDataCapn {
 	dest := capnp.AutoNewPeerDataCapn(seg)
-	value, _ := src.Value.GobEncode()
+	value, _ := src.ValueChange.GobEncode()
 	dest.SetPublicKey(src.PublicKey)
 	dest.SetAction(uint8(src.Action))
 	dest.SetTimestamp(src.TimeStamp)
@@ -164,13 +164,13 @@ func PeerDataCapnToGo(src capnp.PeerDataCapn, dest *PeerData) *PeerData {
 	if dest == nil {
 		dest = &PeerData{}
 	}
-	if dest.Value == nil {
-		dest.Value = big.NewInt(0)
+	if dest.ValueChange == nil {
+		dest.ValueChange = big.NewInt(0)
 	}
 	dest.PublicKey = src.PublicKey()
 	dest.Action = PeerAction(src.Action())
 	dest.TimeStamp = src.Timestamp()
-	err := dest.Value.GobDecode(src.Value())
+	err := dest.ValueChange.GobDecode(src.Value())
 	if err != nil {
 		return nil
 	}
