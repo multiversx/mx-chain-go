@@ -144,7 +144,7 @@ func resolveIfCollapsed(n node, pos byte) error {
 	}
 
 	if n.isPosCollapsed(int(pos)) {
-		err := n.resolveCollapsed(pos)
+		err = n.resolveCollapsed(pos)
 		if err != nil {
 			return err
 		}

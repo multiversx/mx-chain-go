@@ -526,6 +526,16 @@ func TestPatriciaMerkleTrie_Snapshot(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestPatriciaMerkleTrie_SnapshotWhileSnapshotShouldFail(t *testing.T) {
+	t.Parallel()
+
+	tr, _ := initTrieMultipleValues(1000)
+
+	_ = tr.Snapshot()
+	err := tr.Snapshot()
+	assert.Equal(t, trie.ErrSnapshotInProgress, err)
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}

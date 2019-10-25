@@ -203,7 +203,7 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commit(force bool, level byte) error {
+func (en *extensionNode) commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -215,15 +215,22 @@ func (en *extensionNode) commit(force bool, level byte) error {
 		return nil
 	}
 
+	if force {
+		err = resolveIfCollapsed(en, 0, originDb, marshalizer)
+		if err != nil {
+			return err
+		}
+	}
+
 	if en.child != nil {
-		err = en.child.commit(force, level)
+		err = en.child.commit(force, level, originDb, targetDb, marshalizer, hasher)
 		if err != nil {
 			return err
 		}
 	}
 
 	en.dirty = false
-	err = encodeNodeAndCommitToDB(en)
+	err = encodeNodeAndCommitToDB(en, targetDb, marshalizer, hasher)
 	if err != nil {
 		return err
 	}
