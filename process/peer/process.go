@@ -108,6 +108,10 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 // UpdatePeerState takes the ca header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
+	if header.GetNonce() == 0 {
+		return p.peerAdapter.RootHash()
+	}
+
 	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(header.GetPrevRandSeed(), header.GetRound(), header.GetShardID())
 	if err != nil {
 		return nil, err

@@ -206,7 +206,6 @@ func (mp *metaProcessor) ProcessBlock(
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
 	if err != nil {
 		return err
-
 	}
 
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
