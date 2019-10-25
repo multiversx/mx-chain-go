@@ -218,19 +218,16 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if message == nil || message.IsInterfaceNil() {
-		log.Info("nil message in ProcessReceivedMessage\n")
 		return ErrNilMessage
 	}
 
 	if message.Data() == nil {
-		log.Info("nil data to process in ProcessReceivedMessage\n")
 		return ErrNilDataToProcess
 	}
 
 	cnsDta := &consensus.Message{}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
-		log.Info("unmarshal not ok in ProcessReceivedMessage\n")
 		return err
 	}
 
@@ -245,7 +242,6 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
-		log.Info("sender not ok in ProcessReceivedMessage\n")
 		return ErrSenderNotOk
 	}
 
@@ -259,7 +255,6 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
-		log.Info("invalid signature in ProcessReceivedMessage\n")
 		return ErrInvalidSignature
 	}
 
@@ -273,11 +268,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			log.Debug(errNotCritical.Error())
 		}
 
-		log.Info(fmt.Sprintf("received proposed block with nonce %d and hash %s and previous hash %s and round %d\n",
+		log.Info(fmt.Sprintf("received proposed block from %s with round %d, nonce %d, hash %s and previous hash %s\n",
+			core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
+			header.GetRound(),
 			header.GetNonce(),
 			core.ToB64(cnsDta.BlockHeaderHash),
 			core.ToB64(header.GetPrevHash()),
-			header.GetRound(),
 		))
 	}
 
@@ -288,8 +284,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			mapHashSigs = make(map[string][]string)
 		}
 
-		hash := cnsDta.BlockHeaderHash
-		mapHashSigs[string(hash)] = append(mapHashSigs[string(hash)], string(cnsDta.PubKey))
+		mapHashSigs[string(cnsDta.BlockHeaderHash)] = append(mapHashSigs[string(cnsDta.BlockHeaderHash)], string(cnsDta.PubKey))
 		wrk.mapRoundHash[cnsDta.RoundIndex] = mapHashSigs
 		wrk.mutMapRoundHash.Unlock()
 	}
@@ -459,13 +454,12 @@ func (wrk *Worker) dysplaySignatureStatistic() {
 
 	if ok {
 		for hash, pubKeys := range mapHashSigs {
-			log.Info(fmt.Sprintf("in round %d, proposed header with hash %s has received %d signatures from:\n",
-				wrk.consensusState.RoundIndex,
+			log.Info(fmt.Sprintf("proposed header with hash %s has received %d signatures from:\n",
 				core.ToB64([]byte(hash)),
 				len(pubKeys)))
 
 			for _, pubKey := range pubKeys {
-				log.Info(fmt.Sprintf("%s", core.ToHex([]byte(pubKey))))
+				log.Info(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex([]byte(pubKey)))))
 			}
 
 			log.Info("")
