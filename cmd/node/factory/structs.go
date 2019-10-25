@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -1786,7 +1787,7 @@ func newShardBlockProcessor(
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		state.AccountsAdapter,
-		data.Datapool,
+		data.Datapool.MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -1949,7 +1950,7 @@ func newMetaBlockProcessor(
 		data.Store,
 		core.Marshalizer,
 		core.Hasher,
-		data.Datapool,
+		data.MetaDatapool,
 		state.AccountsAdapter,
 		requestHandler,
 		transactionProcessor,
@@ -1967,7 +1968,7 @@ func newMetaBlockProcessor(
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		state.AccountsAdapter,
-		data.Datapool,
+		data.MetaDatapool.MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -1980,6 +1981,19 @@ func newMetaBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
+
+	argsStaking := scToProtocol.ArgStakingToPeer{
+		AdrConv:     state.AddressConverter,
+		Hasher:      core.Hasher,
+		Marshalizer: core.Marshalizer,
+		//TODO: we need actual peer state here
+		PeerState:    state.AccountsAdapter,
+		BaseState:    state.AccountsAdapter,
+		ArgParser:    argsParser,
+		CurrTxs:      data.MetaDatapool.CurrentBlocksTxs(),
+		ScDataGetter: scDataGetter,
+	}
+	smartContractToProt, err := scToProtocol.NewStakingToPeer(argsStaking)
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:              state.AccountsAdapter,
@@ -1998,9 +2012,11 @@ func newMetaBlockProcessor(
 		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-		DataPool:         data.MetaDatapool,
-		SCDataGetter:     scDataGetter,
+		ArgBaseProcessor:   argumentsBaseProcessor,
+		DataPool:           data.MetaDatapool,
+		SCDataGetter:       scDataGetter,
+		SCToProtocol:       smartContractToProt,
+		PeerChangesHandler: smartContractToProt,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

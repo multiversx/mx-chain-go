@@ -445,7 +445,7 @@ func createNetNode(
 	tc, _ := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		accntAdapter,
-		dPool,
+		dPool.MiniBlocks(),
 		requestHandler,
 		container,
 		interimProcContainer,
@@ -862,8 +862,10 @@ func createMetaNetNode(
 			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		},
-		DataPool:     dPool,
-		SCDataGetter: &mock.ScDataGetterMock{},
+		DataPool:           dPool,
+		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCToProtocol:       &mock.SCToProtocolMock{},
+		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
 

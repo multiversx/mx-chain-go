@@ -519,3 +519,9 @@ var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts adapter")
 
 // ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
 var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
+
+// ErrNilSCToProtocol signals that nil smart contract to protocol handler has been provided
+var ErrNilSCToProtocol = errors.New("nil sc to protocol")
+
+// ErrNilPeerChangesHandler signals that nil peer changes handler has been provided
+var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")

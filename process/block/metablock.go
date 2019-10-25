@@ -25,6 +25,8 @@ type metaProcessor struct {
 	core         serviceContainer.Core
 	dataPool     dataRetriever.MetaPoolsHolder
 	scDataGetter external.ScDataGetter
+	scToProtocol process.SmartContractToProtocolHandler
+	peerChanges  process.PeerChangesHandler
 
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
@@ -47,6 +49,12 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if arguments.SCDataGetter == nil || arguments.SCDataGetter.IsInterfaceNil() {
 		return nil, process.ErrNilSCDataGetter
+	}
+	if arguments.PeerChangesHandler == nil || arguments.PeerChangesHandler.IsInterfaceNil() {
+		return nil, process.ErrNilPeerChangesHandler
+	}
+	if arguments.SCToProtocol == nil || arguments.SCToProtocol.IsInterfaceNil() {
+		return nil, process.ErrNilSCToProtocol
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -83,6 +91,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		dataPool:       arguments.DataPool,
 		headersCounter: NewHeaderCounter(),
 		scDataGetter:   arguments.SCDataGetter,
+		peerChanges:    arguments.PeerChangesHandler,
+		scToProtocol:   arguments.SCToProtocol,
 	}
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)

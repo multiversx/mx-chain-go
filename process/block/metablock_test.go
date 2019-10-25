@@ -40,8 +40,10 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:         &mock.TransactionCoordinatorMock{},
 		},
-		DataPool:     mdp,
-		SCDataGetter: &mock.ScDataGetterMock{},
+		DataPool:           mdp,
+		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCToProtocol:       &mock.SCToProtocolMock{},
+		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}
 	return arguments
 }

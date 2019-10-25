@@ -44,6 +44,8 @@ type ArgShardProcessor struct {
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	DataPool     dataRetriever.MetaPoolsHolder
-	SCDataGetter external.ScDataGetter
+	DataPool           dataRetriever.MetaPoolsHolder
+	SCDataGetter       external.ScDataGetter
+	PeerChangesHandler process.PeerChangesHandler
+	SCToProtocol       process.SmartContractToProtocolHandler
 }

@@ -477,7 +477,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		tpn.ShardDataPool,
+		tpn.ShardDataPool.MiniBlocks(),
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
@@ -519,9 +519,11 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor: argumentsBase,
-			DataPool:         tpn.MetaDataPool,
-			SCDataGetter:     &mock.ScDataGetterMock{},
+			ArgBaseProcessor:   argumentsBase,
+			DataPool:           tpn.MetaDataPool,
+			SCDataGetter:       &mock.ScDataGetterMock{},
+			SCToProtocol:       &mock.SCToProtocolMock{},
+			PeerChangesHandler: &mock.PeerChangesHandler{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
