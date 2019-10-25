@@ -105,6 +105,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.addrConverter,
 		ppcm.store,
 		block.SmartContractResultBlock,
+		ppcm.poolsHolder.CurrentBlocksTxs(),
 	)
 
 	return irp, err

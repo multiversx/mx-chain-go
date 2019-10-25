@@ -1099,6 +1099,11 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	currBlockTxs, err := dataPool.NewCurrentBlockPool()
+	if err != nil {
+		return nil, err
+	}
+
 	return dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -1108,6 +1113,7 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
+		currBlockTxs,
 	)
 }
 
@@ -1159,7 +1165,20 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	return dataPool.NewMetaDataPool(metaBlockBody, txBlockBody, shardHeaders, headersNonces, txPool, uTxPool)
+	currBlockTxs, err := dataPool.NewCurrentBlockPool()
+	if err != nil {
+		return nil, err
+	}
+
+	return dataPool.NewMetaDataPool(
+		metaBlockBody,
+		txBlockBody,
+		shardHeaders,
+		headersNonces,
+		txPool,
+		uTxPool,
+		currBlockTxs,
+	)
 }
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
@@ -1865,6 +1884,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		state.AddressConverter,
 		data.Store,
+		data.MetaDatapool,
 	)
 	if err != nil {
 		return nil, err
