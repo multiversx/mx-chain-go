@@ -388,7 +388,7 @@ func createNetNode(
 		shardCoordinator,
 		rewardsInter,
 	)
-	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
+	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter, shardCoordinator)
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
@@ -478,6 +478,7 @@ func createNetNode(
 			StartHeaders:    genesisBlocks,
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
+			BlockChainHook:  blockChainHook,
 			TxCoordinator:   tc,
 		},
 		DataPool:        dPool,
@@ -852,6 +853,7 @@ func createMetaNetNode(
 			StartHeaders:    genesisBlocks,
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
+			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		},
 		DataPool: dPool,
@@ -977,8 +979,21 @@ func createMintingForSenders(
 	}
 }
 
-func createVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+func createVMAndBlockchainHook(
+	accnts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
+) (vmcommon.VMExecutionHandler, *hooks.BlockChainHookImpl) {
+	args := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   &mock.ChainStorerMock{},
+		BlockChain:       &mock.BlockChainMock{},
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      testMarshalizer,
+		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+	}
+
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = uint64(opGas)
 

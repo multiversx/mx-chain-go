@@ -58,6 +58,7 @@ type baseProcessor struct {
 	store                 dataRetriever.StorageService
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler    process.BlockSizeThrottler
+	blockChainHook        process.BlockChainHookHandler
 	txCoordinator         process.TransactionCoordinator
 
 	hdrsForCurrBlock hdrForBlock
@@ -544,6 +545,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
 		return process.ErrNilRequestHandler
+	}
+	if arguments.BlockChainHook == nil || arguments.BlockChainHook.IsInterfaceNil() {
+		return process.ErrNilBlockChainHook
 	}
 	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
 		return process.ErrNilTransactionCoordinator

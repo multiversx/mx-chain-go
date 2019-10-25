@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -63,6 +62,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1596,6 +1596,7 @@ func newBlockProcessor(
 			forkDetector,
 			shardsGenesisBlocks,
 			coreServiceContainer,
+			economics,
 		)
 	}
 
@@ -1620,7 +1621,16 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         state.AccountsAdapter,
+		AddrConv:         state.AddressConverter,
+		StorageService:   data.Store,
+		BlockChain:       data.Blkc,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      core.Marshalizer,
+		Uint64Converter:  core.Uint64ByteSliceConverter,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -1675,7 +1685,7 @@ func newShardBlockProcessor(
 		core.Hasher,
 		core.Marshalizer,
 		state.AccountsAdapter,
-		vmFactory.VMAccountsDB(),
+		vmFactory.BlockChainHookImpl(),
 		state.AddressConverter,
 		shardCoordinator,
 		scForwarder,
@@ -1789,6 +1799,7 @@ func newShardBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgShardProcessor{
@@ -1821,7 +1832,69 @@ func newMetaBlockProcessor(
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
+	economics *economics.EconomicsData,
 ) (process.BlockProcessor, error) {
+
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         state.AccountsAdapter,
+		AddrConv:         state.AddressConverter,
+		StorageService:   data.Store,
+		BlockChain:       data.Blkc,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      core.Marshalizer,
+		Uint64Converter:  core.Uint64ByteSliceConverter,
+	}
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
+	argsParser, err := smartContract.NewAtArgumentParser()
+	if err != nil {
+		return nil, err
+	}
+
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		core.Marshalizer,
+		core.Hasher,
+		state.AddressConverter,
+		data.Store,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		vmContainer,
+		argsParser,
+		core.Hasher,
+		core.Marshalizer,
+		state.AccountsAdapter,
+		vmFactory.BlockChainHookImpl(),
+		state.AddressConverter,
+		shardCoordinator,
+		scForwarder,
+		&metachain.TransactionFeeHandler{},
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 		resolversFinder,
@@ -1830,6 +1903,54 @@ func newMetaBlockProcessor(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
+	transactionProcessor, err := transaction.NewMetaTxProcessor(
+		state.AccountsAdapter,
+		state.AddressConverter,
+		shardCoordinator,
+		scProcessor,
+		txTypeHandler,
+	)
+	if err != nil {
+		return nil, errors.New("could not create transaction processor: " + err.Error())
+	}
+
+	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
+		shardCoordinator,
+		data.Store,
+		core.Marshalizer,
+		core.Hasher,
+		data.Datapool,
+		state.AccountsAdapter,
+		requestHandler,
+		transactionProcessor,
+		economics,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	preProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		shardCoordinator,
+		state.AccountsAdapter,
+		data.Datapool,
+		requestHandler,
+		preProcContainer,
+		interimProcContainer,
 	)
 	if err != nil {
 		return nil, err
@@ -1848,8 +1969,8 @@ func newMetaBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
-		//TODO add real transaction coordinator here
-		TxCoordinator: &mock.TransactionCoordinatorMock{},
+		BlockChainHook:        vmFactory.BlockChainHookImpl(),
+		TxCoordinator:         txCoordinator,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,

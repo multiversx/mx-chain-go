@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -86,7 +86,7 @@ func NewSmartContractProcessor(
 	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if txFeeHandler == nil {
+	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
 
@@ -231,19 +231,19 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 
 func (sc *scProcessor) getVMTypeFromArguments(arg *big.Int) ([]byte, error) {
 	// first parsed argument after the code in case of vmDeploy is the actual vmType
-	vmAppendedType := make([]byte, hooks.VMTypeLen)
+	vmAppendedType := make([]byte, core.VMTypeLen)
 	vmType := arg.Bytes()
 	vmArgLen := len(vmType)
-	if vmArgLen > hooks.VMTypeLen {
+	if vmArgLen > core.VMTypeLen {
 		return nil, process.ErrVMTypeLengthInvalid
 	}
 
-	copy(vmAppendedType[hooks.VMTypeLen-vmArgLen:], vmType)
+	copy(vmAppendedType[core.VMTypeLen-vmArgLen:], vmType)
 	return vmAppendedType, nil
 }
 
 func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
-	vmType := tx.RcvAddr[hooks.NumInitCharactersForScAddress-hooks.VMTypeLen : hooks.NumInitCharactersForScAddress]
+	vmType := tx.RcvAddr[core.NumInitCharactersForScAddress-core.VMTypeLen : core.NumInitCharactersForScAddress]
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
