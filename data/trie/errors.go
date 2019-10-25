@@ -33,3 +33,9 @@ var ErrEmptyNode = errors.New("the node is empty")
 
 // ErrNilNode is raised when we reach a nil node
 var ErrNilNode = errors.New("the node is nil")
+
+// ErrWrongTypeAssertion signals that wrong type was provided
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrSnapshotInProgress is raised when we try to take a snapshot, but another snapshot is already in progress
+var ErrSnapshotInProgress = errors.New("another snapshot is already in progress")
