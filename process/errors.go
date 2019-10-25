@@ -505,3 +505,6 @@ var ErrNilBlackListHandler = errors.New("nil black list handler")
 
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
+
+// ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
+var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")

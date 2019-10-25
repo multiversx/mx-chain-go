@@ -431,3 +431,10 @@ type BlackListHandler interface {
 	Has(key string) bool
 	IsInterfaceNil() bool
 }
+
+// MiniBlocksCompacter defines the functionality that is needed for mini blocks compaction and expansion
+type MiniBlocksCompacter interface {
+	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice
+	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
+	IsInterfaceNil() bool
+}
