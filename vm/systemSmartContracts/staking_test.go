@@ -92,13 +92,18 @@ func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	stakeValue := big.NewInt(100)
-	eei := &mock.SystemEIStub{}
+	blockChainHook := &mock.BlockChainHookStub{}
+	eei, _ := NewVMContext(blockChainHook, &mock.CryptoHookStub{})
+	eei.SetSCAddress([]byte("addr"))
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, eei)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
+
+	balance := eei.GetBalance(arguments.CallerAddr)
+	assert.Equal(t, big.NewInt(0), balance)
 }
 
 func TestStakingSC_ExecuteStakeWrongUnmarshalDataShouldErr(t *testing.T) {
@@ -434,7 +439,7 @@ func TestStakingSC_ExecuteSlashUnmarhsalErr(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestStakingSC_ExecuteSlash(t *testing.T) {
+func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
 	t.Parallel()
 
 	stakeValue := big.NewInt(0)
@@ -445,6 +450,31 @@ func TestStakingSC_ExecuteSlash(t *testing.T) {
 			return []byte("data")
 		default:
 			registrationDataMarshalized, _ := json.Marshal(&stakingData{StakeValue: big.NewInt(100)})
+			return registrationDataMarshalized
+		}
+	}
+
+	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, eei)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "slash"
+	arguments.CallerAddr = []byte("data")
+	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(100)}
+
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(0)
+	eei := &mock.SystemEIStub{}
+	eei.GetStorageCalled = func(key []byte) []byte {
+		switch {
+		case bytes.Equal(key, []byte(ownerKey)):
+			return []byte("data")
+		default:
+			registrationDataMarshalized, _ := json.Marshal(&stakingData{StakeValue: big.NewInt(100), Staked: true})
 			return registrationDataMarshalized
 		}
 	}

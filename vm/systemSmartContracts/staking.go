@@ -221,8 +221,21 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
+	if !registrationData.Staked {
+		return vmcommon.Ok
+	}
+
 	operation := big.NewInt(0).Set(registrationData.StakeValue)
 	registrationData.StakeValue = registrationData.StakeValue.Sub(operation, args.Arguments[1])
+	registrationData.Staked = false
+
+	data, err = json.Marshal(registrationData)
+	if err != nil {
+		log.Error("marshal error in slash function of staking smart contract" + err.Error())
+		return vmcommon.UserError
+	}
+
+	r.eei.SetStorage(args.CallerAddr, data)
 
 	return vmcommon.Ok
 }
