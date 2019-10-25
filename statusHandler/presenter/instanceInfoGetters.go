@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
+const precisionRewards = 2
+
 // GetAppVersion will return application version
 func (psh *PresenterStatusHandler) GetAppVersion() string {
 	return psh.getFromCacheAsString(core.MetricAppVersion)
@@ -90,7 +92,7 @@ func (psh *PresenterStatusHandler) GetTotalRewardsValue() (string, string) {
 		psh.totalRewardsOld = totalRewardsFloat
 	}()
 
-	return psh.totalRewardsOld.Text('f', 2), difRewards.Text('f', 2)
+	return psh.totalRewardsOld.Text('f', precisionRewards), difRewards.Text('f', precisionRewards)
 }
 
 // CalculateRewardsPerHour will return an approximation of how many ERDs a validator will earn per hour
@@ -107,6 +109,15 @@ func (psh *PresenterStatusHandler) CalculateRewardsPerHour() string {
 	rewardsPerHourCoefficient := chanceToBeInConsensus * roundsPerHourAccordingToHitRate
 	totalRewardsPerHourFloat := big.NewFloat(rewardsPerHourCoefficient)
 	totalRewardsPerHourFloat.Mul(totalRewardsPerHourFloat, rewardsInErd)
+	return totalRewardsPerHourFloat.Text('f', precisionRewards)
+}
 
-	return totalRewardsPerHourFloat.Text('f', 2)
+// GetZeros will return a string with a specific number of zeros
+func (psh *PresenterStatusHandler) GetZeros() string {
+	retValue := "." + strings.Repeat("0", precisionRewards)
+	if retValue == "." {
+		return ""
+	}
+
+	return retValue
 }
