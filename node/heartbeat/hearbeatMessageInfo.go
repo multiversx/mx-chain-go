@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,7 @@ type heartbeatMessageInfo struct {
 	isValidator        bool
 	lastUptimeDowntime time.Time
 	genesisTime        time.Time
+	updateMutex        sync.Mutex
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
@@ -66,10 +68,11 @@ func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
 }
 
 func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
+	hbmi.updateMutex.Lock()
 	validDuration := computeValidDuration(crtTime, hbmi)
 	hbmi.isActive = hbmi.isActive && validDuration
-
 	hbmi.updateTimes(crtTime, hbmi.isActive)
+	hbmi.updateMutex.Unlock()
 }
 
 func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time, previousActive bool) {
@@ -116,7 +119,6 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	hbmi.updateFields(crtTime)
 	hbmi.computedShardID = computedShardID
 	hbmi.receivedShardID = receivedshardID
-	hbmi.updateMaxInactiveTimeDuration(crtTime)
 	hbmi.timeStamp = crtTime
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
