@@ -675,15 +675,16 @@ func ComputeGasConsumedInShard(
 
 	var gasConsumedInShard uint64
 
-	switch shardId {
-	case senderShardId:
-		gasConsumedInShard = gasConsumedInSenderShard
-		break
-	case receiverShardId:
-		gasConsumedInShard = gasConsumedInReceiverShard
-		break
-	default:
+	if shardId != senderShardId && shardId != receiverShardId {
 		return 0, ErrInvalidShardId
+	}
+
+	if shardId == senderShardId {
+		gasConsumedInShard += gasConsumedInSenderShard
+	}
+
+	if shardId == receiverShardId {
+		gasConsumedInShard += gasConsumedInReceiverShard
 	}
 
 	return gasConsumedInShard, nil
