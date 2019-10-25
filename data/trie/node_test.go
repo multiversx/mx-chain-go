@@ -76,9 +76,11 @@ func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 			Key:          []byte{2},
 			EncodedChild: []byte("doge"),
 		},
-		db:     db,
-		marsh:  marsh,
-		hasher: hasher,
+		baseNode: &baseNode{
+			db:     db,
+			marsh:  marsh,
+			hasher: hasher,
+		},
 	}
 
 	encNode, _ := marsh.Marshal(en)
@@ -477,12 +479,14 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 			Key:          rootKey,
 			EncodedChild: nextNode.getHash(),
 		},
-		child:  nil,
-		hash:   rootHash,
-		dirty:  false,
-		db:     db,
-		marsh:  msh,
-		hasher: hsh,
+		child: nil,
+		baseNode: &baseNode{
+			hash:   rootHash,
+			dirty:  false,
+			db:     db,
+			marsh:  msh,
+			hasher: hsh,
+		},
 	}
 	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
 

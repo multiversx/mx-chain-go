@@ -48,33 +48,29 @@ type node interface {
 	setDb(data.DBWriteCacher)
 }
 
+type baseNode struct {
+	hash   []byte
+	dirty  bool
+	db     data.DBWriteCacher
+	marsh  marshal.Marshalizer
+	hasher hashing.Hasher
+}
+
 type branchNode struct {
 	protobuf.CollapsedBn
 	children [nrOfChildren]node
-	hash     []byte
-	dirty    bool
-	db       data.DBWriteCacher
-	marsh    marshal.Marshalizer
-	hasher   hashing.Hasher
+	*baseNode
 }
 
 type extensionNode struct {
 	protobuf.CollapsedEn
-	child  node
-	hash   []byte
-	dirty  bool
-	db     data.DBWriteCacher
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
+	child node
+	*baseNode
 }
 
 type leafNode struct {
 	protobuf.CollapsedLn
-	hash   []byte
-	dirty  bool
-	db     data.DBWriteCacher
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
+	*baseNode
 }
 
 func hashChildrenAndNode(n node) ([]byte, error) {
@@ -208,11 +204,11 @@ func decodeNode(encNode []byte, db data.DBWriteCacher, marshalizer marshal.Marsh
 func getEmptyNodeOfType(t byte) (node, error) {
 	switch t {
 	case extension:
-		return &extensionNode{}, nil
+		return &extensionNode{baseNode: &baseNode{}}, nil
 	case leaf:
-		return &leafNode{}, nil
+		return &leafNode{baseNode: &baseNode{}}, nil
 	case branch:
-		return &branchNode{}, nil
+		return &branchNode{baseNode: &baseNode{}}, nil
 	default:
 		return nil, ErrInvalidNode
 	}

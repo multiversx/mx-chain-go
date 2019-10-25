@@ -28,11 +28,12 @@ func TestLeafNode_newLeafNode(t *testing.T) {
 			Key:   []byte("dog"),
 			Value: []byte("dog"),
 		},
-		hash:   nil,
-		dirty:  true,
-		db:     db,
-		marsh:  marsh,
-		hasher: hasher,
+		baseNode: &baseNode{
+			dirty:  true,
+			db:     db,
+			marsh:  marsh,
+			hasher: hasher,
+		},
 	}
 	ln, _ := newLeafNode([]byte("dog"), []byte("dog"), db, marsh, hasher)
 	assert.Equal(t, expectedLn, ln)
@@ -41,17 +42,17 @@ func TestLeafNode_newLeafNode(t *testing.T) {
 func TestLeafNode_getHash(t *testing.T) {
 	t.Parallel()
 
-	ln := &leafNode{hash: []byte("test hash")}
+	ln := &leafNode{baseNode: &baseNode{hash: []byte("test hash")}}
 	assert.Equal(t, ln.hash, ln.getHash())
 }
 
 func TestLeafNode_isDirty(t *testing.T) {
 	t.Parallel()
 
-	ln := &leafNode{dirty: true}
+	ln := &leafNode{baseNode: &baseNode{dirty: true}}
 	assert.Equal(t, true, ln.isDirty())
 
-	ln = &leafNode{dirty: false}
+	ln = &leafNode{baseNode: &baseNode{dirty: false}}
 	assert.Equal(t, false, ln.isDirty())
 }
 
@@ -79,7 +80,7 @@ func TestLeafNode_setHash(t *testing.T) {
 func TestLeafNode_setHashEmptyNode(t *testing.T) {
 	t.Parallel()
 
-	ln := &leafNode{}
+	ln := &leafNode{baseNode: &baseNode{}}
 
 	err := ln.setHash()
 	assert.Equal(t, ErrEmptyNode, err)
@@ -99,7 +100,7 @@ func TestLeafNode_setHashNilNode(t *testing.T) {
 func TestLeafNode_setGivenHash(t *testing.T) {
 	t.Parallel()
 
-	ln := &leafNode{}
+	ln := &leafNode{baseNode: &baseNode{}}
 	expectedHash := []byte("node hash")
 
 	ln.setGivenHash(expectedHash)
@@ -497,7 +498,7 @@ func TestLeafNode_isEmptyOrNil(t *testing.T) {
 func TestLeafNode_deepCloneWithNilHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ln := &leafNode{}
+	ln := &leafNode{baseNode: &baseNode{}}
 	ln.dirty = true
 	ln.hash = nil
 	ln.Value = getRandomByteSlice()
@@ -511,7 +512,7 @@ func TestLeafNode_deepCloneWithNilHashShouldWork(t *testing.T) {
 func TestLeafNode_deepCloneWithNilValueShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ln := &leafNode{}
+	ln := &leafNode{baseNode: &baseNode{}}
 	ln.dirty = true
 	ln.hash = getRandomByteSlice()
 	ln.Value = nil
@@ -525,7 +526,7 @@ func TestLeafNode_deepCloneWithNilValueShouldWork(t *testing.T) {
 func TestLeafNode_deepCloneWithNilKeyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ln := &leafNode{}
+	ln := &leafNode{baseNode: &baseNode{}}
 	ln.dirty = true
 	ln.hash = getRandomByteSlice()
 	ln.Value = getRandomByteSlice()
@@ -539,7 +540,7 @@ func TestLeafNode_deepCloneWithNilKeyShouldWork(t *testing.T) {
 func TestLeafNode_deepCloneShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ln := &leafNode{}
+	ln := &leafNode{baseNode: &baseNode{}}
 	ln.dirty = true
 	ln.hash = getRandomByteSlice()
 	ln.Value = getRandomByteSlice()

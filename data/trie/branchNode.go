@@ -82,11 +82,12 @@ func newBranchNode(db data.DBWriteCacher, marshalizer marshal.Marshalizer, hashe
 			EncodedChildren: EncChildren,
 		},
 		children: children,
-		hash:     nil,
-		dirty:    true,
-		db:       db,
-		marsh:    marshalizer,
-		hasher:   hasher,
+		baseNode: &baseNode{
+			dirty:  true,
+			db:     db,
+			marsh:  marshalizer,
+			hasher: hasher,
+		},
 	}, nil
 }
 
@@ -99,7 +100,9 @@ func emptyDirtyBranchNode() *branchNode {
 			EncodedChildren: EncChildren,
 		},
 		children: children,
-		dirty:    true,
+		baseNode: &baseNode{
+			dirty: true,
+		},
 	}
 }
 
@@ -595,7 +598,7 @@ func (bn *branchNode) deepClone() node {
 		return nil
 	}
 
-	clonedNode := &branchNode{}
+	clonedNode := &branchNode{baseNode: &baseNode{}}
 
 	if bn.hash != nil {
 		clonedNode.hash = make([]byte, len(bn.hash))

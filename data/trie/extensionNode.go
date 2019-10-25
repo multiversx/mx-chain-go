@@ -69,11 +69,13 @@ func newExtensionNode(key []byte, child node, db data.DBWriteCacher, marshalizer
 			Key:          key,
 			EncodedChild: nil,
 		},
-		child:  child,
-		dirty:  true,
-		db:     db,
-		marsh:  marshalizer,
-		hasher: hasher,
+		child: child,
+		baseNode: &baseNode{
+			dirty:  true,
+			db:     db,
+			marsh:  marshalizer,
+			hasher: hasher,
+		},
 	}, nil
 }
 
@@ -491,7 +493,7 @@ func (en *extensionNode) deepClone() node {
 		return nil
 	}
 
-	clonedNode := &extensionNode{}
+	clonedNode := &extensionNode{baseNode: &baseNode{}}
 
 	if en.Key != nil {
 		clonedNode.Key = make([]byte, len(en.Key))

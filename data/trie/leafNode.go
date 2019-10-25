@@ -69,10 +69,12 @@ func newLeafNode(key, value []byte, db data.DBWriteCacher, marshalizer marshal.M
 			Key:   key,
 			Value: value,
 		},
-		dirty:  true,
-		db:     db,
-		marsh:  marshalizer,
-		hasher: hasher,
+		baseNode: &baseNode{
+			dirty:  true,
+			db:     db,
+			marsh:  marshalizer,
+			hasher: hasher,
+		},
 	}, nil
 }
 
@@ -330,7 +332,7 @@ func (ln *leafNode) deepClone() node {
 		return nil
 	}
 
-	clonedNode := &leafNode{}
+	clonedNode := &leafNode{baseNode: &baseNode{}}
 
 	if ln.Key != nil {
 		clonedNode.Key = make([]byte, len(ln.Key))

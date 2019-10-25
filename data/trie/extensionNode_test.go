@@ -15,7 +15,7 @@ func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 	en, _ := newExtensionNode([]byte("d"), child, child.db, child.marsh, child.hasher)
 
 	childHash, _ := encodeNodeAndGetHash(collapsedChild)
-	collapsedEn := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte("d"), EncodedChild: childHash}}
+	collapsedEn := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte("d"), EncodedChild: childHash}, baseNode: &baseNode{}}
 	collapsedEn.db = child.db
 	collapsedEn.marsh = child.marsh
 	collapsedEn.hasher = child.hasher
@@ -31,11 +31,13 @@ func TestExtensionNode_newExtensionNode(t *testing.T) {
 			Key:          []byte("dog"),
 			EncodedChild: nil,
 		},
-		child:  bn,
-		dirty:  true,
-		db:     bn.db,
-		marsh:  bn.marsh,
-		hasher: bn.hasher,
+		child: bn,
+		baseNode: &baseNode{
+			dirty:  true,
+			db:     bn.db,
+			marsh:  bn.marsh,
+			hasher: bn.hasher,
+		},
 	}
 	en, _ := newExtensionNode([]byte("dog"), bn, bn.db, bn.marsh, bn.hasher)
 	assert.Equal(t, expectedEn, en)
@@ -44,17 +46,17 @@ func TestExtensionNode_newExtensionNode(t *testing.T) {
 func TestExtensionNode_getHash(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{hash: []byte("test hash")}
+	en := &extensionNode{baseNode: &baseNode{hash: []byte("test hash")}}
 	assert.Equal(t, en.hash, en.getHash())
 }
 
 func TestExtensionNode_isDirty(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{dirty: true}
+	en := &extensionNode{baseNode: &baseNode{dirty: true}}
 	assert.Equal(t, true, en.isDirty())
 
-	en = &extensionNode{dirty: false}
+	en = &extensionNode{baseNode: &baseNode{dirty: false}}
 	assert.Equal(t, false, en.isDirty())
 }
 
@@ -113,7 +115,7 @@ func TestExtensionNode_setHash(t *testing.T) {
 func TestExtensionNode_setHashEmptyNode(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{}
+	en := &extensionNode{baseNode: &baseNode{}}
 
 	err := en.setHash()
 	assert.Equal(t, ErrEmptyNode, err)
@@ -144,7 +146,7 @@ func TestExtensionNode_setHashCollapsedNode(t *testing.T) {
 func TestExtensionNode_setGivenHash(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{}
+	en := &extensionNode{baseNode: &baseNode{}}
 	expectedHash := []byte("node hash")
 
 	en.setGivenHash(expectedHash)
@@ -698,7 +700,7 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	db, marsh, hasher := getTestDbMarshAndHasher()
 	en, _ := newExtensionNode([]byte{100, 111, 103}, nil, db, marsh, hasher)
 
-	expected := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{2, 100, 111, 103}}, dirty: true}
+	expected := &extensionNode{CollapsedEn: protobuf.CollapsedEn{Key: []byte{2, 100, 111, 103}}, baseNode: &baseNode{dirty: true}}
 	expected.db = en.db
 	expected.marsh = en.marsh
 	expected.hasher = en.hasher
@@ -732,12 +734,12 @@ func TestExtensionNode_isEmptyOrNil(t *testing.T) {
 func TestExtensionNode_deepCloneNilHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{}
+	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
 	en.hash = nil
 	en.EncodedChild = getRandomByteSlice()
 	en.Key = getRandomByteSlice()
-	en.child = &leafNode{}
+	en.child = &leafNode{baseNode: &baseNode{}}
 
 	cloned := en.deepClone().(*extensionNode)
 
@@ -747,12 +749,12 @@ func TestExtensionNode_deepCloneNilHashShouldWork(t *testing.T) {
 func TestExtensionNode_deepCloneNilEncodedChildShouldWork(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{}
+	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
 	en.hash = getRandomByteSlice()
 	en.EncodedChild = nil
 	en.Key = getRandomByteSlice()
-	en.child = &leafNode{}
+	en.child = &leafNode{baseNode: &baseNode{}}
 
 	cloned := en.deepClone().(*extensionNode)
 
@@ -762,12 +764,12 @@ func TestExtensionNode_deepCloneNilEncodedChildShouldWork(t *testing.T) {
 func TestExtensionNode_deepCloneNilKeyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{}
+	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
 	en.hash = getRandomByteSlice()
 	en.EncodedChild = getRandomByteSlice()
 	en.Key = nil
-	en.child = &leafNode{}
+	en.child = &leafNode{baseNode: &baseNode{}}
 
 	cloned := en.deepClone().(*extensionNode)
 
@@ -777,7 +779,7 @@ func TestExtensionNode_deepCloneNilKeyShouldWork(t *testing.T) {
 func TestExtensionNode_deepCloneNilChildShouldWork(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{}
+	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
 	en.hash = getRandomByteSlice()
 	en.EncodedChild = getRandomByteSlice()
@@ -792,12 +794,12 @@ func TestExtensionNode_deepCloneNilChildShouldWork(t *testing.T) {
 func TestExtensionNode_deepCloneShouldWork(t *testing.T) {
 	t.Parallel()
 
-	en := &extensionNode{}
+	en := &extensionNode{baseNode: &baseNode{}}
 	en.dirty = true
 	en.hash = getRandomByteSlice()
 	en.EncodedChild = getRandomByteSlice()
 	en.Key = getRandomByteSlice()
-	en.child = &leafNode{}
+	en.child = &leafNode{baseNode: &baseNode{}}
 
 	cloned := en.deepClone().(*extensionNode)
 

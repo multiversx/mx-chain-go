@@ -49,17 +49,17 @@ func newEmptyTrie(db data.DBWriteCacher, marsh marshal.Marshalizer, hsh hashing.
 func TestBranchNode_getHash(t *testing.T) {
 	t.Parallel()
 
-	bn := &branchNode{hash: []byte("test hash")}
+	bn := &branchNode{baseNode: &baseNode{hash: []byte("test hash")}}
 	assert.Equal(t, bn.hash, bn.getHash())
 }
 
 func TestBranchNode_isDirty(t *testing.T) {
 	t.Parallel()
 
-	bn := &branchNode{dirty: true}
+	bn := &branchNode{baseNode: &baseNode{dirty: true}}
 	assert.Equal(t, true, bn.isDirty())
 
-	bn = &branchNode{dirty: false}
+	bn = &branchNode{baseNode: &baseNode{dirty: false}}
 	assert.Equal(t, false, bn.isDirty())
 }
 
@@ -182,7 +182,7 @@ func TestBranchNode_setHashCollapsedNode(t *testing.T) {
 func TestBranchNode_setGivenHash(t *testing.T) {
 	t.Parallel()
 
-	bn := &branchNode{}
+	bn := &branchNode{baseNode: &baseNode{}}
 	expectedHash := []byte("node hash")
 
 	bn.setGivenHash(expectedHash)
@@ -918,16 +918,16 @@ func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 func TestBranchNode_deepCloneWithNilHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bn := &branchNode{}
+	bn := &branchNode{baseNode: &baseNode{}}
 	bn.dirty = true
 	bn.hash = nil
 	bn.EncodedChildren = make([][]byte, len(bn.children))
 	bn.EncodedChildren[4] = getRandomByteSlice()
 	bn.EncodedChildren[5] = getRandomByteSlice()
 	bn.EncodedChildren[12] = getRandomByteSlice()
-	bn.children[4] = &leafNode{}
-	bn.children[5] = &leafNode{}
-	bn.children[12] = &leafNode{}
+	bn.children[4] = &leafNode{baseNode: &baseNode{}}
+	bn.children[5] = &leafNode{baseNode: &baseNode{}}
+	bn.children[12] = &leafNode{baseNode: &baseNode{}}
 
 	cloned := bn.deepClone().(*branchNode)
 
@@ -937,16 +937,16 @@ func TestBranchNode_deepCloneWithNilHashShouldWork(t *testing.T) {
 func TestBranchNode_deepCloneShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bn := &branchNode{}
+	bn := &branchNode{baseNode: &baseNode{}}
 	bn.dirty = true
 	bn.hash = getRandomByteSlice()
 	bn.EncodedChildren = make([][]byte, len(bn.children))
 	bn.EncodedChildren[4] = getRandomByteSlice()
 	bn.EncodedChildren[5] = getRandomByteSlice()
 	bn.EncodedChildren[12] = getRandomByteSlice()
-	bn.children[4] = &leafNode{}
-	bn.children[5] = &leafNode{}
-	bn.children[12] = &leafNode{}
+	bn.children[4] = &leafNode{baseNode: &baseNode{}}
+	bn.children[5] = &leafNode{baseNode: &baseNode{}}
+	bn.children[12] = &leafNode{baseNode: &baseNode{}}
 
 	cloned := bn.deepClone().(*branchNode)
 
