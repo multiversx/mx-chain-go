@@ -39,14 +39,18 @@ const MaxNoncesDifference = 5
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
 const MaxGasLimitPerMiniBlock = uint64(100000)
-const MaxRequestsWithTimeoutAllowed = 3
+const MaxRequestsWithTimeoutAllowed = 5
 
 // MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing
 const MaxHeadersToRequestInAdvance = 10
 
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
-const RoundModulusTrigger = 5
+const RoundModulusTrigger = 10
 
 // MaxOccupancyPercentageAllowed defines the maximum occupancy percentage allowed to be used,
 // from the full pool capacity, for the received data which are not needed in the near future
 const MaxOccupancyPercentageAllowed = float64(0.9)
+
+// MaxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
+// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
+const MaxRoundsToWait = 5

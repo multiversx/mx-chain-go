@@ -258,7 +258,7 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 	// committed block + 1, which could not be verified by hash -> prev hash and only by rand seed -> prev random seed
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
 	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
-	if roundsWithoutReceivedBlock > maxRoundsToWait && isInProperRound {
+	if roundsWithoutReceivedBlock > process.MaxRoundsToWait && isInProperRound {
 		bfd.ResetProbableHighestNonce()
 	}
 }

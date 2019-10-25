@@ -211,7 +211,7 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
 
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if ni.blockWithLastNotarized[i]-ni.blockWithFinalNotarized[i] > 1 {
+		if nonce > ni.blockWithLastNotarized[i] {
 			ni.finalNotarized[i] = ni.lastNotarized[i]
 		}
 
@@ -397,6 +397,9 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		if hdr != nil {
 			hash := boot.removeHeaderFromPools(hdr)
 			boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
+		}
+
+		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
 			boot.forkDetector.ResetProbableHighestNonce()
 		}
 

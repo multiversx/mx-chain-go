@@ -409,7 +409,7 @@ func (boot *ShardBootstrap) getShardStartingPoint(nonce uint64) (uint64, map[uin
 		}
 	}
 
-	if ni.blockWithLastNotarized[shardId]-ni.blockWithFinalNotarized[shardId] > 1 {
+	if nonce > ni.blockWithLastNotarized[shardId] {
 		ni.finalNotarized[shardId] = ni.lastNotarized[shardId]
 	}
 
@@ -628,6 +628,9 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 		if hdr != nil {
 			hash := boot.removeHeaderFromPools(hdr)
 			boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
+		}
+
+		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
 			boot.forkDetector.ResetProbableHighestNonce()
 		}
 
