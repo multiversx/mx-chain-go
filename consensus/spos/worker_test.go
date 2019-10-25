@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const roundTimeDuration = time.Duration(100 * time.Millisecond)
+const roundTimeDuration = 100 * time.Millisecond
 
 func initWorker() *spos.Worker {
 	blockchainMock := &mock.BlockChainMock{}
@@ -662,7 +662,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 
 	assert.Nil(t, err)
 }
@@ -686,7 +686,7 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 
 	assert.Nil(t, err)
 }
@@ -694,7 +694,7 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	err := wrk.ProcessReceivedMessage(nil)
+	err := wrk.ProcessReceivedMessage(nil, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -704,7 +704,7 @@ func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -726,7 +726,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -748,7 +748,7 @@ func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.
 		-1,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -770,7 +770,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -792,7 +792,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -815,7 +815,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
@@ -837,7 +837,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		0,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, nil)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bn.MtBlockHeader]))
