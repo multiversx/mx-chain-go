@@ -179,11 +179,11 @@ type BlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// PeerProcessor is the main interface for validators' consensus participation statistics
-type PeerProcessor interface {
-	LoadInitialState(in []*sharding.InitialNode) error
-	UpdatePeerState(header, previousHeader data.HeaderHandler) error
-	RevertPeerState(header, previousHeader data.HeaderHandler) error
+// ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
+type ValidatorStatisticsProcessor interface {
+	SaveInitialState(in []*sharding.InitialNode) error
+	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
+	RevertPeerState(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

@@ -48,17 +48,17 @@ type hdrForBlock struct {
 type mapShardHeaders map[uint32][]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	specialAddressHandler process.SpecialAddressHandler
-	accounts              state.AccountsAdapter
-	forkDetector          process.ForkDetector
-	peerProcessor      process.PeerProcessor
-	hasher                hashing.Hasher
-	marshalizer           marshal.Marshalizer
-	store                 dataRetriever.StorageService
-	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler    process.BlockSizeThrottler
+	shardCoordinator             sharding.Coordinator
+	nodesCoordinator             sharding.NodesCoordinator
+	specialAddressHandler        process.SpecialAddressHandler
+	accounts                     state.AccountsAdapter
+	forkDetector                 process.ForkDetector
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	hasher                       hashing.Hasher
+	marshalizer                  marshal.Marshalizer
+	store                        dataRetriever.StorageService
+	uint64Converter              typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler           process.BlockSizeThrottler
 
 	hdrsForCurrBlock hdrForBlock
 

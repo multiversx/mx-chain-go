@@ -27,101 +27,101 @@ type PeerAccountHandlerMock struct {
 	DecreaseValidatorSuccessRateWithJournalCalled func() error
 }
 
-func (awm *PeerAccountHandlerMock) GetCodeHash() []byte {
-	return awm.codeHash
+func (pahm *PeerAccountHandlerMock) GetCodeHash() []byte {
+	return pahm.codeHash
 }
 
-func (awm *PeerAccountHandlerMock) SetCodeHash(codeHash []byte) {
-	awm.codeHash = codeHash
+func (pahm *PeerAccountHandlerMock) SetCodeHash(codeHash []byte) {
+	pahm.codeHash = codeHash
 }
 
-func (awm *PeerAccountHandlerMock) SetCodeHashWithJournal(codeHash []byte) error {
-	return awm.SetCodeHashWithJournalCalled(codeHash)
+func (pahm *PeerAccountHandlerMock) SetCodeHashWithJournal(codeHash []byte) error {
+	return pahm.SetCodeHashWithJournalCalled(codeHash)
 }
 
-func (awm *PeerAccountHandlerMock) GetCode() []byte {
-	return awm.code
+func (pahm *PeerAccountHandlerMock) GetCode() []byte {
+	return pahm.code
 }
 
-func (awm *PeerAccountHandlerMock) GetRootHash() []byte {
-	return awm.rootHash
+func (pahm *PeerAccountHandlerMock) GetRootHash() []byte {
+	return pahm.rootHash
 }
 
-func (awm *PeerAccountHandlerMock) SetRootHash(rootHash []byte) {
-	awm.rootHash = rootHash
+func (pahm *PeerAccountHandlerMock) SetRootHash(rootHash []byte) {
+	pahm.rootHash = rootHash
 }
 
-func (awm *PeerAccountHandlerMock) SetRootHashWithJournal(rootHash []byte) error {
-	return awm.SetRootHashWithJournalCalled(rootHash)
+func (pahm *PeerAccountHandlerMock) SetRootHashWithJournal(rootHash []byte) error {
+	return pahm.SetRootHashWithJournalCalled(rootHash)
 }
 
-func (awm *PeerAccountHandlerMock) SetNonceWithJournal(nonce uint64) error {
-	return awm.SetNonceWithJournalCalled(nonce)
+func (pahm *PeerAccountHandlerMock) SetNonceWithJournal(nonce uint64) error {
+	return pahm.SetNonceWithJournalCalled(nonce)
 }
 
-func (awm *PeerAccountHandlerMock) AddressContainer() state.AddressContainer {
-	return awm.address
+func (pahm *PeerAccountHandlerMock) AddressContainer() state.AddressContainer {
+	return pahm.address
 }
 
-func (awm *PeerAccountHandlerMock) SetCode(code []byte) {
-	awm.code = code
+func (pahm *PeerAccountHandlerMock) SetCode(code []byte) {
+	pahm.code = code
 }
 
-func (awm *PeerAccountHandlerMock) DataTrie() data.Trie {
-	return awm.dataTrie
+func (pahm *PeerAccountHandlerMock) DataTrie() data.Trie {
+	return pahm.dataTrie
 }
 
-func (awm *PeerAccountHandlerMock) SetDataTrie(trie data.Trie) {
-	awm.dataTrie = trie
-	awm.trackableDataTrie.SetDataTrie(trie)
+func (pahm *PeerAccountHandlerMock) SetDataTrie(trie data.Trie) {
+	pahm.dataTrie = trie
+	pahm.trackableDataTrie.SetDataTrie(trie)
 }
 
-func (awm *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
-	return awm.trackableDataTrie
+func (pahm *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
+	return pahm.trackableDataTrie
 }
 
-func (awm *PeerAccountHandlerMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
-	awm.trackableDataTrie = tracker
+func (pahm *PeerAccountHandlerMock) SetDataTrieTracker(tracker state.DataTrieTracker) {
+	pahm.trackableDataTrie = tracker
 }
 
-func (awm *PeerAccountHandlerMock) SetNonce(nonce uint64) {
-	awm.nonce = nonce
+func (pahm *PeerAccountHandlerMock) SetNonce(nonce uint64) {
+	pahm.nonce = nonce
 }
 
-func (awm *PeerAccountHandlerMock) GetNonce() uint64 {
-	return awm.nonce
+func (pahm *PeerAccountHandlerMock) GetNonce() uint64 {
+	return pahm.nonce
 }
 
-func (awm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal() error {
-	if awm.IncreaseLeaderSuccessRateWithJournalCalled != nil {
-		return awm.IncreaseLeaderSuccessRateWithJournalCalled()
+func (pahm *PeerAccountHandlerMock) IncreaseLeaderSuccessRateWithJournal() error {
+	if pahm.IncreaseLeaderSuccessRateWithJournalCalled != nil {
+		return pahm.IncreaseLeaderSuccessRateWithJournalCalled()
 	}
 	return nil
 }
 
-func (awm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal() error {
-	if awm.DecreaseLeaderSuccessRateWithJournalCalled != nil {
-		return awm.DecreaseLeaderSuccessRateWithJournalCalled()
+func (pahm *PeerAccountHandlerMock) DecreaseLeaderSuccessRateWithJournal() error {
+	if pahm.DecreaseLeaderSuccessRateWithJournalCalled != nil {
+		return pahm.DecreaseLeaderSuccessRateWithJournalCalled()
 	}
 	return nil
 }
 
-func (awm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal() error {
-	if awm.IncreaseValidatorSuccessRateWithJournalCalled != nil {
-		return awm.IncreaseValidatorSuccessRateWithJournalCalled()
+func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal() error {
+	if pahm.IncreaseValidatorSuccessRateWithJournalCalled != nil {
+		return pahm.IncreaseValidatorSuccessRateWithJournalCalled()
 	}
 	return nil
 }
 
-func (awm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal() error {
-	if awm.DecreaseValidatorSuccessRateWithJournalCalled != nil {
-		return awm.DecreaseValidatorSuccessRateWithJournalCalled()
+func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal() error {
+	if pahm.DecreaseValidatorSuccessRateWithJournalCalled != nil {
+		return pahm.DecreaseValidatorSuccessRateWithJournalCalled()
 	}
 	return nil
 }
 
-func (awm *PeerAccountHandlerMock) IsInterfaceNil() bool {
-	if awm == nil {
+func (pahm *PeerAccountHandlerMock) IsInterfaceNil() bool {
+	if pahm == nil {
 		return true
 	}
 	return false

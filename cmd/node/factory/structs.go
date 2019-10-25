@@ -1535,7 +1535,7 @@ func newBlockProcessor(
 
 	shardCoordinator := processArgs.shardCoordinator
 	nodesCoordinator := processArgs.nodesCoordinator
-	peerProcessor, err := newPeerProcessor(processArgs)
+	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1594,7 +1594,7 @@ func newBlockProcessor(
 			forkDetector,
 			shardsGenesisBlocks,
 			processArgs.coreServiceContainer,
-			peerProcessor,
+			validatorStatisticsProcessor,
 		)
 	}
 
@@ -1820,7 +1820,7 @@ func newMetaBlockProcessor(
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
-	peerProcessor process.PeerProcessor,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
 
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
@@ -1836,19 +1836,19 @@ func newMetaBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:              state.AccountsAdapter,
-		ForkDetector:          forkDetector,
-		Hasher:                core.Hasher,
-		Marshalizer:           core.Marshalizer,
-		Store:                 data.Store,
-		ShardCoordinator:      shardCoordinator,
-		NodesCoordinator:      nodesCoordinator,
-		SpecialAddressHandler: specialAddressHandler,
-		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          shardsGenesisBlocks,
-		RequestHandler:        requestHandler,
-		Core:                  coreServiceContainer,
-		PeerProcessor:         peerProcessor,
+		Accounts:                     state.AccountsAdapter,
+		ForkDetector:                 forkDetector,
+		Hasher:                       core.Hasher,
+		Marshalizer:                  core.Marshalizer,
+		Store:                        data.Store,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		SpecialAddressHandler:        specialAddressHandler,
+		Uint64Converter:              core.Uint64ByteSliceConverter,
+		StartHeaders:                 shardsGenesisBlocks,
+		RequestHandler:               requestHandler,
+		Core:                         coreServiceContainer,
+		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1868,7 +1868,7 @@ func newMetaBlockProcessor(
 	return metaProcessor, nil
 }
 
-func newPeerProcessor(processComponents *processComponentsFactoryArgs) (process.PeerProcessor, error) {
+func newValidatorStatisticsProcessor(processComponents *processComponentsFactoryArgs) (process.ValidatorStatisticsProcessor, error) {
 	peerAdapter, err := getPeerAdapter(processComponents)
 	if err != nil {
 		return nil, err
@@ -1876,22 +1876,25 @@ func newPeerProcessor(processComponents *processComponentsFactoryArgs) (process.
 
 	storageService := processComponents.data.Store
 	headerStorage := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	metaHeaderStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
 	initialNodes := processComponents.nodesConfig.InitialNodes
 
-	peerProcessor, err := peer.NewValidatorStatisticsProcessor(
-		initialNodes,
-		peerAdapter,
-		processComponents.state.AddressConverter,
-		processComponents.nodesCoordinator,
-		processComponents.shardCoordinator,
-		headerStorage,
-		processComponents.core.Marshalizer,
-	)
+	arguments := peer.ArgValidatorStatisticsProcessor{
+		InitialNodes: initialNodes,
+		PeerAdapter: peerAdapter,
+		AdrConv: processComponents.state.AddressConverter,
+		NodesCoordinator: processComponents.nodesCoordinator,
+		ShardCoordinator: processComponents.shardCoordinator,
+		ShardHeaderStorage: headerStorage,
+		MetaHeaderStorage: metaHeaderStorage,
+		Marshalizer: processComponents.core.Marshalizer,
+	}
+	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
 	if err != nil {
 		return nil, err
 	}
 
-	return peerProcessor, nil
+	return validatorStatisticsProcessor, nil
 }
 
 func getPeerAdapter(processComponents *processComponentsFactoryArgs) (*state.PeerAccountsDB, error) {

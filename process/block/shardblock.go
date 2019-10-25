@@ -1545,22 +1545,6 @@ func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 	}
 }
 
-func (sp *shardProcessor) getPrevHeader(headerHandler data.HeaderHandler) (data.HeaderHandler, error) {
-	headerStorer := sp.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	buff, err := headerStorer.Get(headerHandler.GetPrevHash())
-	if err != nil {
-		return nil, err
-	}
-
-	prevHeader := &block.Header{}
-	err = sp.marshalizer.Unmarshal(prevHeader, buff)
-	if err != nil {
-		return nil, err
-	}
-
-	return prevHeader, nil
-}
-
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	header data.HeaderHandler,

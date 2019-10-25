@@ -472,8 +472,8 @@ var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlo
 // ErrNilShardHeaderStorage signals that nil storage was provided for shard headers
 var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
 
-// ErrNilPeerProcessor signals that nil peer processor was provided
-var ErrNilPeerProcessor = errors.New("nil peer processor")
+// ErrNilMetaHeaderStorage signals that nil storage was provided for meta headers
+var ErrNilMetaHeaderStorage = errors.New("nil meta header storage")
 
 // ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
 var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")

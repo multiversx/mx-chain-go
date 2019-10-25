@@ -97,19 +97,19 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:              tpn.AccntState,
-		ForkDetector:          nil,
-		Hasher:                TestHasher,
-		Marshalizer:           TestMarshalizer,
-		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator,
-		NodesCoordinator:      tpn.NodesCoordinator,
-		SpecialAddressHandler: tpn.SpecialAddressHandler,
-		Uint64Converter:       TestUint64Converter,
-		StartHeaders:          tpn.GenesisBlocks,
-		RequestHandler:        tpn.RequestHandler,
-		Core:                  nil,
-		PeerProcessor:         &mock.PeerProcessorMock{},
+		Accounts:                     tpn.AccntState,
+		ForkDetector:                 nil,
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		Store:                        tpn.Storage,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		NodesCoordinator:             tpn.NodesCoordinator,
+		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		Uint64Converter:              TestUint64Converter,
+		StartHeaders:                 tpn.GenesisBlocks,
+		RequestHandler:               tpn.RequestHandler,
+		Core:                         nil,
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

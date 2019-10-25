@@ -64,7 +64,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		onRequestHeaderHandler:        arguments.RequestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
-		peerProcessor:                 arguments.PeerProcessor,
+		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -507,12 +507,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.updatePeerState(header)
-	if err != nil {
-		fmt.Println("Error updating peer state")
-		return err
-	}
-
 	_, err = mp.accounts.Commit()
 	if err != nil {
 		return err
@@ -573,25 +567,12 @@ func (mp *metaProcessor) CommitBlock(
 }
 
 func (mp *metaProcessor) updatePeerState(header *block.MetaBlock) error {
-	if header.GetNonce() == 1 {
+	if header.GetNonce() == 0 {
 		return nil
 	}
 
-	prevMetaHeader, err := mp.getPrevHeader(header)
-	if err != nil {
-		return err
-	}
-
-	return mp.peerProcessor.UpdatePeerState(header, prevMetaHeader)
-}
-
-func (mp *metaProcessor) revertPeerState(header *block.MetaBlock) error {
-	prevMetaHeader, err := mp.getPrevHeader(header)
-	if err != nil {
-		return err
-	}
-
-	return mp.peerProcessor.RevertPeerState(header, prevMetaHeader)
+	_, err :=  mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	return err
 }
 
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
@@ -1156,6 +1137,12 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
 	header.TxCount = getTxCount(shardInfo)
+
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	if err != nil {
+		return nil, err
+	}
+	header.ValidatorStatsRootHash = validatorStatsRH
 
 	mp.blockSizeThrottler.Add(
 		round,

@@ -608,7 +608,7 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 	}
 
 	var err error
-	var newHeader *block.MetaBlock
+	var newHeader data.HeaderHandler
 	var newHeaderHash []byte
 	var newRootHash []byte
 
@@ -621,6 +621,7 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 		newHeaderHash = header.GetPrevHash()
 		newRootHash = newHeader.GetRootHash()
 	} else { // rollback to genesis block
+		newHeader = boot.blkc.GetGenesisHeader()
 		newRootHash = boot.blkc.GetGenesisHeader().GetRootHash()
 	}
 

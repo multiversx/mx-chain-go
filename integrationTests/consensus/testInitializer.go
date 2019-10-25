@@ -416,7 +416,6 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
-		node.WithPeerProcessor(&mock.PeerProcessorMock{}),
 	)
 
 	if err != nil {

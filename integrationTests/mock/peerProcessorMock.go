@@ -5,35 +5,35 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type PeerProcessorMock struct {
-	LoadInitialStateCalled func(in []*sharding.InitialNode) error
-	UpdatePeerStateCalled  func(header, perviousHeader data.HeaderHandler) error
-	RevertPeerStateCalled  func(header, perviousHeader data.HeaderHandler) error
+type ValidatorStatisticsProcessorMock struct {
+	SaveInitialStateCalled func(in []*sharding.InitialNode) error
+	UpdatePeerStateCalled  func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled  func(header data.HeaderHandler) error
 	IsInterfaceNilCalled   func() bool
 }
 
-func (pm *PeerProcessorMock) LoadInitialState(in []*sharding.InitialNode) error {
-	if pm.LoadInitialStateCalled != nil {
-		return pm.LoadInitialStateCalled(in)
+func (pm *ValidatorStatisticsProcessorMock) SaveInitialState(in []*sharding.InitialNode) error {
+	if pm.SaveInitialStateCalled != nil {
+		return pm.SaveInitialStateCalled(in)
 	}
 	return nil
 }
 
-func (pm *PeerProcessorMock) UpdatePeerState(header, previousHeader data.HeaderHandler) error {
+func (pm *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
 	if pm.UpdatePeerStateCalled != nil {
-		return pm.UpdatePeerStateCalled(header, previousHeader)
+		return pm.UpdatePeerStateCalled(header)
 	}
-	return nil
+	return nil, nil
 }
 
-func (pm *PeerProcessorMock) RevertPeerState(header, previousHeader data.HeaderHandler) error {
+func (pm *ValidatorStatisticsProcessorMock) RevertPeerState(header data.HeaderHandler) error {
 	if pm.RevertPeerStateCalled != nil {
-		return pm.RevertPeerStateCalled(header, previousHeader)
+		return pm.RevertPeerStateCalled(header)
 	}
 	return nil
 }
 
-func (pm *PeerProcessorMock) IsInterfaceNil() bool {
+func (pm *ValidatorStatisticsProcessorMock) IsInterfaceNil() bool {
 	if pm.IsInterfaceNilCalled != nil {
 		return pm.IsInterfaceNilCalled()
 	}

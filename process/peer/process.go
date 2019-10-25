@@ -10,74 +10,73 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type validatorActionType uint8
-
-const (
-	unknownAction validatorActionType = 0
-	leaderSuccess validatorActionType = 1
-	leaderFail validatorActionType = 2
-	validatorSuccess validatorActionType = 3
-	validatorFail validatorActionType = 4
-)
+// ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
+type ArgValidatorStatisticsProcessor struct {
+	InitialNodes       []*sharding.InitialNode
+	Marshalizer        marshal.Marshalizer
+	ShardHeaderStorage storage.Storer
+	MetaHeaderStorage  storage.Storer
+	NodesCoordinator   sharding.NodesCoordinator
+	ShardCoordinator   sharding.Coordinator
+	AdrConv            state.AddressConverter
+	PeerAdapter        state.AccountsAdapter
+}
 
 type validatorStatistics struct {
-	marshalizer marshal.Marshalizer
+	marshalizer        marshal.Marshalizer
 	shardHeaderStorage storage.Storer
-	nodesCoordinator sharding.NodesCoordinator
-	shardCoordinator sharding.Coordinator
-	adrConv state.AddressConverter
-	peerAdapter state.AccountsAdapter
+	metaHeaderStorage  storage.Storer
+	nodesCoordinator   sharding.NodesCoordinator
+	shardCoordinator   sharding.Coordinator
+	adrConv            state.AddressConverter
+	peerAdapter        state.AccountsAdapter
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
 //  each validator actions in the consensus process
-func NewValidatorStatisticsProcessor(
-	in []*sharding.InitialNode,
-	peerAdapter state.AccountsAdapter,
-	adrConv state.AddressConverter,
-	nodesCoordinator sharding.NodesCoordinator,
-	shardCoordinator sharding.Coordinator,
-	shardHeaderStorage storage.Storer,
-	marshalizer marshal.Marshalizer,
-) (*validatorStatistics, error) {
-	if peerAdapter == nil {
+func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) (*validatorStatistics, error) {
+	if arguments.PeerAdapter == nil || arguments.PeerAdapter.IsInterfaceNil() {
 		return nil, process.ErrNilPeerAccountsAdapter
 	}
-	if adrConv == nil || adrConv.IsInterfaceNil() {
+	if arguments.AdrConv == nil || arguments.AdrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
+	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilNodesCoordinator
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if shardHeaderStorage == nil || shardHeaderStorage.IsInterfaceNil() {
+	if arguments.ShardHeaderStorage == nil || arguments.ShardHeaderStorage.IsInterfaceNil() {
 		return nil, process.ErrNilShardHeaderStorage
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if arguments.MetaHeaderStorage == nil || arguments.MetaHeaderStorage.IsInterfaceNil() {
+		return nil, process.ErrNilMetaHeaderStorage
+	}
+	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
 
-	peerProcessor := &validatorStatistics{
-		peerAdapter: peerAdapter,
-		adrConv: adrConv,
-		nodesCoordinator: nodesCoordinator,
-		shardCoordinator: shardCoordinator,
-		shardHeaderStorage: shardHeaderStorage,
-		marshalizer: marshalizer,
+	vs := &validatorStatistics{
+		peerAdapter:        arguments.PeerAdapter,
+		adrConv:            arguments.AdrConv,
+		nodesCoordinator:   arguments.NodesCoordinator,
+		shardCoordinator:   arguments.ShardCoordinator,
+		shardHeaderStorage: arguments.ShardHeaderStorage,
+		metaHeaderStorage:  arguments.MetaHeaderStorage,
+		marshalizer:        arguments.Marshalizer,
 	}
 
-	err := peerProcessor.LoadInitialState(in)
+	err := vs.SaveInitialState(arguments.InitialNodes)
 	if err != nil {
 		return nil, err
 	}
 
-	return peerProcessor, nil
+	return vs, nil
 }
 
-// LoadInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
-func (p *validatorStatistics) LoadInitialState(in []*sharding.InitialNode) error {
+// SaveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
+func (p *validatorStatistics) SaveInitialState(in []*sharding.InitialNode) error {
 	for _, node := range in {
 		err := p.initializeNode(node)
 		if err != nil {
@@ -106,41 +105,44 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 	return true
 }
 
-// UpdatePeerState takes the current and previous headers and updates the peer state
-//  for all of the consensus members
-func (p *validatorStatistics) UpdatePeerState(header, previousHeader data.HeaderHandler) error {
-	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID())
+// UpdatePeerState takes the ca header, updates the peer state for all of the
+//  consensus members and returns the new root hash
+func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
+	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(header.GetPrevRandSeed(), header.GetRound(), header.GetShardID())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err  = p.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetShardID())
+	err = p.updateValidatorInfo(consensusGroup, header.GetShardID())
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	previousHeader, err := p.getHeader(header.GetPrevHash())
+	if err != nil {
+		return nil, err
 	}
 
 	err = p.checkForMissedBlocks(header, previousHeader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if header.GetShardID() == sharding.MetachainShardId {
-		err = p.updateShardDataPeerState(header)
-		if err != nil {
-			return err
-		}
+	err = p.updateShardDataPeerState(header)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return p.peerAdapter.Commit()
 }
 
-func (p *validatorStatistics) checkForMissedBlocks(header, previousHeader data.HeaderHandler) error {
-	if header.GetRound() - previousHeader.GetRound() <= 1 {
+func (p *validatorStatistics) checkForMissedBlocks(currentHeader, previousHeader data.HeaderHandler) error {
+	if currentHeader.GetRound()-previousHeader.GetRound() <= 1 {
 		return nil
 	}
 
-	for i := previousHeader.GetRound() + 1; i < header.GetRound(); i++ {
-		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID())
+	for i := previousHeader.GetRound() + 1; i < currentHeader.GetRound(); i++ {
+		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), i, previousHeader.GetShardID())
 		if err != nil {
 			return err
 		}
@@ -161,24 +163,8 @@ func (p *validatorStatistics) checkForMissedBlocks(header, previousHeader data.H
 
 // RevertPeerState takes the current and previous headers and undos the peer state
 //  for all of the consensus members
-func (p *validatorStatistics) RevertPeerState(header, previousHeader data.HeaderHandler) error {
-	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID())
-	if err != nil {
-		return err
-	}
-
-	err  = p.revertValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetShardID())
-	if err != nil {
-		return err
-	}
-
-	if header.GetShardID() == sharding.MetachainShardId {
-		err = p.revertShardDataPeerState(header)
-		if err != nil {
-			return err
-		}
-	}
-
+func (p *validatorStatistics) RevertPeerState(header data.HeaderHandler) error {
+	_ = p.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 	return nil
 }
 
@@ -189,13 +175,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 	}
 
 	for _, h := range metaHeader.ShardInfo {
-		shardHeaderBytes, err := p.shardHeaderStorage.Get(h.HeaderHash)
-		if err != nil {
-			return err
-		}
-
-		shardHeader := &block.Header{}
-		err = p.marshalizer.Unmarshal(shardHeader, shardHeaderBytes)
+		shardHeader, err := p.getHeader(h.HeaderHash)
 		if err != nil {
 			return err
 		}
@@ -205,39 +185,17 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 			return err
 		}
 
-		err = p.updateValidatorInfo(shardConsensus, shardHeader.GetPubKeysBitmap(), shardHeader.GetShardID())
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (p *validatorStatistics) revertShardDataPeerState(header data.HeaderHandler) error {
-	metaHeader, ok := header.(*block.MetaBlock)
-	if !ok {
-		return process.ErrInvalidMetaHeader
-	}
-
-	for _, h := range metaHeader.ShardInfo {
-		shardHeaderBytes, err := p.shardHeaderStorage.Get(h.HeaderHash)
+		err = p.updateValidatorInfo(shardConsensus, shardHeader.GetShardID())
 		if err != nil {
 			return err
 		}
 
-		shardHeader := &block.Header{}
-		err = p.marshalizer.Unmarshal(shardHeader, shardHeaderBytes)
+		previousHeader, err := p.getMetaHeader(shardHeader.GetPrevHash())
 		if err != nil {
 			return err
 		}
 
-		shardConsensus, err := p.nodesCoordinator.ComputeValidatorsGroup(shardHeader.GetPrevRandSeed(), shardHeader.GetRound(), shardHeader.GetShardID())
-		if err != nil {
-			return err
-		}
-
-		err = p.revertValidatorInfo(shardConsensus, shardHeader.GetPubKeysBitmap(), shardHeader.GetShardID())
+		err = p.checkForMissedBlocks(shardHeader, previousHeader)
 		if err != nil {
 			return err
 		}
@@ -302,7 +260,7 @@ func (p *validatorStatistics) savePeerAccountData(peerAccount *state.PeerAccount
 	return nil
 }
 
-func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, shardId uint32) error {
+func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := p.getPeerAccount(validatorList[i].Address())
@@ -311,48 +269,9 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 		}
 
 		isLeader := i == 0
-		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
-		actionType :=  p.computeValidatorActionType(isLeader, validatorSigned)
-
-		switch actionType {
-		case leaderSuccess:
+		if isLeader {
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
-		case leaderFail:
-			err = peerAcc.DecreaseLeaderSuccessRateWithJournal()
-		case validatorSuccess:
-			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
-		case validatorFail:
-			err = peerAcc.DecreaseValidatorSuccessRateWithJournal()
-		}
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (p *validatorStatistics) revertValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, shardId uint32) error {
-	lenValidators := len(validatorList)
-	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := p.getPeerAccount(validatorList[i].Address())
-		if err != nil {
-			return err
-		}
-
-		isLeader := i == 0
-		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
-		actionType :=  p.computeValidatorActionType(isLeader, validatorSigned)
-
-		switch actionType {
-		case leaderSuccess:
-			err = peerAcc.DecreaseLeaderSuccessRateWithJournal()
-		case leaderFail:
-			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
-		case validatorSuccess:
-			err = peerAcc.DecreaseValidatorSuccessRateWithJournal()
-		case validatorFail:
+		} else {
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
 		}
 
@@ -362,23 +281,6 @@ func (p *validatorStatistics) revertValidatorInfo(validatorList []sharding.Valid
 	}
 
 	return nil
-}
-
-func (p *validatorStatistics) computeValidatorActionType(isLeader, validatorSigned bool) validatorActionType {
-	if isLeader && validatorSigned {
-		return leaderSuccess
-	}
-	if isLeader && !validatorSigned {
-		return leaderFail
-	}
-	if !isLeader && validatorSigned {
-		return validatorSuccess
-	}
-	if !isLeader && !validatorSigned {
-		return validatorFail
-	}
-
-	return unknownAction
 }
 
 func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountHandler, error) {
@@ -398,6 +300,36 @@ func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountH
 	}
 
 	return peerAccount, nil
+}
+
+func (p *validatorStatistics) getHeader(headerHash []byte) (data.HeaderHandler, error) {
+	shardHeaderBytes, err := p.shardHeaderStorage.Get(headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	header := &block.Header{}
+	err = p.marshalizer.Unmarshal(header, shardHeaderBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+func (p *validatorStatistics) getMetaHeader(headerHash []byte) (data.HeaderHandler, error) {
+	metaHeaderBytes, err := p.metaHeaderStorage.Get(headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	header := &block.MetaBlock{}
+	err = p.marshalizer.Unmarshal(header, metaHeaderBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

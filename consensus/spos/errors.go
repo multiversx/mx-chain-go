@@ -64,9 +64,6 @@ var ErrNilMessenger = errors.New("messenger is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
-// ErrNilPeerProcessor is raised when a valid peer processor is expected but nil used
-var ErrNilPeerProcessor = errors.New("peer processor is nil")
-
 // ErrNilBootstrapper is raised when a valid block processor is expected but nil used
 var ErrNilBootstrapper = errors.New("bootstrapper is nil")
 
