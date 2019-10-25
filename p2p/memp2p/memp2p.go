@@ -254,9 +254,8 @@ func (messenger *Messenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBalance
 // have their ReceiveMessage() function called synchronously. The call
 // to parametricBroadcast() is done synchronously as well. This function should
 // be called as a go-routine.
-func (messenger *Messenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
-	err := messenger.parametricBroadcast(topic, buff, false)
-	log.LogIfError(err)
+func (messenger *Messenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
+	return messenger.parametricBroadcast(topic, buff, false)
 }
 
 // BroadcastOnChannel sends the message to all peers in the network. It calls
