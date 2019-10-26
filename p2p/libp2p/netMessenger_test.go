@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
@@ -178,7 +179,7 @@ func TestNewMemoryLibp2pMessenger_OkValsShouldWork(t *testing.T) {
 	mes, err := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
 
 	assert.Nil(t, err)
-	assert.NotNil(t, mes)
+	assert.False(t, check.IfNil(mes))
 
 	_ = mes.Close()
 }

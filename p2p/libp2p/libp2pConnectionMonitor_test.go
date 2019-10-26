@@ -10,7 +10,6 @@ import (
 )
 
 func init() {
-	ThresholdMinimumConnectedPeers = 3
 	DurationBetweenReconnectAttempts = time.Millisecond
 }
 
@@ -20,7 +19,7 @@ var durStartGoRoutine = time.Second
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cm := newLibp2pConnectionMonitor(nil)
+	cm := newLibp2pConnectionMonitor(nil, 3)
 
 	assert.NotNil(t, cm)
 }
@@ -50,7 +49,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 		},
 	}
 
-	cm := newLibp2pConnectionMonitor(&rs)
+	cm := newLibp2pConnectionMonitor(&rs, 3)
 	time.Sleep(durStartGoRoutine)
 	cm.Disconnected(&ns, nil)
 

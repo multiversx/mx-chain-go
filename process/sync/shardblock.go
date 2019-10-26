@@ -51,6 +51,7 @@ func NewShardBootstrap(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	bootstrapRoundIndex uint64,
+	networkWatcher process.NetworkConnectionWatcher,
 ) (*ShardBootstrap, error) {
 
 	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
@@ -77,6 +78,7 @@ func NewShardBootstrap(
 		shardCoordinator,
 		accounts,
 		store,
+		networkWatcher,
 	)
 	if err != nil {
 		return nil, err
@@ -96,6 +98,7 @@ func NewShardBootstrap(
 		shardCoordinator:    shardCoordinator,
 		accounts:            accounts,
 		bootstrapRoundIndex: bootstrapRoundIndex,
+		networkWatcher:      networkWatcher,
 	}
 
 	boot := ShardBootstrap{
@@ -599,6 +602,11 @@ func (boot *ShardBootstrap) StopSync() {
 func (boot *ShardBootstrap) syncBlocks() {
 	for {
 		time.Sleep(sleepTime)
+
+		if !boot.networkWatcher.IsConnectedToTheNetwork() {
+			continue
+		}
+
 		select {
 		case <-boot.chStopSync:
 			return

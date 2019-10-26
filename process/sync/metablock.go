@@ -43,6 +43,7 @@ func NewMetaBootstrap(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	bootstrapRoundIndex uint64,
+	networkWatcher process.NetworkConnectionWatcher,
 ) (*MetaBootstrap, error) {
 
 	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
@@ -66,6 +67,7 @@ func NewMetaBootstrap(
 		shardCoordinator,
 		accounts,
 		store,
+		networkWatcher,
 	)
 	if err != nil {
 		return nil, err
@@ -85,6 +87,7 @@ func NewMetaBootstrap(
 		shardCoordinator:    shardCoordinator,
 		accounts:            accounts,
 		bootstrapRoundIndex: bootstrapRoundIndex,
+		networkWatcher:      networkWatcher,
 	}
 
 	boot := MetaBootstrap{
@@ -369,6 +372,11 @@ func (boot *MetaBootstrap) StopSync() {
 func (boot *MetaBootstrap) syncBlocks() {
 	for {
 		time.Sleep(sleepTime)
+
+		if !boot.networkWatcher.IsConnectedToTheNetwork() {
+			continue
+		}
+
 		select {
 		case <-boot.chStopSync:
 			return

@@ -36,6 +36,8 @@ const pubsubTimeCacheDuration = 10 * time.Minute
 
 const broadcastGoRoutines = 1000
 
+const defaultThresholdMinConnectedPeers = 3
+
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 //64kB
@@ -43,6 +45,7 @@ var maxSendBuffSize = (1 << 20) - messageHeader
 
 var log = logger.DefaultLogger()
 
+//TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
 	ctxProvider         *Libp2pContext
 	pb                  *pubsub.PubSub
@@ -150,7 +153,7 @@ func createMessenger(
 		topics:         make(map[string]p2p.MessageProcessor),
 		outgoingPLB:    outgoingPLB,
 		peerDiscoverer: peerDiscoverer,
-		connMonitor:    newLibp2pConnectionMonitor(reconnecter),
+		connMonitor:    newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers),
 	}
 	lctx.connHost.Network().Notify(netMes.connMonitor)
 
@@ -509,10 +512,25 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	return nil
 }
 
+// IsConnectedToTheNetwork returns true if the current node is connected to the network
+func (netMes *networkMessenger) IsConnectedToTheNetwork() bool {
+	netw := netMes.ctxProvider.connHost.Network()
+	return netMes.connMonitor.isConnectedToTheNetwork(netw)
+}
+
+// SetThresholdMinConnectedPeers sets the minimum connected peers before triggering a new reconnection
+func (netMes *networkMessenger) SetThresholdMinConnectedPeers(minConnectedPeers int) {
+	netw := netMes.ctxProvider.connHost.Network()
+	netMes.connMonitor.thresholdMinConnectedPeers = minConnectedPeers
+	netMes.connMonitor.doReconnectionIfNeeded(netw)
+}
+
+// ThresholdMinConnectedPeers returns the minimum connected peers before triggering a new reconnection
+func (netMes *networkMessenger) ThresholdMinConnectedPeers() int {
+	return netMes.connMonitor.thresholdMinConnectedPeers
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (netMes *networkMessenger) IsInterfaceNil() bool {
-	if netMes == nil {
-		return true
-	}
-	return false
+	return netMes == nil
 }
