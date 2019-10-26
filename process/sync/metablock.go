@@ -422,9 +422,10 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		return nil
 	}
 
-	forceFork := boot.isForkDetected && boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
 	if boot.isForkDetected {
-		if forceFork {
+		isForcedFork := boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
+
+		if isForcedFork {
 			log.Info(fmt.Sprintf("fork has been forced\n"))
 		} else {
 			log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
@@ -434,9 +435,15 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
-		err := boot.forkChoice(!forceFork)
+		err := boot.forkChoice(!isForcedFork)
 		if err != nil {
 			log.Info(err.Error())
+		}
+
+		if isForcedFork {
+			boot.forkDetector.ResetProbableHighestNonce()
+			boot.forkDetector.ResetForcedFork()
+			return nil
 		}
 	}
 
@@ -454,7 +461,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 		}
 	}()
 
-	if boot.isForkDetected && !forceFork {
+	if boot.isForkDetected {
 		hdr, err = boot.getHeaderWithHashRequestingIfMissing(boot.forkHash)
 	} else {
 		hdr, err = boot.getHeaderWithNonceRequestingIfMissing(nonce)

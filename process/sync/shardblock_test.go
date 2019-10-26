@@ -935,7 +935,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
-		return true, math.MaxUint64, nil
+		return true, 90, []byte("hash")
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}

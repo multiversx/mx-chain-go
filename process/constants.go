@@ -35,7 +35,7 @@ const MetaBlockFinality = 1
 const MaxHeaderRequestsAllowed = 10
 const MaxItemsInBlock = 15000
 const MinItemsInBlock = 15000
-const MaxNoncesDifference = 5
+const MaxNoncesDifference = 0
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
 const MaxGasLimitPerMiniBlock = uint64(100000)
@@ -51,6 +51,10 @@ const RoundModulusTrigger = 10
 // from the full pool capacity, for the received data which are not needed in the near future
 const MaxOccupancyPercentageAllowed = float64(0.9)
 
-// MaxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
-// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
-const MaxRoundsToWait = 5
+// MaxRoundsWithoutReceivedBlock defines the maximum rounds to wait for a new block to be received, before a special
+// action to be applied
+const MaxRoundsWithoutReceivedBlock = 5
+
+// MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed, before a special
+// action to be applied
+const MaxRoundsWithoutCommittedBlock = 20

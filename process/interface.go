@@ -277,6 +277,7 @@ type ForkDetector interface {
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonceIfNeeded()
 	ResetProbableHighestNonce()
+	ResetForcedFork()
 	IsInterfaceNil() bool
 }
 

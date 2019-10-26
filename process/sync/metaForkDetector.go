@@ -54,7 +54,7 @@ func (mfd *metaForkDetector) AddHeader(
 		return err
 	}
 
-	mfd.forceFork = mfd.shouldForceFork()
+	mfd.computeForcedFork(header, state)
 
 	err = mfd.shouldAddBlockInForkDetector(header, state, process.MetaBlockFinality)
 	if err != nil {
