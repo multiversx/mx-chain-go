@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/transaction/capnp"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // Transaction holds all the data needed for a value transfer or SC call
@@ -101,6 +101,11 @@ func (tx *Transaction) GetValue() *big.Int {
 	return val
 }
 
+// GetNonce returns the transaction nonce
+func (tx *Transaction) GetNonce() uint64 {
+	return tx.Nonce
+}
+
 // GetData returns the data of the transaction
 func (tx *Transaction) GetData() string {
 	return tx.Data
@@ -114,6 +119,16 @@ func (tx *Transaction) GetRecvAddress() []byte {
 // GetSndAddress returns the sender address from the transaction
 func (tx *Transaction) GetSndAddress() []byte {
 	return tx.SndAddr
+}
+
+// GetGasLimit returns the gas limit of the transaction
+func (tx *Transaction) GetGasLimit() uint64 {
+	return tx.GasLimit
+}
+
+// GetGasPrice returns the gas price of the transaction
+func (tx *Transaction) GetGasPrice() uint64 {
+	return tx.GasPrice
 }
 
 // SetValue sets the value of the transaction
@@ -134,14 +149,4 @@ func (tx *Transaction) SetRecvAddress(addr []byte) {
 // SetSndAddress sets the sender address of the transaction
 func (tx *Transaction) SetSndAddress(addr []byte) {
 	tx.SndAddr = addr
-}
-
-// GetGasLimit returns the provided gas limit in the transaction
-func (tx *Transaction) GetGasLimit() uint64 {
-	return tx.GasLimit
-}
-
-// GetGasPrice returns the provided gas price in the transaction
-func (tx *Transaction) GetGasPrice() uint64 {
-	return tx.GasPrice
 }

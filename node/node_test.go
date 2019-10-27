@@ -1757,7 +1757,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	}()
 
 	mes := &mock.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) {
+		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
 			txsBuff := make([][]byte, 0)
 
 			err := marshalizer.Unmarshal(&txsBuff, buff)
@@ -1778,6 +1778,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 				wg.Done()
 			}
+			return nil
 		},
 	}
 

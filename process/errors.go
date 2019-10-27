@@ -502,3 +502,6 @@ var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
+var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
