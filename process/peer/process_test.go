@@ -735,6 +735,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 			},
 		}, nil
 	}
+	adapter.RootHashCalled = func() (bytes []byte, e error) {
+		return nil, nil
+	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
@@ -782,6 +785,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 
 func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 	return &block.MetaBlock{
+		Nonce: 1,
 		PrevRandSeed: randSeed,
 		PrevHash: randSeed,
 		PubKeysBitmap: randSeed,

@@ -137,7 +137,17 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
+	return p.peerAdapter.RootHash()
+}
+
+// Commit commits the validator statistics trie and returns the root hash
+func (p *validatorStatistics) Commit() ([]byte, error) {
 	return p.peerAdapter.Commit()
+}
+
+// RootHash returns the root hash of the validator statistics trie
+func (p *validatorStatistics) RootHash() ([]byte, error) {
+	return p.peerAdapter.RootHash()
 }
 
 func (p *validatorStatistics) checkForMissedBlocks(currentHeader, previousHeader data.HeaderHandler) error {
@@ -170,6 +180,11 @@ func (p *validatorStatistics) checkForMissedBlocks(currentHeader, previousHeader
 func (p *validatorStatistics) RevertPeerState(header data.HeaderHandler) error {
 	_ = p.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 	return nil
+}
+
+// RevertPeerStateToSnapshot reverts the applied changes to the peerAdapter
+func (p *validatorStatistics) RevertPeerStateToSnapshot(snapshot int) error {
+	return p.peerAdapter.RevertToSnapshot(snapshot)
 }
 
 func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler) error {

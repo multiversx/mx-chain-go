@@ -227,7 +227,9 @@ type ValidatorStatisticsProcessor interface {
 	SaveInitialState(in []*sharding.InitialNode) error
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
+	RevertPeerStateToSnapshot(snapshot int) error
 	IsInterfaceNil() bool
+	Commit() ([]byte, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

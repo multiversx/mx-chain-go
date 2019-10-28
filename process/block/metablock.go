@@ -519,7 +519,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	_, err = mp.accounts.Commit()
+	err = mp.commitAll()
 	if err != nil {
 		return err
 	}
@@ -585,15 +585,6 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-func (mp *metaProcessor) updatePeerState(header *block.MetaBlock) error {
-	if header.GetNonce() == 0 {
-		return nil
-	}
-
-	_, err :=  mp.validatorStatisticsProcessor.UpdatePeerState(header)
-	return err
-}
-
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
 	metaBlockStore := mp.store.GetStorer(dataRetriever.MetaBlockUnit)
 	buff, err := metaBlockStore.Get(header.GetPrevHash())
@@ -626,6 +617,20 @@ func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
 	if valueStored < value {
 		mp.shardsHeadersNonce.Store(key, value)
 	}
+}
+
+func (mp *metaProcessor) commitAll() error {
+	_, err := mp.accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	_, err = mp.validatorStatisticsProcessor.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
