@@ -24,7 +24,7 @@ type intermediateResultsProcessor struct {
 	adrConv          state.AddressConverter
 	store            dataRetriever.StorageService
 	blockType        block.Type
-	currTxs          dataRetriever.TxsForCurrentBlockHandler
+	currTxs          dataRetriever.TransactionCacher
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
@@ -38,7 +38,7 @@ func NewIntermediateResultsProcessor(
 	adrConv state.AddressConverter,
 	store dataRetriever.StorageService,
 	blockType block.Type,
-	currTxs dataRetriever.TxsForCurrentBlockHandler,
+	currTxs dataRetriever.TransactionCacher,
 ) (*intermediateResultsProcessor, error) {
 	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher

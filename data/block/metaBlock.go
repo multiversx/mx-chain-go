@@ -50,10 +50,10 @@ func (pa PeerAction) String() string {
 //  - a peer can choose to deregister and get back the deposited value
 type PeerData struct {
 	Address     []byte     `capid:"0"`
-	PublicKey   []byte     `capid:"0"`
-	Action      PeerAction `capid:"1"`
-	TimeStamp   uint64     `capid:"2"`
-	ValueChange *big.Int   `capid:"3"`
+	PublicKey   []byte     `capid:"1"`
+	Action      PeerAction `capid:"2"`
+	TimeStamp   uint64     `capid:"3"`
+	ValueChange *big.Int   `capid:"4"`
 }
 
 // ShardMiniBlockHeader holds data for one shard miniblock header
@@ -151,6 +151,7 @@ func (m *MetaBlock) Load(r io.Reader) error {
 func PeerDataGoToCapn(seg *capn.Segment, src *PeerData) capnp.PeerDataCapn {
 	dest := capnp.AutoNewPeerDataCapn(seg)
 	value, _ := src.ValueChange.GobEncode()
+	dest.SetAddress(src.Address)
 	dest.SetPublicKey(src.PublicKey)
 	dest.SetAction(uint8(src.Action))
 	dest.SetTimestamp(src.TimeStamp)
@@ -167,6 +168,7 @@ func PeerDataCapnToGo(src capnp.PeerDataCapn, dest *PeerData) *PeerData {
 	if dest.ValueChange == nil {
 		dest.ValueChange = big.NewInt(0)
 	}
+	dest.Address = src.Address()
 	dest.PublicKey = src.PublicKey()
 	dest.Action = PeerAction(src.Action())
 	dest.TimeStamp = src.Timestamp()

@@ -150,8 +150,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			return cs
 		},
-		CurrBlockTxsCalled: func() dataRetriever.TxsForCurrentBlockHandler {
-			return &mock.TxForCurrentBlockMock{}
+		CurrBlockTxsCalled: func() dataRetriever.TransactionCacher {
+			return &mock.TxForCurrentBlockStub{}
 		},
 	}
 	return sdp

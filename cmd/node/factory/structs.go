@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -62,6 +61,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
+	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
@@ -1990,10 +1990,13 @@ func newMetaBlockProcessor(
 		PeerState:    state.AccountsAdapter,
 		BaseState:    state.AccountsAdapter,
 		ArgParser:    argsParser,
-		CurrTxs:      data.MetaDatapool.CurrentBlocksTxs(),
+		CurrTxs:      data.MetaDatapool.CurrentBlockTxs(),
 		ScDataGetter: scDataGetter,
 	}
-	smartContractToProt, err := scToProtocol.NewStakingToPeer(argsStaking)
+	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
+	if err != nil {
+		return nil, err
+	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:              state.AccountsAdapter,
@@ -2015,8 +2018,8 @@ func newMetaBlockProcessor(
 		ArgBaseProcessor:   argumentsBaseProcessor,
 		DataPool:           data.MetaDatapool,
 		SCDataGetter:       scDataGetter,
-		SCToProtocol:       smartContractToProt,
-		PeerChangesHandler: smartContractToProt,
+		SCToProtocol:       smartContractToProtocol,
+		PeerChangesHandler: smartContractToProtocol,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

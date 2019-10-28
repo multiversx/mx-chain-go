@@ -66,3 +66,12 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 		make([]byte, numInitCharactersForOnMetachainSC))
 	return isOnMetaChainSCAddress
 }
+
+// GetVMType
+func GetVMType(rcvAddress []byte) []byte {
+	if len(rcvAddress) < NumInitCharactersForScAddress {
+		return nil
+	}
+
+	return rcvAddress[NumInitCharactersForScAddress-VMTypeLen : NumInitCharactersForScAddress]
+}

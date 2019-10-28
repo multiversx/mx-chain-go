@@ -70,8 +70,8 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	pools.CurrBlockTxsCalled = func() dataRetriever.TxsForCurrentBlockHandler {
-		return &mock.TxForCurrentBlockMock{}
+	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
+		return &mock.TxForCurrentBlockStub{}
 	}
 	return pools
 }

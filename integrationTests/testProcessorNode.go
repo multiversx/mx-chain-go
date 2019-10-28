@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -41,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/pkg/errors"
@@ -522,7 +522,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			ArgBaseProcessor:   argumentsBase,
 			DataPool:           tpn.MetaDataPool,
 			SCDataGetter:       &mock.ScDataGetterMock{},
-			SCToProtocol:       &mock.SCToProtocolMock{},
+			SCToProtocol:       &mock.SCToProtocolStub{},
 			PeerChangesHandler: &mock.PeerChangesHandler{},
 		}
 

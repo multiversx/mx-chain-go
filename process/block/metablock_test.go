@@ -42,7 +42,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		},
 		DataPool:           mdp,
 		SCDataGetter:       &mock.ScDataGetterMock{},
-		SCToProtocol:       &mock.SCToProtocolMock{},
+		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}
 	return arguments

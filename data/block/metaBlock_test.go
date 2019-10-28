@@ -16,6 +16,7 @@ func TestPeerData_SaveLoad(t *testing.T) {
 		Action:      block.PeerRegistrantion,
 		TimeStamp:   uint64(1234),
 		ValueChange: big.NewInt(1),
+		Address:     []byte("address"),
 	}
 	var b bytes.Buffer
 	_ = pd.Save(&b)
