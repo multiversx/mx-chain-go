@@ -82,10 +82,13 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	data := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
-	dataCallerAddr := stakingSmartContract.eei.GetStorage([]byte(ownerKey))
-	assert.Equal(t, 0, len(data))
-	assert.Equal(t, arguments.CallerAddr, dataCallerAddr)
+	ownerAddr := stakingSmartContract.eei.GetStorage([]byte(ownerKey))
+	assert.Equal(t, arguments.CallerAddr, ownerAddr)
+
+	ownerBalanceBytes := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
+	ownerBalance := big.NewInt(0).SetBytes(ownerBalanceBytes)
+	assert.Equal(t, big.NewInt(0), ownerBalance)
+
 }
 
 func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
