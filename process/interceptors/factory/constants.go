@@ -17,3 +17,6 @@ const InterceptedMetaHeader InterceptedDataType = "intercepted meta header"
 
 // InterceptedTxBlockBody is the type for intercepted tx block body
 const InterceptedTxBlockBody InterceptedDataType = "intercepted block body"
+
+//InterceptedRewardTx is the type for intercepted reward transaction
+const InterceptedRewardTx InterceptedDataType = "intercepted reward transaction"

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -92,6 +93,8 @@ func (sidf *shardInterceptedDataFactory) Create(buff []byte) (process.Intercepte
 		return sidf.createInterceptedMetaHeader(buff)
 	case InterceptedTxBlockBody:
 		return sidf.createInterceptedTxBlockBody(buff)
+	case InterceptedRewardTx:
+		return sidf.createInterceptedRewardTx(buff)
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
 	}
@@ -112,6 +115,16 @@ func (sidf *shardInterceptedDataFactory) createInterceptedTx(buff []byte) (proce
 
 func (sidf *shardInterceptedDataFactory) createInterceptedUnsignedTx(buff []byte) (process.InterceptedData, error) {
 	return unsigned.NewInterceptedUnsignedTransaction(
+		buff,
+		sidf.marshalizer,
+		sidf.hasher,
+		sidf.addrConverter,
+		sidf.shardCoordinator,
+	)
+}
+
+func (sidf *shardInterceptedDataFactory) createInterceptedRewardTx(buff []byte) (process.InterceptedData, error) {
+	return rewardTransaction.NewInterceptedRewardTransaction(
 		buff,
 		sidf.marshalizer,
 		sidf.hasher,
