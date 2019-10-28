@@ -18,8 +18,6 @@ import (
 	"sync"
 )
 
-// ArgStakingToPeer is a argument struct that contain all components needed to create
-// a new stakingToPeer object
 type ArgStakingToPeer struct {
 	AdrConv     state.AddressConverter
 	Hasher      hashing.Hasher
@@ -348,7 +346,7 @@ func (stp *stakingToPeer) VerifyPeerChanges(peerChanges []block.PeerData) error 
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil
 func (stp *stakingToPeer) IsInterfaceNil() bool {
 	if stp == nil {
 		return true
