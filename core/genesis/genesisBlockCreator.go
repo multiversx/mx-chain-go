@@ -1,6 +1,8 @@
 package genesis
 
 import (
+	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -62,9 +64,51 @@ func CreateShardGenesisBlockFromInitialBalances(
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
-func CreateMetaGenesisBlock(genesisTime uint64, initialPubKeys map[uint32][]string) (data.HeaderHandler, error) {
-	//TODO create the right metachain genesis block here
-	rootHash := []byte("root hash")
+func CreateMetaGenesisBlock(
+	genesisTime uint64,
+	accounts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	systemSCs vm.SystemSCContainer,
+	txProcessor process.TransactionProcessor,
+) (data.HeaderHandler, error) {
+
+	if accounts == nil || accounts.IsInterfaceNil() {
+		return nil, process.ErrNilAccountsAdapter
+	}
+	if addrConv == nil || addrConv.IsInterfaceNil() {
+		return nil, process.ErrNilAddressConverter
+	}
+	if systemSCs == nil || systemSCs.IsInterfaceNil() {
+		return nil, process.ErrNilSystemContractsContainer
+	}
+	if txProcessor == nil || txProcessor.IsInterfaceNil() {
+		return nil, process.ErrNilSmartContractProcessor
+	}
+
+	for _, key := range systemSCs.Keys() {
+		tx := &transaction.Transaction{
+			Nonce:     0,
+			Value:     big.NewInt(0),
+			RcvAddr:   make([]byte, addrConv.AddressLen()),
+			SndAddr:   key,
+			GasPrice:  0,
+			GasLimit:  0,
+			Data:      "deploy@" + hex.EncodeToString(factory.SystemVirtualMachine),
+			Signature: nil,
+			Challenge: nil,
+		}
+
+		err := txProcessor.ProcessTransaction(tx, 0)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	rootHash, err := accounts.Commit()
+	if err != nil {
+		return nil, err
+	}
+
 	header := &block.MetaBlock{
 		RootHash:     rootHash,
 		PrevHash:     rootHash,

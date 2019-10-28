@@ -525,3 +525,6 @@ var ErrNilSCToProtocol = errors.New("nil sc to protocol")
 
 // ErrNilPeerChangesHandler signals that nil peer changes handler has been provided
 var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
+
+// ErrNilSystemContractsContainer signals that the provided system contract container is nil
+var ErrNilSystemContractsContainer = errors.New("system contract container is nil")

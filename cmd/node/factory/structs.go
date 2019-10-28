@@ -502,7 +502,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	shardsGenesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
+	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
 		args.core,
 		args.state,
 		args.shardCoordinator,
@@ -513,7 +513,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	err = prepareGenesisBlock(args, shardsGenesisBlocks)
+	err = prepareGenesisBlock(args, genesisBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +527,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.core,
 		args.state,
 		forkDetector,
-		shardsGenesisBlocks,
+		genesisBlocks,
 		args.coreServiceContainer,
 	)
 
@@ -544,8 +544,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}, nil
 }
 
-func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks map[uint32]data.HeaderHandler) error {
-	genesisBlock, ok := shardsGenesisBlocks[args.shardCoordinator.SelfId()]
+func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlock, ok := genesisBlocks[args.shardCoordinator.SelfId()]
 	if !ok {
 		return errors.New("genesis block does not exists")
 	}
@@ -1430,7 +1430,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	// Then this block is sent to metachain who updates the state root of every shard and creates the metablock for
 	// the genesis of each of the shards (this is actually the same thing that would happen at new epoch start)."
 
-	shardsGenesisBlocks := make(map[uint32]data.HeaderHandler)
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
 
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		isCurrentShard := shardId == shardCoordinator.SelfId()
@@ -1458,7 +1458,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		shardsGenesisBlocks[shardId] = genesisBlock
+		genesisBlocks[shardId] = genesisBlock
 	}
 
 	genesisBlockForCurrentShard, err := createGenesisBlockAndApplyInitialBalances(
@@ -1472,20 +1472,21 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		return nil, err
 	}
 
-	shardsGenesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
+	genesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
 		uint64(nodesSetup.StartTime),
-		nodesSetup.InitialNodesPubKeys(),
+		stateComponents.AccountsAdapter,
+		stateComponents.AddressConverter,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	shardsGenesisBlocks[sharding.MetachainShardId] = genesisBlock
+	genesisBlocks[sharding.MetachainShardId] = genesisBlock
 
-	return shardsGenesisBlocks, nil
+	return genesisBlocks, nil
 }
 
 func createGenesisBlockAndApplyInitialBalances(
@@ -1558,7 +1559,7 @@ func newBlockProcessor(
 	core *Core,
 	state *State,
 	forkDetector process.ForkDetector,
-	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, error) {
 
@@ -1599,7 +1600,7 @@ func newBlockProcessor(
 			core,
 			state,
 			forkDetector,
-			shardsGenesisBlocks,
+			genesisBlocks,
 			coreServiceContainer,
 			economics,
 		)
@@ -1614,7 +1615,7 @@ func newBlockProcessor(
 			core,
 			state,
 			forkDetector,
-			shardsGenesisBlocks,
+			genesisBlocks,
 			coreServiceContainer,
 			economics,
 		)
@@ -1632,7 +1633,7 @@ func newShardBlockProcessor(
 	core *Core,
 	state *State,
 	forkDetector process.ForkDetector,
-	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 ) (process.BlockProcessor, error) {
@@ -1816,7 +1817,7 @@ func newShardBlockProcessor(
 		NodesCoordinator:      nodesCoordinator,
 		SpecialAddressHandler: specialAddressHandler,
 		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          shardsGenesisBlocks,
+		StartHeaders:          genesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
 		BlockChainHook:        vmFactory.BlockChainHookImpl(),
@@ -1850,7 +1851,7 @@ func newMetaBlockProcessor(
 	core *Core,
 	state *State,
 	forkDetector process.ForkDetector,
-	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 ) (process.BlockProcessor, error) {
@@ -2008,7 +2009,7 @@ func newMetaBlockProcessor(
 		NodesCoordinator:      nodesCoordinator,
 		SpecialAddressHandler: specialAddressHandler,
 		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          shardsGenesisBlocks,
+		StartHeaders:          genesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
 		BlockChainHook:        vmFactory.BlockChainHookImpl(),
