@@ -20,6 +20,7 @@ github.com/ElrondNetwork/elrond-vm-common v0.0.8/go.mod h1:VqCCN0cX0e4D/KDc7MGNV
 github.com/ElrondNetwork/elrond-vm-common v0.0.9 h1:Ff8vEJSKChRfmp+TVo7AgciRkMXjL4+TbNin6LQ7xKw=
 github.com/ElrondNetwork/elrond-vm-common v0.0.9/go.mod h1:VqCCN0cX0e4D/KDc7MGNV9ElrOsfnjuJnGvcODVjzbk=
 github.com/ElrondNetwork/elrond-vm-util v0.0.3/go.mod h1:/gz1QHx7ndQnjQDAEEhpiiaezbyl/woTI6apOsWrN10=
+github.com/ElrondNetwork/go-ext-wasm v0.0.5 h1:DjXOa9lAeQW8lgceKUg7NIA9L1iiIV29x3+MNM9BbRU=
 github.com/ElrondNetwork/go-ext-wasm v0.0.5/go.mod h1:wlns4D0OzJP+q/cLweFz1rGpoZOG8LbGYX2jD31HCgw=
 github.com/ElrondNetwork/managed-big-int v0.0.3 h1:8t7XzMnBXQDtmpIRvyLNuYN4U7YqCU2h8hFEEnPwbN8=
 github.com/ElrondNetwork/managed-big-int v0.0.3/go.mod h1:ek0/KEISc8xJWvZ7nyD29Th0BhiaNUfHegJzgwCO/Sc=
