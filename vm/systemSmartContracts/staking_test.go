@@ -85,7 +85,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 	data := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
 	dataCallerAddr := stakingSmartContract.eei.GetStorage([]byte(ownerKey))
 	assert.Equal(t, 0, len(data))
-	assert.NotNil(t, arguments.CallerAddr, dataCallerAddr)
+	assert.Equal(t, arguments.CallerAddr, dataCallerAddr)
 }
 
 func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
