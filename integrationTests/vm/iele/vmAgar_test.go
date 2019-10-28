@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -394,7 +395,7 @@ func getIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, func
 	vmContainer := &mock.VMContainerMock{GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 		return ieleVM, nil
 	}}
-	scgd, _ := smartContract.NewSCDataGetter(&mock.AddressConverterMock{}, vmContainer)
+	scgd, _ := smartContract.NewSCDataGetter(integrationTests.TestAddressConverter, vmContainer)
 
 	returnedVals, _ := scgd.Get(scAddressBytes, funcName, args...)
 	return big.NewInt(0).SetBytes(returnedVals)

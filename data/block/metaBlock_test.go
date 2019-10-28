@@ -54,6 +54,7 @@ func TestShardData_SaveLoad(t *testing.T) {
 
 func TestMetaBlock_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
+		Address:     []byte("address"),
 		PublicKey:   []byte("public key"),
 		Action:      block.PeerRegistrantion,
 		TimeStamp:   uint64(1234),
