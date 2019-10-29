@@ -2,12 +2,12 @@ package smartContract
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"math"
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
@@ -46,7 +46,7 @@ func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte)
 	if scAddress == nil {
 		return nil, process.ErrNilScAddress
 	}
-	if len(scAddress) < scdg.addrConverter.AddressLen() {
+	if len(scAddress) != scdg.addrConverter.AddressLen() {
 		return nil, process.ErrInvalidRcvAddr
 	}
 	if len(funcName) == 0 {
@@ -56,7 +56,7 @@ func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte)
 	scdg.mutRunSc.Lock()
 	defer scdg.mutRunSc.Unlock()
 
-	vmType := scAddress[core.NumInitCharactersForScAddress-core.VMTypeLen : core.NumInitCharactersForScAddress]
+	vmType := core.GetVMType(scAddress)
 	vm, err := scdg.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err

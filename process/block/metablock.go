@@ -2,7 +2,6 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"sort"
 	"sync"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"

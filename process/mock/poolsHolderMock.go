@@ -19,7 +19,7 @@ type PoolsHolderMock struct {
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
 	metaHdrNonces        dataRetriever.Uint64SyncMapCacher
-	currBlockTxs         dataRetriever.TxsForCurrentBlockHandler
+	currBlockTxs         dataRetriever.TransactionCacher
 }
 
 func NewPoolsHolderMock() *PoolsHolderMock {
@@ -46,7 +46,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	return phf
 }
 
-func (phm *PoolsHolderMock) CurrentBlocksTxs() dataRetriever.TxsForCurrentBlockHandler {
+func (phm *PoolsHolderMock) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return phm.currBlockTxs
 }
 

@@ -243,7 +243,7 @@ func (sc *scProcessor) getVMTypeFromArguments(arg *big.Int) ([]byte, error) {
 }
 
 func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
-	vmType := tx.RcvAddr[core.NumInitCharactersForScAddress-core.VMTypeLen : core.NumInitCharactersForScAddress]
+	vmType := core.GetVMType(tx.RcvAddr)
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err

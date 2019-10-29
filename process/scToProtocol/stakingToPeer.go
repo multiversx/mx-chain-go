@@ -18,8 +18,6 @@ import (
 	"sync"
 )
 
-// ArgStakingToPeer is a argument struct that contain all components needed to create
-// a new stakingToPeer object
 type ArgStakingToPeer struct {
 	AdrConv     state.AddressConverter
 	Hasher      hashing.Hasher
@@ -28,7 +26,7 @@ type ArgStakingToPeer struct {
 	BaseState   state.AccountsAdapter
 
 	ArgParser    process.ArgumentsParser
-	CurrTxs      dataRetriever.TxsForCurrentBlockHandler
+	CurrTxs      dataRetriever.TransactionCacher
 	ScDataGetter external.ScDataGetter
 }
 
@@ -42,7 +40,7 @@ type stakingToPeer struct {
 	baseState   state.AccountsAdapter
 
 	argParser    process.ArgumentsParser
-	currTxs      dataRetriever.TxsForCurrentBlockHandler
+	currTxs      dataRetriever.TransactionCacher
 	scDataGetter external.ScDataGetter
 
 	mutPeerChanges sync.Mutex
@@ -101,6 +99,25 @@ func checkIfNil(args ArgStakingToPeer) error {
 	return nil
 }
 
+func (stp *stakingToPeer) getPeerAccount(key []byte) (*state.PeerAccount, error) {
+	adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes([]byte(key))
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := stp.peerState.GetAccountWithJournal(adrSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAcc, ok := account.(*state.PeerAccount)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return peerAcc, nil
+}
+
 // UpdateProtocol applies changes from staking smart contract to peer state and creates the actual peer changes
 func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 	stp.mutPeerChanges.Lock()
@@ -113,19 +130,9 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 	}
 
 	for key := range affectedStates {
-		adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes([]byte(key))
+		peerAcc, err := stp.getPeerAccount([]byte(key))
 		if err != nil {
 			return err
-		}
-
-		account, err := stp.peerState.GetAccountWithJournal(adrSrc)
-		if err != nil {
-			return err
-		}
-
-		peerAcc, ok := account.(*state.PeerAccount)
-		if !ok {
-			return process.ErrWrongTypeAssertion
 		}
 
 		data, err := stp.scDataGetter.Get(factory.StakingSCAddress, "get", []byte(key))
@@ -139,6 +146,12 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			if err != nil {
 				return err
 			}
+
+			adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes([]byte(key))
+			if err != nil {
+				return err
+			}
+
 			return stp.peerState.RemoveAccount(adrSrc)
 		}
 
@@ -349,7 +362,7 @@ func (stp *stakingToPeer) VerifyPeerChanges(peerChanges []block.PeerData) error 
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil
 func (stp *stakingToPeer) IsInterfaceNil() bool {
 	if stp == nil {
 		return true

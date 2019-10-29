@@ -27,7 +27,7 @@ func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		block.TxBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -44,7 +44,7 @@ func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		block.TxBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -61,7 +61,7 @@ func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		block.TxBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -78,7 +78,7 @@ func TestNewIntermediateResultsProcessor_NilAddressConverter(t *testing.T) {
 		nil,
 		&mock.ChainStorerMock{},
 		block.TxBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -95,7 +95,7 @@ func TestNewIntermediateResultsProcessor_NilStorer(t *testing.T) {
 		&mock.AddressConverterMock{},
 		nil,
 		block.TxBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Nil(t, irp)
@@ -112,7 +112,7 @@ func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
 		&mock.AddressConverterMock{},
 		&mock.ChainStorerMock{},
 		block.TxBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -131,7 +131,7 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesErrAdrConv(t *test
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -159,7 +159,7 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -185,7 +185,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) 
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -207,7 +207,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -232,7 +232,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrConvError(t
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -259,7 +259,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -288,7 +288,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -310,7 +310,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -343,7 +343,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -385,7 +385,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -408,7 +408,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -434,7 +434,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -461,7 +461,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -507,7 +507,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -574,7 +574,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 			},
 		},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -619,7 +619,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -654,7 +654,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)
@@ -722,7 +722,7 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 		adrConv,
 		&mock.ChainStorerMock{},
 		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.NotNil(t, irp)

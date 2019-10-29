@@ -1,9 +1,9 @@
 package dataRetriever
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -198,8 +198,8 @@ type Uint64SyncMapCacher interface {
 	IsInterfaceNil() bool
 }
 
-// TxsForCurrentBlockHandler defines the methods for the local cacher, info for current round
-type TxsForCurrentBlockHandler interface {
+// TransactionCacher defines the methods for the local cacher, info for current round
+type TransactionCacher interface {
 	Clean()
 	GetTx(txHash []byte) (data.TransactionHandler, error)
 	AddTx(txHash []byte, tx data.TransactionHandler)
@@ -216,7 +216,7 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	MetaBlocks() storage.Cacher
-	CurrentBlocksTxs() TxsForCurrentBlockHandler
+	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }
 
@@ -228,7 +228,7 @@ type MetaPoolsHolder interface {
 	HeadersNonces() Uint64SyncMapCacher
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
-	CurrentBlocksTxs() TxsForCurrentBlockHandler
+	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }
 

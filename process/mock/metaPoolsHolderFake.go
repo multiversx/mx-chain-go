@@ -16,7 +16,7 @@ type MetaPoolsHolderFake struct {
 	headersNonces dataRetriever.Uint64SyncMapCacher
 	transactions  dataRetriever.ShardedDataCacherNotifier
 	unsigned      dataRetriever.ShardedDataCacherNotifier
-	currTxs       dataRetriever.TxsForCurrentBlockHandler
+	currTxs       dataRetriever.TransactionCacher
 }
 
 func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
@@ -37,7 +37,7 @@ func NewMetaPoolsHolderFake() *MetaPoolsHolderFake {
 	return mphf
 }
 
-func (mphf *MetaPoolsHolderFake) CurrentBlocksTxs() dataRetriever.TxsForCurrentBlockHandler {
+func (mphf *MetaPoolsHolderFake) CurrentBlockTxs() dataRetriever.TransactionCacher {
 	return mphf.currTxs
 }
 

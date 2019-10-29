@@ -21,7 +21,7 @@ func TestNewMetaDataPool_NilMetaBlockShouldErr(t *testing.T) {
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilMetaBlockPool, err)
@@ -38,7 +38,7 @@ func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilMiniBlockHashesPool, err)
@@ -55,7 +55,7 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilShardHeaderPool, err)
@@ -72,7 +72,7 @@ func TestNewMetaDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 		nil,
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilMetaBlockNoncesPool, err)
@@ -89,7 +89,7 @@ func TestNewMetaDataPool_NilTxPoolShouldErr(t *testing.T) {
 		&mock.Uint64SyncMapCacherStub{},
 		nil,
 		&mock.ShardedDataStub{},
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilTxDataPool, err)
@@ -106,7 +106,7 @@ func TestNewMetaDataPool_NilUnsingedPoolNoncesShouldErr(t *testing.T) {
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
 		nil,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilUnsignedTransactionPool, err)
@@ -130,7 +130,7 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 		hdrsNonces,
 		transactions,
 		unsigned,
-		&mock.TxForCurrentBlockMock{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Nil(t, err)
