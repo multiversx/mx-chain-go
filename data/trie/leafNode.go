@@ -158,7 +158,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commit(force bool, level byte, db data.DBWriteCacher) error {
+func (ln *leafNode) commit(force bool, level byte, targetDb data.DBWriteCacher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -170,7 +170,7 @@ func (ln *leafNode) commit(force bool, level byte, db data.DBWriteCacher) error 
 	}
 
 	ln.dirty = false
-	return encodeNodeAndCommitToDB(ln, db)
+	return encodeNodeAndCommitToDB(ln, targetDb)
 }
 
 func (ln *leafNode) getEncodedNode() ([]byte, error) {

@@ -75,11 +75,11 @@ func newBranchNode(db data.DBWriteCacher, marshalizer marshal.Marshalizer, hashe
 	}
 
 	var children [nrOfChildren]node
-	EncChildren := make([][]byte, nrOfChildren)
+	encChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{
 		CollapsedBn: protobuf.CollapsedBn{
-			EncodedChildren: EncChildren,
+			EncodedChildren: encChildren,
 		},
 		children: children,
 		baseNode: &baseNode{
@@ -93,11 +93,11 @@ func newBranchNode(db data.DBWriteCacher, marshalizer marshal.Marshalizer, hashe
 
 func emptyDirtyBranchNode() *branchNode {
 	var children [nrOfChildren]node
-	EncChildren := make([][]byte, nrOfChildren)
+	encChildren := make([][]byte, nrOfChildren)
 
 	return &branchNode{
 		CollapsedBn: protobuf.CollapsedBn{
-			EncodedChildren: EncChildren,
+			EncodedChildren: encChildren,
 		},
 		children: children,
 		baseNode: &baseNode{
@@ -297,7 +297,7 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commit(force bool, level byte, db data.DBWriteCacher) error {
+func (bn *branchNode) commit(force bool, level byte, targetDb data.DBWriteCacher) error {
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -321,13 +321,13 @@ func (bn *branchNode) commit(force bool, level byte, db data.DBWriteCacher) erro
 			continue
 		}
 
-		err = bn.children[i].commit(force, level, db)
+		err = bn.children[i].commit(force, level, targetDb)
 		if err != nil {
 			return err
 		}
 	}
 	bn.dirty = false
-	err = encodeNodeAndCommitToDB(bn, db)
+	err = encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}
