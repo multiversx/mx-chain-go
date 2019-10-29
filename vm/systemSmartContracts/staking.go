@@ -175,6 +175,9 @@ func (r *stakingSC) finalizeUnStake(args *vmcommon.ContractCallInput) vmcommon.R
 	var registrationData stakingData
 	for _, arg := range args.Arguments {
 		data := r.eei.GetStorage(arg.Bytes())
+		if data == nil {
+			return vmcommon.UserError
+		}
 		err := json.Unmarshal(data, &registrationData)
 		if err != nil {
 			log.Error("unmarshal error on finalize unstake function" + err.Error())
@@ -210,7 +213,8 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	var registrationData stakingData
-	data := r.eei.GetStorage(args.Arguments[0].Bytes())
+	stakerAddress := args.Arguments[0].Bytes()
+	data := r.eei.GetStorage(stakerAddress)
 	if data == nil {
 		return vmcommon.UserError
 	}
@@ -222,11 +226,13 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	if !registrationData.Staked {
-		return vmcommon.Ok
+		log.Error("cannot slash already unstaked or user not staked")
+		return vmcommon.UserError
 	}
 
-	operation := big.NewInt(0).Set(registrationData.StakeValue)
-	registrationData.StakeValue = registrationData.StakeValue.Sub(operation, args.Arguments[1])
+	stakedValue := big.NewInt(0).Set(registrationData.StakeValue)
+	slashValue := args.Arguments[1]
+	registrationData.StakeValue = registrationData.StakeValue.Sub(stakedValue, slashValue)
 	registrationData.Staked = false
 
 	data, err = json.Marshal(registrationData)

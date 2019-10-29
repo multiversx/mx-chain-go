@@ -184,10 +184,12 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 	eei, _ := NewVMContext(blockChainHook, &mock.CryptoHookStub{})
 	eei.SetSCAddress([]byte("addr"))
 
+	stakerAddress := big.NewInt(100)
+	slashValue := big.NewInt(200)
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, eei)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(200)}
+	arguments.Arguments = []*big.Int{stakerAddress, slashValue}
 	arguments.Header = &vmcommon.SCCallHeader{Number: big.NewInt(100)}
 	arguments.CallValue = big.NewInt(100)
 
@@ -464,7 +466,7 @@ func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
 	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(100)}
 
 	retCode := stakingSmartContract.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
 func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
