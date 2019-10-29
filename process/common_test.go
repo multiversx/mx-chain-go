@@ -2158,13 +2158,4 @@ func TestComputeGasConsumedInShardShouldWork(t *testing.T) {
 		200)
 
 	assert.Equal(t, gasConsumedInShard, uint64(200))
-
-	gasConsumedInShard, _ = process.ComputeGasConsumedInShard(
-		0,
-		0,
-		0,
-		100,
-		200)
-
-	assert.Equal(t, gasConsumedInShard, uint64(300))
 }

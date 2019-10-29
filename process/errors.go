@@ -496,11 +496,11 @@ var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx"
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
-// ErrMaxGasLimitPerMiniBlockIsReached signals that max gas limit per mini block has been reached
-var ErrMaxGasLimitPerMiniBlockIsReached = errors.New("max gas limit per mini block is reached")
+// ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
+var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
 
-// ErrMaxGasLimitPerBlockIsReached signals that max gas limit per block has been reached
-var ErrMaxGasLimitPerBlockIsReached = errors.New("max gas limit per block is reached")
+// ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached signals that max gas limit per mini block in receiver shard has been reached
+var ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached = errors.New("max gas limit per mini block in receiver shard is reached")
 
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")

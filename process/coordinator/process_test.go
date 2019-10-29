@@ -1486,8 +1486,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	txHash2 := []byte("tx hash 2")
 	txHash3 := []byte("tx hash 3")
 
-	senderShardId := uint32(1)
-	receiverShardId := uint32(2)
+	senderShardId := uint32(0)
+	receiverShardId := uint32(1)
 
 	miniBlock := block.MiniBlock{
 		SenderShardID:   senderShardId,
@@ -1599,8 +1599,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	txHash2 := []byte("tx hash 2 - this will cause the tx processor to err")
 	txHash3 := []byte("tx hash 3")
 
-	senderShardId := uint32(1)
-	receiverShardId := uint32(2)
+	senderShardId := uint32(0)
+	receiverShardId := uint32(1)
 
 	miniBlock := block.MiniBlock{
 		SenderShardID:   senderShardId,

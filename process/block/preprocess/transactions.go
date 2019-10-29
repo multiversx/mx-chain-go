@@ -237,11 +237,29 @@ func (txs *transactions) ProcessBlockTransactions(
 			return err
 		}
 
-		gasConsumedByMiniBlock, err := process.ComputeGasConsumedByMiniBlockInShard(
-			txs.shardCoordinator.SelfId(),
+		gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, err := process.ComputeGasConsumedByMiniBlock(
 			miniBlock,
 			mapHashTx,
 			txs.economicsFee)
+
+		if err != nil {
+			return err
+		}
+
+		if gasConsumedByMiniBlockInSenderShard > txs.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
+		}
+
+		if gasConsumedByMiniBlockInReceiverShard > txs.economicsFee.MaxGasLimitPerBlock() {
+			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+		}
+
+		gasConsumedByMiniBlockInSelfShard, err := process.ComputeGasConsumedInShard(
+			txs.shardCoordinator.SelfId(),
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			gasConsumedByMiniBlockInSenderShard,
+			gasConsumedByMiniBlockInReceiverShard)
 
 		if err != nil {
 			return err
@@ -279,7 +297,7 @@ func (txs *transactions) ProcessBlockTransactions(
 			}
 		}
 
-		*gasConsumedByBlock += gasConsumedByMiniBlock
+		*gasConsumedByBlock += gasConsumedByMiniBlockInSelfShard
 	}
 
 	return nil
@@ -565,6 +583,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 
 		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := process.ComputeGasConsumedByTx(
+			senderShardId,
+			receiverShardId,
 			orderedTxs[index],
 			txs.economicsFee)
 
@@ -700,28 +720,51 @@ func (txs *transactions) ProcessMiniBlock(
 		return err
 	}
 
+	mapHashTx := make(map[string]data.TransactionHandler)
+	for index, txHash := range miniBlockTxHashes {
+		mapHashTx[string(txHash)] = miniBlockTxs[index]
+	}
+
+	gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, err := process.ComputeGasConsumedByMiniBlock(
+		miniBlock,
+		mapHashTx,
+		txs.economicsFee)
+
+	if err != nil {
+		return err
+	}
+
+	if gasConsumedByMiniBlockInSenderShard > txs.economicsFee.MaxGasLimitPerBlock() {
+		return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
+	}
+
+	if gasConsumedByMiniBlockInReceiverShard > txs.economicsFee.MaxGasLimitPerBlock() {
+		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+	}
+
+	gasConsumedByMiniBlockInSelfShard, err := process.ComputeGasConsumedInShard(
+		txs.shardCoordinator.SelfId(),
+		miniBlock.SenderShardID,
+		miniBlock.ReceiverShardID,
+		gasConsumedByMiniBlockInSenderShard,
+		gasConsumedByMiniBlockInReceiverShard)
+
+	if err != nil {
+		return err
+	}
+
 	for index := range miniBlockTxs {
 		if !haveTime() {
 			return process.ErrTimeIsOut
-		}
-
-		txGasLimit := txs.economicsFee.ComputeGasLimit(miniBlockTxs[index])
-		if core.IsSmartContractAddress(miniBlockTxs[index].RcvAddr) {
-			txGasLimit = miniBlockTxs[index].GasLimit
-		}
-
-		isGasLimitReached := *gasConsumedByBlock+txGasLimit > txs.economicsFee.MaxGasLimitPerBlock()
-		if isGasLimitReached {
-			return process.ErrMaxGasLimitPerBlockIsReached
 		}
 
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			return err
 		}
-
-		*gasConsumedByBlock += txGasLimit
 	}
+
+	*gasConsumedByBlock += gasConsumedByMiniBlockInSelfShard
 
 	txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 

@@ -611,7 +611,11 @@ func ComputeGasConsumedByMiniBlock(
 			return 0, 0, ErrMissingTransaction
 		}
 
-		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := ComputeGasConsumedByTx(txHandler, economicsFee)
+		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := ComputeGasConsumedByTx(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			txHandler,
+			economicsFee)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -631,7 +635,11 @@ func ComputeGasConsumedByTxInShard(
 	economicsFee FeeHandler,
 ) (uint64, error) {
 
-	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := ComputeGasConsumedByTx(txHandler, economicsFee)
+	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := ComputeGasConsumedByTx(
+		txSenderShardId,
+		txReceiverShardId,
+		txHandler,
+		economicsFee)
 	if err != nil {
 		return 0, err
 	}
@@ -647,6 +655,8 @@ func ComputeGasConsumedByTxInShard(
 }
 
 func ComputeGasConsumedByTx(
+	txSenderShardId uint32,
+	txReceiverShardId uint32,
 	txHandler data.TransactionHandler,
 	economicsFee FeeHandler,
 ) (uint64, uint64, error) {
@@ -656,13 +666,20 @@ func ComputeGasConsumedByTx(
 		return 0, 0, ErrWrongTypeAssertion
 	}
 
-	gasConsumedByTxInSenderShard := economicsFee.ComputeGasLimit(tx)
-	gasConsumedByTxInReceiverShard := gasConsumedByTxInSenderShard
 	if core.IsSmartContractAddress(tx.RcvAddr) {
-		gasConsumedByTxInReceiverShard = tx.GasLimit
+		gasConsumedByTxInSenderShard := economicsFee.ComputeGasLimit(tx)
+		gasConsumedByTxInReceiverShard := tx.GasLimit
+
+		if txSenderShardId != txReceiverShardId {
+			return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
+		}
+
+		gasConsumedByTx := gasConsumedByTxInSenderShard + gasConsumedByTxInReceiverShard
+		return gasConsumedByTx, gasConsumedByTx, nil
 	}
 
-	return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
+	gasConsumedByTx := economicsFee.ComputeGasLimit(tx)
+	return gasConsumedByTx, gasConsumedByTx, nil
 }
 
 func ComputeGasConsumedInShard(
@@ -673,21 +690,14 @@ func ComputeGasConsumedInShard(
 	gasConsumedInReceiverShard uint64,
 ) (uint64, error) {
 
-	var gasConsumedInShard uint64
-
-	if shardId != senderShardId && shardId != receiverShardId {
-		return 0, ErrInvalidShardId
-	}
-
 	if shardId == senderShardId {
-		gasConsumedInShard += gasConsumedInSenderShard
+		return gasConsumedInSenderShard, nil
 	}
-
 	if shardId == receiverShardId {
-		gasConsumedInShard += gasConsumedInReceiverShard
+		return gasConsumedInReceiverShard, nil
 	}
 
-	return gasConsumedInShard, nil
+	return 0, ErrInvalidShardId
 }
 
 func IsMaxGasLimitReached(
