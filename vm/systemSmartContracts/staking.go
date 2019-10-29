@@ -33,7 +33,7 @@ func NewStakingSmartContract(stakeValue *big.Int, eei vm.SystemEI) (*stakingSC, 
 	if stakeValue == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
-	if stakeValue.Cmp(big.NewInt(0)) == -1 {
+	if stakeValue.Cmp(big.NewInt(0)) < 1 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
 	if eei == nil || eei.IsInterfaceNil() {
@@ -83,6 +83,12 @@ func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
+	if ownerAddress != nil {
+		log.Error("smart contract was already initialized")
+		return vmcommon.UserError
+	}
+
 	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
 	r.eei.SetStorage([]byte(initialStakeKey), r.stakeValue.Bytes())
@@ -245,7 +251,6 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	stakedValue := big.NewInt(0).Set(registrationData.StakeValue)
 	slashValue := args.Arguments[1]
 	registrationData.StakeValue = registrationData.StakeValue.Sub(stakedValue, slashValue)
-	registrationData.Staked = false
 
 	data, err = json.Marshal(registrationData)
 	if err != nil {
