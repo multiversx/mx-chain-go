@@ -283,7 +283,7 @@ var coreServiceContainer serviceContainer.Core
 // windows:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-var appVersion = core.UnVersionedAppString
+var appVersion = "sf2019"
 
 func main() {
 	log := logger.DefaultLogger()
