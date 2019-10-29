@@ -40,14 +40,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
@@ -111,6 +108,8 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -120,6 +119,7 @@ func CreateTestShardDataPool(txPool dataRetriever.ShardedDataCacherNotifier) dat
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		currTxs,
 	)
 
 	return dPool
@@ -142,6 +142,8 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
 	dPool, _ := dataPool.NewMetaDataPool(
 		metaBlocks,
 		txBlockBody,
@@ -149,6 +151,7 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 		shardHeadersNonces,
 		txPool,
 		uTxPool,
+		currTxs,
 	)
 
 	return dPool
@@ -282,28 +285,6 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 		RootHash:      rootHash,
 		PrevHash:      rootHash,
 	}
-}
-
-// CreateIeleVMAndBlockchainHook creates a new instance of a iele VM
-func CreateIeleVMAndBlockchainHook(
-	accnts state.AccountsAdapter,
-) (vmcommon.VMExecutionHandler, *hooks.BlockChainHookImpl) {
-
-	args := hooks.ArgBlockChainHook{
-		Accounts:         accnts,
-		AddrConv:         TestAddressConverter,
-		StorageService:   &mock.ChainStorerMock{},
-		BlockChain:       &mock.BlockChainMock{},
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
-		Marshalizer:      TestMarshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-	}
-
-	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
-	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(procFactory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
-
-	return vm, blockChainHook
 }
 
 // CreateAddressFromAddrBytes creates an address container object from address bytes provided

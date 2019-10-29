@@ -17,7 +17,7 @@ type preProcessorsContainerFactory struct {
 	store            dataRetriever.StorageService
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
-	dataPool         dataRetriever.PoolsHolder
+	dataPool         dataRetriever.MetaPoolsHolder
 	txProcessor      process.TransactionProcessor
 	accounts         state.AccountsAdapter
 	requestHandler   process.RequestHandler
@@ -30,7 +30,7 @@ func NewPreProcessorsContainerFactory(
 	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	dataPool dataRetriever.PoolsHolder,
+	dataPool dataRetriever.MetaPoolsHolder,
 	accounts state.AccountsAdapter,
 	requestHandler process.RequestHandler,
 	txProcessor process.TransactionProcessor,

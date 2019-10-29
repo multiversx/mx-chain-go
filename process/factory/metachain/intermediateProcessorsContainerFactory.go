@@ -18,6 +18,7 @@ type intermediateProcessorsContainerFactory struct {
 	hasher           hashing.Hasher
 	addrConverter    state.AddressConverter
 	store            dataRetriever.StorageService
+	poolsHolder      dataRetriever.MetaPoolsHolder
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -27,6 +28,7 @@ func NewIntermediateProcessorsContainerFactory(
 	hasher hashing.Hasher,
 	addrConverter state.AddressConverter,
 	store dataRetriever.StorageService,
+	poolsHolder dataRetriever.MetaPoolsHolder,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -44,12 +46,16 @@ func NewIntermediateProcessorsContainerFactory(
 	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStorage
 	}
+	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
+		return nil, process.ErrNilPoolsHolder
+	}
 
 	return &intermediateProcessorsContainerFactory{
 		shardCoordinator: shardCoordinator,
 		marshalizer:      marshalizer,
 		hasher:           hasher,
 		addrConverter:    addrConverter,
+		poolsHolder:      poolsHolder,
 		store:            store,
 	}, nil
 }
@@ -68,16 +74,6 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
-	interproc, err = ppcm.createIntermediatePeerProcessor()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.Add(block.PeerBlock, interproc)
-	if err != nil {
-		return nil, err
-	}
-
 	return container, nil
 }
 
@@ -89,19 +85,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.addrConverter,
 		ppcm.store,
 		block.SmartContractResultBlock,
-	)
-
-	return irp, err
-}
-
-func (ppcm *intermediateProcessorsContainerFactory) createIntermediatePeerProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := preprocess.NewIntermediateResultsProcessor(
-		ppcm.hasher,
-		ppcm.marshalizer,
-		ppcm.shardCoordinator,
-		ppcm.addrConverter,
-		ppcm.store,
-		block.PeerBlock,
+		ppcm.poolsHolder.CurrentBlockTxs(),
 	)
 
 	return irp, err

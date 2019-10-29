@@ -507,3 +507,21 @@ var ErrInvalidNonceRequest = errors.New("invalid nonce request")
 
 // ErrNilBlockChainHook signals that nil blockchain hook has been provided
 var ErrNilBlockChainHook = errors.New("nil blockchain hook")
+
+// ErrNilSCDataGetter signals that a nil sc data getter has been provided
+var ErrNilSCDataGetter = errors.New("nil sc data getter")
+
+// ErrPeerChangesHashDoesNotMatch signals that peer changes from header does not match the created ones
+var ErrPeerChangesHashDoesNotMatch = errors.New("peer changes hash does not match")
+
+// ErrNilPeerAccountsAdapter signals that nil peer accounts has been provided
+var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts adapter")
+
+// ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
+var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
+
+// ErrNilSCToProtocol signals that nil smart contract to protocol handler has been provided
+var ErrNilSCToProtocol = errors.New("nil sc to protocol")
+
+// ErrNilPeerChangesHandler signals that nil peer changes handler has been provided
+var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
