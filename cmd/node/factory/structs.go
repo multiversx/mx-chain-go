@@ -1478,6 +1478,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		uint64(nodesSetup.StartTime),
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
+		nodesSetup.InitialNodes(),
 	)
 
 	if err != nil {

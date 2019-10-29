@@ -3,6 +3,7 @@ package genesis
 import (
 	"encoding/hex"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -70,6 +71,7 @@ func CreateMetaGenesisBlock(
 	addrConv state.AddressConverter,
 	systemSCs vm.SystemSCContainer,
 	txProcessor process.TransactionProcessor,
+	nodesSetup *sharding.NodesSetup,
 ) (data.HeaderHandler, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
@@ -84,24 +86,18 @@ func CreateMetaGenesisBlock(
 	if txProcessor == nil || txProcessor.IsInterfaceNil() {
 		return nil, process.ErrNilSmartContractProcessor
 	}
+	if nodesSetup == nil {
+		return nil, process.ErrNilNodesSetup
+	}
 
-	for _, key := range systemSCs.Keys() {
-		tx := &transaction.Transaction{
-			Nonce:     0,
-			Value:     big.NewInt(0),
-			RcvAddr:   make([]byte, addrConv.AddressLen()),
-			SndAddr:   key,
-			GasPrice:  0,
-			GasLimit:  0,
-			Data:      "deploy@" + hex.EncodeToString(factory.SystemVirtualMachine),
-			Signature: nil,
-			Challenge: nil,
-		}
+	err := deploySystemSmartContracts(txProcessor, systemSCs, addrConv)
+	if err != nil {
+		return nil, err
+	}
 
-		err := txProcessor.ProcessTransaction(tx, 0)
-		if err != nil {
-			return nil, err
-		}
+	err = setStakingData(txProcessor, nodesSetup.InitialNodesInfo(), nodesSetup.StakedValue)
+	if err != nil {
+		return nil, err
 	}
 
 	rootHash, err := accounts.Commit()
@@ -118,6 +114,65 @@ func CreateMetaGenesisBlock(
 	header.SetTimeStamp(genesisTime)
 
 	return header, nil
+}
+
+// deploySystemSmartContracts deploys all the system smart contracts to the account state
+func deploySystemSmartContracts(
+	txProcessor process.TransactionProcessor,
+	systemSCs vm.SystemSCContainer,
+	addrConv state.AddressConverter,
+) error {
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(0),
+		RcvAddr:   make([]byte, addrConv.AddressLen()),
+		GasPrice:  0,
+		GasLimit:  0,
+		Data:      "deploy@" + hex.EncodeToString(factory.SystemVirtualMachine),
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	for _, key := range systemSCs.Keys() {
+		tx.SndAddr = key
+		err := txProcessor.ProcessTransaction(tx, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// setStakingData sets the initial staked values to the staking smart contract
+func setStakingData(
+	txProcessor process.TransactionProcessor,
+	initialNodeInfo map[uint32][]*sharding.NodeInfo,
+	stakeValue *big.Int,
+) error {
+	// create staking smart contract state for genesis - update fixed stake value from all
+	for _, nodeInfoList := range initialNodeInfo {
+		for _, nodeInfo := range nodeInfoList {
+			tx := &transaction.Transaction{
+				Nonce:     0,
+				Value:     big.NewInt(0).Set(stakeValue),
+				RcvAddr:   factory2.StakingSCAddress,
+				SndAddr:   nodeInfo.Address(),
+				GasPrice:  0,
+				GasLimit:  0,
+				Data:      "stake@" + hex.EncodeToString(nodeInfo.PubKey()),
+				Signature: nil,
+				Challenge: nil,
+			}
+
+			err := txProcessor.ProcessTransaction(tx, 0)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // setBalancesToTrie adds balances to trie

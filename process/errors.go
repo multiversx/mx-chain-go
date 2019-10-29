@@ -528,3 +528,6 @@ var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
 
 // ErrNilSystemContractsContainer signals that the provided system contract container is nil
 var ErrNilSystemContractsContainer = errors.New("system contract container is nil")
+
+// ErrNilNodesSetup signals that nil nodes setup has been provided
+var ErrNilNodesSetup = errors.New("nil nodes setup")

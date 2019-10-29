@@ -49,3 +49,6 @@ var ErrInvalidStakeValue = errors.New("bad config value for initial stake")
 
 // ErrNilInitialStakeValue signals that nil initial stake value was provided
 var ErrNilInitialStakeValue = errors.New("initial stake value is nil")
+
+// ErrNilNodesSetup signals that nil nodes setup has been provided
+var ErrNilNodesSetup = errors.New("nil nodes setup")
