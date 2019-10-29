@@ -2112,8 +2112,8 @@ func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldErr(t *testing.T) 
 	arguments.Accounts = accntAdapter
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
-
-	bodyHandler, err := mp.CreateBlockBody(round, func() bool { return true })
+	metaHdr := &block.MetaBlock{Round: round}
+	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrAccountStateDirty, err)
 }
@@ -2124,8 +2124,8 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
 	arguments := createMockMetaArguments()
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
-
-	bodyHandler, err := mp.CreateBlockBody(round, func() bool { return false })
+	metaHdr := &block.MetaBlock{Round: round}
+	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return false })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
@@ -2143,7 +2143,8 @@ func TestMetaProcessor_CreateMiniBlocksNilTxPoolShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
 
-	bodyHandler, err := mp.CreateBlockBody(round, func() bool { return true })
+	metaHdr := &block.MetaBlock{Round: round}
+	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
 }
@@ -2201,7 +2202,8 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
 
-	bodyHandler, err := mp.CreateBlockBody(round, func() bool { return true })
+	metaHdr := &block.MetaBlock{Round: round}
+	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	miniBlocks, _ := bodyHandler.(block.Body)
 
 	assert.Equal(t, expectedMiniBlock1, miniBlocks[0])
@@ -2233,7 +2235,12 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 			},
 		},
 	}
-	body := block.Body{}
+	body := block.Body{
+		&block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("hashTx")},
+			ReceiverShardID: 0,
+		},
+	}
 	arguments := createMockMetaArguments()
 	arguments.Accounts = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
@@ -2265,7 +2272,7 @@ func TestMetaProcessor_ProcessBlock_Ok(t *testing.T) {
 		ShardInfo: []block.ShardData{
 			{
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash1"), TxCount: 1}},
+				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hashTx"), TxCount: 1}},
 				TxCount:               1,
 			},
 			{
@@ -2274,14 +2281,11 @@ func TestMetaProcessor_ProcessBlock_Ok(t *testing.T) {
 				TxCount:               1,
 			},
 		},
+		MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 0, TxCount: 1}},
 	}
 	body := block.Body{
 		&block.MiniBlock{
-			TxHashes:        [][]byte{[]byte("hashTx")},
-			ReceiverShardID: 0,
-		},
-		&block.MiniBlock{
-			TxHashes:        [][]byte{[]byte("hashTx")},
+			TxHashes:        [][]byte{[]byte("hash1")},
 			ReceiverShardID: 0,
 		},
 	}
@@ -2365,6 +2369,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 				TxCount:               1,
 			},
 		},
+		MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 0, TxCount: 1}},
 	}
 
 	arguments := createMockMetaArguments()
@@ -2374,7 +2379,8 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
 
-	_, err := mp.CreateBlockBody(round, func() bool { return true })
+	metaHdr := &block.MetaBlock{Round: round}
+	_, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
 	err = mp.VerifyCrossShardMiniBlockDstMe(hdr)
@@ -2436,11 +2442,11 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
 
-	bodyHandler, err := mp.CreateBlockBody(round, func() bool { return true })
+	metaHdr := &block.MetaBlock{Round: round}
+	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
-	haveTime := func() bool { return true }
-	headerHandler, _ := mp.CreateBlockHeader(nil, round, haveTime)
+	headerHandler := mp.CreateNewHeader()
 	headerHandler.SetRound(uint64(1))
 	headerHandler.SetNonce(1)
 	headerHandler.SetPrevHash([]byte("hash1"))
