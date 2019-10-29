@@ -271,6 +271,7 @@ func (stp *stakingToPeer) createPeerChangeData(
 	if stakingData.UnStakedNonce == nonce {
 		actualPeerChange.Action = block.PeerUnstaking
 	}
+	//TODO what you do with actualPeerChange
 
 	return nil
 }

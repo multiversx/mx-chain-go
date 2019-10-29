@@ -1,6 +1,7 @@
 package scToProtocol
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -227,7 +229,7 @@ func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
-func TestStakingToPeer_UpdateProtocol(t *testing.T) {
+func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
 	currTx := &mock.TxForCurrentBlockMock{}
@@ -252,6 +254,9 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 			Stake:        big.NewInt(100),
 		}, nil
 	}
+	peerState.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+		return nil
+	}
 
 	marshalizer := &mock.MarshalizerStub{}
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
@@ -267,5 +272,119 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	stakingToPeer, _ := NewStakingToPeer(arguments)
 
 	err := stakingToPeer.UpdateProtocol(blockBody, 0)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Nil(t, err)
+}
+
+func TestStakingToPeer_UpdateProtocolCannotSetBLSPublicKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	currTx := &mock.TxForCurrentBlockMock{}
+	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
+		return &smartContractResult.SmartContractResult{
+			RcvAddr: factory.StakingSCAddress,
+		}, nil
+	}
+
+	argParser := &mock.ArgumentParserMock{}
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
+		return []*vmcommon.StorageUpdate{
+			{Offset: []byte("off1"), Data: []byte("data1")},
+		}, nil
+	}
+
+	peerState := &mock.AccountsStub{}
+	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+		peerAccount.Stake = big.NewInt(100)
+		peerAccount.BLSPublicKey = []byte("key")
+		return peerAccount, nil
+	}
+
+	stakingData := systemSmartContracts.StakingData{
+		StakeValue: big.NewInt(100),
+	}
+	marshalizer := &mock.MarshalizerStub{}
+	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
+		return json.Marshal(obj)
+	}
+	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
+		return json.Unmarshal(buff, obj)
+	}
+
+	scDataGetter := &mock.ScDataGetterMock{}
+	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
+		return json.Marshal(&stakingData)
+	}
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.ArgParser = argParser
+	arguments.CurrTxs = currTx
+	arguments.PeerState = peerState
+	arguments.Marshalizer = marshalizer
+	arguments.ScDataGetter = scDataGetter
+	blockBody := createBlockBody()
+	stakingToPeer, _ := NewStakingToPeer(arguments)
+
+	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	assert.Equal(t, state.ErrNilBLSPublicKey, err)
+}
+
+func TestStakingToPeer_UpdateProtocolNilStakeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	blsPublicKey := "blsPublicKey"
+	currTx := &mock.TxForCurrentBlockMock{}
+	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
+		return &smartContractResult.SmartContractResult{
+			RcvAddr: factory.StakingSCAddress,
+		}, nil
+	}
+
+	argParser := &mock.ArgumentParserMock{}
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
+		return []*vmcommon.StorageUpdate{
+			{Offset: []byte("off1"), Data: []byte("data1")},
+		}, nil
+	}
+
+	peerState := &mock.AccountsStub{}
+	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
+			JournalizeCalled: func(entry state.JournalEntry) {
+				return
+			},
+		})
+		peerAccount.Stake = big.NewInt(0)
+		peerAccount.BLSPublicKey = []byte(blsPublicKey)
+		return peerAccount, nil
+	}
+
+	stakingData := systemSmartContracts.StakingData{
+		StakeValue: big.NewInt(100),
+		BlsPubKey:  []byte(blsPublicKey),
+	}
+	marshalizer := &mock.MarshalizerStub{}
+	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
+		return json.Marshal(obj)
+	}
+	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
+		return json.Unmarshal(buff, obj)
+	}
+
+	scDataGetter := &mock.ScDataGetterMock{}
+	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
+		return json.Marshal(&stakingData)
+	}
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.ArgParser = argParser
+	arguments.CurrTxs = currTx
+	arguments.PeerState = peerState
+	arguments.Marshalizer = marshalizer
+	arguments.ScDataGetter = scDataGetter
+	blockBody := createBlockBody()
+	stakingToPeer, _ := NewStakingToPeer(arguments)
+
+	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	assert.Equal(t, state.ErrNilStake, err)
 }
