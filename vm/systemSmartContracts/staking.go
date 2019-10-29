@@ -14,7 +14,7 @@ var log = logger.DefaultLogger()
 
 const ownerKey = "owner"
 
-type stakingData struct {
+type StakingData struct {
 	StartNonce    uint64   `json:"StartNonce"`
 	Staked        bool     `json:"Staked"`
 	UnStakedNonce uint64   `json:"UnStakedNonce"`
@@ -60,9 +60,22 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.finalizeUnStake(args)
 	case "slash":
 		return r.slash(args)
+	case "get":
+		return r.get(args)
 	}
 
 	return vmcommon.UserError
+}
+
+func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 1 {
+		return vmcommon.UserError
+	}
+
+	value := r.eei.GetStorage(args.Arguments[0].Bytes())
+	r.eei.Finish(value)
+
+	return vmcommon.Ok
 }
 
 func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -76,7 +89,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	registrationData := stakingData{
+	registrationData := StakingData{
 		StartNonce:    0,
 		Staked:        false,
 		BlsPubKey:     nil,
@@ -126,7 +139,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 }
 
 func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	var registrationData stakingData
+	var registrationData StakingData
 	data := r.eei.GetStorage(args.CallerAddr)
 	if data == nil {
 		log.Error("unStake is not possible for address which is not staked")
@@ -159,7 +172,7 @@ func (r *stakingSC) finalizeUnStake(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	var registrationData stakingData
+	var registrationData StakingData
 	for _, arg := range args.Arguments {
 		data := r.eei.GetStorage(arg.Bytes())
 		err := json.Unmarshal(data, registrationData)
@@ -196,7 +209,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	var registrationData stakingData
+	var registrationData StakingData
 	data := r.eei.GetStorage(args.Arguments[0].Bytes())
 	err := json.Unmarshal(data, registrationData)
 	if err != nil {

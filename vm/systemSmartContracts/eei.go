@@ -126,6 +126,11 @@ func (host *vmContext) Transfer(
 	return nil
 }
 
+// Finish append the value to the final output
+func (host *vmContext) Finish(value []byte) {
+	host.output = append(host.output, value...)
+}
+
 // CleanCache cleans the current vmContext
 func (host *vmContext) CleanCache() {
 	host.storageUpdate = make(map[string]map[string][]byte, 0)
@@ -183,6 +188,10 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 	vmOutput.GasRemaining = big.NewInt(0)
 	vmOutput.GasRefund = big.NewInt(0)
+
+	if len(host.output) > 0 {
+		vmOutput.ReturnData = append(vmOutput.ReturnData, big.NewInt(0).SetBytes(host.output))
+	}
 
 	return vmOutput
 }

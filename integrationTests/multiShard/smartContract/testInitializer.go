@@ -244,6 +244,8 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -253,6 +255,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		currTxs,
 	)
 
 	return dPool
@@ -442,7 +445,7 @@ func createNetNode(
 	tc, _ := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		accntAdapter,
-		dPool,
+		dPool.MiniBlocks(),
 		requestHandler,
 		container,
 		interimProcContainer,
@@ -731,6 +734,8 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
 	dPool, _ := dataPool.NewMetaDataPool(
 		metaBlocks,
 		miniblocks,
@@ -738,6 +743,7 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 		headersNonces,
 		txPool,
 		uTxPool,
+		currTxs,
 	)
 
 	return dPool
@@ -856,7 +862,10 @@ func createMetaNetNode(
 			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		},
-		DataPool: dPool,
+		DataPool:           dPool,
+		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCToProtocol:       &mock.SCToProtocolStub{},
+		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
 

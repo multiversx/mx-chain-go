@@ -192,12 +192,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	// VM is formally verified and the output is correct
-	crossTxs, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(crossTxs)
+	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (sc *scProcessor) getVMTypeFromArguments(arg *big.Int) ([]byte, error) {
 }
 
 func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
-	vmType := tx.RcvAddr[core.NumInitCharactersForScAddress-core.VMTypeLen : core.NumInitCharactersForScAddress]
+	vmType := core.GetVMType(tx.RcvAddr)
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
@@ -289,12 +289,12 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
-	crossTxs, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(crossTxs)
+	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
 		return err
 	}
@@ -525,32 +525,32 @@ func (sc *scProcessor) createSmartContractResult(
 	scAddress []byte,
 	txHash []byte,
 ) *smartContractResult.SmartContractResult {
-	crossSc := &smartContractResult.SmartContractResult{}
+	result := &smartContractResult.SmartContractResult{}
 
-	crossSc.Value = outAcc.BalanceDelta
-	crossSc.Nonce = outAcc.Nonce
-	crossSc.RcvAddr = outAcc.Address
-	crossSc.SndAddr = scAddress
-	crossSc.Code = outAcc.Code
-	crossSc.Data = sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
-	crossSc.TxHash = txHash
+	result.Value = outAcc.BalanceDelta
+	result.Nonce = outAcc.Nonce
+	result.RcvAddr = outAcc.Address
+	result.SndAddr = scAddress
+	result.Code = outAcc.Code
+	result.Data = sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
+	result.TxHash = txHash
 
-	return crossSc
+	return result
 }
 
 func (sc *scProcessor) createSCRTransactions(
-	crossOutAccs []*vmcommon.OutputAccount,
+	outAccs []*vmcommon.OutputAccount,
 	tx *transaction.Transaction,
 	txHash []byte,
 ) ([]data.TransactionHandler, error) {
-	crossSCTxs := make([]data.TransactionHandler, 0)
+	scResults := make([]data.TransactionHandler, 0)
 
-	for i := 0; i < len(crossOutAccs); i++ {
-		scTx := sc.createSmartContractResult(crossOutAccs[i], tx.RcvAddr, txHash)
-		crossSCTxs = append(crossSCTxs, scTx)
+	for i := 0; i < len(outAccs); i++ {
+		scTx := sc.createSmartContractResult(outAccs[i], tx.RcvAddr, txHash)
+		scResults = append(scResults, scTx)
 	}
 
-	return crossSCTxs, nil
+	return scResults, nil
 }
 
 // give back the user the unused gas money

@@ -37,6 +37,7 @@ type SystemEI interface {
 	SetStorage(key []byte, value []byte)
 	GetStorage(key []byte) []byte
 	SelfDestruct(beneficiary []byte)
+	Finish(value []byte)
 
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
