@@ -505,6 +505,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
 		args.core,
 		args.state,
+		args.data,
 		args.shardCoordinator,
 		args.nodesConfig,
 		args.genesisConfig,
@@ -529,6 +530,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		forkDetector,
 		genesisBlocks,
 		args.coreServiceContainer,
+		args.nodesConfig,
 	)
 
 	if err != nil {
@@ -1413,6 +1415,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 func generateGenesisHeadersAndApplyInitialBalances(
 	coreComponents *Core,
 	stateComponents *State,
+	dataComponents *Data,
 	shardCoordinator sharding.Coordinator,
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
@@ -1474,13 +1477,22 @@ func generateGenesisHeadersAndApplyInitialBalances(
 
 	genesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
 
+	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
+		GenesisTime:              uint64(nodesSetup.StartTime),
+		Accounts:                 stateComponents.AccountsAdapter,
+		AddrConv:                 stateComponents.AddressConverter,
+		NodesSetup:               nodesSetup,
+		ShardCoordinator:         shardCoordinator,
+		Store:                    dataComponents.Store,
+		Blkc:                     dataComponents.Blkc,
+		Marshalizer:              coreComponents.Marshalizer,
+		Hasher:                   coreComponents.Hasher,
+		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
+		MetaDatapool:             dataComponents.MetaDatapool,
+	}
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
-		uint64(nodesSetup.StartTime),
-		stateComponents.AccountsAdapter,
-		stateComponents.AddressConverter,
-		nodesSetup.InitialNodes(),
+		argsMetaGenesis,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -1562,6 +1574,7 @@ func newBlockProcessor(
 	forkDetector process.ForkDetector,
 	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
+	nodesSetup *sharding.NodesSetup,
 ) (process.BlockProcessor, error) {
 
 	communityAddr := economics.CommunityAddress()
@@ -1619,6 +1632,7 @@ func newBlockProcessor(
 			genesisBlocks,
 			coreServiceContainer,
 			economics,
+			nodesSetup,
 		)
 	}
 
@@ -1855,6 +1869,7 @@ func newMetaBlockProcessor(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
+	nodesSetup *sharding.NodesSetup,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -1866,7 +1881,7 @@ func newMetaBlockProcessor(
 		Marshalizer:      core.Marshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook)
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook, nodesSetup)
 	if err != nil {
 		return nil, err
 	}

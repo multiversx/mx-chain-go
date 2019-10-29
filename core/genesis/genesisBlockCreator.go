@@ -2,7 +2,16 @@ package genesis
 
 import (
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	transaction2 "github.com/ElrondNetwork/elrond-go/process/transaction"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
 	"math/big"
 
@@ -64,43 +73,145 @@ func CreateShardGenesisBlockFromInitialBalances(
 	return header, err
 }
 
+type ArgsMetaGenesisBlockCreator struct {
+	GenesisTime              uint64
+	Accounts                 state.AccountsAdapter
+	AddrConv                 state.AddressConverter
+	NodesSetup               *sharding.NodesSetup
+	ShardCoordinator         sharding.Coordinator
+	Store                    dataRetriever.StorageService
+	Blkc                     data.ChainHandler
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	MetaDatapool             dataRetriever.MetaPoolsHolder
+}
+
 // CreateMetaGenesisBlock creates the meta genesis block
 func CreateMetaGenesisBlock(
-	genesisTime uint64,
-	accounts state.AccountsAdapter,
-	addrConv state.AddressConverter,
-	systemSCs vm.SystemSCContainer,
-	txProcessor process.TransactionProcessor,
-	nodesSetup *sharding.NodesSetup,
+	args ArgsMetaGenesisBlockCreator,
 ) (data.HeaderHandler, error) {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if args.Accounts == nil || args.Accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if addrConv == nil || addrConv.IsInterfaceNil() {
+	if args.AddrConv == nil || args.AddrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if systemSCs == nil || systemSCs.IsInterfaceNil() {
-		return nil, process.ErrNilSystemContractsContainer
-	}
-	if txProcessor == nil || txProcessor.IsInterfaceNil() {
-		return nil, process.ErrNilSmartContractProcessor
-	}
-	if nodesSetup == nil {
+	if args.NodesSetup == nil {
 		return nil, process.ErrNilNodesSetup
 	}
+	if args.ShardCoordinator == nil || args.ShardCoordinator.IsInterfaceNil() {
+		return nil, process.ErrNilShardCoordinator
+	}
+	if args.Store == nil || args.Store.IsInterfaceNil() {
+		return nil, process.ErrNilStore
+	}
+	if args.Blkc == nil || args.Blkc.IsInterfaceNil() {
+		return nil, process.ErrNilBlockChain
+	}
+	if args.Marshalizer == nil || args.Marshalizer.IsInterfaceNil() {
+		return nil, process.ErrNilMarshalizer
+	}
+	if args.Hasher == nil || args.Hasher.IsInterfaceNil() {
+		return nil, process.ErrNilHasher
+	}
+	if args.Uint64ByteSliceConverter == nil || args.Uint64ByteSliceConverter.IsInterfaceNil() {
+		return nil, process.ErrNilUint64Converter
+	}
+	if args.MetaDatapool == nil || args.MetaDatapool.IsInterfaceNil() {
+		return nil, process.ErrNilMetaBlockPool
+	}
 
-	err := deploySystemSmartContracts(txProcessor, systemSCs, addrConv)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         args.Accounts,
+		AddrConv:         args.AddrConv,
+		StorageService:   args.Store,
+		BlockChain:       args.Blkc,
+		ShardCoordinator: args.ShardCoordinator,
+		Marshalizer:      args.Marshalizer,
+		Uint64Converter:  args.Uint64ByteSliceConverter,
+	}
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook, args.NodesSetup)
 	if err != nil {
 		return nil, err
 	}
 
-	err = setStakingData(txProcessor, nodesSetup.InitialNodesInfo(), nodesSetup.StakedValue)
+	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
 		return nil, err
 	}
 
-	rootHash, err := accounts.Commit()
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
+		args.ShardCoordinator,
+		args.Marshalizer,
+		args.Hasher,
+		args.AddrConv,
+		args.Store,
+		args.MetaDatapool,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	scForwarder, err := interimProcContainer.Get(block.SmartContractResultBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		vmContainer,
+		argsParser,
+		args.Hasher,
+		args.Marshalizer,
+		args.Accounts,
+		vmFactory.BlockChainHookImpl(),
+		args.AddrConv,
+		args.ShardCoordinator,
+		scForwarder,
+		&metachain.TransactionFeeHandler{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
+	if err != nil {
+		return nil, err
+	}
+
+	txProcessor, err := transaction2.NewMetaTxProcessor(
+		args.Accounts,
+		args.AddrConv,
+		args.ShardCoordinator,
+		scProcessor,
+		txTypeHandler,
+	)
+	if err != nil {
+		return nil, process.ErrNilTxProcessor
+	}
+
+	err = deploySystemSmartContracts(txProcessor, vmFactory.SystemSmartContractContainer(), args.AddrConv)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setStakingData(txProcessor, args.NodesSetup.InitialNodesInfo(), args.NodesSetup.StakedValue)
+	if err != nil {
+		return nil, err
+	}
+
+	rootHash, err := args.Accounts.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +222,7 @@ func CreateMetaGenesisBlock(
 		RandSeed:     rootHash,
 		PrevRandSeed: rootHash,
 	}
-	header.SetTimeStamp(genesisTime)
+	header.SetTimeStamp(args.GenesisTime)
 
 	return header, nil
 }
