@@ -57,7 +57,7 @@ const (
 	defaultEpochString = "Epoch"
 	defaultShardString = "Shard"
 	metachainShardName = "metachain"
-	DefaultRestApiPort  = "off"
+	DefaultRestApiPort = "off"
 )
 
 var (
@@ -242,7 +242,7 @@ VERSION:
 		Value: logger.LogInfo,
 	}
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
-	bootstrapRoundIndex = cli.UintFlag{
+	bootstrapRoundIndex = cli.Uint64Flag{
 		Name:  "bootstrap-round-index",
 		Usage: "Bootstrap round index specifies the round index from which node should bootstrap from storage",
 		Value: math.MaxUint64,
@@ -607,7 +607,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	txSignPk := factory.GetPkEncoded(cryptoComponents.TxSignPubKey)
-	metrics.SaveCurrentNodeNameAndPubKey(coreComponents.StatusHandler, txSignPk, generalConfig.GeneralSettings.NodeDisplayName)
+	metrics.SaveCurrentNodeNameAndPubKey(coreComponents.StatusHandler, txSignPk, preferencesConfig.Preferences.NodeDisplayName)
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", factory.GetPkEncoded(pubKey),
@@ -706,7 +706,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		cryptoComponents,
 		processComponents,
 		networkComponents,
-		uint64(ctx.GlobalUint(bootstrapRoundIndex.Name)),
+		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
 	)

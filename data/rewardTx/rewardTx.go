@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx/capnp"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // RewardTx holds the data for a reward transaction
@@ -85,6 +85,11 @@ func (rtx *RewardTx) GetValue() *big.Int {
 	return rtx.Value
 }
 
+// GetNonce returns 0 as reward transactions do not have a nonce
+func (scr *RewardTx) GetNonce() uint64 {
+	return 0
+}
+
 // GetData returns the data of the reward transaction
 func (rtx *RewardTx) GetData() string {
 	return ""
@@ -98,6 +103,16 @@ func (rtx *RewardTx) GetRecvAddress() []byte {
 // GetSndAddress returns the sender address from the reward transaction
 func (rtx *RewardTx) GetSndAddress() []byte {
 	return nil
+}
+
+// GetGasLimit returns the gas limit of the smart reward transaction
+func (scr *RewardTx) GetGasLimit() uint64 {
+	return 0
+}
+
+// GetGasPrice returns the gas price of the smart reward transaction
+func (scr *RewardTx) GetGasPrice() uint64 {
+	return 0
 }
 
 // SetValue sets the value of the reward transaction

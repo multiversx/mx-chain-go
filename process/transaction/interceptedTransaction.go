@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -15,19 +17,19 @@ import (
 
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedTransaction struct {
-	tx                       *transaction.Transaction
-	marshalizer              marshal.Marshalizer
-	hasher                   hashing.Hasher
-	keyGen                   crypto.KeyGenerator
-	singleSigner             crypto.SingleSigner
-	addrConv                 state.AddressConverter
-	coordinator              sharding.Coordinator
-	hash                     []byte
-	rcvShard                 uint32
-	sndShard                 uint32
-	isAddressedToOtherShards bool
-	sndAddr                  state.AddressContainer
-	feeHandler               process.FeeHandler
+	tx                *transaction.Transaction
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	keyGen            crypto.KeyGenerator
+	singleSigner      crypto.SingleSigner
+	addrConv          state.AddressConverter
+	coordinator       sharding.Coordinator
+	hash              []byte
+	rcvShard          uint32
+	sndShard          uint32
+	isForCurrentShard bool
+	sndAddr           state.AddressContainer
+	feeHandler        process.FeeHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -45,30 +47,29 @@ func NewInterceptedTransaction(
 	if txBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if keyGen == nil || keyGen.IsInterfaceNil() {
+	if check.IfNil(keyGen) {
 		return nil, process.ErrNilKeyGen
 	}
-	if signer == nil || signer.IsInterfaceNil() {
+	if check.IfNil(signer) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if addrConv == nil || addrConv.IsInterfaceNil() {
+	if check.IfNil(addrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 	if feeHandler == nil || coordinator.IsInterfaceNil() {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
-	tx := &transaction.Transaction{}
-	err := marshalizer.Unmarshal(tx, txBuff)
+	tx, err := createTx(marshalizer, txBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -84,17 +85,7 @@ func NewInterceptedTransaction(
 		feeHandler:   feeHandler,
 	}
 
-	txBuffWithoutSig, err := inTx.processFields(txBuff)
-	if err != nil {
-		return nil, err
-	}
-
-	err = inTx.integrity()
-	if err != nil {
-		return nil, err
-	}
-
-	err = inTx.verifySig(txBuffWithoutSig)
+	err = inTx.processFields(txBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -102,23 +93,43 @@ func NewInterceptedTransaction(
 	return inTx, nil
 }
 
-func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte, error) {
-	copiedTx := *inTx.Transaction()
-	copiedTx.Signature = nil
-	buffCopiedTx, err := inTx.marshalizer.Marshal(&copiedTx)
+func createTx(marshalizer marshal.Marshalizer, txBuff []byte) (*transaction.Transaction, error) {
+	tx := &transaction.Transaction{}
+	err := marshalizer.Unmarshal(tx, txBuff)
 	if err != nil {
 		return nil, err
 	}
-	inTx.hash = inTx.hasher.Compute(string(txBuffWithSig))
 
+	return tx, nil
+}
+
+// CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
+func (inTx *InterceptedTransaction) CheckValidity() error {
+	err := inTx.integrity()
+	if err != nil {
+		return err
+	}
+
+	err = inTx.verifySig()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
+	inTx.hash = inTx.hasher.Compute(string(txBuff))
+
+	var err error
 	inTx.sndAddr, err = inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
 	if err != nil {
-		return nil, process.ErrInvalidSndAddr
+		return process.ErrInvalidSndAddr
 	}
 
 	rcvAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.RcvAddr)
 	if err != nil {
-		return nil, process.ErrInvalidRcvAddr
+		return process.ErrInvalidRcvAddr
 	}
 
 	inTx.sndShard = inTx.coordinator.ComputeId(inTx.sndAddr)
@@ -128,10 +139,11 @@ func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte,
 		inTx.rcvShard = inTx.sndShard
 	}
 
-	inTx.isAddressedToOtherShards = inTx.rcvShard != inTx.coordinator.SelfId() &&
-		inTx.sndShard != inTx.coordinator.SelfId()
+	isForCurrentShardRecv := inTx.rcvShard == inTx.coordinator.SelfId()
+	isForCurrentShardSender := inTx.sndShard == inTx.coordinator.SelfId()
+	inTx.isForCurrentShard = isForCurrentShardRecv || isForCurrentShardSender
 
-	return buffCopiedTx, nil
+	return nil
 }
 
 // integrity checks for not nil fields and negative value
@@ -156,13 +168,20 @@ func (inTx *InterceptedTransaction) integrity() error {
 }
 
 // verifySig checks if the tx is correctly signed
-func (inTx *InterceptedTransaction) verifySig(txBuffWithoutSig []byte) error {
+func (inTx *InterceptedTransaction) verifySig() error {
+	copiedTx := *inTx.tx
+	copiedTx.Signature = nil
+	buffCopiedTx, err := inTx.marshalizer.Marshal(&copiedTx)
+	if err != nil {
+		return err
+	}
+
 	senderPubKey, err := inTx.keyGen.PublicKeyFromByteArray(inTx.tx.SndAddr)
 	if err != nil {
 		return err
 	}
 
-	err = inTx.singleSigner.Verify(senderPubKey, txBuffWithoutSig, inTx.tx.Signature)
+	err = inTx.singleSigner.Verify(senderPubKey, buffCopiedTx, inTx.tx.Signature)
 	if err != nil {
 		return err
 	}
@@ -170,23 +189,18 @@ func (inTx *InterceptedTransaction) verifySig(txBuffWithoutSig []byte) error {
 	return nil
 }
 
-// RcvShard returns the receiver shard
-func (inTx *InterceptedTransaction) RcvShard() uint32 {
+// ReceiverShardId returns the receiver shard id
+func (inTx *InterceptedTransaction) ReceiverShardId() uint32 {
 	return inTx.rcvShard
 }
 
-// SndShard returns the sender shard
-func (inTx *InterceptedTransaction) SndShard() uint32 {
-	return inTx.sndShard
-}
-
-// IsAddressedToOtherShards returns true if this transaction is not meant to be processed by the node from this shard
-func (inTx *InterceptedTransaction) IsAddressedToOtherShards() bool {
-	return inTx.isAddressedToOtherShards
+// IsForCurrentShard returns true if this transaction is meant to be processed by the node from this shard
+func (inTx *InterceptedTransaction) IsForCurrentShard() bool {
+	return inTx.isForCurrentShard
 }
 
 // Transaction returns the transaction pointer that actually holds the data
-func (inTx *InterceptedTransaction) Transaction() *transaction.Transaction {
+func (inTx *InterceptedTransaction) Transaction() data.TransactionHandler {
 	return inTx.tx
 }
 
@@ -221,4 +235,12 @@ func (inTx *InterceptedTransaction) TotalValue() *big.Int {
 	result = result.Add(result, mulTxCost)
 
 	return result
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (inTx *InterceptedTransaction) IsInterfaceNil() bool {
+	if inTx == nil {
+		return true
+	}
+	return false
 }
