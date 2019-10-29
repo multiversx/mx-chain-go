@@ -13,7 +13,7 @@ type ForkDetectorMock struct {
 	ProbableHighestNonceCalled              func() uint64
 	ResetProbableHighestNonceIfNeededCalled func()
 	ResetProbableHighestNonceCalled         func()
-	ResetForcedForkCalled                   func()
+	ResetForkCalled                         func()
 }
 
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
@@ -44,8 +44,8 @@ func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
 	fdm.ResetProbableHighestNonceCalled()
 }
 
-func (fdm *ForkDetectorMock) ResetForcedFork() {
-	fdm.ResetForcedForkCalled()
+func (fdm *ForkDetectorMock) ResetFork() {
+	fdm.ResetForkCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

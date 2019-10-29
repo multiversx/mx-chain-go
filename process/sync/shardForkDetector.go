@@ -54,7 +54,7 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
-	sfd.computeForcedFork(header, state)
+	sfd.activateForcedForkIfNeeded(header, state)
 
 	err = sfd.shouldAddBlockInForkDetector(header, state, process.ShardBlockFinality)
 	if err != nil {

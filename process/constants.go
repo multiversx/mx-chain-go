@@ -30,18 +30,39 @@ const (
 	InvalidTransaction
 )
 
+// ShardBlockFinality defines the block finality which is used in shards (the real finality in shards is given
+// by meta-chain)
 const ShardBlockFinality = 1
-const MetaBlockFinality = 1
-const MaxHeaderRequestsAllowed = 10
-const MaxItemsInBlock = 15000
-const MinItemsInBlock = 15000
-const MaxNoncesDifference = 0
 
-// TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
+// MetaBlockFinality defines the block finality which is used in meta-chain
+const MetaBlockFinality = 1
+
+// MaxHeaderRequestsAllowed defines the maximum number of missing cross-shard headers (gaps) which could be requested
+// in one round, when node processes a received block
+const MaxHeaderRequestsAllowed = 10
+
+// MaxItemsInBlock defines the maximum threshold which could be set, and represents the maximum number of items
+// (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
+const MaxItemsInBlock = 15000
+
+// MinItemsInBlock defines the minimum threshold which could be set, and represents the maximum number of items
+// (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
+const MinItemsInBlock = 15000
+
+// NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
+// committed block nonce, after which, node is considered himself not synced
+const NonceDifferenceWhenSynced = 0
+
+// MaxGasLimitPerMiniBlock defines the maximum gas limit which could be consumed by a miniblock
+//TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
 const MaxGasLimitPerMiniBlock = uint64(100000)
+
+// MaxRequestsWithTimeoutAllowed defines the maximum allowed number of requests with timeout,
+// before a special action to be applied
 const MaxRequestsWithTimeoutAllowed = 5
 
-// MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing
+// MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance,
+// if they are missing
 const MaxHeadersToRequestInAdvance = 10
 
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released

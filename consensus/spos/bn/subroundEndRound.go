@@ -101,7 +101,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	}
 
 	// broadcast header to metachain
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
+	err = sr.BroadcastMessenger().BroadcastShardHeader(sr.Header)
 	if err != nil {
 		log.Error(err.Error())
 	}
