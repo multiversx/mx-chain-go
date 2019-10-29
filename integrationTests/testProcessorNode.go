@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -420,7 +421,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	var vmFactory process.VirtualMachinesContainerFactory
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook)
+		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook, &sharding.NodesSetup{StakedValue: big.NewInt(1000)})
 	} else {
 		vmFactory, _ = shard.NewVMContainerFactory(argsHook)
 	}
