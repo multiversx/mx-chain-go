@@ -132,7 +132,7 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 }
 
 func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(100000000)
 	round := uint64(444)
