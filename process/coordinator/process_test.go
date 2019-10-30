@@ -963,7 +963,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
 	numTxsToAdd := 100
-	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
+	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	addedTxs := make([]*transaction.Transaction, 0)
@@ -979,7 +979,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1081,7 +1082,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 
 	// set the gas limit to be enough only for 5 txs in a miniblock so the rest should be split and compressed
 	numTxsToAdd := 20
-	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
+	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 
@@ -1095,7 +1096,8 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		}
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+	gasConsumedByBlock := uint64(0)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime, &gasConsumedByBlock)
 
 	assert.Equal(t, nrShards, uint32(len(mbs)))
 }

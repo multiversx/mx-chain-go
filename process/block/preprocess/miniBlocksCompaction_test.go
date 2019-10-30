@@ -155,6 +155,9 @@ func TestMiniBlocksCompaction_ExpandGasLimitExceededShouldNotCompact(t *testing.
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return tx.GetGasLimit()
 		},
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return MaxGasLimitPerBlock
+		},
 	}, msc)
 
 	mbs := block.MiniBlockSlice{

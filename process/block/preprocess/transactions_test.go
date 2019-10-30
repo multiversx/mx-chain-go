@@ -1069,10 +1069,14 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 		Type:            0,
 	}
 
-	_ = txs.ProcessMiniBlock(&mb1, haveTimeTrue, 0)
-	_ = txs.ProcessMiniBlock(&mb2, haveTimeTrue, 0)
-	_ = txs.ProcessMiniBlock(&mb3, haveTimeTrue, 0)
-	_ = txs.ProcessMiniBlock(&mb4, haveTimeTrue, 0)
+	gasConsumedByBlock := uint64(0)
+	_ = txs.ProcessMiniBlock(&mb1, haveTimeTrue, 0, &gasConsumedByBlock)
+	gasConsumedByBlock = uint64(0)
+	_ = txs.ProcessMiniBlock(&mb2, haveTimeTrue, 0, &gasConsumedByBlock)
+	gasConsumedByBlock = uint64(0)
+	_ = txs.ProcessMiniBlock(&mb3, haveTimeTrue, 0, &gasConsumedByBlock)
+	gasConsumedByBlock = uint64(0)
+	_ = txs.ProcessMiniBlock(&mb4, haveTimeTrue, 0, &gasConsumedByBlock)
 
 	mbsOrig := block.MiniBlockSlice{}
 	mbsOrig = append(mbsOrig, &mb1, &mb2, &mb3, &mb4)
