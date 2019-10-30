@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -99,10 +98,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
-
-	if (sr.RoundIndex % 5 == 0) && (sr.ShardCoordinator().SelfId() == sharding.MetachainShardId) {
-		time.Sleep(time.Second*4)
-	}
 
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
