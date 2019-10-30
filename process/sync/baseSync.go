@@ -648,27 +648,23 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	if boot.isForkDetected {
-		isForcedFork := boot.isForcedFork()
-
-		if isForcedFork {
-			log.Info(fmt.Sprintf("fork has been forced\n"))
-		} else {
-			log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
-				boot.forkNonce,
-				core.ToB64(boot.forkHash)))
-		}
-
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
-		err := boot.rollBack(!isForcedFork)
-		if err != nil {
-			log.Info(err.Error())
-		}
-
-		if isForcedFork {
+		if boot.isForcedFork() {
+			log.Info(fmt.Sprintf("fork has been forced\n"))
+			boot.rollBackToFinal()
 			boot.forkDetector.ResetProbableHighestNonce()
 			boot.forkDetector.ResetFork()
 			return nil
+		}
+
+		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
+			boot.forkNonce,
+			core.ToB64(boot.forkHash)))
+
+		err := boot.rollBack(true)
+		if err != nil {
+			log.Info(err.Error())
 		}
 	}
 
@@ -729,7 +725,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		return process.ErrNilHeadersNonceHashStorage
 	}
 
-	log.Info("starting fork choice\n")
+	log.Info("starting roll back\n")
 	for {
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
@@ -773,7 +769,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		break
 	}
 
-	log.Info("ending fork choice\n")
+	log.Info("ending roll back\n")
 	return nil
 }
 
@@ -849,4 +845,24 @@ func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
 
 func (boot *baseBootstrap) isForcedFork() bool {
 	return boot.isForkDetected && boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
+}
+
+func (boot *baseBootstrap) rollBackToFinal() {
+	for {
+		currHeader, err := boot.blockBootstrapper.getCurrHeader()
+		if err != nil {
+			log.Info(err.Error())
+			break
+		}
+
+		if currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
+			break
+		}
+
+		err = boot.rollBack(false)
+		if err != nil {
+			log.Info(err.Error())
+			break
+		}
+	}
 }
