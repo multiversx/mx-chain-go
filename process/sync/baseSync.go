@@ -652,9 +652,7 @@ func (boot *baseBootstrap) syncBlock() error {
 
 		if boot.isForcedFork() {
 			log.Info(fmt.Sprintf("fork has been forced\n"))
-			boot.rollBackToFinal()
-			boot.forkDetector.ResetProbableHighestNonce()
-			boot.forkDetector.ResetFork()
+			boot.rollBackOnForcedFork()
 			return nil
 		}
 
@@ -847,22 +845,12 @@ func (boot *baseBootstrap) isForcedFork() bool {
 	return boot.isForkDetected && boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
 }
 
-func (boot *baseBootstrap) rollBackToFinal() {
-	for {
-		currHeader, err := boot.blockBootstrapper.getCurrHeader()
-		if err != nil {
-			log.Info(err.Error())
-			break
-		}
-
-		if currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
-			break
-		}
-
-		err = boot.rollBack(false)
-		if err != nil {
-			log.Info(err.Error())
-			break
-		}
+func (boot *baseBootstrap) rollBackOnForcedFork() {
+	err := boot.rollBack(false)
+	if err != nil {
+		log.Info(err.Error())
 	}
+
+	boot.forkDetector.ResetProbableHighestNonce()
+	boot.forkDetector.ResetFork()
 }
