@@ -19,3 +19,5 @@
 .env
 *.log
 genessis.json
+
+/cross_build

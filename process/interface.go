@@ -425,6 +425,13 @@ type EconomicsAddressesHandler interface {
 	IsInterfaceNil() bool
 }
 
+// MiniBlocksCompacter defines the functionality that is needed for mini blocks compaction and expansion
+type MiniBlocksCompacter interface {
+	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice
+	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
+	IsInterfaceNil() bool
+}
+
 // BlackListHandler can determine if a certain key is or not blacklisted
 type BlackListHandler interface {
 	Add(key string) error
