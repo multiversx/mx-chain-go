@@ -509,12 +509,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 		tr.snapshots = tr.snapshots[1:]
 
 		removePath := path.Join(tr.snapshotDbCfg.FilePath, dbUniqueId)
-		go func() {
-			err = os.RemoveAll(removePath)
-			if err != nil {
-				log.Error(err.Error())
-			}
-		}()
+		go removeDirectory(removePath)
 	}
 
 	newTrie, err := NewTrie(
@@ -545,6 +540,13 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	go tr.snapshot(newTrie, db)
 
 	return nil
+}
+
+func removeDirectory(path string) {
+	err := os.RemoveAll(path)
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 func (tr *patriciaMerkleTrie) snapshot(newTrie *patriciaMerkleTrie, db data.DBWriteCacher) {

@@ -685,7 +685,7 @@ func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 		hasher:      hsh,
 	}
 
-	for tr.snapshotInProgress {
+	for tr.isSnapshotInProgress() {
 		time.Sleep(snapshotDelay)
 	}
 
@@ -734,7 +734,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 	for _, testVal := range testVals {
 		_ = tr.Update(testVal.key, testVal.value)
 		_ = tr.Snapshot()
-		for tr.snapshotInProgress {
+		for tr.isSnapshotInProgress() {
 			time.Sleep(snapshotDelay)
 		}
 
@@ -786,7 +786,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 	for _, testVal := range testVals {
 		_ = tr.Update(testVal.key, testVal.value)
 		_ = tr.Snapshot()
-		for tr.snapshotInProgress {
+		for tr.isSnapshotInProgress() {
 			time.Sleep(snapshotDelay)
 		}
 	}
@@ -963,9 +963,9 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	}
 	numKeysToBeEvicted := 21
 	assert.Equal(t, numKeysToBeEvicted, len(evictionWaitList.Cache))
-	assert.NotEqual(t, 0, len(tr.pruningBuffer))
+	assert.NotEqual(t, 0, tr.pruningBufferLength())
 
-	for len(tr.pruningBuffer) != 0 {
+	for tr.pruningBufferLength() != 0 {
 		time.Sleep(snapshotDelay)
 	}
 
@@ -979,4 +979,18 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	val, err := tr.snapshots[0].Get(rootHash)
 	assert.NotNil(t, val)
 	assert.Nil(t, err)
+}
+
+func (tr *patriciaMerkleTrie) isSnapshotInProgress() bool {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	return tr.snapshotInProgress
+}
+
+func (tr *patriciaMerkleTrie) pruningBufferLength() int {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	return len(tr.pruningBuffer)
 }
