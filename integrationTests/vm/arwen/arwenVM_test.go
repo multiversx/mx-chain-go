@@ -131,6 +131,53 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 	}
 }
 
+func TestVmDeployAndCallMissingFunction(t *testing.T) {
+	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(100000000)
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(100000)
+	transferOnCalls := big.NewInt(5)
+
+	scCode, err := ioutil.ReadFile("./wrc20_arwen.wasm")
+	assert.Nil(t, err)
+
+	scCodeString := hex.EncodeToString(scCode)
+
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		transferOnCalls,
+		gasPrice,
+		gasLimit,
+		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
+	)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	alice := []byte("12345678901234567890123456789111")
+	aliceNonce := uint64(0)
+	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
+
+	txWithWrongFunction := &transaction.Transaction{
+		Nonce:    aliceNonce,
+		Value:    big.NewInt(3),
+		RcvAddr:  scAddress,
+		SndAddr:  alice,
+		GasPrice: 1,
+		GasLimit: 5000,
+		Data:     "nothing",
+	}
+
+	err = txProc.ProcessTransaction(txWithWrongFunction, round)
+	assert.Nil(t, err)
+}
+
 func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
