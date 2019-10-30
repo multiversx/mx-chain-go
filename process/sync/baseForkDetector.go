@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 
 type headerInfo struct {
@@ -32,6 +33,7 @@ type forkInfo struct {
 	probableHighestNonce   uint64
 	lastBlockRound         uint64
 	lastProposedBlockNonce uint64
+	shouldForceFork        bool
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -260,7 +262,7 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 	// committed block + 1, which could not be verified by hash -> prev hash and only by rand seed -> prev random seed
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
 	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
-	if roundsWithoutReceivedBlock > maxRoundsToWait && isInProperRound {
+	if roundsWithoutReceivedBlock > process.MaxRoundsWithoutReceivedBlock && isInProperRound {
 		bfd.addHeaderToBlackList()
 		bfd.ResetProbableHighestNonce()
 	}
@@ -281,6 +283,11 @@ func (bfd *baseForkDetector) ResetProbableHighestNonce() {
 	if probableHighestNonce > checkpointNonce {
 		bfd.setProbableHighestNonce(checkpointNonce)
 	}
+}
+
+// ResetFork resets the forced fork
+func (bfd *baseForkDetector) ResetFork() {
+	bfd.setShouldForceFork(false)
 }
 
 func (bfd *baseForkDetector) addCheckpoint(checkpoint *checkpointInfo) {
@@ -358,6 +365,20 @@ func (bfd *baseForkDetector) lastProposedBlockNonce() uint64 {
 	return lastProposedBlockNonce
 }
 
+func (bfd *baseForkDetector) setShouldForceFork(shouldForceFork bool) {
+	bfd.mutFork.Lock()
+	bfd.fork.shouldForceFork = shouldForceFork
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) shouldForceFork() bool {
+	bfd.mutFork.RLock()
+	shouldForceFork := bfd.fork.shouldForceFork
+	bfd.mutFork.RUnlock()
+
+	return shouldForceFork
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bfd *baseForkDetector) IsInterfaceNil() bool {
 	if bfd == nil {
@@ -379,6 +400,10 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 	lowestForkNonce = math.MaxUint64
 	hashOfLowestForkNonce = nil
 	forkDetected := false
+
+	if bfd.shouldForceFork() {
+		return true, lowestForkNonce, hashOfLowestForkNonce
+	}
 
 	bfd.mutHeaders.Lock()
 	for nonce, hdrInfos := range bfd.headers {
@@ -468,16 +493,50 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 	finality int64,
 ) error {
 
-	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(header.GetNonce())
-	isSyncing := state == process.BHReceived && noncesDifference > process.MaxNoncesDifference
-	if state == process.BHProcessed || isSyncing {
+	if state == process.BHProcessed || bfd.isSyncing(header.GetNonce()) {
 		return nil
 	}
 
+	// This condition would avoid a stuck situation, when shards would set as final, block with nonce n received from
+	// meta-chain, because they also received n+1. In the same time meta-chain would be reverted to an older block with
+	// nonce n received it with latency but before n+1. Actually this condition would reject these older blocks.
 	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-finality
 	if roundTooOld {
 		return ErrLowerRoundInBlock
 	}
 
 	return nil
+}
+
+func (bfd *baseForkDetector) activateForcedForkIfNeeded(
+	header data.HeaderHandler,
+	state process.BlockHeaderState,
+) {
+
+	if state != process.BHProposed || bfd.isSyncing(header.GetNonce()) {
+		return
+	}
+
+	lastCheckpointRound := bfd.lastCheckpoint().round
+	lastCheckpointNonce := bfd.lastCheckpoint().nonce
+
+	roundsDifference := int64(header.GetRound()) - int64(lastCheckpointRound)
+	noncesDifference := int64(header.GetNonce()) - int64(lastCheckpointNonce)
+	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
+
+	shouldForceFork := roundsDifference > process.MaxRoundsWithoutCommittedBlock &&
+		noncesDifference <= 1 &&
+		isInProperRound
+
+	if !shouldForceFork {
+		return
+	}
+
+	bfd.setShouldForceFork(true)
+}
+
+func (bfd *baseForkDetector) isSyncing(receivedNonce uint64) bool {
+	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(receivedNonce)
+	isSyncing := noncesDifference > process.NonceDifferenceWhenSynced
+	return isSyncing
 }
