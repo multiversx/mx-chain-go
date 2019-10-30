@@ -598,3 +598,51 @@ func TestStakingSC_ExecuteGetShouldOk(t *testing.T) {
 
 	assert.Equal(t, vmcommon.Ok, err)
 }
+
+func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
+
+	stakedRegistrationData := StakingData{
+		StartNonce:    50,
+		Staked:        true,
+		UnStakedNonce: 0,
+		BlsPubKey:     nil,
+		StakeValue:    stakeValue,
+	}
+
+	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, eei)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "slash"
+	arguments.CallerAddr = []byte("data")
+	marshalizedStakedData, _ := json.Marshal(&stakedRegistrationData)
+	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedStakedData)
+	stakingSmartContract.eei.SetStorage([]byte(ownerKey), arguments.CallerAddr)
+
+	callerAddress := big.NewInt(0).SetBytes(arguments.CallerAddr)
+	slashValue:= big.NewInt(70)
+	arguments.Arguments = []*big.Int{callerAddress, slashValue}
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	dataBytes := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
+	var registrationData StakingData
+	err := json.Unmarshal(dataBytes, &registrationData)
+	assert.Nil(t, err)
+
+	expectedStake :=big.NewInt(0).Sub(stakeValue, slashValue)
+	assert.Equal(t, expectedStake, registrationData.StakeValue)
+
+	arguments.Arguments = []*big.Int{callerAddress, slashValue}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	dataBytes = stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
+	err = json.Unmarshal(dataBytes, &registrationData)
+	assert.Nil(t, err)
+
+	expectedStake = big.NewInt(0).Sub(expectedStake, slashValue)
+	assert.Equal(t, expectedStake, registrationData.StakeValue)
+}
