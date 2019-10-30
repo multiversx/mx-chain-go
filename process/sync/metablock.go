@@ -25,7 +25,6 @@ type MetaBootstrap struct {
 	*baseBootstrap
 
 	resolversFinder dataRetriever.ResolversFinder
-	hdrRes          dataRetriever.HeaderResolver
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -92,6 +91,8 @@ func NewMetaBootstrap(
 	}
 
 	base.storageBootstrapper = &boot
+	base.blockBootstrapper = &boot
+	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
@@ -100,11 +101,15 @@ func NewMetaBootstrap(
 	}
 
 	//placed in struct fields for performance reasons
+	base.headerStore = boot.store.GetStorer(dataRetriever.MetaBlockUnit)
+	base.headerNonceHashStore = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+
 	hdrRes, ok := hdrResolver.(dataRetriever.HeaderResolver)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
-	boot.hdrRes = hdrRes
+
+	base.hdrRes = hdrRes
 
 	boot.chRcvHdrNonce = make(chan bool)
 	boot.chRcvHdrHash = make(chan bool)
@@ -210,7 +215,7 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
 
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if ni.blockWithLastNotarized[i]-ni.blockWithFinalNotarized[i] > 1 {
+		if nonce > ni.blockWithLastNotarized[i] {
 			ni.finalNotarized[i] = ni.lastNotarized[i]
 		}
 
@@ -381,107 +386,14 @@ func (boot *MetaBootstrap) syncBlocks() {
 	}
 }
 
-func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error) {
-	if err == process.ErrTimeIsOut {
-		boot.requestsWithTimeout++
-	}
-
-	allowedRequestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-	isInProperRound := process.IsInProperRound(boot.rounder.Index())
-
-	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutHaveReached && isInProperRound)
-	if shouldRollBack {
-		boot.requestsWithTimeout = 0
-
-		if hdr != nil {
-			hash := boot.removeHeaderFromPools(hdr)
-			boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
-			boot.forkDetector.ResetProbableHighestNonce()
-		}
-
-		errNotCritical := boot.forkChoice(false)
-		if errNotCritical != nil {
-			log.Info(errNotCritical.Error())
-		}
-	}
-}
-
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
 // and if it is not found there it will be requested from the network. After the header is received,
 // it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
-// If either header and body are received the ProcessAndCommit method will be called. This method will execute
-// the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
-// and all this mechanism will be reiterated for the next block.
+// If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
+// These methods will execute the block and its transactions. Finally if everything works, the block will be committed
+// in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock() error {
-	if !boot.ShouldSync() {
-		return nil
-	}
-
-	if boot.isForkDetected {
-		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
-			boot.forkNonce,
-			core.ToB64(boot.forkHash)))
-
-		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
-
-		err := boot.forkChoice(true)
-		if err != nil {
-			log.Info(err.Error())
-		}
-	}
-
-	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedHeaderHash(nil)
-
-	nonce := boot.getNonceForNextBlock()
-
-	var hdr *block.MetaBlock
-	var err error
-
-	defer func() {
-		if err != nil {
-			boot.doJobOnSyncBlockFail(hdr, err)
-		}
-	}()
-
-	if boot.isForkDetected {
-		hdr, err = boot.getHeaderWithHashRequestingIfMissing(boot.forkHash)
-	} else {
-		hdr, err = boot.getHeaderWithNonceRequestingIfMissing(nonce)
-	}
-
-	if err != nil {
-		boot.forkDetector.ResetProbableHighestNonceIfNeeded()
-		return err
-	}
-
-	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.haveMetaHeaderInPoolWithNonce, boot.hdrRes)
-
-	haveTime := func() time.Duration {
-		return boot.rounder.TimeDuration()
-	}
-
-	blockBody := &block.MetaBlockBody{}
-	timeBefore := time.Now()
-	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
-	if err != nil {
-		return err
-	}
-	timeAfter := time.Now()
-	log.Info(fmt.Sprintf("time elapsed to process block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
-
-	timeBefore = time.Now()
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
-	if err != nil {
-		return err
-	}
-	timeAfter = time.Now()
-	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
-
-	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.Nonce))
-	boot.requestsWithTimeout = 0
-
-	return nil
+	return boot.syncBlock()
 }
 
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
@@ -512,7 +424,7 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
-func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (*block.MetaBlock, error) {
+func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
 	hdr, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers,
@@ -539,7 +451,7 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
 // it will be requested from network
-func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (*block.MetaBlock, error) {
+func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
 	hdr, err := process.GetMetaHeader(hash, boot.headers, boot.marshalizer, boot.store)
 	if err != nil {
 		_ = process.EmptyChannel(boot.chRcvHdrHash)
@@ -558,110 +470,27 @@ func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (*b
 	return hdr, nil
 }
 
-// forkChoice decides if rollback must be called
-func (boot *MetaBootstrap) forkChoice(revertUsingForkNonce bool) error {
-	log.Info("starting fork choice\n")
-	for {
-		header, err := boot.getCurrentHeader()
-		if err != nil {
-			return err
-		}
+func (boot *MetaBootstrap) getPrevHeader(
+	header data.HeaderHandler,
+	headerStore storage.Storer,
+) (data.HeaderHandler, error) {
 
-		if !revertUsingForkNonce && header.Nonce <= boot.forkDetector.GetHighestFinalBlockNonce() {
-			return ErrRollBackBehindFinalHeader
-		}
-
-		log.Info(fmt.Sprintf("roll back to header with nonce %d and hash %s as the highest final block nonce is %d\n",
-			header.Nonce-1,
-			core.ToB64(header.GetPrevHash()),
-			boot.forkDetector.GetHighestFinalBlockNonce()))
-
-		err = boot.rollback(header)
-		if err != nil {
-			return err
-		}
-
-		if revertUsingForkNonce && header.Nonce > boot.forkNonce {
-			continue
-		}
-
-		break
-	}
-
-	log.Info("ending fork choice\n")
-	return nil
-}
-
-func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
-	if header.GetNonce() == 0 {
-		return process.ErrRollbackFromGenesis
-	}
-
-	headerStore := boot.store.GetStorer(dataRetriever.MetaBlockUnit)
-	if headerStore == nil {
-		return process.ErrNilHeadersStorage
-	}
-
-	headerNonceHashStore := boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	if headerNonceHashStore == nil {
-		return process.ErrNilHeadersNonceHashStorage
-	}
-
-	var err error
-	var newHeader *block.MetaBlock
-	var newHeaderHash []byte
-	var newRootHash []byte
-
-	if header.GetNonce() > 1 {
-		newHeader, err = boot.getPrevHeader(headerStore, header)
-		if err != nil {
-			return err
-		}
-
-		newHeaderHash = header.GetPrevHash()
-		newRootHash = newHeader.GetRootHash()
-	} else { // rollback to genesis block
-		newRootHash = boot.blkc.GetGenesisHeader().GetRootHash()
-	}
-
-	err = boot.blkc.SetCurrentBlockHeader(newHeader)
-	if err != nil {
-		return err
-	}
-
-	boot.blkc.SetCurrentBlockHeaderHash(newHeaderHash)
-
-	err = boot.accounts.RecreateTrie(newRootHash)
-	if err != nil {
-		return err
-	}
-
-	boot.cleanCachesAndStorageOnRollback(header, headerStore, headerNonceHashStore)
-	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(header, nil)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-	}
-
-	return nil
-}
-
-func (boot *MetaBootstrap) getPrevHeader(headerStore storage.Storer, header *block.MetaBlock) (*block.MetaBlock, error) {
 	prevHash := header.GetPrevHash()
 	buffHeader, err := headerStore.Get(prevHash)
 	if err != nil {
 		return nil, err
 	}
 
-	newHeader := &block.MetaBlock{}
-	err = boot.marshalizer.Unmarshal(newHeader, buffHeader)
+	prevHeader := &block.MetaBlock{}
+	err = boot.marshalizer.Unmarshal(prevHeader, buffHeader)
 	if err != nil {
 		return nil, err
 	}
 
-	return newHeader, nil
+	return prevHeader, nil
 }
 
-func (boot *MetaBootstrap) getCurrentHeader() (*block.MetaBlock, error) {
+func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	blockHeader := boot.blkc.GetCurrentBlockHeader()
 	if blockHeader == nil {
 		return nil, process.ErrNilBlockHeader
@@ -683,11 +512,19 @@ func (boot *MetaBootstrap) IsInterfaceNil() bool {
 	return false
 }
 
-func (boot *MetaBootstrap) haveMetaHeaderInPoolWithNonce(nonce uint64) bool {
+func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
 	_, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers,
 		boot.headersNonces)
 
 	return err == nil
+}
+
+func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
+	return process.GetMetaHeaderFromPool(headerHash, boot.headers)
+}
+
+func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	return boot.getBlockBody(headerHandler)
 }
