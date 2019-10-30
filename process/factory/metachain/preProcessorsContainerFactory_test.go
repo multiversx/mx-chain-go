@@ -18,7 +18,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
@@ -37,7 +37,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
@@ -56,7 +56,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.ChainStorerMock{},
 		nil,
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
@@ -75,7 +75,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		nil,
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
@@ -113,7 +113,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		nil,
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
@@ -132,7 +132,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
@@ -151,7 +151,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		nil,
@@ -170,7 +170,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		nil,
 		&mock.TxProcessorMock{},
@@ -188,7 +188,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
@@ -202,7 +202,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := &mock.MetaPoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -230,32 +230,12 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		}
-	}
-	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		}
-	}
-	dataPool.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		}
-	}
-
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		dataPool,
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
