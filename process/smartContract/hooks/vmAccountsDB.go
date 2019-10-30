@@ -204,11 +204,6 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64,
 		return nil, ErrVMTypeLengthIsNotCorrect
 	}
 
-	_, err := vadb.getShardAccountFromAddressBytes(creatorAddress)
-	if err != nil {
-		return nil, err
-	}
-
 	base := hashFromAddressAndNonce(creatorAddress, creatorNonce)
 	prefixMask := createPrefixMask(vmType)
 	suffixMask := createSuffixMask(creatorAddress)
