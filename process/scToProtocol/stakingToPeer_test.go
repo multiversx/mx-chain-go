@@ -587,3 +587,75 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	err := stakingToPeer.UpdateProtocol(blockBody, 0)
 	assert.Equal(t, testError, err)
 }
+
+func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) {
+	t.Parallel()
+
+	blsPublicKey := "blsPublicKey"
+	currTx := &mock.TxForCurrentBlockStub{}
+	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
+		return &smartContractResult.SmartContractResult{
+			RcvAddr: factory.StakingSCAddress,
+		}, nil
+	}
+
+	argParser := &mock.ArgumentParserMock{}
+	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
+		return []*vmcommon.StorageUpdate{
+			{Offset: []byte("off1"), Data: []byte("data1")},
+		}, nil
+	}
+
+	peerState := &mock.AccountsStub{}
+	peerState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{
+			JournalizeCalled: func(entry state.JournalEntry) {
+				return
+			},
+			SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+				return nil
+			},
+		})
+		peerAccount.Stake = big.NewInt(100)
+		peerAccount.BLSPublicKey = []byte("")
+		peerAccount.UnStakedNonce = 1
+		return peerAccount, nil
+	}
+
+	stakeValue := big.NewInt(100)
+	stakingData := systemSmartContracts.StakingData{
+		StakeValue: stakeValue,
+		BlsPubKey:  []byte(blsPublicKey),
+	}
+	marshalizer := &mock.MarshalizerStub{}
+	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
+		return json.Marshal(obj)
+	}
+	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
+		return json.Unmarshal(buff, obj)
+	}
+
+	scDataGetter := &mock.ScDataGetterMock{}
+	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
+		return json.Marshal(&stakingData)
+	}
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.ArgParser = argParser
+	arguments.CurrTxs = currTx
+	arguments.PeerState = peerState
+	arguments.Marshalizer = marshalizer
+	arguments.ScDataGetter = scDataGetter
+	blockBody := createBlockBody()
+	stakingToPeer, _ := NewStakingToPeer(arguments)
+
+	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	assert.Nil(t, err)
+
+	peersData := stakingToPeer.PeerChanges()
+	assert.Equal(t, 1, len(peersData))
+	assert.Equal(t, stakeValue, peersData[0].ValueChange)
+
+	err = stakingToPeer.VerifyPeerChanges(peersData)
+	assert.Nil(t, err)
+}
