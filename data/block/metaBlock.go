@@ -53,7 +53,7 @@ type ShardData struct {
 	ShardId               uint32                 `capid:"0"`
 	HeaderHash            []byte                 `capid:"1"`
 	ShardMiniBlockHeaders []ShardMiniBlockHeader `capid:"2"`
-	RandSeed              []byte                 `capid:"3"`
+	PrevRandSeed          []byte                 `capid:"3"`
 	PubKeysBitmap         []byte                 `capid:"4"`
 	Signature             []byte                 `capid:"5"`
 	TxCount               uint32                 `capid:"6"`
@@ -201,7 +201,7 @@ func ShardDataGoToCapn(seg *capn.Segment, src *ShardData) capnp.ShardDataCapn {
 
 	dest.SetShardId(src.ShardId)
 	dest.SetHeaderHash(src.HeaderHash)
-	dest.SetRandSeed(src.RandSeed)
+	dest.SetPrevRandSeed(src.PrevRandSeed)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 	dest.SetSignature(src.Signature)
 
@@ -227,7 +227,7 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 	}
 	dest.ShardId = src.ShardId()
 	dest.HeaderHash = src.HeaderHash()
-	dest.RandSeed = src.RandSeed()
+	dest.PrevRandSeed = src.PrevRandSeed()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
 	dest.Signature = src.Signature()
 

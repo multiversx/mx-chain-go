@@ -476,8 +476,8 @@ func (s ShardDataCapn) ShardMiniBlockHeaders() ShardMiniBlockHeaderCapn_List {
 func (s ShardDataCapn) SetShardMiniBlockHeaders(v ShardMiniBlockHeaderCapn_List) {
 	C.Struct(s).SetObject(1, C.Object(v))
 }
-func (s ShardDataCapn) RandSeed() []byte          { return C.Struct(s).GetObject(2).ToData() }
-func (s ShardDataCapn) SetRandSeed(v []byte)      { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
+func (s ShardDataCapn) PrevRandSeed() []byte      { return C.Struct(s).GetObject(2).ToData() }
+func (s ShardDataCapn) SetPrevRandSeed(v []byte)  { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
 func (s ShardDataCapn) PubKeysBitmap() []byte     { return C.Struct(s).GetObject(3).ToData() }
 func (s ShardDataCapn) SetPubKeysBitmap(v []byte) { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
 func (s ShardDataCapn) Signature() []byte         { return C.Struct(s).GetObject(4).ToData() }
@@ -564,12 +564,12 @@ func (s ShardDataCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"randSeed\":")
+	_, err = b.WriteString("\"prevRandSeed\":")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.RandSeed()
+		s := s.PrevRandSeed()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -728,12 +728,12 @@ func (s ShardDataCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("randSeed = ")
+	_, err = b.WriteString("prevRandSeed = ")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.RandSeed()
+		s := s.PrevRandSeed()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err

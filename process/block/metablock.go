@@ -205,11 +205,9 @@ func (mp *metaProcessor) ProcessBlock(
 
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
 	if err != nil {
-		log.Error("cannot update peer state")
 		return err
 	}
 
-	log.Error(fmt.Sprintf("%s %s", core.ToB64(header.ValidatorStatsRootHash), core.ToB64(validatorStatsRH)))
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
 		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err

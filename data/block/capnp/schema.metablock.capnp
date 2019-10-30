@@ -21,7 +21,7 @@ struct ShardDataCapn {
     shardId               @0: UInt32;
     headerHash            @1: Data;
     shardMiniBlockHeaders @2: List(ShardMiniBlockHeaderCapn);
-    randSeed              @3: Data;
+    prevRandSeed          @3:  Data;
     pubKeysBitmap         @4: Data;
     signature             @5: Data;
     txCount               @6: UInt32;
