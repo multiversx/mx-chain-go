@@ -179,7 +179,7 @@ func TestVmDeployAndCallMissingFunction(t *testing.T) {
 }
 
 func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(100000000)
 	round := uint64(444)

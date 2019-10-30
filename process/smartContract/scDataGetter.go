@@ -82,8 +82,9 @@ func (scdg *scDataGetter) createVMCallInput(
 		argsInt = append(argsInt, big.NewInt(0).SetBytes(arg))
 	}
 
+	maxGasLimit := math.MaxInt64
 	header := &vmcommon.SCCallHeader{
-		GasLimit:    big.NewInt(0),
+		GasLimit:    big.NewInt(int64(maxGasLimit)),
 		Timestamp:   big.NewInt(0),
 		Beneficiary: big.NewInt(0),
 		Number:      big.NewInt(0),

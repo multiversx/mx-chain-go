@@ -29,7 +29,7 @@ import (
 
 var testMarshalizer = &marshal.JsonMarshalizer{}
 var testHasher = sha256.Sha256{}
-var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(1)
+var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
 type accountFactory struct {
