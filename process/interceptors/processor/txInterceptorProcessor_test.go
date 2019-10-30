@@ -1,6 +1,8 @@
 package processor_test
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -73,10 +75,11 @@ func TestTxInterceptorProcessor_ValidateNilTxShouldErr(t *testing.T) {
 func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 	t.Parallel()
 
+	expectedErr := errors.New("tx validation error")
 	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
-		IsTxValidForProcessingCalled: func(txValidatorHandler process.TxValidatorHandler) bool {
-			return false
+		CheckTxValidityCalled: func(txValidatorHandler process.TxValidatorHandler) error {
+			return expectedErr
 		},
 	}
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
@@ -87,7 +90,9 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 	}{}
 	err := txip.Validate(txInterceptedData)
 
-	assert.Equal(t, process.ErrTxNotValid, err)
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(err.Error(), process.ErrTxNotValid.Error()))
+	assert.True(t, strings.Contains(err.Error(), expectedErr.Error()))
 }
 
 func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
@@ -95,8 +100,8 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 
 	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
-		IsTxValidForProcessingCalled: func(txValidatorHandler process.TxValidatorHandler) bool {
-			return true
+		CheckTxValidityCalled: func(txValidatorHandler process.TxValidatorHandler) error {
+			return nil
 		},
 	}
 	txip, _ := processor.NewTxInterceptorProcessor(arg)

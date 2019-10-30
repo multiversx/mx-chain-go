@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -37,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -57,6 +59,8 @@ const (
 	defaultEpochString = "Epoch"
 	defaultShardString = "Shard"
 	metachainShardName = "metachain"
+	// DefaultRestApiPort specifies the default Rest API port which will be used in case that another one wasn't provided.
+	// If set to "off" then the endpoints won't be available
 	DefaultRestApiPort = "off"
 )
 
@@ -360,8 +364,8 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 }
 
 func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
-	logLevel := ctx.GlobalString(logLevel.Name)
-	log.SetLevel(logLevel)
+	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
+	log.SetLevel(logLevelFlagValue)
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -428,6 +432,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		nodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
 	}
 
+	keyGenForBalances := signing.NewKeyGenerator(getSuiteForBalances())
+
 	startTime := time.Unix(nodesConfig.StartTime, 0)
 
 	log.Info(fmt.Sprintf("Start time formatted: %s", startTime.Format("Mon Jan 2 15:04:05 MST 2006")))
@@ -490,8 +496,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		fmt.Sprintf("%s_%d", defaultEpochString, 0),
 		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
-	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanup {
+	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanupFlagValue {
 		err = os.RemoveAll(uniqueDBFolder)
 		if err != nil {
 			return err
@@ -694,8 +700,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		generalConfig,
 		preferencesConfig,
 		nodesConfig,
+		economicsData,
 		syncer,
 		keyGen,
+		keyGenForBalances,
 		privKey,
 		pubKey,
 		shardCoordinator,
@@ -797,6 +805,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
+}
+
+func getSuiteForBalances() crypto.Suite {
+	return kyber.NewBlakeSHA256Ed25519()
 }
 
 func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
@@ -956,17 +968,17 @@ func createNodesCoordinator(
 	initNodesInfo := nodesConfig.InitialNodesInfo()
 	initValidators := make(map[uint32][]sharding.Validator)
 
-	for shardId, nodeInfoList := range initNodesInfo {
+	for shId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
-			if err != nil {
-				return nil, err
+			validator, errVal := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
+			if errVal != nil {
+				return nil, errVal
 			}
 
 			validators = append(validators, validator)
 		}
-		initValidators[shardId] = validators
+		initValidators[shId] = validators
 	}
 
 	pubKeyBytes, err := pubKey.ToByteArray()
@@ -1055,8 +1067,10 @@ func createNode(
 	config *config.Config,
 	preferencesConfig *config.ConfigPreferences,
 	nodesConfig *sharding.NodesSetup,
+	economicsData process.FeeHandler,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
+	keyGenForBalances crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
@@ -1080,6 +1094,7 @@ func createNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
 		node.WithMarshalizer(core.Marshalizer),
+		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
 		node.WithAccountsAdapter(state.AccountsAdapter),
@@ -1097,6 +1112,7 @@ func createNode(
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
+		node.WithKeyGenForBalances(keyGenForBalances),
 		node.WithTxSignPubKey(crypto.TxSignPubKey),
 		node.WithTxSignPrivKey(crypto.TxSignPrivKey),
 		node.WithPubKey(pubKey),
@@ -1199,14 +1215,14 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
-	rm, err := statistics.NewResourceMonitor(file)
+	resMon, err := statistics.NewResourceMonitor(file)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			err = rm.SaveStatistics()
+			err = resMon.SaveStatistics()
 			log.LogIfError(err)
 			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
 		}

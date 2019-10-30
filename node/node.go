@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	nodeCmdFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -32,8 +33,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -56,6 +59,7 @@ type Node struct {
 	marshalizer              marshal.Marshalizer
 	ctx                      context.Context
 	hasher                   hashing.Hasher
+	feeHandler               process.FeeHandler
 	initialNodesPubkeys      map[uint32][]string
 	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
@@ -74,15 +78,16 @@ type Node struct {
 	heartbeatSender          *heartbeat.Sender
 	appStatusHandler         core.AppStatusHandler
 
-	txSignPrivKey  crypto.PrivateKey
-	txSignPubKey   crypto.PublicKey
-	pubKey         crypto.PublicKey
-	privKey        crypto.PrivateKey
-	keyGen         crypto.KeyGenerator
-	singleSigner   crypto.SingleSigner
-	txSingleSigner crypto.SingleSigner
-	multiSigner    crypto.MultiSigner
-	forkDetector   process.ForkDetector
+	txSignPrivKey     crypto.PrivateKey
+	txSignPubKey      crypto.PublicKey
+	pubKey            crypto.PublicKey
+	privKey           crypto.PrivateKey
+	keyGen            crypto.KeyGenerator
+	keyGenForBalances crypto.KeyGenerator
+	singleSigner      crypto.SingleSigner
+	txSingleSigner    crypto.SingleSigner
+	multiSigner       crypto.MultiSigner
+	forkDetector      process.ForkDetector
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
@@ -510,6 +515,12 @@ func (n *Node) SendTransaction(
 		Signature: signature,
 	}
 
+	txCopy := tx
+	err = n.validateTx(txCopy, senderShardId)
+	if err != nil {
+		return "", err
+	}
+
 	txBuff, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return "", err
@@ -534,6 +545,62 @@ func (n *Node) SendTransaction(
 	return txHexHash, nil
 }
 
+func (n *Node) validateTx(tx transaction.Transaction, senderShardId uint32) error {
+	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, nodeCmdFactory.MaxTxNonceDeltaAllowed)
+	if err != nil {
+		return nil
+	}
+
+	err = n.verifySignatureForTx(&tx)
+	if err != nil {
+		return err
+	}
+
+	marshalizedTx, err := n.marshalizer.Marshal(tx)
+	if err != nil {
+		return err
+	}
+
+	intTx, err := procTx.NewInterceptedTransaction(
+		marshalizedTx,
+		n.marshalizer,
+		n.hasher,
+		n.keyGen,
+		n.txSingleSigner,
+		n.addrConverter,
+		n.shardCoordinator,
+		n.feeHandler,
+	)
+	if err != nil {
+		return err
+	}
+
+	return txValidator.CheckTxValidity(intTx)
+}
+
+func (n *Node) verifySignatureForTx(tx *transaction.Transaction) error {
+	signature := tx.Signature
+	tx.Signature = nil
+	marshalizedTxWithoutSignature, err := n.marshalizer.Marshal(tx)
+	if err != nil {
+		return err
+	}
+	tx.Signature = signature
+
+	senderPubKey, err := n.keyGenForBalances.PublicKeyFromByteArray(tx.SndAddr)
+	if err != nil {
+		return err
+	}
+
+	err = n.txSingleSigner.Verify(senderPubKey, marshalizedTxWithoutSignature, tx.Signature)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendBulkTransactions will send a slice of transactions to the network
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	transactionsByShards := make(map[uint32][][]byte, 0)
 
@@ -557,12 +624,12 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	}
 
 	numOfSentTxs := uint64(0)
-	for shardId, txs := range transactionsByShards {
-		err := n.sendBulkTransactionsFromShard(txs, shardId)
+	for shardId, txsForShard := range transactionsByShards {
+		err := n.sendBulkTransactionsFromShard(txsForShard, shardId)
 		if err != nil {
 			log.Error(err.Error())
 		} else {
-			numOfSentTxs += uint64(len(txs))
+			numOfSentTxs += uint64(len(txsForShard))
 		}
 	}
 
@@ -602,6 +669,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	return nil
 }
 
+// CreateTransaction will return a transaction from all the required fields
 func (n *Node) CreateTransaction(
 	nonce uint64,
 	value *big.Int,
@@ -720,9 +788,9 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	if !n.messenger.HasTopic(HeartbeatTopic) {
-		err := n.messenger.CreateTopic(HeartbeatTopic, true)
-		if err != nil {
-			return err
+		errTopic := n.messenger.CreateTopic(HeartbeatTopic, true)
+		if errTopic != nil {
+			return errTopic
 		}
 	}
 

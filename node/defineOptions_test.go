@@ -802,3 +802,51 @@ func TestWithIndexer_ShouldWork(t *testing.T) {
 	assert.Equal(t, indexer, node.indexer)
 	assert.Nil(t, err)
 }
+
+func TestWithKeyGenForBalances_NilKeygenShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithKeyGenForBalances(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilKeyGenForBalances, err)
+}
+
+func TestWithKeyGenForBalances_OkKeygenShouldPass(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	keyGen := &mock.KeyGenMock{}
+	opt := WithKeyGenForBalances(keyGen)
+	err := opt(node)
+
+	assert.True(t, node.keyGenForBalances == keyGen)
+	assert.Nil(t, err)
+}
+
+func TestWithTxFeeHandler_NilTxFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxFeeHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilTxFeeHandler, err)
+}
+
+func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	txFeeHandler := &mock.FeeHandlerStub{}
+	opt := WithTxFeeHandler(txFeeHandler)
+	err := opt(node)
+
+	assert.True(t, node.feeHandler == txFeeHandler)
+	assert.Nil(t, err)
+}

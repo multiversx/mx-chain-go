@@ -52,6 +52,17 @@ func WithHasher(hasher hashing.Hasher) Option {
 	}
 }
 
+// WithTxFeeHandler sets up the tx fee handler for the Node
+func WithTxFeeHandler(feeHandler process.FeeHandler) Option {
+	return func(n *Node) error {
+		if feeHandler == nil || feeHandler.IsInterfaceNil() {
+			return ErrNilTxFeeHandler
+		}
+		n.feeHandler = feeHandler
+		return nil
+	}
+}
+
 // WithAccountsAdapter sets up the accounts adapter option for the Node
 func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	return func(n *Node) error {
@@ -136,6 +147,17 @@ func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 			return ErrNilSingleSignKeyGen
 		}
 		n.keyGen = keyGen
+		return nil
+	}
+}
+
+// WithKeyGenForBalances sets up the balances key generator option for the Node
+func WithKeyGenForBalances(keyGenForBalances crypto.KeyGenerator) Option {
+	return func(n *Node) error {
+		if keyGenForBalances == nil || keyGenForBalances.IsInterfaceNil() {
+			return ErrNilKeyGenForBalances
+		}
+		n.keyGenForBalances = keyGenForBalances
 		return nil
 	}
 }

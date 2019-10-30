@@ -1,6 +1,9 @@
 package processor
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -38,10 +41,9 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 		return process.ErrWrongTypeAssertion
 	}
 
-	//TODO change the IsTxValidForProcessing to output error
-	isTxValid := txip.txValidator.IsTxValidForProcessing(interceptedTx)
-	if !isTxValid {
-		return process.ErrTxNotValid
+	errTxValidation := txip.txValidator.CheckTxValidity(interceptedTx)
+	if errTxValidation != nil {
+		return errors.New(fmt.Sprintf("%s: %s", process.ErrTxNotValid.Error(), errTxValidation))
 	}
 
 	return nil
