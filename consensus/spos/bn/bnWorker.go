@@ -72,6 +72,16 @@ func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool 
 	return msgType == MtBlockHeader
 }
 
+//IsMessageWithSignature returns if the current messageType is about signature
+func (wrk *worker) IsMessageWithSignature(msgType consensus.MessageType) bool {
+	return msgType == MtSignature
+}
+
+//IsSubroundSignature returns if the current subround is about signature
+func (wrk *worker) IsSubroundSignature(subroundId int) bool {
+	return subroundId == SrSignature
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *worker) IsInterfaceNil() bool {
 	if wrk == nil {
