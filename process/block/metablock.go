@@ -587,6 +587,34 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
+// RevertStateToBlock recreates thee state tries to the root hashes indicated by the providd header
+func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+	err := mp.accounts.RecreateTrie(header.GetRootHash())
+	if err != nil {
+		return err
+	}
+
+	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RevertAccountState reverts the account state for cleanup failed process
+func (mp *metaProcessor) RevertAccountState() {
+	err := mp.accounts.RevertToSnapshot(0)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	err = mp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
 	metaBlockStore := mp.store.GetStorer(dataRetriever.MetaBlockUnit)
 	buff, err := metaBlockStore.Get(header.GetPrevHash())

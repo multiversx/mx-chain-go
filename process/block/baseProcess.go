@@ -101,14 +101,6 @@ func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 	return nil
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState() {
-	err := bp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Error(err.Error())
-	}
-}
-
 // AddLastNotarizedHdr adds the last notarized header
 func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bp.mutNotarizedHdrs.Lock()

@@ -610,7 +610,6 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 	var err error
 	var newHeader data.HeaderHandler
 	var newHeaderHash []byte
-	var newRootHash []byte
 
 	if header.GetNonce() > 1 {
 		newHeader, err = boot.getPrevHeader(headerStore, header)
@@ -619,10 +618,8 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 		}
 
 		newHeaderHash = header.GetPrevHash()
-		newRootHash = newHeader.GetRootHash()
 	} else { // rollback to genesis block
 		newHeader = boot.blkc.GetGenesisHeader()
-		newRootHash = boot.blkc.GetGenesisHeader().GetRootHash()
 	}
 
 	err = boot.blkc.SetCurrentBlockHeader(newHeader)
@@ -632,7 +629,7 @@ func (boot *MetaBootstrap) rollback(header *block.MetaBlock) error {
 
 	boot.blkc.SetCurrentBlockHeaderHash(newHeaderHash)
 
-	err = boot.accounts.RecreateTrie(newRootHash)
+	err = boot.blkExecutor.RevertStateToBlock(newHeader)
 	if err != nil {
 		return err
 	}
