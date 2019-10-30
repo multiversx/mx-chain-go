@@ -265,9 +265,6 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrRollbackFromGenesis signals that a rollback from genesis is called
-var ErrRollbackFromGenesis = errors.New("roll back from genesis is not permitted")
-
 // ErrNoDataInMessage signals that no data was found after parsing received p2p message
 var ErrNoDataInMessage = errors.New("no data found in received message")
 
