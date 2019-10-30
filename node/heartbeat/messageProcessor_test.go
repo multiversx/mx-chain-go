@@ -280,7 +280,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShouldTrim(t *testing.T) {
+func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	length := 129
@@ -335,9 +335,8 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShou
 
 	ret, err := mon.CreateHeartbeatFromP2pMessage(message)
 
-	assert.NotNil(t, ret)
-	assert.Equal(t, 128, len(ret.NodeDisplayName))
-	assert.Nil(t, err)
+	assert.Nil(t, ret)
+	assert.Equal(t, heartbeat.ErrPropertyTooLong, err)
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testing.T) {
