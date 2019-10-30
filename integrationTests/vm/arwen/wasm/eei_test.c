@@ -54,8 +54,16 @@ void SCMethod_FinishFunctionName() {
 	finish(function_name, length + 3);
 }
 
+// Test getBlockTimestamp
+long long int getBlockTimestamp();
+void SCMethod_FinishBlockTimestamp() {
+	long long int timestamp = getBlockTimestamp();
+	long long int timestamp2 = 0x000000005DB96702;
+	long long int timestampRev = 0x0267B95D;
+	finish((byte*)(&timestampRev), sizeof(timestampRev));
+}
+
 // Misc
-//
 byte SmallArray[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 int Count = 7;
 

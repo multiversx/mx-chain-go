@@ -4,4 +4,5 @@ SCMethod_FinishOwnerAddress
 SCMethod_FinishCallerAddress
 SCMethod_FinishCallValue
 SCMethod_FinishFunctionName
+SCMethod_FinishBlockTimestamp
 SCMethod_IncrementSmallArray

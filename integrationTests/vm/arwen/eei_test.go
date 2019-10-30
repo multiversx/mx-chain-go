@@ -38,7 +38,8 @@ func Test_BasicSCMethod(t *testing.T) {
 	header := defaultCallHeader()
 	vmInput := defaultVMInput(header, arguments)
 	vmInput.CallerAddr = callerAddressBytes
-	vmInput.CallValue = big.NewInt(64)
+
+	var expectedBytes []byte
 
 	// Call the method which sets ReturnData to nil
 	callInput := makeCallInput(scAddress, "SCMethod_FinishNil", vmInput)
@@ -61,6 +62,7 @@ func Test_BasicSCMethod(t *testing.T) {
 	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
 	assertReturnData(t, vmOutput, callerAddressBytes)
 
+	vmInput.CallValue = big.NewInt(0x5DB96713)
 	callInput = makeCallInput(scAddress, "SCMethod_FinishCallValue", vmInput)
 	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
 	assertReturnData(t, vmOutput, vmInput.CallValue.Bytes())
@@ -68,6 +70,12 @@ func Test_BasicSCMethod(t *testing.T) {
 	callInput = makeCallInput(scAddress, "SCMethod_FinishFunctionName", vmInput)
 	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
 	assertReturnData(t, vmOutput, []byte("SCMethod_FinishFunctionName..-"))
+
+	header.Timestamp.SetInt64(0x000000005DB96702)
+	callInput = makeCallInput(scAddress, "SCMethod_FinishBlockTimestamp", vmInput)
+	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
+	expectedBytes = padBytesLeft(big.NewInt(0x5DB96702).Bytes(), 8, 0)
+	assertReturnData(t, vmOutput, expectedBytes)
 }
 
 func Test_MiscSCMethods(t *testing.T) {
@@ -85,7 +93,20 @@ func Test_MiscSCMethods(t *testing.T) {
 	assertReturnData(t, vmOutput, []byte{1, 1, 1, 1, 1, 1, 1, 0})
 }
 
+func padBytesLeft(source []byte, totalLen int, padByte byte) []byte {
+	result := make([]byte, 0)
+	paddingSize := totalLen - len(source)
+	for i := 0; i < paddingSize; i++ {
+		result = append(result, padByte)
+	}
+	for _, b := range source {
+		result = append(result, b)
+	}
+	return result
+}
+
 func assertReturnData(t *testing.T, vmOutput *vmcommon.VMOutput, expectedBytes []byte) {
+	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode, vmOutput.ReturnCode)
 	if len(vmOutput.ReturnData) == 0 {
 		assert.True(t, expectedBytes == nil)
 		return
