@@ -493,7 +493,7 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 	finality int64,
 ) error {
 
-	if state == process.BHProcessed || bfd.isSyncing(header.GetNonce()) {
+	if state == process.BHProcessed || bfd.isSyncing() {
 		return nil
 	}
 
@@ -513,7 +513,7 @@ func (bfd *baseForkDetector) activateForcedForkIfNeeded(
 	state process.BlockHeaderState,
 ) {
 
-	if state != process.BHProposed || bfd.isSyncing(header.GetNonce()) {
+	if state != process.BHProposed || bfd.isSyncing() {
 		return
 	}
 
@@ -535,8 +535,8 @@ func (bfd *baseForkDetector) activateForcedForkIfNeeded(
 	bfd.setShouldForceFork(true)
 }
 
-func (bfd *baseForkDetector) isSyncing(receivedNonce uint64) bool {
-	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(receivedNonce)
+func (bfd *baseForkDetector) isSyncing() bool {
+	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(bfd.lastCheckpoint().nonce)
 	isSyncing := noncesDifference > process.NonceDifferenceWhenSynced
 	return isSyncing
 }
