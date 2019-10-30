@@ -58,3 +58,6 @@ var ErrUnmarshalGenesisTime = errors.New("monitor: can't unmarshal genesis time"
 
 // ErrMarshalGenesisTime signals that the marshaling of the genesis time didn't work
 var ErrMarshalGenesisTime = errors.New("monitor: can't marshal genesis time")
+
+// ErrPropertyTooLong signals that one of the properties is too long
+var ErrPropertyTooLong = errors.New("property too long in Heartbeat")
