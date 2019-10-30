@@ -1554,10 +1554,6 @@ func newBlockProcessor(
 
 	shardCoordinator := processArgs.shardCoordinator
 	nodesCoordinator := processArgs.nodesCoordinator
-	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
-	if err != nil {
-		return nil, err
-	}
 
 	communityAddr := processArgs.economicsData.CommunityAddress()
 	burnAddr := processArgs.economicsData.BurnAddress()
@@ -1602,6 +1598,11 @@ func newBlockProcessor(
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
+		if err != nil {
+			return nil, err
+		}
+
 		return newMetaBlockProcessor(
 			resolversFinder,
 			processArgs.shardCoordinator,
@@ -1899,10 +1900,10 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 		return nil, err
 	}
 
+	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 	headerStorage := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
 	metaHeaderStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
-	initialNodes := processComponents.nodesConfig.InitialNodes
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: initialNodes,
@@ -1910,10 +1911,12 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 		AdrConv: processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
+		DataPool: processComponents.data.MetaDatapool,
 		ShardHeaderStorage: headerStorage,
 		MetaHeaderStorage: metaHeaderStorage,
 		Marshalizer: processComponents.core.Marshalizer,
 	}
+
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
 	if err != nil {
 		return nil, err

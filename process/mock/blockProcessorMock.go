@@ -21,6 +21,7 @@ type BlockProcessorMock struct {
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	ApplyValidatorStatisticsCalled   func(header data.HeaderHandler) error
 }
 
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
@@ -69,6 +70,13 @@ func (blProcMock BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, process
 
 func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
 	panic("implement me")
+}
+
+func (blProcMock *BlockProcessorMock) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	if blProcMock.ApplyValidatorStatisticsCalled != nil {
+		return blProcMock.ApplyValidatorStatisticsCalled(header)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

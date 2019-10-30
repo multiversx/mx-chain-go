@@ -220,6 +220,7 @@ type BlockProcessor interface {
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
+	ApplyValidatorStatistics(header data.HeaderHandler) error
 }
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics

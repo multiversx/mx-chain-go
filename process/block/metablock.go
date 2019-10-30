@@ -205,9 +205,11 @@ func (mp *metaProcessor) ProcessBlock(
 
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
 	if err != nil {
+		log.Error("cannot update peer state")
 		return err
 	}
 
+	log.Error(fmt.Sprintf("%s %s", core.ToB64(header.ValidatorStatsRootHash), core.ToB64(validatorStatsRH)))
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
 		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
@@ -1150,17 +1152,27 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.RootHash = mp.getRootHash()
 	header.TxCount = getTxCount(shardInfo)
 
-	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
-	if err != nil {
-		return nil, err
-	}
-	header.ValidatorStatsRootHash = validatorStatsRH
-
 	mp.blockSizeThrottler.Add(
 		round,
 		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
+}
+
+func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	metaHdr, ok := header.(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	if err != nil {
+		return err
+	}
+
+	metaHdr.ValidatorStatsRootHash = rootHash
+
+	return nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {

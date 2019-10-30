@@ -22,6 +22,7 @@ func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -43,6 +44,7 @@ func TestNewValidatorStatisticsProcessor_NilAddressConverterShouldErr(t *testing
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -64,6 +66,7 @@ func TestNewValidatorStatisticsProcessor_NilNodesCoordinatorShouldErr(t *testing
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: nil,
@@ -83,6 +86,7 @@ func TestNewValidatorStatisticsProcessor_NilShardCoordinatorShouldErr(t *testing
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -104,6 +108,7 @@ func TestNewValidatorStatisticsProcessor_NilShardHeaderStorageShouldErr(t *testi
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: nil,
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -125,6 +130,7 @@ func TestNewValidatorStatisticsProcessor_NilMetaHeaderStorageShouldErr(t *testin
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: nil,
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -146,6 +152,7 @@ func TestNewValidatorStatisticsProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: nil,
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -167,6 +174,7 @@ func TestNewValidatorStatisticsProcessor(t *testing.T) {
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -188,6 +196,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnInvalidNode(t *testin
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -218,6 +227,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -254,6 +264,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: initialNodes,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -287,6 +298,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: initialNodes,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -329,6 +341,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: initialNodes,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -374,6 +387,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: initialNodes,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -418,6 +432,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: initialNodes,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -438,6 +453,7 @@ func TestValidatorStatisticsProcessor_IsNodeValidEmptyAddressShoudErr(t *testing
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -459,6 +475,7 @@ func TestValidatorStatisticsProcessor_IsNodeValidEmptyPubKeyShoudErr(t *testing.
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -480,6 +497,7 @@ func TestValidatorStatisticsProcessor_IsNodeValid(t *testing.T) {
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{},
@@ -502,6 +520,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldEr
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{
@@ -530,6 +549,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCreateAddressFromPublicKeyB
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{
@@ -566,6 +586,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{
@@ -601,6 +622,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: &mock.MarshalizerMock{},
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: &mock.StorerStub{},
 		MetaHeaderStorage: &mock.StorerStub{},
 		NodesCoordinator: &mock.NodesCoordinatorMock{
@@ -635,7 +657,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 			return nil, getHeaderError
 		},
 	}
-	metaHeaderStorage := &mock.StorerStub{}
+	metaHeaderStorage := &mock.StorerStub{
+		GetCalled: func(key []byte) (bytes []byte, e error) {
+			return nil, getHeaderError
+		},
+	}
 	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{}, nil
 	}
@@ -644,6 +670,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: marshalizer,
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: shardHeaderStorage,
 		MetaHeaderStorage: metaHeaderStorage,
 		NodesCoordinator: &mock.NodesCoordinatorMock{
@@ -682,7 +709,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 			return nil, nil
 		},
 	}
-	metaHeaderStorage := &mock.StorerStub{}
+	metaHeaderStorage := &mock.StorerStub{
+		GetCalled: func(key []byte) (bytes []byte, e error) {
+			return nil, nil
+		},
+	}
 	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{}, nil
 	}
@@ -691,6 +722,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: marshalizer,
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: shardHeaderStorage,
 		MetaHeaderStorage: metaHeaderStorage,
 		NodesCoordinator: &mock.NodesCoordinatorMock{
@@ -722,7 +754,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	increaseValidatorCalled := false
 	marshalizer := &mock.MarshalizerStub{}
 	shardHeaderStorage := &mock.StorerStub{}
-	metaHeaderStorage := &mock.StorerStub{}
+	metaHeaderStorage := &mock.StorerStub{
+		GetCalled: func(key []byte) (bytes []byte, e error) {
+			return nil, nil
+		},
+	}
 	adapter.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			IncreaseLeaderSuccessRateWithJournalCalled: func() error {
@@ -743,6 +779,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: nil,
 		Marshalizer: marshalizer,
+		DataPool: &mock.MetaPoolsHolderFake{},
 		ShardHeaderStorage: shardHeaderStorage,
 		MetaHeaderStorage: metaHeaderStorage,
 		NodesCoordinator: &mock.NodesCoordinatorMock{
@@ -766,6 +803,8 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	}
 	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
 		switch v := obj.(type) {
+		case *block.MetaBlock:
+			*v = block.MetaBlock{}
 		case *block.Header:
 			*v = block.Header{}
 		default:

@@ -21,6 +21,8 @@ type BlockProcessorStub struct {
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
+	ApplyValidatorStatisticsCalled   func(header data.HeaderHandler) error
+
 }
 
 // ProcessBlock mocks pocessing a block
@@ -41,6 +43,13 @@ func (blProcMock *BlockProcessorStub) RevertAccountState() {
 // CreateGenesisBlock mocks the creation of a genesis block body
 func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (data.HeaderHandler, error) {
 	return blProcMock.CreateGenesisBlockCalled(balances)
+}
+
+func (blProcMock *BlockProcessorStub) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	if blProcMock.ApplyValidatorStatisticsCalled != nil {
+		return blProcMock.ApplyValidatorStatisticsCalled(header)
+	}
+	return nil
 }
 
 // CreateTxBlockBody mocks the creation of a transaction block body

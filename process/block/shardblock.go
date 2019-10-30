@@ -1539,6 +1539,10 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 	return header, nil
 }
 
+func (sp *shardProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	return nil
+}
+
 func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 	select {
 	case <-sp.chRcvAllMetaHdrs:

@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -14,16 +15,18 @@ import (
 type ArgValidatorStatisticsProcessor struct {
 	InitialNodes       []*sharding.InitialNode
 	Marshalizer        marshal.Marshalizer
-	ShardHeaderStorage storage.Storer
-	MetaHeaderStorage  storage.Storer
 	NodesCoordinator   sharding.NodesCoordinator
 	ShardCoordinator   sharding.Coordinator
+	DataPool           dataRetriever.MetaPoolsHolder
+	ShardHeaderStorage storage.Storer
+	MetaHeaderStorage  storage.Storer
 	AdrConv            state.AddressConverter
 	PeerAdapter        state.AccountsAdapter
 }
 
 type validatorStatistics struct {
 	marshalizer        marshal.Marshalizer
+	dataPool           dataRetriever.MetaPoolsHolder
 	shardHeaderStorage storage.Storer
 	metaHeaderStorage  storage.Storer
 	nodesCoordinator   sharding.NodesCoordinator
@@ -41,17 +44,20 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.AdrConv == nil || arguments.AdrConv.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
 	}
-	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
-		return nil, process.ErrNilNodesCoordinator
-	}
-	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
-		return nil, process.ErrNilShardCoordinator
+	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
+		return nil, process.ErrNilDataPoolHolder
 	}
 	if arguments.ShardHeaderStorage == nil || arguments.ShardHeaderStorage.IsInterfaceNil() {
 		return nil, process.ErrNilShardHeaderStorage
 	}
 	if arguments.MetaHeaderStorage == nil || arguments.MetaHeaderStorage.IsInterfaceNil() {
 		return nil, process.ErrNilMetaHeaderStorage
+	}
+	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
+		return nil, process.ErrNilNodesCoordinator
+	}
+	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
+		return nil, process.ErrNilShardCoordinator
 	}
 	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
@@ -62,6 +68,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		adrConv:            arguments.AdrConv,
 		nodesCoordinator:   arguments.NodesCoordinator,
 		shardCoordinator:   arguments.ShardCoordinator,
+		dataPool:           arguments.DataPool,
 		shardHeaderStorage: arguments.ShardHeaderStorage,
 		metaHeaderStorage:  arguments.MetaHeaderStorage,
 		marshalizer:        arguments.Marshalizer,
@@ -122,7 +129,7 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
-	previousHeader, err := p.getHeader(header.GetPrevHash())
+	previousHeader, err := p.getMetaHeaderFromStorage(header.GetPrevHash())
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +201,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 	}
 
 	for _, h := range metaHeader.ShardInfo {
-		shardHeader, err := p.getHeader(h.HeaderHash)
+		shardHeader, err := process.GetShardHeaderFromPool(h.HeaderHash, p.dataPool.ShardHeaders())
 		if err != nil {
 			return err
 		}
@@ -209,7 +216,11 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 			return err
 		}
 
-		previousHeader, err := p.getMetaHeader(shardHeader.GetPrevHash())
+		if shardHeader.GetNonce() == 1 {
+			continue
+		}
+
+		previousHeader, err :=  p.getHeaderFromStorage(shardHeader.GetPrevHash())
 		if err != nil {
 			return err
 		}
@@ -321,7 +332,7 @@ func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountH
 	return peerAccount, nil
 }
 
-func (p *validatorStatistics) getHeader(headerHash []byte) (data.HeaderHandler, error) {
+func (p *validatorStatistics) getHeaderFromStorage(headerHash []byte) (data.HeaderHandler, error) {
 	shardHeaderBytes, err := p.shardHeaderStorage.Get(headerHash)
 	if err != nil {
 		return nil, err
@@ -336,7 +347,7 @@ func (p *validatorStatistics) getHeader(headerHash []byte) (data.HeaderHandler, 
 	return header, nil
 }
 
-func (p *validatorStatistics) getMetaHeader(headerHash []byte) (data.HeaderHandler, error) {
+func (p *validatorStatistics) getMetaHeaderFromStorage(headerHash []byte) (data.HeaderHandler, error) {
 	metaHeaderBytes, err := p.metaHeaderStorage.Get(headerHash)
 	if err != nil {
 		return nil, err

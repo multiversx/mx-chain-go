@@ -23,6 +23,8 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	SetConsensusDataCalled           func(randomness []byte, round uint64, epoch uint32, shardId uint32)
+	ApplyValidatorStatisticsCalled   func(header data.HeaderHandler) error
+
 }
 
 // ProcessBlock mocks pocessing a block
@@ -47,6 +49,13 @@ func (blProcMock *BlockProcessorMock) CreateBlockBody(round uint64, haveTime fun
 
 func (blProcMock *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	return blProcMock.RestoreBlockIntoPoolsCalled(header, body)
+}
+
+func (blProcMock *BlockProcessorMock) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	if blProcMock.ApplyValidatorStatisticsCalled != nil {
+		return blProcMock.ApplyValidatorStatisticsCalled(header)
+	}
+	return nil
 }
 
 func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
