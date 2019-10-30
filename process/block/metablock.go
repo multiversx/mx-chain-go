@@ -587,7 +587,7 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the providd header
+// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	err := mp.accounts.RecreateTrie(header.GetRootHash())
 	if err != nil {

@@ -1902,8 +1902,6 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
-	headerStorage := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
-	metaHeaderStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes: initialNodes,
@@ -1912,8 +1910,7 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
 		DataPool: processComponents.data.MetaDatapool,
-		ShardHeaderStorage: headerStorage,
-		MetaHeaderStorage: metaHeaderStorage,
+		StorageService: storageService,
 		Marshalizer: processComponents.core.Marshalizer,
 	}
 

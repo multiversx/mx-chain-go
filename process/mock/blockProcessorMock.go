@@ -22,6 +22,7 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	ApplyValidatorStatisticsCalled   func(header data.HeaderHandler) error
+	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
@@ -75,6 +76,14 @@ func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round u
 func (blProcMock *BlockProcessorMock) ApplyValidatorStatistics(header data.HeaderHandler) error {
 	if blProcMock.ApplyValidatorStatisticsCalled != nil {
 		return blProcMock.ApplyValidatorStatisticsCalled(header)
+	}
+	return nil
+}
+
+// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
+func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if blProcMock.RevertStateToBlockCalled != nil {
+		return blProcMock.RevertStateToBlock(header)
 	}
 	return nil
 }

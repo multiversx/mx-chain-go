@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
@@ -18,8 +17,7 @@ type ArgValidatorStatisticsProcessor struct {
 	NodesCoordinator   sharding.NodesCoordinator
 	ShardCoordinator   sharding.Coordinator
 	DataPool           dataRetriever.MetaPoolsHolder
-	ShardHeaderStorage storage.Storer
-	MetaHeaderStorage  storage.Storer
+	StorageService     dataRetriever.StorageService
 	AdrConv            state.AddressConverter
 	PeerAdapter        state.AccountsAdapter
 }
@@ -27,8 +25,7 @@ type ArgValidatorStatisticsProcessor struct {
 type validatorStatistics struct {
 	marshalizer        marshal.Marshalizer
 	dataPool           dataRetriever.MetaPoolsHolder
-	shardHeaderStorage storage.Storer
-	metaHeaderStorage  storage.Storer
+	storageService     dataRetriever.StorageService
 	nodesCoordinator   sharding.NodesCoordinator
 	shardCoordinator   sharding.Coordinator
 	adrConv            state.AddressConverter
@@ -47,11 +44,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if arguments.ShardHeaderStorage == nil || arguments.ShardHeaderStorage.IsInterfaceNil() {
-		return nil, process.ErrNilShardHeaderStorage
-	}
-	if arguments.MetaHeaderStorage == nil || arguments.MetaHeaderStorage.IsInterfaceNil() {
-		return nil, process.ErrNilMetaHeaderStorage
+	if arguments.StorageService == nil || arguments.StorageService.IsInterfaceNil() {
+		return nil, process.ErrNilStorage
 	}
 	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilNodesCoordinator
@@ -69,8 +63,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		nodesCoordinator:   arguments.NodesCoordinator,
 		shardCoordinator:   arguments.ShardCoordinator,
 		dataPool:           arguments.DataPool,
-		shardHeaderStorage: arguments.ShardHeaderStorage,
-		metaHeaderStorage:  arguments.MetaHeaderStorage,
+		storageService:     arguments.StorageService,
 		marshalizer:        arguments.Marshalizer,
 	}
 
@@ -129,7 +122,8 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
-	previousHeader, err := p.getMetaHeaderFromStorage(header.GetPrevHash())
+	//previousHeader, err := p.getMetaHeaderFromStorage(header.GetPrevHash())
+	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), p.dataPool.MetaBlocks(), p.marshalizer, p.storageService)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +214,8 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 			continue
 		}
 
-		previousHeader, err :=  p.getHeaderFromStorage(shardHeader.GetPrevHash())
+		//previousHeader, err :=  p.getHeaderFromStorage(shardHeader.GetPrevHash())
+		previousHeader, err := process.GetShardHeader(shardHeader.GetPrevHash(), p.dataPool.ShardHeaders(), p.marshalizer, p.storageService)
 		if err != nil {
 			return err
 		}
@@ -330,36 +325,6 @@ func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountH
 	}
 
 	return peerAccount, nil
-}
-
-func (p *validatorStatistics) getHeaderFromStorage(headerHash []byte) (data.HeaderHandler, error) {
-	shardHeaderBytes, err := p.shardHeaderStorage.Get(headerHash)
-	if err != nil {
-		return nil, err
-	}
-
-	header := &block.Header{}
-	err = p.marshalizer.Unmarshal(header, shardHeaderBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
-}
-
-func (p *validatorStatistics) getMetaHeaderFromStorage(headerHash []byte) (data.HeaderHandler, error) {
-	metaHeaderBytes, err := p.metaHeaderStorage.Get(headerHash)
-	if err != nil {
-		return nil, err
-	}
-
-	header := &block.MetaBlock{}
-	err = p.marshalizer.Unmarshal(header, metaHeaderBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

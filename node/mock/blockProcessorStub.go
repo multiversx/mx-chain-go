@@ -22,6 +22,7 @@ type BlockProcessorStub struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	ApplyValidatorStatisticsCalled   func(header data.HeaderHandler) error
+	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 
 }
 
@@ -48,6 +49,14 @@ func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*bi
 func (blProcMock *BlockProcessorStub) ApplyValidatorStatistics(header data.HeaderHandler) error {
 	if blProcMock.ApplyValidatorStatisticsCalled != nil {
 		return blProcMock.ApplyValidatorStatisticsCalled(header)
+	}
+	return nil
+}
+
+// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
+func (blProcMock *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
+	if blProcMock.RevertStateToBlockCalled != nil {
+		return blProcMock.RevertStateToBlock(header)
 	}
 	return nil
 }

@@ -12,6 +12,7 @@ type BlockProcessorMock struct {
 	ProcessBlockCalled               func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func()
+	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
 	CreateBlockCalled                func(round uint64, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
@@ -32,6 +33,14 @@ func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler,
 // CommitBlock mocks the commit of a block
 func (blProcMock *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 	return blProcMock.CommitBlockCalled(blockChain, header, body)
+}
+
+// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
+func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if blProcMock.RevertStateToBlockCalled != nil {
+		return blProcMock.RevertStateToBlock(header)
+	}
+	return nil
 }
 
 // RevertAccountState mocks revert of the accounts state

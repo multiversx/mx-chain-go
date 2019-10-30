@@ -229,7 +229,6 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	err = sr.BlockProcessor().ApplyValidatorStatistics(hdr)
 	if err != nil {
-		log.Error("OMG NOT WORKING")
 		return nil, err
 	}
 
