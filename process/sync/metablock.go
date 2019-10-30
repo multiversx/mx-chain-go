@@ -91,6 +91,7 @@ func NewMetaBootstrap(
 	}
 
 	base.storageBootstrapper = &boot
+	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 
 	//there is one header topic so it is ok to save it
@@ -100,14 +101,8 @@ func NewMetaBootstrap(
 	}
 
 	//placed in struct fields for performance reasons
-	base.getCurrHeader = boot.getCurrHeader
-	base.getPrevHeader = boot.getPrevHeader
-	base.getBlockBody = boot.getBlockBody
 	base.headerStore = boot.store.GetStorer(dataRetriever.MetaBlockUnit)
 	base.headerNonceHashStore = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-	base.getHeaderWithHashRequestingIfMissing = boot.getHeaderWithHashRequestingIfMissing
-	base.getHeaderWithNonceRequestingIfMissing = boot.getHeaderWithNonceRequestingIfMissing
-	base.haveHeaderInPoolWithNonce = boot.haveMetaHeaderInPoolWithNonce
 
 	hdrRes, ok := hdrResolver.(dataRetriever.HeaderResolver)
 	if !ok {
@@ -115,7 +110,6 @@ func NewMetaBootstrap(
 	}
 
 	base.hdrRes = hdrRes
-	base.getBlockBodyRequestingIfMissing = boot.getBlockBody
 
 	boot.chRcvHdrNonce = make(chan bool)
 	boot.chRcvHdrHash = make(chan bool)
@@ -518,7 +512,7 @@ func (boot *MetaBootstrap) IsInterfaceNil() bool {
 	return false
 }
 
-func (boot *MetaBootstrap) haveMetaHeaderInPoolWithNonce(nonce uint64) bool {
+func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
 	_, _, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers,
@@ -529,4 +523,8 @@ func (boot *MetaBootstrap) haveMetaHeaderInPoolWithNonce(nonce uint64) bool {
 
 func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
 	return process.GetMetaHeaderFromPool(headerHash, boot.headers)
+}
+
+func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	return boot.getBlockBody(headerHandler)
 }

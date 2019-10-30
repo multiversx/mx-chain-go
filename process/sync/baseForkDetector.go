@@ -486,15 +486,9 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 		return nil
 	}
 
-	// This check is very important for meta-chain, as it prevents the situation when whole shard would been reverted
-	// to an older block with nonce n and round r, which has been received with latency, after they already created in
-	// the next round r + 1 another one with the same nonce n, and also they already sent theirs signatures for another
-	// proposed one with nonce n + 1 in the round r + 2. Actually the problem is, that if shards would have been
-	// received the latest broadcast block with nonce n + 1, they would been made the latest created block with nonce n
-	// from round r + 1 final, but the meta-chain nodes would been reverted to the first block created with nonce n
-	// from round r, and from this point nothing would be synchronized by shards from meta-chain.
-	// Actually this condition would prevent that these older blocks to be accepted as a revert point, so this way
-	// everything should be synchronized between what shards notarized from meta-chain and what meta-chain built on.
+	// This condition would avoid a stuck situation, when shards would set as final, block with nonce n received from
+	// meta-chain, because they also received n+1. In the same time meta-chain would be reverted to an older block with
+	// nonce n received it with latency but before n+1. Actually this condition would reject these older blocks.
 	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-finality
 	if roundTooOld {
 		return ErrLowerRoundInBlock
@@ -505,7 +499,8 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 
 func (bfd *baseForkDetector) activateForcedForkIfNeeded(
 	header data.HeaderHandler,
-	state process.BlockHeaderState) {
+	state process.BlockHeaderState,
+) {
 
 	if state != process.BHProposed || bfd.isSyncing(header.GetNonce()) {
 		return

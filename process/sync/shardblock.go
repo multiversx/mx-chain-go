@@ -103,6 +103,7 @@ func NewShardBootstrap(
 	}
 
 	base.storageBootstrapper = &boot
+	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
@@ -119,15 +120,9 @@ func NewShardBootstrap(
 	}
 
 	//placed in struct fields for performance reasons
-	base.getCurrHeader = boot.getCurrHeader
-	base.getPrevHeader = boot.getPrevHeader
-	base.getBlockBody = boot.getBlockBody
 	base.headerStore = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(boot.shardCoordinator.SelfId())
 	base.headerNonceHashStore = boot.store.GetStorer(hdrNonceHashDataUnit)
-	base.getHeaderWithHashRequestingIfMissing = boot.getHeaderWithHashRequestingIfMissing
-	base.getHeaderWithNonceRequestingIfMissing = boot.getHeaderWithNonceRequestingIfMissing
-	base.haveHeaderInPoolWithNonce = boot.haveShardHeaderInPoolWithNonce
 
 	hdrRes, ok := hdrResolver.(dataRetriever.HeaderResolver)
 	if !ok {
@@ -135,7 +130,6 @@ func NewShardBootstrap(
 	}
 
 	base.hdrRes = hdrRes
-	base.getBlockBodyRequestingIfMissing = boot.getBlockBodyRequestingIfMissing
 
 	miniBlocksRes, ok := miniBlocksResolver.(dataRetriever.MiniBlocksResolver)
 	if !ok {
@@ -810,7 +804,7 @@ func (boot *ShardBootstrap) IsInterfaceNil() bool {
 	return false
 }
 
-func (boot *ShardBootstrap) haveShardHeaderInPoolWithNonce(nonce uint64) bool {
+func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {
 	_, _, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		boot.shardCoordinator.SelfId(),

@@ -267,7 +267,6 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		//TODO: Block validity should be checked here and also on interceptors side, taking into consideration the following:
 		//(previous random seed, round, shard id and current random seed to verify if the block has been sent by the right proposer)
 		isHeaderValid := !check.IfNil(header) && headerHash != nil
-
 		if isHeaderValid {
 			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 			if errNotCritical != nil {
@@ -424,7 +423,6 @@ func (wrk *Worker) Extend(subroundId int) {
 
 	shouldBroadcastLastCommittedHeader := wrk.consensusState.IsSelfLeaderInCurrentRound() &&
 		wrk.consensusService.IsSubroundSignature(subroundId)
-
 	if shouldBroadcastLastCommittedHeader {
 		wrk.broadcastLastCommittedHeader()
 	}
@@ -443,7 +441,6 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 		return
 	}
 
-	// broadcast header
 	err := wrk.broadcastMessenger.BroadcastHeader(header)
 	if err != nil {
 		log.Error(err.Error())

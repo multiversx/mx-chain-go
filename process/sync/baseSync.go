@@ -57,6 +57,7 @@ type baseBootstrap struct {
 	shardCoordinator    sharding.Coordinator
 	accounts            state.AccountsAdapter
 	storageBootstrapper storageBootstrapper
+	blockBootstrapper   blockBootstrapper
 
 	mutHeader     sync.RWMutex
 	headerNonce   *uint64
@@ -91,16 +92,9 @@ type baseBootstrap struct {
 	requestMiniBlocks func(uint32, uint64)
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
-	getCurrHeader                         func() (data.HeaderHandler, error)
-	getPrevHeader                         func(data.HeaderHandler, storage.Storer) (data.HeaderHandler, error)
-	getBlockBody                          func(headerHandler data.HeaderHandler) (data.BodyHandler, error)
-	headerStore                           storage.Storer
-	headerNonceHashStore                  storage.Storer
-	getHeaderWithHashRequestingIfMissing  func(hash []byte) (data.HeaderHandler, error)
-	getHeaderWithNonceRequestingIfMissing func(nonce uint64) (data.HeaderHandler, error)
-	haveHeaderInPoolWithNonce             func(nonce uint64) bool
-	hdrRes                                dataRetriever.HeaderResolver
-	getBlockBodyRequestingIfMissing       func(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+	headerStore          storage.Storer
+	headerNonceHashStore storage.Storer
+	hdrRes               dataRetriever.HeaderResolver
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -693,9 +687,9 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
-	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.haveHeaderInPoolWithNonce, boot.hdrRes)
+	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce()+1, boot.blockBootstrapper.haveHeaderInPoolWithNonce, boot.hdrRes)
 
-	blockBody, err := boot.getBlockBodyRequestingIfMissing(hdr)
+	blockBody, err := boot.blockBootstrapper.getBlockBodyRequestingIfMissing(hdr)
 	if err != nil {
 		return err
 	}
@@ -704,21 +698,21 @@ func (boot *baseBootstrap) syncBlock() error {
 		return boot.rounder.TimeDuration()
 	}
 
-	timeBefore := time.Now()
+	startTime := time.Now()
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 	if err != nil {
 		return err
 	}
-	timeAfter := time.Now()
-	log.Info(fmt.Sprintf("time elapsed to process block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
+	elapsedTime := time.Now().Sub(startTime).Seconds()
+	log.Info(fmt.Sprintf("elapsed time to process block: %v sec\n", elapsedTime))
 
-	timeBefore = time.Now()
+	startTime = time.Now()
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
 		return err
 	}
-	timeAfter = time.Now()
-	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
+	elapsedTime = time.Now().Sub(startTime).Seconds()
+	log.Info(fmt.Sprintf("elapsed time to commit block: %v sec\n", elapsedTime))
 
 	log.Info(fmt.Sprintf("block with nonce %d has been synced successfully\n", hdr.GetNonce()))
 	boot.requestsWithTimeout = 0
@@ -737,22 +731,22 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Info("starting fork choice\n")
 	for {
-		currHeader, err := boot.getCurrHeader()
+		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
 		}
 		if !revertUsingForkNonce && currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
 			return ErrRollBackBehindFinalHeader
 		}
-		currBlockBody, err := boot.getBlockBody(currHeader)
+		currBlockBody, err := boot.blockBootstrapper.getBlockBody(currHeader)
 		if err != nil {
 			return err
 		}
-		prevHeader, err := boot.getPrevHeader(currHeader, boot.headerStore)
+		prevHeader, err := boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
 		if err != nil {
 			return err
 		}
-		prevBlockBody, err := boot.getBlockBody(prevHeader)
+		prevBlockBody, err := boot.blockBootstrapper.getBlockBody(prevHeader)
 		if err != nil {
 			return err
 		}
@@ -833,10 +827,10 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	boot.setRequestedHeaderNonce(nil)
 
 	if boot.isForkDetected {
-		return boot.getHeaderWithHashRequestingIfMissing(boot.forkHash)
+		return boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(boot.forkHash)
 	}
 
-	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
+	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
 }
 
 func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
