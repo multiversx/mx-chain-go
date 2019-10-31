@@ -17,57 +17,69 @@ const hexTerminator = 16
 
 type node interface {
 	getHash() []byte
-	setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
+	setHash() error
 	setGivenHash([]byte)
-	setHashConcurrent(marshalizer marshal.Marshalizer, hasher hashing.Hasher, wg *sync.WaitGroup, c chan error)
-	setRootHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) // a collapsed node is a node that instead of the children holds the children hashes
+	setHashConcurrent(wg *sync.WaitGroup, c chan error)
+	setRootHash() error
+	getCollapsed() (node, error) // a collapsed node is a node that instead of the children holds the children hashes
 	isCollapsed() bool
 	isPosCollapsed(pos int) bool
 	isDirty() bool
-	getEncodedNode(marshal.Marshalizer) ([]byte, error)
-	commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	resolveCollapsed(pos byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) error
-	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
-	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	tryGet(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) ([]byte, error)
-	getNext(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error)
-	insert(n *leafNode, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error)
-	delete(key []byte, dbw data.DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, [][]byte, error)
-	reduceNode(pos int) node
+	getEncodedNode() ([]byte, error)
+	commit(force bool, level byte, db data.DBWriteCacher) error
+	resolveCollapsed(pos byte) error
+	hashNode() ([]byte, error)
+	hashChildren() error
+	tryGet(key []byte) ([]byte, error)
+	getNext(key []byte) (node, []byte, error)
+	insert(n *leafNode) (bool, node, [][]byte, error)
+	delete(key []byte) (bool, node, [][]byte, error)
+	reduceNode(pos int) (node, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int)
 	deepClone() node
 	getDirtyHashes() ([][]byte, error)
+
+	getMarshalizer() marshal.Marshalizer
+	setMarshalizer(marshal.Marshalizer)
+	getHasher() hashing.Hasher
+	setHasher(hashing.Hasher)
+	getDb() data.DBWriteCacher
+	setDb(data.DBWriteCacher)
+}
+
+type baseNode struct {
+	hash   []byte
+	dirty  bool
+	db     data.DBWriteCacher
+	marsh  marshal.Marshalizer
+	hasher hashing.Hasher
 }
 
 type branchNode struct {
 	protobuf.CollapsedBn
 	children [nrOfChildren]node
-	hash     []byte
-	dirty    bool
+	*baseNode
 }
 
 type extensionNode struct {
 	protobuf.CollapsedEn
 	child node
-	hash  []byte
-	dirty bool
+	*baseNode
 }
 
 type leafNode struct {
 	protobuf.CollapsedLn
-	hash  []byte
-	dirty bool
+	*baseNode
 }
 
-func hashChildrenAndNode(n node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
-	err := n.hashChildren(marshalizer, hasher)
+func hashChildrenAndNode(n node) ([]byte, error) {
+	err := n.hashChildren()
 	if err != nil {
 		return nil, err
 	}
 
-	hashed, err := n.hashNode(marshalizer, hasher)
+	hashed, err := n.hashNode()
 	if err != nil {
 		return nil, err
 	}
@@ -75,33 +87,33 @@ func hashChildrenAndNode(n node, marshalizer marshal.Marshalizer, hasher hashing
 	return hashed, nil
 }
 
-func encodeNodeAndGetHash(n node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
-	encNode, err := n.getEncodedNode(marshalizer)
+func encodeNodeAndGetHash(n node) ([]byte, error) {
+	encNode, err := n.getEncodedNode()
 	if err != nil {
 		return nil, err
 	}
 
-	hash := hasher.Compute(string(encNode))
+	hash := n.getHasher().Compute(string(encNode))
 
 	return hash, nil
 }
 
-func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 	key := n.getHash()
 	if key == nil {
-		err := n.setHash(marshalizer, hasher)
+		err := n.setHash()
 		if err != nil {
 			return err
 		}
 		key = n.getHash()
 	}
 
-	n, err := n.getCollapsed(marshalizer, hasher)
+	n, err := n.getCollapsed()
 	if err != nil {
 		return err
 	}
 
-	val, err := n.getEncodedNode(marshalizer)
+	val, err := n.getEncodedNode()
 	if err != nil {
 		return err
 	}
@@ -111,13 +123,13 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher, marshalizer marshal.
 	return err
 }
 
-func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) (node, error) {
+func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
 		return nil, err
 	}
 
-	node, err := decodeNode(encChild, marshalizer)
+	node, err := decodeNode(encChild, db, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -125,14 +137,14 @@ func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal
 	return node, nil
 }
 
-func resolveIfCollapsed(n node, pos byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func resolveIfCollapsed(n node, pos byte) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
 
 	if n.isPosCollapsed(int(pos)) {
-		err = n.resolveCollapsed(pos, db, marshalizer)
+		err = n.resolveCollapsed(pos)
 		if err != nil {
 			return err
 		}
@@ -164,7 +176,7 @@ func hasValidHash(n node) (bool, error) {
 	return true, nil
 }
 
-func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
+func decodeNode(encNode []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	if encNode == nil || len(encNode) < 1 {
 		return nil, ErrInvalidEncoding
 	}
@@ -182,19 +194,21 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
 		return nil, err
 	}
 
+	node.setDb(db)
+	node.setMarshalizer(marshalizer)
+	node.setHasher(hasher)
+
 	return node, nil
 }
 
 func getEmptyNodeOfType(t byte) (node, error) {
 	switch t {
 	case extension:
-		return &extensionNode{}, nil
+		return &extensionNode{baseNode: &baseNode{}}, nil
 	case leaf:
-		return &leafNode{}, nil
+		return &leafNode{baseNode: &baseNode{}}, nil
 	case branch:
-		decNode := newBranchNode()
-		decNode.dirty = false
-		return decNode, nil
+		return &branchNode{baseNode: &baseNode{}}, nil
 	default:
 		return nil, ErrInvalidNode
 	}
