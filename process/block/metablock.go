@@ -459,7 +459,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
-	metaBlockPool.Remove(headerHash)
+	// metaBlockPool.Remove(headerHash) should not be called, just to have a restore point if it is needed later
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {
