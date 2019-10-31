@@ -736,6 +736,7 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 		},
 		discovery.NewNullDiscoverer(),
 		libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		0,
 	)
 
 	wg := sync.WaitGroup{}
