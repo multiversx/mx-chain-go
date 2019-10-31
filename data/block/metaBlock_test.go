@@ -41,7 +41,7 @@ func TestShardData_SaveLoad(t *testing.T) {
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 		PubKeysBitmap:         []byte{1},
 		Signature:             []byte{1},
-		RandSeed:              []byte{1},
+		PrevRandSeed:          []byte{1},
 		TxCount:               uint32(1),
 	}
 
@@ -76,7 +76,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		TxCount:               uint32(1),
 		PubKeysBitmap:         []byte("pkb"),
 		Signature:             []byte("sig"),
-		RandSeed:              []byte("rand"),
+		PrevRandSeed:          []byte("rand"),
 	}
 
 	mb := block.MetaBlock{
