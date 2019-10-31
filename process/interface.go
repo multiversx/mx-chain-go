@@ -55,9 +55,52 @@ type TxValidator interface {
 	IsInterfaceNil() bool
 }
 
+// TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
+type TxValidatorHandler interface {
+	SenderShardId() uint32
+	Nonce() uint64
+	SenderAddress() state.AddressContainer
+	TotalValue() *big.Int
+}
+
+// HdrValidatorHandler defines the functionality that is needed for a HdrValidator to validate a header
+type HdrValidatorHandler interface {
+	Hash() []byte
+	HeaderHandler() data.HeaderHandler
+}
+
 // HeaderValidator can determine if a provided header handler is valid or not from the process point of view
 type HeaderValidator interface {
-	IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool
+	HeaderValidForProcessing(headerHandler HdrValidatorHandler) error
+	IsInterfaceNil() bool
+}
+
+// InterceptedDataFactory can create new instances of InterceptedData
+type InterceptedDataFactory interface {
+	Create(buff []byte) (InterceptedData, error)
+	IsInterfaceNil() bool
+}
+
+// InterceptedData represents the interceptor's view of the received data
+type InterceptedData interface {
+	CheckValidity() error
+	IsForCurrentShard() bool
+	IsInterfaceNil() bool
+	Hash() []byte
+}
+
+// InterceptorProcessor further validates and saves received data
+type InterceptorProcessor interface {
+	Validate(data InterceptedData) error
+	Save(data InterceptedData) error
+	IsInterfaceNil() bool
+}
+
+// InterceptorThrottler can
+type InterceptorThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
 	IsInterfaceNil() bool
 }
 
@@ -136,6 +179,7 @@ type SpecialAddressHandler interface {
 	ShardIdForAddress([]byte) (uint32, error)
 	Epoch() uint32
 	Round() uint64
+	IsCurrentNodeInConsensus() bool
 	IsInterfaceNil() bool
 }
 
@@ -153,7 +197,7 @@ type PreProcessor interface {
 
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
 
-	RequestTransactionsForMiniBlock(mb block.MiniBlock) int
+	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
 	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, round uint64) error
 	CreateAndProcessMiniBlock(sndShardId, dstShardId uint32, spaceRemained int, haveTime func() bool, round uint64) (*block.MiniBlock, error)
 	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, round uint64, haveTime func() bool) (block.MiniBlockSlice, error)
@@ -232,6 +276,8 @@ type ForkDetector interface {
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonceIfNeeded()
+	ResetProbableHighestNonce()
+	ResetFork()
 	IsInterfaceNil() bool
 }
 
@@ -310,7 +356,7 @@ type VirtualMachinesContainerFactory interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P) error
+	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
 
@@ -321,18 +367,23 @@ type MessageHandler interface {
 	IsInterfaceNil() bool
 }
 
-// TopicHandler defines the functionality needed by structs to manage topics and message processors
-type TopicHandler interface {
+type topicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+}
+
+// TopicHandler defines the functionality needed by structs to manage topics and message processors
+type TopicHandler interface {
+	topicHandler
+	IsInterfaceNil() bool
 }
 
 // TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
 // to other peers
 type TopicMessageHandler interface {
 	MessageHandler
-	TopicHandler
+	topicHandler
 }
 
 // DataPacker can split a large slice of byte slices in smaller packets
@@ -384,26 +435,10 @@ type BlockSizeThrottler interface {
 	IsInterfaceNil() bool
 }
 
-// TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
-type TxValidatorHandler interface {
-	SenderShardId() uint32
-	Nonce() uint64
-	SenderAddress() state.AddressContainer
-	TotalValue() *big.Int
-}
-
 // PoolsCleaner define the functionality that is needed for a pools cleaner
 type PoolsCleaner interface {
 	Clean(duration time.Duration) (bool, error)
 	NumRemovedTxs() uint64
-	IsInterfaceNil() bool
-}
-
-// InterceptorThrottler can determine if a new go routine can start
-type InterceptorThrottler interface {
-	CanProcess() bool
-	StartProcessing()
-	EndProcessing()
 	IsInterfaceNil() bool
 }
 
@@ -416,16 +451,31 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// FeeHandler will return information about fees
+// FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
-	MinGasPrice() uint64
-	MinGasLimit() uint64
+	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
+	ComputeFee(tx TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	IsInterfaceNil() bool
+}
+
+// TransactionWithFeeHandler represents a transaction structure that has economics variables defined
+type TransactionWithFeeHandler interface {
+	GetGasLimit() uint64
+	GetGasPrice() uint64
+	GetData() string
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
 type EconomicsAddressesHandler interface {
 	CommunityAddress() string
 	BurnAddress() string
+	IsInterfaceNil() bool
+}
+
+// MiniBlocksCompacter defines the functionality that is needed for mini blocks compaction and expansion
+type MiniBlocksCompacter interface {
+	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice
+	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
 	IsInterfaceNil() bool
 }

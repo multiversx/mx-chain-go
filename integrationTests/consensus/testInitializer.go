@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -450,14 +451,16 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
-		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(
-			consensusSize,
-			1,
-			createHasher(consensusType),
-			0,
-			1,
-			validatorsMap,
-		)
+
+		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			ShardConsensusGroupSize: consensusSize,
+			MetaConsensusGroupSize:  1,
+			Hasher:                  createHasher(consensusType),
+			NbShards:                1,
+			Nodes:                   validatorsMap,
+			SelfPublicKey:           []byte(strconv.Itoa(i)),
+		}
+		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		n, mes, blkProcessor, blkc := createConsensusOnlyNode(
 			shardCoordinator,

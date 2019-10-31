@@ -68,6 +68,9 @@ func createShardedDataChacherNotifier(
 					LenCalled: func() int {
 						return 0
 					},
+					MaxSizeCalled: func() int {
+						return 1000
+					},
 				}
 			},
 			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
@@ -105,6 +108,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				HasCalled: func(nonce uint64, shardId uint32) bool {
 					return true
 				},
+				RemoveCalled: func(nonce uint64, shardId uint32) {},
 			}
 		},
 		MetaBlocksCalled: func() storage.Cacher {
@@ -121,6 +125,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 				LenCalled: func() int {
 					return 0
 				},
+				MaxSizeCalled: func() int {
+					return 1000
+				},
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -128,6 +135,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 					return nil, false
 				},
 				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RemoveCalled:          func(key []byte) {},
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
@@ -150,6 +158,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
 			cs.RemoveCalled = func(key []byte) {}
+			cs.LenCalled = func() int {
+				return 0
+			}
+			cs.MaxSizeCalled = func() int {
+				return 300
+			}
 			return cs
 		},
 		HeadersCalled: func() storage.Cacher {
@@ -159,6 +173,14 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
+			cs.RemoveCalled = func(key []byte) {
+			}
+			cs.LenCalled = func() int {
+				return 0
+			}
+			cs.MaxSizeCalled = func() int {
+				return 1000
+			}
 			return cs
 		},
 	}
@@ -167,7 +189,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 
 func initMetaDataPool() *mock.MetaPoolsHolderStub {
 	mdp := &mock.MetaPoolsHolderStub{
-		MetaChainBlocksCalled: func() storage.Cacher {
+		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -181,6 +203,9 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 				LenCalled: func() int {
 					return 0
 				},
+				MaxSizeCalled: func() int {
+					return 1000
+				},
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -188,22 +213,30 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 					return nil, false
 				},
 				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RemoveCalled:          func(key []byte) {},
 			}
 		},
-		MiniBlockHashesCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			sdc := &mock.ShardedDataStub{}
-			sdc.RegisterHandlerCalled = func(i func(key []byte)) {
+		MiniBlocksCalled: func() storage.Cacher {
+			cs := &mock.CacherStub{}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {
 			}
-			sdc.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("bbb"), key) {
-					return make(block.MiniBlockSlice, 0), true
+			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("mb_hash1"), key) {
+					return &block.Header{Nonce: 1}, true
 				}
-
 				return nil, false
 			}
-			sdc.RegisterHandlerCalled = func(i func(key []byte)) {}
-			sdc.RemoveDataCalled = func(key []byte, cacheId string) {}
-			return sdc
+			cs.LenCalled = func() int {
+				return 0
+			}
+			cs.MaxSizeCalled = func() int {
+				return 300
+			}
+			cs.RemoveCalled = func(key []byte) {}
+			cs.KeysCalled = func() [][]byte {
+				return nil
+			}
+			return cs
 		},
 		ShardHeadersCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
@@ -217,6 +250,9 @@ func initMetaDataPool() *mock.MetaPoolsHolderStub {
 			}
 			cs.LenCalled = func() int {
 				return 0
+			}
+			cs.MaxSizeCalled = func() int {
+				return 1000
 			}
 			cs.RemoveCalled = func(key []byte) {}
 			cs.KeysCalled = func() [][]byte {
@@ -317,7 +353,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 		nodesCoordinator,
 	)
 	arguments := blproc.ArgShardProcessor{
-		ArgBaseProcessor: &blproc.ArgBaseProcessor{
+		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:              &mock.AccountsStub{},
 			ForkDetector:          &mock.ForkDetectorMock{},
 			Hasher:                &mock.HasherStub{},

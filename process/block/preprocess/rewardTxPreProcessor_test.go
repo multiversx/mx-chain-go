@@ -454,7 +454,7 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
-	mb1 := block.MiniBlock{
+	mb1 := &block.MiniBlock{
 		TxHashes:        txHashes,
 		ReceiverShardID: 1,
 		SenderShardID:   0,

@@ -11,7 +11,7 @@ import (
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P) error
+	ProcessReceivedMessage(message MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
 
@@ -140,7 +140,7 @@ type Messenger interface {
 	// BroadcastOnChannelBlocking asynchronously waits until it can send a
 	// message on the channel, but once it is able to, it synchronously sends the
 	// message, blocking until sending is completed.
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte)
+	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
 
 	// BroadcastOnChannel asynchronously sends a message on a given topic
 	// through a specified channel.

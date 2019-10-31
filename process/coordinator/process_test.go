@@ -33,14 +33,19 @@ import (
 
 func FeeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
-		MinGasPriceCalled: func() uint64 {
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
-		MinGasLimitCalled: func() uint64 {
-			return 5
+	}
+}
+
+func MiniBlocksCompacterMock() *mock.MiniBlocksCompacterMock {
+	return &mock.MiniBlocksCompacterMock{
+		CompactCalled: func(miniBlocks block.MiniBlockSlice, mpaHashesAndTxs map[string]data.TransactionHandler) block.MiniBlockSlice {
+			return miniBlocks
 		},
-		MinTxFeeCalled: func() uint64 {
-			return 0
+		ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAntTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+			return miniBlocks, nil
 		},
 	}
 }
@@ -383,6 +388,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -426,6 +432,7 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -698,6 +705,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -789,6 +797,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -938,6 +947,62 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	dstShardId := uint32(1)
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
+	numTxsToAdd := 100
+	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
+
+	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	addedTxs := make([]*transaction.Transaction, 0)
+
+	allTxs := 100
+	for i := 0; i < allTxs; i++ {
+		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
+
+		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
+		txPool.AddData(txHash, newTx, strCache)
+
+		addedTxs = append(addedTxs, newTx)
+	}
+
+	// we have one tx per shard.
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+
+	assert.Equal(t, 1, len(mbs))
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMiniblocksShouldApplyGasLimit(t *testing.T) {
+	t.Parallel()
+
+	nrShards := uint32(5)
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
+	tdp := initDataPool([]byte("tx_hash1"))
+	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return txPool
+	}
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(nrShards),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		createPreProcessorContainerWithDataPool(tdp),
+		&mock.InterimProcessorContainerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
+
+	sndShardId := uint32(0)
+	dstShardId := uint32(1)
+	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+
 	numTxsToAdd := 5
 	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
 
@@ -958,6 +1023,65 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
 	assert.Equal(t, allTxs/numTxsToAdd, len(mbs))
+}
+
+func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	nrShards := uint32(5)
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
+	tdp := initDataPool([]byte("tx_hash1"))
+	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return txPool
+	}
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(nrShards),
+		&mock.AccountsStub{},
+		tdp,
+		&mock.RequestHandlerMock{},
+		createPreProcessorContainerWithDataPool(tdp),
+		&mock.InterimProcessorContainerMock{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	maxTxRemaining := uint32(15000)
+	maxMbRemaining := uint32(15000)
+	haveTime := func() bool {
+		return true
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
+
+	// set more identifiers to match both scenarios: intra-shard txs and cross-shard txs.
+	var shardCacherIdentifiers []string
+	shardCacherIdentifiers = append(shardCacherIdentifiers, process.ShardCacherIdentifier(0, 0))
+	shardCacherIdentifiers = append(shardCacherIdentifiers, process.ShardCacherIdentifier(0, 1))
+	shardCacherIdentifiers = append(shardCacherIdentifiers, process.ShardCacherIdentifier(0, 2))
+	shardCacherIdentifiers = append(shardCacherIdentifiers, process.ShardCacherIdentifier(0, 3))
+	shardCacherIdentifiers = append(shardCacherIdentifiers, process.ShardCacherIdentifier(0, 4))
+
+	// set the gas limit to be enough only for 5 txs in a miniblock so the rest should be split and compressed
+	numTxsToAdd := 20
+	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
+
+	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+
+	numTxsPerBulk := 100
+	for _, shardCacher := range shardCacherIdentifiers {
+		for i := 0; i < numTxsPerBulk; i++ {
+			newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
+
+			txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
+			txPool.AddData(txHash, newTx, shardCacher)
+		}
+	}
+
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
+
+	assert.Equal(t, nrShards, uint32(len(mbs)))
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
@@ -1108,7 +1232,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 	senderShardId := uint32(1)
 	receiverShardId := uint32(2)
 
-	miniBlock := block.MiniBlock{
+	miniBlock := &block.MiniBlock{
 		SenderShardID:   senderShardId,
 		ReceiverShardID: receiverShardId,
 		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
@@ -1154,6 +1278,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1309,6 +1434,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1430,6 +1556,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1546,6 +1673,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1653,6 +1781,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
+		MiniBlocksCompacterMock(),
 	)
 	container, _ := preFactory.Create()
 

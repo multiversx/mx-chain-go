@@ -11,8 +11,8 @@ func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 	boot.requestHeaderWithNonce(nonce)
 }
 
-func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
-	return boot.miniBlockResolver.GetMiniBlocks(hashes)
+func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+	return boot.miniBlocksResolver.GetMiniBlocks(hashes)
 }
 
 func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
@@ -23,12 +23,12 @@ func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
 }
 
-func (boot *ShardBootstrap) ForkChoice(revertUsingForkNonce bool) error {
-	return boot.forkChoice(revertUsingForkNonce)
+func (boot *ShardBootstrap) RollBack(revertUsingForkNonce bool) error {
+	return boot.rollBack(revertUsingForkNonce)
 }
 
-func (boot *MetaBootstrap) ForkChoice(revertUsingForkNonce bool) error {
-	return boot.forkChoice(revertUsingForkNonce)
+func (boot *MetaBootstrap) RollBack(revertUsingForkNonce bool) error {
+	return boot.rollBack(revertUsingForkNonce)
 }
 
 func (bfd *baseForkDetector) GetHeaders(nonce uint64) []*headerInfo {
@@ -81,10 +81,6 @@ func (bfd *baseForkDetector) RemoveInvalidReceivedHeaders() {
 
 func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
-}
-
-func (bfd *baseForkDetector) GetProbableHighestNonce(headersInfo []*headerInfo) uint64 {
-	return bfd.getProbableHighestNonce(headersInfo)
 }
 
 func (hi *headerInfo) Hash() []byte {
