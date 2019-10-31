@@ -263,6 +263,7 @@ func (n *Node) StartConsensus() error {
 
 	worker, err := spos.NewWorker(
 		consensusService,
+		n.blkc,
 		n.blockProcessor,
 		bootstrapper,
 		broadcastMessenger,
