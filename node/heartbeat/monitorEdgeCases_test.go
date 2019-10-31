@@ -39,6 +39,15 @@ const hundredSeconds = 100
 const hundredFiftySeconds = 150
 const twoHundredSeconds = 200
 
+// v: stands for validator and o: stands for observer
+// dotted line means the node (v/o) is offline
+// line means the node is online
+// values below are timestamps in seconds
+
+// v: |............______________________
+// o: |___________|.........|___________
+//    0           20        100   150   200
+
 // v: |.................................
 // o: |___________|.........|___________
 //    0           20        100   150   200
@@ -148,7 +157,6 @@ func TestMonitor_ObserverGapValidatorActiveUnitlMaxPeriodEnds(t *testing.T) {
 	timer.SetSeconds(70)
 	heartBeats = mon1.GetHeartbeats()
 	verifyHeartBeat(t, heartBeats[0], false, 60, 10)
-
 }
 
 // v: |_____.............................
@@ -236,10 +244,6 @@ func TestMonitor_ObserverGapValidatorPartlyOnline2(t *testing.T) {
 	mon2.AddHeartbeatMessageToMap(&heartbeat.Heartbeat{Pubkey: []byte(pkValidator)})
 	heartBeats = mon2.GetHeartbeats()
 	verifyHeartBeat(t, heartBeats[0], true, 120, 0)
-
-	//timer.SetSeconds(170)
-	//heartBeats = mon2.GetHeartbeats()
-	//verifyHeartBeat(t, heartBeats[0], true, 170, 0)
 
 	timer.SetSeconds(twoHundredSeconds)
 	heartBeats = mon2.GetHeartbeats()

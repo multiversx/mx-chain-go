@@ -59,28 +59,20 @@ func newHeartbeatMessageInfo(
 	return hbmi, nil
 }
 
-func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
-	validDuration := computeValidDuration(crtTime, hbmi)
-	previousActive := hbmi.isActive && validDuration
-	hbmi.isActive = true
-
-	hbmi.updateTimes(crtTime, previousActive)
-}
-
 func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
 	hbmi.updateMutex.Lock()
 	validDuration := computeValidDuration(crtTime, hbmi)
 	hbmi.isActive = hbmi.isActive && validDuration
-	hbmi.updateTimes(crtTime, hbmi.isActive)
+	hbmi.updateTimes(crtTime)
 	hbmi.updateMutex.Unlock()
 }
 
-func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time, previousActive bool) {
+func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time) {
 	if crtTime.Sub(hbmi.genesisTime) < 0 {
 		return
 	}
 	hbmi.updateMaxInactiveTimeDuration(crtTime)
-	hbmi.updateUpAndDownTime(previousActive, crtTime)
+	hbmi.updateUpAndDownTime(crtTime)
 }
 
 func computeValidDuration(crtTime time.Time, hbmi *heartbeatMessageInfo) bool {
@@ -116,24 +108,32 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime(crtTime time.Time) {
 	hbmi.lastUptimeDowntime = crtTime
 }
 
-func (hbmi *heartbeatMessageInfo) computeUptimeDowntime(crtTime time.Time, lastDuration time.Duration) (time.Duration, time.Duration) {
+func (hbmi *heartbeatMessageInfo) computeUptimeDowntime(
+	crtTime time.Time,
+	lastDuration time.Duration,
+) (time.Duration, time.Duration) {
 	durationSinceLastHeartbeat := crtTime.Sub(hbmi.timeStamp)
 	insideActiveWindowAfterHeartheat := durationSinceLastHeartbeat <= hbmi.maxDurationPeerUnresponsive
 	noHeartbeatReceived := hbmi.timeStamp == hbmi.genesisTime && !hbmi.isActive
 	outSideActiveWindowAfterHeartbeat := durationSinceLastHeartbeat-lastDuration > hbmi.maxDurationPeerUnresponsive
 
 	uptime := time.Duration(0)
-	downTime := time.Duration(0)
+	downtime := time.Duration(0)
 
 	if noHeartbeatReceived || outSideActiveWindowAfterHeartbeat {
-		downTime = lastDuration
-	} else if insideActiveWindowAfterHeartheat {
-		uptime = lastDuration
-	} else {
-		downTime = durationSinceLastHeartbeat - hbmi.maxDurationPeerUnresponsive
-		uptime = lastDuration - downTime
+		downtime = lastDuration
+		return uptime, downtime
 	}
-	return uptime, downTime
+
+	if insideActiveWindowAfterHeartheat {
+		uptime = lastDuration
+		return uptime, downtime
+	}
+
+	downtime = durationSinceLastHeartbeat - hbmi.maxDurationPeerUnresponsive
+	uptime = lastDuration - downtime
+
+	return uptime, downtime
 }
 
 // HeartbeatReceived processes a new message arrived from a peer
