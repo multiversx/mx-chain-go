@@ -2116,6 +2116,7 @@ func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldErr(t *testing.T) 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
 	metaHdr := &block.MetaBlock{Round: round}
+
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrAccountStateDirty, err)
@@ -2128,6 +2129,7 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
 	metaHdr := &block.MetaBlock{Round: round}
+
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return false })
 	assert.Nil(t, bodyHandler)
 	assert.Equal(t, process.ErrTimeIsOut, err)
@@ -2155,7 +2157,10 @@ func TestMetaProcessor_CreateMiniBlocksNilTxPoolShouldErr(t *testing.T) {
 func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	t.Parallel()
 
-	expectedMiniBlock1 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash1")}}
+	hash1 := []byte("hash1")
+	hdrHash1Bytes := []byte("hdr_hash1")
+	hdrHash2Bytes := []byte("hdr_hash2")
+	expectedMiniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash1}}
 	expectedMiniBlock2 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash2")}}
 	dPool := initMetaDataPool()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
@@ -2166,15 +2171,15 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		cs.RegisterHandlerCalled = func(i func(key []byte)) {
 		}
 		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal([]byte("hdr_hash1"), key) {
+			if bytes.Equal(hdrHash1Bytes, key) {
 				return &block.Header{
 					Nonce:            1,
 					Round:            1,
 					PrevRandSeed:     []byte("roothash"),
-					MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
+					MiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash1, SenderShardID: 1}},
 				}, true
 			}
-			if bytes.Equal([]byte("hdr_hash2"), key) {
+			if bytes.Equal(hdrHash2Bytes, key) {
 				return &block.Header{Nonce: 2, Round: 2}, true
 			}
 			return nil, false
@@ -2184,7 +2189,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		}
 		cs.RemoveCalled = func(key []byte) {}
 		cs.KeysCalled = func() [][]byte {
-			return [][]byte{[]byte("hdr_hash1"), []byte("hdr_hash2")}
+			return [][]byte{hdrHash1Bytes, hdrHash2Bytes}
 		}
 		return cs
 	}
@@ -2217,7 +2222,6 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	// set accounts dirty
 	journalLen := func() int { return 0 }
 	revToSnapshot := func(snapshot int) error { return nil }
 	blkc := &blockchain.MetaChain{}
@@ -2256,9 +2260,11 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
 
-func TestMetaProcessor_ProcessBlock_Ok(t *testing.T) {
+func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T) {
 	t.Parallel()
 
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
 	hasher := &mock.HasherStub{}
 	hasher.ComputeCalled = func(s string) []byte {
 		return []byte("hash1")
@@ -2280,15 +2286,15 @@ func TestMetaProcessor_ProcessBlock_Ok(t *testing.T) {
 			},
 			{
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash2"), TxCount: 1}},
+				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: hash2, TxCount: 1}},
 				TxCount:               1,
 			},
 		},
-		MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 0, TxCount: 1}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash1, SenderShardID: 0, TxCount: 1}},
 	}
 	body := block.Body{
 		&block.MiniBlock{
-			TxHashes:        [][]byte{[]byte("hash1")},
+			TxHashes:        [][]byte{hash1},
 			ReceiverShardID: 0,
 		},
 	}
@@ -2300,17 +2306,19 @@ func TestMetaProcessor_ProcessBlock_Ok(t *testing.T) {
 	arguments.Hasher = hasher
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	// should return err
 	err := mp.ProcessBlock(blkc, &hdr, body, haveTime)
-
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
 
 func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	t.Parallel()
 
-	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash1")}}
-	miniBlock2 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash2")}}
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	hdrHash1Bytes := []byte("hdr_hash1")
+	hdrHash2Bytes := []byte("hdr_hash2")
+	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash1}}
+	miniBlock2 := &block.MiniBlock{TxHashes: [][]byte{hash2}}
 	dPool := initMetaDataPool()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
@@ -2320,15 +2328,15 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		cs.RegisterHandlerCalled = func(i func(key []byte)) {
 		}
 		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal([]byte("hdr_hash1"), key) {
+			if bytes.Equal(hdrHash1Bytes, key) {
 				return &block.Header{
 					Nonce:            1,
 					Round:            1,
 					PrevRandSeed:     []byte("roothash"),
-					MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
+					MiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash1, SenderShardID: 1}},
 				}, true
 			}
-			if bytes.Equal([]byte("hdr_hash2"), key) {
+			if bytes.Equal(hdrHash2Bytes, key) {
 				return &block.Header{Nonce: 2, Round: 2}, true
 			}
 			return nil, false
@@ -2338,7 +2346,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		}
 		cs.RemoveCalled = func(key []byte) {}
 		cs.KeysCalled = func() [][]byte {
-			return [][]byte{[]byte("hdr_hash1"), []byte("hdr_hash2")}
+			return [][]byte{hdrHash1Bytes, hdrHash2Bytes}
 		}
 		return cs
 	}
@@ -2361,18 +2369,18 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		RootHash:      []byte("roothash"),
 		ShardInfo: []block.ShardData{
 			{
-				HeaderHash:            []byte("hdr_hash1"),
+				HeaderHash:            hdrHash1Bytes,
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash1"), TxCount: 1}},
+				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: hash1, TxCount: 1}},
 				TxCount:               1,
 			},
 			{
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash2"), TxCount: 1}},
+				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: hash2, TxCount: 1}},
 				TxCount:               1,
 			},
 		},
-		MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 0, TxCount: 1}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash1, SenderShardID: 0, TxCount: 1}},
 	}
 
 	arguments := createMockMetaArguments()
@@ -2393,11 +2401,14 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	t.Parallel()
 
+	hash := []byte("hash1")
+	hdrHash1Bytes := []byte("hdr_hash1")
+	hrdHash2Bytes := []byte("hdr_hash2")
 	hasher := &mock.HasherStub{}
 	hasher.ComputeCalled = func(s string) []byte {
-		return []byte("hash1")
+		return hash
 	}
-	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash1")}}
+	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
 	dPool := initMetaDataPool()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
@@ -2407,7 +2418,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		cs.RegisterHandlerCalled = func(i func(key []byte)) {
 		}
 		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal([]byte("hdr_hash1"), key) {
+			if bytes.Equal(hdrHash1Bytes, key) {
 				return &block.Header{
 					PrevHash:         []byte("hash1"),
 					Nonce:            1,
@@ -2416,7 +2427,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 					MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
 				}, true
 			}
-			if bytes.Equal([]byte("hdr_hash2"), key) {
+			if bytes.Equal(hrdHash2Bytes, key) {
 				return &block.Header{Nonce: 2, Round: 2}, true
 			}
 			return nil, false
@@ -2426,7 +2437,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		}
 		cs.RemoveCalled = func(key []byte) {}
 		cs.KeysCalled = func() [][]byte {
-			return [][]byte{[]byte("hdr_hash1"), []byte("hdr_hash2")}
+			return [][]byte{hdrHash1Bytes, hrdHash2Bytes}
 		}
 		return cs
 	}
@@ -2452,7 +2463,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	headerHandler := mp.CreateNewHeader()
 	headerHandler.SetRound(uint64(1))
 	headerHandler.SetNonce(1)
-	headerHandler.SetPrevHash([]byte("hash1"))
+	headerHandler.SetPrevHash(hash)
 
 	blkc := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
