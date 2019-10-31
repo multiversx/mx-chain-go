@@ -6,21 +6,15 @@ import (
 )
 
 type MockTimer struct {
-	seconds  int64
-	mutTimer *sync.Mutex
-}
-
-func NewMockTimer() *MockTimer {
-	return &MockTimer{
-		seconds:  0,
-		mutTimer: &sync.Mutex{},
-	}
+	secondsMutex sync.RWMutex
+	seconds      int64
 }
 
 func (m *MockTimer) Now() time.Time {
-	m.mutTimer.Lock()
-	defer m.mutTimer.Unlock()
-	return time.Unix(m.seconds, 0)
+	m.secondsMutex.RLock()
+	currentSeconds := time.Unix(m.seconds, 0)
+	m.secondsMutex.RUnlock()
+	return currentSeconds
 }
 
 func (m *MockTimer) IsInterfaceNil() bool {
@@ -31,13 +25,13 @@ func (m *MockTimer) IsInterfaceNil() bool {
 }
 
 func (m *MockTimer) IncrementSeconds(value int) {
-	m.mutTimer.Lock()
-	defer m.mutTimer.Unlock()
+	m.secondsMutex.Lock()
 	m.seconds += int64(value)
+	m.secondsMutex.Unlock()
 }
 
 func (m *MockTimer) SetSeconds(value int) {
-	m.mutTimer.Lock()
-	defer m.mutTimer.Unlock()
+	m.secondsMutex.Lock()
 	m.seconds = int64(value)
+	m.secondsMutex.Unlock()
 }

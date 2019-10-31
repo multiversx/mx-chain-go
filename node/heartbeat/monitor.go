@@ -22,11 +22,12 @@ var log = logger.DefaultLogger()
 type Monitor struct {
 	maxDurationPeerUnresponsive time.Duration
 	marshalizer                 marshal.Marshalizer
-	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutHeartbeatMessages        sync.RWMutex
-	pubKeysMap                  map[uint32][]string
-	fullPeersSlice              [][]byte
+	heartbeatMessages           map[string]*heartbeatMessageInfo
 	mutPubKeysMap               sync.RWMutex
+	pubKeysMap                  map[uint32][]string
+	mutFullPeersSlice           sync.RWMutex
+	fullPeersSlice              [][]byte
 	appStatusHandler            core.AppStatusHandler
 	genesisTime                 time.Time
 	messageHandler              MessageHandler
@@ -200,7 +201,7 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
-func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2pMessage(message)
 	if err != nil {
 		return err
@@ -208,35 +209,35 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	//message is validated, process should be done async, method can return nil
 	go m.addHeartbeatMessageToMap(hbRecv)
-	go func() {
-		m.mutHeartbeatMessages.Lock()
-		defer m.mutHeartbeatMessages.Unlock()
 
-		m.computeAllHeartbeatMessages()
-	}()
+	go m.computeAllHeartbeatMessages()
 
 	return nil
 }
 
 func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
-	m.mutHeartbeatMessages.Lock()
-	defer m.mutHeartbeatMessages.Unlock()
-
 	pubKeyStr := string(hb.Pubkey)
+	m.mutHeartbeatMessages.Lock()
 	hbmi, ok := m.heartbeatMessages[pubKeyStr]
 	if hbmi == nil || !ok {
 		var err error
 		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, m.timer)
 		if err != nil {
 			log.Error(err.Error())
+			m.mutHeartbeatMessages.Unlock()
 			return
 		}
 		m.heartbeatMessages[pubKeyStr] = hbmi
 	}
+	m.mutHeartbeatMessages.Unlock()
 
 	computedShardID := m.computeShardID(pubKeyStr)
+
+	hbmi.updateMutex.Lock()
 	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
 	hbDTO := m.convertToExportedStruct(hbmi)
+	hbmi.updateMutex.Unlock()
+
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
 	if err != nil {
 		log.Error(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
@@ -245,6 +246,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 }
 
 func (m *Monitor) addPeerToFullPeersSlice(pubKey []byte) {
+	m.mutFullPeersSlice.Lock()
+	defer m.mutFullPeersSlice.Unlock()
 	if !m.isPeerInFullPeersSlice(pubKey) {
 		m.fullPeersSlice = append(m.fullPeersSlice, pubKey)
 		err := m.storer.SaveKeys(m.fullPeersSlice)
@@ -282,12 +285,13 @@ func (m *Monitor) computeShardID(pubkey string) uint32 {
 }
 
 func (m *Monitor) computeAllHeartbeatMessages() {
+	m.mutHeartbeatMessages.Lock()
 	counterActiveValidators := 0
 	counterConnectedNodes := 0
 	hbChangedStateToInactiveMap := make(map[string]*heartbeatMessageInfo)
 	for key, v := range m.heartbeatMessages {
 		previousActive := v.isActive
-		v.updateTimes(m.timer.Now())
+		v.computeActive(m.timer.Now())
 
 		if v.isActive {
 			counterConnectedNodes++
@@ -302,6 +306,7 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 		}
 	}
 
+	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
 	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
@@ -310,11 +315,10 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
-	m.mutHeartbeatMessages.Lock()
-	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
-
 	m.computeAllHeartbeatMessages()
 
+	m.mutHeartbeatMessages.Lock()
+	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 	idx := 0
 	for k, v := range m.heartbeatMessages {
 		status[idx] = PubKeyHeartbeat{

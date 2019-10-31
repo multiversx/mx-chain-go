@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,7 @@ type heartbeatMessageInfo struct {
 	isValidator        bool
 	lastUptimeDowntime time.Time
 	genesisTime        time.Time
+	updateMutex        sync.Mutex
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
@@ -57,12 +59,35 @@ func newHeartbeatMessageInfo(
 	return hbmi, nil
 }
 
-func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time) {
+func (hbmi *heartbeatMessageInfo) updateFields(crtTime time.Time) {
+	validDuration := computeValidDuration(crtTime, hbmi)
+	previousActive := hbmi.isActive && validDuration
+	hbmi.isActive = true
+
+	hbmi.updateTimes(crtTime, previousActive)
+}
+
+func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
+	hbmi.updateMutex.Lock()
+	validDuration := computeValidDuration(crtTime, hbmi)
+	hbmi.isActive = hbmi.isActive && validDuration
+	hbmi.updateTimes(crtTime, hbmi.isActive)
+	hbmi.updateMutex.Unlock()
+}
+
+func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time, previousActive bool) {
 	if crtTime.Sub(hbmi.genesisTime) < 0 {
 		return
 	}
 	hbmi.updateMaxInactiveTimeDuration(crtTime)
-	hbmi.updateUpAndDownTime(crtTime)
+	hbmi.updateUpAndDownTime(previousActive, crtTime)
+}
+
+func computeValidDuration(crtTime time.Time, hbmi *heartbeatMessageInfo) bool {
+	crtDuration := crtTime.Sub(hbmi.timeStamp)
+	crtDuration = maxDuration(0, crtDuration)
+	validDuration := crtDuration <= hbmi.maxDurationPeerUnresponsive
+	return validDuration
 }
 
 // Will update the total time a node was up and down

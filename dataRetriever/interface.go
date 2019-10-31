@@ -46,7 +46,7 @@ const (
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte) error
-	ProcessReceivedMessage(message p2p.MessageP2P) error
+	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
 
