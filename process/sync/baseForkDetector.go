@@ -45,7 +45,7 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackList process.BlackListHandler
+	blackListHandler process.BlackListHandler
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -179,6 +179,9 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 		if bytes.Equal(hdrInfoStored.hash, hash) {
 			continue
 		}
+		if hdrInfoStored.state == process.BHReceived {
+			continue
+		}
 
 		preservedHdrInfos = append(preservedHdrInfos, hdrInfoStored)
 	}
@@ -263,16 +266,7 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
 	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
 	if roundsWithoutReceivedBlock > process.MaxRoundsWithoutReceivedBlock && isInProperRound {
-		bfd.addHeaderToBlackList()
 		bfd.ResetProbableHighestNonce()
-	}
-}
-
-func (bfd *baseForkDetector) addHeaderToBlackList() {
-	//TODO(Sebi) should add the block that was unable to be synced in the black list
-	err := bfd.blackList.Add("[header hash]")
-	if err != nil {
-		log.Error(err.Error())
 	}
 }
 
@@ -493,7 +487,7 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 	finality int64,
 ) error {
 
-	if state == process.BHProcessed || bfd.isSyncing() {
+	if state == process.BHProcessed {
 		return nil
 	}
 

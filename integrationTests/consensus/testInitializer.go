@@ -417,6 +417,7 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
+		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 	)
 
 	if err != nil {

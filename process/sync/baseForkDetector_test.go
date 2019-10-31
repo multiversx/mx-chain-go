@@ -55,7 +55,11 @@ func TestBasicForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 func TestBasicForkDetector_AddHeaderUnsignedBlockShouldErr(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 	err := bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 1},
 		make([]byte, 0),
@@ -192,7 +196,11 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	hdr2 := &block.Header{Nonce: 2, Round: 2, PubKeysBitmap: []byte("X")}
 	hash2 := []byte("hash2")
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 
 	rounderMock.RoundIndex = 1
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
@@ -217,7 +225,11 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 	_ = bfd.AddHeader(
 		&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
@@ -239,7 +251,11 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 func TestBasicForkDetector_CheckForkMetaHeaderNotProcessedYetShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 99}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 	_ = bfd.AddHeader(
 		&block.MetaBlock{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
@@ -531,7 +547,11 @@ func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 	hdr3 := &block.Header{Nonce: 3, PubKeysBitmap: []byte("X")}
 	hash3 := []byte("hash3")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 	_ = bfd.AddHeader(hdr1, hash1, process.BHReceived, nil, nil)
 	_ = bfd.AddHeader(hdr2, hash2, process.BHReceived, nil, nil)
 	_ = bfd.AddHeader(hdr3, hash3, process.BHReceived, nil, nil)
@@ -591,7 +611,11 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 	hdr1 := &block.Header{Nonce: 2, Round: 2, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
 	rounderMock := &mock.RounderMock{RoundIndex: 2}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(2), bfd.LastCheckpointNonce())
@@ -604,7 +628,11 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 
 	hdr1 := &block.MetaBlock{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
@@ -727,16 +755,16 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 	err := sfd.ShouldAddBlockInForkDetector(hdr, process.BHProcessed, process.ShardBlockFinality)
 	assert.Nil(t, err)
 
-	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced + 1)
 	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
-	assert.Nil(t, err)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
 
-	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
+	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+
 	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality)
 	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
 	assert.Nil(t, err)
 
-	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced + 1)
 	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
 	assert.Nil(t, err)
 }
@@ -766,16 +794,16 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	err := mfd.ShouldAddBlockInForkDetector(hdr, process.BHProcessed, process.MetaBlockFinality)
 	assert.Nil(t, err)
 
-	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced + 1)
 	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
-	assert.Nil(t, err)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
 
-	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
+	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
+	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+
 	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality)
 	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
 	assert.Nil(t, err)
 
-	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced + 1)
 	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
 	assert.Nil(t, err)
 }

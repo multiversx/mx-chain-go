@@ -15,19 +15,19 @@ type metaForkDetector struct {
 // NewMetaForkDetector method creates a new metaForkDetector object
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
-	blackList process.BlackListHandler,
+	blackListHandler process.BlackListHandler,
 ) (*metaForkDetector, error) {
 
 	if check.IfNil(rounder) {
 		return nil, process.ErrNilRounder
 	}
-	if check.IfNil(blackList) {
+	if check.IfNil(blackListHandler) {
 		return nil, process.ErrNilBlackListHandler
 	}
 
 	bfd := &baseForkDetector{
-		rounder:   rounder,
-		blackList: blackList,
+		rounder:          rounder,
+		blackListHandler: blackListHandler,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -60,6 +60,7 @@ func (mfd *metaForkDetector) AddHeader(
 
 	err := mfd.checkBlockBasicValidity(header, state)
 	if err != nil {
+		process.AddHeaderToBlackList(mfd.blackListHandler, headerHash)
 		return err
 	}
 

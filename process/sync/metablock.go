@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -42,15 +43,16 @@ func NewMetaBootstrap(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	bootstrapRoundIndex uint64,
+	blackListHandler process.BlackListHandler,
 ) (*MetaBootstrap, error) {
 
-	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
+	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if poolsHolder.HeadersNonces() == nil || poolsHolder.HeadersNonces().IsInterfaceNil() {
+	if check.IfNil(poolsHolder.HeadersNonces()) {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-	if poolsHolder.MetaBlocks() == nil || poolsHolder.MetaBlocks().IsInterfaceNil() {
+	if check.IfNil(poolsHolder.MetaBlocks()) {
 		return nil, process.ErrNilMetaBlockPool
 	}
 
@@ -65,6 +67,7 @@ func NewMetaBootstrap(
 		shardCoordinator,
 		accounts,
 		store,
+		blackListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -84,6 +87,7 @@ func NewMetaBootstrap(
 		shardCoordinator:    shardCoordinator,
 		accounts:            accounts,
 		bootstrapRoundIndex: bootstrapRoundIndex,
+		blackListHandler:    blackListHandler,
 	}
 
 	boot := MetaBootstrap{
@@ -527,4 +531,8 @@ func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.Header
 
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	return boot.getBlockBody(headerHandler)
+}
+
+func (boot *MetaBootstrap) getCurrHeaderHash() []byte {
+	return boot.blkc.GetCurrentBlockHeaderHash()
 }

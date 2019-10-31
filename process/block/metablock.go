@@ -341,10 +341,10 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		syncMap.Store(hdr.ShardId, hdrHash)
 		headerNoncesPool.Merge(hdr.Nonce, syncMap)
 
-		err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove(hdrHash)
-		if err != nil {
-			return err
-		}
+		//err = mp.store.GetStorer(dataRetriever.BlockHeaderUnit).Remove(hdrHash)
+		//if err != nil {
+		//	return err
+		//}
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(hdr.Nonce)
 		err = mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)

@@ -797,9 +797,9 @@ func createMetaNetNode(
 		testAddressConverter,
 		params.singleSigner,
 		params.keyGen,
-		timecache.NewTimeCache(time.Second),
 		maxTxNonceDeltaAllowed,
 		feeHandler,
+		timecache.NewTimeCache(time.Second),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {

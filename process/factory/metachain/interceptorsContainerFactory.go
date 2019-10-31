@@ -58,9 +58,9 @@ func NewInterceptorsContainerFactory(
 	addrConverter state.AddressConverter,
 	singleSigner crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
-	blackList process.BlackListHandler,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
+	blackList process.BlackListHandler,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {

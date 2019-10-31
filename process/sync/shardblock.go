@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -50,18 +51,19 @@ func NewShardBootstrap(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	bootstrapRoundIndex uint64,
+	blackListHandler process.BlackListHandler,
 ) (*ShardBootstrap, error) {
 
-	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
+	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
-	if poolsHolder.Headers() == nil || poolsHolder.Headers().IsInterfaceNil() {
+	if check.IfNil(poolsHolder.Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if poolsHolder.HeadersNonces() == nil || poolsHolder.HeadersNonces().IsInterfaceNil() {
+	if check.IfNil(poolsHolder.HeadersNonces()) {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-	if poolsHolder.MiniBlocks() == nil || poolsHolder.MiniBlocks().IsInterfaceNil() {
+	if check.IfNil(poolsHolder.MiniBlocks()) {
 		return nil, process.ErrNilTxBlockBody
 	}
 
@@ -76,6 +78,7 @@ func NewShardBootstrap(
 		shardCoordinator,
 		accounts,
 		store,
+		blackListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -95,6 +98,7 @@ func NewShardBootstrap(
 		shardCoordinator:    shardCoordinator,
 		accounts:            accounts,
 		bootstrapRoundIndex: bootstrapRoundIndex,
+		blackListHandler:    blackListHandler,
 	}
 
 	boot := ShardBootstrap{
@@ -876,4 +880,8 @@ func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.H
 	blockBody := block.Body(miniBlockSlice)
 
 	return blockBody, nil
+}
+
+func (boot *ShardBootstrap) getCurrHeaderHash() []byte {
+	return boot.blkc.GetCurrentBlockHeaderHash()
 }

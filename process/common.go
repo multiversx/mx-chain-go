@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/prometheus/common/log"
 )
 
 // EmptyChannel empties the given channel
@@ -567,4 +568,11 @@ func SortHeadersByNonce(headers []data.HeaderHandler) {
 // IsInProperRound checks if the given round index satisfies the round modulus trigger
 func IsInProperRound(index int64) bool {
 	return index%RoundModulusTrigger == 0
+}
+
+func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
+	err := blackListHandler.Add(string(hash))
+	if err != nil {
+		log.Debug(err.Error())
+	}
 }

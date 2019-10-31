@@ -398,3 +398,11 @@ func WithIndexer(indexer indexer.Indexer) Option {
 		return nil
 	}
 }
+
+// WithBlackListHandler sets up a black list handler for the Node
+func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
+	return func(n *Node) error {
+		n.blackListHandler = blackListHandler
+		return nil
+	}
+}

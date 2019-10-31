@@ -159,6 +159,11 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 			}
 
 			rtp.rewardTxPool.AddData([]byte(txHash), &tx, strCache)
+
+			//err = rtp.storage.GetStorer(dataRetriever.RewardTransactionUnit).Remove([]byte(txHash))
+			//if err != nil {
+			//	return rewardTxsRestored, err
+			//}
 		}
 
 		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
@@ -168,10 +173,10 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 
 		miniBlockPool.Put(miniBlockHash, miniBlock)
 
-		err = rtp.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
-		if err != nil {
-			return rewardTxsRestored, err
-		}
+		//err = rtp.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
+		//if err != nil {
+		//	return rewardTxsRestored, err
+		//}
 		rewardTxsRestored += len(miniBlock.TxHashes)
 	}
 

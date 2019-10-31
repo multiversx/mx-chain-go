@@ -152,6 +152,7 @@ type Process struct {
 	Rounder               consensus.Rounder
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
+	BlackListHandler      process.BlackListHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -464,7 +465,7 @@ func NewProcessComponentsFactoryArgs(
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
-	interceptorContainerFactory, resolversContainerFactory, headerBlackList, err := newInterceptorAndResolverContainerFactory(
+	interceptorContainerFactory, resolversContainerFactory, blackListHandler, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
 		args.data, args.core,
@@ -502,7 +503,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, headerBlackList)
+	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -546,6 +547,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		Rounder:               rounder,
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
+		BlackListHandler:      blackListHandler,
 	}, nil
 }
 
@@ -1388,9 +1390,9 @@ func newMetaInterceptorAndResolverContainerFactory(
 		state.AddressConverter,
 		crypto.SingleSigner,
 		crypto.TxSignKeyGen,
-		headerBlackList,
 		maxTxNonceDeltaAllowed,
 		economics,
+		headerBlackList,
 	)
 	if err != nil {
 		return nil, nil, nil, err

@@ -109,7 +109,7 @@ type TestProcessorNode struct {
 
 	EconomicsData *economics.TestEconomicsData
 
-	HeadersBlackList      process.BlackListHandler
+	BlackListHandler      process.BlackListHandler
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
@@ -291,7 +291,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 
 func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
-	tpn.HeadersBlackList = timecache.NewTimeCache(TimeSpanForBadHeaders)
+	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
@@ -307,9 +307,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestAddressConverter,
 			tpn.OwnAccount.SingleSigner,
 			tpn.OwnAccount.KeygenTxSign,
-			tpn.HeadersBlackList,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
+			tpn.BlackListHandler,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -332,7 +332,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestAddressConverter,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
-			tpn.HeadersBlackList,
+			tpn.BlackListHandler,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -576,6 +576,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithTxSingleSigner(tpn.OwnAccount.SingleSigner),
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
+		node.WithBlackListHandler(tpn.BlackListHandler),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())

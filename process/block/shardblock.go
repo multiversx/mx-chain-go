@@ -530,10 +530,10 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 		syncMap.Store(metaBlock.GetShardID(), metaBlockHash)
 		metaHeaderNoncesPool.Merge(metaBlock.Nonce, syncMap)
 
-		err = sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
-		if err != nil {
-			log.Error(err.Error())
-		}
+		//err = sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
+		//if err != nil {
+		//	log.Error(err.Error())
+		//}
 
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.Nonce)
 		err = sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)

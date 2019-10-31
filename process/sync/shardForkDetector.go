@@ -15,19 +15,19 @@ type shardForkDetector struct {
 // NewShardForkDetector method creates a new shardForkDetector object
 func NewShardForkDetector(
 	rounder consensus.Rounder,
-	blackList process.BlackListHandler,
+	blackListHandler process.BlackListHandler,
 ) (*shardForkDetector, error) {
 
 	if check.IfNil(rounder) {
 		return nil, process.ErrNilRounder
 	}
-	if check.IfNil(blackList) {
+	if check.IfNil(blackListHandler) {
 		return nil, process.ErrNilBlackListHandler
 	}
 
 	bfd := &baseForkDetector{
-		rounder:   rounder,
-		blackList: blackList,
+		rounder:          rounder,
+		blackListHandler: blackListHandler,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -60,6 +60,7 @@ func (sfd *shardForkDetector) AddHeader(
 
 	err := sfd.checkBlockBasicValidity(header, state)
 	if err != nil {
+		process.AddHeaderToBlackList(sfd.blackListHandler, headerHash)
 		return err
 	}
 
