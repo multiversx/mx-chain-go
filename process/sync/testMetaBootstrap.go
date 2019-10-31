@@ -7,9 +7,9 @@ type TestMetaBootstrap struct {
 	*MetaBootstrap
 }
 
-// ForkChoice decides to call (or not) the rollback on the current block from the blockchain structure
-func (tmb *TestMetaBootstrap) ForkChoice(revertUsingForkNonce bool) error {
-	return tmb.forkChoice(revertUsingForkNonce)
+// RollBack decides to call (or not) the rollBackOneBlock on the current block from the blockchain structure
+func (tmb *TestMetaBootstrap) RollBack(revertUsingForkNonce bool) error {
+	return tmb.rollBack(revertUsingForkNonce)
 }
 
 // SetProbableHighestNonce sets the probable highest nonce in the contained fork detector
