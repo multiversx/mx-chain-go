@@ -269,7 +269,7 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrRollbackFromGenesis signals that a rollback from genesis is called
-var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
+var ErrRollbackFromGenesis = errors.New("roll back from genesis is not permitted")
 
 // ErrNoDataInMessage signals that no data was found after parsing received p2p message
 var ErrNoDataInMessage = errors.New("no data found in received message")
@@ -347,7 +347,7 @@ var ErrNilValueFromRewardTransaction = errors.New("transferred value is nil in r
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
 // ErrNotEnoughValidBlocksInStorage signals that bootstrap from storage failed due to not enough valid blocks stored
-var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in storage")
+var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks to start from storage")
 
 // ErrNilSmartContractResult signals that the smart contract result is nil
 var ErrNilSmartContractResult = errors.New("smart contract result is nil")
