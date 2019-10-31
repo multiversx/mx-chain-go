@@ -784,6 +784,13 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	if currHeader.GetNonce() > 1 {
 		prevHeaderHash = currHeader.GetPrevHash()
 		prevRootHash = prevHeader.GetRootHash()
+
+		boot.accounts.CancelPrune(prevHeader.GetRootHash())
+
+		errNotCritical := boot.accounts.PruneTrie(currHeader.GetRootHash())
+		if errNotCritical != nil {
+			log.Debug(errNotCritical.Error())
+		}
 	} else { // rollBackOneBlock to genesis block
 		prevRootHash = boot.blkc.GetGenesisHeader().GetRootHash()
 	}

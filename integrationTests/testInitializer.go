@@ -1388,7 +1388,7 @@ func ForkChoiceOneBlock(nodes []*TestProcessorNode, shardId uint32) {
 		if n.ShardCoordinator.SelfId() != shardId {
 			continue
 		}
-		err := n.Bootstrapper.ForkChoice(false)
+		err := n.Bootstrapper.RollBack(false)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1444,8 +1444,8 @@ func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
 
 func emptyMetaDataPool(holder dataRetriever.MetaPoolsHolder) {
 	holder.HeadersNonces().Clear()
-	holder.MetaChainBlocks().Clear()
-	holder.MiniBlockHashes().Clear()
+	holder.MetaBlocks().Clear()
+	holder.MiniBlocks().Clear()
 	holder.ShardHeaders().Clear()
 }
 
