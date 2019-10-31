@@ -1,9 +1,6 @@
 package processor
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -43,7 +40,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 
 	errTxValidation := txip.txValidator.CheckTxValidity(interceptedTx)
 	if errTxValidation != nil {
-		return errors.New(fmt.Sprintf("%s: %s", process.ErrTxNotValid.Error(), errTxValidation))
+		return errTxValidation
 	}
 
 	return nil

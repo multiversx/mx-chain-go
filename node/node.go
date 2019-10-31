@@ -83,7 +83,7 @@ type Node struct {
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
 	keyGen            crypto.KeyGenerator
-	keyGenForBalances crypto.KeyGenerator
+	keyGenForAccounts crypto.KeyGenerator
 	singleSigner      crypto.SingleSigner
 	txSingleSigner    crypto.SingleSigner
 	multiSigner       crypto.MultiSigner
@@ -515,8 +515,7 @@ func (n *Node) SendTransaction(
 		Signature: signature,
 	}
 
-	txCopy := tx
-	err = n.validateTx(txCopy, senderShardId)
+	err = n.validateTx(&tx)
 	if err != nil {
 		return "", err
 	}
@@ -545,61 +544,6 @@ func (n *Node) SendTransaction(
 	return txHexHash, nil
 }
 
-func (n *Node) validateTx(tx transaction.Transaction, senderShardId uint32) error {
-	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, nodeCmdFactory.MaxTxNonceDeltaAllowed)
-	if err != nil {
-		return nil
-	}
-
-	err = n.verifySignatureForTx(&tx)
-	if err != nil {
-		return err
-	}
-
-	marshalizedTx, err := n.marshalizer.Marshal(tx)
-	if err != nil {
-		return err
-	}
-
-	intTx, err := procTx.NewInterceptedTransaction(
-		marshalizedTx,
-		n.marshalizer,
-		n.hasher,
-		n.keyGen,
-		n.txSingleSigner,
-		n.addrConverter,
-		n.shardCoordinator,
-		n.feeHandler,
-	)
-	if err != nil {
-		return err
-	}
-
-	return txValidator.CheckTxValidity(intTx)
-}
-
-func (n *Node) verifySignatureForTx(tx *transaction.Transaction) error {
-	signature := tx.Signature
-	tx.Signature = nil
-	marshalizedTxWithoutSignature, err := n.marshalizer.Marshal(tx)
-	if err != nil {
-		return err
-	}
-	tx.Signature = signature
-
-	senderPubKey, err := n.keyGenForBalances.PublicKeyFromByteArray(tx.SndAddr)
-	if err != nil {
-		return err
-	}
-
-	err = n.txSingleSigner.Verify(senderPubKey, marshalizedTxWithoutSignature, tx.Signature)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // SendBulkTransactions will send a slice of transactions to the network
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	transactionsByShards := make(map[uint32][][]byte, 0)
@@ -620,6 +564,11 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 			continue
 		}
 
+		err = n.validateTx(tx)
+		if err != nil {
+			continue
+		}
+
 		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalizedTx)
 	}
 
@@ -634,6 +583,39 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	}
 
 	return numOfSentTxs, nil
+}
+
+func (n *Node) validateTx(tx *transaction.Transaction) error {
+	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, nodeCmdFactory.MaxTxNonceDeltaAllowed)
+	if err != nil {
+		return nil
+	}
+
+	marshalizedTx, err := n.marshalizer.Marshal(tx)
+	if err != nil {
+		return err
+	}
+
+	intTx, err := procTx.NewInterceptedTransaction(
+		marshalizedTx,
+		n.marshalizer,
+		n.hasher,
+		n.keyGenForAccounts,
+		n.txSingleSigner,
+		n.addrConverter,
+		n.shardCoordinator,
+		n.feeHandler,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = intTx.CheckValidity()
+	if err != nil {
+		return err
+	}
+
+	return txValidator.CheckTxValidity(intTx)
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {

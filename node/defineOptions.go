@@ -151,13 +151,13 @@ func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 	}
 }
 
-// WithKeyGenForBalances sets up the balances key generator option for the Node
-func WithKeyGenForBalances(keyGenForBalances crypto.KeyGenerator) Option {
+// WithKeyGenForAccounts sets up the balances key generator option for the Node
+func WithKeyGenForAccounts(keyGenForAccounts crypto.KeyGenerator) Option {
 	return func(n *Node) error {
-		if keyGenForBalances == nil || keyGenForBalances.IsInterfaceNil() {
+		if keyGenForAccounts == nil || keyGenForAccounts.IsInterfaceNil() {
 			return ErrNilKeyGenForBalances
 		}
-		n.keyGenForBalances = keyGenForBalances
+		n.keyGenForAccounts = keyGenForAccounts
 		return nil
 	}
 }

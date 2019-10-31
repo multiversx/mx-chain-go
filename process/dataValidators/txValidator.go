@@ -41,8 +41,8 @@ func NewTxValidator(
 }
 
 // CheckTxValidity will filter transactions that needs to be added in pools
-func (tv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
-	shardId := tv.shardCoordinator.SelfId()
+func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
+	shardId := txv.shardCoordinator.SelfId()
 	txShardId := interceptedTx.SenderShardId()
 	senderIsInAnotherShard := shardId != txShardId
 	if senderIsInAnotherShard {
@@ -50,7 +50,7 @@ func (tv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler)
 	}
 
 	sndAddr := interceptedTx.SenderAddress()
-	accountHandler, err := tv.accounts.GetExistingAccount(sndAddr)
+	accountHandler, err := txv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
 		sndAddrBytes := sndAddr.Bytes()
 		return errors.New(fmt.Sprintf("Transaction's sender address %s does not exist in current shard %d",
@@ -61,10 +61,10 @@ func (tv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler)
 	accountNonce := accountHandler.GetNonce()
 	txNonce := interceptedTx.Nonce()
 	lowerNonceInTx := txNonce < accountNonce
-	veryHighNonceInTx := txNonce > accountNonce+uint64(tv.maxNonceDeltaAllowed)
+	veryHighNonceInTx := txNonce > accountNonce+uint64(txv.maxNonceDeltaAllowed)
 	isTxRejected := lowerNonceInTx || veryHighNonceInTx
 	if isTxRejected {
-		tv.rejectedTxs++
+		txv.rejectedTxs++
 		return errors.New(fmt.Sprintf("Invalid nonce. Wanted %d, got %d", accountNonce, txNonce))
 	}
 
@@ -77,7 +77,7 @@ func (tv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler)
 	accountBalance := account.Balance
 	txTotalValue := interceptedTx.TotalValue()
 	if accountBalance.Cmp(txTotalValue) < 0 {
-		tv.rejectedTxs++
+		txv.rejectedTxs++
 		return errors.New(fmt.Sprintf("Insufficient balance. Needed %d ERD, account has %d ERD", txTotalValue, accountBalance))
 	}
 
@@ -85,13 +85,13 @@ func (tv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler)
 }
 
 // NumRejectedTxs will return number of rejected transaction
-func (tv *txValidator) NumRejectedTxs() uint64 {
-	return tv.rejectedTxs
+func (txv *txValidator) NumRejectedTxs() uint64 {
+	return txv.rejectedTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tv *txValidator) IsInterfaceNil() bool {
-	if tv == nil {
+func (txv *txValidator) IsInterfaceNil() bool {
+	if txv == nil {
 		return true
 	}
 	return false

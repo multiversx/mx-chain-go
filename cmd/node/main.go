@@ -29,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -432,8 +431,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		nodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
 	}
 
-	keyGenForBalances := signing.NewKeyGenerator(getSuiteForBalances())
-
 	startTime := time.Unix(nodesConfig.StartTime, 0)
 
 	log.Info(fmt.Sprintf("Start time formatted: %s", startTime.Format("Mon Jan 2 15:04:05 MST 2006")))
@@ -703,7 +700,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		economicsData,
 		syncer,
 		keyGen,
-		keyGenForBalances,
 		privKey,
 		pubKey,
 		shardCoordinator,
@@ -805,10 +801,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 	return nil
-}
-
-func getSuiteForBalances() crypto.Suite {
-	return kyber.NewBlakeSHA256Ed25519()
 }
 
 func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator) {
@@ -1070,7 +1062,6 @@ func createNode(
 	economicsData process.FeeHandler,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
-	keyGenForBalances crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
@@ -1112,7 +1103,7 @@ func createNode(
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
-		node.WithKeyGenForBalances(keyGenForBalances),
+		node.WithKeyGenForAccounts(crypto.TxSignKeyGen),
 		node.WithTxSignPubKey(crypto.TxSignPubKey),
 		node.WithTxSignPrivKey(crypto.TxSignPrivKey),
 		node.WithPubKey(pubKey),

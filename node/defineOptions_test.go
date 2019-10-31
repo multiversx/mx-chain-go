@@ -803,27 +803,27 @@ func TestWithIndexer_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithKeyGenForBalances_NilKeygenShouldErr(t *testing.T) {
+func TestWithKeyGenForAccounts_NilKeygenShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithKeyGenForBalances(nil)
+	opt := WithKeyGenForAccounts(nil)
 	err := opt(node)
 
 	assert.Equal(t, ErrNilKeyGenForBalances, err)
 }
 
-func TestWithKeyGenForBalances_OkKeygenShouldPass(t *testing.T) {
+func TestWithKeyGenForAccounts_OkKeygenShouldPass(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
 	keyGen := &mock.KeyGenMock{}
-	opt := WithKeyGenForBalances(keyGen)
+	opt := WithKeyGenForAccounts(keyGen)
 	err := opt(node)
 
-	assert.True(t, node.keyGenForBalances == keyGen)
+	assert.True(t, node.keyGenForAccounts == keyGen)
 	assert.Nil(t, err)
 }
 
