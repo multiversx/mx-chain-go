@@ -311,13 +311,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetBLSPublicKeyShouldErr(t *testing.T
 	stakingData := systemSmartContracts.StakingData{
 		StakeValue: big.NewInt(100),
 	}
-	marshalizer := &mock.MarshalizerStub{}
-	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
-		return json.Marshal(obj)
-	}
-	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
-		return json.Unmarshal(buff, obj)
-	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	scDataGetter := &mock.ScDataGetterMock{}
 	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
@@ -375,13 +369,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		StakeValue: big.NewInt(100),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
-	marshalizer := &mock.MarshalizerStub{}
-	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
-		return json.Marshal(obj)
-	}
-	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
-		return json.Unmarshal(buff, obj)
-	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	scDataGetter := &mock.ScDataGetterMock{}
 	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
@@ -440,13 +428,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		StakeValue: big.NewInt(100),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
-	marshalizer := &mock.MarshalizerStub{}
-	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
-		return json.Marshal(obj)
-	}
-	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
-		return json.Unmarshal(buff, obj)
-	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	scDataGetter := &mock.ScDataGetterMock{}
 	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
@@ -505,13 +487,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		StakeValue: big.NewInt(100),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
-	marshalizer := &mock.MarshalizerStub{}
-	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
-		return json.Marshal(obj)
-	}
-	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
-		return json.Unmarshal(buff, obj)
-	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	scDataGetter := &mock.ScDataGetterMock{}
 	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
@@ -570,13 +546,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		StakeValue: big.NewInt(100),
 		BlsPubKey:  []byte(blsPublicKey),
 	}
-	marshalizer := &mock.MarshalizerStub{}
-	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
-		return json.Marshal(obj)
-	}
-	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
-		return json.Unmarshal(buff, obj)
-	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	scDataGetter := &mock.ScDataGetterMock{}
 	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
@@ -635,13 +605,7 @@ func TestStakingToPeer_UpdateProtocolPeerChangesVerifyPeerChanges(t *testing.T) 
 		StakeValue: stakeValue,
 		BlsPubKey:  []byte(blsPublicKey),
 	}
-	marshalizer := &mock.MarshalizerStub{}
-	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
-		return json.Marshal(obj)
-	}
-	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
-		return json.Unmarshal(buff, obj)
-	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	scDataGetter := &mock.ScDataGetterMock{}
 	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
@@ -707,13 +671,7 @@ func TestStakingToPeer_VerifyPeerChangesShouldErr(t *testing.T) {
 		StakeValue: stakeValue,
 		BlsPubKey:  []byte(blsPublicKey),
 	}
-	marshalizer := &mock.MarshalizerStub{}
-	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
-		return json.Marshal(obj)
-	}
-	marshalizer.UnmarshalCalled = func(obj interface{}, buff []byte) error {
-		return json.Unmarshal(buff, obj)
-	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	scDataGetter := &mock.ScDataGetterMock{}
 	scDataGetter.GetCalled = func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {

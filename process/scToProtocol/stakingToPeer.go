@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
-// ArgStakingToPeer is struct that contain all components that is needed to create a new stakingToPeer object
+// ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
 	AdrConv     state.AddressConverter
 	Hasher      hashing.Hasher
