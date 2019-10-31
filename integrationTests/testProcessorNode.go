@@ -710,7 +710,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
-	_ = tpn.BroadcastMessenger.BroadcastHeader(header)
+	_ = tpn.BroadcastMessenger.BroadcastShardHeader(header)
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)

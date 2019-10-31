@@ -20,6 +20,7 @@ import (
 const roundTimeDuration = 100 * time.Millisecond
 
 func initWorker() *spos.Worker {
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
@@ -52,6 +53,7 @@ func initWorker() *spos.Worker {
 
 	sposWorker, _ := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -82,6 +84,7 @@ func initRounderMock() *mock.RounderMock {
 func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -94,7 +97,9 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	wrk, err := spos.NewWorker(nil,
+	wrk, err := spos.NewWorker(
+		nil,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -111,9 +116,10 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilConsensusService, err)
 }
 
-func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -126,7 +132,44 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 	syncTimerMock := &mock.SyncTimerMock{}
 	bnService, _ := bn.NewConsensusService()
 
-	wrk, err := spos.NewWorker(bnService,
+	wrk, err := spos.NewWorker(
+		bnService,
+		nil,
+		blockProcessor,
+		bootstrapperMock,
+		broadcastMessengerMock,
+		consensusState,
+		forkDetectorMock,
+		keyGeneratorMock,
+		marshalizerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		syncTimerMock)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilBlockChain, err)
+}
+
+func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	blockchainMock := &mock.BlockChainMock{}
+	bootstrapperMock := &mock.BootstrapperMock{}
+	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	bnService, _ := bn.NewConsensusService()
+
+	wrk, err := spos.NewWorker(
+		bnService,
+		blockchainMock,
 		nil,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -146,6 +189,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
@@ -160,6 +204,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		nil,
 		broadcastMessengerMock,
@@ -179,6 +224,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	consensusState := initConsensusState()
@@ -193,6 +239,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		nil,
@@ -211,6 +258,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -225,6 +273,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -243,6 +292,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -257,6 +307,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -275,6 +326,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -289,6 +341,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -307,6 +360,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -321,6 +375,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -339,6 +394,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -353,6 +409,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -371,6 +428,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -385,6 +443,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -403,6 +462,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -417,6 +477,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -435,6 +496,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -449,6 +511,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
@@ -467,6 +530,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstrapperMock := &mock.BootstrapperMock{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
@@ -482,6 +546,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 
 	wrk, err := spos.NewWorker(
 		bnService,
+		blockchainMock,
 		blockProcessor,
 		bootstrapperMock,
 		broadcastMessengerMock,
