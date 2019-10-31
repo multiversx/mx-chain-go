@@ -326,7 +326,7 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 		ei.logger.Warn(fmt.Sprintf("Could not index validators public keys: %s", err))
 		return
 	}
-	ei.logger.Warn(fmt.Sprintf("Response validators public key elastic indexer %s", res.String()))
+	ei.logger.Info(fmt.Sprintf("Response validators public key elastic indexer %s", res.String()))
 
 	defer closeESResponseBody(res)
 
