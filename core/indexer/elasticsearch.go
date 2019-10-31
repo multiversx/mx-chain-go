@@ -307,7 +307,7 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
 	marshalizedValidatorPubKeys, err := ei.marshalizer.Marshal(shardValPubKeys)
 	if err != nil {
-		ei.logger.Info("could not marshal validators public keys")
+		ei.logger.Warn("could not marshal validators public keys")
 		return
 	}
 
@@ -322,17 +322,16 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 	}
 
 	res, err := req.Do(context.Background(), ei.db)
-	ei.logger.Info(fmt.Sprintf("Response validators public key elastic indexer %v", res))
-
 	if err != nil {
-		ei.logger.Info(fmt.Sprintf("Could not index validators public keys: %s", err))
+		ei.logger.Warn(fmt.Sprintf("Could not index validators public keys: %s", err))
 		return
 	}
+	ei.logger.Warn(fmt.Sprintf("Response validators public key elastic indexer %s", res.String()))
 
 	defer closeESResponseBody(res)
 
 	if res.IsError() {
-		ei.logger.Info(res.String())
+		ei.logger.Warn(res.String())
 	}
 }
 
