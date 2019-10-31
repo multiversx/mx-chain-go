@@ -2,6 +2,10 @@ package scToProtocol
 
 import (
 	"bytes"
+	"math/big"
+	"sort"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -13,11 +17,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	"math/big"
-	"sort"
-	"sync"
 )
 
+// ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
 	AdrConv     state.AddressConverter
 	Hasher      hashing.Hasher
@@ -166,7 +168,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 			return err
 		}
 
-		err = stp.updatePeerState(stakingData, peerAcc, nonce)
+		err = stp.updatePeerState(stakingData, peerAcc)
 		if err != nil {
 			return err
 		}
@@ -199,7 +201,6 @@ func (stp *stakingToPeer) peerUnregistered(account *state.PeerAccount, nonce uin
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakingData,
 	account *state.PeerAccount,
-	nonce uint64,
 ) error {
 	if !bytes.Equal(stakingData.BlsPubKey, account.BLSPublicKey) {
 		err := account.SetBLSPublicKeyWithJournal(stakingData.BlsPubKey)
@@ -285,6 +286,13 @@ func (stp *stakingToPeer) createPeerChangeData(
 		actualPeerChange.Action = block.PeerUnstaking
 	}
 
+	peerHash, err := core.CalculateHash(stp.marshalizer, stp.hasher, actualPeerChange)
+	if err != nil {
+		return err
+	}
+
+	stp.peerChanges[string(peerHash)] = actualPeerChange
+
 	return nil
 }
 
@@ -361,7 +369,7 @@ func (stp *stakingToPeer) VerifyPeerChanges(peerChanges []block.PeerData) error 
 	return nil
 }
 
-// IsInterfaceNil
+// IsInterfaceNil returns true if there is no value under the interface
 func (stp *stakingToPeer) IsInterfaceNil() bool {
 	if stp == nil {
 		return true
