@@ -1,7 +1,6 @@
 package discovery
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -108,19 +107,17 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 				if kdd.initc {
 					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
 					if err == kbucket.ErrLookupFailure {
-						log.Warn(fmt.Sprintf("KDD: Reconnet to init: %s", err))
+						// KDD: no more peers, Reconnect to initial list
 						chanRecInit := kdd.connectToOnePeerFromInitialPeersList(
 							kdd.refreshInterval,
 							kdd.initialPeersList)
 						<-chanRecInit
 
-					} else if err != nil {
-						log.Warn(fmt.Sprintf("KDD: error bootstrapping: %s", err))
 					}
 				} else {
 					i++
-					if (i % 10) == 0 {
-						log.Warn("KDD: Reconnet to init in pause")
+					if (i % 20) == 0 {
+						// KDD: Reconnect to initial list
 						chanRecInit := kdd.connectToOnePeerFromInitialPeersList(
 							kdd.refreshInterval,
 							kdd.initialPeersList)
@@ -211,7 +208,7 @@ func (kdd *KadDhtDiscoverer) Pause() {
 	kdd.mutKadDht.Lock()
 	defer kdd.mutKadDht.Unlock()
 	if kdd.initc {
-		log.Info("KDD: Pause kad-dht discovery")
+		// KDD: Pause kad-dht discovery
 		kdd.initc = false
 	}
 }
@@ -220,7 +217,7 @@ func (kdd *KadDhtDiscoverer) Resume() {
 	kdd.mutKadDht.Lock()
 	defer kdd.mutKadDht.Unlock()
 	if !kdd.initc {
-		log.Info("KDD: Resume kad-dht discovery")
+		// KDD: Resume kad-dht discovery
 		kdd.initc = true
 	}
 }
