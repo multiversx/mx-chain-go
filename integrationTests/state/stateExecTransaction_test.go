@@ -173,6 +173,10 @@ func testExecTransactionsMoreTxWithRevert(
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 
 	nonce := uint64(6)
