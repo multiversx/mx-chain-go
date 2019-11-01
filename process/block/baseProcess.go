@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.DefaultLogger()
@@ -25,6 +26,25 @@ var log = logger.DefaultLogger()
 type hashAndHdr struct {
 	hdr  data.HeaderHandler
 	hash []byte
+}
+
+type nonceAndHashInfo struct {
+	hash  []byte
+	nonce uint64
+}
+
+type hdrInfo struct {
+	usedInBlock bool
+	hdr         data.HeaderHandler
+}
+
+type hdrForBlock struct {
+	missingHdrs                    uint32
+	missingFinalityAttestingHdrs   uint32
+	requestedFinalityAttestingHdrs map[uint32][]uint64
+	highestHdrNonce                map[uint32]uint64
+	mutHdrsForBlock                sync.RWMutex
+	hdrHashAndInfo                 map[string]*hdrInfo
 }
 
 type mapShardHeaders map[uint32][]data.HeaderHandler
@@ -40,6 +60,8 @@ type baseProcessor struct {
 	store                 dataRetriever.StorageService
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler    process.BlockSizeThrottler
+
+	hdrsForCurrBlock hdrForBlock
 
 	mutNotarizedHdrs sync.RWMutex
 	notarizedHdrs    mapShardHeaders
@@ -385,16 +407,22 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 	return nil
 }
 
-func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32, maxRound uint64) error {
+func (bp *baseProcessor) requestHeadersIfMissing(
+	sortedHdrs []data.HeaderHandler,
+	shardId uint32,
+	maxRound uint64,
+	cacher storage.Cacher,
+) error {
+
+	allowedSize := uint64(float64(cacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
+
 	prevHdr, err := bp.getLastNotarizedHdr(shardId)
 	if err != nil {
 		return err
 	}
 
-	isLastNotarizedCloseToOurRound := maxRound-prevHdr.GetRound() <= process.MaxHeaderRequestsAllowed
-	if len(sortedHdrs) == 0 && isLastNotarizedCloseToOurRound {
-		return process.ErrNoSortedHdrsForShard
-	}
+	lastNotarizedHdrNonce := prevHdr.GetNonce()
+	highestHdr := prevHdr
 
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
@@ -417,13 +445,20 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 				missingNonces = append(missingNonces, j)
 			}
 		}
+
+		highestHdr = currHdr
 	}
 
 	// ask for headers, if there most probably should be
-	if len(missingNonces) == 0 && !isLastNotarizedCloseToOurRound {
-		startNonce := prevHdr.GetNonce() + 1
-		for nonce := startNonce; nonce < startNonce+process.MaxHeaderRequestsAllowed; nonce++ {
-			missingNonces = append(missingNonces, nonce)
+	roundDiff := int64(maxRound) - int64(highestHdr.GetRound())
+	if roundDiff > 0 {
+		nonceDiff := int64(lastNotarizedHdrNonce) + process.MaxHeadersToRequestInAdvance - int64(highestHdr.GetNonce())
+		if nonceDiff > 0 {
+			nbHeadersToRequestInAdvance := core.MinUint64(uint64(roundDiff), uint64(nonceDiff))
+			startNonce := highestHdr.GetNonce() + 1
+			for nonce := startNonce; nonce < startNonce+nbHeadersToRequestInAdvance; nonce++ {
+				missingNonces = append(missingNonces, nonce)
+			}
 		}
 	}
 
@@ -432,6 +467,11 @@ func (bp *baseProcessor) requestHeadersIfMissing(sortedHdrs []data.HeaderHandler
 		// do the request here
 		if bp.onRequestHeaderHandlerByNonce == nil {
 			return process.ErrNilRequestHeaderHandlerByNonce
+		}
+
+		isHeaderOutOfRange := nonce > lastNotarizedHdrNonce+allowedSize
+		if isHeaderOutOfRange {
+			break
 		}
 
 		if requested >= process.MaxHeaderRequestsAllowed {
@@ -492,45 +532,182 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 }
 
 // checkProcessorNilParameters will check the imput parameters for nil values
-func checkProcessorNilParameters(
-	accounts state.AccountsAdapter,
-	forkDetector process.ForkDetector,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	store dataRetriever.StorageService,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	specialAddressHandler process.SpecialAddressHandler,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) error {
+func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if arguments.Accounts == nil || arguments.Accounts.IsInterfaceNil() {
 		return process.ErrNilAccountsAdapter
 	}
-	if forkDetector == nil || forkDetector.IsInterfaceNil() {
+	if arguments.ForkDetector == nil || arguments.ForkDetector.IsInterfaceNil() {
 		return process.ErrNilForkDetector
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if arguments.Hasher == nil || arguments.Hasher.IsInterfaceNil() {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return process.ErrNilMarshalizer
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if arguments.Store == nil || arguments.Store.IsInterfaceNil() {
 		return process.ErrNilStorage
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
 		return process.ErrNilShardCoordinator
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
+	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
 		return process.ErrNilNodesCoordinator
 	}
-	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {
+	if arguments.SpecialAddressHandler == nil || arguments.SpecialAddressHandler.IsInterfaceNil() {
 		return process.ErrNilSpecialAddressHandler
 	}
-	if uint64Converter == nil || uint64Converter.IsInterfaceNil() {
+	if arguments.Uint64Converter == nil || arguments.Uint64Converter.IsInterfaceNil() {
 		return process.ErrNilUint64Converter
+	}
+	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
+		return process.ErrNilRequestHandler
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) createBlockStarted() {
+	bp.resetMissingHdrs()
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
+	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
+	bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+func (bp *baseProcessor) resetMissingHdrs() {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	bp.hdrsForCurrBlock.missingHdrs = 0
+	bp.hdrsForCurrBlock.missingFinalityAttestingHdrs = 0
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
+//TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
+	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
+
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for _, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if headerInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		hdrsForCurrentBlock[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[headerInfo.hdr.GetShardID()], headerInfo.hdr)
+	}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	// sort headers for each shard
+	for _, hdrsForShard := range hdrsForCurrentBlock {
+		process.SortHeadersByNonce(hdrsForShard)
+	}
+
+	return hdrsForCurrentBlock
+}
+
+//TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) map[uint32][][]byte {
+	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
+
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if headerInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
+			&nonceAndHashInfo{nonce: headerInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
+	}
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	for _, hdrsForShard := range hdrsForCurrentBlockInfo {
+		if len(hdrsForShard) > 1 {
+			sort.Slice(hdrsForShard, func(i, j int) bool {
+				return hdrsForShard[i].nonce < hdrsForShard[j].nonce
+			})
+		}
+	}
+
+	hdrsHashesForCurrentBlock := make(map[uint32][][]byte)
+	for shardId, hdrsForShard := range hdrsForCurrentBlockInfo {
+		for _, hdrForShard := range hdrsForShard {
+			hdrsHashesForCurrentBlock[shardId] = append(hdrsHashesForCurrentBlock[shardId], hdrForShard.hash)
+		}
+	}
+
+	return hdrsHashesForCurrentBlock
+}
+
+func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher storage.Cacher) bool {
+	lastNotarizedHdr, err := bp.getLastNotarizedHdr(header.GetShardID())
+	if err != nil {
+		return false
+	}
+
+	allowedSize := uint64(float64(cacher.MaxSize()) * process.MaxOccupancyPercentageAllowed)
+	isHeaderOutOfRange := header.GetNonce() > lastNotarizedHdr.GetNonce()+allowedSize
+
+	return isHeaderOutOfRange
+}
+
+func (bp *baseProcessor) wasHeaderRequested(shardId uint32, nonce uint64) bool {
+	requestedNonces, ok := bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId]
+	if !ok {
+		return false
+	}
+
+	for _, requestedNonce := range requestedNonces {
+		if requestedNonce == nonce {
+			return true
+		}
+	}
+
+	return false
+}
+
+// requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for
+// processing the current block. It requests the finality headers greater than the highest header, for given shard,
+// related to the block which should be processed
+func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
+	shardId uint32,
+	finality uint32,
+	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
+) uint32 {
+	requestedHeaders := uint32(0)
+	missingFinalityAttestingHeaders := uint32(0)
+
+	highestHdrNonce := bp.hdrsForCurrBlock.highestHdrNonce[shardId]
+	if highestHdrNonce == uint64(0) {
+		return missingFinalityAttestingHeaders
+	}
+
+	lastFinalityAttestingHeader := bp.hdrsForCurrBlock.highestHdrNonce[shardId] + uint64(finality)
+	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
+		header, headerHash, err := getHeaderFromPoolWithNonce(
+			i,
+			shardId)
+
+		if err != nil {
+			missingFinalityAttestingHeaders++
+			wasHeaderRequested := bp.wasHeaderRequested(shardId, i)
+			if !wasHeaderRequested {
+				requestedHeaders++
+				bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId] = append(bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId], i)
+				go bp.onRequestHeaderHandlerByNonce(shardId, i)
+			}
+
+			continue
+		}
+
+		bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
+	}
+
+	if requestedHeaders > 0 {
+		log.Info(fmt.Sprintf("requested %d missing finality attesting headers for shard %d\n",
+			requestedHeaders,
+			shardId))
+	}
+
+	return missingFinalityAttestingHeaders
 }

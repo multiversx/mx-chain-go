@@ -52,7 +52,14 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		seedAddress,
 	)
 
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+	valToTransfer := big.NewInt(100)
+	nbTxsPerShard := uint32(100)
+	mintValue := big.NewInt(1000000)
+
 	for _, nodes := range nodesMap {
+		integrationTests.SetEconomicsParameters(nodes, gasPrice, gasLimit)
 		integrationTests.DisplayAndStartNodes(nodes)
 	}
 
@@ -64,12 +71,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 			}
 		}
 	}()
-
-	gasPrice := uint64(10)
-	gasLimit := uint64(100)
-	valToTransfer := big.NewInt(100)
-	nbTxsPerShard := uint32(100)
-	mintValue := big.NewInt(1000000)
 
 	generateIntraShardTransactions(nodesMap, nbTxsPerShard, mintValue, valToTransfer, gasPrice, gasLimit)
 
@@ -106,7 +107,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		nonce++
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(4 * time.Second)
 
 	verifyRewardsForShards(t, nodesMap, mapRewardsForShardAddresses, nbTxsForLeaderAddress, gasPrice, gasLimit)
 	verifyRewardsForMetachain(t, mapRewardsForMetachainAddresses, nodesMap)
@@ -187,7 +188,7 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 		nonce++
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(4 * time.Second)
 
 	verifyRewardsForShards(t, nodesMap, mapRewardsForShardAddresses, nbTxsForLeaderAddress, 0, 0)
 	verifyRewardsForMetachain(t, mapRewardsForMetachainAddresses, nodesMap)

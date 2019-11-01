@@ -258,6 +258,7 @@ func (n *Node) StartConsensus() error {
 
 	worker, err := spos.NewWorker(
 		consensusService,
+		n.blkc,
 		n.blockProcessor,
 		bootstrapper,
 		broadcastMessenger,
@@ -591,11 +592,14 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
 		go func(bufferToSend []byte) {
-			n.messenger.BroadcastOnChannelBlocking(
+			err = n.messenger.BroadcastOnChannelBlocking(
 				SendTransactionsPipe,
 				identifier,
 				bufferToSend,
 			)
+			if err != nil {
+				log.Error(err.Error())
+			}
 
 			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
 		}(buff)

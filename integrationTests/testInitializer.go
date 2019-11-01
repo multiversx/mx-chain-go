@@ -137,8 +137,8 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache}
-	miniblockHashes, _ := shardedData.NewShardedData(cacherCfg)
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
 	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -146,11 +146,16 @@ func CreateTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	shardHeadersNonces, _ := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+
 	dPool, _ := dataPool.NewMetaDataPool(
 		metaBlocks,
-		miniblockHashes,
+		txBlockBody,
 		shardHeaders,
 		shardHeadersNonces,
+		txPool,
+		uTxPool,
 	)
 
 	return dPool
@@ -192,6 +197,9 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
@@ -439,14 +447,17 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		&mock.UnsignedTxHandlerMock{},
 		&mock.TxTypeHandlerMock{},
 		&mock.FeeHandlerStub{
-			MinGasPriceCalled: func() uint64 {
-				return 0
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasLimit()
 			},
-			MinGasLimitCalled: func() uint64 {
-				return 5
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
 			},
-			MinTxFeeCalled: func() uint64 {
-				return 0
+			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
+				fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
+
+				return fee
 			},
 		},
 	)
@@ -727,6 +738,14 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(P2pBootstrapDelay)
+}
+
+// SetEconomicsParameters will set minGasPrice and minGasLimits to provided nodes
+func SetEconomicsParameters(nodes []*TestProcessorNode, minGasPrice uint64, minGasLimit uint64) {
+	for _, n := range nodes {
+		n.EconomicsData.SetMinGasPrice(minGasPrice)
+		n.EconomicsData.SetMinGasLimit(minGasLimit)
+	}
 }
 
 // GenerateAndDisseminateTxs generates and sends multiple txs
@@ -1369,7 +1388,7 @@ func ForkChoiceOneBlock(nodes []*TestProcessorNode, shardId uint32) {
 		if n.ShardCoordinator.SelfId() != shardId {
 			continue
 		}
-		err := n.Bootstrapper.ForkChoice(false)
+		err := n.Bootstrapper.RollBack(false)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -1425,8 +1444,8 @@ func emptyShardDataPool(sdp dataRetriever.PoolsHolder) {
 
 func emptyMetaDataPool(holder dataRetriever.MetaPoolsHolder) {
 	holder.HeadersNonces().Clear()
-	holder.MetaChainBlocks().Clear()
-	holder.MiniBlockHashes().Clear()
+	holder.MetaBlocks().Clear()
+	holder.MiniBlocks().Clear()
 	holder.ShardHeaders().Clear()
 }
 

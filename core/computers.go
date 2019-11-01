@@ -31,3 +31,19 @@ func MinUint32(a uint32, b uint32) uint32 {
 	}
 	return b
 }
+
+// MaxUint64 returns the maximum of two given numbers
+func MaxUint64(a uint64, b uint64) uint64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+// MinUint64 returns the minimum of two given numbers
+func MinUint64(a uint64, b uint64) uint64 {
+	if a < b {
+		return a
+	}
+	return b
+}

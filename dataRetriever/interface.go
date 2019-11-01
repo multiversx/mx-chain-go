@@ -46,7 +46,7 @@ const (
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte) error
-	ProcessReceivedMessage(message p2p.MessageP2P) error
+	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
 
@@ -60,7 +60,8 @@ type HeaderResolver interface {
 type MiniBlocksResolver interface {
 	Resolver
 	RequestDataFromHashArray(hashes [][]byte) error
-	GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice // TODO miniblockresolver should not know about miniblockslice
+	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
@@ -211,10 +212,12 @@ type PoolsHolder interface {
 
 // MetaPoolsHolder defines getter for data pools for metachain
 type MetaPoolsHolder interface {
-	MetaChainBlocks() storage.Cacher
-	MiniBlockHashes() ShardedDataCacherNotifier
+	MetaBlocks() storage.Cacher
+	MiniBlocks() storage.Cacher
 	ShardHeaders() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
+	Transactions() ShardedDataCacherNotifier
+	UnsignedTransactions() ShardedDataCacherNotifier
 	IsInterfaceNil() bool
 }
 

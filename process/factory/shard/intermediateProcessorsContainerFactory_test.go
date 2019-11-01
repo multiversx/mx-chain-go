@@ -1,12 +1,13 @@
 package shard_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {

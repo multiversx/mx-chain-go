@@ -101,7 +101,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	}
 
 	// broadcast header to metachain
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
+	err = sr.BroadcastMessenger().BroadcastShardHeader(sr.Header)
 	if err != nil {
 		log.Error(err.Error())
 	}
@@ -121,9 +121,15 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
-	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
+	sr.updateMetricsForLeader()
 
 	return true
+}
+
+func (sr *subroundEndRound) updateMetricsForLeader() {
+	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
+		fmt.Sprintf("valid block produced in %f sec", time.Now().Sub(sr.Rounder().TimeStamp()).Seconds()))
 }
 
 func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {

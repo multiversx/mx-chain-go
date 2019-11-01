@@ -1,5 +1,10 @@
 package presenter
 
+import (
+	"math/big"
+	"strconv"
+)
+
 const invalidKey = "[invalid key]"
 const invalidType = "[not a string]"
 
@@ -29,4 +34,34 @@ func (psh *PresenterStatusHandler) getFromCacheAsString(metric string) string {
 	}
 
 	return valStr
+}
+
+func (psh *PresenterStatusHandler) getFloatFromStringMetric(metric string) float64 {
+	stringValue := psh.getFromCacheAsString(metric)
+	floatMetric, err := strconv.ParseFloat(stringValue, 64)
+	if err != nil {
+		return 0.0
+	}
+
+	return floatMetric
+}
+
+func (psh *PresenterStatusHandler) getBigIntFromStringMetric(metric string) *big.Int {
+	stringValue := psh.getFromCacheAsString(metric)
+	bigIntValue, ok := big.NewInt(0).SetString(stringValue, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	return bigIntValue
+}
+
+func areEqualsWithZero(parameters ...uint64) bool {
+	for _, param := range parameters {
+		if param == 0 {
+			return true
+		}
+	}
+
+	return false
 }

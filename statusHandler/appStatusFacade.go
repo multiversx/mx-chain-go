@@ -41,6 +41,15 @@ func (asf *AppStatusFacade) Increment(key string) {
 	}()
 }
 
+// AddUint64 method - will increase the value for a key for every handler
+func (asf *AppStatusFacade) AddUint64(key string, value uint64) {
+	go func() {
+		for _, ash := range asf.handlers {
+			ash.AddUint64(key, value)
+		}
+	}()
+}
+
 // Decrement method - will decrement the value for a key for every handler
 func (asf *AppStatusFacade) Decrement(key string) {
 	go func() {

@@ -211,6 +211,16 @@ func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte
 	shardForSrc := irp.shardCoordinator.ComputeId(adrSrc)
 	shardForDst := irp.shardCoordinator.ComputeId(adrDst)
 
+	isEmptyAddress := bytes.Equal(sndAddr, make([]byte, irp.adrConv.AddressLen()))
+	if isEmptyAddress {
+		shardForSrc = irp.shardCoordinator.SelfId()
+	}
+
+	isEmptyAddress = bytes.Equal(rcvAddr, make([]byte, irp.adrConv.AddressLen()))
+	if isEmptyAddress {
+		shardForDst = irp.shardCoordinator.SelfId()
+	}
+
 	return shardForSrc, shardForDst, nil
 }
 

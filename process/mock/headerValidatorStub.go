@@ -1,13 +1,15 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/process"
+)
 
 type HeaderValidatorStub struct {
-	IsHeaderValidForProcessingCalled func(headerHandler data.HeaderHandler) bool
+	HeaderValidForProcessingCalled func(headerHandler process.HdrValidatorHandler) error
 }
 
-func (h *HeaderValidatorStub) IsHeaderValidForProcessing(headerHandler data.HeaderHandler) bool {
-	return h.IsHeaderValidForProcessingCalled(headerHandler)
+func (h *HeaderValidatorStub) HeaderValidForProcessing(headerHandler process.HdrValidatorHandler) error {
+	return h.HeaderValidForProcessingCalled(headerHandler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
