@@ -3,6 +3,7 @@ package process
 import (
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -11,8 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/prometheus/common/log"
 )
+
+var log = logger.DefaultLogger()
 
 // EmptyChannel empties the given channel
 func EmptyChannel(ch chan bool) int {
@@ -570,6 +572,7 @@ func IsInProperRound(index int64) bool {
 	return index%RoundModulusTrigger == 0
 }
 
+// AddHeaderToBlackList adds a hash to black list handler. Logs if the operation did not succeed
 func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
 	err := blackListHandler.Add(string(hash))
 	if err != nil {
