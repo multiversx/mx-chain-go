@@ -311,3 +311,7 @@ func (sp *shardProcessor) CreateBlockStarted() {
 func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {
 	return sp.addProcessedCrossMiniBlocksFromHeader(header)
 }
+
+func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
+	return mp.verifyCrossShardMiniBlockDstMe(header)
+}
