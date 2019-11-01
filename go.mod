@@ -4,11 +4,10 @@ go 1.12
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
-	github.com/ElrondNetwork/arwen-wasm-vm v0.1.0
+	github.com/ElrondNetwork/arwen-wasm-vm v0.2.4
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.19
-	github.com/ElrondNetwork/elrond-vm-common v0.0.8
-	github.com/ElrondNetwork/hera v1.0.10
+	github.com/ElrondNetwork/elrond-vm-common v0.0.9
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
@@ -51,7 +50,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
-	go.dedis.ch/kyber/v3 v3.0.2
+	go.dedis.ch/kyber/v3 v3.0.7
 	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
 	golang.org/x/sys v0.0.0-20190825160603-fb81701db80f // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2

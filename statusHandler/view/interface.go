@@ -47,6 +47,7 @@ type Presenter interface {
 	GetNumShardHeadersInPool() uint64
 	GetNumShardHeadersProcessed() uint64
 	GetHighestFinalBlockInShard() uint64
+	CheckSoftwareVersion() (bool, string)
 
 	GetTotalRewardsValue() (string, string)
 	CalculateRewardsPerHour() string
