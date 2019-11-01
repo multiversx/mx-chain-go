@@ -734,7 +734,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Info("starting roll back\n")
 	for {
-		currHeaderHash := boot.blockBootstrapper.getCurrHeaderHash()
+		//currHeaderHash := boot.blockBootstrapper.getCurrHeaderHash()
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
@@ -770,9 +770,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		if revertUsingForkNonce {
-			process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
-		}
+		//if revertUsingForkNonce {
+		//	process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
+		//}
 
 		if revertUsingForkNonce && currHeader.GetNonce() > boot.forkNonce {
 			continue
