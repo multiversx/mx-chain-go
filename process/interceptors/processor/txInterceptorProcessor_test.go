@@ -91,7 +91,6 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 	err := txip.Validate(txInterceptedData)
 
 	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), process.ErrTxNotValid.Error()))
 	assert.True(t, strings.Contains(err.Error(), expectedErr.Error()))
 }
 
