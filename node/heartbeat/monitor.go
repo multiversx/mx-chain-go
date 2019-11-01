@@ -233,10 +233,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 
 	computedShardID := m.computeShardID(pubKeyStr)
 
-	hbmi.updateMutex.Lock()
 	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
 	hbDTO := m.convertToExportedStruct(hbmi)
-	hbmi.updateMutex.Unlock()
 
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
 	if err != nil {
@@ -290,17 +288,18 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	counterConnectedNodes := 0
 	hbChangedStateToInactiveMap := make(map[string]*heartbeatMessageInfo)
 	for key, v := range m.heartbeatMessages {
-		previousActive := v.isActive
-		v.computeActive(m.timer.Now())
+		previousActive := v.GetIsActive()
+		v.ComputeActive(m.timer.Now())
+		isActive := v.GetIsActive()
 
-		if v.isActive {
+		if isActive {
 			counterConnectedNodes++
 
-			if v.isValidator {
+			if v.GetIsValidator() {
 				counterActiveValidators++
 			}
 		}
-		changedStateToInactive := previousActive && !v.isActive
+		changedStateToInactive := previousActive && !isActive
 		if changedStateToInactive {
 			hbChangedStateToInactiveMap[key] = v
 		}
@@ -354,6 +353,8 @@ func (m *Monitor) IsInterfaceNil() bool {
 }
 
 func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO {
+	v.updateMutex.Lock()
+	defer v.updateMutex.Unlock()
 	return HeartbeatDTO{
 		TimeStamp:          v.timeStamp,
 		MaxInactiveTime:    v.maxInactiveTime,

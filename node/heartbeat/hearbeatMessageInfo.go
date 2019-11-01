@@ -59,12 +59,12 @@ func newHeartbeatMessageInfo(
 	return hbmi, nil
 }
 
-func (hbmi *heartbeatMessageInfo) computeActive(crtTime time.Time) {
+func (hbmi *heartbeatMessageInfo) ComputeActive(crtTime time.Time) {
 	hbmi.updateMutex.Lock()
+	defer hbmi.updateMutex.Unlock()
 	validDuration := computeValidDuration(crtTime, hbmi)
 	hbmi.isActive = hbmi.isActive && validDuration
 	hbmi.updateTimes(crtTime)
-	hbmi.updateMutex.Unlock()
 }
 
 func (hbmi *heartbeatMessageInfo) updateTimes(crtTime time.Time) {
@@ -143,6 +143,8 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	version string,
 	nodeDisplayName string,
 ) {
+	hbmi.updateMutex.Lock()
+	defer hbmi.updateMutex.Unlock()
 	crtTime := hbmi.getTimeHandler()
 
 	hbmi.computedShardID = computedShardID
@@ -173,4 +175,18 @@ func maxDuration(first, second time.Duration) time.Duration {
 	}
 
 	return second
+}
+
+func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
+	hbmi.updateMutex.Lock()
+	defer hbmi.updateMutex.Unlock()
+	isActive := hbmi.isActive
+	return isActive
+}
+
+func (hbmi *heartbeatMessageInfo) GetIsValidator() bool {
+	hbmi.updateMutex.Lock()
+	defer hbmi.updateMutex.Unlock()
+	isValidator := hbmi.isValidator
+	return isValidator
 }
