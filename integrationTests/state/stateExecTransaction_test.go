@@ -13,11 +13,10 @@ import (
 )
 
 func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	t.Parallel()
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
@@ -171,11 +170,10 @@ func testExecTransactionsMoreTxWithRevert(
 }
 
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	t.Parallel()
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(0)
 
