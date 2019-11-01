@@ -153,23 +153,6 @@ func (boot *MetaBootstrap) syncFromStorer(
 	return nil
 }
 
-func (boot *MetaBootstrap) addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {
-	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
-		return
-	}
-
-	if shardId == sharding.MetachainShardId {
-		errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
-		if errNotCritical != nil {
-			log.Debug(errNotCritical.Error())
-		}
-
-		return
-	}
-}
-
 func (boot *MetaBootstrap) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
 	return boot.getMetaHeaderFromStorage(shardId, nonce)
 }
@@ -219,11 +202,11 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
 
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if nonce > ni.blockWithLastNotarized[i] {
+		if ni.startNonce > ni.blockWithLastNotarized[i] {
 			ni.finalNotarized[i] = ni.lastNotarized[i]
 		}
 
-		log.Info(fmt.Sprintf("last notarized block from shard %d is %d and final notarized block is %d\n",
+		log.Info(fmt.Sprintf("last notarized block from shard %d is %d and final notarized shard block is %d\n",
 			i, ni.lastNotarized[i], ni.finalNotarized[i]))
 	}
 
@@ -244,7 +227,7 @@ func (boot *MetaBootstrap) isMetaBlockValid(nonce uint64) (*block.MetaBlock, boo
 	}
 
 	if metaBlock.Round > boot.bootstrapRoundIndex {
-		log.Info(ErrHigherRoundInBlock.Error())
+		log.Debug(ErrHigherRoundInBlock.Error())
 		return nil, false
 	}
 

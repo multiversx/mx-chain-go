@@ -272,11 +272,9 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 
 // ResetProbableHighestNonce resets the probableHighestNonce to checkpoint
 func (bfd *baseForkDetector) ResetProbableHighestNonce() {
-	probableHighestNonce := bfd.ProbableHighestNonce()
-	checkpointNonce := bfd.lastCheckpoint().nonce
-	if probableHighestNonce > checkpointNonce {
-		bfd.setProbableHighestNonce(checkpointNonce)
-	}
+	nonce := bfd.lastCheckpoint().nonce
+	bfd.setProbableHighestNonce(nonce)
+	bfd.setLastProposedBlockNonce(nonce)
 }
 
 // ResetFork resets the forced fork

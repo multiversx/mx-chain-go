@@ -177,7 +177,8 @@ func (boot *baseBootstrap) loadBlocks(
 	}
 
 	for i := validNonce - blockFinality; i <= validNonce; i++ {
-		boot.storageBootstrapper.addHeaderToForkDetector(shardId, i, lastNotarized[sharding.MetachainShardId])
+		withFinalHeaders := i == validNonce-blockFinality
+		boot.addHeaderToForkDetector(shardId, i, withFinalHeaders)
 	}
 
 	return nil
@@ -259,17 +260,17 @@ func (boot *baseBootstrap) removeBlockHeader(
 	}
 
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
-	if err != nil {
-		return err
-	}
+	//headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = headerStore.Remove(headerHash)
+	//if err != nil {
+	//	return err
+	//}
 
-	err = headerStore.Remove(headerHash)
-	if err != nil {
-		return err
-	}
-
-	err = headerNonceHashStore.Remove(nonceToByteSlice)
+	err := headerNonceHashStore.Remove(nonceToByteSlice)
 	if err != nil {
 		return err
 	}
@@ -879,4 +880,32 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 
 	boot.forkDetector.ResetProbableHighestNonce()
 	boot.forkDetector.ResetFork()
+}
+
+func (boot *baseBootstrap) addHeaderToForkDetector(
+	shardId uint32,
+	nonce uint64,
+	withFinalHeaders bool,
+) {
+
+	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+		return
+	}
+
+	var finalHeaders []data.HeaderHandler
+	var finalHeadersHashes [][]byte
+
+	if withFinalHeaders {
+		finalHeaders = append(finalHeaders, header)
+		finalHeadersHashes = append(finalHeadersHashes, headerHash)
+	}
+
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	return
 }
