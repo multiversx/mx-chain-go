@@ -20,7 +20,7 @@ var durStartGoRoutine = time.Second
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cm := newLibp2pConnectionMonitor(nil)
+	cm := newLibp2pConnectionMonitor(nil, 0)
 
 	assert.NotNil(t, cm)
 }
@@ -50,7 +50,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 		},
 	}
 
-	cm := newLibp2pConnectionMonitor(&rs)
+	cm := newLibp2pConnectionMonitor(&rs, 0)
 	time.Sleep(durStartGoRoutine)
 	cm.Disconnected(&ns, nil)
 

@@ -33,6 +33,7 @@ func createMessenger(port int) p2p.Messenger {
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewNullDiscoverer(),
 		libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		0,
 	)
 
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kbucket"
 )
 
 var peerDiscoveryTimeout = 10 * time.Second
@@ -27,6 +28,7 @@ type KadDhtDiscoverer struct {
 	refreshInterval  time.Duration
 	randezVous       string
 	initialPeersList []string
+	initc            bool
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
@@ -47,6 +49,7 @@ func NewKadDhtPeerDiscoverer(
 		refreshInterval:  refreshInterval,
 		randezVous:       randezVous,
 		initialPeersList: initialPeersList,
+		initc:            true,
 	}
 }
 
@@ -98,12 +101,37 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 		<-chanStartBootstrap
 
 		kdd.mutKadDht.Lock()
-		err := kdd.kadDHT.BootstrapWithConfig(ctx, cfg)
+		go func() {
+			i := 0
+			for {
+				if kdd.initc {
+					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
+					if err == kbucket.ErrLookupFailure {
+						// KDD: no more peers, Reconnect to initial list
+						chanRecInit := kdd.connectToOnePeerFromInitialPeersList(
+							kdd.refreshInterval,
+							kdd.initialPeersList)
+						<-chanRecInit
+
+					}
+				} else {
+					i++
+					if (i % 20) == 0 {
+						// KDD: Reconnect to initial list
+						chanRecInit := kdd.connectToOnePeerFromInitialPeersList(
+							kdd.refreshInterval,
+							kdd.initialPeersList)
+						<-chanRecInit
+					}
+				}
+				select {
+				case <-time.After(cfg.Period):
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
 		kdd.mutKadDht.Unlock()
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
 	}()
 }
 
@@ -174,6 +202,24 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
 	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+}
+
+func (kdd *KadDhtDiscoverer) Pause() {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+	if kdd.initc {
+		// KDD: Pause kad-dht discovery
+		kdd.initc = false
+	}
+}
+
+func (kdd *KadDhtDiscoverer) Resume() {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+	if !kdd.initc {
+		// KDD: Resume kad-dht discovery
+		kdd.initc = true
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
