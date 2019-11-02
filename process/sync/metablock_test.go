@@ -113,6 +113,7 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		nil,
@@ -128,6 +129,7 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -150,6 +152,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -165,6 +168,7 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -182,6 +186,7 @@ func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -197,6 +202,7 @@ func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -214,6 +220,7 @@ func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -229,6 +236,7 @@ func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -246,6 +254,7 @@ func TestNewMetaBootstrap_NilRounderShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -261,6 +270,7 @@ func TestNewMetaBootstrap_NilRounderShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -278,6 +288,7 @@ func TestNewMetaBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -293,6 +304,7 @@ func TestNewMetaBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -310,6 +322,7 @@ func TestNewMetaBootstrap_NilHasherShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -325,6 +338,7 @@ func TestNewMetaBootstrap_NilHasherShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -342,6 +356,7 @@ func TestNewMetaBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -357,6 +372,7 @@ func TestNewMetaBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -374,6 +390,7 @@ func TestNewMetaBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -389,6 +406,7 @@ func TestNewMetaBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -407,6 +425,7 @@ func TestNewMetaBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -422,6 +441,7 @@ func TestNewMetaBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -439,6 +459,7 @@ func TestNewMetaBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -454,6 +475,7 @@ func TestNewMetaBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -471,6 +493,7 @@ func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -486,10 +509,45 @@ func TestNewMetaBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 		shardCoordinator,
 		nil,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+}
+
+func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pools := createMockMetaPools()
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	bs, err := sync.NewMetaBootstrap(
+		pools,
+		createStore(),
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		&mock.ResolversFinderStub{},
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+		nil,
+	)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilBlackListHandler, err)
 }
 
 func TestNewMetaBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
@@ -514,6 +572,7 @@ func TestNewMetaBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -529,6 +588,7 @@ func TestNewMetaBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -557,6 +617,7 @@ func TestNewMetaBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -572,6 +633,7 @@ func TestNewMetaBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, bs)
@@ -614,6 +676,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, err := sync.NewMetaBootstrap(
 		pools,
@@ -629,6 +692,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.NotNil(t, bs)
@@ -672,6 +736,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
@@ -691,6 +756,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	r := bs.SyncBlock()
@@ -723,6 +789,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
@@ -745,6 +812,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	r := bs.SyncBlock()
@@ -780,6 +848,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
@@ -797,6 +866,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	bs.StartSync()
@@ -875,6 +945,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	account.RootHashCalled = func() ([]byte, error) {
 		return nil, nil
@@ -896,6 +967,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	bs.StartSync()
@@ -971,6 +1043,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
@@ -991,6 +1064,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	r := bs.SyncBlock()
@@ -1066,6 +1140,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(),
 		time.Now().Add(2*time.Duration(100*time.Millisecond)),
@@ -1090,6 +1165,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	err := bs.SyncBlock()
@@ -1113,6 +1189,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
@@ -1130,6 +1207,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundI
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.Nil(t, err)
@@ -1153,6 +1231,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreat
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
@@ -1170,6 +1249,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreat
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1197,6 +1277,7 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
@@ -1214,6 +1295,7 @@ func TestMetaBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1241,6 +1323,7 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
@@ -1258,12 +1341,13 @@ func TestMetaBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	assert.True(t, bs.ShouldSync())
 }
 
-func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
+func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesTheSameWrongHeader(t *testing.T) {
 	t.Parallel()
 
 	hdr1 := block.MetaBlock{Nonce: 1, Round: 2, PubKeysBitmap: []byte("A")}
@@ -1286,9 +1370,14 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	marshalizer := &mock.MarshalizerMock{}
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
-	forkDetector, _ := sync.NewMetaForkDetector(rounder)
+	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1304,6 +1393,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
@@ -1320,8 +1410,8 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 	}
 
 	shouldSync = bs.ShouldSync()
-	assert.True(t, shouldSync)
-	assert.True(t, bs.IsForkDetected())
+	assert.False(t, shouldSync)
+	assert.False(t, bs.IsForkDetected())
 }
 
 func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesTheGoodHeader(t *testing.T) {
@@ -1347,9 +1437,14 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	marshalizer := &mock.MarshalizerMock{}
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
-	forkDetector, _ := sync.NewMetaForkDetector(rounder)
+	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	})
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1365,6 +1460,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil)
@@ -1398,6 +1494,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
@@ -1415,6 +1512,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaBlocks(), pools.HeadersNonces())
@@ -1464,6 +1562,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
@@ -1483,6 +1582,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	hdr2, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.MetaBlocks(), pools.HeadersNonces())
@@ -1536,6 +1636,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
 
@@ -1553,6 +1654,7 @@ func TestMetaBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *test
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1591,6 +1693,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	headerStorage := &mock.StorerStub{}
 	headerStorage.GetCalled = func(key []byte) (i []byte, e error) {
@@ -1626,6 +1729,7 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1647,6 +1751,7 @@ func TestMetaBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1662,6 +1767,7 @@ func TestMetaBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	err := bs.RollBack(false)
@@ -1680,6 +1786,7 @@ func TestMetaBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1695,6 +1802,7 @@ func TestMetaBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1735,6 +1843,7 @@ func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 	forkDetector := createForkDetector(newHdrNonce, remFlags)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1750,6 +1859,7 @@ func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -1866,6 +1976,11 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 			return nil
 		},
 	}
+	blackListHandler := &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -1881,6 +1996,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2031,6 +2147,11 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 			return nil
 		},
 	}
+	blackListHandler := &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			return nil
+		},
+	}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -2046,6 +2167,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2093,6 +2215,7 @@ func TestMetaBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testin
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -2108,6 +2231,7 @@ func TestMetaBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testin
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	f1 := func(bool) {}
@@ -2134,6 +2258,7 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -2149,6 +2274,7 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	mutex.RLock()
@@ -2202,6 +2328,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) 
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	store := createStore()
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
@@ -2222,6 +2349,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) 
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	err := bs.SyncFromStorer(process.MetaBlockFinality,
@@ -2261,6 +2389,7 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	store := createStore()
 	store.HasCalled = func(unitType dataRetriever.UnitType, key []byte) error {
@@ -2309,6 +2438,7 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	err := bs.SyncFromStorer(process.MetaBlockFinality,
@@ -2332,6 +2462,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetFinalNotarizedShardHea
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	nonceToByteSlice := uint64Converter.ToByteSlice(uint64(1))
@@ -2381,6 +2512,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetFinalNotarizedShardHea
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	lastNotarized := make(map[uint32]uint64, 0)
@@ -2412,6 +2544,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedShardHead
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	nonceToByteSlice := uint64Converter.ToByteSlice(uint64(1))
@@ -2461,6 +2594,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedShardHead
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	lastNotarized := make(map[uint32]uint64, 0)
@@ -2492,6 +2626,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	nonceToByteSlice := uint64Converter.ToByteSlice(uint64(0))
@@ -2541,6 +2676,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	lastNotarized := make(map[uint32]uint64, 0)
@@ -2585,6 +2721,7 @@ func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -2600,6 +2737,7 @@ func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		blackListHandler,
 	)
 
 	err := bs.SetStatusHandler(nil)

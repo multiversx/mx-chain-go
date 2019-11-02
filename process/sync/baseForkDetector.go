@@ -44,6 +44,8 @@ type baseForkDetector struct {
 	mutHeaders sync.RWMutex
 	fork       forkInfo
 	mutFork    sync.RWMutex
+
+	blackListHandler process.BlackListHandler
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -177,6 +179,9 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 		if bytes.Equal(hdrInfoStored.hash, hash) {
 			continue
 		}
+		if hdrInfoStored.state == process.BHReceived {
+			continue
+		}
 
 		preservedHdrInfos = append(preservedHdrInfos, hdrInfoStored)
 	}
@@ -267,11 +272,9 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 
 // ResetProbableHighestNonce resets the probableHighestNonce to checkpoint
 func (bfd *baseForkDetector) ResetProbableHighestNonce() {
-	probableHighestNonce := bfd.ProbableHighestNonce()
-	checkpointNonce := bfd.lastCheckpoint().nonce
-	if probableHighestNonce > checkpointNonce {
-		bfd.setProbableHighestNonce(checkpointNonce)
-	}
+	nonce := bfd.lastCheckpoint().nonce
+	bfd.setProbableHighestNonce(nonce)
+	bfd.setLastProposedBlockNonce(nonce)
 }
 
 // ResetFork resets the forced fork
@@ -482,7 +485,7 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 	finality int64,
 ) error {
 
-	if state == process.BHProcessed || bfd.isSyncing(header.GetNonce()) {
+	if state == process.BHProcessed {
 		return nil
 	}
 
@@ -502,7 +505,7 @@ func (bfd *baseForkDetector) activateForcedForkIfNeeded(
 	state process.BlockHeaderState,
 ) {
 
-	if state != process.BHProposed || bfd.isSyncing(header.GetNonce()) {
+	if state != process.BHProposed || bfd.isSyncing() {
 		return
 	}
 
@@ -524,8 +527,8 @@ func (bfd *baseForkDetector) activateForcedForkIfNeeded(
 	bfd.setShouldForceFork(true)
 }
 
-func (bfd *baseForkDetector) isSyncing(receivedNonce uint64) bool {
-	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(receivedNonce)
+func (bfd *baseForkDetector) isSyncing() bool {
+	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(bfd.lastCheckpoint().nonce)
 	isSyncing := noncesDifference > process.NonceDifferenceWhenSynced
 	return isSyncing
 }

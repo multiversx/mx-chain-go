@@ -14,7 +14,6 @@ type storageBootstrapper interface {
 	getNonceWithLastNotarized(currrentNonce uint64) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64)
 	applyNotarizedBlocks(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error
 	cleanupNotarizedStorage(lastNotarized map[uint32]uint64)
-	addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
 	IsInterfaceNil() bool
 }
 
@@ -27,4 +26,5 @@ type blockBootstrapper interface {
 	getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error)
 	haveHeaderInPoolWithNonce(nonce uint64) bool
 	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+	getCurrHeaderHash() []byte
 }

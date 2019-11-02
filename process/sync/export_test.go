@@ -280,3 +280,7 @@ func (bfd *baseForkDetector) SetProbableHighestNonce(nonce uint64) {
 func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
 	sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
 }
+
+func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64) {
+	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce})
+}

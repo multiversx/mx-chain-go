@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -58,6 +59,7 @@ type baseBootstrap struct {
 	accounts            state.AccountsAdapter
 	storageBootstrapper storageBootstrapper
 	blockBootstrapper   blockBootstrapper
+	blackListHandler    process.BlackListHandler
 
 	mutHeader     sync.RWMutex
 	headerNonce   *uint64
@@ -175,7 +177,8 @@ func (boot *baseBootstrap) loadBlocks(
 	}
 
 	for i := validNonce - blockFinality; i <= validNonce; i++ {
-		boot.storageBootstrapper.addHeaderToForkDetector(shardId, i, lastNotarized[sharding.MetachainShardId])
+		withFinalHeaders := i == validNonce-blockFinality
+		boot.addHeaderToForkDetector(shardId, i, withFinalHeaders)
 	}
 
 	return nil
@@ -257,17 +260,17 @@ func (boot *baseBootstrap) removeBlockHeader(
 	}
 
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
-	if err != nil {
-		return err
-	}
+	//headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = headerStore.Remove(headerHash)
+	//if err != nil {
+	//	return err
+	//}
 
-	err = headerStore.Remove(headerHash)
-	if err != nil {
-		return err
-	}
-
-	err = headerNonceHashStore.Remove(nonceToByteSlice)
+	err := headerNonceHashStore.Remove(nonceToByteSlice)
 	if err != nil {
 		return err
 	}
@@ -503,6 +506,8 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 		return nil
 	}
 
+	// boot.headers.Remove(hash) should not be called, just to have a restore point if it is needed later
+
 	return hash
 }
 
@@ -511,7 +516,7 @@ func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHan
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
 	//TODO: Refactor the deletion from the headerStore as that will be an exceptional case in which,
 	//in case of "bad" rollbacks and datapool accidental eviction, the shard will halt.
-	_ = boot.headerStore.Remove(hash)
+	//_ = boot.headerStore.Remove(hash)
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
@@ -528,36 +533,40 @@ func checkBootstrapNilParameters(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
+	blackListHandler process.BlackListHandler,
 ) error {
-	if blkc == nil || blkc.IsInterfaceNil() {
+	if check.IfNil(blkc) {
 		return process.ErrNilBlockChain
 	}
-	if rounder == nil || rounder.IsInterfaceNil() {
+	if check.IfNil(rounder) {
 		return process.ErrNilRounder
 	}
-	if blkExecutor == nil || blkExecutor.IsInterfaceNil() {
+	if check.IfNil(blkExecutor) {
 		return process.ErrNilBlockExecutor
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if forkDetector == nil || forkDetector.IsInterfaceNil() {
+	if check.IfNil(forkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if resolversFinder == nil || resolversFinder.IsInterfaceNil() {
+	if check.IfNil(resolversFinder) {
 		return process.ErrNilResolverContainer
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return process.ErrNilStore
+	}
+	if check.IfNil(blackListHandler) {
+		return process.ErrNilBlackListHandler
 	}
 
 	return nil
@@ -725,6 +734,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Info("starting roll back\n")
 	for {
+		//currHeaderHash := boot.blockBootstrapper.getCurrHeaderHash()
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
@@ -759,6 +769,10 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if err != nil {
 			return err
 		}
+
+		//if revertUsingForkNonce {
+		//	process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
+		//}
 
 		if revertUsingForkNonce && currHeader.GetNonce() > boot.forkNonce {
 			continue
@@ -846,11 +860,52 @@ func (boot *baseBootstrap) isForcedFork() bool {
 }
 
 func (boot *baseBootstrap) rollBackOnForcedFork() {
-	err := boot.rollBack(false)
-	if err != nil {
-		log.Info(err.Error())
+	for {
+		currHeader, err := boot.blockBootstrapper.getCurrHeader()
+		if err != nil {
+			log.Info(err.Error())
+			break
+		}
+
+		if currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
+			break
+		}
+
+		err = boot.rollBack(false)
+		if err != nil {
+			log.Info(err.Error())
+			break
+		}
 	}
 
 	boot.forkDetector.ResetProbableHighestNonce()
 	boot.forkDetector.ResetFork()
+}
+
+func (boot *baseBootstrap) addHeaderToForkDetector(
+	shardId uint32,
+	nonce uint64,
+	withFinalHeaders bool,
+) {
+
+	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+		return
+	}
+
+	var finalHeaders []data.HeaderHandler
+	var finalHeadersHashes [][]byte
+
+	if withFinalHeaders {
+		finalHeaders = append(finalHeaders, header)
+		finalHeadersHashes = append(finalHeadersHashes, headerHash)
+	}
+
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
+	if errNotCritical != nil {
+		log.Debug(errNotCritical.Error())
+	}
+
+	return
 }

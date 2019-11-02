@@ -2,6 +2,7 @@ package sync
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -12,13 +13,21 @@ type metaForkDetector struct {
 }
 
 // NewMetaForkDetector method creates a new metaForkDetector object
-func NewMetaForkDetector(rounder consensus.Rounder) (*metaForkDetector, error) {
-	if rounder == nil || rounder.IsInterfaceNil() {
+func NewMetaForkDetector(
+	rounder consensus.Rounder,
+	blackListHandler process.BlackListHandler,
+) (*metaForkDetector, error) {
+
+	if check.IfNil(rounder) {
 		return nil, process.ErrNilRounder
+	}
+	if check.IfNil(blackListHandler) {
+		return nil, process.ErrNilBlackListHandler
 	}
 
 	bfd := &baseForkDetector{
-		rounder: rounder,
+		rounder:          rounder,
+		blackListHandler: blackListHandler,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -51,6 +60,7 @@ func (mfd *metaForkDetector) AddHeader(
 
 	err := mfd.checkBlockBasicValidity(header, state)
 	if err != nil {
+		process.AddHeaderToBlackList(mfd.blackListHandler, headerHash)
 		return err
 	}
 
