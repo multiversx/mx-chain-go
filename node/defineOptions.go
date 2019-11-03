@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -402,6 +403,9 @@ func WithIndexer(indexer indexer.Indexer) Option {
 // WithBlackListHandler sets up a black list handler for the Node
 func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
 	return func(n *Node) error {
+		if check.IfNil(blackListHandler) {
+			return ErrNilBlackListHandler
+		}
 		n.blackListHandler = blackListHandler
 		return nil
 	}
