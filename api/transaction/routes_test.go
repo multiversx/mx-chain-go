@@ -44,7 +44,7 @@ func init() {
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := "10"
+	value := big.NewInt(10)
 	data := "data"
 	hash := "hash"
 	facade := mock.Facade{
@@ -71,14 +71,14 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
 	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
-	assert.Equal(t, value, txResp.Value)
+	assert.Equal(t, value.String(), txResp.Value)
 	assert.Equal(t, data, txResp.Data)
 }
 
 func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := "10"
+	value := big.NewInt(10)
 	data := "data"
 	hs := "hash"
 	wrongHash := "wronghash"

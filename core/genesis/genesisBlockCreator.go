@@ -150,7 +150,7 @@ func initSystemSmartContracts(
 	scKeys := smartContracts.Keys()
 
 	tx := &transaction.Transaction{
-		Value:   "0",
+		Value:   big.NewInt(0),
 		RcvAddr: make([]byte, adrConv.AddressLen()),
 	}
 	for _, scKey := range scKeys {

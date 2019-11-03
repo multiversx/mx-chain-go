@@ -275,7 +275,7 @@ func CreateTx(
 	txData := scCodeOrFunc
 	tx := &dataTransaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value.String(),
+		Value:    value,
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  receiverAddressBytes,
 		Data:     txData,

@@ -573,7 +573,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	)
 
 	nonce := uint64(0)
-	value := "10"
+	value := new(big.Int).SetInt64(10)
 	receiver := ""
 	sender := ""
 	gasPrice := uint64(10)
@@ -582,7 +582,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "-"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, node.ErrNilAddressConverter, err)
@@ -603,7 +603,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	)
 
 	nonce := uint64(0)
-	value := "10"
+	value := new(big.Int).SetInt64(10)
 	receiver := ""
 	sender := ""
 	gasPrice := uint64(10)
@@ -612,7 +612,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "-"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
@@ -634,7 +634,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	)
 
 	nonce := uint64(0)
-	value := "10"
+	value := new(big.Int).SetInt64(10)
 	receiver := "rcv"
 	sender := "snd"
 	gasPrice := uint64(10)
@@ -643,7 +643,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "af4e5"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.NotNil(t, err)
@@ -665,7 +665,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	)
 
 	nonce := uint64(0)
-	value := "10"
+	value := new(big.Int).SetInt64(10)
 	receiver := "rcv"
 	sender := "snd"
 	gasPrice := uint64(10)
@@ -674,7 +674,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	signature := "617eff4f"
 	challenge := "aff64e"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.NotNil(t, tx)
 	assert.Nil(t, err)
@@ -725,7 +725,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	)
 
 	nonce := uint64(50)
-	value := "567"
+	value := big.NewInt(567)
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
@@ -738,7 +738,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		nonce,
 		sender,
 		receiver,
-		value,
+		value.String(),
 		0,
 		0,
 		txData,
@@ -1713,7 +1713,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	var txsToSend []*transaction.Transaction
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     10,
-		Value:     "15",
+		Value:     new(big.Int).SetInt64(15),
 		RcvAddr:   []byte("receiver1"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  5,
@@ -1725,7 +1725,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     11,
-		Value:     "25",
+		Value:     new(big.Int).SetInt64(25),
 		RcvAddr:   []byte("receiver2"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  6,
@@ -1737,7 +1737,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     12,
-		Value:     "35",
+		Value:     new(big.Int).SetInt64(35),
 		RcvAddr:   []byte("receiver3"),
 		SndAddr:   []byte("senderShard1"),
 		GasPrice:  7,

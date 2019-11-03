@@ -57,7 +57,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	txDataCost := uint64(len(txData))
 	tx := transaction.Transaction{
 		Nonce:    0,
-		Value:    "0",
+		Value:    big.NewInt(0),
 		RcvAddr:  integrationTests.TestHasher.Compute("receiver"),
 		SndAddr:  buffPk1,
 		Data:     txData,

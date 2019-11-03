@@ -166,7 +166,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.NotNil(t, err)
@@ -180,7 +180,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -220,7 +220,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldFail(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "0"
+	tx.Value = big.NewInt(0)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -262,7 +262,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
@@ -324,7 +324,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -383,7 +383,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.RcvAddr) {

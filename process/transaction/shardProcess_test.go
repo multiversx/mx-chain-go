@@ -525,7 +525,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Value: "68"}, acnt1)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
@@ -540,7 +540,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Value: "67"}, acnt1)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1)
 	assert.Nil(t, err)
 }
 
@@ -747,7 +747,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.NotNil(t, err)
@@ -761,7 +761,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), &mock.AccountTrackerStub{})
 	assert.Nil(t, err)
@@ -807,7 +807,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
@@ -861,7 +861,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "0"
+	tx.Value = big.NewInt(0)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -909,7 +909,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "0"
+	tx.Value = big.NewInt(0)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
@@ -965,7 +965,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "0"
+	tx.Value = big.NewInt(0)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
@@ -1019,7 +1019,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "61"
+	tx.Value = big.NewInt(61)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -1070,7 +1070,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = "61"
+	tx.Value = big.NewInt(61)
 	tx.GasPrice = 2
 	tx.GasLimit = 2
 
@@ -1137,7 +1137,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
@@ -1203,7 +1203,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewAccount(mock.NewAddressMock(tx.SndAddr), tracker)
 	assert.Nil(t, err)
@@ -1266,7 +1266,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Value = "45"
+	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.RcvAddr) {

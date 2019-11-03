@@ -157,13 +157,10 @@ func (inTx *InterceptedTransaction) integrity() error {
 	if inTx.tx.SndAddr == nil {
 		return process.ErrNilSndAddr
 	}
-	if inTx.tx.Value == "" {
+	if inTx.tx.Value == nil {
 		return process.ErrNilValue
 	}
-	if inTx.tx.GetValue() == nil {
-		return process.ErrInvalidValue
-	}
-	if inTx.tx.GetValue().Cmp(big.NewInt(0)) < 0 {
+	if inTx.tx.Value.Cmp(big.NewInt(0)) < 0 {
 		return process.ErrNegativeValue
 	}
 
@@ -230,7 +227,7 @@ func (inTx *InterceptedTransaction) SenderAddress() state.AddressContainer {
 // TotalValue returns the maximum cost of transaction
 // totalValue = txValue + gasPrice*gasLimit
 func (inTx *InterceptedTransaction) TotalValue() *big.Int {
-	result := big.NewInt(0).Set(inTx.tx.GetValue())
+	result := big.NewInt(0).Set(inTx.tx.Value)
 	gasPrice := big.NewInt(int64(inTx.tx.GasPrice))
 	gasLimit := big.NewInt(int64(inTx.tx.GasLimit))
 	mulTxCost := big.NewInt(0)

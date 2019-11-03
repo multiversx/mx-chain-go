@@ -1,24 +1,26 @@
 package transaction
 
 import (
+	"encoding/json"
 	"io"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction/capnp"
 	capn "github.com/glycerine/go-capnproto"
 )
 
 // Transaction holds all the data needed for a value transfer or SC call
 type Transaction struct {
-	Nonce     uint64 `capid:"0" json:"nonce"`
-	Value     string `capid:"1" json:"value"`
-	RcvAddr   []byte `capid:"2" json:"receiver"`
-	SndAddr   []byte `capid:"3" json:"sender"`
-	GasPrice  uint64 `capid:"4" json:"gasPrice,omitempty"`
-	GasLimit  uint64 `capid:"5" json:"gasLimit,omitempty"`
-	Data      string `capid:"6" json:"data,omitempty"`
-	Signature []byte `capid:"7" json:"signature,omitempty"`
-	Challenge []byte `capid:"8" json:"challenge,omitempty"`
+	Nonce     uint64   `capid:"0" json:"nonce"`
+	Value     *big.Int `capid:"1" json:"value"`
+	RcvAddr   []byte   `capid:"2" json:"receiver"`
+	SndAddr   []byte   `capid:"3" json:"sender"`
+	GasPrice  uint64   `capid:"4" json:"gasPrice,omitempty"`
+	GasLimit  uint64   `capid:"5" json:"gasLimit,omitempty"`
+	Data      string   `capid:"6" json:"data,omitempty"`
+	Signature []byte   `capid:"7" json:"signature,omitempty"`
+	Challenge []byte   `capid:"8" json:"challenge,omitempty"`
 }
 
 // Save saves the serialized data of a Transaction into a stream through Capnp protocol
@@ -46,14 +48,18 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 		dest = &Transaction{}
 	}
 
-	if dest.Value == "" {
-		dest.Value = "0"
+	if dest.Value == nil {
+		dest.Value = big.NewInt(0)
 	}
 
 	// Nonce
 	dest.Nonce = src.Nonce()
 	// Value
-	dest.Value = string(src.Value())
+	err := dest.Value.GobDecode(src.Value())
+
+	if err != nil {
+		return nil
+	}
 
 	// RcvAddr
 	dest.RcvAddr = src.RcvAddr()
@@ -77,8 +83,9 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionCapn {
 	dest := capnp.AutoNewTransactionCapn(seg)
 
+	value, _ := src.Value.GobEncode()
 	dest.SetNonce(src.Nonce)
-	dest.SetValue([]byte(src.Value))
+	dest.SetValue(value)
 	dest.SetRcvAddr(src.RcvAddr)
 	dest.SetSndAddr(src.SndAddr)
 	dest.SetGasPrice(src.GasPrice)
@@ -97,8 +104,7 @@ func (tx *Transaction) IsInterfaceNil() bool {
 
 // GetValue returns the value of the transaction
 func (tx *Transaction) GetValue() *big.Int {
-	val, _ := big.NewInt(0).SetString(tx.Value, 10)
-	return val
+	return tx.Value
 }
 
 // GetNonce returns the transaction nonce
@@ -133,7 +139,7 @@ func (tx *Transaction) GetGasPrice() uint64 {
 
 // SetValue sets the value of the transaction
 func (tx *Transaction) SetValue(value *big.Int) {
-	tx.Value = value.String()
+	tx.Value = value
 }
 
 // SetData sets the data of the transaction
@@ -149,4 +155,64 @@ func (tx *Transaction) SetRecvAddress(addr []byte) {
 // SetSndAddress sets the sender address of the transaction
 func (tx *Transaction) SetSndAddress(addr []byte) {
 	tx.SndAddr = addr
+}
+
+// MarshalJSON converts the Transaction data type into its corresponding equivalent in byte slice.
+// Note that Value data type is converted in a string
+func (tx *Transaction) MarshalJSON() ([]byte, error) {
+	valAsString := "nil"
+	if tx.Value != nil {
+		valAsString = tx.Value.String()
+	}
+	return json.Marshal(&struct {
+		Nonce     uint64 `json:"nonce"`
+		Value     string `json:"value"`
+		RcvAddr   []byte `json:"receiver"`
+		SndAddr   []byte `json:"sender"`
+		GasPrice  uint64 `json:"gasPrice,omitempty"`
+		GasLimit  uint64 `json:"gasLimit,omitempty"`
+		Data      string `json:"data,omitempty"`
+		Signature []byte `json:"signature,omitempty"`
+	}{
+		Nonce:     tx.Nonce,
+		Value:     valAsString,
+		RcvAddr:   tx.RcvAddr,
+		SndAddr:   tx.SndAddr,
+		GasPrice:  tx.GasPrice,
+		GasLimit:  tx.GasLimit,
+		Data:      tx.Data,
+		Signature: tx.Signature,
+	})
+}
+
+// UnmarshalJSON converts the provided bytes into a Transaction data type.
+func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
+	aux := &struct {
+		Nonce     uint64 `json:"nonce"`
+		Value     string `json:"value"`
+		RcvAddr   []byte `json:"receiver"`
+		SndAddr   []byte `json:"sender"`
+		GasPrice  uint64 `json:"gasPrice,omitempty"`
+		GasLimit  uint64 `json:"gasLimit,omitempty"`
+		Data      string `json:"data,omitempty"`
+		Signature []byte `json:"signature,omitempty"`
+	}{}
+	if err := json.Unmarshal(dataBuff, &aux); err != nil {
+		return err
+	}
+	tx.Nonce = aux.Nonce
+	tx.RcvAddr = aux.RcvAddr
+	tx.SndAddr = aux.SndAddr
+	tx.GasPrice = aux.GasPrice
+	tx.GasLimit = aux.GasLimit
+	tx.Data = aux.Data
+	tx.Signature = aux.Signature
+
+	var ok bool
+	tx.Value, ok = big.NewInt(0).SetString(aux.Value, 10)
+	if !ok {
+		return data.ErrInvalidValue
+	}
+
+	return nil
 }

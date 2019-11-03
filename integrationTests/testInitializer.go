@@ -784,13 +784,13 @@ func generateTransferTx(
 	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
 	tx := transaction.Transaction{
 		Nonce:    nonce,
+		Value:    valToTransfer,
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
 		Data:     "",
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
-	tx.SetValue(valToTransfer)
 	txBuff, _ := TestMarshalizer.Marshal(&tx)
 	signer := &singlesig.SchnorrSigner{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
@@ -805,13 +805,13 @@ func generateTx(
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
 		Nonce:    args.nonce,
+		Value:    args.value,
 		RcvAddr:  args.rcvAddr,
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
 		Data:     args.data,
 	}
-	tx.SetValue(args.value)
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 

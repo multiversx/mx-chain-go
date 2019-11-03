@@ -176,7 +176,7 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response.Data = tx.Data
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Challenge = string(tx.Challenge)
-	response.Value = tx.Value
+	response.Value = tx.Value.String()
 	response.GasLimit = tx.GasLimit
 	response.GasPrice = tx.GasPrice
 

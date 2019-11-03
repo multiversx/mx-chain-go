@@ -1029,7 +1029,7 @@ func createAndExecTxs(
 
 		tx := &transaction2.Transaction{
 			Nonce:   1,
-			Value:   fmt.Sprintf("%d", txVal),
+			Value:   big.NewInt(int64(txVal)),
 			SndAddr: addr[sender].Bytes(),
 			RcvAddr: addr[receiver].Bytes(),
 		}

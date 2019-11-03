@@ -641,7 +641,7 @@ func buildTransaction(
 		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         tx.Nonce,
 		Round:         header.GetRound(),
-		Value:         tx.Value,
+		Value:         tx.Value.String(),
 		Receiver:      hex.EncodeToString(tx.RcvAddr),
 		Sender:        hex.EncodeToString(tx.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,

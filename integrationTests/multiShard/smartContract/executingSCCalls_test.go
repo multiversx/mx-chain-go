@@ -69,7 +69,7 @@ func createTx(
 	txData := fmt.Sprintf("%s@%X", scCodeOrFunc, scValue)
 	tx := &transaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    value.String(),
+		Value:    value,
 		RcvAddr:  receiverAddressBytes,
 		SndAddr:  senderAddressBytes,
 		GasPrice: uint64(gasPrice),
@@ -436,14 +436,16 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 		assert.NotNil(t, txBytes)
 
 		//TODO should refactor this, maybe remove the whole integrationTests/multiShard/smartContract package as these tests
-		// are included by integrationTests/multiShard/block package bu should modify the minimum tx gasprice != 0
+		// are included by integrationTests/multiShard/block package but should modify the minimum tx gasprice != 0
 		scr := &smartContractResult.SmartContractResult{}
 		_ = testMarshalizer.Unmarshal(scr, txBytes)
 
 		tx := &transaction.Transaction{
-			Value: scr.Value.String(),
+			Value:   scr.Value,
+			SndAddr: scr.SndAddr,
+			RcvAddr: scr.RcvAddr,
+			Nonce:   scr.Nonce,
 		}
-		_ = testMarshalizer.Unmarshal(tx, txBytes)
 
 		// Now execute transaction back into the account shard
 		_ = proposerNodeShardAccount.txProcessor.ProcessTransaction(tx, generalRoundNumber)

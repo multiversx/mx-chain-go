@@ -87,7 +87,10 @@ func createShardedDataChacherNotifier(
 }
 
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {
-	tx := &transaction.Transaction{Nonce: 10}
+	tx := &transaction.Transaction{
+		Nonce: 10,
+		Value: big.NewInt(0),
+	}
 	sc := &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}
 	rTx := &rewardTx.RewardTx{Epoch: 0, Round: 1, RcvAddr: []byte("1")}
 

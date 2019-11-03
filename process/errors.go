@@ -265,9 +265,6 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrRollbackFromGenesis signals that a rollback from genesis is called
-var ErrRollbackFromGenesis = errors.New("roll back from genesis is not permitted")
-
 // ErrNoDataInMessage signals that no data was found after parsing received p2p message
 var ErrNoDataInMessage = errors.New("no data found in received message")
 
@@ -499,9 +496,6 @@ var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
-
-// ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
-var ErrInvalidValue = errors.New("invalid value")
 
 // ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
 var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")

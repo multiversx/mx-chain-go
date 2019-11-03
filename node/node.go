@@ -500,9 +500,14 @@ func (n *Node) SendTransaction(
 
 	senderShardId := n.shardCoordinator.ComputeId(sender)
 
+	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
+	if !ok {
+		return "", ErrInvalidValue
+	}
+
 	tx := transaction.Transaction{
 		Nonce:     nonce,
-		Value:     value,
+		Value:     valAsBigInt,
 		RcvAddr:   receiver.Bytes(),
 		SndAddr:   sender.Bytes(),
 		GasPrice:  gasPrice,
@@ -535,6 +540,7 @@ func (n *Node) SendTransaction(
 	return txHexHash, nil
 }
 
+// SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	transactionsByShards := make(map[uint32][][]byte, 0)
 
@@ -603,6 +609,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	return nil
 }
 
+// CreateTransaction can generate a transaction from provided parameters
 func (n *Node) CreateTransaction(
 	nonce uint64,
 	value string,
@@ -643,9 +650,14 @@ func (n *Node) CreateTransaction(
 		return nil, errors.New("could not fetch challenge bytes")
 	}
 
+	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
+	if !ok {
+		return nil, ErrInvalidValue
+	}
+
 	return &transaction.Transaction{
 		Nonce:     nonce,
-		Value:     value,
+		Value:     valAsBigInt,
 		RcvAddr:   receiverAddress.Bytes(),
 		SndAddr:   senderAddress.Bytes(),
 		GasPrice:  gasPrice,

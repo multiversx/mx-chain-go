@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -3071,7 +3072,10 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	hasherMock := &mock.HasherStub{}
 
 	body := make(block.Body, 0)
-	tx := transaction.Transaction{Nonce: 1}
+	tx := &transaction.Transaction{
+		Nonce: 1,
+		Value: big.NewInt(0),
+	}
 	buffTx, _ := marshalizerMock.Marshal(tx)
 
 	store := &mock.ChainStorerMock{
@@ -3165,7 +3169,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	txFromPool, _ := datapool.Transactions().SearchFirstData(txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, &miniblock, miniblockFromPool)
-	assert.Equal(t, &tx, txFromPool)
+	assert.Equal(t, tx, txFromPool)
 	assert.Equal(t, false, sp.IsMiniBlockProcessed(metablockHash, miniblockHash))
 }
 

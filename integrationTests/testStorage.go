@@ -67,7 +67,7 @@ func (ts *TestStorage) CreateStoredData(nonce uint64) ([]byte, []byte) {
 		RcvAddr:   ts.rcvAddr,
 		SndAddr:   ts.sndAddr,
 		Signature: ts.sig,
-		Value:     "1",
+		Value:     big.NewInt(1),
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	txHash := TestHasher.Compute(string(txBuff))

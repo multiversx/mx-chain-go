@@ -28,7 +28,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 
 	tx := &transaction.Transaction{
 		Nonce:    senderNonce,
-		Value:    "0",
+		Value:    big.NewInt(0),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  vm.CreateEmptyAddress().Bytes(),
 		Data:     string(scCode) + "@" + hex.EncodeToString(factory.IELEVirtualMachine),

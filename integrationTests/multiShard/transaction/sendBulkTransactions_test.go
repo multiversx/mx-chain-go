@@ -170,9 +170,9 @@ func generateAccounts(numOfAccounts int) []keyPair {
 func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transaction.Transaction {
 	receiverBytes, _ := receiver.ToByteArray()
 	senderBytes, _ := sender.GeneratePublic().ToByteArray()
-	tx := transaction.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:     1,
-		Value:     "10",
+		Value:     new(big.Int).SetInt64(10),
 		RcvAddr:   receiverBytes,
 		SndAddr:   senderBytes,
 		GasPrice:  5,
@@ -186,5 +186,5 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transactio
 
 	signature, _ := signer.Sign(sender, marshalizedTxBeforeSigning)
 	tx.Signature = signature
-	return &tx
+	return tx
 }
