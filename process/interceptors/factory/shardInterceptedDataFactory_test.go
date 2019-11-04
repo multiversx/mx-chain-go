@@ -3,6 +3,7 @@ package factory_test
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -218,7 +219,9 @@ func TestShardInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T)
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	emptyTx := &dataTransaction.Transaction{}
+	emptyTx := &dataTransaction.Transaction{
+		Value: big.NewInt(0),
+	}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
 	sidf, _ := factory.NewShardInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 
