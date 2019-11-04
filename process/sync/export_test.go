@@ -284,3 +284,7 @@ func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler,
 func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64) {
 	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce})
 }
+
+func (boot *baseBootstrap) SyncBlock() error {
+	return boot.syncBlock()
+}

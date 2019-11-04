@@ -621,6 +621,23 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	}
 }
 
+// syncBlocks method calls repeatedly synchronization method SyncBlock
+func (boot *baseBootstrap) syncBlocks() {
+	for {
+		time.Sleep(sleepTime)
+		select {
+		case <-boot.chStopSync:
+			return
+		default:
+			err := boot.syncBlock()
+
+			if err != nil {
+				log.Info(err.Error())
+			}
+		}
+	}
+}
+
 func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler, err error) {
 	if err == process.ErrTimeIsOut {
 		boot.requestsWithTimeout++
@@ -649,6 +666,12 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 	}
 }
 
+// syncBlock method actually does the synchronization. It requests the next block header from the pool
+// and if it is not found there it will be requested from the network. After the header is received,
+// it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
+// If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
+// These methods will execute the block and its transactions. Finally if everything works, the block will be committed
+// in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlock() error {
 	if !boot.ShouldSync() {
 		return nil
@@ -768,7 +791,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.isNotarizedFork()
+		//TODO: Should be analyzed if boot.blockBootstrapper.isForkTriggeredByMeta() should be also true, so the header
+		//which has been rollback to be added in the black list
+		shouldAddHeaderToBlackList := revertUsingForkNonce
 		if shouldAddHeaderToBlackList {
 			process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
 		}
@@ -859,13 +884,6 @@ func (boot *baseBootstrap) isForcedFork() bool {
 	return boot.forkInfo.IsDetected &&
 		boot.forkInfo.Nonce == math.MaxUint64 &&
 		boot.forkInfo.Hash == nil
-}
-
-func (boot *baseBootstrap) isNotarizedFork() bool {
-	return boot.forkInfo.IsDetected &&
-		boot.forkInfo.Nonce != math.MaxUint64 &&
-		boot.forkInfo.Round == process.MinForkRound &&
-		boot.forkInfo.Hash != nil
 }
 
 func (boot *baseBootstrap) rollBackOnForcedFork() {

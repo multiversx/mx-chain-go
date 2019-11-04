@@ -480,33 +480,6 @@ func (boot *ShardBootstrap) StopSync() {
 	boot.chStopSync <- true
 }
 
-// syncBlocks method calls repeatedly synchronization method SyncBlock
-func (boot *ShardBootstrap) syncBlocks() {
-	for {
-		time.Sleep(sleepTime)
-		select {
-		case <-boot.chStopSync:
-			return
-		default:
-			err := boot.SyncBlock()
-
-			if err != nil {
-				log.Info(err.Error())
-			}
-		}
-	}
-}
-
-// SyncBlock method actually does the synchronization. It requests the next block header from the pool
-// and if it is not found there it will be requested from the network. After the header is received,
-// it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
-// If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
-// These methods will execute the block and its transactions. Finally if everything works, the block will be committed
-// in the blockchain, and all this mechanism will be reiterated for the next block.
-func (boot *ShardBootstrap) SyncBlock() error {
-	return boot.syncBlock()
-}
-
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
@@ -749,4 +722,11 @@ func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.H
 
 func (boot *ShardBootstrap) getCurrHeaderHash() []byte {
 	return boot.blkc.GetCurrentBlockHeaderHash()
+}
+
+func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {
+	return boot.forkInfo.IsDetected &&
+		boot.forkInfo.Nonce != math.MaxUint64 &&
+		boot.forkInfo.Round == process.MinForkRound &&
+		boot.forkInfo.Hash != nil
 }
