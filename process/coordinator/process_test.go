@@ -987,7 +987,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(nrShards),
 		&mock.AccountsStub{},
-		tdp,
+		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
@@ -1043,7 +1043,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(nrShards),
 		&mock.AccountsStub{},
-		tdp,
+		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},

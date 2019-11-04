@@ -25,20 +25,20 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			Accounts:              &mock.AccountsStub{},
-			ForkDetector:          &mock.ForkDetectorMock{},
-			Hasher:                &mock.HasherStub{},
-			Marshalizer:           &mock.MarshalizerMock{},
-			Store:                 &mock.ChainStorerMock{},
-			ShardCoordinator:      shardCoordinator,
-			NodesCoordinator:      mock.NewNodesCoordinatorMock(),
-			SpecialAddressHandler: &mock.SpecialAddressHandlerMock{},
-			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:          createGenesisBlocks(shardCoordinator),
-			RequestHandler:        &mock.RequestHandlerMock{},
-			Core:                  &mock.ServiceContainerMock{},
-			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:         &mock.TransactionCoordinatorMock{},
+			Accounts:                     &mock.AccountsStub{},
+			ForkDetector:                 &mock.ForkDetectorMock{},
+			Hasher:                       &mock.HasherStub{},
+			Marshalizer:                  &mock.MarshalizerMock{},
+			Store:                        &mock.ChainStorerMock{},
+			ShardCoordinator:             shardCoordinator,
+			NodesCoordinator:             mock.NewNodesCoordinatorMock(),
+			SpecialAddressHandler:        &mock.SpecialAddressHandlerMock{},
+			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:                 createGenesisBlocks(shardCoordinator),
+			RequestHandler:               &mock.RequestHandlerMock{},
+			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		},
 		DataPool:           mdp,
@@ -659,6 +659,9 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
+			MaxSizeCalled: func() int {
+				return 1000
+			},
 		}
 	}
 
@@ -767,6 +770,9 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 		}
 		cs.LenCalled = func() int {
 			return 0
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
 		}
 		return cs
 	}
@@ -2200,6 +2206,9 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 		cs.KeysCalled = func() [][]byte {
 			return [][]byte{hdrHash1Bytes, hdrHash2Bytes}
 		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
+		}
 		return cs
 	}
 
@@ -2357,6 +2366,9 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 		cs.KeysCalled = func() [][]byte {
 			return [][]byte{hdrHash1Bytes, hdrHash2Bytes}
 		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
+		}
 		return cs
 	}
 
@@ -2447,6 +2459,9 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		cs.RemoveCalled = func(key []byte) {}
 		cs.KeysCalled = func() [][]byte {
 			return [][]byte{hdrHash1Bytes, hrdHash2Bytes}
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
 		}
 		return cs
 	}
