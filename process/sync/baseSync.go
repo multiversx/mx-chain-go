@@ -869,6 +869,7 @@ func (boot *baseBootstrap) isForcedFork() bool {
 
 func (boot *baseBootstrap) rollBackOnForcedFork() {
 	for {
+		currHeaderHash := boot.blkc.GetCurrentBlockHeaderHash()
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			log.Info(err.Error())
@@ -884,6 +885,8 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 			log.Info(err.Error())
 			break
 		}
+
+		process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
 	}
 
 	boot.forkDetector.ResetProbableHighestNonce()
