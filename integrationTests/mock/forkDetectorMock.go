@@ -9,7 +9,7 @@ import (
 type ForkDetectorMock struct {
 	AddHeaderCalled                         func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
 	RemoveHeadersCalled                     func(nonce uint64, hash []byte)
-	CheckForkCalled                         func() (bool, uint64, []byte)
+	CheckForkCalled                         func() *process.ForkInfo
 	GetHighestFinalBlockNonceCalled         func() uint64
 	ProbableHighestNonceCalled              func() uint64
 	ResetProbableHighestNonceIfNeededCalled func()
@@ -28,7 +28,7 @@ func (f *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {
 }
 
 // CheckFork is a mock implementation for CheckFork
-func (f *ForkDetectorMock) CheckFork() (bool, uint64, []byte) {
+func (f *ForkDetectorMock) CheckFork() *process.ForkInfo {
 	return f.CheckForkCalled()
 }
 

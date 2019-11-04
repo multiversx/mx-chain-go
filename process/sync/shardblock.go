@@ -134,6 +134,7 @@ func NewShardBootstrap(
 	}
 
 	base.hdrRes = hdrRes
+	base.forkInfo = process.NewForkInfo()
 
 	miniBlocksRes, ok := miniBlocksResolver.(dataRetriever.MiniBlocksResolver)
 	if !ok {

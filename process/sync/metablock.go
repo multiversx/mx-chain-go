@@ -114,6 +114,7 @@ func NewMetaBootstrap(
 	}
 
 	base.hdrRes = hdrRes
+	base.forkInfo = process.NewForkInfo()
 
 	boot.chRcvHdrNonce = make(chan bool)
 	boot.chRcvHdrHash = make(chan bool)

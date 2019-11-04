@@ -108,19 +108,19 @@ func (boot *MetaBootstrap) SyncStateListeners() []func(bool) {
 }
 
 func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {
-	boot.forkNonce = nonce
+	boot.forkInfo.Nonce = nonce
 }
 
 func (boot *MetaBootstrap) SetForkNonce(nonce uint64) {
-	boot.forkNonce = nonce
+	boot.forkInfo.Nonce = nonce
 }
 
 func (boot *ShardBootstrap) IsForkDetected() bool {
-	return boot.isForkDetected
+	return boot.forkInfo.IsDetected
 }
 
 func (boot *MetaBootstrap) IsForkDetected() bool {
-	return boot.isForkDetected
+	return boot.forkInfo.IsDetected
 }
 
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {

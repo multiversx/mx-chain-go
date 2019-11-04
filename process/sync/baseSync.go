@@ -79,9 +79,7 @@ type baseBootstrap struct {
 	hasLastBlock       bool
 	roundIndex         int64
 
-	isForkDetected bool
-	forkNonce      uint64
-	forkHash       []byte
+	forkInfo *process.ForkInfo
 
 	mutRcvHdrNonce        sync.RWMutex
 	mutRcvHdrHash         sync.RWMutex
@@ -469,7 +467,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		return false
 	}
 
-	boot.isForkDetected, boot.forkNonce, boot.forkHash = boot.forkDetector.CheckFork()
+	boot.forkInfo = boot.forkDetector.CheckFork()
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= 0
@@ -477,7 +475,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
 	}
 
-	isNodeSynchronized := !boot.isForkDetected && boot.hasLastBlock
+	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
 		boot.isNodeSynchronized = isNodeSynchronized
@@ -656,7 +654,7 @@ func (boot *baseBootstrap) syncBlock() error {
 		return nil
 	}
 
-	if boot.isForkDetected {
+	if boot.forkInfo.IsDetected {
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
 		if boot.isForcedFork() {
@@ -666,8 +664,8 @@ func (boot *baseBootstrap) syncBlock() error {
 		}
 
 		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
-			boot.forkNonce,
-			core.ToB64(boot.forkHash)))
+			boot.forkInfo.Nonce,
+			core.ToB64(boot.forkInfo.Hash)))
 
 		err := boot.rollBack(true)
 		if err != nil {
@@ -734,7 +732,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Info("starting roll back\n")
 	for {
-		//currHeaderHash := boot.blockBootstrapper.getCurrHeaderHash()
+		currHeaderHash := boot.blockBootstrapper.getCurrHeaderHash()
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
@@ -770,11 +768,13 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		//if revertUsingForkNonce {
-		//	process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
-		//}
+		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.isNotarizedFork()
+		if shouldAddHeaderToBlackList {
+			process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
+		}
 
-		if revertUsingForkNonce && currHeader.GetNonce() > boot.forkNonce {
+		shouldContinueRollBack := revertUsingForkNonce && currHeader.GetNonce() > boot.forkInfo.Nonce
+		if shouldContinueRollBack {
 			continue
 		}
 
@@ -834,8 +834,8 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedHeaderNonce(nil)
 
-	if boot.isForkDetected {
-		return boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(boot.forkHash)
+	if boot.forkInfo.IsDetected {
+		return boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(boot.forkInfo.Hash)
 	}
 
 	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
@@ -856,7 +856,16 @@ func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
 }
 
 func (boot *baseBootstrap) isForcedFork() bool {
-	return boot.isForkDetected && boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
+	return boot.forkInfo.IsDetected &&
+		boot.forkInfo.Nonce == math.MaxUint64 &&
+		boot.forkInfo.Hash == nil
+}
+
+func (boot *baseBootstrap) isNotarizedFork() bool {
+	return boot.forkInfo.IsDetected &&
+		boot.forkInfo.Nonce != math.MaxUint64 &&
+		boot.forkInfo.Round == process.MinForkRound &&
+		boot.forkInfo.Hash != nil
 }
 
 func (boot *baseBootstrap) rollBackOnForcedFork() {

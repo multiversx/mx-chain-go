@@ -79,3 +79,6 @@ const MaxRoundsWithoutReceivedBlock = 5
 // MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed, before a special
 // action to be applied
 const MaxRoundsWithoutCommittedBlock = 20
+
+// MinForkRound represents the minimum fork round set by a notarized header received
+const MinForkRound = uint64(0)

@@ -99,6 +99,10 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
+	//if sr.RoundIndex % 5 == 0 {
+	//	time.Sleep(8 * time.Second)
+	//}
+
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
 	if err != nil {
