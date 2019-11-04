@@ -1576,6 +1576,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	errPersister := errors.New("failure")
 	wasCalled := false
 	rootHash := []byte("root hash to be tested")
+	marshalizer := &mock.MarshalizerMock{}
 	accounts := &mock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
@@ -1596,6 +1597,10 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	}
 	body := make(block.Body, 0)
 	hdrUnit := &mock.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			hdr, _ := marshalizer.Marshal(&block.Header{})
+			return hdr, nil
+		},
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
 			return errPersister

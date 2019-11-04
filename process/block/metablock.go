@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -64,6 +65,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		onRequestHeaderHandler:        arguments.RequestHandler.RequestHeader,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -198,6 +200,16 @@ func (mp *metaProcessor) ProcessBlock(
 
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
+		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
 	}
 
@@ -507,7 +519,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	_, err = mp.accounts.Commit()
+	err = mp.commitAll()
 	if err != nil {
 		return err
 	}
@@ -573,6 +585,50 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
+// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
+func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+	err := mp.accounts.RecreateTrie(header.GetRootHash())
+	if err != nil {
+		return err
+	}
+
+	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RevertAccountState reverts the account state for cleanup failed process
+func (mp *metaProcessor) RevertAccountState() {
+	err := mp.accounts.RevertToSnapshot(0)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	err = mp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
+func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
+	metaBlockStore := mp.store.GetStorer(dataRetriever.MetaBlockUnit)
+	buff, err := metaBlockStore.Get(header.GetPrevHash())
+	if err != nil {
+		return nil, err
+	}
+
+	prevMetaHeader := &block.MetaBlock{}
+	err = mp.marshalizer.Unmarshal(prevMetaHeader, buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return prevMetaHeader, nil
+}
+
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
 	valueStoredI, ok := mp.shardsHeadersNonce.Load(key)
 	if !ok {
@@ -589,6 +645,20 @@ func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
 	if valueStored < value {
 		mp.shardsHeadersNonce.Store(key, value)
 	}
+}
+
+func (mp *metaProcessor) commitAll() error {
+	_, err := mp.accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	_, err = mp.validatorStatisticsProcessor.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
@@ -1113,6 +1183,22 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
+}
+
+func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	metaHdr, ok := header.(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	if err != nil {
+		return err
+	}
+
+	metaHdr.ValidatorStatsRootHash = rootHash
+
+	return nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
