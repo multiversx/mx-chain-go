@@ -53,6 +53,11 @@ func (mp *MessageProcessor) CreateHeartbeatFromP2pMessage(message p2p.MessageP2P
 		return nil, err
 	}
 
+	err = verifyLengths(hbRecv)
+	if err != nil {
+		return nil, err
+	}
+
 	err = mp.verifySignature(hbRecv)
 	if err != nil {
 		return nil, err

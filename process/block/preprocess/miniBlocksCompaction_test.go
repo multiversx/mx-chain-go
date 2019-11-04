@@ -177,15 +177,15 @@ func TestMiniBlocksCompaction_ExpandGasLimitExceededShouldNotCompact(t *testing.
 	mapHashesAndTxs := make(map[string]data.TransactionHandler)
 	mapHashesAndTxs["tx0"] = &transaction.Transaction{
 		Nonce:    0,
-		GasLimit: 15000,
+		GasLimit: process.MaxGasLimitPerMiniBlock / 2,
 	}
 	mapHashesAndTxs["tx1"] = &transaction.Transaction{
 		Nonce:    1,
-		GasLimit: 15000,
+		GasLimit: process.MaxGasLimitPerMiniBlock / 2,
 	}
 	mapHashesAndTxs["tx2"] = &transaction.Transaction{
 		Nonce:    2,
-		GasLimit: 80000,
+		GasLimit: 1,
 	}
 	newMbs := mbc.Compact(mbs, mapHashesAndTxs)
 

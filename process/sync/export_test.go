@@ -12,7 +12,7 @@ func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 }
 
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return boot.miniBlockResolver.GetMiniBlocks(hashes)
+	return boot.miniBlocksResolver.GetMiniBlocks(hashes)
 }
 
 func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
@@ -23,12 +23,12 @@ func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
 }
 
-func (boot *ShardBootstrap) ForkChoice(revertUsingForkNonce bool) error {
-	return boot.forkChoice(revertUsingForkNonce)
+func (boot *ShardBootstrap) RollBack(revertUsingForkNonce bool) error {
+	return boot.rollBack(revertUsingForkNonce)
 }
 
-func (boot *MetaBootstrap) ForkChoice(revertUsingForkNonce bool) error {
-	return boot.forkChoice(revertUsingForkNonce)
+func (boot *MetaBootstrap) RollBack(revertUsingForkNonce bool) error {
+	return boot.rollBack(revertUsingForkNonce)
 }
 
 func (bfd *baseForkDetector) GetHeaders(nonce uint64) []*headerInfo {

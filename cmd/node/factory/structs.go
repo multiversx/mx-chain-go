@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
@@ -413,6 +414,7 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, c
 }
 
 type processComponentsFactoryArgs struct {
+	coreComponents       *coreComponentsFactoryArgs
 	genesisConfig        *sharding.Genesis
 	economicsData        *economics.EconomicsData
 	nodesConfig          *sharding.NodesSetup
@@ -429,6 +431,7 @@ type processComponentsFactoryArgs struct {
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
+	coreComponents *coreComponentsFactoryArgs,
 	genesisConfig *sharding.Genesis,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
@@ -443,6 +446,7 @@ func NewProcessComponentsFactoryArgs(
 	coreServiceContainer serviceContainer.Core,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
+		coreComponents:       coreComponents,
 		genesisConfig:        genesisConfig,
 		economicsData:        economicsData,
 		nodesConfig:          nodesConfig,
@@ -520,16 +524,10 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	blockProcessor, err := newBlockProcessor(
+		args,
 		resolversFinder,
-		args.shardCoordinator,
-		args.nodesCoordinator,
-		args.economicsData,
-		args.data,
-		args.core,
-		args.state,
 		forkDetector,
 		shardsGenesisBlocks,
-		args.coreServiceContainer,
 	)
 
 	if err != nil {
@@ -1548,20 +1546,17 @@ func newForkDetector(
 }
 
 func newBlockProcessor(
+	processArgs *processComponentsFactoryArgs,
 	resolversFinder dataRetriever.ResolversFinder,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	economics *economics.EconomicsData,
-	data *Data,
-	core *Core,
-	state *State,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
-	coreServiceContainer serviceContainer.Core,
 ) (process.BlockProcessor, error) {
 
-	communityAddr := economics.CommunityAddress()
-	burnAddr := economics.BurnAddress()
+	shardCoordinator := processArgs.shardCoordinator
+	nodesCoordinator := processArgs.nodesCoordinator
+
+	communityAddr := processArgs.economicsData.CommunityAddress()
+	burnAddr := processArgs.economicsData.BurnAddress()
 	if communityAddr == "" || burnAddr == "" {
 		return nil, errors.New("rewards configuration missing")
 	}
@@ -1579,7 +1574,7 @@ func newBlockProcessor(
 	specialAddressHolder, err := address.NewSpecialAddressHolder(
 		communityAddress,
 		burnAddress,
-		state.AddressConverter,
+		processArgs.state.AddressConverter,
 		shardCoordinator,
 		nodesCoordinator,
 	)
@@ -1590,30 +1585,36 @@ func newBlockProcessor(
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
 			resolversFinder,
-			shardCoordinator,
-			nodesCoordinator,
+			processArgs.shardCoordinator,
+			processArgs.nodesCoordinator,
 			specialAddressHolder,
-			data,
-			core,
-			state,
+			processArgs.data,
+			processArgs.core,
+			processArgs.state,
 			forkDetector,
 			shardsGenesisBlocks,
-			coreServiceContainer,
-			economics,
+			processArgs.coreServiceContainer,
+			processArgs.economicsData,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
+		if err != nil {
+			return nil, err
+		}
+
 		return newMetaBlockProcessor(
 			resolversFinder,
-			shardCoordinator,
-			nodesCoordinator,
+			processArgs.shardCoordinator,
+			processArgs.nodesCoordinator,
 			specialAddressHolder,
-			data,
-			core,
-			state,
+			processArgs.data,
+			processArgs.core,
+			processArgs.state,
 			forkDetector,
 			shardsGenesisBlocks,
-			coreServiceContainer,
+			processArgs.coreServiceContainer,
+			validatorStatisticsProcessor,
 		)
 	}
 
@@ -1852,6 +1853,7 @@ func newMetaBlockProcessor(
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
 
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
@@ -1867,18 +1869,19 @@ func newMetaBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:              state.AccountsAdapter,
-		ForkDetector:          forkDetector,
-		Hasher:                core.Hasher,
-		Marshalizer:           core.Marshalizer,
-		Store:                 data.Store,
-		ShardCoordinator:      shardCoordinator,
-		NodesCoordinator:      nodesCoordinator,
-		SpecialAddressHandler: specialAddressHandler,
-		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          shardsGenesisBlocks,
-		RequestHandler:        requestHandler,
-		Core:                  coreServiceContainer,
+		Accounts:                     state.AccountsAdapter,
+		ForkDetector:                 forkDetector,
+		Hasher:                       core.Hasher,
+		Marshalizer:                  core.Marshalizer,
+		Store:                        data.Store,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		SpecialAddressHandler:        specialAddressHandler,
+		Uint64Converter:              core.Uint64ByteSliceConverter,
+		StartHeaders:                 shardsGenesisBlocks,
+		RequestHandler:               requestHandler,
+		Core:                         coreServiceContainer,
+		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1896,6 +1899,59 @@ func newMetaBlockProcessor(
 	}
 
 	return metaProcessor, nil
+}
+
+func newValidatorStatisticsProcessor(processComponents *processComponentsFactoryArgs) (process.ValidatorStatisticsProcessor, error) {
+	peerAdapter, err := getPeerAdapter(processComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	initialNodes := processComponents.nodesConfig.InitialNodes
+	storageService := processComponents.data.Store
+
+	arguments := peer.ArgValidatorStatisticsProcessor{
+		InitialNodes: initialNodes,
+		PeerAdapter: peerAdapter,
+		AdrConv: processComponents.state.AddressConverter,
+		NodesCoordinator: processComponents.nodesCoordinator,
+		ShardCoordinator: processComponents.shardCoordinator,
+		DataPool: processComponents.data.MetaDatapool,
+		StorageService: storageService,
+		Marshalizer: processComponents.core.Marshalizer,
+	}
+
+	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatorStatisticsProcessor, nil
+}
+
+func getPeerAdapter(processComponents *processComponentsFactoryArgs) (*state.PeerAccountsDB, error) {
+	coreComponents := processComponents.coreComponents
+	peerAccountsTrie, err := getTrie(
+		coreComponents.config.PeerAccountsTrieStorage,
+		processComponents.core.Marshalizer,
+		processComponents.core.Hasher,
+		coreComponents.uniqueID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.ValidatorAccount)
+	if err != nil {
+		return nil, errors.New("could not create peer account factory: " + err.Error())
+	}
+
+	peerAdapter, err := state.NewPeerAccountsDB(peerAccountsTrie, processComponents.core.Hasher, processComponents.core.Marshalizer, accountFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return peerAdapter, nil
 }
 
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
