@@ -268,9 +268,6 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrRollbackFromGenesis signals that a rollback from genesis is called
-var ErrRollbackFromGenesis = errors.New("roll back from genesis is not permitted")
-
 // ErrNoDataInMessage signals that no data was found after parsing received p2p message
 var ErrNoDataInMessage = errors.New("no data found in received message")
 
@@ -460,12 +457,6 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
 
-// ErrNilShardHeaderStorage signals that nil storage was provided for shard headers
-var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
-
-// ErrNilMetaHeaderStorage signals that nil storage was provided for meta headers
-var ErrNilMetaHeaderStorage = errors.New("nil meta header storage")
-
 // ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
 var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
 
@@ -532,9 +523,6 @@ var ErrNilSCDataGetter = errors.New("nil sc data getter")
 
 // ErrPeerChangesHashDoesNotMatch signals that peer changes from header does not match the created ones
 var ErrPeerChangesHashDoesNotMatch = errors.New("peer changes hash does not match")
-
-// ErrNilPeerAccountsAdapter signals that nil peer accounts has been provided
-var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts adapter")
 
 // ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
 var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
