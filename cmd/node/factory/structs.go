@@ -1752,6 +1752,11 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	gasComputation, err := preprocess.NewGasComputation()
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -1768,6 +1773,7 @@ func newShardBlockProcessor(
 		internalTransactionProducer,
 		economics,
 		miniBlocksCompacter,
+		gasComputation,
 	)
 	if err != nil {
 		return nil, err
@@ -1785,6 +1791,7 @@ func newShardBlockProcessor(
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
+		gasComputation,
 	)
 	if err != nil {
 		return nil, err

@@ -1,24 +1,28 @@
 package preprocess
 
 type gasComputation struct {
-	consumedGas uint64
+	gasConsumed uint64
 }
 
 func NewGasComputation() (*gasComputation, error) {
-	gc := gasComputation{consumedGas: 0}
+	gc := gasComputation{gasConsumed: 0}
 	return &gc, nil
 }
 
-func (gc *gasComputation) InitConsumedGas() {
-	gc.consumedGas = 0
+func (gc *gasComputation) InitGasConsumed() {
+	gc.gasConsumed = 0
 }
 
-func (gc *gasComputation) AddConsumedGas(consumedGas uint64) {
-	gc.consumedGas += consumedGas
+func (gc *gasComputation) AddGasConsumed(gasConsumed uint64) {
+	gc.gasConsumed += gasConsumed
 }
 
-func (gc *gasComputation) GetConsumedGas() uint64 {
-	return gc.consumedGas
+func (gc *gasComputation) SetGasConsumed(gasConsumed uint64) {
+	gc.gasConsumed = gasConsumed
+}
+
+func (gc *gasComputation) GetGasConsumed() uint64 {
+	return gc.gasConsumed
 }
 
 func (gc *gasComputation) IsInterfaceNil() bool {

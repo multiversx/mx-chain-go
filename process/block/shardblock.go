@@ -1316,7 +1316,6 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 	maxItemsInBlock uint32,
 	round uint64,
 	haveTime func() bool,
-	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -1395,8 +1394,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 				uint32(maxTxSpaceRemained),
 				uint32(maxMbSpaceRemained),
 				round,
-				haveTime,
-				gasConsumedByBlock)
+				haveTime)
 
 			// all txs processed, add to processed miniblocks
 			miniBlocks = append(miniBlocks, currMBProcessed...)
@@ -1425,7 +1423,6 @@ func (sp *shardProcessor) createMiniBlocks(
 	haveTime func() bool,
 ) (block.Body, error) {
 
-	gasConsumedByBlock := uint64(0)
 	miniBlocks := make(block.Body, 0)
 
 	if sp.accounts.JournalLen() != 0 {
@@ -1445,8 +1442,7 @@ func (sp *shardProcessor) createMiniBlocks(
 	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(
 		maxItemsInBlock,
 		round,
-		haveTime,
-		&gasConsumedByBlock)
+		haveTime)
 
 	if err != nil {
 		log.Info(err.Error())
@@ -1478,8 +1474,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
 		round,
-		haveTime,
-		&gasConsumedByBlock)
+		haveTime)
 
 	if len(mbFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbFromMe...)

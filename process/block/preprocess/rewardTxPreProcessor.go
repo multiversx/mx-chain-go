@@ -40,6 +40,7 @@ func NewRewardTxPreprocessor(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
+	gasHandler process.GasHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if hasher == nil || hasher.IsInterfaceNil() {
@@ -69,11 +70,15 @@ func NewRewardTxPreprocessor(
 	if onRequestRewardTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
+	if gasHandler == nil || gasHandler.IsInterfaceNil() {
+		return nil, process.ErrNilGasHandler
+	}
 
 	bpp := &basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -183,7 +188,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	body block.Body,
 	round uint64,
 	haveTime func() bool,
-	gasConsumedByBlock *uint64,
 ) error {
 
 	rewardMiniBlocksSlice := make(block.MiniBlockSlice, 0)
@@ -461,7 +465,6 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlock(
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,
-	gasConsumedByBlock *uint64,
 ) (*block.MiniBlock, error) {
 
 	return nil, nil
@@ -474,7 +477,6 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	_ func() bool,
-	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, error) {
 
 	// always have time for rewards
@@ -489,10 +491,10 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	}
 
 	snapshot := rtp.accounts.JournalLen()
-	currentGasConsumedByBlock := *gasConsumedByBlock
+	currentGasConsumedByBlock := rtp.gasHandler.GetGasConsumed()
 
 	for _, mb := range rewardMiniBlocksSlice {
-		err := rtp.ProcessMiniBlock(mb, haveTime, round, gasConsumedByBlock)
+		err := rtp.ProcessMiniBlock(mb, haveTime, round)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -501,7 +503,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 				// TODO: evaluate if reloading the trie from disk will might solve the problem
 				log.Error(errAccountState.Error())
 			}
-			*gasConsumedByBlock = currentGasConsumedByBlock
+			rtp.gasHandler.SetGasConsumed(currentGasConsumedByBlock)
 			return nil, err
 		}
 	}
@@ -515,7 +517,6 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 	round uint64,
-	gasConsumedByBlock *uint64,
 ) error {
 
 	if miniBlock.Type != block.RewardsBlock {

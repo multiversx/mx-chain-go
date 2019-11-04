@@ -33,6 +33,7 @@ type transactionCoordinator struct {
 	requestedTxs    map[block.Type]int
 
 	onRequestMiniBlock func(shardId uint32, mbHash []byte)
+	gasHandler         process.GasHandler
 }
 
 var log = logger.DefaultLogger()
@@ -45,6 +46,7 @@ func NewTransactionCoordinator(
 	requestHandler process.RequestHandler,
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
+	gasHandler process.GasHandler,
 ) (*transactionCoordinator, error) {
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
@@ -64,10 +66,14 @@ func NewTransactionCoordinator(
 	if preProcessors == nil || preProcessors.IsInterfaceNil() {
 		return nil, process.ErrNilPreProcessorsContainer
 	}
+	if gasHandler == nil || gasHandler.IsInterfaceNil() {
+		return nil, process.ErrNilGasHandler
+	}
 
 	tc := &transactionCoordinator{
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
+		gasHandler:       gasHandler,
 	}
 
 	tc.miniBlockPool = dataPool.MiniBlocks()
@@ -344,7 +350,6 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
-	gasConsumedByBlock := uint64(0)
 	separatedBodies := tc.separateBodyByType(body)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
@@ -357,7 +362,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 			return process.ErrMissingPreProcessor
 		}
 
-		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], round, haveTime, &gasConsumedByBlock)
+		err := preproc.ProcessBlockTransactions(separatedBodies[blockType], round, haveTime)
 		if err != nil {
 			return err
 		}
@@ -375,7 +380,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
-	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, uint32, bool) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -425,7 +429,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, round, haveTime, gasConsumedByBlock)
+		err := tc.processCompleteMiniBlock(preproc, miniBlock, round, haveTime)
 		if err != nil {
 			continue
 		}
@@ -451,7 +455,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
-	gasConsumedByBlock *uint64,
 ) block.MiniBlockSlice {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -467,7 +470,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			maxMbSpaceRemained,
 			round,
 			haveTime,
-			gasConsumedByBlock,
 		)
 
 		if err != nil {
@@ -514,6 +516,8 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process
 func (tc *transactionCoordinator) CreateBlockStarted() {
+	tc.gasHandler.InitGasConsumed()
+
 	tc.mutPreProcessor.RLock()
 	for _, value := range tc.txPreProcessors {
 		value.CreateBlockStarted()
@@ -691,13 +695,12 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	miniBlock *block.MiniBlock,
 	round uint64,
 	haveTime func() bool,
-	gasConsumedByBlock *uint64,
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
-	currentGasConsumedByBlock := *gasConsumedByBlock
+	currentGasConsumedByBlock := tc.gasHandler.GetGasConsumed()
 
-	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round, gasConsumedByBlock)
+	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
 		log.Error(err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
@@ -706,7 +709,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			log.Error(errAccountState.Error())
 		}
 
-		*gasConsumedByBlock = currentGasConsumedByBlock
+		tc.gasHandler.SetGasConsumed(currentGasConsumedByBlock)
 		return err
 	}
 

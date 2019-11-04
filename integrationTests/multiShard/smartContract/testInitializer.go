@@ -427,6 +427,7 @@ func createNetNode(
 	)
 
 	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator)
+	gasHandler, _ := preprocess.NewGasComputation()
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
@@ -444,6 +445,7 @@ func createNetNode(
 		internalTxProducer,
 		createMockTxFeeHandler(),
 		miniBlocksCompacter,
+		gasHandler,
 	)
 	container, _ := fact.Create()
 
@@ -454,6 +456,7 @@ func createNetNode(
 		requestHandler,
 		container,
 		interimProcContainer,
+		gasHandler,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)

@@ -52,6 +52,7 @@ func NewTransactionPreprocessor(
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
+	gasHandler process.GasHandler,
 ) (*transactions, error) {
 
 	if hasher == nil || hasher.IsInterfaceNil() {
@@ -84,11 +85,15 @@ func NewTransactionPreprocessor(
 	if miniBlocksCompacter == nil || miniBlocksCompacter.IsInterfaceNil() {
 		return nil, process.ErrNilMiniBlocksCompacter
 	}
+	if gasHandler == nil || gasHandler.IsInterfaceNil() {
+		return nil, process.ErrNilGasHandler
+	}
 
 	bpp := basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	txs := transactions{
@@ -228,8 +233,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	body block.Body,
 	round uint64,
 	haveTime func() bool,
-	gasConsumedByBlock *uint64,
-	) error {
+) error {
 
 	mapHashesAndTxs := txs.GetAllCurrentUsedTxs()
 	expandedMiniBlocks, err := txs.miniBlocksCompacter.Expand(block.MiniBlockSlice(body), mapHashesAndTxs)
@@ -309,7 +313,7 @@ func (txs *transactions) ProcessBlockTransactions(
 			}
 		}
 
-		*gasConsumedByBlock += gasConsumedByMiniBlockInSelfShard
+		txs.gasHandler.AddGasConsumed(gasConsumedByMiniBlockInSelfShard)
 	}
 
 	return nil
@@ -506,7 +510,6 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
-	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, error) {
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
@@ -530,8 +533,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 				shardId,
 				txSpaceRemained,
 				haveTime,
-				round,
-				gasConsumedByBlock)
+				round)
 			if err != nil {
 				continue
 			}
@@ -557,7 +559,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,
-	gasConsumedByBlock *uint64,
 ) (*block.MiniBlock, error) {
 
 	var orderedTxs []*transaction.Transaction
@@ -624,14 +625,14 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			gasConsumedByTxInSelfShard,
 			gasConsumedByMiniBlockInSenderShard,
 			gasConsumedByMiniBlockInReceiverShard,
-			*gasConsumedByBlock,
+			txs.gasHandler.GetGasConsumed(),
 			txs.economicsFee.MaxGasLimitPerBlock())
 
 		if isMaxGasLimitReached {
 			log.Debug(fmt.Sprintf("max gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
 				gasConsumedByMiniBlockInSenderShard,
 				gasConsumedByMiniBlockInReceiverShard,
-				*gasConsumedByBlock,
+				txs.gasHandler.GetGasConsumed(),
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
 
@@ -662,7 +663,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		addedTxs++
 		gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
 		gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
-		*gasConsumedByBlock += gasConsumedByTxInSelfShard
+		txs.gasHandler.AddGasConsumed(gasConsumedByTxInSelfShard)
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n",
@@ -723,7 +724,6 @@ func (txs *transactions) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 	round uint64,
-	gasConsumedByBlock *uint64,
 ) error {
 
 	if miniBlock.Type != block.TxBlock {
@@ -779,7 +779,7 @@ func (txs *transactions) ProcessMiniBlock(
 		}
 	}
 
-	*gasConsumedByBlock += gasConsumedByMiniBlockInSelfShard
+	txs.gasHandler.AddGasConsumed(gasConsumedByMiniBlockInSelfShard)
 
 	txShardInfo := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 

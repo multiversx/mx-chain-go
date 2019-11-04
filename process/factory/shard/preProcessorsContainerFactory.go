@@ -28,6 +28,7 @@ type preProcessorsContainerFactory struct {
 	rewardsProducer     process.InternalTransactionProducer
 	economicsFee        process.FeeHandler
 	miniBlocksCompacter process.MiniBlocksCompacter
+	gasHandler          process.GasHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -47,6 +48,7 @@ func NewPreProcessorsContainerFactory(
 	rewardsProducer process.InternalTransactionProducer,
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
+	gasHandler process.GasHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -94,6 +96,9 @@ func NewPreProcessorsContainerFactory(
 	if miniBlocksCompacter == nil || miniBlocksCompacter.IsInterfaceNil() {
 		return nil, process.ErrNilMiniBlocksCompacter
 	}
+	if gasHandler == nil || gasHandler.IsInterfaceNil() {
+		return nil, process.ErrNilGasHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:    shardCoordinator,
@@ -111,6 +116,7 @@ func NewPreProcessorsContainerFactory(
 		rewardsProducer:     rewardsProducer,
 		economicsFee:        economicsFee,
 		miniBlocksCompacter: miniBlocksCompacter,
+		gasHandler:          gasHandler,
 	}, nil
 }
 
@@ -163,6 +169,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.requestHandler.RequestTransaction,
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
+		ppcm.gasHandler,
 	)
 
 	return txPreprocessor, err
@@ -178,6 +185,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestUnsignedTransactions,
+		ppcm.gasHandler,
 	)
 
 	return scrPreprocessor, err
@@ -194,6 +202,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestRewardTransactions,
+		ppcm.gasHandler,
 	)
 
 	return rewardTxPreprocessor, err

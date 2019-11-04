@@ -479,9 +479,11 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 				return miniBlocks, nil
 			},
 		},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
+	totalGasConsumed := uint64(0)
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
@@ -489,6 +491,14 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			InitGasConsumedCalled: func() {
+				totalGasConsumed = 0
+			},
+			GetGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -680,9 +690,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 				return miniBlocks, nil
 			},
 		},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
+	totalGasConsumed := uint64(0)
 	tc, _ := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
@@ -690,6 +702,14 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			InitGasConsumedCalled: func() {
+				totalGasConsumed = 0
+			},
+			GetGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -1835,6 +1855,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -1845,6 +1866,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2386,6 +2408,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2396,6 +2419,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2490,6 +2514,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2500,6 +2525,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2575,6 +2601,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		requestHandler,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2644,6 +2671,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		requestHandler,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2720,8 +2748,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
-	gasConsumedByBlock := uint64(0)
-	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, 2, haveTimeTrue, &gasConsumedByBlock)
+	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, 2, haveTimeTrue)
 	assert.Equal(t, err == nil, true)
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
 	assert.Equal(t, usedMetaHdrsHashes, uint32(0))
@@ -2828,8 +2855,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	gasConsumedByBlock := uint64(0)
-	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, 2, haveTimeTrue, &gasConsumedByBlock)
+	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessCrossMiniBlocksDstMe(2, 2, haveTimeTrue)
 
 	assert.Equal(t, 0, len(miniBlocksReturned))
 	assert.Equal(t, uint32(0), usedMetaHdrsHashes)
@@ -2905,6 +2931,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		},
 	}
 
+	totalGasConsumed := uint64(0)
 	factory, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		initStore(),
@@ -2932,6 +2959,14 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 				return miniBlocks
 			},
 		},
+		&mock.GasHandlerMock{
+			AddGasConsumedCalled: func(gasConsumed uint64) {
+				totalGasConsumed += gasConsumed
+			},
+			GetGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 	)
 	container, _ := factory.Create()
 
@@ -2942,6 +2977,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -3126,6 +3162,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -3136,6 +3173,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()

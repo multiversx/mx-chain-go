@@ -40,6 +40,7 @@ func NewSmartContractResultPreprocessor(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
+	gasHandler process.GasHandler,
 ) (*smartContractResults, error) {
 
 	if hasher == nil || hasher.IsInterfaceNil() {
@@ -66,11 +67,15 @@ func NewSmartContractResultPreprocessor(
 	if onRequestSmartContractResult == nil {
 		return nil, process.ErrNilRequestHandler
 	}
+	if gasHandler == nil || gasHandler.IsInterfaceNil() {
+		return nil, process.ErrNilGasHandler
+	}
 
 	bpp := &basePreProcess{
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	scr := &smartContractResults{
@@ -187,7 +192,6 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	body block.Body,
 	round uint64,
 	haveTime func() bool,
-	gasConsumedByBlock *uint64,
 ) error {
 
 	// basic validation already done in interceptors
@@ -437,7 +441,6 @@ func (scr *smartContractResults) CreateAndProcessMiniBlock(
 	spaceRemained int,
 	haveTime func() bool,
 	round uint64,
-	gasConsumedByBlock *uint64,
 ) (*block.MiniBlock, error) {
 
 	return nil, nil
@@ -450,7 +453,6 @@ func (scr *smartContractResults) CreateAndProcessMiniBlocks(
 	maxMbSpaceRemained uint32,
 	round uint64,
 	_ func() bool,
-	gasConsumedByBlock *uint64,
 ) (block.MiniBlockSlice, error) {
 
 	return nil, nil
@@ -461,7 +463,6 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	miniBlock *block.MiniBlock,
 	haveTime func() bool,
 	round uint64,
-	gasConsumedByBlock *uint64,
 ) error {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
