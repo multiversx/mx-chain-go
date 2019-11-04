@@ -18,7 +18,9 @@ type libp2pConnectionMonitor struct {
 	chDoReconnect              chan struct{}
 	reconnecter                p2p.Reconnecter
 	thresholdMinConnectedPeers int
-	targetConnCount            int
+	thresholdDiscoveryResume   int // if the number of connections drops under this value, the discovery is restarted
+	thresholdDiscoveryPause    int // if the number of connections is over this value, the discovery is stopped
+	thresholdConnTrim          int // if the number of connections is over this value, we start trimming
 }
 
 func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int, targetConnCount int) (*libp2pConnectionMonitor, error) {
@@ -30,7 +32,15 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 		reconnecter:                reconnecter,
 		chDoReconnect:              make(chan struct{}, 0),
 		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
-		targetConnCount:            targetConnCount,
+		thresholdDiscoveryResume:   0,
+		thresholdDiscoveryPause:    math.MaxInt32,
+		thresholdConnTrim:          math.MaxInt32,
+	}
+
+	if targetConnCount > 0 {
+		cm.thresholdDiscoveryResume = targetConnCount * 4 / 5
+		cm.thresholdDiscoveryPause = targetConnCount
+		cm.thresholdConnTrim = targetConnCount * 6 / 5
 	}
 
 	if reconnecter != nil {
@@ -46,31 +56,7 @@ func (lcm *libp2pConnectionMonitor) Listen(network.Network, multiaddr.Multiaddr)
 // ListenClose is called when network stops listening on an addr
 func (lcm *libp2pConnectionMonitor) ListenClose(network.Network, multiaddr.Multiaddr) {}
 
-// ThresholdDiscoveryPause if the number of connected peers is over this value, the dht discovery is stopped
-func (lcm *libp2pConnectionMonitor) ThresholdDiscoveryPause() int {
-	if lcm.targetConnCount > 0 {
-		return lcm.targetConnCount
-	}
-	return math.MaxInt32
-}
-
-// ThresholdDiscoveryResume if the number of connected peers drop under this value, the dht discovery is restarted
-func (lcm *libp2pConnectionMonitor) ThresholdDiscoveryResume() int {
-	if lcm.targetConnCount > 0 {
-		return lcm.targetConnCount * 4 / 5
-	}
-	return 0
-}
-
-// ThresholdRandomTrim if the number of connected peers is over this value, we start cutting of connections at random
-func (lcm *libp2pConnectionMonitor) ThresholdRandomTrim() int {
-	if lcm.targetConnCount > 0 {
-		return lcm.targetConnCount * 6 / 5
-	}
-	return math.MaxInt32
-}
-
-// Request a reconnet to initial list
+// Request a reconnect to initial list
 func (lcm *libp2pConnectionMonitor) doReconn() {
 	select {
 	case lcm.chDoReconnect <- struct{}{}:
@@ -80,12 +66,12 @@ func (lcm *libp2pConnectionMonitor) doReconn() {
 
 // Connected is called when a connection opened
 func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
-	if len(netw.Conns()) > lcm.ThresholdDiscoveryPause() {
+	if len(netw.Conns()) > lcm.thresholdDiscoveryPause {
 		lcm.reconnecter.Pause()
 	}
-	if len(netw.Conns()) > lcm.ThresholdRandomTrim() {
+	if len(netw.Conns()) > lcm.thresholdConnTrim {
 		sorted := kbucket.SortClosestPeers(netw.Peers(), kbucket.ConvertPeerID(netw.LocalPeer()))
-		for i := lcm.ThresholdDiscoveryPause(); i < len(sorted); i++ {
+		for i := lcm.thresholdDiscoveryPause; i < len(sorted); i++ {
 			netw.ClosePeer(sorted[i])
 		}
 		lcm.doReconn()
@@ -96,7 +82,7 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn network.Conn) {
 	lcm.doReconnectionIfNeeded(netw)
 
-	if len(netw.Conns()) < lcm.ThresholdDiscoveryResume() && lcm.reconnecter != nil  {
+	if len(netw.Conns()) < lcm.thresholdDiscoveryResume && lcm.reconnecter != nil {
 		lcm.reconnecter.Resume()
 		lcm.doReconn()
 	}

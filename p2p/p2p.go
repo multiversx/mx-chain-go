@@ -59,7 +59,7 @@ type PeerDiscoverer interface {
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
-	Pause()  // pause the reer discovery
+	Pause()  // pause the peer discovery
 	Resume() // resume the peer discovery
 	IsInterfaceNil() bool
 }
