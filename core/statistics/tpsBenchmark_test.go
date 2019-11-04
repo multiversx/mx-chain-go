@@ -310,6 +310,9 @@ func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
 }
 
 func TestTpsBenchmark_Concurrent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 	t.Parallel()
 
 	numOfTests := 25
