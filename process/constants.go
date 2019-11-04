@@ -35,11 +35,26 @@ const MetaBlockFinality = 1
 const MaxHeaderRequestsAllowed = 10
 const MaxItemsInBlock = 15000
 const MinItemsInBlock = 15000
-const MaxNoncesDifference = 5
+const MaxNoncesDifference = 0
 
 // TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
 const MaxGasLimitPerMiniBlock = uint64(100000)
-const MaxRequestsWithTimeoutAllowed = 3
+const MaxRequestsWithTimeoutAllowed = 5
 
 // MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing
 const MaxHeadersToRequestInAdvance = 10
+
+// RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
+const RoundModulusTrigger = 10
+
+// MaxOccupancyPercentageAllowed defines the maximum occupancy percentage allowed to be used,
+// from the full pool capacity, for the received data which are not needed in the near future
+const MaxOccupancyPercentageAllowed = float64(0.9)
+
+// MaxRoundsWithoutReceivedBlock defines the maximum rounds to wait for a new block to be received, before a special
+// action to be applied
+const MaxRoundsWithoutReceivedBlock = 5
+
+// MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed, before a special
+// action to be applied
+const MaxRoundsWithoutCommittedBlock = 20

@@ -2,6 +2,7 @@ package sync
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -92,6 +93,7 @@ func NewMetaBootstrap(
 	}
 
 	base.storageBootstrapper = &boot
+	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
@@ -210,7 +212,7 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
 
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if ni.blockWithLastNotarized[i]-ni.blockWithFinalNotarized[i] > 1 {
+		if nonce > ni.blockWithLastNotarized[i] {
 			ni.finalNotarized[i] = ni.lastNotarized[i]
 		}
 
@@ -387,7 +389,7 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 	}
 
 	allowedRequestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-	isInProperRound := boot.rounder.Index()%roundModulusTrigger == 0
+	isInProperRound := process.IsInProperRound(boot.rounder.Index())
 
 	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutHaveReached && isInProperRound)
 	if shouldRollBack {
@@ -396,6 +398,9 @@ func (boot *MetaBootstrap) doJobOnSyncBlockFail(hdr *block.MetaBlock, err error)
 		if hdr != nil {
 			hash := boot.removeHeaderFromPools(hdr)
 			boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
+		}
+
+		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
 			boot.forkDetector.ResetProbableHighestNonce()
 		}
 
@@ -418,15 +423,27 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	}
 
 	if boot.isForkDetected {
-		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
-			boot.forkNonce,
-			core.ToB64(boot.forkHash)))
+		isForcedFork := boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
+
+		if isForcedFork {
+			log.Info(fmt.Sprintf("fork has been forced\n"))
+		} else {
+			log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
+				boot.forkNonce,
+				core.ToB64(boot.forkHash)))
+		}
 
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
-		err := boot.forkChoice(true)
+		err := boot.forkChoice(!isForcedFork)
 		if err != nil {
 			log.Info(err.Error())
+		}
+
+		if isForcedFork {
+			boot.forkDetector.ResetProbableHighestNonce()
+			boot.forkDetector.ResetForcedFork()
+			return nil
 		}
 	}
 
@@ -690,4 +707,12 @@ func (boot *MetaBootstrap) haveMetaHeaderInPoolWithNonce(nonce uint64) bool {
 		boot.headersNonces)
 
 	return err == nil
+}
+
+func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
+	header, err := process.GetMetaHeaderFromPool(
+		headerHash,
+		boot.headers)
+
+	return header, err
 }

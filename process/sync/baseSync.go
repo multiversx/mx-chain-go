@@ -25,16 +25,6 @@ var log = logger.DefaultLogger()
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
 
-// maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
-// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
-const maxRoundsToWait = 3
-
-// maxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance if they are missing
-const maxHeadersToRequestInAdvance = 10
-
-// roundModulusTrigger defines a round modulus on which a trigger for an action will be released
-const roundModulusTrigger = 5
-
 type notarizedInfo struct {
 	lastNotarized           map[uint32]uint64
 	finalNotarized          map[uint32]uint64
@@ -98,6 +88,7 @@ type baseBootstrap struct {
 	requestsWithTimeout   uint32
 
 	requestMiniBlocks func(uint32, uint64)
+	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -374,6 +365,16 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 	log.Debug(fmt.Sprintf("received header with nonce %d and hash %s from network\n",
 		nonce,
 		core.ToB64(hash)))
+
+	header, err := boot.getHeaderFromPool(hash)
+	if err != nil {
+		log.Debug(err.Error())
+	} else {
+		err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
 
 	if boot.requestMiniBlocks != nil {
 		go boot.requestMiniBlocks(shardId, nonce)

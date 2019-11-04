@@ -105,6 +105,7 @@ func NewShardBootstrap(
 
 	base.storageBootstrapper = &boot
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
+	base.getHeaderFromPool = boot.getShardHeaderFromPool
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
@@ -408,7 +409,7 @@ func (boot *ShardBootstrap) getShardStartingPoint(nonce uint64) (uint64, map[uin
 		}
 	}
 
-	if ni.blockWithLastNotarized[shardId]-ni.blockWithFinalNotarized[shardId] > 1 {
+	if nonce > ni.blockWithLastNotarized[shardId] {
 		ni.finalNotarized[shardId] = ni.lastNotarized[shardId]
 	}
 
@@ -618,7 +619,7 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 	}
 
 	allowedRequestsWithTimeOutHaveReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
-	isInProperRound := boot.rounder.Index()%roundModulusTrigger == 0
+	isInProperRound := process.IsInProperRound(boot.rounder.Index())
 
 	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutHaveReached && isInProperRound)
 	if shouldRollBack {
@@ -627,6 +628,9 @@ func (boot *ShardBootstrap) doJobOnSyncBlockFail(hdr *block.Header, err error) {
 		if hdr != nil {
 			hash := boot.removeHeaderFromPools(hdr)
 			boot.forkDetector.RemoveHeaders(hdr.Nonce, hash)
+		}
+
+		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
 			boot.forkDetector.ResetProbableHighestNonce()
 		}
 
@@ -649,15 +653,27 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	}
 
 	if boot.isForkDetected {
-		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
-			boot.forkNonce,
-			core.ToB64(boot.forkHash)))
+		isForcedFork := boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
+
+		if isForcedFork {
+			log.Info(fmt.Sprintf("fork has been forced\n"))
+		} else {
+			log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
+				boot.forkNonce,
+				core.ToB64(boot.forkHash)))
+		}
 
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
-		err := boot.forkChoice(true)
+		err := boot.forkChoice(!isForcedFork)
 		if err != nil {
 			log.Info(err.Error())
+		}
+
+		if isForcedFork {
+			boot.forkDetector.ResetProbableHighestNonce()
+			boot.forkDetector.ResetForcedFork()
+			return nil
 		}
 	}
 
@@ -1051,4 +1067,12 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 			len(missingMiniBlocksHashes),
 			header.Nonce))
 	}
+}
+
+func (boot *ShardBootstrap) getShardHeaderFromPool(headerHash []byte) (data.HeaderHandler, error) {
+	header, err := process.GetShardHeaderFromPool(
+		headerHash,
+		boot.headers)
+
+	return header, err
 }

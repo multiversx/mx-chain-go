@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 
 type headerInfo struct {
@@ -32,6 +33,7 @@ type forkInfo struct {
 	probableHighestNonce   uint64
 	lastBlockRound         uint64
 	lastProposedBlockNonce uint64
+	forcedFork             bool
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -257,8 +259,8 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 	// consensus group size, could keep all the shard in sync mode, by creating fake blocks higher than current
 	// committed block + 1, which could not be verified by hash -> prev hash and only by rand seed -> prev random seed
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
-	isInProperRound := bfd.rounder.Index()%roundModulusTrigger == 0
-	if roundsWithoutReceivedBlock > maxRoundsToWait && isInProperRound {
+	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
+	if roundsWithoutReceivedBlock > process.MaxRoundsWithoutReceivedBlock && isInProperRound {
 		bfd.ResetProbableHighestNonce()
 	}
 }
@@ -270,6 +272,11 @@ func (bfd *baseForkDetector) ResetProbableHighestNonce() {
 	if probableHighestNonce > checkpointNonce {
 		bfd.setProbableHighestNonce(checkpointNonce)
 	}
+}
+
+// ResetForcedFork resets the forced fork
+func (bfd *baseForkDetector) ResetForcedFork() {
+	bfd.setForcedFork(false)
 }
 
 func (bfd *baseForkDetector) addCheckpoint(checkpoint *checkpointInfo) {
@@ -347,6 +354,20 @@ func (bfd *baseForkDetector) lastProposedBlockNonce() uint64 {
 	return lastProposedBlockNonce
 }
 
+func (bfd *baseForkDetector) setForcedFork(forcedFork bool) {
+	bfd.mutFork.Lock()
+	bfd.fork.forcedFork = forcedFork
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) forcedFork() bool {
+	bfd.mutFork.RLock()
+	forcedFork := bfd.fork.forcedFork
+	bfd.mutFork.RUnlock()
+
+	return forcedFork
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bfd *baseForkDetector) IsInterfaceNil() bool {
 	if bfd == nil {
@@ -368,6 +389,10 @@ func (bfd *baseForkDetector) CheckFork() (bool, uint64, []byte) {
 	lowestForkNonce = math.MaxUint64
 	hashOfLowestForkNonce = nil
 	forkDetected := false
+
+	if bfd.forcedFork() {
+		return true, lowestForkNonce, hashOfLowestForkNonce
+	}
 
 	bfd.mutHeaders.Lock()
 	for nonce, hdrInfos := range bfd.headers {
@@ -458,7 +483,7 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 ) error {
 
 	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(header.GetNonce())
-	isSyncing := state == process.BHReceived && noncesDifference > process.MaxNoncesDifference
+	isSyncing := noncesDifference > process.MaxNoncesDifference
 	if state == process.BHProcessed || isSyncing {
 		return nil
 	}
@@ -469,4 +494,33 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 	}
 
 	return nil
+}
+
+func (bfd *baseForkDetector) computeForcedFork(
+	header data.HeaderHandler,
+	state process.BlockHeaderState) {
+	if state != process.BHProposed {
+		bfd.setForcedFork(false)
+		return
+	}
+
+	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(header.GetNonce())
+	isSyncing := noncesDifference > process.MaxNoncesDifference
+	if isSyncing {
+		bfd.setForcedFork(false)
+		return
+	}
+
+	lastCheckpointRound := bfd.lastCheckpoint().round
+	lastCheckpointNonce := bfd.lastCheckpoint().nonce
+
+	roundsDifference := int64(header.GetRound()) - int64(lastCheckpointRound)
+	noncesDifference = int64(header.GetNonce()) - int64(lastCheckpointNonce)
+	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
+
+	shouldForceFork := roundsDifference > process.MaxRoundsWithoutCommittedBlock &&
+		noncesDifference <= 1 &&
+		isInProperRound
+
+	bfd.setForcedFork(shouldForceFork)
 }
