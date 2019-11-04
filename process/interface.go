@@ -479,3 +479,11 @@ type MiniBlocksCompacter interface {
 	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
 	IsInterfaceNil() bool
 }
+
+// GasHandler is able to perform some gas calculation
+type GasHandler interface {
+	InitConsumedGas()
+	AddConsumedGas(consumedGas uint64)
+	GetConsumedGas() uint64
+	IsInterfaceNil() bool
+}
