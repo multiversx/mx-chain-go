@@ -490,6 +490,19 @@ type EconomicsAddressesHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes
+type SmartContractToProtocolHandler interface {
+	UpdateProtocol(body block.Body, nonce uint64) error
+	IsInterfaceNil() bool
+}
+
+// PeerChangesHandler will create the peer changes data for current block and will verify them
+type PeerChangesHandler interface {
+	PeerChanges() []block.PeerData
+	VerifyPeerChanges(peerChanges []block.PeerData) error
+	IsInterfaceNil() bool
+}
+
 // MiniBlocksCompacter defines the functionality that is needed for mini blocks compaction and expansion
 type MiniBlocksCompacter interface {
 	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice

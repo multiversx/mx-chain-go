@@ -65,6 +65,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
+	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
@@ -1116,6 +1117,11 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	currBlockTxs, err := dataPool.NewCurrentBlockPool()
+	if err != nil {
+		return nil, err
+	}
+
 	return dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -1125,6 +1131,7 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
+		currBlockTxs,
 	)
 }
 
@@ -1176,7 +1183,20 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	return dataPool.NewMetaDataPool(metaBlockBody, txBlockBody, shardHeaders, headersNonces, txPool, uTxPool)
+	currBlockTxs, err := dataPool.NewCurrentBlockPool()
+	if err != nil {
+		return nil, err
+	}
+
+	return dataPool.NewMetaDataPool(
+		metaBlockBody,
+		txBlockBody,
+		shardHeaders,
+		headersNonces,
+		txPool,
+		uTxPool,
+		currBlockTxs,
+	)
 }
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
@@ -1793,7 +1813,7 @@ func newShardBlockProcessor(
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		state.AccountsAdapter,
-		data.Datapool,
+		data.Datapool.MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -1892,6 +1912,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		state.AddressConverter,
 		data.Store,
+		data.MetaDatapool,
 	)
 	if err != nil {
 		return nil, err
@@ -1961,7 +1982,7 @@ func newMetaBlockProcessor(
 		data.Store,
 		core.Marshalizer,
 		core.Hasher,
-		data.Datapool,
+		data.MetaDatapool,
 		state.AccountsAdapter,
 		requestHandler,
 		transactionProcessor,
@@ -1980,11 +2001,32 @@ func newMetaBlockProcessor(
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		state.AccountsAdapter,
-		data.Datapool,
+		data.MetaDatapool.MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	scDataGetter, err := smartContract.NewSCDataGetter(state.AddressConverter, vmContainer)
+	if err != nil {
+		return nil, err
+	}
+
+	argsStaking := scToProtocol.ArgStakingToPeer{
+		AdrConv:     state.AddressConverter,
+		Hasher:      core.Hasher,
+		Marshalizer: core.Marshalizer,
+		//TODO: we need actual peer state here
+		PeerState:    state.AccountsAdapter,
+		BaseState:    state.AccountsAdapter,
+		ArgParser:    argsParser,
+		CurrTxs:      data.MetaDatapool.CurrentBlockTxs(),
+		ScDataGetter: scDataGetter,
+	}
+	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
 		return nil, err
 	}
@@ -2007,8 +2049,11 @@ func newMetaBlockProcessor(
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-		DataPool:         data.MetaDatapool,
+		ArgBaseProcessor:   argumentsBaseProcessor,
+		DataPool:           data.MetaDatapool,
+		SCDataGetter:       scDataGetter,
+		SCToProtocol:       smartContractToProtocol,
+		PeerChangesHandler: smartContractToProtocol,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

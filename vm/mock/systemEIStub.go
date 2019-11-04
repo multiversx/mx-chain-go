@@ -13,9 +13,16 @@ type SystemEIStub struct {
 	SelfDestructCalled   func(beneficiary []byte)
 	CreateVMOutputCalled func() *vmcommon.VMOutput
 	CleanCacheCalled     func()
+	FinishCalled         func(value []byte)
 }
 
 func (s *SystemEIStub) SetSCAddress(addr []byte) {
+}
+
+func (s *SystemEIStub) Finish(value []byte) {
+	if s.FinishCalled != nil {
+		s.FinishCalled(value)
+	}
 }
 
 func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error {

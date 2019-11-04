@@ -44,7 +44,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -114,14 +113,13 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	VmProcessor            vmcommon.VMExecutionHandler
-	VmDataGetter           vmcommon.VMExecutionHandler
-	BlockchainHook         vmcommon.BlockchainHook
+	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	MiniBlocksCompacter    process.MiniBlocksCompacter
+	BlockChainHookImpl     process.BlockChainHookHandler
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -228,7 +226,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
+	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }
@@ -413,22 +411,34 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		rewardsInter,
 	)
 
-	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
-	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         tpn.AccntState,
+		AddrConv:         TestAddressConverter,
+		StorageService:   tpn.Storage,
+		BlockChain:       tpn.BlockChain,
+		ShardCoordinator: tpn.ShardCoordinator,
+		Marshalizer:      TestMarshalizer,
+		Uint64Converter:  TestUint64Converter,
+	}
 
-	vmContainer := &mock.VMContainerMock{
-		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-			return tpn.VmProcessor, nil
-		}}
+	var vmFactory process.VirtualMachinesContainerFactory
+	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook)
+	} else {
+		vmFactory, _ = shard.NewVMContainerFactory(argsHook)
+	}
+
+	tpn.VMContainer, _ = vmFactory.Create()
+	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
-		vmContainer,
+		tpn.VMContainer,
 		tpn.ArgsParser,
 		TestHasher,
 		TestMarshalizer,
 		tpn.AccntState,
-		tpn.BlockchainHook.(*hooks.BlockChainHookImpl),
+		vmFactory.BlockChainHookImpl(),
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
@@ -473,7 +483,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		tpn.ShardDataPool,
+		tpn.ShardDataPool.MiniBlocks(),
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
@@ -516,13 +526,16 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor: argumentsBase,
-			DataPool:         tpn.MetaDataPool,
+			ArgBaseProcessor:   argumentsBase,
+			DataPool:           tpn.MetaDataPool,
+			SCDataGetter:       &mock.ScDataGetterMock{},
+			SCToProtocol:       &mock.SCToProtocolStub{},
+			PeerChangesHandler: &mock.PeerChangesHandler{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		argumentsBase.BlockChainHook = tpn.BlockchainHook.(process.BlockChainHookHandler)
+		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,

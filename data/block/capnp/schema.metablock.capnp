@@ -5,10 +5,11 @@ $Go.package("capnp");
 $Go.import("_");
 
 struct PeerDataCapn {
-    publicKey @0: Data;
-    action    @1: UInt8;
-    timestamp @2: UInt64;
-    value     @3: Data;
+    address   @0: Data;
+    publicKey @1: Data;
+    action    @2: UInt8;
+    timestamp @3: UInt64;
+    value     @4: Data;
 }
 
 struct ShardMiniBlockHeaderCapn {

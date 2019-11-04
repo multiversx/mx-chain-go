@@ -55,6 +55,8 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -64,6 +66,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		currTxs,
 	)
 
 	return dPool
@@ -476,7 +479,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
-		tdp,
+		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
@@ -670,7 +673,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	tc, _ := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
-		tdp,
+		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
@@ -1830,7 +1833,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		tdp,
+		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
@@ -2376,7 +2379,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		tdp,
+		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
@@ -2480,7 +2483,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		tdp,
+		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
@@ -2555,7 +2558,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	tc, _ := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		datapool,
+		datapool.MiniBlocks(),
 		requestHandler,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -2624,7 +2627,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 	tc, _ := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		datapool,
+		datapool.MiniBlocks(),
 		requestHandler,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -2917,7 +2920,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accntAdapter,
-		datapool,
+		datapool.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
@@ -3111,7 +3114,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		initAccountsMock(),
-		datapool,
+		datapool.MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},

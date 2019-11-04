@@ -24,6 +24,7 @@ type intermediateResultsProcessor struct {
 	adrConv          state.AddressConverter
 	store            dataRetriever.StorageService
 	blockType        block.Type
+	currTxs          dataRetriever.TransactionCacher
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
@@ -37,6 +38,7 @@ func NewIntermediateResultsProcessor(
 	adrConv state.AddressConverter,
 	store dataRetriever.StorageService,
 	blockType block.Type,
+	currTxs dataRetriever.TransactionCacher,
 ) (*intermediateResultsProcessor, error) {
 	if hasher == nil || hasher.IsInterfaceNil() {
 		return nil, process.ErrNilHasher
@@ -53,6 +55,9 @@ func NewIntermediateResultsProcessor(
 	if store == nil || store.IsInterfaceNil() {
 		return nil, process.ErrNilStorage
 	}
+	if currTxs == nil || currTxs.IsInterfaceNil() {
+		return nil, process.ErrNilTxForCurrentBlockHandler
+	}
 
 	irp := &intermediateResultsProcessor{
 		hasher:           hasher,
@@ -61,6 +66,7 @@ func NewIntermediateResultsProcessor(
 		adrConv:          adrConv,
 		blockType:        blockType,
 		store:            store,
+		currTxs:          currTxs,
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo, 0)
@@ -75,11 +81,13 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 		miniBlocks[i] = &block.MiniBlock{}
 	}
 
+	irp.currTxs.Clean()
 	irp.mutInterResultsForBlock.Lock()
 
 	for key, value := range irp.interResultsForBlock {
 		recvShId := value.receiverShardID
 		miniBlocks[recvShId].TxHashes = append(miniBlocks[recvShId].TxHashes, []byte(key))
+		irp.currTxs.AddTx([]byte(key), value.tx)
 	}
 
 	finalMBs := make(map[uint32]*block.MiniBlock, 0)
