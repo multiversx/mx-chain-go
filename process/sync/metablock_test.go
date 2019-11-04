@@ -653,7 +653,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 
 //------- processing
 
-func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
+func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	t.Parallel()
 
 	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
@@ -672,7 +672,7 @@ func TestMetaBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() (bool, uint64, []byte) {
-		return true, math.MaxUint64, nil
+		return true, 90, []byte("hash")
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
@@ -1712,9 +1712,9 @@ func TestMetaBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t
 	assert.False(t, wasAdded)
 }
 
-//------- ForkChoice
+//------- RollBack
 
-func TestMetaBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
+func TestMetaBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockMetaPools()
@@ -1744,11 +1744,11 @@ func TestMetaBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	err := bs.ForkChoice(false)
+	err := bs.RollBack(false)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
-func TestMetaBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
+func TestMetaBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockMetaPools()
@@ -1782,11 +1782,11 @@ func TestMetaBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := bs.ForkChoice(false)
+	err := bs.RollBack(false)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
-func TestMetaBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
+func TestMetaBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	newHdrHash := []byte("new hdr hash")
@@ -1845,11 +1845,11 @@ func TestMetaBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 		}
 	}
 
-	err := bs.ForkChoice(false)
+	err := bs.RollBack(false)
 	assert.Equal(t, sync.ErrRollBackBehindFinalHeader, err)
 }
 
-func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
+func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//retain if the remove process from different storage locations has been called
@@ -2002,7 +2002,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 		hdrHash = i
 	}
 
-	err := bs.ForkChoice(true)
+	err := bs.RollBack(true)
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
@@ -2013,7 +2013,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 	assert.Equal(t, blkc.GetCurrentBlockHeaderHash(), prevHdrHash)
 }
 
-func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T) {
+func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//retain if the remove process from different storage locations has been called
@@ -2159,7 +2159,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 		hdrHash = nil
 	}
 
-	err := bs.ForkChoice(true)
+	err := bs.RollBack(true)
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.False(t, remFlags.flagHdrRemovedFromHeaders)

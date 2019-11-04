@@ -106,6 +106,14 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[stri
 	return hhs.GetMiniBlockHeadersWithDstCalled(destId)
 }
 
+func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
+	panic("implement me")
+}
+
+func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(vrh []byte) {
+	panic("implement me")
+}
+
 func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(hash []byte) bool {
 	panic("implement me")
 }
