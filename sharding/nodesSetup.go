@@ -3,8 +3,6 @@ package sharding
 import (
 	"bytes"
 	"encoding/hex"
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
@@ -44,9 +42,8 @@ type NodesSetup struct {
 	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
 	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
 
-	MetaChainConsensusGroupSize uint32   `json:"metaChainConsensusGroupSize"`
-	MetaChainMinNodes           uint32   `json:"metaChainMinNodes"`
-	StakedValue                 *big.Int `json:"stakedValue"`
+	MetaChainConsensusGroupSize uint32 `json:"metaChainConsensusGroupSize"`
+	MetaChainMinNodes           uint32 `json:"metaChainMinNodes"`
 
 	InitialNodes []*InitialNode `json:"initialNodes"`
 

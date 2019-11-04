@@ -211,7 +211,12 @@ func CreateMetaGenesisBlock(
 		return nil, err
 	}
 
-	err = setStakingData(txProcessor, args.NodesSetup.InitialNodesInfo(), args.NodesSetup.StakedValue)
+	_, err = args.Accounts.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	err = setStakingData(txProcessor, args.NodesSetup.InitialNodesInfo(), args.Economics.StakeValue())
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +249,7 @@ func deploySystemSmartContracts(
 		RcvAddr:   make([]byte, addrConv.AddressLen()),
 		GasPrice:  0,
 		GasLimit:  0,
-		Data:      "deploy@" + hex.EncodeToString(factory.SystemVirtualMachine),
+		Data:      hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine),
 		Signature: nil,
 		Challenge: nil,
 	}

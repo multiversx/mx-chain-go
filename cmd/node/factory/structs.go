@@ -541,6 +541,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.shardCoordinator,
 		args.nodesConfig,
 		args.genesisConfig,
+		args.economicsData,
 	)
 	if err != nil {
 		return nil, err
@@ -1460,6 +1461,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	shardCoordinator sharding.Coordinator,
 	nodesSetup *sharding.NodesSetup,
 	genesisConfig *sharding.Genesis,
+	economics *economics.EconomicsData,
 ) (map[uint32]data.HeaderHandler, error) {
 	//TODO change this rudimentary startup for metachain nodes
 	// Talk between Adrian, Robert and Iulian, did not want it to be discarded:
@@ -1530,6 +1532,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		MetaDatapool:             dataComponents.MetaDatapool,
+		Economics:                economics,
 	}
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
 		argsMetaGenesis,
