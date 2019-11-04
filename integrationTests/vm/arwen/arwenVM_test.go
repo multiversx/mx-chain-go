@@ -198,3 +198,71 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	finalBob := big.NewInt(int64(nrTxs) * transferOnCalls.Int64())
 	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "do_balance", bob).Uint64())
 }
+
+func TestWASMMetering(t *testing.T) {
+	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(0xfffffffffffffff)
+	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(0xffffffffffffffff)
+	transferOnCalls := big.NewInt(1)
+
+	fileSC := "./cpucalculate_arwen.wasm"
+	scCode, err := ioutil.ReadFile(fileSC)
+	assert.Nil(t, err)
+
+	scCodeString := hex.EncodeToString(scCode)
+
+	tx := &transaction.Transaction{
+		Nonce:     ownerNonce,
+		Value:     transferOnCalls,
+		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		SndAddr:   ownerAddressBytes,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	alice := []byte("12345678901234567890123456789111")
+	aliceNonce := uint64(0)
+	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000))
+
+	testingValue := uint64(15)
+
+	tx = &transaction.Transaction{
+		Nonce:     aliceNonce,
+		Value:     big.NewInt(0).SetUint64(testingValue),
+		RcvAddr:   scAddress,
+		SndAddr:   alice,
+		GasPrice:  0,
+		GasLimit:  gasLimit,
+		Data:      "_main",
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	_ = txProc.ProcessTransaction(tx, round)
+
+	expectedBalance := big.NewInt(985)
+	expectedNonce := uint64(1)
+
+	vm.TestAccount(
+		t,
+		accnts,
+		alice,
+		expectedNonce,
+		expectedBalance)
+}
