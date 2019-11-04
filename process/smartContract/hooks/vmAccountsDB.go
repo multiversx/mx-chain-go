@@ -18,59 +18,48 @@ type VMAccountsDB struct {
 	tempAccounts    map[string]state.AccountHandler
 }
 
-// LastNonce returns the nonce from from the last committed block
-func (v *VMAccountsDB) LastNonce() uint64 {
-	panic("not implemented")
+func (vadb *VMAccountsDB) LastNonce() uint64 {
+	panic("implement me")
 }
 
-// LastRound returns the round from the last committed block
-func (v *VMAccountsDB) LastRound() uint64 {
-	panic("not implemented")
+func (vadb *VMAccountsDB) LastRound() uint64 {
+	panic("implement me")
 }
 
-// LastTimeStamp returns the timeStamp from the last committed block
-func (v *VMAccountsDB) LastTimeStamp() uint64 {
-	panic("not implemented")
+func (vadb *VMAccountsDB) LastTimeStamp() uint64 {
+	panic("implement me")
 }
 
-// LastRandomSeed returns the random seed from the last committed block
-func (v *VMAccountsDB) LastRandomSeed() []byte {
-	panic("not implemented")
+func (vadb *VMAccountsDB) LastRandomSeed() []byte {
+	panic("implement me")
 }
 
-// LastEpoch returns the epoch from the last committed block
-func (v *VMAccountsDB) LastEpoch() uint32 {
-	panic("not implemented")
+func (vadb *VMAccountsDB) LastEpoch() uint32 {
+	panic("implement me")
 }
 
-// GetStateRootHash returns the state root hash from the last committed block
-func (v *VMAccountsDB) GetStateRootHash() []byte {
-	panic("not implemented")
+func (vadb *VMAccountsDB) GetStateRootHash() []byte {
+	panic("implement me")
 }
 
-// CurrentNonce returns the nonce from the current block
-func (v *VMAccountsDB) CurrentNonce() uint64 {
-	panic("not implemented")
+func (vadb *VMAccountsDB) CurrentNonce() uint64 {
+	panic("implement me")
 }
 
-// CurrentRound returns the round from the current block
-func (v *VMAccountsDB) CurrentRound() uint64 {
-	panic("not implemented")
+func (vadb *VMAccountsDB) CurrentRound() uint64 {
+	panic("implement me")
 }
 
-// CurrentTimeStamp return the timestamp from the current block
-func (v *VMAccountsDB) CurrentTimeStamp() uint64 {
-	panic("not implemented")
+func (vadb *VMAccountsDB) CurrentTimeStamp() uint64 {
+	panic("implement me")
 }
 
-// CurrentRandomSeed returns the random seed from the current header
-func (v *VMAccountsDB) CurrentRandomSeed() []byte {
-	panic("not implemented")
+func (vadb *VMAccountsDB) CurrentRandomSeed() []byte {
+	panic("implement me")
 }
 
-// CurrentEpoch returns the current epoch
-func (v *VMAccountsDB) CurrentEpoch() uint32 {
-	panic("not implemented")
+func (vadb *VMAccountsDB) CurrentEpoch() uint32 {
+	panic("implement me")
 }
 
 // NewVMAccountsDB creates a new VMAccountsDB instance
@@ -213,11 +202,6 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64,
 
 	if len(vmType) != VMTypeLen {
 		return nil, ErrVMTypeLengthIsNotCorrect
-	}
-
-	_, err := vadb.getShardAccountFromAddressBytes(creatorAddress)
-	if err != nil {
-		return nil, err
 	}
 
 	base := hashFromAddressAndNonce(creatorAddress, creatorNonce)

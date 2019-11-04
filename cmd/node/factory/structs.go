@@ -20,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
+	factorySoftawareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -55,6 +57,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -638,6 +641,22 @@ func CreateViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
 	}
 
 	return views, nil
+}
+
+// CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
+// is available
+func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
+	softwareVersionCheckerFactory, err := factorySoftawareVersion.NewSoftwareVersionFactory(statusHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	softwareVersionChecker, err := softwareVersionCheckerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return softwareVersionChecker, nil
 }
 
 func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
@@ -1728,6 +1747,11 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
+	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -1743,6 +1767,7 @@ func newShardBlockProcessor(
 		rewardsTxProcessor,
 		internalTransactionProducer,
 		economics,
+		miniBlocksCompacter,
 	)
 	if err != nil {
 		return nil, err
