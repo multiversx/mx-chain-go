@@ -19,7 +19,7 @@ byte owner_address[32] = {
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0
 };
-void SCMethod_FinishOwnerAddress() {
+void SCMethod_GetOwnerAddress() {
 	getOwner(owner_address);
 	finish(owner_address, 32);
 }
@@ -32,7 +32,7 @@ byte caller_address[32] = {
 	0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0
 };
-void SCMethod_FinishCallerAddress() {
+void SCMethod_GetCallerAddress() {
 	getCaller(caller_address);
 	finish(caller_address, 32);
 }
@@ -40,27 +40,25 @@ void SCMethod_FinishCallerAddress() {
 // Test getCallValue()
 int getCallValue(byte* size);
 byte call_value[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-void SCMethod_FinishCallValue() {
+void SCMethod_GetCallValue() {
 	int size = getCallValue(call_value);
 	finish(call_value, size);
 }
 
 // Test getFunction
 int getFunction(byte* name);
-byte function_name[31] = "thirty.characters.............";
-void SCMethod_FinishFunctionName() {
+byte function_name[31] = "thirty*characters**********#*!";
+void SCMethod_GetFunctionName() {
 	int length = getFunction(function_name);
 	function_name[29] = '-';
-	finish(function_name, length + 3);
+	finish(function_name, length + 6);
 }
 
 // Test getBlockTimestamp
 long long int getBlockTimestamp();
-void SCMethod_FinishBlockTimestamp() {
+void SCMethod_GetBlockTimestamp() {
 	long long int timestamp = getBlockTimestamp();
-	long long int timestamp2 = 0x000000005DB96702;
-	long long int timestampRev = 0x0267B95D;
-	finish((byte*)(&timestampRev), sizeof(timestampRev));
+	finish((byte*)(&timestamp), sizeof(timestamp));
 }
 
 // Misc

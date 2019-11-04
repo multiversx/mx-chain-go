@@ -28,7 +28,7 @@ var callerAddressBytes = []byte{
 	02, 03, 05, 07, 11, 13, 17, 19,
 	02, 03, 05, 07, 11, 13, 17, 19,
 	02, 03, 05, 07, 11, 13, 17, 19,
-	02, 03, 05, 07, 11, 13, 17, 19,
+	02, 03, 05, 07, 11, 13, 17, 18,
 }
 
 func Test_BasicSCMethod(t *testing.T) {
@@ -54,27 +54,30 @@ func Test_BasicSCMethod(t *testing.T) {
 	// Call the method which sets ReturnData to the owner address
 	// TODO getOwner currently returns the SC address, without padding it
 	// TODO to 32 bytes.
-	callInput = makeCallInput(scAddress, "SCMethod_FinishOwnerAddress", vmInput)
+	callInput = makeCallInput(scAddress, "SCMethod_GetOwnerAddress", vmInput)
 	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
 	// assertReturnData(t, vmOutput, ownerAddressBytes)
 
-	callInput = makeCallInput(scAddress, "SCMethod_FinishCallerAddress", vmInput)
+	callInput = makeCallInput(scAddress, "SCMethod_GetCallerAddress", vmInput)
 	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
 	assertReturnData(t, vmOutput, callerAddressBytes)
 
 	vmInput.CallValue = big.NewInt(0x5DB96713)
-	callInput = makeCallInput(scAddress, "SCMethod_FinishCallValue", vmInput)
+	callInput = makeCallInput(scAddress, "SCMethod_GetCallValue", vmInput)
 	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
 	assertReturnData(t, vmOutput, vmInput.CallValue.Bytes())
 
-	callInput = makeCallInput(scAddress, "SCMethod_FinishFunctionName", vmInput)
+	callInput = makeCallInput(scAddress, "SCMethod_GetFunctionName", vmInput)
 	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
-	assertReturnData(t, vmOutput, []byte("SCMethod_FinishFunctionName..-"))
+	assertReturnData(t, vmOutput, []byte("SCMethod_GetFunctionName***#*-"))
 
+	// Warning: WASM stores integers and floats in little-endian, while Go stores
+	// them in big-endian. A byte reversal is required to match the
+	// representations.
 	header.Timestamp.SetInt64(0x000000005DB96702)
-	callInput = makeCallInput(scAddress, "SCMethod_FinishBlockTimestamp", vmInput)
+	callInput = makeCallInput(scAddress, "SCMethod_GetBlockTimestamp", vmInput)
 	vmOutput, _ = wasmVM.RunSmartContractCall(callInput)
-	expectedBytes = padBytesLeft(big.NewInt(0x5DB96702).Bytes(), 8, 0)
+	expectedBytes = reverseBytes(padBytesLeft(big.NewInt(0x5DB96702).Bytes(), 8, 0))
 	assertReturnData(t, vmOutput, expectedBytes)
 }
 
@@ -101,6 +104,15 @@ func padBytesLeft(source []byte, totalLen int, padByte byte) []byte {
 	}
 	for _, b := range source {
 		result = append(result, b)
+	}
+	return result
+}
+
+func reverseBytes(source []byte) []byte {
+	length := len(source)
+	result := make([]byte, 0)
+	for i := length - 1; i >= 0; i-- {
+		result = append(result, source[i])
 	}
 	return result
 }

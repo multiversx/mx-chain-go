@@ -1,8 +1,8 @@
 SCMethod_FinishNil
 SCMethod_Finish42
-SCMethod_FinishOwnerAddress
-SCMethod_FinishCallerAddress
-SCMethod_FinishCallValue
-SCMethod_FinishFunctionName
-SCMethod_FinishBlockTimestamp
+SCMethod_GetOwnerAddress
+SCMethod_GetCallerAddress
+SCMethod_GetCallValue
+SCMethod_GetFunctionName
+SCMethod_GetBlockTimestamp
 SCMethod_IncrementSmallArray
