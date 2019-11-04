@@ -1,9 +1,11 @@
 package process
 
 import (
+	"fmt"
 	"math"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -579,6 +581,8 @@ func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
 	if err != nil {
 		log.Debug(err.Error())
 	}
+
+	log.Info(fmt.Sprintf("header with hash %s has been added to blacklist\n", core.ToB64(hash)))
 }
 
 // ForkInfo hold the data related to a detected fork

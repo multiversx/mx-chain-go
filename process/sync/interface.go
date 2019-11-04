@@ -26,6 +26,5 @@ type blockBootstrapper interface {
 	getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error)
 	haveHeaderInPoolWithNonce(nonce uint64) bool
 	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
-	getCurrHeaderHash() []byte
 	isForkTriggeredByMeta() bool
 }

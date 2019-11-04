@@ -213,64 +213,6 @@ func (boot *ShardBootstrap) removeBlockBody(
 	blockUnit dataRetriever.UnitType,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-
-	//blockBodyStore := boot.store.GetStorer(dataRetriever.MiniBlockUnit)
-	//if blockBodyStore == nil {
-	//	return process.ErrNilBlockBodyStorage
-	//}
-	//
-	//txStore := boot.store.GetStorer(dataRetriever.TransactionUnit)
-	//if txStore == nil || txStore.IsInterfaceNil() {
-	//	return process.ErrNilTxStorage
-	//}
-	//
-	//nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	//headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//hdrBuff, err := boot.store.Get(blockUnit, headerHash)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//hdr := block.Header{}
-	//err = boot.marshalizer.Unmarshal(&hdr, hdrBuff)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//miniBlockHashes := make([][]byte, 0)
-	//for i := 0; i < len(hdr.MiniBlockHeaders); i++ {
-	//	miniBlockHashes = append(miniBlockHashes, hdr.MiniBlockHeaders[i].Hash)
-	//}
-	//
-	//miniBlocks, err := boot.store.GetAll(dataRetriever.MiniBlockUnit, miniBlockHashes)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//for miniBlockHash, miniBlockBuff := range miniBlocks {
-	//	miniBlock := block.MiniBlock{}
-	//	err = boot.marshalizer.Unmarshal(&miniBlock, miniBlockBuff)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	for _, txHash := range miniBlock.TxHashes {
-	//		err = txStore.Remove(txHash)
-	//		if err != nil {
-	//			return err
-	//		}
-	//	}
-	//
-	//	err = blockBodyStore.Remove([]byte(miniBlockHash))
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
-
 	return nil
 }
 
@@ -485,7 +427,7 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
-	log.Info(fmt.Sprintf("requested header with nonce %d from network and probable highest nonce is %d\n",
+	log.Info(fmt.Sprintf("requested header with nonce %d from network as probable highest nonce is %d\n",
 		nonce,
 		boot.forkDetector.ProbableHighestNonce()))
 
@@ -718,10 +660,6 @@ func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.H
 	blockBody := block.Body(miniBlockSlice)
 
 	return blockBody, nil
-}
-
-func (boot *ShardBootstrap) getCurrHeaderHash() []byte {
-	return boot.blkc.GetCurrentBlockHeaderHash()
 }
 
 func (boot *ShardBootstrap) isForkTriggeredByMeta() bool {

@@ -258,16 +258,6 @@ func (boot *baseBootstrap) removeBlockHeader(
 	}
 
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	//headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = headerStore.Remove(headerHash)
-	//if err != nil {
-	//	return err
-	//}
-
 	err := headerNonceHashStore.Remove(nonceToByteSlice)
 	if err != nil {
 		return err
@@ -504,17 +494,12 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 		return nil
 	}
 
-	// boot.headers.Remove(hash) should not be called, just to have a restore point if it is needed later
-
 	return hash
 }
 
 func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHandler) {
 	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
-	//TODO: Refactor the deletion from the headerStore as that will be an exceptional case in which,
-	//in case of "bad" rollbacks and datapool accidental eviction, the shard will halt.
-	//_ = boot.headerStore.Remove(hash)
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
@@ -613,7 +598,7 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	}
 
 	if nbRequestedHdrs > 0 {
-		log.Info(fmt.Sprintf("requested in advance %d headers from nonce %d to nonce %d and probable highest nonce is %d\n",
+		log.Info(fmt.Sprintf("requested in advance %d headers from nonce %d to nonce %d as probable highest nonce is %d\n",
 			nbRequestedHdrs,
 			nonce,
 			maxNonce,
@@ -755,7 +740,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Info("starting roll back\n")
 	for {
-		currHeaderHash := boot.blockBootstrapper.getCurrHeaderHash()
+		currHeaderHash := boot.blkc.GetCurrentBlockHeaderHash()
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
@@ -791,9 +776,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		//TODO: Should be analyzed if boot.blockBootstrapper.isForkTriggeredByMeta() should be also true, so the header
-		//which has been rollback to be added in the black list
-		shouldAddHeaderToBlackList := revertUsingForkNonce
+		//TODO: Should be analyzed if boot.blockBootstrapper.isForkTriggeredByMeta() should be also true,
+		//when a header which has been rollback is added in the black list
+		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {
 			process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
 		}

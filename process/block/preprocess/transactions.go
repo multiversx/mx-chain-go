@@ -179,11 +179,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
-
-			//err = txs.storage.GetStorer(dataRetriever.TransactionUnit).Remove([]byte(txHash))
-			//if err != nil {
-			//	return txsRestored, err
-			//}
 		}
 
 		miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
@@ -192,11 +187,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		}
 
 		miniBlockPool.Put(miniBlockHash, miniBlock)
-
-		//err = txs.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
-		//if err != nil {
-		//	return txsRestored, err
-		//}
 
 		txsRestored += len(miniBlock.TxHashes)
 	}

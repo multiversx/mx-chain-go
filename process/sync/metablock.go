@@ -364,7 +364,7 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
-	log.Info(fmt.Sprintf("requested header with nonce %d from network and probable highest nonce is %d\n",
+	log.Info(fmt.Sprintf("requested header with nonce %d from network as probable highest nonce is %d\n",
 		nonce,
 		boot.forkDetector.ProbableHighestNonce()))
 
@@ -490,10 +490,6 @@ func (boot *MetaBootstrap) getMetaHeaderFromPool(headerHash []byte) (data.Header
 
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	return boot.getBlockBody(headerHandler)
-}
-
-func (boot *MetaBootstrap) getCurrHeaderHash() []byte {
-	return boot.blkc.GetCurrentBlockHeaderHash()
 }
 
 func (boot *MetaBootstrap) isForkTriggeredByMeta() bool {
