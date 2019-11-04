@@ -71,15 +71,16 @@ func NewPreProcessorsContainerFactory(
 	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator: shardCoordinator,
-		store:            store,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		dataPool:         dataPool,
-		txProcessor:      txProcessor,
-		accounts:         accounts,
-		requestHandler:   requestHandler,
-		economicsFee:     economicsFee,
+		shardCoordinator:    shardCoordinator,
+		store:               store,
+		marshalizer:         marshalizer,
+		hasher:              hasher,
+		dataPool:            dataPool,
+		txProcessor:         txProcessor,
+		accounts:            accounts,
+		requestHandler:      requestHandler,
+		economicsFee:        economicsFee,
+		miniBlocksCompacter: miniBlocksCompacter,
 	}, nil
 }
 
