@@ -874,12 +874,11 @@ func (s MetaBlockCapn) MiniBlockHeaders() MiniBlockHeaderCapn_List {
 func (s MetaBlockCapn) SetMiniBlockHeaders(v MiniBlockHeaderCapn_List) {
 	C.Struct(s).SetObject(8, C.Object(v))
 }
-func (s MetaBlockCapn) ValidatorStatsRootHash() []byte  { return C.Struct(s).GetObject(8).ToData() }
+func (s MetaBlockCapn) ValidatorStatsRootHash() []byte { return C.Struct(s).GetObject(8).ToData() }
 func (s MetaBlockCapn) SetValidatorStatsRootHash(v []byte) {
 	C.Struct(s).SetObject(8, s.Segment.NewData(v))
 }
-func (s MetaBlockCapn) TxCount() uint32     { return C.Struct(s).Get32(12) }
-func (s MetaBlockCapn) SetTxCount(v uint32) { C.Struct(s).Set32(12, v) }
+
 func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error

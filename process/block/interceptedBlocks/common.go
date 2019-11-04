@@ -137,7 +137,7 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 
 func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordinator) error {
 	for _, sd := range shardInfo {
-		if sd.ShardId >= coordinator.NumberOfShards() {
+		if sd.ShardID >= coordinator.NumberOfShards() {
 			return process.ErrInvalidShardId
 		}
 
@@ -152,8 +152,8 @@ func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordi
 
 func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error {
 	for _, smbh := range sd.ShardMiniBlockHeaders {
-		isWrongSenderShardId := smbh.SenderShardId >= coordinator.NumberOfShards()
-		isWrongDestinationShardId := smbh.ReceiverShardId >= coordinator.NumberOfShards()
+		isWrongSenderShardId := smbh.SenderShardID >= coordinator.NumberOfShards()
+		isWrongDestinationShardId := smbh.ReceiverShardID >= coordinator.NumberOfShards()
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId

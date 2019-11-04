@@ -75,10 +75,6 @@ func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandl
 	return nil
 }
 
-func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error) {
-	return blProcMock.CreateBlockHeaderCalled(body, round, haveTime)
-}
-
 func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	return blProcMock.MarshalizedDataToBroadcastCalled(header, body)
 }
