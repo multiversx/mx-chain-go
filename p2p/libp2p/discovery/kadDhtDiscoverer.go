@@ -208,14 +208,14 @@ func (kdd *KadDhtDiscoverer) Pause() {
 	kdd.initConns = false
 }
 
-// Pause will resume the discovery process
+// Resume will resume the discovery process
 func (kdd *KadDhtDiscoverer) Resume() {
 	kdd.mutKadDht.Lock()
 	defer kdd.mutKadDht.Unlock()
 	kdd.initConns = true
 }
 
-// IsDiscoveryPaused will return tru if the discoverer is initiating connections
+// IsDiscoveryPaused will return true if the discoverer is initiating connections
 func (kdd *KadDhtDiscoverer) IsDiscoveryPaused() bool {
 	kdd.mutKadDht.Lock()
 	defer kdd.mutKadDht.Unlock()

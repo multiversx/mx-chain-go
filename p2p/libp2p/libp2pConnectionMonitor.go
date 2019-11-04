@@ -72,7 +72,7 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 	if len(netw.Conns()) > lcm.thresholdConnTrim {
 		sorted := kbucket.SortClosestPeers(netw.Peers(), kbucket.ConvertPeerID(netw.LocalPeer()))
 		for i := lcm.thresholdDiscoveryPause; i < len(sorted); i++ {
-			netw.ClosePeer(sorted[i])
+			_ = netw.ClosePeer(sorted[i])
 		}
 		lcm.doReconn()
 	}
