@@ -11,7 +11,9 @@ var log = logger.DefaultLogger()
 
 // FIFOShardedCache implements a First In First Out eviction cache
 type FIFOShardedCache struct {
-	cache                *cmap.ConcurrentMap
+	cache   *cmap.ConcurrentMap
+	maxsize int
+
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func(key []byte)
 }
@@ -21,6 +23,7 @@ func NewShardedCache(size int, shards int) (*FIFOShardedCache, error) {
 	cache := cmap.New(size, shards)
 	fifoShardedCache := &FIFOShardedCache{
 		cache:                cache,
+		maxsize:              size,
 		mutAddedDataHandlers: sync.RWMutex{},
 		addedDataHandlers:    make([]func(key []byte), 0),
 	}
@@ -120,6 +123,11 @@ func (c *FIFOShardedCache) Keys() [][]byte {
 // Len returns the number of items in the cache.
 func (c *FIFOShardedCache) Len() int {
 	return c.cache.Count()
+}
+
+// MaxSize returns the maximum number of items which can be stored in cache.
+func (c *FIFOShardedCache) MaxSize() int {
+	return c.maxsize
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

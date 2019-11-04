@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -58,7 +59,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
@@ -424,6 +425,8 @@ func createNetNode(
 		createMockTxFeeHandler(),
 	)
 
+	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator)
+
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		store,
@@ -439,6 +442,7 @@ func createNetNode(
 		rewardProcessor,
 		internalTxProducer,
 		createMockTxFeeHandler(),
+		miniBlocksCompacter,
 	)
 	container, _ := fact.Create()
 
@@ -483,6 +487,7 @@ func createNetNode(
 			Core:            &mock.ServiceContainerMock{},
 			BlockChainHook:  blockChainHook,
 			TxCoordinator:   tc,
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		},
 		DataPool:        dPool,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

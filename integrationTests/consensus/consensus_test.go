@@ -167,7 +167,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second)
 
 	nonceForRoundMap := make(map[uint64]uint64)
 	totalCalled := 0
@@ -223,7 +223,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second)
 
 	nonceForRoundMap := make(map[uint64]uint64)
 	totalCalled := 0

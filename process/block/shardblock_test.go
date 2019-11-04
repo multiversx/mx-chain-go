@@ -468,6 +468,11 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{
+			ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+				return miniBlocks, nil
+			},
+		},
 	)
 	container, _ := factory.Create()
 
@@ -657,6 +662,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{
+			ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+				return miniBlocks, nil
+			},
+		},
 	)
 	container, _ := factory.Create()
 
@@ -1568,6 +1578,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	errPersister := errors.New("failure")
 	wasCalled := false
 	rootHash := []byte("root hash to be tested")
+	marshalizer := &mock.MarshalizerMock{}
 	accounts := &mock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
@@ -1588,6 +1599,10 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	}
 	body := make(block.Body, 0)
 	hdrUnit := &mock.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			hdr, _ := marshalizer.Marshal(&block.Header{})
+			return hdr, nil
+		},
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
 			return errPersister
@@ -1811,6 +1826,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2356,6 +2372,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2459,6 +2476,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2891,6 +2909,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 				return 0
 			},
 		},
+		&mock.MiniBlocksCompacterMock{
+			CompactCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) block.MiniBlockSlice {
+				return miniBlocks
+			},
+		},
 	)
 	container, _ := factory.Create()
 
@@ -3084,6 +3107,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 	container, _ := factory.Create()
 
