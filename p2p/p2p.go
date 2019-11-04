@@ -157,7 +157,7 @@ type Messenger interface {
 
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
-	SetThresholdMinConnectedPeers(minConnectedPeers int)
+	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

@@ -366,7 +366,9 @@ func (messenger *Messenger) IsConnectedToTheNetwork() bool {
 }
 
 // SetThresholdMinConnectedPeers does nothing as this implementation is always connected to its network
-func (messenger *Messenger) SetThresholdMinConnectedPeers(minConnectedPeers int) {}
+func (messenger *Messenger) SetThresholdMinConnectedPeers(minConnectedPeers int) error {
+	return nil
+}
 
 // ThresholdMinConnectedPeers always return 0
 func (messenger *Messenger) ThresholdMinConnectedPeers() int {

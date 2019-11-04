@@ -18,7 +18,11 @@ type libp2pConnectionMonitor struct {
 	thresholdMinConnectedPeers int
 }
 
-func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int) *libp2pConnectionMonitor {
+func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int) (*libp2pConnectionMonitor, error) {
+	if thresholdMinConnectedPeers < 0 {
+		return nil, p2p.ErrInvalidValue
+	}
+
 	cm := &libp2pConnectionMonitor{
 		reconnecter:                reconnecter,
 		chDoReconnect:              make(chan struct{}, 0),
@@ -29,7 +33,7 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 		go cm.doReconnection()
 	}
 
-	return cm
+	return cm, nil
 }
 
 // Listen is called when network starts listening on an addr
@@ -73,6 +77,5 @@ func (lcm *libp2pConnectionMonitor) doReconnection() {
 }
 
 func (lcm *libp2pConnectionMonitor) isConnectedToTheNetwork(netw network.Network) bool {
-	numConnections := netw.Conns()
-	return len(numConnections) >= lcm.thresholdMinConnectedPeers
+	return len(netw.Conns()) >= lcm.thresholdMinConnectedPeers
 }

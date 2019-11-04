@@ -328,7 +328,7 @@ func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int)
 // MakeDisplayTable will output a string containing counters for received transactions, headers, miniblocks and
 // meta headers for all provided test nodes
 func MakeDisplayTable(nodes []*TestProcessorNode) string {
-	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers", "conns"}
+	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers", "connections"}
 	dataLines := make([]*display.LineData, len(nodes))
 
 	for idx, n := range nodes {

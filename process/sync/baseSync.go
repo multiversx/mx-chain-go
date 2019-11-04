@@ -27,10 +27,6 @@ var log = logger.DefaultLogger()
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
 
-// maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
-// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
-const maxRoundsToWait = 3
-
 type notarizedInfo struct {
 	lastNotarized           map[uint32]uint64
 	finalNotarized          map[uint32]uint64
@@ -96,12 +92,13 @@ type baseBootstrap struct {
 
 	requestMiniBlocks func(uint32, uint64)
 
-	networkWatcher process.NetworkConnectionWatcher
+	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
 	headerStore          storage.Storer
 	headerNonceHashStore storage.Storer
 	hdrRes               dataRetriever.HeaderResolver
+	syncStarter          syncStarter
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -463,8 +460,8 @@ func (boot *baseBootstrap) waitForHeaderHash() error {
 
 // ShouldSync method returns the sync state of the node. If it returns 'true', this means that the node
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
-// synced and it can participate to the consensus, if it is in the jobDone group of this rounder
-// should note that when the node is not connected to the network, ShouldSync returns true but the SyncBlock
+// synced and it can participate to the consensus, if it is in the jobDone group of this rounder.
+// Note that when the node is not connected to the network, ShouldSync returns true but the SyncBlock
 // is not automatically called
 func (boot *baseBootstrap) ShouldSync() bool {
 	if !boot.networkWatcher.IsConnectedToTheNetwork() {
@@ -866,4 +863,30 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 
 	boot.forkDetector.ResetProbableHighestNonce()
 	boot.forkDetector.ResetFork()
+}
+
+// StopSync method will stop SyncBlocks
+func (boot *baseBootstrap) StopSync() {
+	boot.chStopSync <- true
+}
+
+// syncBlocks method calls repeatedly synchronization method SyncBlock
+func (boot *baseBootstrap) syncBlocks() {
+	for {
+		time.Sleep(sleepTime)
+
+		if !boot.networkWatcher.IsConnectedToTheNetwork() {
+			continue
+		}
+
+		select {
+		case <-boot.chStopSync:
+			return
+		default:
+			err := boot.syncStarter.SyncBlock()
+			if err != nil {
+				log.Info(err.Error())
+			}
+		}
+	}
 }

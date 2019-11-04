@@ -1344,7 +1344,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceives
 
 	pools := createMockMetaPools()
 	pools.MetaBlocksCalled = func() storage.Cacher {
-		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
+		return sync.GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
 	}
 
 	hasher := &mock.HasherMock{}
@@ -1410,7 +1410,7 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 
 	pools := createMockMetaPools()
 	pools.MetaBlocksCalled = func() storage.Cacher {
-		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
+		return sync.GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
 	}
 
 	hasher := &mock.HasherMock{}

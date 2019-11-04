@@ -108,6 +108,7 @@ func NewShardBootstrap(
 	base.storageBootstrapper = &boot
 	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getShardHeaderFromPool
+	base.syncStarter = &boot
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	//there is one header topic so it is ok to save it
@@ -607,33 +608,6 @@ func (boot *ShardBootstrap) StartSync() {
 	}
 
 	go boot.syncBlocks()
-}
-
-// StopSync method will stop SyncBlocks
-func (boot *ShardBootstrap) StopSync() {
-	boot.chStopSync <- true
-}
-
-// syncBlocks method calls repeatedly synchronization method SyncBlock
-func (boot *ShardBootstrap) syncBlocks() {
-	for {
-		time.Sleep(sleepTime)
-
-		if !boot.networkWatcher.IsConnectedToTheNetwork() {
-			continue
-		}
-
-		select {
-		case <-boot.chStopSync:
-			return
-		default:
-			err := boot.SyncBlock()
-
-			if err != nil {
-				log.Info(err.Error())
-			}
-		}
-	}
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool

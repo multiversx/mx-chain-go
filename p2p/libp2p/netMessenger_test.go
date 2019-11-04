@@ -1495,3 +1495,55 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 
 	_ = mes.Close()
 }
+
+//------- SetThresholdMinConnectedPeers
+
+func TestNetworkMessenger_SetThresholdMinConnectedPeersInvalidValueShouldErr(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	err := mes.SetThresholdMinConnectedPeers(-1)
+
+	assert.Equal(t, p2p.ErrInvalidValue, err)
+}
+
+func TestNetworkMessenger_SetThresholdMinConnectedPeersShouldWork(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 56
+	err := mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.Nil(t, err)
+	assert.Equal(t, minConnectedPeers, mes.ThresholdMinConnectedPeers())
+}
+
+//------- IsConnectedToTheNetwork
+
+func TestNetworkMessenger_IsConnectedToTheNetworkRetFalse(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 56
+	_ = mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.False(t, mes.IsConnectedToTheNetwork())
+}
+
+func TestNetworkMessenger_IsConnectedToTheNetworkWithZeroRetTrue(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 0
+	_ = mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.True(t, mes.IsConnectedToTheNetwork())
+}

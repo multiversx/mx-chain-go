@@ -30,7 +30,7 @@ import (
 )
 
 // waitTime defines the time in milliseconds until node waits the requested info from the network
-const waitTime = time.Duration(100 * time.Millisecond)
+const waitTime = 100 * time.Millisecond
 
 type removedFlags struct {
 	flagHdrRemovedFromNonces       bool
@@ -254,7 +254,7 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 			}
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return uint64(removedNonce)
+			return removedNonce
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return uint64(0)
@@ -957,7 +957,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return uint64(hdr.Nonce)
+		return hdr.Nonce
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
@@ -968,7 +968,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	blockProcessorMock := createBlockProcessor()
 
@@ -1025,9 +1025,10 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	account := &mock.AccountsStub{}
 
 	rnd, _ := round.NewRound(time.Now(),
-		time.Now().Add(2*time.Duration(100*time.Millisecond)),
-		time.Duration(100*time.Millisecond),
-		&mock.SyncTimerMock{})
+		time.Now().Add(2*100*time.Millisecond),
+		100*time.Millisecond,
+		&mock.SyncTimerMock{},
+	)
 
 	blockProcessorMock := createBlockProcessor()
 
@@ -1122,8 +1123,8 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 	account := &mock.AccountsStub{}
 
 	rnd, _ := round.NewRound(time.Now(),
-		time.Now().Add(2*time.Duration(100*time.Millisecond)),
-		time.Duration(100*time.Millisecond),
+		time.Now().Add(2*100*time.Millisecond),
+		100*time.Millisecond,
 		&mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
@@ -1172,7 +1173,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		return false, math.MaxUint64, nil
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return uint64(hdr.Nonce)
+		return hdr.Nonce
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 1
@@ -1181,7 +1182,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1289,7 +1290,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return false, math.MaxUint64, nil
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return uint64(hdr.Nonce)
+		return hdr.Nonce
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
@@ -1304,7 +1305,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return nil, nil
 	}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1419,9 +1420,10 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	account := &mock.AccountsStub{}
 
 	rnd, _ := round.NewRound(time.Now(),
-		time.Now().Add(2*time.Duration(100*time.Millisecond)),
-		time.Duration(100*time.Millisecond),
-		&mock.SyncTimerMock{})
+		time.Now().Add(2*100*time.Millisecond),
+		100*time.Millisecond,
+		&mock.SyncTimerMock{},
+	)
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1521,7 +1523,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		return false, math.MaxUint64, nil
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
-		return uint64(hdr.Nonce)
+		return hdr.Nonce
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
@@ -1533,8 +1535,8 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	account := &mock.AccountsStub{}
 
 	rnd, _ := round.NewRound(time.Now(),
-		time.Now().Add(2*time.Duration(100*time.Millisecond)),
-		time.Duration(100*time.Millisecond),
+		time.Now().Add(2*100*time.Millisecond),
+		100*time.Millisecond,
 		&mock.SyncTimerMock{})
 
 	ebm.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
@@ -1585,7 +1587,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1629,7 +1631,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1678,7 +1680,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1727,7 +1729,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1776,7 +1778,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 
 	pools := createMockPools()
 	pools.HeadersCalled = func() storage.Cacher {
-		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
+		return sync.GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
 	}
 
 	hasher := &mock.HasherMock{}
@@ -1849,7 +1851,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 
 	pools := createMockPools()
 	pools.HeadersCalled = func() storage.Cacher {
-		return GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
+		return sync.GetCacherWithHeaders(&hdr1, &hdr2, hash1, hash2)
 	}
 
 	hasher := &mock.HasherMock{}
@@ -1913,7 +1915,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -1984,7 +1986,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -2033,7 +2035,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -2107,7 +2109,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,
@@ -2185,7 +2187,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *te
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), &mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(), time.Now(), 100*time.Millisecond, &mock.SyncTimerMock{})
 
 	bs, _ := sync.NewShardBootstrap(
 		pools,

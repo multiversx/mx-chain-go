@@ -153,7 +153,10 @@ func createMessenger(
 		topics:         make(map[string]p2p.MessageProcessor),
 		outgoingPLB:    outgoingPLB,
 		peerDiscoverer: peerDiscoverer,
-		connMonitor:    newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers),
+	}
+	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers)
+	if err != nil {
+		return nil, err
 	}
 	lctx.connHost.Network().Notify(netMes.connMonitor)
 
@@ -519,10 +522,16 @@ func (netMes *networkMessenger) IsConnectedToTheNetwork() bool {
 }
 
 // SetThresholdMinConnectedPeers sets the minimum connected peers before triggering a new reconnection
-func (netMes *networkMessenger) SetThresholdMinConnectedPeers(minConnectedPeers int) {
+func (netMes *networkMessenger) SetThresholdMinConnectedPeers(minConnectedPeers int) error {
+	if minConnectedPeers < 0 {
+		return p2p.ErrInvalidValue
+	}
+
 	netw := netMes.ctxProvider.connHost.Network()
 	netMes.connMonitor.thresholdMinConnectedPeers = minConnectedPeers
 	netMes.connMonitor.doReconnectionIfNeeded(netw)
+
+	return nil
 }
 
 // ThresholdMinConnectedPeers returns the minimum connected peers before triggering a new reconnection
