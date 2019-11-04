@@ -121,6 +121,7 @@ type Core struct {
 // State struct holds the state components of the Elrond protocol
 type State struct {
 	AddressConverter  state.AddressConverter
+	PeerAccounts      state.AccountsAdapter
 	AccountsAdapter   state.AccountsAdapter
 	InBalanceForShard map[string]*big.Int
 }
@@ -198,6 +199,7 @@ type stateComponentsFactoryArgs struct {
 	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *Core
+	uniqueID         string
 }
 
 // NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
@@ -206,12 +208,14 @@ func NewStateComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
+	uniqueID string,
 ) *stateComponentsFactoryArgs {
 	return &stateComponentsFactoryArgs{
 		config:           config,
 		genesisConfig:    genesisConfig,
 		shardCoordinator: shardCoordinator,
 		core:             core,
+		uniqueID:         uniqueID,
 	}
 }
 
@@ -241,7 +245,28 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
+	peerAccountsTrie, err := getTrie(
+		args.config.PeerAccountsTrieStorage,
+		args.core.Marshalizer,
+		args.core.Hasher,
+		args.uniqueID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	accountFactory, err = factoryState.NewAccountFactoryCreator(factoryState.ValidatorAccount)
+	if err != nil {
+		return nil, errors.New("could not create peer account factory: " + err.Error())
+	}
+
+	peerAdapter, err := state.NewPeerAccountsDB(peerAccountsTrie, args.core.Hasher, args.core.Marshalizer, accountFactory)
+	if err != nil {
+		return nil, err
+	}
+
 	return &State{
+		PeerAccounts:      peerAdapter,
 		AddressConverter:  addressConverter,
 		AccountsAdapter:   accountsAdapter,
 		InBalanceForShard: inBalanceForShard,
@@ -2031,11 +2056,10 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		AdrConv:     state.AddressConverter,
-		Hasher:      core.Hasher,
-		Marshalizer: core.Marshalizer,
-		//TODO: we need actual peer state here
-		PeerState:    state.AccountsAdapter,
+		AdrConv:      state.AddressConverter,
+		Hasher:       core.Hasher,
+		Marshalizer:  core.Marshalizer,
+		PeerState:    state.PeerAccounts,
 		BaseState:    state.AccountsAdapter,
 		ArgParser:    argsParser,
 		CurrTxs:      data.MetaDatapool.CurrentBlockTxs(),
@@ -2084,18 +2108,16 @@ func newMetaBlockProcessor(
 	return metaProcessor, nil
 }
 
-func newValidatorStatisticsProcessor(processComponents *processComponentsFactoryArgs) (process.ValidatorStatisticsProcessor, error) {
-	peerAdapter, err := getPeerAdapter(processComponents)
-	if err != nil {
-		return nil, err
-	}
+func newValidatorStatisticsProcessor(
+	processComponents *processComponentsFactoryArgs,
+) (process.ValidatorStatisticsProcessor, error) {
 
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes:     initialNodes,
-		PeerAdapter:      peerAdapter,
+		PeerAdapter:      processComponents.state.PeerAccounts,
 		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
@@ -2110,31 +2132,6 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	}
 
 	return validatorStatisticsProcessor, nil
-}
-
-func getPeerAdapter(processComponents *processComponentsFactoryArgs) (*state.PeerAccountsDB, error) {
-	coreComponents := processComponents.coreComponents
-	peerAccountsTrie, err := getTrie(
-		coreComponents.config.PeerAccountsTrieStorage,
-		processComponents.core.Marshalizer,
-		processComponents.core.Hasher,
-		coreComponents.uniqueID,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.ValidatorAccount)
-	if err != nil {
-		return nil, errors.New("could not create peer account factory: " + err.Error())
-	}
-
-	peerAdapter, err := state.NewPeerAccountsDB(peerAccountsTrie, processComponents.core.Hasher, processComponents.core.Marshalizer, accountFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return peerAdapter, nil
 }
 
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
