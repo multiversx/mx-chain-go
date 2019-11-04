@@ -206,7 +206,7 @@ func CreateMetaGenesisBlock(
 		return nil, process.ErrNilTxProcessor
 	}
 
-	err = deploySystemSmartContracts(txProcessor, vmFactory.SystemSmartContractContainer(), args.AddrConv)
+	err = deploySystemSmartContracts(txProcessor, vmFactory.SystemSmartContractContainer(), args.AddrConv, args.Accounts)
 	if err != nil {
 		return nil, err
 	}
@@ -242,6 +242,7 @@ func deploySystemSmartContracts(
 	txProcessor process.TransactionProcessor,
 	systemSCs vm.SystemSCContainer,
 	addrConv state.AddressConverter,
+	accounts state.AccountsAdapter,
 ) error {
 	tx := &transaction.Transaction{
 		Nonce:     0,
@@ -254,9 +255,29 @@ func deploySystemSmartContracts(
 		Challenge: nil,
 	}
 
+	accountsDB, ok := accounts.(*state.AccountsDB)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
 	for _, key := range systemSCs.Keys() {
+		addr, err := addrConv.CreateAddressFromPublicKeyBytes(key)
+		if err != nil {
+			return err
+		}
+
+		_, err = state.NewAccount(addr, accountsDB)
+		if err != nil {
+			return err
+		}
+
+		_, err = accountsDB.Commit()
+		if err != nil {
+			return err
+		}
+
 		tx.SndAddr = key
-		err := txProcessor.ProcessTransaction(tx, 0)
+		err = txProcessor.ProcessTransaction(tx, 0)
 		if err != nil {
 			return err
 		}

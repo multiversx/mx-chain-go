@@ -201,6 +201,21 @@ func (host *vmContext) SetSCAddress(addr []byte) {
 	host.scAddress = addr
 }
 
+func (host *vmContext) AddCode(address []byte, code []byte) {
+	newSCAcc, ok := host.outputAccounts[string(address)]
+	if !ok {
+		host.outputAccounts[string(address)] = &vmcommon.OutputAccount{
+			Address:        address,
+			Nonce:          0,
+			BalanceDelta:   big.NewInt(0),
+			StorageUpdates: nil,
+			Code:           code,
+		}
+	} else {
+		newSCAcc.Code = code
+	}
+}
+
 // IsInterfaceNil returns if the underlying implementation is nil
 func (host *vmContext) IsInterfaceNil() bool {
 	if host == nil {

@@ -42,6 +42,7 @@ type SystemEI interface {
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
 	SetSCAddress(addr []byte)
+	AddCode(addr []byte, code []byte)
 
 	IsInterfaceNil() bool
 }

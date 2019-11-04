@@ -65,6 +65,8 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 
 	returnCode := contract.Execute(deployInput)
 
+	s.systemEI.AddCode(input.CallerAddr, input.ContractCode)
+
 	vmOutput := s.systemEI.CreateVMOutput()
 	vmOutput.ReturnCode = returnCode
 
