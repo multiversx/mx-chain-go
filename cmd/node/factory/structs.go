@@ -531,8 +531,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		forkDetector,
 		genesisBlocks,
-		args.coreServiceContainer,
-		args.nodesConfig,
 	)
 
 	if err != nil {
@@ -1586,8 +1584,6 @@ func newBlockProcessor(
 	resolversFinder dataRetriever.ResolversFinder,
 	forkDetector process.ForkDetector,
 	genesisBlocks map[uint32]data.HeaderHandler,
-	coreServiceContainer serviceContainer.Core,
-	nodesSetup *sharding.NodesSetup,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1653,8 +1649,8 @@ func newBlockProcessor(
 			genesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
-			nodesSetup,
 			validatorStatisticsProcessor,
+			processArgs.nodesConfig,
 		)
 	}
 
@@ -2051,20 +2047,20 @@ func newMetaBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:              state.AccountsAdapter,
-		ForkDetector:          forkDetector,
-		Hasher:                core.Hasher,
-		Marshalizer:           core.Marshalizer,
-		Store:                 data.Store,
-		ShardCoordinator:      shardCoordinator,
-		NodesCoordinator:      nodesCoordinator,
-		SpecialAddressHandler: specialAddressHandler,
-		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          genesisBlocks,
-		RequestHandler:        requestHandler,
-		Core:                  coreServiceContainer,
-		BlockChainHook:        vmFactory.BlockChainHookImpl(),
-		TxCoordinator:         txCoordinator,
+		Accounts:                     state.AccountsAdapter,
+		ForkDetector:                 forkDetector,
+		Hasher:                       core.Hasher,
+		Marshalizer:                  core.Marshalizer,
+		Store:                        data.Store,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		SpecialAddressHandler:        specialAddressHandler,
+		Uint64Converter:              core.Uint64ByteSliceConverter,
+		StartHeaders:                 genesisBlocks,
+		RequestHandler:               requestHandler,
+		Core:                         coreServiceContainer,
+		BlockChainHook:               vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                txCoordinator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 	arguments := block.ArgMetaProcessor{
