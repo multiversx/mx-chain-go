@@ -39,6 +39,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Core:                  &mock.ServiceContainerMock{},
 			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:         &mock.TransactionCoordinatorMock{},
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		},
 		DataPool: mdp,
 	}
@@ -490,7 +491,7 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	mp.SetHighestHdrNonceForCurrentBlock(0, 1)
 	mp.SetHighestHdrNonceForCurrentBlock(1, 2)
 	mp.SetHighestHdrNonceForCurrentBlock(2, 3)
-	res := mp.RequestMissingFinalityAttestingHeaders()
+	res := mp.RequestMissingFinalityAttestingShardHeaders()
 	assert.Equal(t, res, uint32(3))
 }
 
@@ -545,6 +546,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 
 	wasCalled := false
 	errPersister := errors.New("failure")
+	marshalizer := &mock.MarshalizerMock{}
 	accounts := &mock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
@@ -556,6 +558,10 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
 			return errPersister
+		},
+		GetCalled: func(key []byte) (i []byte, e error) {
+			hdr, _ := marshalizer.Marshal(&block.MetaBlock{})
+			return hdr, nil
 		},
 	}
 	store := initStore()
@@ -708,6 +714,9 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		}
 		cs.LenCalled = func() int {
 			return 0
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
 		}
 		return cs
 	}

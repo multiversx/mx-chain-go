@@ -52,9 +52,6 @@ var ErrNilTxBlockBody = errors.New("nil tx block body")
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
 
-// ErrNilPeerBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilPeerBlockBody = errors.New("nil block body")
-
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
@@ -79,9 +76,6 @@ var ErrNilSignature = errors.New("nil signature")
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
 
-// ErrNilMiniBlockHeaders signals that an operation has been attempted with a nil mini-block
-var ErrNilMiniBlockHeaders = errors.New("nil mini block headers")
-
 // ErrNilTxHashes signals that an operation has been atempted with nil transaction hashes
 var ErrNilTxHashes = errors.New("nil transaction hashes")
 
@@ -105,6 +99,9 @@ var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 
 // ErrRootStateDoesNotMatch signals that root state does not match
 var ErrRootStateDoesNotMatch = errors.New("root state does not match")
+
+// ErrValidatorStatsRootHashDoesNotMatch signals that the root hash for the validator statistics does not match
+var ErrValidatorStatsRootHashDoesNotMatch = errors.New("root hash for validator statistics does not match")
 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
@@ -141,9 +138,6 @@ var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
 
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
-
-// ErrNilMetaHeadersDataPool signals that a nil metachain header pool has been provided
-var ErrNilMetaHeadersDataPool = errors.New("nil meta headers data pool")
 
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
@@ -189,9 +183,6 @@ var ErrBlockProposerSignatureMissing = errors.New("block proposer signature is m
 
 // ErrNilMultiSigVerifier signals that a nil multi-signature verifier is used
 var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
-
-// ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
-var ErrInvalidBlockBodyType = errors.New("invalid block body type")
 
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
@@ -268,9 +259,6 @@ var ErrNilInternalTransactionProducer = errors.New("nil internal transaction pro
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
 
-// ErrCouldNotDecodeUnderlyingBody signals that an InterceptedBlockBody could not be decoded to a block.Body using type assertion
-var ErrCouldNotDecodeUnderlyingBody = errors.New("could not decode InterceptedBlockBody to block.Body")
-
 // ErrWrongTypeInContainer signals that a wrong type of object was found in container
 var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
 
@@ -281,10 +269,10 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrRollbackFromGenesis signals that a rollback from genesis is called
-var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
+var ErrRollbackFromGenesis = errors.New("roll back from genesis is not permitted")
 
-// ErrNoTransactionInMessage signals that no transaction was found after parsing received p2p message
-var ErrNoTransactionInMessage = errors.New("no transaction found in received message")
+// ErrNoDataInMessage signals that no data was found after parsing received p2p message
+var ErrNoDataInMessage = errors.New("no data found in received message")
 
 // ErrNilBuffer signals that a provided byte buffer is nil
 var ErrNilBuffer = errors.New("provided byte buffer is nil")
@@ -359,7 +347,7 @@ var ErrNilValueFromRewardTransaction = errors.New("transferred value is nil in r
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
 // ErrNotEnoughValidBlocksInStorage signals that bootstrap from storage failed due to not enough valid blocks stored
-var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in storage")
+var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks to start from storage")
 
 // ErrNilSmartContractResult signals that the smart contract result is nil
 var ErrNilSmartContractResult = errors.New("smart contract result is nil")
@@ -372,9 +360,6 @@ var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
 
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
-
-// ErrNoUnsignedTransactionInMessage signals that message does not contain required data
-var ErrNoUnsignedTransactionInMessage = errors.New("no unsigned transactions in message")
 
 // ErrNoRewardTransactionInMessage signals that message does not contain required data
 var ErrNoRewardTransactionInMessage = errors.New("no reward transactions in message")
@@ -430,14 +415,20 @@ var ErrUnknownBlockType = errors.New("block type is unknown")
 // ErrMissingPreProcessor signals that required pre processor is missing
 var ErrMissingPreProcessor = errors.New("pre processor is missing")
 
-// ErrNilTxHandlerValidator signals that a nil tx handler validator has been provided
-var ErrNilTxHandlerValidator = errors.New("nil tx handler validator provided")
-
-// ErrNilHeaderHandlerValidator signals that a nil header handler validator has been provided
-var ErrNilHeaderHandlerValidator = errors.New("nil header handler validator provided")
-
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNilInterceptedDataFactory signals that a nil intercepted data factory was provided
+var ErrNilInterceptedDataFactory = errors.New("nil intercepted data factory")
+
+// ErrNilInterceptedDataProcessor signals that a nil intercepted data processor was provided
+var ErrNilInterceptedDataProcessor = errors.New("nil intercepted data processor")
+
+// ErrNilInterceptorThrottler signals that a nil interceptor throttler was provided
+var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
+
+// ErrInterceptedDataTypeNotDefined signals that the required data type has not been defined
+var ErrInterceptedDataTypeNotDefined = errors.New("intercepted data type is not defined")
 
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
@@ -457,6 +448,24 @@ var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 // ErrNilSpecialAddressHandler signals that special address handler is nil
 var ErrNilSpecialAddressHandler = errors.New("nil special address handler")
 
+// ErrNilPeerAccountsAdapter signals that a nil peer accounts database was provided
+var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts database")
+
+// ErrInvalidInitialNodesState signals that the initial nodes state is invalid
+var ErrInvalidInitialNodesState = errors.New("provided initial state is invalid")
+
+// ErrInvalidPeerAccount signals that a peer account is invalid
+var ErrInvalidPeerAccount = errors.New("invalid peer account")
+
+// ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
+var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
+
+// ErrNilShardHeaderStorage signals that nil storage was provided for shard headers
+var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
+
+// ErrNilMetaHeaderStorage signals that nil storage was provided for meta headers
+var ErrNilMetaHeaderStorage = errors.New("nil meta header storage")
+
 // ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
 var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
 
@@ -465,6 +474,19 @@ var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
+
+// ErrNilTxValidator signals that a nil tx validator has been provided
+var ErrNilTxValidator = errors.New("nil transaction validator")
+
+// ErrNilHdrValidator signals that a nil header validator has been provided
+var ErrNilHdrValidator = errors.New("nil header validator")
+
+// ErrTxNotValid signals that a tx is not valid
+var ErrTxNotValid = errors.New("transaction is not valid")
+
+// ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
+// processed on the current shard
+var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")
 
 // ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
 var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
@@ -477,9 +499,6 @@ var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
 
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
-
-// ErrNilThrottler signals that a nil throttler has been provided
-var ErrNilThrottler = errors.New("nil throttler")
 
 // ErrSystemBusy signals that the system is busy
 var ErrSystemBusy = errors.New("system busy")
@@ -507,3 +526,6 @@ var ErrInvalidNonceRequest = errors.New("invalid nonce request")
 
 // ErrNilBlockChainHook signals that nil blockchain hook has been provided
 var ErrNilBlockChainHook = errors.New("nil blockchain hook")
+
+// ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
+var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")

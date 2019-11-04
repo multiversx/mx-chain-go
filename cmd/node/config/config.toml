@@ -11,6 +11,7 @@
    StatusPollingIntervalSec = 2
 
    # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
+   # Length should be less than 128 characters (bytes)
    NodeDisplayName = ""
 
 [Explorer]
@@ -144,6 +145,17 @@
         Type = "LRU"
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 15
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
+[PeerAccountsTrieStorage]
+    [PeerAccountsTrieStorage.Cache]
+        Size = 100000
+        Type = "LRU"
+    [PeerAccountsTrieStorage.DB]
+        FilePath = "PeerAccountsTrie"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
         MaxBatchSize = 45000

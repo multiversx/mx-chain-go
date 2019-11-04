@@ -61,6 +61,10 @@ type ConsensusService interface {
 	CanProceed(*ConsensusState, consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
+	//IsMessageWithSignature returns if the current messageType is about signature
+	IsMessageWithSignature(consensus.MessageType) bool
+	//IsSubroundSignature returns if the current subround is about signature
+	IsSubroundSignature(int) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -79,7 +83,7 @@ type WorkerHandler interface {
 	//RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P) error
+	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
 	//Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged

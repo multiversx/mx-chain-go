@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -120,6 +121,7 @@ type TestProcessorNode struct {
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
+	MiniBlocksCompacter    process.MiniBlocksCompacter
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -228,6 +230,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initNode()
 	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
@@ -446,6 +449,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 	)
 
+	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator)
+
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -461,6 +466,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.RewardsProcessor,
 		internalTxProducer,
 		tpn.EconomicsData,
+		tpn.MiniBlocksCompacter,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -503,6 +509,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		RequestHandler:        tpn.RequestHandler,
 		Core:                  nil,
 		BlockChainHook:        &mock.BlockChainHookHandlerMock{},
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -708,7 +715,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
-	_ = tpn.BroadcastMessenger.BroadcastHeader(header)
+	_ = tpn.BroadcastMessenger.BroadcastShardHeader(header)
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)

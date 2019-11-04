@@ -53,7 +53,10 @@ type ShardData struct {
 	ShardID               uint32                 `capid:"0"`
 	HeaderHash            []byte                 `capid:"1"`
 	ShardMiniBlockHeaders []ShardMiniBlockHeader `capid:"2"`
-	TxCount               uint32                 `capid:"3"`
+	PrevRandSeed          []byte                 `capid:"3"`
+	PubKeysBitmap         []byte                 `capid:"4"`
+	Signature             []byte                 `capid:"5"`
+	TxCount               uint32                 `capid:"6"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -70,8 +73,9 @@ type MetaBlock struct {
 	PrevRandSeed     []byte            `capid:"9"`
 	RandSeed         []byte            `capid:"10"`
 	RootHash         []byte            `capid:"11"`
-	TxCount          uint32            `capid:"12"`
-	MiniBlockHeaders []MiniBlockHeader `capid:"13"`
+	ValidatorStatsRootHash []byte      `capid:"12"`
+	TxCount          uint32            `capid:"13"`
+	MiniBlockHeaders []MiniBlockHeader `capid:"14"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -194,6 +198,9 @@ func ShardDataGoToCapn(seg *capn.Segment, src *ShardData) capnp.ShardDataCapn {
 
 	dest.SetShardId(src.ShardID)
 	dest.SetHeaderHash(src.HeaderHash)
+	dest.SetPrevRandSeed(src.PrevRandSeed)
+	dest.SetPubKeysBitmap(src.PubKeysBitmap)
+	dest.SetSignature(src.Signature)
 
 	// create the list of shardMiniBlockHeaders
 	if len(src.ShardMiniBlockHeaders) > 0 {
@@ -217,6 +224,9 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 	}
 	dest.ShardID = src.ShardId()
 	dest.HeaderHash = src.HeaderHash()
+	dest.PrevRandSeed = src.PrevRandSeed()
+	dest.PubKeysBitmap = src.PubKeysBitmap()
+	dest.Signature = src.Signature()
 
 	n := src.ShardMiniBlockHeaders().Len()
 	dest.ShardMiniBlockHeaders = make([]ShardMiniBlockHeader, n)
@@ -273,6 +283,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetPrevRandSeed(src.PrevRandSeed)
 	dest.SetRandSeed(src.RandSeed)
 	dest.SetRootHash(src.RootHash)
+	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
 	dest.SetTxCount(src.TxCount)
 
 	return dest
@@ -311,6 +322,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.PrevRandSeed = src.PrevRandSeed()
 	dest.RandSeed = src.RandSeed()
 	dest.RootHash = src.RootHash()
+	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 	dest.TxCount = src.TxCount()
 
 	return dest
@@ -344,6 +356,11 @@ func (m *MetaBlock) GetTimeStamp() uint64 {
 // GetRootHash returns the roothash from header
 func (m *MetaBlock) GetRootHash() []byte {
 	return m.RootHash
+}
+
+// GetValidatorStatsRootHash returns the root hash for the validator statistics trie at this current block
+func (m *MetaBlock) GetValidatorStatsRootHash() []byte {
+	return m.ValidatorStatsRootHash
 }
 
 // GetPrevHash returns previous block header hash
@@ -394,6 +411,11 @@ func (m *MetaBlock) SetRound(r uint64) {
 // SetRootHash sets root hash
 func (m *MetaBlock) SetRootHash(rHash []byte) {
 	m.RootHash = rHash
+}
+
+// SetValidatorStatsRootHash set's the root hash for the validator statistics trie
+func (m *MetaBlock) SetValidatorStatsRootHash(rHash []byte) {
+	m.ValidatorStatsRootHash = rHash
 }
 
 // SetPrevHash sets prev hash

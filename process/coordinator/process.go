@@ -417,7 +417,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			return miniBlocks, nrTxAdded, false
 		}
 
-		requestedTxs := preproc.RequestTransactionsForMiniBlock(*miniBlock)
+		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
 		if requestedTxs > 0 {
 			continue
 		}
@@ -665,7 +665,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	miniBlock, ok := val.(block.MiniBlock)
+	miniBlock, ok := val.(*block.MiniBlock)
 	if !ok {
 		return
 	}

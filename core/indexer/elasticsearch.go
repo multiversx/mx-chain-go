@@ -290,8 +290,9 @@ func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][
 		for _, pubKey := range shardPubKeys {
 			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
 		}
-
-		go ei.saveShardValidatorsPubKeys(shardId, valPubKeys[shardId])
+		go func(id uint32, publicKeys []string) {
+			ei.saveShardValidatorsPubKeys(id, publicKeys)
+		}(shardId, valPubKeys[shardId])
 	}
 }
 
@@ -325,6 +326,7 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 		ei.logger.Warn(fmt.Sprintf("Could not index validators public keys: %s", err))
 		return
 	}
+	ei.logger.Info(fmt.Sprintf("Response validators public key elastic indexer %s", res.String()))
 
 	defer closeESResponseBody(res)
 

@@ -29,6 +29,7 @@ type ArgBaseProcessor struct {
 	Core                  serviceContainer.Core
 	BlockChainHook        process.BlockChainHookHandler
 	TxCoordinator         process.TransactionCoordinator
+	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

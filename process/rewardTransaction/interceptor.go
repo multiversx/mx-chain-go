@@ -68,7 +68,7 @@ func NewRewardTxInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (rti *RewardTxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (rti *RewardTxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
 	if message == nil || message.IsInterfaceNil() {
 		return process.ErrNilMessage
 	}
