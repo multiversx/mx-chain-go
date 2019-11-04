@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"math/big"
 	"testing"
 
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -106,7 +107,9 @@ func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	assert.Nil(t, err)
 
 	marshalizer := &mock.MarshalizerMock{}
-	emptyTx := &dataTransaction.Transaction{}
+	emptyTx := &dataTransaction.Transaction{
+		Value: big.NewInt(0),
+	}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
 	interceptedData, err := imh.Create(emptyTxBuff)
 
