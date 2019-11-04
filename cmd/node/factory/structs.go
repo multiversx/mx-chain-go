@@ -1951,6 +1951,11 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
+	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -1961,6 +1966,7 @@ func newMetaBlockProcessor(
 		requestHandler,
 		transactionProcessor,
 		economics,
+		miniBlocksCompacter,
 	)
 	if err != nil {
 		return nil, err

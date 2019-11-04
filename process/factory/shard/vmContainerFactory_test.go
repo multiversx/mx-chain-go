@@ -1,10 +1,9 @@
 package shard
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"

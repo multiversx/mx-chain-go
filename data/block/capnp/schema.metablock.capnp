@@ -43,7 +43,7 @@ struct MetaBlockCapn {
     rootHash               @11: Data;
     validatorStatsRootHash @12: Data;
     txCount                @13: UInt32;
-    miniBlockHeaders       @14:  List(MiniBlockHeaderCapn);
+    miniBlockHeaders       @14: List(MiniBlockHeaderCapn);
 }
 
 ##compile with:
