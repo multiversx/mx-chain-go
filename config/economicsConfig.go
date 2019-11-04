@@ -20,9 +20,15 @@ type FeeSettings struct {
 	MinGasLimit string
 }
 
+// ValidatorSettings will hold the validator settings
+type ValidatorSettings struct {
+	StakeValue string
+}
+
 // ConfigEconomics will hold economics config
 type ConfigEconomics struct {
 	EconomicsAddresses EconomicsAddresses
 	RewardsSettings    RewardsSettings
 	FeeSettings        FeeSettings
+	ValidatorSettings  ValidatorSettings
 }

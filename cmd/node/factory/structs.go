@@ -1675,7 +1675,6 @@ func newBlockProcessor(
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
-			processArgs.nodesConfig,
 		)
 	}
 
@@ -1919,7 +1918,6 @@ func newMetaBlockProcessor(
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-	nodesSetup *sharding.NodesSetup,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -1931,7 +1929,7 @@ func newMetaBlockProcessor(
 		Marshalizer:      core.Marshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, nodesSetup)
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economics.StakeValue())
 	if err != nil {
 		return nil, err
 	}

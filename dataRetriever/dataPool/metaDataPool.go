@@ -55,6 +55,7 @@ func NewMetaDataPool(
 		headersNonces:        headersNonces,
 		transactions:         transactions,
 		unsignedTransactions: unsignedTransactions,
+		currBlockTxs:         currBlockTxs,
 	}, nil
 }
 

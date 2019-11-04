@@ -276,6 +276,9 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				MinGasPrice: mingGasPrice,
 				MinGasLimit: minGasLimit,
 			},
+			ValidatorSettings: config.ValidatorSettings{
+				StakeValue: "500",
+			},
 		},
 	)
 
@@ -424,7 +427,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	var vmFactory process.VirtualMachinesContainerFactory
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook, &sharding.NodesSetup{StakedValue: big.NewInt(1000)})
+		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook, big.NewInt(1000))
 	} else {
 		vmFactory, _ = shard.NewVMContainerFactory(argsHook)
 	}
@@ -507,19 +510,19 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:              tpn.AccntState,
-		ForkDetector:          tpn.ForkDetector,
-		Hasher:                TestHasher,
-		Marshalizer:           TestMarshalizer,
-		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator,
-		NodesCoordinator:      tpn.NodesCoordinator,
-		SpecialAddressHandler: tpn.SpecialAddressHandler,
-		Uint64Converter:       TestUint64Converter,
-		StartHeaders:          tpn.GenesisBlocks,
-		RequestHandler:        tpn.RequestHandler,
-		Core:                  nil,
-		BlockChainHook:        &mock.BlockChainHookHandlerMock{},
+		Accounts:                     tpn.AccntState,
+		ForkDetector:                 tpn.ForkDetector,
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		Store:                        tpn.Storage,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		NodesCoordinator:             tpn.NodesCoordinator,
+		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		Uint64Converter:              TestUint64Converter,
+		StartHeaders:                 tpn.GenesisBlocks,
+		RequestHandler:               tpn.RequestHandler,
+		Core:                         nil,
+		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 

@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 	t.Parallel()
 
-	scFactory, err := NewSystemSCFactory(nil, &sharding.NodesSetup{StakedValue: big.NewInt(1000)})
+	scFactory, err := NewSystemSCFactory(nil, big.NewInt(1000))
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
@@ -22,7 +21,7 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 func TestNewSystemSCFactory_Ok(t *testing.T) {
 	t.Parallel()
 
-	scFactory, err := NewSystemSCFactory(&mock.SystemEIStub{}, &sharding.NodesSetup{StakedValue: big.NewInt(1000)})
+	scFactory, err := NewSystemSCFactory(&mock.SystemEIStub{}, big.NewInt(1000))
 
 	assert.Nil(t, err)
 	assert.NotNil(t, scFactory)
@@ -31,7 +30,7 @@ func TestNewSystemSCFactory_Ok(t *testing.T) {
 func TestSystemSCFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{}, &sharding.NodesSetup{StakedValue: big.NewInt(1000)})
+	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{}, big.NewInt(1000))
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
@@ -41,7 +40,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{}, &sharding.NodesSetup{StakedValue: big.NewInt(1000)})
+	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{}, big.NewInt(1000))
 	assert.False(t, scFactory.IsInterfaceNil())
 
 	scFactory = nil

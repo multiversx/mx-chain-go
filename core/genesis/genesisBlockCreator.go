@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -78,6 +79,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	Accounts                 state.AccountsAdapter
 	AddrConv                 state.AddressConverter
 	NodesSetup               *sharding.NodesSetup
+	Economics                *economics.EconomicsData
 	ShardCoordinator         sharding.Coordinator
 	Store                    dataRetriever.StorageService
 	Blkc                     data.ChainHandler
@@ -100,6 +102,9 @@ func CreateMetaGenesisBlock(
 	}
 	if args.NodesSetup == nil {
 		return nil, process.ErrNilNodesSetup
+	}
+	if args.Economics == nil {
+		return nil, process.ErrNilEconomicsData
 	}
 	if args.ShardCoordinator == nil || args.ShardCoordinator.IsInterfaceNil() {
 		return nil, process.ErrNilShardCoordinator
@@ -132,7 +137,7 @@ func CreateMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, args.NodesSetup)
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics.StakeValue())
 	if err != nil {
 		return nil, err
 	}
@@ -349,38 +354,4 @@ func setBalanceToTrie(
 	}
 
 	return account.SetBalanceWithJournal(balance)
-}
-
-func initSystemSmartContracts(
-	accounts state.AccountsAdapter,
-	adrConv state.AddressConverter,
-	processor process.SmartContractProcessor,
-	smartContracts vm.SystemSCContainer,
-) ([]byte, error) {
-	scKeys := smartContracts.Keys()
-
-	tx := &transaction.Transaction{
-		Value:   big.NewInt(0),
-		RcvAddr: make([]byte, adrConv.AddressLen()),
-	}
-	for _, scKey := range scKeys {
-		tx.SndAddr = scKey
-
-		adrSrc, err := adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
-		if err != nil {
-			return nil, err
-		}
-
-		acntSrc, err := accounts.GetAccountWithJournal(adrSrc)
-		if err != nil {
-			return nil, err
-		}
-
-		err = processor.DeploySmartContract(tx, acntSrc, 0)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return accounts.Commit()
 }

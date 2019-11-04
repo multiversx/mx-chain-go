@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -10,34 +9,34 @@ import (
 
 type systemSCFactory struct {
 	systemEI   vm.SystemEI
-	nodesSetup *sharding.NodesSetup
+	stakeValue *big.Int
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
 func NewSystemSCFactory(
 	systemEI vm.SystemEI,
-	nodesSetup *sharding.NodesSetup,
+	stakeValue *big.Int,
 ) (*systemSCFactory, error) {
 	if systemEI == nil || systemEI.IsInterfaceNil() {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
-	if nodesSetup == nil {
+	if stakeValue == nil {
 		return nil, vm.ErrNilNodesSetup
 	}
-	if nodesSetup.StakedValue.Cmp(big.NewInt(0)) < 0 {
+	if stakeValue.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidStakeValue
 	}
 
 	return &systemSCFactory{
 		systemEI:   systemEI,
-		nodesSetup: nodesSetup}, nil
+		stakeValue: stakeValue}, nil
 }
 
 // Create instantiates all the system smart contracts and returns a container
 func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
 
-	sc, err := systemSmartContracts.NewStakingSmartContract(scf.nodesSetup.StakedValue, scf.systemEI)
+	sc, err := systemSmartContracts.NewStakingSmartContract(scf.stakeValue, scf.systemEI)
 	if err != nil {
 		return nil, err
 	}

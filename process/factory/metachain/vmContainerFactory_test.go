@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 	"testing"
 
@@ -34,7 +33,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
-		&sharding.NodesSetup{StakedValue: big.NewInt(1000)},
+		big.NewInt(1000),
 	)
 
 	assert.NotNil(t, vmf)
@@ -46,7 +45,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
-		&sharding.NodesSetup{StakedValue: big.NewInt(1000)},
+		big.NewInt(1000),
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
