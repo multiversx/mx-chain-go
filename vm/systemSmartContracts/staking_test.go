@@ -177,15 +177,16 @@ func TestStakingSC_ExecuteStakeNotEnoughArgsShouldErr(t *testing.T) {
 func TestStakingSC_ExecuteStake(t *testing.T) {
 	t.Parallel()
 
+	stakeValue := big.NewInt(100)
+
 	expectedRegistrationData := StakingData{
 		StartNonce:    100,
 		Staked:        true,
 		UnStakedNonce: 0,
 		BlsPubKey:     []byte{100},
-		StakeValue:    big.NewInt(0),
+		StakeValue:    big.NewInt(0).Set(stakeValue),
 	}
 
-	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		switch {
@@ -622,7 +623,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	stakingSmartContract.eei.SetStorage([]byte(ownerKey), arguments.CallerAddr)
 
 	callerAddress := big.NewInt(0).SetBytes(arguments.CallerAddr)
-	slashValue:= big.NewInt(70)
+	slashValue := big.NewInt(70)
 	arguments.Arguments = []*big.Int{callerAddress, slashValue}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -632,7 +633,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	err := json.Unmarshal(dataBytes, &registrationData)
 	assert.Nil(t, err)
 
-	expectedStake :=big.NewInt(0).Sub(stakeValue, slashValue)
+	expectedStake := big.NewInt(0).Sub(stakeValue, slashValue)
 	assert.Equal(t, expectedStake, registrationData.StakeValue)
 
 	arguments.Arguments = []*big.Int{callerAddress, slashValue}

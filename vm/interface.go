@@ -43,6 +43,7 @@ type SystemEI interface {
 	CleanCache()
 	SetSCAddress(addr []byte)
 	AddCode(addr []byte, code []byte)
+	AddTxValueToSmartContract(value *big.Int, scAddress []byte)
 
 	IsInterfaceNil() bool
 }

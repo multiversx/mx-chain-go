@@ -6,14 +6,28 @@ import (
 )
 
 type SystemEIStub struct {
-	TransferCalled       func(destination []byte, sender []byte, value *big.Int, input []byte) error
-	GetBalanceCalled     func(addr []byte) *big.Int
-	SetStorageCalled     func(key []byte, value []byte)
-	GetStorageCalled     func(key []byte) []byte
-	SelfDestructCalled   func(beneficiary []byte)
-	CreateVMOutputCalled func() *vmcommon.VMOutput
-	CleanCacheCalled     func()
-	FinishCalled         func(value []byte)
+	TransferCalled                  func(destination []byte, sender []byte, value *big.Int, input []byte) error
+	GetBalanceCalled                func(addr []byte) *big.Int
+	SetStorageCalled                func(key []byte, value []byte)
+	GetStorageCalled                func(key []byte) []byte
+	SelfDestructCalled              func(beneficiary []byte)
+	CreateVMOutputCalled            func() *vmcommon.VMOutput
+	CleanCacheCalled                func()
+	FinishCalled                    func(value []byte)
+	AddCodeCalled                   func(addr []byte, code []byte)
+	AddTxValueToSmartContractCalled func(value *big.Int, scAddress []byte)
+}
+
+func (s *SystemEIStub) AddCode(addr []byte, code []byte) {
+	if s.AddCodeCalled != nil {
+		s.AddCodeCalled(addr, code)
+	}
+}
+
+func (s *SystemEIStub) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
+	if s.AddTxValueToSmartContractCalled != nil {
+		s.AddTxValueToSmartContractCalled(value, scAddress)
+	}
 }
 
 func (s *SystemEIStub) SetSCAddress(addr []byte) {

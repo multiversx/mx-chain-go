@@ -108,7 +108,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		Staked:        false,
 		BlsPubKey:     nil,
 		UnStakedNonce: 0,
-		StakeValue:    big.NewInt(0),
+		StakeValue:    big.NewInt(0).Set(stakeValue),
 	}
 	data := r.eei.GetStorage(args.CallerAddr)
 

@@ -2,18 +2,6 @@ package genesis
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	transaction2 "github.com/ElrondNetwork/elrond-go/process/transaction"
-	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -21,9 +9,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 )
 
 var log = logger.DefaultLogger()
@@ -137,7 +137,7 @@ func CreateMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics.StakeValue())
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics.StakeValue())
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func CreateMetaGenesisBlock(
 		return nil, err
 	}
 
-	vmContainer, err := vmFactory.Create()
+	vmContainer, err := virtualMachineFactory.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func CreateMetaGenesisBlock(
 		args.Hasher,
 		args.Marshalizer,
 		args.Accounts,
-		vmFactory.BlockChainHookImpl(),
+		virtualMachineFactory.BlockChainHookImpl(),
 		args.AddrConv,
 		args.ShardCoordinator,
 		scForwarder,
@@ -195,7 +195,7 @@ func CreateMetaGenesisBlock(
 		return nil, err
 	}
 
-	txProcessor, err := transaction2.NewMetaTxProcessor(
+	txProcessor, err := processTransaction.NewMetaTxProcessor(
 		args.Accounts,
 		args.AddrConv,
 		args.ShardCoordinator,
@@ -206,7 +206,12 @@ func CreateMetaGenesisBlock(
 		return nil, process.ErrNilTxProcessor
 	}
 
-	err = deploySystemSmartContracts(txProcessor, vmFactory.SystemSmartContractContainer(), args.AddrConv, args.Accounts)
+	err = deploySystemSmartContracts(
+		txProcessor,
+		virtualMachineFactory.SystemSmartContractContainer(),
+		args.AddrConv,
+		args.Accounts,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +303,7 @@ func setStakingData(
 			tx := &transaction.Transaction{
 				Nonce:     0,
 				Value:     big.NewInt(0).Set(stakeValue),
-				RcvAddr:   factory2.StakingSCAddress,
+				RcvAddr:   vmFactory.StakingSCAddress,
 				SndAddr:   nodeInfo.Address(),
 				GasPrice:  0,
 				GasLimit:  0,

@@ -173,6 +173,8 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		}
 		if outAcc.Nonce > 0 {
 			outAccs[addr].Nonce = outAcc.Nonce
+		} else {
+			outAccs[addr].Nonce, _ = host.blockChainHook.GetNonce(outAcc.Address)
 		}
 	}
 
@@ -201,6 +203,7 @@ func (host *vmContext) SetSCAddress(addr []byte) {
 	host.scAddress = addr
 }
 
+// AddCode adds the input code to the address
 func (host *vmContext) AddCode(address []byte, code []byte) {
 	newSCAcc, ok := host.outputAccounts[string(address)]
 	if !ok {
@@ -214,6 +217,20 @@ func (host *vmContext) AddCode(address []byte, code []byte) {
 	} else {
 		newSCAcc.Code = code
 	}
+}
+
+// AddTxValueToSmartContract adds the input transaction value to the smart contract address
+func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
+	destAcc, ok := host.outputAccounts[string(scAddress)]
+	if !ok {
+		destAcc = &vmcommon.OutputAccount{
+			Address:      scAddress,
+			BalanceDelta: big.NewInt(0),
+		}
+		host.outputAccounts[string(destAcc.Address)] = destAcc
+	}
+
+	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil
