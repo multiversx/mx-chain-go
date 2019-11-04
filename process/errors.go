@@ -100,6 +100,9 @@ var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 // ErrRootStateDoesNotMatch signals that root state does not match
 var ErrRootStateDoesNotMatch = errors.New("root state does not match")
 
+// ErrValidatorStatsRootHashDoesNotMatch signals that the root hash for the validator statistics does not match
+var ErrValidatorStatsRootHashDoesNotMatch = errors.New("root hash for validator statistics does not match")
+
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
 
@@ -444,6 +447,24 @@ var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 
 // ErrNilSpecialAddressHandler signals that special address handler is nil
 var ErrNilSpecialAddressHandler = errors.New("nil special address handler")
+
+// ErrNilPeerAccountsAdapter signals that a nil peer accounts database was provided
+var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts database")
+
+// ErrInvalidInitialNodesState signals that the initial nodes state is invalid
+var ErrInvalidInitialNodesState = errors.New("provided initial state is invalid")
+
+// ErrInvalidPeerAccount signals that a peer account is invalid
+var ErrInvalidPeerAccount = errors.New("invalid peer account")
+
+// ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
+var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
+
+// ErrNilShardHeaderStorage signals that nil storage was provided for shard headers
+var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
+
+// ErrNilMetaHeaderStorage signals that nil storage was provided for meta headers
+var ErrNilMetaHeaderStorage = errors.New("nil meta header storage")
 
 // ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
 var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")

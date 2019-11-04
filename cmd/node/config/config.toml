@@ -161,6 +161,17 @@
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
+[PeerAccountsTrieStorage]
+    [PeerAccountsTrieStorage.Cache]
+        Size = 100000
+        Type = "LRU"
+    [PeerAccountsTrieStorage.DB]
+        FilePath = "PeerAccountsTrie"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 15
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
 [BadBlocksCache]
     Size = 1000
     Type = "LRU"

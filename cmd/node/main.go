@@ -625,6 +625,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	}
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(
+		coreArgs,
 		genesisConfig,
 		economicsData,
 		nodesConfig,

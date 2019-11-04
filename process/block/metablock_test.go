@@ -25,18 +25,19 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			Accounts:              &mock.AccountsStub{},
-			ForkDetector:          &mock.ForkDetectorMock{},
-			Hasher:                &mock.HasherStub{},
-			Marshalizer:           &mock.MarshalizerMock{},
-			Store:                 &mock.ChainStorerMock{},
-			ShardCoordinator:      shardCoordinator,
-			NodesCoordinator:      mock.NewNodesCoordinatorMock(),
-			SpecialAddressHandler: &mock.SpecialAddressHandlerMock{},
-			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:          createGenesisBlocks(shardCoordinator),
-			RequestHandler:        &mock.RequestHandlerMock{},
-			Core:                  &mock.ServiceContainerMock{},
+			Accounts:                     &mock.AccountsStub{},
+			ForkDetector:                 &mock.ForkDetectorMock{},
+			Hasher:                       &mock.HasherStub{},
+			Marshalizer:                  &mock.MarshalizerMock{},
+			Store:                        &mock.ChainStorerMock{},
+			ShardCoordinator:             shardCoordinator,
+			NodesCoordinator:             mock.NewNodesCoordinatorMock(),
+			SpecialAddressHandler:        &mock.SpecialAddressHandlerMock{},
+			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:                 createGenesisBlocks(shardCoordinator),
+			RequestHandler:               &mock.RequestHandlerMock{},
+			Core:                         &mock.ServiceContainerMock{},
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		},
 		DataPool: mdp,
 	}
@@ -546,6 +547,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 
 	wasCalled := false
 	errPersister := errors.New("failure")
+	marshalizer := &mock.MarshalizerMock{}
 	accounts := &mock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
@@ -557,6 +559,10 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
 			return errPersister
+		},
+		GetCalled: func(key []byte) (i []byte, e error) {
+			hdr, _ := marshalizer.Marshal(&block.MetaBlock{})
+			return hdr, nil
 		},
 	}
 	store := initStore()
