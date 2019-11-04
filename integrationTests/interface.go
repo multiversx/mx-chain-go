@@ -6,6 +6,6 @@ import "github.com/ElrondNetwork/elrond-go/process"
 // as it simplifies the reproduction of edge cases
 type TestBootstrapper interface {
 	process.Bootstrapper
-	ForkChoice(revertUsingForkNonce bool) error
+	RollBack(revertUsingForkNonce bool) error
 	SetProbableHighestNonce(nonce uint64)
 }

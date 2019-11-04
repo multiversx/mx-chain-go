@@ -112,8 +112,8 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 	return nil
 }
 
-// BroadcastHeader will send on shard headers for metachain topic the header
-func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+// BroadcastShardHeader will send on shard headers for metachain topic the header
+func (scm *shardChainMessenger) BroadcastShardHeader(header data.HeaderHandler) error {
 	if header == nil || header.IsInterfaceNil() {
 		return spos.ErrNilHeader
 	}
@@ -173,6 +173,24 @@ func (scm *shardChainMessenger) BroadcastTransactions(transactions map[string][]
 	if txs > 0 {
 		log.Info(fmt.Sprintf("sent %d transactions\n", txs))
 	}
+
+	return nil
+}
+
+// BroadcastHeader will send on in-shard headers topic the header
+func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+	if header == nil || header.IsInterfaceNil() {
+		return spos.ErrNilHeader
+	}
+
+	msgHeader, err := scm.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
+
+	go scm.messenger.Broadcast(factory.HeadersTopic+selfIdentifier, msgHeader)
 
 	return nil
 }
