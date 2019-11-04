@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -434,8 +435,17 @@ func processAndTestIntermediateResults(t *testing.T, proposerNodeShardSC *testNo
 		txBytes, _ := proposerNodeShardSC.store.Get(dataRetriever.UnsignedTransactionUnit, hash)
 		assert.NotNil(t, txBytes)
 
-		tx := &transaction.Transaction{}
-		_ = testMarshalizer.Unmarshal(tx, txBytes)
+		//TODO should refactor this, maybe remove the whole integrationTests/multiShard/smartContract package as these tests
+		// are included by integrationTests/multiShard/block package but should modify the minimum tx gasprice != 0
+		scr := &smartContractResult.SmartContractResult{}
+		_ = testMarshalizer.Unmarshal(scr, txBytes)
+
+		tx := &transaction.Transaction{
+			Value:   scr.Value,
+			SndAddr: scr.SndAddr,
+			RcvAddr: scr.RcvAddr,
+			Nonce:   scr.Nonce,
+		}
 
 		// Now execute transaction back into the account shard
 		_ = proposerNodeShardAccount.txProcessor.ProcessTransaction(tx, generalRoundNumber)

@@ -42,3 +42,6 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrNilNodesCoordinator signals that nil shard coordinator was provided
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
+var ErrInvalidValue = errors.New("invalid value")
