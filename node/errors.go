@@ -123,3 +123,6 @@ var ErrNilStatusHandler = errors.New("nil AppStatusHandler")
 
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
+
+// ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
+var ErrInvalidValue = errors.New("invalid value")

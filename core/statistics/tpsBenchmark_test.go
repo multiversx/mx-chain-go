@@ -70,7 +70,7 @@ func TestTpsBenchmark_BlockNumber(t *testing.T) {
 		Nonce: uint64(blockNumber),
 		Round: blockNumber,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, 10},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, 10},
 		},
 	}
 	assert.Equal(t, tpsBenchmark.BlockNumber(), uint64(0))
@@ -99,14 +99,14 @@ func TestTpsBenchmark_UpdateSmallerNonce(t *testing.T) {
 		Nonce: blockNumber - 1,
 		Round: round - 1,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, 10},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, 10},
 		},
 	}
 	metaBlock2 := &block.MetaBlock{
 		Nonce: blockNumber,
 		Round: round,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, 10},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, 10},
 		},
 	}
 	// Start with block with nonce 1 so it would be processed
@@ -148,7 +148,7 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 		Round:   round,
 		TxCount: txCount,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, txCount},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, txCount},
 		},
 	}
 
@@ -157,7 +157,7 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 		Round:   round + 1,
 		TxCount: txCount,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, txCount},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, txCount},
 		},
 	}
 
@@ -182,7 +182,7 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 		Round:   round,
 		TxCount: peakTps,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, peakTps},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, peakTps},
 		},
 	}
 
@@ -191,7 +191,7 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 		Round:   round + 1,
 		TxCount: txCount,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, txCount},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, txCount},
 		},
 	}
 

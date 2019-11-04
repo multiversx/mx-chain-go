@@ -582,7 +582,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "-"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, node.ErrNilAddressConverter, err)
@@ -612,7 +612,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "-"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
@@ -643,7 +643,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "af4e5"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.NotNil(t, err)
@@ -674,7 +674,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	signature := "617eff4f"
 	challenge := "aff64e"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.NotNil(t, tx)
 	assert.Nil(t, err)
@@ -738,7 +738,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		nonce,
 		sender,
 		receiver,
-		value,
+		value.String(),
 		0,
 		0,
 		txData,
