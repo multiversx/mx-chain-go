@@ -59,7 +59,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
@@ -478,10 +478,11 @@ func createNetNode(
 				shardCoordinator,
 				nodesCoordinator,
 			),
-			Uint64Converter: uint64Converter,
-			StartHeaders:    genesisBlocks,
-			RequestHandler:  requestHandler,
-			Core:            &mock.ServiceContainerMock{},
+			Uint64Converter:              uint64Converter,
+			StartHeaders:                 genesisBlocks,
+			RequestHandler:               requestHandler,
+			Core:                         &mock.ServiceContainerMock{},
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		},
 		DataPool:        dPool,
 		TxCoordinator:   tc,
