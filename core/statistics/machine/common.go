@@ -2,6 +2,7 @@ package machine
 
 import (
 	"os"
+	"time"
 
 	"github.com/shirou/gopsutil/process"
 )
@@ -15,4 +16,18 @@ func GetCurrentProcess() (*process.Process, error) {
 	}
 
 	return ret, nil
+}
+
+func CalculateCpuLoad() float64 {
+	currentProcess, err := GetCurrentProcess()
+	if err != nil {
+		return 0
+	}
+
+	percent, err := currentProcess.Percent(100 * time.Millisecond)
+	if err != nil {
+		return 0
+	}
+
+	return percent
 }

@@ -120,7 +120,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	rows[1] = []string{fmt.Sprintf("App version: %s", appVersion)}
 
 	if needUpdate {
-		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorRed, ui.ColorWhite, ui.ModifierBold)
+		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorRed, ui.ColorClear, ui.ModifierBold)
 		rows[1][0] += fmt.Sprintf(" (version %s is available)", latestStableVersion)
 	} else {
 		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorGreen)
@@ -147,7 +147,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 
 	countLeader := wr.presenter.GetCountLeader()
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
-	rows[5] = []string{fmt.Sprintf("Consensus leader accepted / proposed blocks : %d / %d", countAcceptedBlocks, countLeader)}
+	rows[5] = []string{fmt.Sprintf("Blocks accepted / blocks proposed : %d / %d", countAcceptedBlocks, countLeader)}
 
 	//TODO: The rewards calculation for printing should be fixed
 	rows[6] = []string{""}
@@ -333,9 +333,6 @@ func (wr *WidgetsRender) prepareLoads() {
 	wr.networkSent.Percent = int(sentLoad)
 	wr.networkSent.Label = fmt.Sprintf("%d%% / rate: %s/s / peak rate: %s/s",
 		sentLoad, core.ConvertBytes(sentBps), core.ConvertBytes(sentBpsPeak))
-}
-
-func (wr *WidgetsRender) getNetworkRecvStats() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

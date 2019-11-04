@@ -3,8 +3,6 @@ package machine
 import (
 	"sync/atomic"
 	"time"
-
-	"github.com/shirou/gopsutil/cpu"
 )
 
 var durationSecond = time.Second
@@ -17,25 +15,8 @@ type CpuStatistics struct {
 // ComputeStatistics computes the current cpu usage. It should be called on a go routine as it is a blocking
 // call for a bounded time (1 second)
 func (cs *CpuStatistics) ComputeStatistics() {
-	currentProcess, err := GetCurrentProcess()
-	if err != nil {
-		cs.setZeroStatsAndWait()
-		return
-	}
+	cpuUsagePercent := CalculateCpuLoad()
 
-	cpuUsagePercent, err := currentProcess.CPUPercent()
-	if err != nil {
-		cs.setZeroStatsAndWait()
-		return
-	}
-
-	numPhysicalCores, err := cpu.Counts(false)
-	if err != nil {
-		cs.setZeroStatsAndWait()
-		return
-	}
-
-	cpuUsagePercent = cpuUsagePercent / float64(numPhysicalCores)
 	atomic.StoreUint64(&cs.cpuPercentUsage, uint64(cpuUsagePercent))
 	time.Sleep(durationSecond)
 }
