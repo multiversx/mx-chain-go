@@ -363,8 +363,8 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 }
 
 func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
-	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
-	log.SetLevel(logLevelFlagValue)
+	logLevel := ctx.GlobalString(logLevel.Name)
+	log.SetLevel(logLevel)
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -493,8 +493,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		fmt.Sprintf("%s_%d", defaultEpochString, 0),
 		fmt.Sprintf("%s_%s", defaultShardString, shardId))
 
-	storageCleanupFlagValue := ctx.GlobalBool(storageCleanup.Name)
-	if storageCleanupFlagValue {
+	storageCleanup := ctx.GlobalBool(storageCleanup.Name)
+	if storageCleanup {
 		err = os.RemoveAll(uniqueDBFolder)
 		if err != nil {
 			return err
@@ -963,9 +963,9 @@ func createNodesCoordinator(
 	for shId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
-			validator, errVal := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
-			if errVal != nil {
-				return nil, errVal
+			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
+			if err != nil {
+				return nil, err
 			}
 
 			validators = append(validators, validator)

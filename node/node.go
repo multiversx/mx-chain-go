@@ -574,12 +574,12 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	}
 
 	numOfSentTxs := uint64(0)
-	for shardId, txsForShard := range transactionsByShards {
-		err := n.sendBulkTransactionsFromShard(txsForShard, shardId)
+	for shardId, txs := range transactionsByShards {
+		err := n.sendBulkTransactionsFromShard(txs, shardId)
 		if err != nil {
 			log.Error(err.Error())
 		} else {
-			numOfSentTxs += uint64(len(txsForShard))
+			numOfSentTxs += uint64(len(txs))
 		}
 	}
 
@@ -771,9 +771,9 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	if !n.messenger.HasTopic(HeartbeatTopic) {
-		errTopic := n.messenger.CreateTopic(HeartbeatTopic, true)
-		if errTopic != nil {
-			return errTopic
+		err := n.messenger.CreateTopic(HeartbeatTopic, true)
+		if err != nil {
+			return err
 		}
 	}
 
