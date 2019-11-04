@@ -13,20 +13,21 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator   sharding.Coordinator
-	store              dataRetriever.StorageService
-	marshalizer        marshal.Marshalizer
-	hasher             hashing.Hasher
-	dataPool           dataRetriever.PoolsHolder
-	addrConverter      state.AddressConverter
-	txProcessor        process.TransactionProcessor
-	scProcessor        process.SmartContractProcessor
-	scResultProcessor  process.SmartContractResultProcessor
-	rewardsTxProcessor process.RewardTransactionProcessor
-	accounts           state.AccountsAdapter
-	requestHandler     process.RequestHandler
-	rewardsProducer    process.InternalTransactionProducer
-	economicsFee       process.FeeHandler
+	shardCoordinator    sharding.Coordinator
+	store               dataRetriever.StorageService
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	dataPool            dataRetriever.PoolsHolder
+	addrConverter       state.AddressConverter
+	txProcessor         process.TransactionProcessor
+	scProcessor         process.SmartContractProcessor
+	scResultProcessor   process.SmartContractResultProcessor
+	rewardsTxProcessor  process.RewardTransactionProcessor
+	accounts            state.AccountsAdapter
+	requestHandler      process.RequestHandler
+	rewardsProducer     process.InternalTransactionProducer
+	economicsFee        process.FeeHandler
+	miniBlocksCompacter process.MiniBlocksCompacter
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -45,6 +46,7 @@ func NewPreProcessorsContainerFactory(
 	rewardsTxProcessor process.RewardTransactionProcessor,
 	rewardsProducer process.InternalTransactionProducer,
 	economicsFee process.FeeHandler,
+	miniBlocksCompacter process.MiniBlocksCompacter,
 ) (*preProcessorsContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -89,22 +91,26 @@ func NewPreProcessorsContainerFactory(
 	if economicsFee == nil || economicsFee.IsInterfaceNil() {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if miniBlocksCompacter == nil || miniBlocksCompacter.IsInterfaceNil() {
+		return nil, process.ErrNilMiniBlocksCompacter
+	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:   shardCoordinator,
-		store:              store,
-		marshalizer:        marshalizer,
-		hasher:             hasher,
-		dataPool:           dataPool,
-		addrConverter:      addrConverter,
-		txProcessor:        txProcessor,
-		accounts:           accounts,
-		scProcessor:        scProcessor,
-		scResultProcessor:  scResultProcessor,
-		rewardsTxProcessor: rewardsTxProcessor,
-		requestHandler:     requestHandler,
-		rewardsProducer:    rewardsProducer,
-		economicsFee:       economicsFee,
+		shardCoordinator:    shardCoordinator,
+		store:               store,
+		marshalizer:         marshalizer,
+		hasher:              hasher,
+		dataPool:            dataPool,
+		addrConverter:       addrConverter,
+		txProcessor:         txProcessor,
+		accounts:            accounts,
+		scProcessor:         scProcessor,
+		scResultProcessor:   scResultProcessor,
+		rewardsTxProcessor:  rewardsTxProcessor,
+		requestHandler:      requestHandler,
+		rewardsProducer:     rewardsProducer,
+		economicsFee:        economicsFee,
+		miniBlocksCompacter: miniBlocksCompacter,
 	}, nil
 }
 
@@ -156,6 +162,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.accounts,
 		ppcm.requestHandler.RequestTransaction,
 		ppcm.economicsFee,
+		ppcm.miniBlocksCompacter,
 	)
 
 	return txPreprocessor, err

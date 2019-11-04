@@ -87,22 +87,23 @@ type PeerChange struct {
 // Header holds the metadata of a block. This is the part that is being hashed and run through consensus.
 // The header holds the hash of the body and also the link to the previous block header hash
 type Header struct {
-	Nonce            uint64            `capid:"0"`
-	PrevHash         []byte            `capid:"1"`
-	PrevRandSeed     []byte            `capid:"2"`
-	RandSeed         []byte            `capid:"3"`
-	PubKeysBitmap    []byte            `capid:"4"`
-	ShardId          uint32            `capid:"5"`
-	TimeStamp        uint64            `capid:"6"`
-	Round            uint64            `capid:"7"`
-	Epoch            uint32            `capid:"8"`
-	BlockBodyType    Type              `capid:"9"`
-	Signature        []byte            `capid:"10"`
-	MiniBlockHeaders []MiniBlockHeader `capid:"11"`
-	PeerChanges      []PeerChange      `capid:"12"`
-	RootHash         []byte            `capid:"13"`
-	MetaBlockHashes  [][]byte          `capid:"14"`
-	TxCount          uint32            `capid:"15"`
+	Nonce                  uint64            `capid:"0"`
+	PrevHash               []byte            `capid:"1"`
+	PrevRandSeed           []byte            `capid:"2"`
+	RandSeed               []byte            `capid:"3"`
+	PubKeysBitmap          []byte            `capid:"4"`
+	ShardId                uint32            `capid:"5"`
+	TimeStamp              uint64            `capid:"6"`
+	Round                  uint64            `capid:"7"`
+	Epoch                  uint32            `capid:"8"`
+	BlockBodyType          Type              `capid:"9"`
+	Signature              []byte            `capid:"10"`
+	MiniBlockHeaders       []MiniBlockHeader `capid:"11"`
+	PeerChanges            []PeerChange      `capid:"12"`
+	RootHash               []byte            `capid:"13"`
+	ValidatorStatsRootHash []byte            `capid:"14"`
+	MetaBlockHashes        [][]byte          `capid:"15"`
+	TxCount                uint32            `capid:"16"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -155,6 +156,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	}
 
 	dest.RootHash = src.RootHash()
+	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 
 	var n int
 	n = src.MetaHdrHashes().Len()
@@ -204,6 +206,7 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	}
 
 	dest.SetRootHash(src.RootHash)
+	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
 
 	mylist1 := seg.NewDataList(len(src.MetaBlockHashes))
 	for i := range src.MetaBlockHashes {
@@ -383,6 +386,11 @@ func (h *Header) GetRootHash() []byte {
 	return h.RootHash
 }
 
+// GetValidatorStatsRootHash returns the root hash for the validator statistics trie at this current block
+func (h *Header) GetValidatorStatsRootHash() []byte {
+	return h.ValidatorStatsRootHash
+}
+
 // GetPrevHash returns previous block header hash
 func (h *Header) GetPrevHash() []byte {
 	return h.PrevHash
@@ -436,6 +444,11 @@ func (h *Header) SetRound(r uint64) {
 // SetRootHash sets root hash
 func (h *Header) SetRootHash(rHash []byte) {
 	h.RootHash = rHash
+}
+
+// SetValidatorStatsRootHash set's the root hash for the validator statistics trie
+func (h *Header) SetValidatorStatsRootHash(rHash []byte) {
+	h.ValidatorStatsRootHash = rHash
 }
 
 // SetPrevHash sets prev hash

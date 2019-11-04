@@ -501,32 +501,6 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerFactory_CreateTopicCreationPeerChBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	icf, _ := shard.NewInterceptorsContainerFactory(
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler(factory.PeerChBodyTopic, ""),
-		createStore(),
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		mock.NewMultiSigner(),
-		createDataPools(),
-		&mock.AddressConverterMock{},
-		maxTxNonceDeltaAllowed,
-		&mock.FeeHandlerStub{},
-	)
-
-	container, err := icf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
 func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -613,32 +587,6 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		mock.NewOneShardCoordinatorMock(),
 		mock.NewNodesCoordinatorMock(),
 		createStubTopicHandler("", factory.MiniBlocksTopic),
-		createStore(),
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		mock.NewMultiSigner(),
-		createDataPools(),
-		&mock.AddressConverterMock{},
-		maxTxNonceDeltaAllowed,
-		&mock.FeeHandlerStub{},
-	)
-
-	container, err := icf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestInterceptorsContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	icf, _ := shard.NewInterceptorsContainerFactory(
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		mock.NewNodesCoordinatorMock(),
-		createStubTopicHandler("", factory.PeerChBodyTopic),
 		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -756,18 +704,17 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 	)
 
-	container, _ := icf.Create()
+	container, err := icf.Create()
 
 	numInterceptorTxs := noOfShards + 1
 	numInterceptorsUnsignedTxs := numInterceptorTxs
 	numInterceptorsRewardTxs := numInterceptorTxs
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards + 1
-	numInterceptorPeerChanges := 1
 	numInterceptorMetachainHeaders := 1
-	totalInterceptors := numInterceptorTxs + numInterceptorHeaders + numInterceptorMiniBlocks +
-		numInterceptorPeerChanges + numInterceptorMetachainHeaders + numInterceptorsUnsignedTxs +
-		numInterceptorsRewardTxs
+	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
+		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders
 
+	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
 }

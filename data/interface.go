@@ -11,6 +11,7 @@ type HeaderHandler interface {
 	GetEpoch() uint32
 	GetRound() uint64
 	GetRootHash() []byte
+	GetValidatorStatsRootHash() []byte
 	GetPrevHash() []byte
 	GetPrevRandSeed() []byte
 	GetRandSeed() []byte
@@ -24,6 +25,7 @@ type HeaderHandler interface {
 	SetRound(r uint64)
 	SetTimeStamp(ts uint64)
 	SetRootHash(rHash []byte)
+	SetValidatorStatsRootHash(rHash []byte)
 	SetPrevHash(pvHash []byte)
 	SetPrevRandSeed(pvRandSeed []byte)
 	SetRandSeed(randSeed []byte)
@@ -72,9 +74,12 @@ type TransactionHandler interface {
 	IsInterfaceNil() bool
 
 	GetValue() *big.Int
+	GetNonce() uint64
 	GetData() string
 	GetRecvAddress() []byte
 	GetSndAddress() []byte
+	GetGasLimit() uint64
+	GetGasPrice() uint64
 
 	SetValue(*big.Int)
 	SetData(string)
