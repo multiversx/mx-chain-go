@@ -50,16 +50,17 @@ type hdrForBlock struct {
 type mapShardHeaders map[uint32][]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	specialAddressHandler process.SpecialAddressHandler
-	accounts              state.AccountsAdapter
-	forkDetector          process.ForkDetector
-	hasher                hashing.Hasher
-	marshalizer           marshal.Marshalizer
-	store                 dataRetriever.StorageService
-	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler    process.BlockSizeThrottler
+	shardCoordinator             sharding.Coordinator
+	nodesCoordinator             sharding.NodesCoordinator
+	specialAddressHandler        process.SpecialAddressHandler
+	accounts                     state.AccountsAdapter
+	forkDetector                 process.ForkDetector
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	hasher                       hashing.Hasher
+	marshalizer                  marshal.Marshalizer
+	store                        dataRetriever.StorageService
+	uint64Converter              typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler           process.BlockSizeThrottler
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -98,14 +99,6 @@ func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 	bp.appStatusHandler = ash
 	return nil
-}
-
-// RevertAccountState reverts the account state for cleanup failed process
-func (bp *baseProcessor) RevertAccountState() {
-	err := bp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Error(err.Error())
-	}
 }
 
 // AddLastNotarizedHdr adds the last notarized header

@@ -230,6 +230,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initNode()
 	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
@@ -495,18 +496,19 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:              tpn.AccntState,
-		ForkDetector:          tpn.ForkDetector,
-		Hasher:                TestHasher,
-		Marshalizer:           TestMarshalizer,
-		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator,
-		NodesCoordinator:      tpn.NodesCoordinator,
-		SpecialAddressHandler: tpn.SpecialAddressHandler,
-		Uint64Converter:       TestUint64Converter,
-		StartHeaders:          tpn.GenesisBlocks,
-		RequestHandler:        tpn.RequestHandler,
-		Core:                  nil,
+		Accounts:                     tpn.AccntState,
+		ForkDetector:                 tpn.ForkDetector,
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		Store:                        tpn.Storage,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		NodesCoordinator:             tpn.NodesCoordinator,
+		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		Uint64Converter:              TestUint64Converter,
+		StartHeaders:                 tpn.GenesisBlocks,
+		RequestHandler:               tpn.RequestHandler,
+		Core:                         nil,
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -593,7 +595,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		tx.Nonce,
 		hex.EncodeToString(tx.SndAddr),
 		hex.EncodeToString(tx.RcvAddr),
-		tx.Value,
+		tx.Value.String(),
 		tx.GasPrice,
 		tx.GasLimit,
 		tx.Data,
