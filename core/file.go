@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,7 +15,6 @@ import (
 // OpenFile method opens the file from given path - does not close the file
 func OpenFile(relativePath string, log *logger.Logger) (*os.File, error) {
 	path, err := filepath.Abs(relativePath)
-	fmt.Println(path)
 	if err != nil {
 		log.Error("cannot create absolute path for the provided file", err.Error())
 		return nil, err
