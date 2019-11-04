@@ -35,6 +35,9 @@ var ErrInputGasProvidedIsNil = errors.New("input gas provided for system smart c
 // ErrInputGasPriceIsNil signals that input gas price value is nil for system smart contracts
 var ErrInputGasPriceIsNil = errors.New("input gas price for system smart contract is nil")
 
+// ErrInputHeaderIsNil signals that input header for system smart contract is nil
+var ErrInputHeaderIsNil = errors.New("input header for system smart contract is nil")
+
 // ErrNilBlockchainHook signals that blockchain hook is nil
 var ErrNilBlockchainHook = errors.New("blockchain hook is nil")
 
@@ -52,3 +55,6 @@ var ErrNilInitialStakeValue = errors.New("initial stake value is nil")
 
 // ErrNilNodesSetup signals that nil nodes setup has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
+
+// ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
+var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")
