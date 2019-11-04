@@ -25,6 +25,9 @@ struct ShardDataCapn {
     pubKeysBitmap         @4: Data;
     signature             @5: Data;
     txCount               @6: UInt32;
+    round                 @7: UInt64;
+    prevHash              @8: Data;
+    nonce                 @9: UInt64;
 }
 
 struct MetaBlockCapn {
