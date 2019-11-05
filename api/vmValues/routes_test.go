@@ -31,20 +31,6 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(destination)
-	if err != nil {
-		logError(err)
-	}
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func startNodeServer(handler vmValues.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
@@ -53,6 +39,7 @@ func startNodeServer(handler vmValues.FacadeHandler) *gin.Engine {
 	if handler != nil {
 		getValuesRoute.Use(middleware.WithElrondFacade(handler))
 	}
+
 	vmValues.Routes(getValuesRoute)
 
 	return ws
@@ -70,21 +57,13 @@ func startNodeServerWrongFacade() *gin.Engine {
 	return ws
 }
 
-//------- GetDataValueAsHexBytes
-
 func TestGetDataValueAsHexBytes_WithWrongFacadeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ws := startNodeServerWrongFacade()
 
-	jsonStr := `{"scAddress":"DEADBEEF","funcName":"DEADBEEF","args":[]}`
-	req, _ := http.NewRequest("POST", "/get-values/hex", bytes.NewBuffer([]byte(jsonStr)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := GeneralResponse{}
-	loadResponse(resp.Body, &response)
+	jsonBody := `{"scAddress":"DEADBEEF","funcName":"DEADBEEF","args":[]}`
+	response, _ := postRequest(ws, "/get-values/hex", jsonBody)
 
 	assert.Contains(t, response.Error, apiErrors.ErrInvalidAppContext.Error())
 }
@@ -100,15 +79,8 @@ func TestGetDataValueAsHexBytes_BadRequestShouldErr(t *testing.T) {
 	}
 	ws := startNodeServer(&facade)
 
-	jsonStr := `{"this should error"}`
-	req, _ := http.NewRequest("POST", "/get-values/hex", bytes.NewBuffer([]byte(jsonStr)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := GeneralResponse{}
-	loadResponse(resp.Body, &response)
-
+	jsonBody := `{"this should error"}`
+	response, _ := postRequest(ws, "/get-values/hex", jsonBody)
 	assert.Contains(t, response.Error, "invalid character")
 }
 
@@ -144,18 +116,10 @@ func TestGetDataValueAsHexBytes_ArgumentIsNotHexShouldErr(t *testing.T) {
 
 	argsJson, _ := json.Marshal(args)
 
-	jsonStr := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
-	fmt.Printf("Request: %s\n", jsonStr)
+	jsonBody := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
+	response, statusCode := postRequest(ws, "/get-values/hex", jsonBody)
 
-	req, _ := http.NewRequest("POST", "/get-values/hex", bytes.NewBuffer([]byte(jsonStr)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := GeneralResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Contains(t, response.Error, "not a hex argument")
 }
 
@@ -171,18 +135,10 @@ func testGetValueFacadeErrors(t *testing.T, route string) {
 
 	ws := startNodeServer(&facade)
 
-	jsonStr := `{}`
-	fmt.Printf("Request: %s\n", jsonStr)
+	jsonBody := `{}`
+	response, statusCode := postRequest(ws, route, jsonBody)
 
-	req, _ := http.NewRequest("POST", route, bytes.NewBuffer([]byte(jsonStr)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := GeneralResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Contains(t, response.Error, errExpected.Error())
 }
 
@@ -234,23 +190,13 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 	}
 	argsJson, _ := json.Marshal(argsHex)
 
-	jsonStr := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
-	fmt.Printf("Request: %s\n", jsonStr)
+	jsonBody := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
+	response, statusCode := postRequest(ws, "/get-values/hex", jsonBody)
 
-	req, _ := http.NewRequest("POST", "/get-values/hex", bytes.NewBuffer([]byte(jsonStr)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := GeneralResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
 	assert.Equal(t, hex.EncodeToString(valueBuff), response.Data)
 }
-
-//------- GetDataValueAsString
 
 func TestGetDataValueAsString_FacadeErrorsShouldErr(t *testing.T) {
 	testGetValueFacadeErrors(t, "/get-values/string")
@@ -300,23 +246,13 @@ func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T)
 	}
 	argsJson, _ := json.Marshal(argsHex)
 
-	jsonStr := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
-	fmt.Printf("Request: %s\n", jsonStr)
+	jsonBody := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
+	response, statusCode := postRequest(ws, "/get-values/string", jsonBody)
 
-	req, _ := http.NewRequest("POST", "/get-values/string", bytes.NewBuffer([]byte(jsonStr)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := GeneralResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
 	assert.Equal(t, valueBuff, response.Data)
 }
-
-//------- GetDataValueAsInt
 
 func TestGetDataValueAsInt_FacadeErrorsShouldErr(t *testing.T) {
 	testGetValueFacadeErrors(t, "/get-values/int")
@@ -366,18 +302,36 @@ func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
 	}
 	argsJson, _ := json.Marshal(argsHex)
 
-	jsonStr := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
-	fmt.Printf("Request: %s\n", jsonStr)
+	jsonBody := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
+	response, statusCode := postRequest(ws, "/get-values/int", jsonBody)
 
-	req, _ := http.NewRequest("POST", "/get-values/int", bytes.NewBuffer([]byte(jsonStr)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := GeneralResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
 	assert.Equal(t, valueBuff, response.Data)
+}
+
+func postRequest(server *gin.Engine, url string, jsonBody string) (GeneralResponse, int) {
+	request, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonBody)))
+
+	responseRecorder := httptest.NewRecorder()
+	server.ServeHTTP(responseRecorder, request)
+
+	response := GeneralResponse{}
+	loadResponse(responseRecorder.Body, &response)
+
+	return response, responseRecorder.Code
+}
+
+func loadResponse(rsp io.Reader, destination interface{}) {
+	jsonParser := json.NewDecoder(rsp)
+	err := jsonParser.Decode(destination)
+	if err != nil {
+		logError(err)
+	}
+}
+
+func logError(err error) {
+	if err != nil {
+		fmt.Println(err)
+	}
 }
