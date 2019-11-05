@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -277,7 +276,8 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				MinGasLimit: minGasLimit,
 			},
 			ValidatorSettings: config.ValidatorSettings{
-				StakeValue: "500",
+				StakeValue:    "500",
+				UnBoundPeriod: "1000",
 			},
 		},
 	)
@@ -427,7 +427,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	var vmFactory process.VirtualMachinesContainerFactory
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook, big.NewInt(1000))
+		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData)
 	} else {
 		vmFactory, _ = shard.NewVMContainerFactory(argsHook)
 	}

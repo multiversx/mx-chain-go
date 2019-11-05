@@ -47,14 +47,11 @@ var ErrNilCryptoHook = errors.New("crypto hook is nil")
 // ErrNilOrEmptyKey signals that key is nil or empty
 var ErrNilOrEmptyKey = errors.New("nil or empty key")
 
-// ErrInvalidStakeValue signals that config stake value is invalid
-var ErrInvalidStakeValue = errors.New("bad config value for initial stake")
-
 // ErrNilInitialStakeValue signals that nil initial stake value was provided
 var ErrNilInitialStakeValue = errors.New("initial stake value is nil")
 
-// ErrNilNodesSetup signals that nil nodes setup has been provided
-var ErrNilNodesSetup = errors.New("nil nodes setup")
+// ErrNilEconomicsData signals that nil economics data has been provided
+var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
 var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")

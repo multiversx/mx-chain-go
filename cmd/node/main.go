@@ -1252,7 +1252,7 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics.StakeValue())
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
 		if err != nil {
 			return nil, err
 		}

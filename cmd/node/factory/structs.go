@@ -1932,7 +1932,7 @@ func newMetaBlockProcessor(
 		Marshalizer:      core.Marshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economics.StakeValue())
+	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economics)
 	if err != nil {
 		return nil, err
 	}

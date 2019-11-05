@@ -137,7 +137,7 @@ func CreateMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics.StakeValue())
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics)
 	if err != nil {
 		return nil, err
 	}

@@ -509,6 +509,9 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 // ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
 var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
+// ErrInvalidUnboundPeriod signals that an invalid unbound period has been read from config file
+var ErrInvalidUnboundPeriod = errors.New("invalid unbound period")
+
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 

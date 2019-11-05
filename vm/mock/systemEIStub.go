@@ -16,6 +16,22 @@ type SystemEIStub struct {
 	FinishCalled                    func(value []byte)
 	AddCodeCalled                   func(addr []byte, code []byte)
 	AddTxValueToSmartContractCalled func(value *big.Int, scAddress []byte)
+	BlockChainHookCalled            func() vmcommon.BlockchainHook
+	CryptoHookCalled                func() vmcommon.CryptoHook
+}
+
+func (s *SystemEIStub) BlockChainHook() vmcommon.BlockchainHook {
+	if s.BlockChainHookCalled != nil {
+		return s.BlockChainHookCalled()
+	}
+	return &BlockChainHookStub{}
+}
+
+func (s *SystemEIStub) CryptoHook() vmcommon.CryptoHook {
+	if s.CryptoHookCalled != nil {
+		return s.CryptoHookCalled()
+	}
+	return &CryptoHookStub{}
 }
 
 func (s *SystemEIStub) AddCode(addr []byte, code []byte) {

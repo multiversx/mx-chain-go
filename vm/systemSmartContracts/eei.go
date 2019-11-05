@@ -131,6 +131,16 @@ func (host *vmContext) Finish(value []byte) {
 	host.output = append(host.output, value...)
 }
 
+// BlockChainHook returns the blockchain hook
+func (host *vmContext) BlockChainHook() vmcommon.BlockchainHook {
+	return host.blockChainHook
+}
+
+// CryptoHook returns the cryptoHook
+func (host *vmContext) CryptoHook() vmcommon.CryptoHook {
+	return host.cryptoHook
+}
+
 // CleanCache cleans the current vmContext
 func (host *vmContext) CleanCache() {
 	host.storageUpdate = make(map[string]map[string][]byte, 0)

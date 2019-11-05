@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -10,23 +11,22 @@ import (
 	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-vm-common"
-	"math/big"
 )
 
 type vmContainerFactory struct {
 	blockChainHookImpl *hooks.BlockChainHookImpl
 	cryptoHook         vmcommon.CryptoHook
 	systemContracts    vm.SystemSCContainer
-	stakeValue         *big.Int
+	economics          *economics.EconomicsData
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
-	stakeValue *big.Int,
+	economics *economics.EconomicsData,
 ) (*vmContainerFactory, error) {
-	if stakeValue == nil {
-		return nil, process.ErrNilNodesSetup
+	if economics == nil {
+		return nil, process.ErrNilEconomicsData
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
@@ -38,7 +38,7 @@ func NewVMContainerFactory(
 	return &vmContainerFactory{
 		blockChainHookImpl: blockChainHookImpl,
 		cryptoHook:         cryptoHook,
-		stakeValue:         stakeValue,
+		economics:          economics,
 	}, nil
 }
 
@@ -65,7 +65,7 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		return nil, err
 	}
 
-	scFactory, err := systemVMFactory.NewSystemSCFactory(systemEI, vmf.stakeValue)
+	scFactory, err := systemVMFactory.NewSystemSCFactory(systemEI, vmf.economics)
 	if err != nil {
 		return nil, err
 	}

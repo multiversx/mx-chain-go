@@ -22,7 +22,8 @@ type FeeSettings struct {
 
 // ValidatorSettings will hold the validator settings
 type ValidatorSettings struct {
-	StakeValue string
+	StakeValue    string
+	UnBoundPeriod string
 }
 
 // ConfigEconomics will hold economics config
