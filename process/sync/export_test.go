@@ -1,10 +1,14 @@
 package sync
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
@@ -285,6 +289,24 @@ func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64) {
 	bfd.addCheckpoint(&checkpointInfo{round: round, nonce: nonce})
 }
 
-func (boot *baseBootstrap) SyncBlock() error {
-	return boot.syncBlock()
+func GetCacherWithHeaders(
+	hdr1 data.HeaderHandler,
+	hdr2 data.HeaderHandler,
+	hash1 []byte,
+	hash2 []byte,
+) storage.Cacher {
+	sds := &mock.CacherStub{
+		RegisterHandlerCalled: func(func(key []byte)) {},
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal(key, hash1) {
+				return &hdr1, true
+			}
+			if bytes.Equal(key, hash2) {
+				return &hdr2, true
+			}
+
+			return nil, false
+		},
+	}
+	return sds
 }

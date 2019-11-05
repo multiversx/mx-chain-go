@@ -526,3 +526,6 @@ var ErrNilBlackListHandler = errors.New("nil black list handler")
 
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
+
+// ErrNilNetworkWatcher signals that a nil network watcher has been provided
+var ErrNilNetworkWatcher = errors.New("nil network watcher")

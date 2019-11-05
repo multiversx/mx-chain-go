@@ -1,31 +1,63 @@
-package sync_test
+package sync
 
 import (
-	"bytes"
+	"sync/atomic"
+	"testing"
+	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/stretchr/testify/assert"
 )
 
-func GetCacherWithHeaders(
-	hdr1 data.HeaderHandler,
-	hdr2 data.HeaderHandler,
-	hash1 []byte,
-	hash2 []byte,
-) storage.Cacher {
-	sds := &mock.CacherStub{
-		RegisterHandlerCalled: func(func(key []byte)) {},
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal(key, hash1) {
-				return &hdr1, true
-			}
-			if bytes.Equal(key, hash2) {
-				return &hdr2, true
-			}
+func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *testing.T) {
+	t.Parallel()
 
-			return nil, false
+	var numCalls uint32
+	boot := &baseBootstrap{
+		chStopSync: make(chan bool),
+		syncStarter: &mock.SyncStarterStub{
+			SyncBlockCalled: func() error {
+				atomic.AddUint32(&numCalls, 1)
+				return nil
+			},
+		},
+		networkWatcher: &mock.NetworkConnectionWatcherStub{
+			IsConnectedToTheNetworkCalled: func() bool {
+				return false
+			},
 		},
 	}
-	return sds
+
+	go boot.syncBlocks()
+	//make sure go routine started and waited a few cycles of boot.syncBlocks
+	time.Sleep(time.Second + sleepTime*10)
+
+	assert.Equal(t, uint32(0), atomic.LoadUint32(&numCalls))
+}
+
+func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testing.T) {
+	t.Parallel()
+
+	var numCalls uint32
+	boot := &baseBootstrap{
+		chStopSync: make(chan bool),
+		syncStarter: &mock.SyncStarterStub{
+			SyncBlockCalled: func() error {
+				atomic.AddUint32(&numCalls, 1)
+				return nil
+			},
+		},
+		networkWatcher: &mock.NetworkConnectionWatcherStub{
+			IsConnectedToTheNetworkCalled: func() bool {
+				return true
+			},
+		},
+	}
+
+	go boot.syncBlocks()
+
+	//make sure go routine started and waited a few cycles of boot.syncBlocks
+	time.Sleep(time.Second + sleepTime*10)
+
+	assert.True(t, atomic.LoadUint32(&numCalls) > 0)
 }

@@ -90,11 +90,14 @@ type baseBootstrap struct {
 	requestsWithTimeout   uint32
 
 	requestMiniBlocks func(uint32, uint64)
+
+	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
 	headerStore          storage.Storer
 	headerNonceHashStore storage.Storer
 	hdrRes               dataRetriever.HeaderResolver
+	syncStarter          syncStarter
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -445,10 +448,16 @@ func (boot *baseBootstrap) waitForHeaderHash() error {
 	}
 }
 
-// ShouldSync method returns the synch state of the node. If it returns 'true', this means that the node
+// ShouldSync method returns the sync state of the node. If it returns 'true', this means that the node
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
-// synched and it can participate to the consensus, if it is in the jobDone group of this rounder
+// synced and it can participate to the consensus, if it is in the jobDone group of this rounder.
+// Note that when the node is not connected to the network, ShouldSync returns true but the SyncBlock
+// is not automatically called
 func (boot *baseBootstrap) ShouldSync() bool {
+	if !boot.networkWatcher.IsConnectedToTheNetwork() {
+		return true
+	}
+
 	boot.mutNodeSynched.Lock()
 	defer boot.mutNodeSynched.Unlock()
 
@@ -517,6 +526,7 @@ func checkBootstrapNilParameters(
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
 	blackListHandler process.BlackListHandler,
+	watcher process.NetworkConnectionWatcher,
 ) error {
 	if check.IfNil(blkc) {
 		return process.ErrNilBlockChain
@@ -550,6 +560,9 @@ func checkBootstrapNilParameters(
 	}
 	if check.IfNil(blackListHandler) {
 		return process.ErrNilBlackListHandler
+	}
+	if check.IfNil(watcher) {
+		return process.ErrNilNetworkWatcher
 	}
 
 	return nil
@@ -606,16 +619,25 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	}
 }
 
+// StopSync method will stop SyncBlocks
+func (boot *baseBootstrap) StopSync() {
+	boot.chStopSync <- true
+}
+
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *baseBootstrap) syncBlocks() {
 	for {
 		time.Sleep(sleepTime)
+
+		if !boot.networkWatcher.IsConnectedToTheNetwork() {
+			continue
+		}
+
 		select {
 		case <-boot.chStopSync:
 			return
 		default:
-			err := boot.syncBlock()
-
+			err := boot.syncStarter.SyncBlock()
 			if err != nil {
 				log.Info(err.Error())
 			}

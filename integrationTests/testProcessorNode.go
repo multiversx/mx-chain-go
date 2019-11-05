@@ -72,6 +72,7 @@ var MinTxGasPrice = uint64(0)
 var MinTxGasLimit = uint64(4)
 
 const maxTxNonceDeltaAllowed = 8000
+const minConnectedPeers = 0
 
 // TimeSpanForBadHeaders is the expiry time for an added block header hash
 var TimeSpanForBadHeaders = time.Second * 30
@@ -183,6 +184,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()

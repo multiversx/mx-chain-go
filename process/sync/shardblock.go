@@ -52,6 +52,7 @@ func NewShardBootstrap(
 	accounts state.AccountsAdapter,
 	bootstrapRoundIndex uint64,
 	blackListHandler process.BlackListHandler,
+	networkWatcher process.NetworkConnectionWatcher,
 ) (*ShardBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -79,6 +80,7 @@ func NewShardBootstrap(
 		accounts,
 		store,
 		blackListHandler,
+		networkWatcher,
 	)
 	if err != nil {
 		return nil, err
@@ -99,6 +101,7 @@ func NewShardBootstrap(
 		accounts:            accounts,
 		bootstrapRoundIndex: bootstrapRoundIndex,
 		blackListHandler:    blackListHandler,
+		networkWatcher:      networkWatcher,
 	}
 
 	boot := ShardBootstrap{
@@ -109,6 +112,7 @@ func NewShardBootstrap(
 	base.storageBootstrapper = &boot
 	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getShardHeaderFromPool
+	base.syncStarter = &boot
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	//there is one header topic so it is ok to save it
@@ -417,9 +421,14 @@ func (boot *ShardBootstrap) StartSync() {
 	go boot.syncBlocks()
 }
 
-// StopSync method will stop SyncBlocks
-func (boot *ShardBootstrap) StopSync() {
-	boot.chStopSync <- true
+// SyncBlock method actually does the synchronization. It requests the next block header from the pool
+// and if it is not found there it will be requested from the network. After the header is received,
+// it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
+// If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
+// These methods will execute the block and its transactions. Finally if everything works, the block will be committed
+// in the blockchain, and all this mechanism will be reiterated for the next block.
+func (boot *ShardBootstrap) SyncBlock() error {
+	return boot.syncBlock()
 }
 
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool

@@ -452,3 +452,10 @@ type BlackListHandler interface {
 	Has(key string) bool
 	IsInterfaceNil() bool
 }
+
+// NetworkConnectionWatcher defines a watchdog functionality used to specify if the current node
+// is still connected to the rest of the network
+type NetworkConnectionWatcher interface {
+	IsConnectedToTheNetwork() bool
+	IsInterfaceNil() bool
+}

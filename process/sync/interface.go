@@ -28,3 +28,8 @@ type blockBootstrapper interface {
 	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 	isForkTriggeredByMeta() bool
 }
+
+// syncStarter defines the behavior of component that can start sync-ing blocks
+type syncStarter interface {
+	SyncBlock() error
+}
