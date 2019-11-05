@@ -87,6 +87,11 @@ func (ef *ElrondNodeFacade) StartNode() error {
 	return err
 }
 
+// GetCurrentPublicKey SHOULD BE REMOVED
+func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
+	return ""
+}
+
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
 func (ef *ElrondNodeFacade) StartBackgroundServices(wg *sync.WaitGroup) {
 	wg.Add(1)
