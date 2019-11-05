@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
@@ -39,29 +38,6 @@ func startNodeServer(handler vmValues.FacadeHandler) *gin.Engine {
 	vmValues.Routes(getValuesRoute)
 
 	return ws
-}
-
-func startNodeServerWrongFacade() *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
-	})
-	getValuesRoute := ws.Group("/get-values")
-	vmValues.Routes(getValuesRoute)
-
-	return ws
-}
-
-func TestGetDataValueAsHexBytes_WithWrongFacadeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ws := startNodeServerWrongFacade()
-
-	jsonBody := `{"scAddress":"DEADBEEF","funcName":"DEADBEEF","args":[]}`
-	response, _ := postRequest(ws, "/get-values/hex", jsonBody)
-
-	assert.Contains(t, response.Error, apiErrors.ErrInvalidAppContext.Error())
 }
 
 func TestGetDataValueAsHexBytes_BadRequestShouldErr(t *testing.T) {
