@@ -44,8 +44,8 @@ func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecuti
 	return vm, nil
 }
 
-// Get returns the value as byte slice of the invoked func
-func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte) ([]byte, error) {
+// Get returns the VMOutput resulted upon invoking the function on the smart contract
+func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte) (interface{}, error) {
 	if scAddress == nil {
 		return nil, process.ErrNilScAddress
 	}
