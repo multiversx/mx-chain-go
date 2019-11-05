@@ -29,10 +29,10 @@ func Routes(router *gin.RouterGroup) {
 	router.POST("/hex", GetVMValueAsHexBytes)
 	router.POST("/string", GetVMValueAsString)
 	router.POST("/int", GetVMValueAsBigInt)
-	router.POST("/vm-output", GetVMOutput)
+	router.POST("/simulate-run", SimulateRunFunction)
 }
 
-func doGetVMOutput(context *gin.Context) (*vmcommon.VMOutput, error) {
+func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
 	facade, ok := context.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		return nil, errors.ErrInvalidAppContext
@@ -67,8 +67,8 @@ func doGetVMOutput(context *gin.Context) (*vmcommon.VMOutput, error) {
 	return vmOutput.(*vmcommon.VMOutput), nil
 }
 
-func doGetVMReturnData(context *gin.Context) ([]byte, error) {
-	vmOutput, err := doGetVMOutput(context)
+func doSimulateRunFunctionAndGetFirstOutput(context *gin.Context) ([]byte, error) {
+	vmOutput, err := doSimulateRunFunction(context)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func doGetVMReturnData(context *gin.Context) ([]byte, error) {
 
 // GetVMValueAsHexBytes returns the data as byte slice
 func GetVMValueAsHexBytes(context *gin.Context) {
-	data, err := doGetVMReturnData(context)
+	data, err := doSimulateRunFunctionAndGetFirstOutput(context)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("GetVMValueAsHexBytes: %s", err)})
 		return
@@ -94,7 +94,7 @@ func GetVMValueAsHexBytes(context *gin.Context) {
 
 // GetVMValueAsString returns the data as string
 func GetVMValueAsString(context *gin.Context) {
-	data, err := doGetVMReturnData(context)
+	data, err := doSimulateRunFunctionAndGetFirstOutput(context)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("GetVMValueAsString: %s", err)})
 		return
@@ -105,7 +105,7 @@ func GetVMValueAsString(context *gin.Context) {
 
 // GetVMValueAsBigInt returns the data as big int
 func GetVMValueAsBigInt(context *gin.Context) {
-	data, err := doGetVMReturnData(context)
+	data, err := doSimulateRunFunctionAndGetFirstOutput(context)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("GetVMValueAsBigInt: %s", err)})
 		return
@@ -115,9 +115,9 @@ func GetVMValueAsBigInt(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"data": value.String()})
 }
 
-// GetVMOutput returns the data as string
-func GetVMOutput(context *gin.Context) {
-	vmOutput, err := doGetVMOutput(context)
+// SimulateRunFunction returns the data as string
+func SimulateRunFunction(context *gin.Context) {
+	vmOutput, err := doSimulateRunFunction(context)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("GetVMOutput: %s", err)})
 		return
