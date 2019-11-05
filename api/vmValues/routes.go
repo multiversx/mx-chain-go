@@ -34,14 +34,14 @@ func Routes(router *gin.RouterGroup) {
 func doGetVMOutput(context *gin.Context) (*vmcommon.VMOutput, error) {
 	ef, _ := context.MustGet("elrondFacade").(FacadeHandler)
 
-	var gval = VMValueRequest{}
-	err := context.ShouldBindJSON(&gval)
+	var request = VMValueRequest{}
+	err := context.ShouldBindJSON(&request)
 	if err != nil {
 		return nil, err
 	}
 
 	argsBuff := make([][]byte, 0)
-	for _, arg := range gval.Args {
+	for _, arg := range request.Args {
 		buff, err := hex.DecodeString(arg)
 		if err != nil {
 			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
@@ -50,12 +50,12 @@ func doGetVMOutput(context *gin.Context) (*vmcommon.VMOutput, error) {
 		argsBuff = append(argsBuff, buff)
 	}
 
-	adrBytes, err := hex.DecodeString(gval.ScAddress)
+	adrBytes, err := hex.DecodeString(request.ScAddress)
 	if err != nil {
-		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", gval.ScAddress, err.Error())
+		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
 	}
 
-	vmOutput, err := ef.GetVmOutput(string(adrBytes), gval.FuncName, argsBuff...)
+	vmOutput, err := ef.GetVmOutput(string(adrBytes), request.FuncName, argsBuff...)
 	if err != nil {
 		return nil, err
 	}
