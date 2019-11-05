@@ -128,7 +128,7 @@ func TestBasicForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
 }
 
-func TestBasicForkDetector_AddHeaderPresentShouldRewriteState(t *testing.T) {
+func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 	t.Parallel()
 	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash := []byte("hash1")
@@ -145,9 +145,10 @@ func TestBasicForkDetector_AddHeaderPresentShouldRewriteState(t *testing.T) {
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(1)
-	assert.Equal(t, 1, len(hInfos))
+	assert.Equal(t, 2, len(hInfos))
 	assert.Equal(t, hash, hInfos[0].Hash())
-	assert.Equal(t, process.BHProcessed, hInfos[0].GetBlockHeaderState())
+	assert.Equal(t, process.BHReceived, hInfos[0].GetBlockHeaderState())
+	assert.Equal(t, process.BHProcessed, hInfos[1].GetBlockHeaderState())
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testing.T) {
@@ -350,7 +351,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowe
 	assert.Nil(t, forkInfo.Hash)
 
 	hInfos = bfd.GetHeaders(1)
-	assert.Equal(t, 1, len(hInfos))
+	assert.Equal(t, 3, len(hInfos))
 }
 
 func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqualRoundWithLowerHash(t *testing.T) {
@@ -390,7 +391,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqua
 	assert.Nil(t, forkInfo.Hash)
 
 	hInfos = bfd.GetHeaders(1)
-	assert.Equal(t, 1, len(hInfos))
+	assert.Equal(t, 3, len(hInfos))
 	assert.Equal(t, []byte("hash1"), hInfos[0].Hash())
 }
 

@@ -3,7 +3,6 @@ package sync
 import (
 	"bytes"
 	"math"
-	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -176,10 +175,7 @@ func (bfd *baseForkDetector) RemoveHeaders(nonce uint64, hash []byte) {
 	bfd.mutHeaders.Lock()
 	hdrInfos := bfd.headers[nonce]
 	for _, hdrInfoStored := range hdrInfos {
-		if bytes.Equal(hdrInfoStored.hash, hash) {
-			continue
-		}
-		if hdrInfoStored.state == process.BHReceived {
+		if hdrInfoStored.state != process.BHNotarized {
 			continue
 		}
 
@@ -231,15 +227,7 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) {
 	}
 
 	for _, hdrInfoStored := range hdrInfos {
-		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
-			if hdrInfoStored.state != process.BHProcessed {
-				// If the old appended header has the same hash with the new one received, than the state of the old
-				// record will be replaced if the new one is more important. Below is the hierarchy, from low to high,
-				// of the record state importance: (BHProposed, BHReceived, BHNotarized, BHProcessed)
-				if hdrInfo.state == process.BHNotarized || hdrInfo.state == process.BHProcessed {
-					hdrInfoStored.state = hdrInfo.state
-				}
-			}
+		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) && hdrInfoStored.state == hdrInfo.state {
 			return
 		}
 	}
@@ -272,9 +260,7 @@ func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
 
 // ResetProbableHighestNonce resets the probableHighestNonce to checkpoint
 func (bfd *baseForkDetector) ResetProbableHighestNonce() {
-	nonce := bfd.lastCheckpoint().nonce
-	bfd.setProbableHighestNonce(nonce)
-	bfd.setLastProposedBlockNonce(nonce)
+	bfd.setProbableHighestNonce(bfd.lastCheckpoint().nonce)
 }
 
 // ResetFork resets the forced fork
@@ -428,12 +414,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 				forkInfo.Round = forkHeaderRound
 				forkInfo.Hash = forkHeaderHash
 			}
-			continue
 		}
-
-		// keep it clean so next time this position will be processed faster
-		delete(bfd.headers, nonce)
-		bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
 	}
 	bfd.mutHeaders.Unlock()
 
@@ -469,10 +450,10 @@ func (bfd *baseForkDetector) shouldSignalFork(
 	lastForkHash []byte,
 	lastForkRound uint64,
 ) bool {
-
+	sameHash := bytes.Equal(headerInfo.hash, lastForkHash)
 	higherHashForSameRound := headerInfo.round == lastForkRound &&
-		strings.Compare(string(headerInfo.hash), string(lastForkHash)) > 0
-	shouldSignalFork := headerInfo.round > lastForkRound || higherHashForSameRound
+		bytes.Compare(headerInfo.hash, lastForkHash) > 0
+	shouldSignalFork := !sameHash && (headerInfo.round > lastForkRound || higherHashForSameRound)
 
 	return shouldSignalFork
 }
