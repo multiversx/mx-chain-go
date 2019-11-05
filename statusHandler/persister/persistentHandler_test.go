@@ -1,4 +1,4 @@
-package persistor
+package persister
 
 import (
 	"encoding/json"
@@ -46,8 +46,8 @@ func TestPersistentStatusHandler_SetStorage(t *testing.T) {
 	marshalizer := &mock.MarshalizerStub{}
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer)
 	storer := &mock.StorerStub{}
-	err := persistentHandler.SetStorage(storer)
 
+	err := persistentHandler.SetStorage(storer)
 	assert.Nil(t, err)
 }
 

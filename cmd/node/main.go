@@ -715,7 +715,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	restAPIServerDebugMode := !statusHandlersInfo.UserTermui
+	restAPIServerDebugMode := !statusHandlersInfo.UserTermuiUI
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{

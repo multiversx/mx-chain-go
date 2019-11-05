@@ -1,4 +1,4 @@
-package persistor
+package persister
 
 import (
 	"testing"

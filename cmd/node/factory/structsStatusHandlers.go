@@ -9,18 +9,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/persistor"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
-// ArgStatusHandlers is a struct that store arguments needed for create status handlers
+var errPrometheusUrlNotAvailable = errors.New("prometheus URL not available")
+
+// ArgStatusHandlers is a struct that stores arguments needed to create status handlers
 type ArgStatusHandlers struct {
 	LogViewName                  string
 	ServersConfigurationFileName string
-	UserPrometheusName           string
+	PrometheusUserName           string
 	Ctx                          *cli.Context
 	Marshalizer                  marshal.Marshalizer
 }
@@ -29,24 +31,24 @@ type ArgStatusHandlers struct {
 type statusHandlersInfo struct {
 	PrometheusJoinUrl string
 	UsePrometheus     bool
-	UserTermui        bool
+	UserTermuiUI      bool
 	StatusHandler     core.AppStatusHandler
 	StatusMetrics     external.StatusMetricsHandler
-	PersistentHandler *persistor.PersistentStatusHandler
+	PersistentHandler *persister.PersistentStatusHandler
 }
 
 // NewStatusHandlersFactoryArgs will return arguments for status handlers
 func NewStatusHandlersFactoryArgs(
 	logViewName string,
 	serversConfigurationFileName string,
-	userPrometheusName string,
+	prometheusUserName string,
 	ctx *cli.Context,
 	marshalizer marshal.Marshalizer,
 ) *ArgStatusHandlers {
 	return &ArgStatusHandlers{
 		LogViewName:                  logViewName,
 		ServersConfigurationFileName: serversConfigurationFileName,
-		UserPrometheusName:           userPrometheusName,
+		PrometheusUserName:           prometheusUserName,
 		Ctx:                          ctx,
 		Marshalizer:                  marshalizer,
 	}
@@ -59,8 +61,8 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	var err error
 	var handler core.AppStatusHandler
 
-	prometheusJoinUrl, usePrometheusBool := getPrometheusJoinURLIfAvailable(arguments.Ctx, arguments.ServersConfigurationFileName, arguments.UserPrometheusName)
-	if usePrometheusBool {
+	prometheusJoinUrl, usePrometheus := getPrometheusJoinURLIfAvailable(arguments.Ctx, arguments.ServersConfigurationFileName, arguments.PrometheusUserName)
+	if usePrometheus {
 		prometheusStatusHandler := statusHandler.NewPrometheusStatusHandler()
 		appStatusHandlers = append(appStatusHandlers, prometheusStatusHandler)
 	}
@@ -96,7 +98,7 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	statusMetrics := statusHandler.NewStatusMetrics()
 	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
-	persistentHandler, err := persistor.NewPersistentStatusHandler(arguments.Marshalizer)
+	persistentHandler, err := persister.NewPersistentStatusHandler(arguments.Marshalizer)
 	if err != nil {
 		return nil, err
 	}
@@ -115,8 +117,8 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	statusHandlersInfo := new(statusHandlersInfo)
 	statusHandlersInfo.StatusHandler = handler
 	statusHandlersInfo.PrometheusJoinUrl = prometheusJoinUrl
-	statusHandlersInfo.UsePrometheus = usePrometheusBool
-	statusHandlersInfo.UserTermui = useTermui
+	statusHandlersInfo.UsePrometheus = usePrometheus
+	statusHandlersInfo.UserTermuiUI = useTermui
 	statusHandlersInfo.StatusMetrics = statusMetrics
 	statusHandlersInfo.PersistentHandler = persistentHandler
 	return statusHandlersInfo, nil
@@ -181,7 +183,7 @@ func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
 		return "", err
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("prometheus URL not available")
+		return "", errPrometheusUrlNotAvailable
 	}
 	joinURL := baseURL + serversConfig.Prometheus.JoinRoute
 	return joinURL, nil

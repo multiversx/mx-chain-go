@@ -1,10 +1,11 @@
-package persistor
+package persister
 
 import (
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -30,7 +31,7 @@ type PersistentStatusHandler struct {
 func NewPersistentStatusHandler(
 	marshalizer marshal.Marshalizer,
 ) (*PersistentStatusHandler, error) {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 
@@ -56,7 +57,6 @@ func (psh *PersistentStatusHandler) initMap() {
 // StartStoreMetricsInStorage will start save status metrics in storage at a constant interval
 func (psh *PersistentStatusHandler) StartStoreMetricsInStorage() {
 	go func() {
-		time.Sleep(saveInterval)
 		for {
 			select {
 			case <-time.After(saveInterval):
@@ -86,7 +86,7 @@ func (psh *PersistentStatusHandler) LoadMetricsFromDb() (map[string]uint64, map[
 
 // SetStorage will set storage for persistent status handler
 func (psh *PersistentStatusHandler) SetStorage(store storage.Storer) error {
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return process.ErrNilStorage
 	}
 
@@ -147,18 +147,7 @@ func (psh *PersistentStatusHandler) SetStringValue(key string, value string) {
 
 // Increment - will increment the value of a key
 func (psh *PersistentStatusHandler) Increment(key string) {
-	keyValueI, ok := psh.persistentMetrics.Load(key)
-	if !ok {
-		return
-	}
-
-	keyValue, ok := keyValueI.(uint64)
-	if !ok {
-		return
-	}
-
-	keyValue++
-	psh.persistentMetrics.Store(key, keyValue)
+	psh.AddUint64(key, 1)
 }
 
 // AddUint64 - will increase the value of a key with a value

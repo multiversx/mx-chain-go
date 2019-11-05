@@ -75,8 +75,13 @@ func (txc *transactionCounter) getNumTxsFromPool(shardId uint32, dataPool dataRe
 // subtractRestoredTxs updated the total processed txs in case of restore
 func (txc *transactionCounter) subtractRestoredTxs(txsNr int) {
 	txc.mutex.Lock()
-	txc.totalTxs = txc.totalTxs - uint64(txsNr)
-	txc.mutex.Unlock()
+	defer txc.mutex.Unlock()
+	if txc.totalTxs < uint64(txsNr) {
+		txc.totalTxs = 0
+		return
+	}
+
+	txc.totalTxs -= uint64(txsNr)
 }
 
 // displayLogInfo writes to the output information about the block and transactions

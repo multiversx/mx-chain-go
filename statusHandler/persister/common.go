@@ -1,4 +1,4 @@
-package persistor
+package persister
 
 import "github.com/ElrondNetwork/elrond-go/core"
 

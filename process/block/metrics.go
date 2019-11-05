@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/persistor"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 )
 
 func getMetricsFromMetaHeader(
@@ -203,7 +203,7 @@ func getNumFromStorage(store dataRetriever.StorageService, marshalizer marshal.M
 		return 0
 	}
 
-	dataBytes, err := store.Get(dataRetriever.StatusMetricsUnit, []byte(persistor.StatusMetricsDbEntry))
+	dataBytes, err := store.Get(dataRetriever.StatusMetricsUnit, []byte(persister.StatusMetricsDbEntry))
 	if err != nil {
 		return 0
 	}
@@ -214,10 +214,10 @@ func getNumFromStorage(store dataRetriever.StorageService, marshalizer marshal.M
 		return 0
 	}
 
-	numTxs, ok := dataFromDb[metricName].(float64)
+	numObj, ok := dataFromDb[metricName].(float64)
 	if !ok {
 		return 0
 	}
 
-	return uint64(numTxs)
+	return uint64(numObj)
 }
