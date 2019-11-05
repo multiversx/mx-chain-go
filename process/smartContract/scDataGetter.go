@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -67,8 +67,8 @@ func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte)
 		return nil, err
 	}
 
-	// VM is formally verified and the output is correct
-	return scdg.checkVMOutput(vmOutput)
+	scdg.checkVMOutput(vmOutput)
+	return vmOutput, nil
 }
 
 func (scdg *scDataGetter) createVMCallInput(
@@ -108,16 +108,12 @@ func (scdg *scDataGetter) createVMCallInput(
 	return vmContractCallInput
 }
 
-func (scdg *scDataGetter) checkVMOutput(vmOutput *vmcommon.VMOutput) ([]byte, error) {
+func (scdg *scDataGetter) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, errors.New(fmt.Sprintf("error running vm func: code: %d, %s", vmOutput.ReturnCode, vmOutput.ReturnCode))
+		return errors.New(fmt.Sprintf("error running vm func: code: %d, %s", vmOutput.ReturnCode, vmOutput.ReturnCode))
 	}
 
-	if len(vmOutput.ReturnData) > 0 {
-		return vmOutput.ReturnData[0].Bytes(), nil
-	}
-
-	return make([]byte, 0), nil
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
