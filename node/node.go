@@ -389,6 +389,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.shardCoordinator,
 		n.accounts,
 		n.bootstrapRoundIndex,
+		n.messenger,
 	)
 	if err != nil {
 		return nil, err
@@ -412,6 +413,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.shardCoordinator,
 		n.accounts,
 		n.bootstrapRoundIndex,
+		n.messenger,
 	)
 
 	if err != nil {

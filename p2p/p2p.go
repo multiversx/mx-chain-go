@@ -155,6 +155,10 @@ type Messenger interface {
 	// peer, but reuses a connection and a stream if possible.
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
 
+	IsConnectedToTheNetwork() bool
+	ThresholdMinConnectedPeers() int
+	SetThresholdMinConnectedPeers(minConnectedPeers int) error
+
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

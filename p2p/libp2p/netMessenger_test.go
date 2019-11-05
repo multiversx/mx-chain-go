@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
@@ -178,7 +179,7 @@ func TestNewMemoryLibp2pMessenger_OkValsShouldWork(t *testing.T) {
 	mes, err := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
 
 	assert.Nil(t, err)
-	assert.NotNil(t, mes)
+	assert.False(t, check.IfNil(mes))
 
 	_ = mes.Close()
 }
@@ -1493,4 +1494,56 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 	assert.True(t, wasCalled)
 
 	_ = mes.Close()
+}
+
+//------- SetThresholdMinConnectedPeers
+
+func TestNetworkMessenger_SetThresholdMinConnectedPeersInvalidValueShouldErr(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	err := mes.SetThresholdMinConnectedPeers(-1)
+
+	assert.Equal(t, p2p.ErrInvalidValue, err)
+}
+
+func TestNetworkMessenger_SetThresholdMinConnectedPeersShouldWork(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 56
+	err := mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.Nil(t, err)
+	assert.Equal(t, minConnectedPeers, mes.ThresholdMinConnectedPeers())
+}
+
+//------- IsConnectedToTheNetwork
+
+func TestNetworkMessenger_IsConnectedToTheNetworkRetFalse(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 56
+	_ = mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.False(t, mes.IsConnectedToTheNetwork())
+}
+
+func TestNetworkMessenger_IsConnectedToTheNetworkWithZeroRetTrue(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 0
+	_ = mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.True(t, mes.IsConnectedToTheNetwork())
 }
