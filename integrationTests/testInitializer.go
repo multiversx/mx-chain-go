@@ -365,7 +365,30 @@ func CreateGenesisMetaBlock(
 		Economics:                economics,
 	}
 
-	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+		newShardCoordinator, _ := sharding.NewMultiShardCoordinator(
+			shardCoordinator.NumberOfShards(),
+			sharding.MetachainShardId,
+		)
+
+		newStore := CreateMetaStore(newShardCoordinator)
+		newMetaDataPool := CreateTestMetaDataPool()
+
+		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+		newBlkc, _ := blockchain.NewMetaChain(cache)
+		newAccounts, _, _ := CreateAccountsDB(factory.UserAccount)
+
+		argsMetaGenesis.ShardCoordinator = newShardCoordinator
+		argsMetaGenesis.Accounts = newAccounts
+		argsMetaGenesis.Store = newStore
+		argsMetaGenesis.Blkc = newBlkc
+		argsMetaGenesis.MetaDatapool = newMetaDataPool
+	}
+
+	metaHdr, err := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	if err != nil {
+		fmt.Println("error creating genesis metablock " + err.Error())
+	}
 
 	return metaHdr
 }
@@ -835,6 +858,29 @@ func GenerateAndDisseminateTxs(
 			incrementalNonce[i]++
 		}
 	}
+}
+
+func CreateAndSendTransaction(
+	node *TestProcessorNode,
+	txValue *big.Int,
+	rcvAddress []byte,
+	txData string,
+) {
+	tx := &transaction.Transaction{
+		Nonce:    node.OwnAccount.Nonce,
+		Value:    txValue,
+		SndAddr:  node.OwnAccount.Address.Bytes(),
+		RcvAddr:  rcvAddress,
+		Data:     txData,
+		GasPrice: MinTxGasPrice,
+		GasLimit: MinTxGasLimit*5 + uint64(len(txData)),
+	}
+
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
+
+	_, _ = node.SendTransaction(tx)
+	node.OwnAccount.Nonce++
 }
 
 type txArgs struct {

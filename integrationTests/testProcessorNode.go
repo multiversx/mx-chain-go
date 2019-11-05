@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -209,7 +210,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.NodesCoordinator,
 	)
 	tpn.initStorage()
-	tpn.AccntState, _, _ = CreateAccountsDB(0)
+	tpn.AccntState, _, _ = CreateAccountsDB(factory2.UserAccount)
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
@@ -289,7 +290,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				StakeValue:    "500",
-				UnBoundPeriod: "1000",
+				UnBoundPeriod: "5",
 			},
 		},
 	)

@@ -3,12 +3,12 @@ package systemVM
 import (
 	"context"
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -24,12 +24,20 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
+	logger.DefaultLogger().SetLevel("DEBUG")
+
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
 	var metachainNodes []*integrationTests.TestProcessorNode
 	for _, node := range nodes {
@@ -50,90 +58,96 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		}
 	}()
 
-	scAddress := factory.StakingSCAddress
+	initialVal := big.NewInt(10000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
 
-	initialBalance, _ := big.NewInt(0).SetString("5000000000000000000000000", 10)
-	senderBytes, _ := hex.DecodeString("53669be65aac358a6add8e8a8b1251bb994dc1e4a0cc885956f5ecd53396f0d8")
-	integrationTests.MintAddress(nodes[0].AccntState, senderBytes, big.NewInt(0).Set(initialBalance))
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 
-	///////////------- send a stake tx and check sender's balance
-	txValue, _ := big.NewInt(0).SetString("500000000000000000000000", 10)
-	stakeTx := &transaction.Transaction{
-		Nonce:    0,
-		Value:    txValue,
-		SndAddr:  senderBytes,
-		RcvAddr:  scAddress,
-		Data:     "stake",
-		GasPrice: integrationTests.MinTxGasPrice,
-		GasLimit: integrationTests.MinTxGasLimit * 5,
+	///////////------- send stake tx and check sender's balance
+	for _, node := range nodes {
+		pubKey, _ := node.NodeKeys.Pk.ToByteArray()
+		txData := "stake" + "@" + hex.EncodeToString(pubKey)
+		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.StakingSCAddress, txData)
 	}
-
-	err := nodes[0].TxProcessor.ProcessTransaction(stakeTx, 0)
-	assert.Nil(t, err)
-
-	time.Sleep(1 * time.Second)
-
-	sndAcc := getAccountFromAddrBytes(nodes[0].AccntState, senderBytes)
-	assert.Equal(t, big.NewInt(0).Sub(initialBalance, txValue), sndAcc.Balance)
-
-	time.Sleep(5 * time.Second)
-
-	/////////------ send another stake tx. it shouldn't be executed
-	stakeTx = &transaction.Transaction{
-		Nonce:    1,
-		Value:    txValue,
-		SndAddr:  senderBytes,
-		RcvAddr:  scAddress,
-		Data:     "stake",
-		GasPrice: integrationTests.MinTxGasPrice,
-		GasLimit: integrationTests.MinTxGasLimit * 5,
-	}
-
-	err = nodes[0].TxProcessor.ProcessTransaction(stakeTx, 1)
-	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
-	sndAcc = getAccountFromAddrBytes(nodes[0].AccntState, senderBytes)
-	// TODO : de-comment these assert when the entire functionality is done
-	//assert.Equal(t, big.NewInt(0).Sub(initialBalance, txValue), sndAcc.Balance)
 
-	/////////------ send an unStake tx
-	unStakeTx := &transaction.Transaction{
-		Nonce:    2,
-		Value:    big.NewInt(0),
-		SndAddr:  senderBytes,
-		RcvAddr:  scAddress,
-		Data:     "unStake",
-		GasPrice: integrationTests.MinTxGasPrice,
-		GasLimit: integrationTests.MinTxGasLimit * 5,
+	nrRoundsToPropagateMultiShard := 6
+	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
 	}
 
-	err = nodes[0].TxProcessor.ProcessTransaction(unStakeTx, 2)
-	assert.Nil(t, err)
-
 	time.Sleep(time.Second)
-	sndAcc = getAccountFromAddrBytes(nodes[0].AccntState, senderBytes)
-	//assert.Equal(t, initialBalance, sndAcc.Balance)
 
-	////////----- send an finalizeUnstake
+	// verify if staking was done - value taken out of accounts
+	for _, node := range nodes {
+		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
-	time.Sleep(5 * time.Second)
-	finalizeUnStakeTx := &transaction.Transaction{
-		Nonce:    3,
-		Value:    big.NewInt(0),
-		SndAddr:  senderBytes,
-		RcvAddr:  scAddress,
-		Data:     "finalizeUnStake",
-		GasPrice: integrationTests.MinTxGasPrice,
-		GasLimit: integrationTests.MinTxGasLimit * 5,
+		for _, helperNode := range nodes {
+			if helperNode.ShardCoordinator.SelfId() == accShardId {
+				sndAcc := getAccountFromAddrBytes(node.AccntState, node.OwnAccount.Address.Bytes())
+				assert.Equal(t, big.NewInt(0).Sub(initialVal, node.EconomicsData.StakeValue()), sndAcc.Balance)
+				break
+			}
+		}
 	}
 
-	err = nodes[0].TxProcessor.ProcessTransaction(finalizeUnStakeTx, 2)
-	assert.Nil(t, err)
+	/////////------ send unStake tx
+	for _, node := range nodes {
+		txData := "unStake"
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
+	}
 
 	time.Sleep(time.Second)
-	sndAcc = getAccountFromAddrBytes(nodes[0].AccntState, senderBytes)
-	//assert.Equal(t, initialBalance, sndAcc.Balance)
+
+	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	/////////----- wait for unbound period
+	for i := uint64(0); i < nodes[0].EconomicsData.UnBoundPeriod(); i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	////////----- send unBound
+	for _, node := range nodes {
+		txData := "unBound"
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
+	}
+
+	time.Sleep(time.Second)
+
+	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	// verify if unbound is done - staking value back to sender
+	for _, node := range nodes {
+		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
+
+		for _, helperNode := range nodes {
+			if helperNode.ShardCoordinator.SelfId() == accShardId {
+				sndAcc := getAccountFromAddrBytes(node.AccntState, node.OwnAccount.Address.Bytes())
+				assert.Equal(t, initialVal, sndAcc.Balance)
+				break
+			}
+		}
+	}
 }
 
 func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) *state.Account {
