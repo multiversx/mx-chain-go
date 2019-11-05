@@ -30,16 +30,6 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-func startNodeServer(handler vmValues.FacadeHandler) *gin.Engine {
-	ws := gin.New()
-	ws.Use(cors.Default())
-	getValuesRoute := ws.Group("/get-values")
-	getValuesRoute.Use(middleware.WithElrondFacade(handler))
-	vmValues.Routes(getValuesRoute)
-
-	return ws
-}
-
 func TestGetDataValueAsHexBytes_BadRequestShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -49,10 +39,9 @@ func TestGetDataValueAsHexBytes_BadRequestShouldErr(t *testing.T) {
 			return nil, nil
 		},
 	}
-	ws := startNodeServer(&facade)
 
 	jsonBody := `{"this should error"}`
-	response, _ := postRequest(ws, "/get-values/hex", jsonBody)
+	response, _ := postRequest(&facade, "/get-values/hex", jsonBody)
 	assert.Contains(t, response.Error, "invalid character")
 }
 
@@ -84,12 +73,10 @@ func TestGetDataValueAsHexBytes_ArgumentIsNotHexShouldErr(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
-
 	argsJson, _ := json.Marshal(args)
 
 	jsonBody := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
-	response, statusCode := postRequest(ws, "/get-values/hex", jsonBody)
+	response, statusCode := postRequest(&facade, "/get-values/hex", jsonBody)
 
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Contains(t, response.Error, "not a hex argument")
@@ -105,10 +92,8 @@ func testGetValueFacadeErrors(t *testing.T, route string) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
-
 	jsonBody := `{}`
-	response, statusCode := postRequest(ws, route, jsonBody)
+	response, statusCode := postRequest(&facade, route, jsonBody)
 
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Contains(t, response.Error, errExpected.Error())
@@ -154,8 +139,6 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 		},
 	}
 
-	ws := startNodeServer(&facade)
-
 	argsHex := make([]string, len(args))
 	for i := 0; i < len(args); i++ {
 		argsHex[i] = hex.EncodeToString([]byte(args[i]))
@@ -163,7 +146,7 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 	argsJson, _ := json.Marshal(argsHex)
 
 	jsonBody := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
-	response, statusCode := postRequest(ws, "/get-values/hex", jsonBody)
+	response, statusCode := postRequest(&facade, "/get-values/hex", jsonBody)
 
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
@@ -210,8 +193,6 @@ func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T)
 		},
 	}
 
-	ws := startNodeServer(&facade)
-
 	argsHex := make([]string, len(args))
 	for i := 0; i < len(args); i++ {
 		argsHex[i] = hex.EncodeToString([]byte(args[i]))
@@ -219,7 +200,7 @@ func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T)
 	argsJson, _ := json.Marshal(argsHex)
 
 	jsonBody := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
-	response, statusCode := postRequest(ws, "/get-values/string", jsonBody)
+	response, statusCode := postRequest(&facade, "/get-values/string", jsonBody)
 
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
@@ -266,8 +247,6 @@ func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
 		},
 	}
 
-	ws := startNodeServer(&facade)
-
 	argsHex := make([]string, len(args))
 	for i := 0; i < len(args); i++ {
 		argsHex[i] = hex.EncodeToString([]byte(args[i]))
@@ -275,14 +254,15 @@ func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
 	argsJson, _ := json.Marshal(argsHex)
 
 	jsonBody := fmt.Sprintf(`{"scAddress":"%s", "funcName":"%s", "args":%s}`, scAddress, fName, argsJson)
-	response, statusCode := postRequest(ws, "/get-values/int", jsonBody)
+	response, statusCode := postRequest(&facade, "/get-values/int", jsonBody)
 
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
 	assert.Equal(t, valueBuff, response.Data)
 }
 
-func postRequest(server *gin.Engine, url string, jsonBody string) (GeneralResponse, int) {
+func postRequest(facadeMock interface{}, url string, jsonBody string) (GeneralResponse, int) {
+	server := startNodeServer(facadeMock)
 	request, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonBody)))
 
 	responseRecorder := httptest.NewRecorder()
@@ -294,15 +274,19 @@ func postRequest(server *gin.Engine, url string, jsonBody string) (GeneralRespon
 	return response, responseRecorder.Code
 }
 
+func startNodeServer(handler interface{}) *gin.Engine {
+	ws := gin.New()
+	ws.Use(cors.Default())
+	getValuesRoute := ws.Group("/get-values")
+	getValuesRoute.Use(middleware.WithElrondFacade(handler))
+	vmValues.Routes(getValuesRoute)
+
+	return ws
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
-	if err != nil {
-		logError(err)
-	}
-}
-
-func logError(err error) {
 	if err != nil {
 		fmt.Println(err)
 	}
