@@ -30,7 +30,8 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			MinGasLimit: "500",
 		},
 		ValidatorSettings: config.ValidatorSettings{
-			StakeValue: "500000000",
+			StakeValue:    "500000000",
+			UnBoundPeriod: "100000",
 		},
 	}
 }
