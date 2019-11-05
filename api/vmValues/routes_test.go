@@ -35,11 +35,7 @@ func startNodeServer(handler vmValues.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	getValuesRoute := ws.Group("/get-values")
-
-	if handler != nil {
-		getValuesRoute.Use(middleware.WithElrondFacade(handler))
-	}
-
+	getValuesRoute.Use(middleware.WithElrondFacade(handler))
 	vmValues.Routes(getValuesRoute)
 
 	return ws
