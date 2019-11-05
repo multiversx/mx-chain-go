@@ -595,7 +595,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		tx.Nonce,
 		hex.EncodeToString(tx.SndAddr),
 		hex.EncodeToString(tx.RcvAddr),
-		tx.Value,
+		tx.Value.String(),
 		tx.GasPrice,
 		tx.GasLimit,
 		tx.Data,

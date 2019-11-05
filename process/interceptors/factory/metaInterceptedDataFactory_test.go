@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -190,7 +191,9 @@ func TestMetaInterceptedDataFactory_CreateInterceptedTxShouldWork(t *testing.T) 
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	emptyTx := &transaction.Transaction{}
+	emptyTx := &transaction.Transaction{
+		Value: big.NewInt(0),
+	}
 	emptyHdrBuff, _ := marshalizer.Marshal(emptyTx)
 	midf, _ := factory.NewMetaInterceptedDataFactory(createMockArgument(), factory.InterceptedTx)
 
