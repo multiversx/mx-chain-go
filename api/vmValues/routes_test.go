@@ -269,7 +269,7 @@ func postRequest(facadeMock interface{}, url string, jsonBody string) (GeneralRe
 	server.ServeHTTP(responseRecorder, request)
 
 	response := GeneralResponse{}
-	loadResponse(responseRecorder.Body, &response)
+	parseResponse(responseRecorder.Body, &response)
 
 	return response, responseRecorder.Code
 }
@@ -284,8 +284,9 @@ func startNodeServer(handler interface{}) *gin.Engine {
 	return ws
 }
 
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
+func parseResponse(responseBody io.Reader, destination interface{}) {
+	jsonParser := json.NewDecoder(responseBody)
+
 	err := jsonParser.Decode(destination)
 	if err != nil {
 		fmt.Println(err)
