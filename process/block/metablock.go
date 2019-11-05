@@ -459,14 +459,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	metaBlockPool := mp.dataPool.MetaBlocks()
-	if metaBlockPool == nil {
-		err = process.ErrNilMetaBlockPool
-		return err
-	}
-
 	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
-	// metaBlockPool.Remove(headerHash) should not be called, just to have a restore point if it is needed later
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {

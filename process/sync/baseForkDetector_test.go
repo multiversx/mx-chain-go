@@ -786,45 +786,6 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	assert.Equal(t, uint64(11), bfd.ProbableHighestNonce())
 }
 
-func TestBasicForkDetector_ResetProbableHighestNonce(t *testing.T) {
-	t.Parallel()
-	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			return nil
-		},
-		HasCalled: func(key string) bool {
-			return false
-		},
-	})
-
-	rounderMock.RoundIndex = 15
-	_ = bfd.AddHeader(
-		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 10, Round: 14},
-		[]byte("hash3"),
-		process.BHProcessed,
-		nil,
-		nil)
-	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
-
-	rounderMock.RoundIndex = 16
-	_ = bfd.AddHeader(
-		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 11, Round: 15},
-		[]byte("hash3"),
-		process.BHReceived,
-		nil,
-		nil)
-	assert.Equal(t, uint64(11), bfd.ProbableHighestNonce())
-
-	rounderMock.RoundIndex = 22
-	bfd.ResetProbableHighestNonceIfNeeded()
-	assert.Equal(t, uint64(11), bfd.ProbableHighestNonce())
-
-	rounderMock.RoundIndex = 30
-	bfd.ResetProbableHighestNonceIfNeeded()
-	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
-}
-
 func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 10}

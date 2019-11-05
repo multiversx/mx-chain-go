@@ -259,7 +259,6 @@ type ForkDetector interface {
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
-	ResetProbableHighestNonceIfNeeded()
 	ResetProbableHighestNonce()
 	ResetFork()
 	IsInterfaceNil() bool

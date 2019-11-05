@@ -544,6 +544,7 @@ func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 		account,
 		math.MaxUint32,
 		nil,
+		&mock.NetworkConnectionWatcherStub{},
 	)
 
 	assert.Nil(t, bs)
@@ -731,8 +732,6 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
 	}
-	forkDetector.ResetProbableHighestNonceIfNeededCalled = func() {
-	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -765,7 +764,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, process.ErrTimeIsOut, r)
+	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, r)
 }
 
 func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
@@ -787,8 +786,6 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
-	}
-	forkDetector.ResetProbableHighestNonceIfNeededCalled = func() {
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -2034,11 +2031,6 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 			return nil
 		},
 	}
-	blackListHandler := &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			return nil
-		},
-	}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -2054,7 +2046,11 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		shardCoordinator,
 		account,
 		math.MaxUint32,
-		blackListHandler,
+		&mock.BlackListHandlerStub{
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
@@ -2094,7 +2090,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
-	assert.True(t, remFlags.flagHdrRemovedFromStorage)
+	assert.False(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
 	assert.Equal(t, blkc.GetCurrentBlockBody(), prevTxBlockBody)
@@ -2206,11 +2202,6 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 			return nil
 		},
 	}
-	blackListHandler := &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			return nil
-		},
-	}
 
 	bs, _ := sync.NewMetaBootstrap(
 		pools,
@@ -2226,7 +2217,11 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		shardCoordinator,
 		account,
 		math.MaxUint32,
-		blackListHandler,
+		&mock.BlackListHandlerStub{
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
@@ -2257,7 +2252,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
-	assert.True(t, remFlags.flagHdrRemovedFromStorage)
+	assert.False(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
 	assert.Nil(t, blkc.GetCurrentBlockHeaderHash())

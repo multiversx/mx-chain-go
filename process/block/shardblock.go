@@ -615,14 +615,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	headersPool := sp.dataPool.Headers()
-	if headersPool == nil {
-		err = process.ErrNilHeadersDataPool
-		return err
-	}
-
 	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
-	// headersPool.Remove(headerHash) should not be called, just to have a restore point if it is needed later
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {

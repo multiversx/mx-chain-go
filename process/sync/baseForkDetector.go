@@ -245,19 +245,6 @@ func (bfd *baseForkDetector) ProbableHighestNonce() uint64 {
 	return bfd.probableHighestNonce()
 }
 
-// ResetProbableHighestNonceIfNeeded resets the probableHighestNonce to checkpoint if after maxRoundsToWait nothing
-// is received so the node will act as synchronized
-func (bfd *baseForkDetector) ResetProbableHighestNonceIfNeeded() {
-	//TODO: This mechanism should be improved to avoid the situation when a malicious group of 2/3 + 1 from a
-	// consensus group size, could keep all the shard in sync mode, by creating fake blocks higher than current
-	// committed block + 1, which could not be verified by hash -> prev hash and only by rand seed -> prev random seed
-	roundsWithoutReceivedBlock := bfd.rounder.Index() - int64(bfd.lastBlockRound())
-	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
-	if roundsWithoutReceivedBlock > process.MaxRoundsWithoutReceivedBlock && isInProperRound {
-		bfd.ResetProbableHighestNonce()
-	}
-}
-
 // ResetProbableHighestNonce resets the probableHighestNonce to checkpoint
 func (bfd *baseForkDetector) ResetProbableHighestNonce() {
 	bfd.setProbableHighestNonce(bfd.lastCheckpoint().nonce)

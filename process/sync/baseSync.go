@@ -239,10 +239,10 @@ func (boot *baseBootstrap) cleanupStorage(
 		log.Info(fmt.Sprintf("remove block body with nonce %d: %s\n", nonce, errNotCritical.Error()))
 	}
 
-	errNotCritical = boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
-	if errNotCritical != nil {
-		log.Info(fmt.Sprintf("remove block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
-	}
+	//errNotCritical = boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
+	//if errNotCritical != nil {
+	//	log.Info(fmt.Sprintf("remove block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
+	//}
 }
 
 func (boot *baseBootstrap) removeBlockHeader(
@@ -250,11 +250,6 @@ func (boot *baseBootstrap) removeBlockHeader(
 	blockUnit dataRetriever.UnitType,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	headerStore := boot.store.GetStorer(blockUnit)
-	if headerStore == nil {
-		return process.ErrNilHeadersStorage
-	}
-
 	headerNonceHashStore := boot.store.GetStorer(hdrNonceHashDataUnit)
 	if headerNonceHashStore == nil {
 		return process.ErrNilHeadersNonceHashStorage
@@ -509,8 +504,8 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHandler) {
 	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
-	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
-	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
+	//nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
+	//_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
 
 // checkBootstrapNilParameters will check the imput parameters for nil values
@@ -662,13 +657,13 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 			boot.forkDetector.RemoveHeaders(headerHandler.GetNonce(), hash)
 		}
 
-		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
-			boot.forkDetector.ResetProbableHighestNonce()
-		}
-
 		errNotCritical := boot.rollBack(false)
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
+		}
+
+		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
+			boot.forkDetector.ResetProbableHighestNonce()
 		}
 	}
 }
@@ -699,7 +694,7 @@ func (boot *baseBootstrap) syncBlock() error {
 
 		err := boot.rollBack(true)
 		if err != nil {
-			log.Info(err.Error())
+			return err
 		}
 	}
 
@@ -714,7 +709,6 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	hdr, err = boot.getNextHeaderRequestingIfMissing()
 	if err != nil {
-		boot.forkDetector.ResetProbableHighestNonceIfNeeded()
 		return err
 	}
 
