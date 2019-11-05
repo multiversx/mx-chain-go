@@ -211,11 +211,23 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
-	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
+	tpn.GenesisBlocks = CreateGenesisBlocks(
+		tpn.AccntState,
+		TestAddressConverter,
+		&sharding.NodesSetup{},
+		tpn.ShardCoordinator,
+		CreateMetaStore(tpn.ShardCoordinator),
+		tpn.BlockChain,
+		TestMarshalizer,
+		TestHasher,
+		TestUint64Converter,
+		CreateTestMetaDataPool(),
+		tpn.EconomicsData.EconomicsData,
+	)
 	tpn.initBlockProcessor()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,

@@ -8,6 +8,11 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/genesis"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"math/big"
 	"strings"
 	"sync"
@@ -242,20 +247,20 @@ func CreateMetaChain() data.ChainHandler {
 	return metaChain
 }
 
-// CreateGenesisBlocks creates empty genesis blocks for all known shards, including metachain
-func CreateGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+// CreateSimpleGenesisBlocks creates empty genesis blocks for all known shards, including metachain
+func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateGenesisBlock(shardId)
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
 	}
 
-	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock()
+	genesisBlocks[sharding.MetachainShardId] = CreateSimpleGenesisMetaBlock()
 
 	return genesisBlocks
 }
 
-// CreateGenesisBlock creates a new mock shard genesis block
-func CreateGenesisBlock(shardId uint32) *dataBlock.Header {
+// CreateSimpleGenesisBlock creates a new mock shard genesis block
+func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
@@ -271,20 +276,98 @@ func CreateGenesisBlock(shardId uint32) *dataBlock.Header {
 	}
 }
 
-// CreateGenesisMetaBlock creates a new mock meta genesis block
-func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
+// CreateSimpleGenesisMetaBlock creates a new mock meta genesis block
+func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.MetaBlock{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:                  0,
+		Epoch:                  0,
+		Round:                  0,
+		TimeStamp:              0,
+		ShardInfo:              nil,
+		PeerInfo:               nil,
+		Signature:              nil,
+		PubKeysBitmap:          nil,
+		PrevHash:               rootHash,
+		PrevRandSeed:           rootHash,
+		RandSeed:               rootHash,
+		RootHash:               rootHash,
+		ValidatorStatsRootHash: rootHash,
+		TxCount:                0,
+		MiniBlockHeaders:       nil,
 	}
+}
+
+// CreateGenesisBlocks creates empty genesis blocks for all known shards, including metachain
+func CreateGenesisBlocks(
+	accounts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	nodesSetup *sharding.NodesSetup,
+	shardCoordinator sharding.Coordinator,
+	store dataRetriever.StorageService,
+	blkc data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	metaDataPool dataRetriever.MetaPoolsHolder,
+	economics *economics.EconomicsData,
+) map[uint32]data.HeaderHandler {
+
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+	}
+
+	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock(
+		accounts,
+		addrConv,
+		nodesSetup,
+		shardCoordinator,
+		store,
+		blkc,
+		marshalizer,
+		hasher,
+		uint64Converter,
+		metaDataPool,
+		economics,
+	)
+
+	return genesisBlocks
+}
+
+// CreateGenesisMetaBlock creates a new mock meta genesis block
+func CreateGenesisMetaBlock(
+	accounts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	nodesSetup *sharding.NodesSetup,
+	shardCoordinator sharding.Coordinator,
+	store dataRetriever.StorageService,
+	blkc data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	metaDataPool dataRetriever.MetaPoolsHolder,
+	economics *economics.EconomicsData,
+) data.HeaderHandler {
+	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
+		GenesisTime:              0,
+		Accounts:                 accounts,
+		AddrConv:                 addrConv,
+		NodesSetup:               nodesSetup,
+		ShardCoordinator:         shardCoordinator,
+		Store:                    store,
+		Blkc:                     blkc,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		Uint64ByteSliceConverter: uint64Converter,
+		MetaDatapool:             metaDataPool,
+		Economics:                economics,
+	}
+
+	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+
+	return metaHdr
 }
 
 // CreateAddressFromAddrBytes creates an address container object from address bytes provided
