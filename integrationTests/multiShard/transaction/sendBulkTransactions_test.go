@@ -177,7 +177,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey) *transactio
 		SndAddr:   senderBytes,
 		GasPrice:  5,
 		GasLimit:  1000,
-		Data:      "",
+		Data:      []byte(""),
 		Signature: nil,
 		Challenge: nil,
 	}

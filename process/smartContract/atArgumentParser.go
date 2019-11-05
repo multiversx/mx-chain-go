@@ -79,8 +79,8 @@ func (at *atArgumentParser) GetSeparator() string {
 }
 
 // GetStorageUpdates parse data into storage updates
-func (at *atArgumentParser) GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error) {
-	splitString := strings.Split(data, atSep)
+func (at *atArgumentParser) GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error) {
+	splitString := strings.Split(string(data), atSep)
 	if len(splitString) == 0 || len(splitString[0]) == 0 {
 		return nil, process.ErrStringSplitFailed
 	}
@@ -109,7 +109,7 @@ func (at *atArgumentParser) GetStorageUpdates(data string) ([]*vmcommon.StorageU
 }
 
 // CreateDataFromStorageUpdate creates storage update from data
-func (at *atArgumentParser) CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string {
+func (at *atArgumentParser) CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte {
 	data := ""
 	for i := 0; i < len(storageUpdates); i++ {
 		storageUpdate := storageUpdates[i]
@@ -121,7 +121,7 @@ func (at *atArgumentParser) CreateDataFromStorageUpdate(storageUpdates []*vmcomm
 			data = data + at.GetSeparator()
 		}
 	}
-	return data
+	return []byte(data)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

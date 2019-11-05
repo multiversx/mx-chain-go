@@ -74,7 +74,7 @@ func createTx(
 		SndAddr:  senderAddressBytes,
 		GasPrice: uint64(gasPrice),
 		GasLimit: uint64(gasLimit),
-		Data:     txData,
+		Data:     []byte(txData),
 	}
 	assert.NotNil(t, tx)
 

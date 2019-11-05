@@ -232,12 +232,12 @@ func TestElrondNodeFacade_SetSyncer(t *testing.T) {
 func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 	called := 0
 	node := &mock.NodeMock{}
-	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount string, code string, signature []byte) (string, error) {
+	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount string, txData []byte, signature []byte) (string, error) {
 		called++
 		return "", nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	_, _ = ef.SendTransaction(1, "test", "test", "0", 0, 0, "code", []byte{})
+	_, _ = ef.SendTransaction(1, "test", "test", "0", 0, 0, []byte("code"), []byte{})
 	assert.Equal(t, called, 1)
 }
 

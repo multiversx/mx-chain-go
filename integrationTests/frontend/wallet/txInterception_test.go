@@ -14,7 +14,7 @@ import (
 
 func TestInterceptedTxFromFrontendLargeValue(t *testing.T) {
 	value := big.NewInt(0)
-	value.SetString("1000999999999999999999991234", 10)
+	value.SetString("999", 10)
 
 	fmt.Println(value.Text(10))
 	fmt.Println(value.Text(16))
@@ -23,12 +23,12 @@ func TestInterceptedTxFromFrontendLargeValue(t *testing.T) {
 		t,
 		0,
 		value,
-		"c2981474860ebd42f9da812a41dcace8a0c2fdac52e3a66a45603821ca4c6d43",
-		"c2981474860ebd42f9da812a41dcace8a0c2fdac52e3a66a45603821ca4c6d43",
-		"469d44b058faadb56cabbc696f2a0f5c9d4a361b3432c37135d6216feb03fcce890ebc3b98d1506be0cf88f5f22ad533a90386b2211aaad6df32a41be4b01e09",
+		"7b721aef93e06b5b549706f735969f1512a9cae9185e9b93e155c154a965f7e6",
+		"a4bdd89193f8523565777206f4c27254357fe86b146c9e8b00c7902bf5a223f2",
+		"f0dcfec18e4eca5adadb780d0c4127d6072127a29747443c8b2da6f6e4f3ec266c2a08847ce0fdd9d177d5ac90b80ae47406588c3fb366b08bb00af7cc36770f",
+		1,
 		10,
-		1002,
-		"de",
+		[]byte("!!!!!"),
 	)
 }
 
@@ -43,7 +43,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	frontendSignature string,
 	frontendGasPrice uint64,
 	frontendGasLimit uint64,
-	frontendData string,
+	frontendData []byte,
 ) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

@@ -358,7 +358,7 @@ func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	txType, err := txTypeHandler.ComputeTransactionType(tx)
@@ -374,7 +374,7 @@ func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
@@ -406,7 +406,7 @@ func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	_, acntDst := createAccounts(tx)
@@ -454,7 +454,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
@@ -491,7 +491,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
@@ -540,7 +540,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
@@ -574,7 +574,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 
@@ -617,7 +617,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
@@ -649,7 +649,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
@@ -689,7 +689,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
@@ -726,7 +726,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST0000000")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
@@ -769,7 +769,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST0000000")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(0)
 	acntSrc, acntDst := createAccounts(tx)
 
@@ -806,7 +806,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
@@ -842,7 +842,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	vmInput, err := sc.CreateVMCallInput(tx)
@@ -874,7 +874,7 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
@@ -918,7 +918,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data@0000"
+	tx.Data = []byte("data@0000")
 	tx.Value = big.NewInt(45)
 
 	vmArg := []byte("00")
@@ -958,7 +958,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data@0000"
+	tx.Data = []byte("data@0000")
 	tx.Value = big.NewInt(45)
 
 	vmInput, vmType, err := sc.CreateVMDeployInput(tx)
@@ -991,7 +991,7 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
@@ -1027,7 +1027,7 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	vmInput, err := sc.CreateVMInput(tx)
@@ -1040,7 +1040,7 @@ func createAccountsAndTransaction() (*state.Account, *state.Account, *transactio
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Data = "data"
+	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
 	acntSrc, acntDst := createAccounts(tx)
@@ -2269,7 +2269,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address"),
-		Data:    result,
+		Data:    []byte(result),
 		Value:   big.NewInt(15),
 	}
 	err = sc.ProcessSmartContractResult(&scr)

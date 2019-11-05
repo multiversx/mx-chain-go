@@ -31,7 +31,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 		Value:    big.NewInt(0),
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  vm.CreateEmptyAddress().Bytes(),
-		Data:     string(scCode) + "@" + hex.EncodeToString(factory.IELEVirtualMachine),
+		Data:     []byte(string(scCode) + "@" + hex.EncodeToString(factory.IELEVirtualMachine)),
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}

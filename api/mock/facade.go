@@ -23,8 +23,8 @@ type Facade struct {
 	GetAccountHandler                              func(address string) (*state.Account, error)
 	GenerateTransactionHandler                     func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
-	CreateTransactionHandler                       func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
+	SendTransactionHandler                         func(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, data []byte, signature []byte) (string, error)
+	CreateTransactionHandler                       func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, challenge string) (*transaction.Transaction, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
@@ -95,7 +95,7 @@ func (f *Facade) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	data string,
+	data []byte,
 	signatureHex string,
 	challenge string,
 ) (*transaction.Transaction, error) {
@@ -109,8 +109,8 @@ func (f *Facade) GetTransaction(hash string) (*transaction.Transaction, error) {
 }
 
 // SendTransaction is the mock implementation of a handler's SendTransaction method
-func (f *Facade) SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error) {
-	return f.SendTransactionHandler(nonce, sender, receiver, value, gasPrice, gasLimit, code, signature)
+func (f *Facade) SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, data []byte, signature []byte) (string, error) {
+	return f.SendTransactionHandler(nonce, sender, receiver, value, gasPrice, gasLimit, data, signature)
 }
 
 // SendBulkTransactions is the mock implementation of a handler's SendBulkTransactions method

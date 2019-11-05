@@ -34,9 +34,8 @@ func (s TransactionCapn) GasPrice() uint64      { return C.Struct(s).Get64(8) }
 func (s TransactionCapn) SetGasPrice(v uint64)  { C.Struct(s).Set64(8, v) }
 func (s TransactionCapn) GasLimit() uint64      { return C.Struct(s).Get64(16) }
 func (s TransactionCapn) SetGasLimit(v uint64)  { C.Struct(s).Set64(16, v) }
-func (s TransactionCapn) Data() string          { return C.Struct(s).GetObject(3).ToText() }
-func (s TransactionCapn) DataBytes() []byte     { return C.Struct(s).GetObject(3).ToDataTrimLastByte() }
-func (s TransactionCapn) SetData(v string)      { C.Struct(s).SetObject(3, s.Segment.NewText(v)) }
+func (s TransactionCapn) Data() []byte          { return C.Struct(s).GetObject(3).ToData() }
+func (s TransactionCapn) SetData(v []byte)      { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
 func (s TransactionCapn) Signature() []byte     { return C.Struct(s).GetObject(4).ToData() }
 func (s TransactionCapn) SetSignature(v []byte) { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
 func (s TransactionCapn) Challenge() []byte     { return C.Struct(s).GetObject(5).ToData() }

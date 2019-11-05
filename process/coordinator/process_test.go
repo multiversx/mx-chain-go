@@ -1624,15 +1624,15 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
-		Data:  string(txHash1),
+		Data:  txHash1,
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
-		Data:  string(txHash2),
+		Data:  txHash2,
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
-		Data:  string(txHash3),
+		Data:  txHash3,
 	}, cacheId)
 
 	tx1ExecutionResult := uint64(0)
@@ -1660,13 +1660,13 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
-				if transaction.Data == string(txHash1) {
+				if bytes.Equal(transaction.Data, txHash1) {
 					tx1ExecutionResult = transaction.Nonce
 				}
-				if transaction.Data == string(txHash2) {
+				if bytes.Equal(transaction.Data, txHash2) {
 					tx2ExecutionResult = transaction.Nonce
 				}
-				if transaction.Data == string(txHash3) {
+				if bytes.Equal(transaction.Data, txHash3) {
 					tx3ExecutionResult = transaction.Nonce
 				}
 
@@ -1737,15 +1737,15 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
-		Data:  string(txHash1),
+		Data:  txHash1,
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
-		Data:  string(txHash2),
+		Data:  txHash2,
 	}, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
-		Data:  string(txHash3),
+		Data:  txHash3,
 	}, cacheId)
 
 	currentJournalLen := 445
@@ -1775,7 +1775,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction, round uint64) error {
-				if transaction.Data == string(txHash2) {
+				if bytes.Equal(transaction.Data, txHash2) {
 					return process.ErrHigherNonceInTransaction
 				}
 				return nil

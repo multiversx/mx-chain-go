@@ -422,8 +422,8 @@ type ArgumentsParser interface {
 	GetFunction() (string, error)
 	ParseData(data string) error
 
-	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
-	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) []byte
+	GetStorageUpdates(data []byte) ([]*vmcommon.StorageUpdate, error)
 	IsInterfaceNil() bool
 }
 
@@ -475,7 +475,7 @@ type FeeHandler interface {
 type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64
 	GetGasPrice() uint64
-	GetData() string
+	GetData() []byte
 }
 
 // EconomicsAddressesHandler will return information about economics addresses

@@ -630,7 +630,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	txshardInfo := txShardInfo{0, 0}
 	smartcr := smartContractResult.SmartContractResult{
 		Nonce: 1,
-		Data:  "tx",
+		Data:  []byte("tx"),
 	}
 
 	scr.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&smartcr, &txshardInfo}

@@ -15,7 +15,7 @@ type SmartContractResult struct {
 	RcvAddr []byte   `capid:"2" json:"receiver"`
 	SndAddr []byte   `capid:"3" json:"sender"`
 	Code    []byte   `capid:"4" json:"code,omitempty"`
-	Data    string   `capid:"5" json:"data,omitempty"`
+	Data    []byte   `capid:"5" json:"data,omitempty"`
 	TxHash  []byte   `capid:"6" json:"txHash"`
 }
 
@@ -58,7 +58,7 @@ func SmartContractResultCapnToGo(src capnp.SmartContractResultCapn, dest *SmartC
 
 	dest.RcvAddr = src.RcvAddr()
 	dest.SndAddr = src.SndAddr()
-	dest.Data = string(src.Data())
+	dest.Data = src.Data()
 	dest.Code = src.Code()
 	dest.TxHash = src.TxHash()
 
@@ -97,7 +97,7 @@ func (scr *SmartContractResult) GetNonce() uint64 {
 }
 
 // GetData returns the data of the smart contract result
-func (scr *SmartContractResult) GetData() string {
+func (scr *SmartContractResult) GetData() []byte {
 	return scr.Data
 }
 
@@ -127,7 +127,7 @@ func (scr *SmartContractResult) SetValue(value *big.Int) {
 }
 
 // SetData sets the data of the smart contract result
-func (scr *SmartContractResult) SetData(data string) {
+func (scr *SmartContractResult) SetData(data []byte) {
 	scr.Data = data
 }
 

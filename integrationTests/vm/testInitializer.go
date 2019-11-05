@@ -278,7 +278,7 @@ func CreateTx(
 		Value:    value,
 		SndAddr:  senderAddressBytes,
 		RcvAddr:  receiverAddressBytes,
-		Data:     txData,
+		Data:     []byte(txData),
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}

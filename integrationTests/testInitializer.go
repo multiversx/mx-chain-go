@@ -681,7 +681,7 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 		return tx.Nonce
 	}
 
-	buff, _ := hex.DecodeString(txHandler.GetData())
+	buff := txHandler.GetData()
 	return binary.BigEndian.Uint64(buff)
 }
 
@@ -788,7 +788,7 @@ func generateTransferTx(
 		Value:    valToTransfer,
 		RcvAddr:  receiverPubKeyBytes,
 		SndAddr:  skToPk(senderPrivateKey),
-		Data:     "",
+		Data:     []byte(""),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
@@ -811,7 +811,7 @@ func generateTx(
 		SndAddr:  args.sndAddr,
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
-		Data:     args.data,
+		Data:     []byte(args.data),
 	}
 	txBuff, _ := TestMarshalizer.Marshal(tx)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)

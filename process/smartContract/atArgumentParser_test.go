@@ -175,7 +175,7 @@ func TestAtArgumentParser_CreateDataFromStorageUpdate(t *testing.T) {
 
 	data = parser.CreateDataFromStorageUpdate(stUpdates)
 
-	assert.Equal(t, result, data)
+	assert.Equal(t, result, string(data))
 }
 
 func TestAtArgumentParser_GetStorageUpdatesEmptyData(t *testing.T) {
@@ -185,7 +185,7 @@ func TestAtArgumentParser_GetStorageUpdatesEmptyData(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	stUpdates, err := parser.GetStorageUpdates("")
+	stUpdates, err := parser.GetStorageUpdates([]byte(""))
 
 	assert.Nil(t, stUpdates)
 	assert.Equal(t, process.ErrStringSplitFailed, err)
@@ -211,7 +211,7 @@ func TestAtArgumentParser_GetStorageUpdatesWrongData(t *testing.T) {
 	result = result + sep
 	result = result + test
 
-	stUpdates, err := parser.GetStorageUpdates(result)
+	stUpdates, err := parser.GetStorageUpdates([]byte(result))
 
 	assert.Nil(t, stUpdates)
 	assert.Equal(t, process.ErrInvalidDataInput, err)
@@ -238,7 +238,7 @@ func TestAtArgumentParser_GetStorageUpdates(t *testing.T) {
 	result = result + test
 	result = result + sep
 	result = result + test
-	stUpdates, err := parser.GetStorageUpdates(result)
+	stUpdates, err := parser.GetStorageUpdates([]byte(result))
 
 	assert.Nil(t, err)
 	for i := 0; i < 2; i++ {

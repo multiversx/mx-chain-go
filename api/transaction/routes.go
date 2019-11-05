@@ -13,8 +13,8 @@ import (
 
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
-	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
-	SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
+	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, challenge string) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, txData []byte, signature []byte) (string, error)
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	IsInterfaceNil() bool
@@ -40,7 +40,7 @@ type SendTxRequest struct {
 	Sender    string `form:"sender" json:"sender"`
 	Receiver  string `form:"receiver" json:"receiver"`
 	Value     string `form:"value" json:"value"`
-	Data      string `form:"data" json:"data"`
+	Data      []byte `form:"data" json:"data"`
 	Nonce     uint64 `form:"nonce" json:"nonce"`
 	GasPrice  uint64 `form:"gasPrice" json:"gasPrice"`
 	GasLimit  uint64 `form:"gasLimit" json:"gasLimit"`

@@ -237,7 +237,7 @@ func (n *Node) generateAndSignSingleTx(
 		GasPrice: 10,
 		RcvAddr:  rcvAddrBytes,
 		SndAddr:  sndAddrBytes,
-		Data:     data,
+		Data:     []byte(data),
 	}
 
 	marshalizedTx, err := n.marshalizer.Marshal(&tx)

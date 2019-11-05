@@ -707,7 +707,7 @@ func buildRewardTransaction(
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
 		GasLimit:      0,
-		Data:          "",
+		Data:          []byte(""),
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",

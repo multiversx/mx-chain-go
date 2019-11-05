@@ -208,7 +208,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	err := sc.argsParser.ParseData(tx.Data)
+	err := sc.argsParser.ParseData(string(tx.Data))
 	if err != nil {
 		return err
 	}
