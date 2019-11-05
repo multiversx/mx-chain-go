@@ -21,8 +21,8 @@ func NewNodeApiResolver(scDataGetter ScDataGetter, statusMetricsHandler StatusMe
 	}, nil
 }
 
-// GetVMOutput retrieves data stored in a SC account through a VM
-func (nar *NodeApiResolver) GetVMOutput(address string, funcName string, argsBuff ...[]byte) (interface{}, error) {
+// SimulateRunSmartContractFunction retrieves data stored in a SC account through a VM
+func (nar *NodeApiResolver) SimulateRunSmartContractFunction(address string, funcName string, argsBuff ...[]byte) (interface{}, error) {
 	return nar.scDataGetter.Get([]byte(address), funcName, argsBuff...)
 }
 

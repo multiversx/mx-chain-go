@@ -233,9 +233,9 @@ func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return ef.apiResolver.StatusMetrics()
 }
 
-// GetVMOutput retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) GetVMOutput(address string, funcName string, argsBuff ...[]byte) (interface{}, error) {
-	return ef.apiResolver.GetVMOutput(address, funcName, argsBuff...)
+// SimulateRunSmartContractFunction retrieves data from existing SC trie
+func (ef *ElrondNodeFacade) SimulateRunSmartContractFunction(address string, funcName string, argsBuff ...[]byte) (interface{}, error) {
+	return ef.apiResolver.SimulateRunSmartContractFunction(address, funcName, argsBuff...)
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application

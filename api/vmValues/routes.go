@@ -13,7 +13,7 @@ import (
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	GetVMOutput(address string, funcName string, argsBuff ...[]byte) (interface{}, error)
+	SimulateRunSmartContractFunction(address string, funcName string, argsBuff ...[]byte) (interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -70,7 +70,7 @@ func GetVMValueAsBigInt(context *gin.Context) {
 func SimulateRunFunction(context *gin.Context) {
 	vmOutput, err := doSimulateRunFunction(context)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("GetVMOutput: %s", err)})
+		context.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("SimulateRunSmartContractFunction: %s", err)})
 		return
 	}
 
@@ -118,7 +118,7 @@ func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
 	}
 
-	vmOutput, err := facade.GetVMOutput(string(adrBytes), request.FuncName, argsBuff...)
+	vmOutput, err := facade.SimulateRunSmartContractFunction(string(adrBytes), request.FuncName, argsBuff...)
 	if err != nil {
 		return nil, err
 	}

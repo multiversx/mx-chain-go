@@ -28,7 +28,7 @@ type Facade struct {
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	GetDataValueHandler                            func(address string, funcName string, argsBuff ...[]byte) (interface{}, error)
+	SimulateRunSmartContractFunctionHandler        func(address string, funcName string, argsBuff ...[]byte) (interface{}, error)
 	StatusMetricsHandler                           func() external.StatusMetricsHandler
 }
 
@@ -128,9 +128,9 @@ func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, val
 	return f.GenerateAndSendBulkTransactionsOneByOneHandler(destination, value, nrTransactions)
 }
 
-// GetVMOutput is a mock implementation.
-func (f *Facade) GetVMOutput(address string, funcName string, argsBuff ...[]byte) (interface{}, error) {
-	return f.GetDataValueHandler(address, funcName, argsBuff...)
+// SimulateRunSmartContractFunction is a mock implementation.
+func (f *Facade) SimulateRunSmartContractFunction(address string, funcName string, argsBuff ...[]byte) (interface{}, error) {
+	return f.SimulateRunSmartContractFunctionHandler(address, funcName, argsBuff...)
 }
 
 // StatusMetrics is the mock implementation for the StatusMetrics
