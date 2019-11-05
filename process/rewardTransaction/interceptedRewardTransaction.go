@@ -14,15 +14,15 @@ import (
 
 // InterceptedRewardTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedRewardTransaction struct {
-	rTx                      *rewardTx.RewardTx
-	marshalizer              marshal.Marshalizer
-	hasher                   hashing.Hasher
-	addrConv                 state.AddressConverter
-	coordinator              sharding.Coordinator
-	hash                     []byte
-	rcvShard                 uint32
-	sndShard                 uint32
-	isAddressedToOtherShards bool
+	rTx               *rewardTx.RewardTx
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	addrConv          state.AddressConverter
+	coordinator       sharding.Coordinator
+	hash              []byte
+	rcvShard          uint32
+	sndShard          uint32
+	isForCurrentShard bool
 }
 
 // NewInterceptedRewardTransaction returns a new instance of InterceptedRewardTransaction
@@ -69,16 +69,6 @@ func NewInterceptedRewardTransaction(
 		return nil, err
 	}
 
-	err = inRewardTx.integrity()
-	if err != nil {
-		return nil, err
-	}
-
-	err = inRewardTx.verifyIfNotarized(inRewardTx.hash)
-	if err != nil {
-		return nil, err
-	}
-
 	return inRewardTx, nil
 }
 
@@ -93,8 +83,9 @@ func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) er
 	inRTx.rcvShard = inRTx.coordinator.ComputeId(rcvAddr)
 	inRTx.sndShard = inRTx.rTx.ShardId
 
-	inRTx.isAddressedToOtherShards = inRTx.rcvShard != inRTx.coordinator.SelfId() &&
-		inRTx.sndShard != inRTx.coordinator.SelfId()
+	isForCurrentShardRecv := inRTx.rcvShard == inRTx.coordinator.SelfId()
+	isForCurrentShardSender := inRTx.sndShard == inRTx.coordinator.SelfId()
+	inRTx.isForCurrentShard = isForCurrentShardRecv || isForCurrentShardSender
 
 	return nil
 }
@@ -116,34 +107,63 @@ func (inRTx *InterceptedRewardTransaction) integrity() error {
 	return nil
 }
 
-// verifyIfNotarized checks if the rewardTx was already notarized
-func (inRTx *InterceptedRewardTransaction) verifyIfNotarized(rTxBuff []byte) error {
-	// TODO: implement this for flood protection purposes
-	// could verify if the epoch/round is behind last committed metachain block
+// Nonce returns the transaction nonce
+func (inRTx *InterceptedRewardTransaction) Nonce() uint64 {
+	return inRTx.rTx.GetNonce()
+}
+
+// TotalValue returns the maximum cost of transaction
+// totalValue = txValue + gasPrice*gasLimit
+func (inRTx *InterceptedRewardTransaction) TotalValue() *big.Int {
+	copiedVal := big.NewInt(0).Set(inRTx.rTx.Value)
+	return copiedVal
+}
+
+// SenderAddress returns the transaction sender address
+func (inRTx *InterceptedRewardTransaction) SenderAddress() state.AddressContainer {
 	return nil
 }
 
-// RcvShard returns the receiver shard
-func (inRTx *InterceptedRewardTransaction) RcvShard() uint32 {
+// ReceiverShardId returns the receiver shard
+func (inRTx *InterceptedRewardTransaction) ReceiverShardId() uint32 {
 	return inRTx.rcvShard
 }
 
-// SndShard returns the sender shard
-func (inRTx *InterceptedRewardTransaction) SndShard() uint32 {
+// SenderShardId returns the sender shard
+func (inRTx *InterceptedRewardTransaction) SenderShardId() uint32 {
 	return inRTx.sndShard
 }
 
-// IsAddressedToOtherShards returns true if this transaction is not meant to be processed by the node from this shard
-func (inRTx *InterceptedRewardTransaction) IsAddressedToOtherShards() bool {
-	return inRTx.isAddressedToOtherShards
-}
-
-// RewardTransaction returns the reward transaction pointer that actually holds the data
-func (inRTx *InterceptedRewardTransaction) RewardTransaction() data.TransactionHandler {
+// Transaction returns the reward transaction pointer that actually holds the data
+func (inRTx *InterceptedRewardTransaction) Transaction() data.TransactionHandler {
 	return inRTx.rTx
 }
 
 // Hash gets the hash of this transaction
 func (inRTx *InterceptedRewardTransaction) Hash() []byte {
 	return inRTx.hash
+}
+
+// CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
+func (inRTx *InterceptedRewardTransaction) CheckValidity() error {
+	err := inRTx.integrity()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// IsForCurrentShard returns true if this transaction is meant to be processed by the node from this shard
+func (inRTx *InterceptedRewardTransaction) IsForCurrentShard() bool {
+	return inRTx.isForCurrentShard
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (inRTx *InterceptedRewardTransaction) IsInterfaceNil() bool {
+	if inRTx == nil {
+		return true
+	}
+
+	return false
 }

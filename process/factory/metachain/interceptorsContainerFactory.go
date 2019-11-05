@@ -211,10 +211,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		return nil, nil, err
 	}
 
-	hdrFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedMetaHeader,
-	)
+	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -279,10 +276,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 		return nil, err
 	}
 
-	hdrFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedShardHeader,
-	)
+	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -360,10 +354,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (p
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedTx,
-	)
+	txFactory, err := interceptorFactory.NewInterceptedTxDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -426,10 +417,7 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedTxBlockBody,
-	)
+	txFactory, err := interceptorFactory.NewInterceptedTxBlockBodyDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}

@@ -107,7 +107,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		nonce++
 	}
 
-	time.Sleep(4 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	verifyRewardsForShards(t, nodesMap, mapRewardsForShardAddresses, nbTxsForLeaderAddress, gasPrice, gasLimit)
 	verifyRewardsForMetachain(t, mapRewardsForMetachainAddresses, nodesMap)
