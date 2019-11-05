@@ -13,7 +13,7 @@ import (
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	SimulateRunSmartContractFunction(address string, funcName string, argsBuff ...[]byte) (interface{}, error)
+	SimulateRunSmartContractFunction(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -118,7 +118,7 @@ func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
 	}
 
-	vmOutput, err := facade.SimulateRunSmartContractFunction(string(adrBytes), request.FuncName, argsBuff...)
+	vmOutput, err := facade.SimulateRunSmartContractFunction(adrBytes, request.FuncName, argsBuff...)
 	if err != nil {
 		return nil, err
 	}

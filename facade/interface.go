@@ -69,7 +69,7 @@ type NodeWrapper interface {
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
-	SimulateRunSmartContractFunction(address string, funcName string, argsBuff ...[]byte) (interface{}, error)
+	SimulateRunSmartContractFunction(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }

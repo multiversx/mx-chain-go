@@ -234,7 +234,7 @@ func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // SimulateRunSmartContractFunction retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) SimulateRunSmartContractFunction(address string, funcName string, argsBuff ...[]byte) (interface{}, error) {
+func (ef *ElrondNodeFacade) SimulateRunSmartContractFunction(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error) {
 	return ef.apiResolver.SimulateRunSmartContractFunction(address, funcName, argsBuff...)
 }
 

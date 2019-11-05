@@ -22,8 +22,8 @@ func NewNodeApiResolver(scDataGetter ScDataGetter, statusMetricsHandler StatusMe
 }
 
 // SimulateRunSmartContractFunction retrieves data stored in a SC account through a VM
-func (nar *NodeApiResolver) SimulateRunSmartContractFunction(address string, funcName string, argsBuff ...[]byte) (interface{}, error) {
-	return nar.scDataGetter.Get([]byte(address), funcName, argsBuff...)
+func (nar *NodeApiResolver) SimulateRunSmartContractFunction(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error) {
+	return nar.scDataGetter.Get(address, funcName, argsBuff...)
 }
 
 // StatusMetrics returns an implementation of the StatusMetricsHandler interface
