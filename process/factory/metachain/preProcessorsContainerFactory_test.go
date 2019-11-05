@@ -18,11 +18,12 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -37,11 +38,12 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Equal(t, process.ErrNilStore, err)
@@ -56,11 +58,12 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.ChainStorerMock{},
 		nil,
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -75,11 +78,12 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		nil,
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -99,6 +103,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -113,11 +118,12 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		nil,
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -132,11 +138,12 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		nil,
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -151,11 +158,12 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		nil,
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -170,13 +178,33 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		nil,
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilMiniBlocksCompacter(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		mock.NewMetaPoolsHolderFake(),
+		&mock.AccountsStub{},
+		&mock.RequestHandlerMock{},
+		&mock.TxProcessorMock{},
+		&mock.FeeHandlerStub{},
+		nil,
+	)
+	assert.Equal(t, process.ErrNilMiniBlocksCompacter, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -188,11 +216,12 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Nil(t, err)
@@ -202,7 +231,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := &mock.MetaPoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -217,6 +246,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Nil(t, err)
@@ -230,36 +260,17 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		}
-	}
-	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		}
-	}
-	dataPool.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
-			},
-		}
-	}
-
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		dataPool,
+		mock.NewMetaPoolsHolderFake(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
 		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
 	)
 
 	assert.Nil(t, err)

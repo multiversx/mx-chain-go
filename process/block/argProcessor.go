@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -29,6 +30,7 @@ type ArgBaseProcessor struct {
 	Core                  serviceContainer.Core
 	BlockChainHook        process.BlockChainHookHandler
 	TxCoordinator         process.TransactionCoordinator
+	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -43,5 +45,8 @@ type ArgShardProcessor struct {
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	DataPool dataRetriever.MetaPoolsHolder
+	DataPool           dataRetriever.MetaPoolsHolder
+	SCDataGetter       external.ScDataGetter
+	PeerChangesHandler process.PeerChangesHandler
+	SCToProtocol       process.SmartContractToProtocolHandler
 }

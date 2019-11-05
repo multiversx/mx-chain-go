@@ -392,8 +392,19 @@ func (bh *BlockChainHookImpl) getAccountFromTemporaryAccounts(address []byte) (s
 // AddTempAccount will add a temporary account in temporary store
 func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, nonce uint64) {
 	bh.mutTempAccounts.Lock()
-	bh.tempAccounts[string(address)] = &state.Account{Balance: balance, Nonce: nonce}
-	bh.mutTempAccounts.Unlock()
+	defer bh.mutTempAccounts.Unlock()
+
+	accTracker := &TempAccountTracker{}
+	addrContainer := state.NewAddress(address)
+	account, err := state.NewAccount(addrContainer, accTracker)
+	if err != nil {
+		return
+	}
+
+	account.Balance = balance
+	account.Nonce = nonce
+
+	bh.tempAccounts[string(address)] = account
 }
 
 // CleanTempAccounts cleans the map holding the temporary accounts

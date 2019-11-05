@@ -1,12 +1,13 @@
 package shard
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {

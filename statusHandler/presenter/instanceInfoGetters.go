@@ -3,6 +3,7 @@ package presenter
 import (
 	"math"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -51,6 +52,18 @@ func (psh *PresenterStatusHandler) GetCountLeader() uint64 {
 // GetCountAcceptedBlocks will return count of how many accepted blocks was proposed by the node
 func (psh *PresenterStatusHandler) GetCountAcceptedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricCountAcceptedBlocks)
+}
+
+// CheckSoftwareVersion will check if node is the latest version and will return latest stable version
+func (psh *PresenterStatusHandler) CheckSoftwareVersion() (bool, string) {
+	latestStableVersion := psh.getFromCacheAsString(core.MetricLatestTagSoftwareVersion)
+	appVersion := psh.getFromCacheAsString(core.MetricAppVersion)
+
+	if strings.Contains(appVersion, latestStableVersion) || latestStableVersion == "" {
+		return false, latestStableVersion
+	}
+
+	return true, latestStableVersion
 }
 
 // GetNodeName will return node's display name

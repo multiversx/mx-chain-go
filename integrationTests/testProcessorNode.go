@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -43,7 +44,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -113,13 +113,13 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	VmProcessor            vmcommon.VMExecutionHandler
-	VmDataGetter           vmcommon.VMExecutionHandler
-	BlockchainHook         vmcommon.BlockchainHook
+	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
+	MiniBlocksCompacter    process.MiniBlocksCompacter
+	BlockChainHookImpl     process.BlockChainHookHandler
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -226,8 +226,9 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
+	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
@@ -273,6 +274,10 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 			FeeSettings: config.FeeSettings{
 				MinGasPrice: mingGasPrice,
 				MinGasLimit: minGasLimit,
+			},
+			ValidatorSettings: config.ValidatorSettings{
+				StakeValue:    "500",
+				UnBoundPeriod: "1000",
 			},
 		},
 	)
@@ -410,22 +415,34 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		rewardsInter,
 	)
 
-	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
-	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         tpn.AccntState,
+		AddrConv:         TestAddressConverter,
+		StorageService:   tpn.Storage,
+		BlockChain:       tpn.BlockChain,
+		ShardCoordinator: tpn.ShardCoordinator,
+		Marshalizer:      TestMarshalizer,
+		Uint64Converter:  TestUint64Converter,
+	}
 
-	vmContainer := &mock.VMContainerMock{
-		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-			return tpn.VmProcessor, nil
-		}}
+	var vmFactory process.VirtualMachinesContainerFactory
+	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData)
+	} else {
+		vmFactory, _ = shard.NewVMContainerFactory(argsHook)
+	}
+
+	tpn.VMContainer, _ = vmFactory.Create()
+	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
-		vmContainer,
+		tpn.VMContainer,
 		tpn.ArgsParser,
 		TestHasher,
 		TestMarshalizer,
 		tpn.AccntState,
-		tpn.BlockchainHook.(*hooks.BlockChainHookImpl),
+		vmFactory.BlockChainHookImpl(),
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
@@ -446,6 +463,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 	)
 
+	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator)
+
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -461,13 +480,14 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.RewardsProcessor,
 		internalTxProducer,
 		tpn.EconomicsData,
+		tpn.MiniBlocksCompacter,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		tpn.ShardDataPool,
+		tpn.ShardDataPool.MiniBlocks(),
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
@@ -490,32 +510,36 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:              tpn.AccntState,
-		ForkDetector:          tpn.ForkDetector,
-		Hasher:                TestHasher,
-		Marshalizer:           TestMarshalizer,
-		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator,
-		NodesCoordinator:      tpn.NodesCoordinator,
-		SpecialAddressHandler: tpn.SpecialAddressHandler,
-		Uint64Converter:       TestUint64Converter,
-		StartHeaders:          tpn.GenesisBlocks,
-		RequestHandler:        tpn.RequestHandler,
-		Core:                  nil,
-		BlockChainHook:        &mock.BlockChainHookHandlerMock{},
+		Accounts:                     tpn.AccntState,
+		ForkDetector:                 tpn.ForkDetector,
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		Store:                        tpn.Storage,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		NodesCoordinator:             tpn.NodesCoordinator,
+		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		Uint64Converter:              TestUint64Converter,
+		StartHeaders:                 tpn.GenesisBlocks,
+		RequestHandler:               tpn.RequestHandler,
+		Core:                         nil,
+		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor: argumentsBase,
-			DataPool:         tpn.MetaDataPool,
+			ArgBaseProcessor:   argumentsBase,
+			DataPool:           tpn.MetaDataPool,
+			SCDataGetter:       &mock.ScDataGetterMock{},
+			SCToProtocol:       &mock.SCToProtocolStub{},
+			PeerChangesHandler: &mock.PeerChangesHandler{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		argumentsBase.BlockChainHook = tpn.BlockchainHook.(process.BlockChainHookHandler)
+		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
@@ -708,7 +732,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
-	_ = tpn.BroadcastMessenger.BroadcastHeader(header)
+	_ = tpn.BroadcastMessenger.BroadcastShardHeader(header)
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)

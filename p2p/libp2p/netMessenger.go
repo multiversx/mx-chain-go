@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -33,6 +34,8 @@ const ttlPeersOnTopic = time.Second * 120
 
 const pubsubTimeCacheDuration = 10 * time.Minute
 
+const broadcastGoRoutines = 1000
+
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 //64kB
@@ -41,15 +44,16 @@ var maxSendBuffSize = (1 << 20) - messageHeader
 var log = logger.DefaultLogger()
 
 type networkMessenger struct {
-	ctxProvider    *Libp2pContext
-	pb             *pubsub.PubSub
-	ds             p2p.DirectSender
-	connMonitor    *libp2pConnectionMonitor
-	peerDiscoverer p2p.PeerDiscoverer
-	mutTopics      sync.RWMutex
-	topics         map[string]p2p.MessageProcessor
-	outgoingPLB    p2p.ChannelLoadBalancer
-	poc            *peersOnChannel
+	ctxProvider         *Libp2pContext
+	pb                  *pubsub.PubSub
+	ds                  p2p.DirectSender
+	connMonitor         *libp2pConnectionMonitor
+	peerDiscoverer      p2p.PeerDiscoverer
+	mutTopics           sync.RWMutex
+	topics              map[string]p2p.MessageProcessor
+	outgoingPLB         p2p.ChannelLoadBalancer
+	poc                 *peersOnChannel
+	goRoutinesThrottler *throttler.NumGoRoutineThrottler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -109,6 +113,14 @@ func NewNetworkMessenger(
 		log.LogIfError(h.Close())
 		return nil, err
 	}
+
+	goRoutinesThrottler, err := throttler.NewNumGoRoutineThrottler(broadcastGoRoutines)
+	if err != nil {
+		log.LogIfError(h.Close())
+		return nil, err
+	}
+
+	p2pNode.goRoutinesThrottler = goRoutinesThrottler
 
 	return p2pNode, nil
 }
@@ -376,22 +388,34 @@ func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBal
 
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
-func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
+func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
 	if len(buff) > maxSendBuffSize {
-		log.Error(fmt.Sprintf("Broadcast: message too large on topic '%s'", channel))
-		return
+		return p2p.ErrMessageTooLarge
 	}
+
+	if !netMes.goRoutinesThrottler.CanProcess() {
+		return p2p.ErrTooManyGoroutines
+	}
+
+	netMes.goRoutinesThrottler.StartProcessing()
 
 	sendable := &p2p.SendableData{
 		Buff:  buff,
 		Topic: topic,
 	}
 	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
+	netMes.goRoutinesThrottler.EndProcessing()
+	return nil
 }
 
 // BroadcastOnChannel tries to send a byte buffer onto a topic using provided channel
 func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	go netMes.BroadcastOnChannelBlocking(channel, topic, buff)
+	go func() {
+		err := netMes.BroadcastOnChannelBlocking(channel, topic, buff)
+		if err != nil {
+			log.Error(fmt.Sprintf("Broadcast: '%s'", err))
+		}
+	}()
 }
 
 // Broadcast tries to send a byte buffer onto a topic using the topic name as channel
@@ -408,24 +432,19 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 	validator, found := netMes.topics[topic]
-
 	if !found {
 		return p2p.ErrNilTopic
 	}
-
 	if validator != nil {
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
-	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		broadcastCallbackHandler, ok := handler.(p2p.BroadcastCallbackHandler)
-		if ok {
-			broadcastCallbackHandler.SetBroadcastCallback(func(buffToSend []byte) {
-				netMes.Broadcast(topic, buffToSend)
-			})
-		}
+	broadcastHandler := func(buffToSend []byte) {
+		netMes.Broadcast(topic, buffToSend)
+	}
 
-		err := handler.ProcessReceivedMessage(NewMessage(message))
+	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+		err := handler.ProcessReceivedMessage(NewMessage(message), broadcastHandler)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -480,7 +499,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}
 
 	go func(msg p2p.MessageP2P) {
-		err := processor.ProcessReceivedMessage(msg)
+		err := processor.ProcessReceivedMessage(msg, nil)
 
 		if err != nil {
 			log.Debug(err.Error())

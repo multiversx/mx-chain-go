@@ -12,10 +12,11 @@ import (
 
 func TestPeerData_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
-		PublicKey: []byte("public key"),
-		Action:    block.PeerRegistrantion,
-		TimeStamp: uint64(1234),
-		Value:     big.NewInt(1),
+		PublicKey:   []byte("public key"),
+		Action:      block.PeerRegistrantion,
+		TimeStamp:   uint64(1234),
+		ValueChange: big.NewInt(1),
+		Address:     []byte("address"),
 	}
 	var b bytes.Buffer
 	_ = pd.Save(&b)
@@ -39,6 +40,9 @@ func TestShardData_SaveLoad(t *testing.T) {
 		ShardID:               uint32(10),
 		HeaderHash:            []byte("header_hash"),
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+		PubKeysBitmap:         []byte{1},
+		Signature:             []byte{1},
+		PrevRandSeed:          []byte{1},
 		TxCount:               uint32(1),
 	}
 
@@ -53,10 +57,11 @@ func TestShardData_SaveLoad(t *testing.T) {
 
 func TestMetaBlock_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
-		PublicKey: []byte("public key"),
-		Action:    block.PeerRegistrantion,
-		TimeStamp: uint64(1234),
-		Value:     big.NewInt(1),
+		Address:     []byte("address"),
+		PublicKey:   []byte("public key"),
+		Action:      block.PeerRegistrantion,
+		TimeStamp:   uint64(1234),
+		ValueChange: big.NewInt(1),
 	}
 
 	mbh := block.ShardMiniBlockHeader{
@@ -71,6 +76,9 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		HeaderHash:            []byte("header_hash"),
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 		TxCount:               uint32(1),
+		PubKeysBitmap:         []byte("pkb"),
+		Signature:             []byte("sig"),
+		PrevRandSeed:          []byte("rand"),
 	}
 
 	mbHdr := block.MiniBlockHeader{

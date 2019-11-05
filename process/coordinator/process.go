@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -41,7 +40,7 @@ var log = logger.DefaultLogger()
 func NewTransactionCoordinator(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	dataPool dataRetriever.PoolsHolder,
+	miniBlockPool storage.Cacher,
 	requestHandler process.RequestHandler,
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
@@ -52,8 +51,8 @@ func NewTransactionCoordinator(
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if dataPool == nil || dataPool.IsInterfaceNil() {
-		return nil, process.ErrNilDataPoolHolder
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
+		return nil, process.ErrNilMiniBlockPool
 	}
 	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
@@ -70,11 +69,7 @@ func NewTransactionCoordinator(
 		accounts:         accounts,
 	}
 
-	tc.miniBlockPool = dataPool.MiniBlocks()
-	if tc.miniBlockPool == nil || tc.miniBlockPool.IsInterfaceNil() {
-		return nil, process.ErrNilMiniBlockPool
-	}
-
+	tc.miniBlockPool = miniBlockPool
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
@@ -417,7 +412,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			return miniBlocks, nrTxAdded, false
 		}
 
-		requestedTxs := preproc.RequestTransactionsForMiniBlock(*miniBlock)
+		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
 		if requestedTxs > 0 {
 			continue
 		}
@@ -665,7 +660,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	miniBlock, ok := val.(block.MiniBlock)
+	miniBlock, ok := val.(*block.MiniBlock)
 	if !ok {
 		return
 	}

@@ -5,10 +5,11 @@ $Go.package("capnp");
 $Go.import("_");
 
 struct PeerDataCapn {
-    publicKey @0: Data;
-    action    @1: UInt8;
-    timestamp @2: UInt64;
-    value     @3: Data;
+    address   @0: Data;
+    publicKey @1: Data;
+    action    @2: UInt8;
+    timestamp @3: UInt64;
+    value     @4: Data;
 }
 
 struct ShardMiniBlockHeaderCapn {
@@ -22,24 +23,28 @@ struct ShardDataCapn {
     shardId               @0: UInt32;
     headerHash            @1: Data;
     shardMiniBlockHeaders @2: List(ShardMiniBlockHeaderCapn);
-    txCount               @3: UInt32;
+    prevRandSeed          @3:  Data;
+    pubKeysBitmap         @4: Data;
+    signature             @5: Data;
+    txCount               @6: UInt32;
 }
 
 struct MetaBlockCapn {
-    nonce            @0:  UInt64;
-    epoch            @1:  UInt32;
-    round            @2:  UInt64;
-    timeStamp        @3:  UInt64;
-    shardInfo        @4:  List(ShardDataCapn);
-    peerInfo         @5:  List(PeerDataCapn);
-    signature        @6:  Data;
-    pubKeysBitmap    @7:  Data;
-    prevHash         @8:  Data;
-    prevRandSeed     @9:  Data;
-    randSeed         @10: Data;
-    rootHash         @11: Data;
-    txCount          @12: UInt32;
-    miniBlockHeaders @13:  List(MiniBlockHeaderCapn);
+    nonce                  @0:  UInt64;
+    epoch                  @1:  UInt32;
+    round                  @2:  UInt64;
+    timeStamp              @3:  UInt64;
+    shardInfo              @4:  List(ShardDataCapn);
+    peerInfo               @5:  List(PeerDataCapn);
+    signature              @6:  Data;
+    pubKeysBitmap          @7:  Data;
+    prevHash               @8:  Data;
+    prevRandSeed           @9:  Data;
+    randSeed               @10: Data;
+    rootHash               @11: Data;
+    validatorStatsRootHash @12: Data;
+    txCount                @13: UInt32;
+    miniBlockHeaders       @14: List(MiniBlockHeaderCapn);
 }
 
 ##compile with:

@@ -11,6 +11,7 @@ type BlockChainHookStub struct {
 	IsCodeEmptyCalled    func(address []byte) (bool, error)
 	GetCodeCalled        func(address []byte) ([]byte, error)
 	GetBlockHashCalled   func(offset *big.Int) ([]byte, error)
+	CurrentNonceCalled   func() uint64
 }
 
 func (b *BlockChainHookStub) LastNonce() uint64 {
@@ -38,6 +39,9 @@ func (b *BlockChainHookStub) GetStateRootHash() []byte {
 }
 
 func (b *BlockChainHookStub) CurrentNonce() uint64 {
+	if b.CurrentNonceCalled != nil {
+		return b.CurrentNonceCalled()
+	}
 	return 0
 }
 

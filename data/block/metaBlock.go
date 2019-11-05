@@ -16,15 +16,30 @@ type PeerAction uint8
 // Constants mapping the actions that a node can take
 const (
 	PeerRegistrantion PeerAction = iota + 1
+	PeerUnstaking
 	PeerDeregistration
+	PeerJailed
+	PeerUnJailed
+	PeerSlashed
+	PeerReStake
 )
 
 func (pa PeerAction) String() string {
 	switch pa {
 	case PeerRegistrantion:
 		return "PeerRegistration"
+	case PeerUnstaking:
+		return "PeerUnstaking"
 	case PeerDeregistration:
 		return "PeerDeregistration"
+	case PeerJailed:
+		return "PeerJailed"
+	case PeerUnJailed:
+		return "PeerUnjailed"
+	case PeerSlashed:
+		return "PeerSlashed"
+	case PeerReStake:
+		return "PeerReStake"
 	default:
 		return fmt.Sprintf("Unknown type (%d)", pa)
 	}
@@ -34,10 +49,11 @@ func (pa PeerAction) String() string {
 //  - a peer can register with an amount to become a validator
 //  - a peer can choose to deregister and get back the deposited value
 type PeerData struct {
-	PublicKey []byte     `capid:"0"`
-	Action    PeerAction `capid:"1"`
-	TimeStamp uint64     `capid:"2"`
-	Value     *big.Int   `capid:"3"`
+	Address     []byte     `capid:"0"`
+	PublicKey   []byte     `capid:"1"`
+	Action      PeerAction `capid:"2"`
+	TimeStamp   uint64     `capid:"3"`
+	ValueChange *big.Int   `capid:"4"`
 }
 
 // ShardMiniBlockHeader holds data for one shard miniblock header
@@ -53,7 +69,10 @@ type ShardData struct {
 	ShardID               uint32                 `capid:"0"`
 	HeaderHash            []byte                 `capid:"1"`
 	ShardMiniBlockHeaders []ShardMiniBlockHeader `capid:"2"`
-	TxCount               uint32                 `capid:"3"`
+	PrevRandSeed          []byte                 `capid:"3"`
+	PubKeysBitmap         []byte                 `capid:"4"`
+	Signature             []byte                 `capid:"5"`
+	TxCount               uint32                 `capid:"6"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -70,8 +89,9 @@ type MetaBlock struct {
 	PrevRandSeed     []byte            `capid:"9"`
 	RandSeed         []byte            `capid:"10"`
 	RootHash         []byte            `capid:"11"`
-	TxCount          uint32            `capid:"12"`
-	MiniBlockHeaders []MiniBlockHeader `capid:"13"`
+	ValidatorStatsRootHash []byte      `capid:"12"`
+	TxCount          uint32            `capid:"13"`
+	MiniBlockHeaders []MiniBlockHeader `capid:"14"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -134,7 +154,8 @@ func (m *MetaBlock) Load(r io.Reader) error {
 // PeerDataGoToCapn is a helper function to copy fields from a Peer Data object to a PeerDataCapn object
 func PeerDataGoToCapn(seg *capn.Segment, src *PeerData) capnp.PeerDataCapn {
 	dest := capnp.AutoNewPeerDataCapn(seg)
-	value, _ := src.Value.GobEncode()
+	value, _ := src.ValueChange.GobEncode()
+	dest.SetAddress(src.Address)
 	dest.SetPublicKey(src.PublicKey)
 	dest.SetAction(uint8(src.Action))
 	dest.SetTimestamp(src.TimeStamp)
@@ -148,13 +169,14 @@ func PeerDataCapnToGo(src capnp.PeerDataCapn, dest *PeerData) *PeerData {
 	if dest == nil {
 		dest = &PeerData{}
 	}
-	if dest.Value == nil {
-		dest.Value = big.NewInt(0)
+	if dest.ValueChange == nil {
+		dest.ValueChange = big.NewInt(0)
 	}
+	dest.Address = src.Address()
 	dest.PublicKey = src.PublicKey()
 	dest.Action = PeerAction(src.Action())
 	dest.TimeStamp = src.Timestamp()
-	err := dest.Value.GobDecode(src.Value())
+	err := dest.ValueChange.GobDecode(src.Value())
 	if err != nil {
 		return nil
 	}
@@ -194,6 +216,9 @@ func ShardDataGoToCapn(seg *capn.Segment, src *ShardData) capnp.ShardDataCapn {
 
 	dest.SetShardId(src.ShardID)
 	dest.SetHeaderHash(src.HeaderHash)
+	dest.SetPrevRandSeed(src.PrevRandSeed)
+	dest.SetPubKeysBitmap(src.PubKeysBitmap)
+	dest.SetSignature(src.Signature)
 
 	// create the list of shardMiniBlockHeaders
 	if len(src.ShardMiniBlockHeaders) > 0 {
@@ -217,6 +242,9 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 	}
 	dest.ShardID = src.ShardId()
 	dest.HeaderHash = src.HeaderHash()
+	dest.PrevRandSeed = src.PrevRandSeed()
+	dest.PubKeysBitmap = src.PubKeysBitmap()
+	dest.Signature = src.Signature()
 
 	n := src.ShardMiniBlockHeaders().Len()
 	dest.ShardMiniBlockHeaders = make([]ShardMiniBlockHeader, n)
@@ -273,6 +301,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetPrevRandSeed(src.PrevRandSeed)
 	dest.SetRandSeed(src.RandSeed)
 	dest.SetRootHash(src.RootHash)
+	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
 	dest.SetTxCount(src.TxCount)
 
 	return dest
@@ -311,6 +340,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.PrevRandSeed = src.PrevRandSeed()
 	dest.RandSeed = src.RandSeed()
 	dest.RootHash = src.RootHash()
+	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 	dest.TxCount = src.TxCount()
 
 	return dest
@@ -344,6 +374,11 @@ func (m *MetaBlock) GetTimeStamp() uint64 {
 // GetRootHash returns the roothash from header
 func (m *MetaBlock) GetRootHash() []byte {
 	return m.RootHash
+}
+
+// GetValidatorStatsRootHash returns the root hash for the validator statistics trie at this current block
+func (m *MetaBlock) GetValidatorStatsRootHash() []byte {
+	return m.ValidatorStatsRootHash
 }
 
 // GetPrevHash returns previous block header hash
@@ -394,6 +429,11 @@ func (m *MetaBlock) SetRound(r uint64) {
 // SetRootHash sets root hash
 func (m *MetaBlock) SetRootHash(rHash []byte) {
 	m.RootHash = rHash
+}
+
+// SetValidatorStatsRootHash set's the root hash for the validator statistics trie
+func (m *MetaBlock) SetValidatorStatsRootHash(rHash []byte) {
+	m.ValidatorStatsRootHash = rHash
 }
 
 // SetPrevHash sets prev hash
