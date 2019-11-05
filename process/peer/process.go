@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -10,26 +11,28 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var log = logger.DefaultLogger()
+
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	InitialNodes       []*sharding.InitialNode
-	Marshalizer        marshal.Marshalizer
-	NodesCoordinator   sharding.NodesCoordinator
-	ShardCoordinator   sharding.Coordinator
-	DataPool           dataRetriever.MetaPoolsHolder
-	StorageService     dataRetriever.StorageService
-	AdrConv            state.AddressConverter
-	PeerAdapter        state.AccountsAdapter
+	InitialNodes     []*sharding.InitialNode
+	Marshalizer      marshal.Marshalizer
+	NodesCoordinator sharding.NodesCoordinator
+	ShardCoordinator sharding.Coordinator
+	DataPool         dataRetriever.MetaPoolsHolder
+	StorageService   dataRetriever.StorageService
+	AdrConv          state.AddressConverter
+	PeerAdapter      state.AccountsAdapter
 }
 
 type validatorStatistics struct {
-	marshalizer        marshal.Marshalizer
-	dataPool           dataRetriever.MetaPoolsHolder
-	storageService     dataRetriever.StorageService
-	nodesCoordinator   sharding.NodesCoordinator
-	shardCoordinator   sharding.Coordinator
-	adrConv            state.AddressConverter
-	peerAdapter        state.AccountsAdapter
+	marshalizer      marshal.Marshalizer
+	dataPool         dataRetriever.MetaPoolsHolder
+	storageService   dataRetriever.StorageService
+	nodesCoordinator sharding.NodesCoordinator
+	shardCoordinator sharding.Coordinator
+	adrConv          state.AddressConverter
+	peerAdapter      state.AccountsAdapter
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -58,13 +61,13 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	vs := &validatorStatistics{
-		peerAdapter:        arguments.PeerAdapter,
-		adrConv:            arguments.AdrConv,
-		nodesCoordinator:   arguments.NodesCoordinator,
-		shardCoordinator:   arguments.ShardCoordinator,
-		dataPool:           arguments.DataPool,
-		storageService:     arguments.StorageService,
-		marshalizer:        arguments.Marshalizer,
+		peerAdapter:      arguments.PeerAdapter,
+		adrConv:          arguments.AdrConv,
+		nodesCoordinator: arguments.NodesCoordinator,
+		shardCoordinator: arguments.ShardCoordinator,
+		dataPool:         arguments.DataPool,
+		storageService:   arguments.StorageService,
+		marshalizer:      arguments.Marshalizer,
 	}
 
 	err := vs.SaveInitialState(arguments.InitialNodes)
@@ -128,7 +131,12 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
-	err = p.checkForMissedBlocks(header, previousHeader)
+	err = p.checkForMissedBlocks(
+		header.GetRound(),
+		previousHeader.GetRound(),
+		previousHeader.GetRandSeed(),
+		previousHeader.GetShardID(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -151,13 +159,14 @@ func (p *validatorStatistics) RootHash() ([]byte, error) {
 	return p.peerAdapter.RootHash()
 }
 
-func (p *validatorStatistics) checkForMissedBlocks(currentHeader, previousHeader data.HeaderHandler) error {
-	if currentHeader.GetRound()-previousHeader.GetRound() <= 1 {
+func (p *validatorStatistics) checkForMissedBlocks(currentHeaderRound, previousHeaderRound uint64,
+	prevRandSeed []byte, shardId uint32) error {
+	if currentHeaderRound-previousHeaderRound <= 1 {
 		return nil
 	}
 
-	for i := previousHeader.GetRound() + 1; i < currentHeader.GetRound(); i++ {
-		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), i, previousHeader.GetShardID())
+	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
+		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
 		if err != nil {
 			return err
 		}
@@ -195,32 +204,34 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 	}
 
 	for _, h := range metaHeader.ShardInfo {
-		shardHeader, err := process.GetShardHeaderFromPool(h.HeaderHash, p.dataPool.ShardHeaders())
+
+		shardConsensus, err := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardId)
 		if err != nil {
 			return err
 		}
 
-		shardConsensus, err := p.nodesCoordinator.ComputeValidatorsGroup(shardHeader.GetPrevRandSeed(), shardHeader.GetRound(), shardHeader.GetShardID())
+		err = p.updateValidatorInfo(shardConsensus, h.ShardId)
 		if err != nil {
 			return err
 		}
 
-		err = p.updateValidatorInfo(shardConsensus, shardHeader.GetShardID())
-		if err != nil {
-			return err
-		}
-
-		if shardHeader.GetNonce() == 1 {
+		if h.Nonce == 1 {
 			continue
 		}
 
 		//previousHeader, err :=  p.getHeaderFromStorage(shardHeader.GetPrevHash())
-		previousHeader, err := process.GetShardHeader(shardHeader.GetPrevHash(), p.dataPool.ShardHeaders(), p.marshalizer, p.storageService)
+		previousHeader, err := process.GetShardHeader(h.PrevHash, p.dataPool.ShardHeaders(), p.marshalizer,
+			p.storageService)
 		if err != nil {
 			return err
 		}
 
-		err = p.checkForMissedBlocks(shardHeader, previousHeader)
+		err = p.checkForMissedBlocks(
+			h.Round,
+			previousHeader.GetRound(),
+			previousHeader.GetRandSeed(),
+			previousHeader.GetShardID(),
+		)
 		if err != nil {
 			return err
 		}

@@ -213,6 +213,8 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	log.Info("Updated metaPeerState to: " + string(validatorStatsRH))
+
 	return nil
 }
 
@@ -1048,38 +1050,42 @@ func (mp *metaProcessor) createShardInfo(
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for index := range orderedHdrs {
-		shId := orderedHdrs[index].ShardId
+		currentHeader := orderedHdrs[index]
+		shId := currentHeader.ShardId
 
 		lastHdr, ok := lastPushedHdr[shId].(*block.Header)
 		if !ok {
 			continue
 		}
 
-		isFinal, _ := mp.isShardHeaderValidFinal(orderedHdrs[index], lastHdr, sortedHdrPerShard[shId])
+		isFinal, _ := mp.isShardHeaderValidFinal(currentHeader, lastHdr, sortedHdrPerShard[shId])
 		if !isFinal {
 			continue
 		}
 
-		lastPushedHdr[shId] = orderedHdrs[index]
+		lastPushedHdr[shId] = currentHeader
 
 		shardData := block.ShardData{}
 		shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0)
-		shardData.TxCount = orderedHdrs[index].TxCount
-		shardData.ShardId = orderedHdrs[index].ShardId
+		shardData.TxCount = currentHeader.TxCount
+		shardData.ShardId = currentHeader.ShardId
 		shardData.HeaderHash = orderedHdrHashes[index]
+		shardData.Round = currentHeader.Round
+		shardData.PrevHash = currentHeader.PrevHash
+		shardData.Nonce = currentHeader.Nonce
 
 		snapshot := mp.accounts.JournalLen()
 
-		for i := 0; i < len(orderedHdrs[index].MiniBlockHeaders); i++ {
+		for i := 0; i < len(currentHeader.MiniBlockHeaders); i++ {
 			if !haveTime() {
 				break
 			}
 
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
-			shardMiniBlockHeader.SenderShardId = orderedHdrs[index].MiniBlockHeaders[i].SenderShardID
-			shardMiniBlockHeader.ReceiverShardId = orderedHdrs[index].MiniBlockHeaders[i].ReceiverShardID
-			shardMiniBlockHeader.Hash = orderedHdrs[index].MiniBlockHeaders[i].Hash
-			shardMiniBlockHeader.TxCount = orderedHdrs[index].MiniBlockHeaders[i].TxCount
+			shardMiniBlockHeader.SenderShardId = currentHeader.MiniBlockHeaders[i].SenderShardID
+			shardMiniBlockHeader.ReceiverShardId = currentHeader.MiniBlockHeaders[i].ReceiverShardID
+			shardMiniBlockHeader.Hash = currentHeader.MiniBlockHeaders[i].Hash
+			shardMiniBlockHeader.TxCount = currentHeader.MiniBlockHeaders[i].TxCount
 
 			// execute shard miniblock to change the trie root hash
 			err := mp.checkAndProcessShardMiniBlockHeader(
@@ -1107,9 +1113,9 @@ func (mp *metaProcessor) createShardInfo(
 			if spaceRemained <= 0 {
 				log.Info(fmt.Sprintf("max hdrs accepted in one block is reached: added %d hdrs from %d hdrs\n", mbHdrs, len(orderedHdrs)))
 
-				if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
+				if len(shardData.ShardMiniBlockHeaders) == len(currentHeader.MiniBlockHeaders) {
 					shardInfo = append(shardInfo, shardData)
-					mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: orderedHdrs[index], usedInBlock: true}
+					mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: currentHeader, usedInBlock: true}
 				}
 
 				log.Info(fmt.Sprintf("creating shard info has been finished: created %d shard data\n", len(shardInfo)))
@@ -1121,9 +1127,9 @@ func (mp *metaProcessor) createShardInfo(
 		if !haveTime() {
 			log.Info(fmt.Sprintf("time is up: added %d hdrs from %d hdrs\n", mbHdrs, len(orderedHdrs)))
 
-			if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
+			if len(shardData.ShardMiniBlockHeaders) == len(currentHeader.MiniBlockHeaders) {
 				shardInfo = append(shardInfo, shardData)
-				mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: orderedHdrs[index], usedInBlock: true}
+				mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: currentHeader, usedInBlock: true}
 			}
 
 			log.Info(fmt.Sprintf("creating shard info has been finished: created %d shard data\n", len(shardInfo)))
@@ -1133,7 +1139,7 @@ func (mp *metaProcessor) createShardInfo(
 
 		if len(shardData.ShardMiniBlockHeaders) == len(orderedHdrs[index].MiniBlockHeaders) {
 			shardInfo = append(shardInfo, shardData)
-			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: orderedHdrs[index], usedInBlock: true}
+			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrHashes[index])] = &hdrInfo{hdr: currentHeader, usedInBlock: true}
 		}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()

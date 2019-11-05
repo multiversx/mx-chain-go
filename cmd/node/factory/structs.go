@@ -288,12 +288,12 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
 	}
-	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
-		if err != nil {
-			return nil, errors.New("could not create shard data pools: " + err.Error())
-		}
+	//if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
+	if err != nil {
+		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
+	//}
 	if datapool == nil && metaDatapool == nil {
 		return nil, errors.New("could not create data pools: ")
 	}
@@ -1582,6 +1582,11 @@ func newBlockProcessor(
 		return nil, err
 	}
 
+	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
 			resolversFinder,
@@ -1595,13 +1600,10 @@ func newBlockProcessor(
 			shardsGenesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
+			validatorStatisticsProcessor,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
-		if err != nil {
-			return nil, err
-		}
 
 		return newMetaBlockProcessor(
 			resolversFinder,
@@ -1633,6 +1635,7 @@ func newShardBlockProcessor(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
+	statisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1745,7 +1748,7 @@ func newShardBlockProcessor(
 		economics,
 	)
 	if err != nil {
-		return nil, errors.New("could not create transaction processor: " + err.Error())
+		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
 	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator)
@@ -1802,18 +1805,19 @@ func newShardBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:              state.AccountsAdapter,
-		ForkDetector:          forkDetector,
-		Hasher:                core.Hasher,
-		Marshalizer:           core.Marshalizer,
-		Store:                 data.Store,
-		ShardCoordinator:      shardCoordinator,
-		NodesCoordinator:      nodesCoordinator,
-		SpecialAddressHandler: specialAddressHandler,
-		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          shardsGenesisBlocks,
-		RequestHandler:        requestHandler,
-		Core:                  coreServiceContainer,
+		Accounts:                     state.AccountsAdapter,
+		ForkDetector:                 forkDetector,
+		Hasher:                       core.Hasher,
+		Marshalizer:                  core.Marshalizer,
+		Store:                        data.Store,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		SpecialAddressHandler:        specialAddressHandler,
+		Uint64Converter:              core.Uint64ByteSliceConverter,
+		StartHeaders:                 shardsGenesisBlocks,
+		RequestHandler:               requestHandler,
+		Core:                         coreServiceContainer,
+		ValidatorStatisticsProcessor: statisticsProcessor,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1824,7 +1828,7 @@ func newShardBlockProcessor(
 
 	blockProcessor, err := block.NewShardProcessor(arguments)
 	if err != nil {
-		return nil, errors.New("could not create block processor: " + err.Error())
+		return nil, errors.New("could not create block statisticsProcessor: " + err.Error())
 	}
 
 	err = blockProcessor.SetAppStatusHandler(core.StatusHandler)
@@ -1904,14 +1908,14 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	storageService := processComponents.data.Store
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes: initialNodes,
-		PeerAdapter: peerAdapter,
-		AdrConv: processComponents.state.AddressConverter,
+		InitialNodes:     initialNodes,
+		PeerAdapter:      peerAdapter,
+		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool: processComponents.data.MetaDatapool,
-		StorageService: storageService,
-		Marshalizer: processComponents.core.Marshalizer,
+		DataPool:         processComponents.data.MetaDatapool,
+		StorageService:   storageService,
+		Marshalizer:      processComponents.core.Marshalizer,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

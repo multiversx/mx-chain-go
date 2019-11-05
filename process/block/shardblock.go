@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -66,6 +67,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		uint64Converter:               arguments.Uint64Converter,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -254,6 +256,18 @@ func (sp *shardProcessor) ProcessBlock(
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
 	if err != nil {
 		return err
+	}
+
+	for _, metaHeader := range processedMetaHdrs {
+		validatorStatsRH, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(validatorStatsRH, metaHeader.GetValidatorStatsRootHash()) {
+			err = process.ErrValidatorStatsRootHashDoesNotMatch
+			return err
+		}
 	}
 
 	return nil
