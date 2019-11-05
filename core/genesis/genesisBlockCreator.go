@@ -74,6 +74,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 	return header, err
 }
 
+// ArgsMetaGenesisBlockCreator holds the arguments which are needed to create a genesis metablock
 type ArgsMetaGenesisBlockCreator struct {
 	GenesisTime              uint64
 	Accounts                 state.AccountsAdapter
@@ -128,87 +129,14 @@ func CreateMetaGenesisBlock(
 		return nil, process.ErrNilMetaBlockPool
 	}
 
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         args.Accounts,
-		AddrConv:         args.AddrConv,
-		StorageService:   args.Store,
-		BlockChain:       args.Blkc,
-		ShardCoordinator: args.ShardCoordinator,
-		Marshalizer:      args.Marshalizer,
-		Uint64Converter:  args.Uint64ByteSliceConverter,
-	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics)
+	txProcessor, systemSmartContracts, err := createProcessorsForMetaGenesisBlock(args)
 	if err != nil {
 		return nil, err
-	}
-
-	argsParser, err := smartContract.NewAtArgumentParser()
-	if err != nil {
-		return nil, err
-	}
-
-	vmContainer, err := virtualMachineFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
-		args.ShardCoordinator,
-		args.Marshalizer,
-		args.Hasher,
-		args.AddrConv,
-		args.Store,
-		args.MetaDatapool,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	interimProcContainer, err := interimProcFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	scForwarder, err := interimProcContainer.Get(block.SmartContractResultBlock)
-	if err != nil {
-		return nil, err
-	}
-
-	scProcessor, err := smartContract.NewSmartContractProcessor(
-		vmContainer,
-		argsParser,
-		args.Hasher,
-		args.Marshalizer,
-		args.Accounts,
-		virtualMachineFactory.BlockChainHookImpl(),
-		args.AddrConv,
-		args.ShardCoordinator,
-		scForwarder,
-		&metachain.TransactionFeeHandler{},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
-	if err != nil {
-		return nil, err
-	}
-
-	txProcessor, err := processTransaction.NewMetaTxProcessor(
-		args.Accounts,
-		args.AddrConv,
-		args.ShardCoordinator,
-		scProcessor,
-		txTypeHandler,
-	)
-	if err != nil {
-		return nil, process.ErrNilTxProcessor
 	}
 
 	err = deploySystemSmartContracts(
 		txProcessor,
-		virtualMachineFactory.SystemSmartContractContainer(),
+		systemSmartContracts,
 		args.AddrConv,
 		args.Accounts,
 	)
@@ -240,6 +168,90 @@ func CreateMetaGenesisBlock(
 	header.SetTimeStamp(args.GenesisTime)
 
 	return header, nil
+}
+
+func createProcessorsForMetaGenesisBlock(
+	args ArgsMetaGenesisBlockCreator,
+) (process.TransactionProcessor, vm.SystemSCContainer, error) {
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         args.Accounts,
+		AddrConv:         args.AddrConv,
+		StorageService:   args.Store,
+		BlockChain:       args.Blkc,
+		ShardCoordinator: args.ShardCoordinator,
+		Marshalizer:      args.Marshalizer,
+		Uint64Converter:  args.Uint64ByteSliceConverter,
+	}
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	argsParser, err := smartContract.NewAtArgumentParser()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	vmContainer, err := virtualMachineFactory.Create()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
+		args.ShardCoordinator,
+		args.Marshalizer,
+		args.Hasher,
+		args.AddrConv,
+		args.Store,
+		args.MetaDatapool,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	scForwarder, err := interimProcContainer.Get(block.SmartContractResultBlock)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	scProcessor, err := smartContract.NewSmartContractProcessor(
+		vmContainer,
+		argsParser,
+		args.Hasher,
+		args.Marshalizer,
+		args.Accounts,
+		virtualMachineFactory.BlockChainHookImpl(),
+		args.AddrConv,
+		args.ShardCoordinator,
+		scForwarder,
+		&metachain.TransactionFeeHandler{},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	txProcessor, err := processTransaction.NewMetaTxProcessor(
+		args.Accounts,
+		args.AddrConv,
+		args.ShardCoordinator,
+		scProcessor,
+		txTypeHandler,
+	)
+	if err != nil {
+		return nil, nil, process.ErrNilTxProcessor
+	}
+
+	return txProcessor, virtualMachineFactory.SystemSmartContractContainer(), nil
 }
 
 // deploySystemSmartContracts deploys all the system smart contracts to the account state

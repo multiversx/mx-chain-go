@@ -28,12 +28,12 @@ const float64EqualityThreshold = 1e-9
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	//TODO check what happens if addresses are wrong
-	rewardsValue, minGasPrice, minGasLimit, stakeValue, unBoundPeriod, err := convertValues(economics)
+	data, err := convertValues(economics)
 	if err != nil {
 		return nil, err
 	}
 
-	notGreaterThanZero := rewardsValue.Cmp(big.NewInt(0))
+	notGreaterThanZero := data.rewardsValue.Cmp(big.NewInt(0))
 	if notGreaterThanZero < 0 {
 		return nil, process.ErrInvalidRewardsValue
 	}
@@ -44,51 +44,57 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}
 
 	return &EconomicsData{
-		rewardsValue:        rewardsValue,
+		rewardsValue:        data.rewardsValue,
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
 		burnPercentage:      economics.RewardsSettings.BurnPercentage,
-		minGasPrice:         minGasPrice,
-		minGasLimit:         minGasLimit,
+		minGasPrice:         data.minGasPrice,
+		minGasLimit:         data.minGasLimit,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
-		stakeValue:          stakeValue,
-		unBoundPeriod:       unBoundPeriod,
+		stakeValue:          data.stakeValue,
+		unBoundPeriod:       data.unBoundPeriod,
 	}, nil
 }
 
-func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64, *big.Int, uint64, error) {
+func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
 	rewardsValue := new(big.Int)
 	rewardsValue, ok := rewardsValue.SetString(economics.RewardsSettings.RewardsValue, conversionBase)
 	if !ok {
-		return nil, 0, 0, nil, 0, process.ErrInvalidRewardsValue
+		return nil, process.ErrInvalidRewardsValue
 	}
 
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, nil, 0, process.ErrInvalidMinimumGasPrice
+		return nil, process.ErrInvalidMinimumGasPrice
 	}
 
 	minGasLimit, err := strconv.ParseUint(economics.FeeSettings.MinGasLimit, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, nil, 0, process.ErrInvalidMinimumGasLimitForTx
+		return nil, process.ErrInvalidMinimumGasLimitForTx
 	}
 
 	stakeValue := new(big.Int)
 	stakeValue, ok = stakeValue.SetString(economics.ValidatorSettings.StakeValue, conversionBase)
 	if !ok {
-		return nil, 0, 0, nil, 0, process.ErrInvalidRewardsValue
+		return nil, process.ErrInvalidRewardsValue
 	}
 
-	unBoundPeriod, err := strconv.ParseUint(economics.FeeSettings.MinGasLimit, conversionBase, bitConversionSize)
+	unBoundPeriod, err := strconv.ParseUint(economics.ValidatorSettings.UnBoundPeriod, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, nil, 0, process.ErrInvalidUnboundPeriod
+		return nil, process.ErrInvalidUnboundPeriod
 	}
 
-	return rewardsValue, minGasPrice, minGasLimit, stakeValue, unBoundPeriod, nil
+	return &EconomicsData{
+		rewardsValue:  rewardsValue,
+		minGasPrice:   minGasPrice,
+		minGasLimit:   minGasLimit,
+		stakeValue:    stakeValue,
+		unBoundPeriod: unBoundPeriod,
+	}, nil
 }
 
 func checkValues(economics *config.ConfigEconomics) error {
