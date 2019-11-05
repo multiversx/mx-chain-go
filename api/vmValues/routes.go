@@ -2,7 +2,6 @@ package vmValues
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -45,8 +44,7 @@ func doGetVMOutput(context *gin.Context) (*vmcommon.VMOutput, error) {
 	for _, arg := range gval.Args {
 		buff, err := hex.DecodeString(arg)
 		if err != nil {
-			return nil,
-				errors.New(fmt.Sprintf("'%s' is not a valid hex string: %s", arg, err.Error()))
+			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
 		}
 
 		argsBuff = append(argsBuff, buff)
@@ -54,8 +52,7 @@ func doGetVMOutput(context *gin.Context) (*vmcommon.VMOutput, error) {
 
 	adrBytes, err := hex.DecodeString(gval.ScAddress)
 	if err != nil {
-		return nil,
-			errors.New(fmt.Sprintf("'%s' is not a valid hex string: %s", gval.ScAddress, err.Error()))
+		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", gval.ScAddress, err.Error())
 	}
 
 	vmOutput, err := ef.GetVmOutput(string(adrBytes), gval.FuncName, argsBuff...)
