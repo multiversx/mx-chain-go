@@ -32,55 +32,6 @@ func Routes(router *gin.RouterGroup) {
 	router.POST("/simulate-run", SimulateRunFunction)
 }
 
-func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
-	facade, ok := context.MustGet("elrondFacade").(FacadeHandler)
-	if !ok {
-		return nil, errors.ErrInvalidAppContext
-	}
-
-	var request = VMValueRequest{}
-	err := context.ShouldBindJSON(&request)
-	if err != nil {
-		return nil, err
-	}
-
-	argsBuff := make([][]byte, 0)
-	for _, arg := range request.Args {
-		buff, err := hex.DecodeString(arg)
-		if err != nil {
-			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
-		}
-
-		argsBuff = append(argsBuff, buff)
-	}
-
-	adrBytes, err := hex.DecodeString(request.ScAddress)
-	if err != nil {
-		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
-	}
-
-	vmOutput, err := facade.GetVMOutput(string(adrBytes), request.FuncName, argsBuff...)
-	if err != nil {
-		return nil, err
-	}
-
-	return vmOutput.(*vmcommon.VMOutput), nil
-}
-
-func doSimulateRunFunctionAndGetFirstOutput(context *gin.Context) ([]byte, error) {
-	vmOutput, err := doSimulateRunFunction(context)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(vmOutput.ReturnData) == 0 {
-		return nil, fmt.Errorf("no return data")
-	}
-
-	returnData := vmOutput.ReturnData[0].Bytes()
-	return returnData, nil
-}
-
 // GetVMValueAsHexBytes returns the data as byte slice
 func GetVMValueAsHexBytes(context *gin.Context) {
 	data, err := doSimulateRunFunctionAndGetFirstOutput(context)
@@ -124,4 +75,53 @@ func SimulateRunFunction(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"data": vmOutput})
+}
+
+func doSimulateRunFunctionAndGetFirstOutput(context *gin.Context) ([]byte, error) {
+	vmOutput, err := doSimulateRunFunction(context)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vmOutput.ReturnData) == 0 {
+		return nil, fmt.Errorf("no return data")
+	}
+
+	returnData := vmOutput.ReturnData[0].Bytes()
+	return returnData, nil
+}
+
+func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
+	facade, ok := context.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		return nil, errors.ErrInvalidAppContext
+	}
+
+	var request = VMValueRequest{}
+	err := context.ShouldBindJSON(&request)
+	if err != nil {
+		return nil, err
+	}
+
+	argsBuff := make([][]byte, 0)
+	for _, arg := range request.Args {
+		buff, err := hex.DecodeString(arg)
+		if err != nil {
+			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
+		}
+
+		argsBuff = append(argsBuff, buff)
+	}
+
+	adrBytes, err := hex.DecodeString(request.ScAddress)
+	if err != nil {
+		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
+	}
+
+	vmOutput, err := facade.GetVMOutput(string(adrBytes), request.FuncName, argsBuff...)
+	if err != nil {
+		return nil, err
+	}
+
+	return vmOutput.(*vmcommon.VMOutput), nil
 }
