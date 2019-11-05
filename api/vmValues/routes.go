@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go/api/errors"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-gonic/gin"
 )
@@ -32,7 +33,10 @@ func Routes(router *gin.RouterGroup) {
 }
 
 func doGetVMOutput(context *gin.Context) (*vmcommon.VMOutput, error) {
-	ef, _ := context.MustGet("elrondFacade").(FacadeHandler)
+	facade, ok := context.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		return nil, errors.ErrInvalidAppContext
+	}
 
 	var request = VMValueRequest{}
 	err := context.ShouldBindJSON(&request)
@@ -55,12 +59,12 @@ func doGetVMOutput(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
 	}
 
-	vmOutput, err := ef.GetVmOutput(string(adrBytes), request.FuncName, argsBuff...)
+	vmOutput, err := facade.GetVMOutput(string(adrBytes), request.FuncName, argsBuff...)
 	if err != nil {
 		return nil, err
 	}
 
-	return vmOutput, nil
+	return vmOutput.(*vmcommon.VMOutput), nil
 }
 
 func doGetVMReturnData(context *gin.Context) ([]byte, error) {

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/json"
@@ -92,7 +93,7 @@ func TestGetDataValueAsHexBytes_BadRequestShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (vmOutput interface{}, e error) {
 			assert.Fail(t, "should have not called this")
 			return nil, nil
 		},
@@ -121,7 +122,7 @@ func TestGetDataValueAsHexBytes_ArgumentIsNotHexShouldErr(t *testing.T) {
 	valueBuff, _ := hex.DecodeString("DEADBEEF")
 
 	facade := mock.Facade{
-		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (vmOutput interface{}, e error) {
 			if address == scAddress && funcName == fName && len(argsBuff) == len(args) {
 				paramsOk := true
 				for idx, arg := range args {
@@ -163,7 +164,7 @@ func testGetValueFacadeErrors(t *testing.T, route string) {
 
 	errExpected := errors.New("expected error")
 	facade := mock.Facade{
-		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (vmOutput interface{}, e error) {
 			return nil, errExpected
 		},
 	}
@@ -199,7 +200,7 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 	valueBuff, _ := hex.DecodeString("DEADBEEF")
 
 	facade := mock.Facade{
-		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (vmOutput interface{}, e error) {
 			areArgumentsCorrect := hex.EncodeToString([]byte(address)) == scAddress &&
 				funcName == fName &&
 				len(argsBuff) == len(args)
@@ -213,7 +214,11 @@ func TestGetDataValueAsHexBytes_WithParametersShouldReturnValueAsHex(t *testing.
 				}
 
 				if paramsOk {
-					return valueBuff, nil
+					returnData := big.NewInt(0)
+					returnData.SetBytes([]byte(valueBuff))
+					return &vmcommon.VMOutput{
+						ReturnData: []*big.Int{returnData},
+					}, nil
 				}
 			}
 
@@ -261,7 +266,7 @@ func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T)
 	valueBuff := "DEADBEEF"
 
 	facade := mock.Facade{
-		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (vmOutput interface{}, e error) {
 			areArgumentsCorrect := hex.EncodeToString([]byte(address)) == scAddress &&
 				funcName == fName &&
 				len(argsBuff) == len(args)
@@ -275,7 +280,11 @@ func TestGetDataValueAsString_WithParametersShouldReturnValueAsHex(t *testing.T)
 				}
 
 				if paramsOk {
-					return []byte(valueBuff), nil
+					returnData := big.NewInt(0)
+					returnData.SetBytes([]byte(valueBuff))
+					return &vmcommon.VMOutput{
+						ReturnData: []*big.Int{returnData},
+					}, nil
 				}
 			}
 
@@ -323,7 +332,7 @@ func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
 	valueBuff := "1234567"
 
 	facade := mock.Facade{
-		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+		GetDataValueHandler: func(address string, funcName string, argsBuff ...[]byte) (vmOutput interface{}, e error) {
 			areArgumentsCorrect := hex.EncodeToString([]byte(address)) == scAddress &&
 				funcName == fName &&
 				len(argsBuff) == len(args)
@@ -337,9 +346,11 @@ func TestGetDataValueAsInt_WithParametersShouldReturnValueAsHex(t *testing.T) {
 				}
 
 				if paramsOk {
-					val := big.NewInt(0)
-					val.SetString(valueBuff, 10)
-					return val.Bytes(), nil
+					returnData := big.NewInt(0)
+					returnData.SetString(valueBuff, 10)
+					return &vmcommon.VMOutput{
+						ReturnData: []*big.Int{returnData},
+					}, nil
 				}
 			}
 
