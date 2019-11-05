@@ -21,7 +21,7 @@ type headersCounter struct {
 // NewHeaderCounter returns a new object that keeps track of how many headers
 // were processed in total, and in the current block
 func NewHeaderCounter(store dataRetriever.StorageService, marshalizer marshal.Marshalizer) *headersCounter {
-	shardMBHeadersTotalProcessed := getNumFromStorage(store, marshalizer, core.MetricNumShardHeadersProcessed)
+	shardMBHeadersTotalProcessed := getNumObjFromStorage(store, marshalizer, core.MetricNumShardHeadersProcessed)
 
 	return &headersCounter{
 		shardMBHeaderCounterMutex:           sync.RWMutex{},

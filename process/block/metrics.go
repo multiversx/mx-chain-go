@@ -198,7 +198,7 @@ func calculateRoundDuration(
 	return diffTimeStamp / diffRounds
 }
 
-func getNumFromStorage(store dataRetriever.StorageService, marshalizer marshal.Marshalizer, metricName string) uint64 {
+func getNumObjFromStorage(store dataRetriever.StorageService, marshalizer marshal.Marshalizer, metricName string) uint64 {
 	if store == nil || marshalizer == nil {
 		return 0
 	}

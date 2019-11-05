@@ -31,7 +31,7 @@ type ArgStatusHandlers struct {
 type statusHandlersInfo struct {
 	PrometheusJoinUrl string
 	UsePrometheus     bool
-	UserTermuiUI      bool
+	UseTermUI         bool
 	StatusHandler     core.AppStatusHandler
 	StatusMetrics     external.StatusMetricsHandler
 	PersistentHandler *persister.PersistentStatusHandler
@@ -118,7 +118,7 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	statusHandlersInfo.StatusHandler = handler
 	statusHandlersInfo.PrometheusJoinUrl = prometheusJoinUrl
 	statusHandlersInfo.UsePrometheus = usePrometheus
-	statusHandlersInfo.UserTermuiUI = useTermui
+	statusHandlersInfo.UseTermUI = useTermui
 	statusHandlersInfo.StatusMetrics = statusMetrics
 	statusHandlersInfo.PersistentHandler = persistentHandler
 	return statusHandlersInfo, nil
