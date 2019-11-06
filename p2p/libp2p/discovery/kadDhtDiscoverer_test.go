@@ -35,6 +35,12 @@ func TestNewKadDhtPeerDiscoverer_ShouldSetValues(t *testing.T) {
 	assert.Equal(t, interval, kdd.RefreshInterval())
 	assert.Equal(t, randezVous, kdd.RandezVous())
 	assert.Equal(t, initialPeersList, kdd.InitialPeersList())
+
+	assert.False(t, kdd.IsDiscoveryPaused())
+	kdd.Pause()
+	assert.True(t, kdd.IsDiscoveryPaused())
+	kdd.Resume()
+	assert.False(t, kdd.IsDiscoveryPaused())
 }
 
 //------- Bootstrap
@@ -49,7 +55,7 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledWithoutContextAppliedShouldErr(t *t
 }
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
-	interval := time.Second
+	interval := time.Microsecond * 50
 
 	h := createDummyHost()
 	ctx, _ := libp2p.NewLibp2pContext(context.Background(), h)
@@ -63,6 +69,12 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 	err := kdd.Bootstrap()
 
 	assert.Nil(t, err)
+
+	if !testing.Short() {
+		time.Sleep(interval * 2)
+		kdd.Pause()
+		time.Sleep(interval * 20)
+	}
 }
 
 func TestKadDhtPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
