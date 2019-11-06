@@ -211,6 +211,7 @@ type BlockProcessor interface {
 	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
+	RevertStateToBlock(header data.HeaderHandler) error
 	CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
@@ -220,6 +221,17 @@ type BlockProcessor interface {
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
+	ApplyValidatorStatistics(header data.HeaderHandler) error
+}
+
+// ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
+type ValidatorStatisticsProcessor interface {
+	SaveInitialState(in []*sharding.InitialNode) error
+	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
+	RevertPeerState(header data.HeaderHandler) error
+	RevertPeerStateToSnapshot(snapshot int) error
+	IsInterfaceNil() bool
+	Commit() ([]byte, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -477,5 +489,12 @@ type EconomicsAddressesHandler interface {
 type MiniBlocksCompacter interface {
 	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice
 	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
+	IsInterfaceNil() bool
+}
+
+// NetworkConnectionWatcher defines a watchdog functionality used to specify if the current node
+// is still connected to the rest of the network
+type NetworkConnectionWatcher interface {
+	IsConnectedToTheNetwork() bool
 	IsInterfaceNil() bool
 }
