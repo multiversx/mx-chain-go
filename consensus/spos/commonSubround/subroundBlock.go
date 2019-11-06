@@ -98,7 +98,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	err = sr.BlockProcessor().ApplyBodyToHeader(hdr, sr.BlockBody)
+	err = sr.BlockProcessor().ApplyBodyToHeader(hdr, body)
 	if err != nil {
 		log.Error(err.Error())
 		return false

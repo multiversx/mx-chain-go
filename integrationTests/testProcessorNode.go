@@ -781,12 +781,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	var blockHeader data.HeaderHandler
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		blockHeader = &dataBlock.MetaBlock{}
-	} else {
-		blockHeader = &dataBlock.Header{}
-	}
+	blockHeader := tpn.BlockProcessor.CreateNewHeader()
 
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
