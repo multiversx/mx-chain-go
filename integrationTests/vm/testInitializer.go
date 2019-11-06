@@ -343,18 +343,21 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 }
 
 func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	returnedVals := GetBytesValueFromSC(accnts, scAddressBytes, funcName, args...)
-
-	return big.NewInt(0).SetBytes(returnedVals)
-}
-
-func GetBytesValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) []byte {
 	vmContainer, _ := CreateVMsContainerAndBlockchainHook(accnts)
 	scDataGetter, _ := smartContract.NewSCDataGetter(vmContainer)
 
-	returnedVals, _ := scDataGetter.Get(scAddressBytes, funcName, args...)
+	arguments := make([]*big.Int, len(args))
+	for i, arg := range args {
+		arguments[i] = big.NewInt(0).SetBytes(arg)
+	}
 
-	return returnedVals
+	vmOutput, _ := scDataGetter.RunAndGetVMOutput(&smartContract.CommandRunFunction{
+		ScAddress: scAddressBytes,
+		FuncName:  funcName,
+		Arguments: arguments,
+	})
+
+	return vmOutput.ReturnData[0]
 }
 
 func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
