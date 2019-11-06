@@ -3,7 +3,9 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -23,6 +25,7 @@ type metaInterceptedDataFactory struct {
 	multiSigVerifier    crypto.MultiSigVerifier
 	nodesCoordinator    sharding.NodesCoordinator
 	feeHandler          process.FeeHandler
+	stateDb             data.DBWriteCacher
 }
 
 // NewMetaInterceptedDataFactory creates an instance of interceptedDataFactory that can create
@@ -62,6 +65,9 @@ func NewMetaInterceptedDataFactory(
 	if check.IfNil(argument.AddrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
+	if check.IfNil(argument.StateDb) {
+		return nil, process.ErrNilStateDb
+	}
 
 	return &metaInterceptedDataFactory{
 		marshalizer:         argument.Marshalizer,
@@ -74,6 +80,7 @@ func NewMetaInterceptedDataFactory(
 		keyGen:              argument.KeyGen,
 		singleSigner:        argument.Signer,
 		addrConverter:       argument.AddrConv,
+		stateDb:             argument.StateDb,
 	}, nil
 }
 
@@ -87,6 +94,8 @@ func (midf *metaInterceptedDataFactory) Create(buff []byte) (process.Intercepted
 		return midf.createInterceptedMetaHeader(buff)
 	case InterceptedTx:
 		return midf.createInterceptedTx(buff)
+	case InterceptedTrieNode:
+		return midf.createInterceptedTrieNode(buff)
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
 	}
@@ -129,6 +138,10 @@ func (midf *metaInterceptedDataFactory) createInterceptedTx(buff []byte) (proces
 		midf.shardCoordinator,
 		midf.feeHandler,
 	)
+}
+
+func (midf *metaInterceptedDataFactory) createInterceptedTrieNode(buff []byte) (process.InterceptedData, error) {
+	return trie.NewInterceptedTrieNode(buff, midf.stateDb, midf.marshalizer, midf.hasher)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

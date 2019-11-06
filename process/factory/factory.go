@@ -17,6 +17,8 @@ const (
 	MetachainBlocksTopic = "metachainBlocks"
 	// ShardHeadersForMetachainTopic is used for sharing shards block headers to the metachain nodes
 	ShardHeadersForMetachainTopic = "shardHeadersForMetachain"
+	// TrieNodesTopic is used for sharing state trie nodes
+	TrieNodesTopic = "trieNodes"
 )
 
 // SystemVirtualMachine is a byte array identifier for the smart contract address created for system VM

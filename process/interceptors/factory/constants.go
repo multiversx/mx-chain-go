@@ -17,3 +17,6 @@ const InterceptedMetaHeader InterceptedDataType = "intercepted meta header"
 
 // InterceptedTxBlockBody is the type for intercepted tx block body
 const InterceptedTxBlockBody InterceptedDataType = "intercepted block body"
+
+// InterceptedTrieNode is the type for intercepted trie node
+const InterceptedTrieNode InterceptedDataType = "intercepted trie node"

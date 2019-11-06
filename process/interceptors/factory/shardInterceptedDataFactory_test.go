@@ -70,6 +70,7 @@ func createMockArgument() *factory.ArgInterceptedDataFactory {
 		Signer:           createMockSigner(),
 		AddrConv:         createMockAddressConverter(),
 		FeeHandler:       createMockFeeHandler(),
+		StateDb:          &mock.StorerStub{},
 	}
 }
 

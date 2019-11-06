@@ -1377,6 +1377,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		core.Trie,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1429,6 +1430,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		data.MetaDatapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		core.Trie,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1739,6 +1741,7 @@ func newShardBlockProcessor(
 		factory.MiniBlocksTopic,
 		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
+		factory.TrieNodesTopic,
 		MaxTxsToRequest,
 	)
 	if err != nil {

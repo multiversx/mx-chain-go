@@ -3,7 +3,9 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -24,6 +26,7 @@ type shardInterceptedDataFactory struct {
 	multiSigVerifier    crypto.MultiSigVerifier
 	nodesCoordinator    sharding.NodesCoordinator
 	feeHandler          process.FeeHandler
+	stateDb             data.DBWriteCacher
 }
 
 // NewShardInterceptedDataFactory creates an instance of interceptedDataFactory that can create
@@ -63,6 +66,9 @@ func NewShardInterceptedDataFactory(
 	if check.IfNil(argument.FeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(argument.StateDb) {
+		return nil, process.ErrNilStateDb
+	}
 
 	return &shardInterceptedDataFactory{
 		marshalizer:         argument.Marshalizer,
@@ -75,6 +81,7 @@ func NewShardInterceptedDataFactory(
 		multiSigVerifier:    argument.MultiSigVerifier,
 		nodesCoordinator:    argument.NodesCoordinator,
 		feeHandler:          argument.FeeHandler,
+		stateDb:             argument.StateDb,
 	}, nil
 }
 
@@ -92,6 +99,8 @@ func (sidf *shardInterceptedDataFactory) Create(buff []byte) (process.Intercepte
 		return sidf.createInterceptedMetaHeader(buff)
 	case InterceptedTxBlockBody:
 		return sidf.createInterceptedTxBlockBody(buff)
+	case InterceptedTrieNode:
+		return sidf.createInterceptedTrieNode(buff)
 	default:
 		return nil, process.ErrInterceptedDataTypeNotDefined
 	}
@@ -155,6 +164,10 @@ func (sidf *shardInterceptedDataFactory) createInterceptedTxBlockBody(buff []byt
 	}
 
 	return interceptedBlocks.NewInterceptedTxBlockBody(arg)
+}
+
+func (sidf *shardInterceptedDataFactory) createInterceptedTrieNode(buff []byte) (process.InterceptedData, error) {
+	return trie.NewInterceptedTrieNode(buff, sidf.stateDb, sidf.marshalizer, sidf.hasher)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
