@@ -39,6 +39,10 @@ type node interface {
 	print(writer io.Writer, index int)
 	deepClone() node
 	getDirtyHashes() ([][]byte, error)
+	getChildren() ([]node, error)
+	isValid() bool
+	setDirty(bool)
+	loadChildren(*trieSyncer) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)

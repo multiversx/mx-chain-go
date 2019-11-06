@@ -129,7 +129,7 @@ func (en *extensionNode) getCollapsed() (node, error) {
 		return nil, err
 	}
 	if !ok {
-		err := en.child.setHash()
+		err = en.child.setHash()
 		if err != nil {
 			return nil, err
 		}
@@ -552,4 +552,59 @@ func (en *extensionNode) getDirtyHashes() ([][]byte, error) {
 	dirtyHashes = append(dirtyHashes, hashes...)
 	dirtyHashes = append(dirtyHashes, en.hash)
 	return dirtyHashes, nil
+}
+
+func (en *extensionNode) getChildren() ([]node, error) {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
+
+	nextNodes := make([]node, 0)
+
+	err = resolveIfCollapsed(en, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	nextNodes = append(nextNodes, en.child)
+
+	return nextNodes, nil
+}
+
+func (en *extensionNode) isValid() bool {
+	if len(en.EncodedChild) == 0 && en.child == nil {
+		return false
+	}
+
+	if len(en.Key) == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (en *extensionNode) setDirty(dirty bool) {
+	en.dirty = dirty
+}
+
+func (en *extensionNode) loadChildren(syncer *trieSyncer) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+
+	if en.EncodedChild == nil {
+		return ErrNilNode
+	}
+
+	child, err := syncer.getNode(en.EncodedChild)
+	if err != nil {
+		return err
+	}
+	en.child = child
+
+	syncer.interceptedNodes.Remove(en.hash)
+
+	return nil
 }

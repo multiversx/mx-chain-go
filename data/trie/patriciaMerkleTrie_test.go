@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -534,6 +535,52 @@ func TestPatriciaMerkleTrie_SnapshotWhileSnapshotShouldFail(t *testing.T) {
 	_ = tr.Snapshot()
 	err := tr.Snapshot()
 	assert.Equal(t, trie.ErrSnapshotInProgress, err)
+}
+
+func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+
+	maxBuffToSend := uint64(500)
+	expectedNodes := 6
+	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedNodes, len(serializedNodes))
+}
+
+func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+
+	maxBuffToSend := uint64(150)
+	expectedNodes := 2
+	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedNodes, len(serializedNodes))
+}
+
+func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+
+	_ = tr.Snapshot()
+	time.Sleep(time.Second)
+	_ = tr.Prune(rootHash, data.NewRoot)
+
+	maxBuffToSend := uint64(500)
+	expectedNodes := 6
+	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

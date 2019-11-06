@@ -372,3 +372,23 @@ func (ln *leafNode) getDirtyHashes() ([][]byte, error) {
 	dirtyHashes = append(dirtyHashes, ln.getHash())
 	return dirtyHashes, nil
 }
+
+func (ln *leafNode) getChildren() ([]node, error) {
+	return nil, nil
+}
+
+func (ln *leafNode) isValid() bool {
+	if len(ln.Value) == 0 {
+		return false
+	}
+	return true
+}
+
+func (ln *leafNode) setDirty(dirty bool) {
+	ln.dirty = dirty
+}
+
+func (ln *leafNode) loadChildren(syncer *trieSyncer) error {
+	syncer.interceptedNodes.Remove(ln.hash)
+	return nil
+}

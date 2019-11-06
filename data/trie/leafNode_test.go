@@ -6,6 +6,11 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data/mock"
+
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
@@ -491,6 +496,60 @@ func TestLeafNode_isEmptyOrNil(t *testing.T) {
 
 	ln = nil
 	assert.Equal(t, ErrNilNode, ln.isEmptyOrNil())
+}
+
+func TestLeafNode_getChildren(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestDbMarshAndHasher())
+
+	children, err := ln.getChildren()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(children))
+}
+
+func TestLeafNode_isValid(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestDbMarshAndHasher())
+	assert.True(t, ln.isValid())
+
+	ln.Value = []byte{}
+	assert.False(t, ln.isValid())
+}
+
+func TestLeafNode_setDirty(t *testing.T) {
+	t.Parallel()
+
+	ln := &leafNode{baseNode: &baseNode{}}
+	ln.setDirty(true)
+
+	assert.True(t, ln.dirty)
+}
+
+func TestLeafNode_loadChildren(t *testing.T) {
+	t.Parallel()
+
+	_, marsh, hasher := getTestDbMarshAndHasher()
+	tr := initTrie()
+	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
+	nodesCacher, _ := lrucache.NewCache(100)
+
+	resolver := &mock.TrieNodesResolverStub{}
+	for i := range nodes {
+		node, _ := NewInterceptedTrieNode(nodes[i], tr.GetDatabase(), marsh, hasher)
+		nodesCacher.Put(node.hash, node)
+	}
+	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
+	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
+		syncer.chRcvTrieNodes <- true
+	})
+
+	lnPosition := 5
+	ln := &leafNode{baseNode: &baseNode{hash: hashes[lnPosition]}}
+	err := ln.loadChildren(syncer)
+	assert.Nil(t, err)
+	assert.Equal(t, 5, nodesCacher.Len())
 }
 
 //------- deepClone

@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+
+	"github.com/ElrondNetwork/elrond-go/data/mock"
 
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/stretchr/testify/assert"
@@ -774,6 +779,88 @@ func TestExtensionNode_deepCloneNilKeyShouldWork(t *testing.T) {
 	cloned := en.deepClone().(*extensionNode)
 
 	testSameExtensionNodeContent(t, en, cloned)
+}
+
+func TestExtensionNode_getChildren(t *testing.T) {
+	t.Parallel()
+
+	en, _ := getEnAndCollapsedEn()
+
+	children, err := en.getChildren()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(children))
+}
+
+func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
+	t.Parallel()
+
+	en, collapsedEn := getEnAndCollapsedEn()
+	_ = en.commit(true, 0, collapsedEn.db)
+
+	children, err := collapsedEn.getChildren()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(children))
+}
+
+func TestExtensionNode_isValid(t *testing.T) {
+	t.Parallel()
+
+	en, _ := getEnAndCollapsedEn()
+	assert.True(t, en.isValid())
+
+	en.child = nil
+	assert.False(t, en.isValid())
+}
+
+func TestExtensionNode_setDirty(t *testing.T) {
+	t.Parallel()
+
+	en := &extensionNode{baseNode: &baseNode{}}
+	en.setDirty(true)
+
+	assert.True(t, en.dirty)
+}
+
+func TestExtensionNode_loadChildren(t *testing.T) {
+	t.Parallel()
+
+	_, marsh, hasher := getTestDbMarshAndHasher()
+	tr := initTrie()
+	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
+	nodesCacher, _ := lrucache.NewCache(100)
+	resolver := &mock.TrieNodesResolverStub{
+		RequestDataFromHashCalled: func(hash []byte) error {
+			for i := range nodes {
+				node, _ := NewInterceptedTrieNode(nodes[i], tr.GetDatabase(), marsh, hasher)
+				nodesCacher.Put(node.hash, node)
+			}
+			return nil
+		},
+	}
+	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
+	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
+		syncer.chRcvTrieNodes <- true
+	})
+
+	enHashPosition := 0
+	enKey := []byte{6, 4, 6, 15, 6}
+	childPosition := 1
+	childHash := hashes[childPosition]
+	en := &extensionNode{
+		CollapsedEn: protobuf.CollapsedEn{
+			Key:          enKey,
+			EncodedChild: childHash,
+		},
+		baseNode: &baseNode{
+			hash: hashes[enHashPosition],
+		},
+	}
+
+	err := en.loadChildren(syncer)
+	assert.Nil(t, err)
+	assert.NotNil(t, en.child)
+
+	assert.Equal(t, 5, nodesCacher.Len())
 }
 
 func TestExtensionNode_deepCloneNilChildShouldWork(t *testing.T) {

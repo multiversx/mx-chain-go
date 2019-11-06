@@ -6,12 +6,15 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,10 +43,42 @@ func getBnAndCollapsedBn(db data.DBWriteCacher, marshalizer marshal.Marshalizer,
 	return bn, collapsedBn
 }
 
-func newEmptyTrie(db data.DBWriteCacher, marsh marshal.Marshalizer, hsh hashing.Hasher) data.Trie {
+func newEmptyTrie(db data.DBWriteCacher, marsh marshal.Marshalizer, hsh hashing.Hasher) *patriciaMerkleTrie {
 	cacheSize := 100
 	tr, _ := NewTrie(db, marsh, hsh, mock.NewMemDbMock(), cacheSize, config.DBConfig{})
 	return tr
+}
+
+func initTrie() *patriciaMerkleTrie {
+	tr := newEmptyTrie(getTestDbMarshAndHasher())
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	return tr
+}
+
+func getEncodedTrieNodesAndHashes(tr data.Trie) ([][]byte, [][]byte) {
+	it, _ := NewIterator(tr)
+	encNode, _ := it.GetMarshalizedNode()
+
+	nodes := make([][]byte, 0)
+	nodes = append(nodes, encNode)
+
+	hashes := make([][]byte, 0)
+	hash, _ := it.GetHash()
+	hashes = append(hashes, hash)
+
+	for it.HasNext() {
+		_ = it.Next()
+		encNode, _ = it.GetMarshalizedNode()
+
+		nodes = append(nodes, encNode)
+		hash, _ = it.GetHash()
+		hashes = append(hashes, hash)
+	}
+
+	return nodes, hashes
 }
 
 func TestBranchNode_getHash(t *testing.T) {
@@ -911,6 +946,94 @@ func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 	hash, _ := tr.Root()
 
 	assert.Equal(t, expectedHash, hash)
+}
+
+func TestBranchNode_getChildren(t *testing.T) {
+	t.Parallel()
+
+	bn, _ := getBnAndCollapsedBn(getTestDbMarshAndHasher())
+
+	children, err := bn.getChildren()
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(children))
+}
+
+func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
+	t.Parallel()
+
+	bn, collapsedBn := getBnAndCollapsedBn(getTestDbMarshAndHasher())
+	_ = bn.commit(true, 0, collapsedBn.db)
+
+	children, err := collapsedBn.getChildren()
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(children))
+}
+
+func TestBranchNode_isValid(t *testing.T) {
+	t.Parallel()
+
+	bn, _ := getBnAndCollapsedBn(getTestDbMarshAndHasher())
+	assert.True(t, bn.isValid())
+
+	bn.children[2] = nil
+	bn.children[6] = nil
+	assert.False(t, bn.isValid())
+}
+
+func TestBranchNode_setDirty(t *testing.T) {
+	t.Parallel()
+
+	bn := &branchNode{baseNode: &baseNode{}}
+	bn.setDirty(true)
+
+	assert.True(t, bn.dirty)
+}
+
+func TestBranchNode_loadChildren(t *testing.T) {
+	t.Parallel()
+
+	_, marsh, hasher := getTestDbMarshAndHasher()
+	tr := initTrie()
+	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
+	nodesCacher, _ := lrucache.NewCache(100)
+
+	resolver := &mock.TrieNodesResolverStub{
+		RequestDataFromHashCalled: func(hash []byte) error {
+			for i := range nodes {
+				node, _ := NewInterceptedTrieNode(nodes[i], tr.GetDatabase(), marsh, hasher)
+				nodesCacher.Put(node.hash, node)
+			}
+			return nil
+		},
+	}
+	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
+	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
+		syncer.chRcvTrieNodes <- true
+	})
+
+	bnHashPosition := 1
+	firstChildPos := 5
+	firstChildHash := 2
+	secondChildPos := 7
+	secondChildHash := 3
+	encodedChildren := make([][]byte, nrOfChildren)
+	encodedChildren[firstChildPos] = hashes[firstChildHash]
+	encodedChildren[secondChildPos] = hashes[secondChildHash]
+	bn := &branchNode{
+		CollapsedBn: protobuf.CollapsedBn{
+			EncodedChildren: encodedChildren,
+		},
+		baseNode: &baseNode{
+			hash: hashes[bnHashPosition],
+		},
+	}
+
+	err := bn.loadChildren(syncer)
+	assert.Nil(t, err)
+	assert.NotNil(t, bn.children[firstChildPos])
+	assert.NotNil(t, bn.children[secondChildPos])
+
+	assert.Equal(t, 5, nodesCacher.Len())
 }
 
 //------- deepClone
