@@ -21,9 +21,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type GeneralResponse struct {
+type simpleResponse struct {
 	Data  string `json:"data"`
 	Error string `json:"error"`
+}
+
+type vmOutputResponse struct {
+	Data  *vmcommon.VMOutput `json:"data"`
+	Error string             `json:"error"`
 }
 
 func init() {
@@ -52,7 +57,8 @@ func TestGetDataValueAsHexBytes(t *testing.T) {
 		Args:      []string{},
 	}
 
-	response, statusCode := postRequest(&facade, "/vm-values/hex", request)
+	response := simpleResponse{}
+	statusCode := doPost(&facade, "/vm-values/hex", request, &response)
 
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
@@ -79,7 +85,8 @@ func TestGetDataValueAsString(t *testing.T) {
 		Args:      []string{},
 	}
 
-	response, statusCode := postRequest(&facade, "/vm-values/string", request)
+	response := simpleResponse{}
+	statusCode := doPost(&facade, "/vm-values/string", request, &response)
 
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
@@ -107,11 +114,38 @@ func TestGetDataValueAsInt(t *testing.T) {
 		Args:      []string{},
 	}
 
-	response, statusCode := postRequest(&facade, "/vm-values/int", request)
+	response := simpleResponse{}
+	statusCode := doPost(&facade, "/vm-values/int", request, &response)
 
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
 	assert.Equal(t, value, response.Data)
+}
+
+func TestSimulateRunFunction(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{
+		SimulateRunSmartContractFunctionHandler: func(command *smartContract.CommandRunFunction) (vmOutput *vmcommon.VMOutput, e error) {
+
+			return &vmcommon.VMOutput{
+				ReturnData: []*big.Int{big.NewInt(42)},
+			}, nil
+		},
+	}
+
+	request := VMValueRequest{
+		ScAddress: scAddress,
+		FuncName:  "function",
+		Args:      []string{},
+	}
+
+	response := vmOutputResponse{}
+	statusCode := doPost(&facade, "/vm-values/simulate-run", request, &response)
+
+	assert.Equal(t, http.StatusOK, statusCode)
+	assert.Equal(t, "", response.Error)
+	assert.Equal(t, int64(42), response.Data.ReturnData[0].Int64())
 }
 
 func TestCreateCommandRunFunction_ArgumentIsNotHexShouldErr(t *testing.T) {
@@ -141,20 +175,22 @@ func TestGetDataValue_FacadeErrorsShouldErr(t *testing.T) {
 		Args:      []string{},
 	}
 
-	response, statusCode := postRequest(&facade, "/vm-values/hex", request)
+	response := simpleResponse{}
+
+	statusCode := doPost(&facade, "/vm-values/hex", request, &response)
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Contains(t, response.Error, errExpected.Error())
 
-	response, statusCode = postRequest(&facade, "/vm-values/string", request)
+	statusCode = doPost(&facade, "/vm-values/string", request, &response)
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Contains(t, response.Error, errExpected.Error())
 
-	response, statusCode = postRequest(&facade, "/vm-values/int", request)
+	statusCode = doPost(&facade, "/vm-values/int", request, &response)
 	assert.Equal(t, http.StatusBadRequest, statusCode)
 	assert.Contains(t, response.Error, errExpected.Error())
 }
 
-func postRequest(facadeMock interface{}, url string, request VMValueRequest) (GeneralResponse, int) {
+func doPost(facadeMock interface{}, url string, request VMValueRequest, response interface{}) int {
 	jsonBody, _ := json.Marshal(request)
 
 	server := startNodeServer(facadeMock)
@@ -163,10 +199,8 @@ func postRequest(facadeMock interface{}, url string, request VMValueRequest) (Ge
 	responseRecorder := httptest.NewRecorder()
 	server.ServeHTTP(responseRecorder, httpRequest)
 
-	response := GeneralResponse{}
 	parseResponse(responseRecorder.Body, &response)
-
-	return response, responseRecorder.Code
+	return responseRecorder.Code
 }
 
 func startNodeServer(handler interface{}) *gin.Engine {

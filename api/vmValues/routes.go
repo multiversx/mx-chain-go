@@ -75,7 +75,7 @@ func doGetVMValue(context *gin.Context, asType smartContract.ReturnDataKind) {
 func SimulateRunFunction(context *gin.Context) {
 	vmOutput, err := doSimulateRunFunction(context)
 	if err != nil {
-		returnBadRequest(context, "SimulateRunSmartContractFunction", err)
+		returnBadRequest(context, "SimulateRunFunction", err)
 		return
 	}
 
