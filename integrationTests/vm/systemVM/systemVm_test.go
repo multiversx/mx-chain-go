@@ -16,6 +16,10 @@ import (
 )
 
 func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 3
