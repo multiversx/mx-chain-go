@@ -68,7 +68,11 @@ func (scdg *scDataGetter) RunAndGetVMOutput(command *CommandRunFunction) (interf
 		return nil, err
 	}
 
-	scdg.checkVMOutput(vmOutput)
+	err = scdg.checkVMOutput(vmOutput)
+	if err != nil {
+		return nil, err
+	}
+
 	return vmOutput, nil
 }
 
