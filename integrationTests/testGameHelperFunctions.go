@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -332,12 +333,16 @@ func CheckScBalanceOf(
 	scAddressBytes []byte,
 ) {
 	fmt.Println("Checking SC.balanceOf...")
-	bytesValue, _ := nodeWithSc.ScDataGetter.Get(
-		scAddressBytes,
-		"balanceOf",
-		nodeWithCaller.OwnAccount.PkTxSignBytes,
-	)
-	retrievedValue := big.NewInt(0).SetBytes(bytesValue)
+
+	command := smartContract.CommandRunFunction{
+		ScAddress: scAddressBytes,
+		FuncName:  "balanceOf",
+		Arguments: []*big.Int{big.NewInt(0).SetBytes(nodeWithCaller.OwnAccount.PkTxSignBytes)},
+	}
+
+	vmOutput, _ := nodeWithSc.ScDataGetter.RunAndGetVMOutput(&command)
+
+	retrievedValue := vmOutput.ReturnData[0]
 	fmt.Printf("SC balanceOf returned %d\n", retrievedValue)
 	assert.Equal(t, expectedSC, retrievedValue)
 }
