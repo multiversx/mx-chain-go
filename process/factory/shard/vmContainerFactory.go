@@ -77,7 +77,7 @@ func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, erro
 }
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
-	arwenVM, err := arwen.NewArwenVM(vmf.vmAccountsDB, vmf.cryptoHook, factory.ArwenVirtualMachine)
+	arwenVM, err := arwen.NewArwenVM(vmf.vmAccountsDB, vmf.cryptoHook, factory.ArwenVirtualMachine, getDummyBlockGasLimit(), getDummyGasSchedule())
 	return arwenVM, err
 }
 
