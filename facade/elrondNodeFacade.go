@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 )
 
 // DefaultRestPort is the default port the REST API will start on if not specified
@@ -234,8 +235,8 @@ func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // SimulateRunSmartContractFunction retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) SimulateRunSmartContractFunction(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error) {
-	return ef.apiResolver.SimulateRunSmartContractFunction(address, funcName, argsBuff...)
+func (ef *ElrondNodeFacade) SimulateRunSmartContractFunction(command *smartContract.CommandRunFunction) (interface{}, error) {
+	return ef.apiResolver.SimulateRunSmartContractFunction(command)
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application

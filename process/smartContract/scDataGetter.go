@@ -46,23 +46,23 @@ func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecuti
 }
 
 // RunAndGetVMOutput returns the VMOutput resulted upon running the function on the smart contract
-func (scdg *scDataGetter) RunAndGetVMOutput(scAddress []byte, funcName string, args ...[]byte) (interface{}, error) {
-	if scAddress == nil {
+func (scdg *scDataGetter) RunAndGetVMOutput(command *CommandRunFunction) (interface{}, error) {
+	if command.ScAddress == nil {
 		return nil, process.ErrNilScAddress
 	}
-	if len(funcName) == 0 {
+	if len(command.FuncName) == 0 {
 		return nil, process.ErrEmptyFunctionName
 	}
 
 	scdg.mutRunSc.Lock()
 	defer scdg.mutRunSc.Unlock()
 
-	vm, err := scdg.getVMFromAddress(scAddress)
+	vm, err := scdg.getVMFromAddress(command.ScAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	vmInput := scdg.createVMCallInput(scAddress, funcName, args...)
+	vmInput := scdg.createVMCallInput(command)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
@@ -72,17 +72,7 @@ func (scdg *scDataGetter) RunAndGetVMOutput(scAddress []byte, funcName string, a
 	return vmOutput, nil
 }
 
-func (scdg *scDataGetter) createVMCallInput(
-	scAddress []byte,
-	funcName string,
-	args ...[]byte,
-) *vmcommon.ContractCallInput {
-
-	argsInt := make([]*big.Int, 0)
-	for _, arg := range args {
-		argsInt = append(argsInt, big.NewInt(0).SetBytes(arg))
-	}
-
+func (scdg *scDataGetter) createVMCallInput(command *CommandRunFunction) *vmcommon.ContractCallInput {
 	maxGasLimit := math.MaxInt64
 	header := &vmcommon.SCCallHeader{
 		GasLimit:    big.NewInt(int64(maxGasLimit)),
@@ -92,17 +82,17 @@ func (scdg *scDataGetter) createVMCallInput(
 	}
 
 	vmInput := vmcommon.VMInput{
-		CallerAddr:  scAddress,
+		CallerAddr:  command.ScAddress,
 		CallValue:   big.NewInt(0),
 		GasPrice:    big.NewInt(0),
 		GasProvided: maxGasValue,
-		Arguments:   argsInt,
+		Arguments:   command.Arguments,
 		Header:      header,
 	}
 
 	vmContractCallInput := &vmcommon.ContractCallInput{
-		RecipientAddr: scAddress,
-		Function:      funcName,
+		RecipientAddr: command.ScAddress,
+		Function:      command.FuncName,
 		VMInput:       vmInput,
 	}
 
@@ -125,7 +115,14 @@ func (scdg *scDataGetter) IsInterfaceNil() bool {
 	return false
 }
 
-// TODO: Move to vm-common repository, output.go
+// TODO: Move code below to vm-common repository!
+
+// CommandRunFunction represents a prepared command for executing a function of the smart contract
+type CommandRunFunction struct {
+	ScAddress []byte
+	FuncName  string
+	Arguments []*big.Int
+}
 
 // ReturnDataKind tells us how to interpret VMOutputs's return data
 type ReturnDataKind int

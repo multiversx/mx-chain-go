@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 )
 
 // Facade is the mock implementation of a node router handler
@@ -28,7 +29,7 @@ type Facade struct {
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	SimulateRunSmartContractFunctionHandler        func(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error)
+	SimulateRunSmartContractFunctionHandler        func(command *smartContract.CommandRunFunction) (interface{}, error)
 	StatusMetricsHandler                           func() external.StatusMetricsHandler
 }
 
@@ -129,8 +130,8 @@ func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, val
 }
 
 // SimulateRunSmartContractFunction is a mock implementation.
-func (f *Facade) SimulateRunSmartContractFunction(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error) {
-	return f.SimulateRunSmartContractFunctionHandler(address, funcName, argsBuff...)
+func (f *Facade) SimulateRunSmartContractFunction(command *smartContract.CommandRunFunction) (interface{}, error) {
+	return f.SimulateRunSmartContractFunctionHandler(command)
 }
 
 // StatusMetrics is the mock implementation for the StatusMetrics

@@ -3,6 +3,7 @@ package vmValues
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
@@ -13,7 +14,7 @@ import (
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	SimulateRunSmartContractFunction(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error)
+	SimulateRunSmartContractFunction(*smartContract.CommandRunFunction) (interface{}, error)
 	IsInterfaceNil() bool
 }
 
@@ -87,33 +88,46 @@ func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, errors.ErrInvalidAppContext
 	}
 
-	var request = VMValueRequest{}
+	request := VMValueRequest{}
 	err := context.ShouldBindJSON(&request)
 	if err != nil {
 		return nil, err
 	}
 
-	argsBuff := make([][]byte, 0)
-	for _, arg := range request.Args {
-		buff, err := hex.DecodeString(arg)
-		if err != nil {
-			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
-		}
-
-		argsBuff = append(argsBuff, buff)
-	}
-
-	adrBytes, err := hex.DecodeString(request.ScAddress)
+	command, err := createCommandRunFunction(&request)
 	if err != nil {
-		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
+		return nil, err
 	}
 
-	vmOutput, err := facade.SimulateRunSmartContractFunction(adrBytes, request.FuncName, argsBuff...)
+	vmOutput, err := facade.SimulateRunSmartContractFunction(command)
 	if err != nil {
 		return nil, err
 	}
 
 	return vmOutput.(*vmcommon.VMOutput), nil
+}
+
+func createCommandRunFunction(request *VMValueRequest) (*smartContract.CommandRunFunction, error) {
+	decodedAddress, err := hex.DecodeString(request.ScAddress)
+	if err != nil {
+		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
+	}
+
+	argumentsAsInt := make([]*big.Int, 0)
+	for _, arg := range request.Args {
+		argBytes, err := hex.DecodeString(arg)
+		if err != nil {
+			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
+		}
+
+		argumentsAsInt = append(argumentsAsInt, big.NewInt(0).SetBytes(argBytes))
+	}
+
+	return &smartContract.CommandRunFunction{
+		ScAddress: decodedAddress,
+		FuncName:  request.FuncName,
+		Arguments: argumentsAsInt,
+	}, nil
 }
 
 func returnBadRequest(context *gin.Context, errScope string, err error) {

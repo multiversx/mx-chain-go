@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 )
 
 //NodeWrapper contains all functions that a node should contain.
@@ -69,7 +70,7 @@ type NodeWrapper interface {
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
-	SimulateRunSmartContractFunction(address []byte, funcName string, argsBuff ...[]byte) (interface{}, error)
+	SimulateRunSmartContractFunction(command *smartContract.CommandRunFunction) (interface{}, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }
