@@ -93,25 +93,56 @@ func NewMonitor(
 
 func (m *Monitor) initializeHeartbeatMessagesInfo(pubKeysMap map[uint32][]string) error {
 	pubKeysMapCopy := make(map[uint32][]string, 0)
+	pubKeysToSave := make(map[string]*heartbeatMessageInfo, 0)
 	for shardId, pubKeys := range pubKeysMap {
 		for _, pubkey := range pubKeys {
-			err := m.loadHbmiFromStorer(pubkey)
-			if err != nil { // if pubKey not found in DB, create a new instance
-				mhbi, errNewHbmi := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
-				if errNewHbmi != nil {
-					return errNewHbmi
-				}
-
-				mhbi.genesisTime = m.genesisTime
-				mhbi.computedShardID = shardId
-				m.heartbeatMessages[pubkey] = mhbi
+			e := m.initializeHeartBeatForPK(pubkey, shardId, pubKeysToSave, pubKeysMapCopy)
+			if e != nil {
+				return e
 			}
-			pubKeysMapCopy[shardId] = append(pubKeysMapCopy[shardId], pubkey)
 		}
 	}
 
+	go m.SaveMultipleHeartbeatMessageInfos(pubKeysToSave)
+
 	m.pubKeysMap = pubKeysMapCopy
 	return nil
+}
+
+func (m *Monitor) initializeHeartBeatForPK(
+	pubkey string,
+	shardId uint32,
+	pubKeysToSave map[string]*heartbeatMessageInfo,
+	pubKeysMapCopy map[uint32][]string,
+) error {
+	hbmi, err := m.loadHbmiFromStorer(pubkey)
+	if err != nil { // if pubKey not found in DB, create a new instance
+		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, true, m.genesisTime, m.timer)
+		if err != nil {
+			return err
+		}
+
+		hbmi.genesisTime = m.genesisTime
+		hbmi.computedShardID = shardId
+		pubKeysToSave[pubkey] = hbmi
+	}
+	m.heartbeatMessages[pubkey] = hbmi
+	pubKeysMapCopy[shardId] = append(pubKeysMapCopy[shardId], pubkey)
+	return nil
+}
+
+// SaveMultipleHeartbeatMessageInfos stores all heartbeatMessageInfos to the storer
+func (m *Monitor) SaveMultipleHeartbeatMessageInfos(pubKeysToSave map[string]*heartbeatMessageInfo) {
+	m.mutHeartbeatMessages.RLock()
+	defer m.mutHeartbeatMessages.RUnlock()
+
+	for key, hmbi := range pubKeysToSave {
+		hbDTO := m.convertToExportedStruct(hmbi)
+		err := m.storer.SavePubkeyData([]byte(key), &hbDTO)
+		if err != nil {
+			log.Error(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
+		}
+	}
 }
 
 func (m *Monitor) loadRestOfPubKeysFromStorage() error {
@@ -121,33 +152,41 @@ func (m *Monitor) loadRestOfPubKeysFromStorage() error {
 	}
 
 	for _, peer := range peersSlice {
-		_, ok := m.heartbeatMessages[string(peer)]
+		pubKey := string(peer)
+		_, ok := m.heartbeatMessages[pubKey]
 		if !ok { // peer not in nodes map
-			err = m.loadHbmiFromStorer(string(peer))
-			if err != nil {
+			hbmi, err1 := m.loadHbmiFromStorer(pubKey)
+			if err1 != nil {
 				continue
 			}
+			m.heartbeatMessages[pubKey] = hbmi
 		}
 	}
 
 	return nil
 }
 
-func (m *Monitor) loadHbmiFromStorer(pubKey string) error {
+func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, error) {
 	hbmiDTO, err := m.storer.LoadHbmiDTO(pubKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
-	receivedHbmi.isActive = m.timer.Now().Sub(receivedHbmi.lastUptimeDowntime) <= m.maxDurationPeerUnresponsive
-	receivedHbmi.lastUptimeDowntime = m.timer.Now()
+	crtTime := m.timer.Now()
+	crtDuration := crtTime.Sub(receivedHbmi.lastUptimeDowntime)
+	crtDuration = maxDuration(0, crtDuration)
+	if receivedHbmi.isActive {
+		receivedHbmi.totalUpTime.Duration += crtDuration
+		receivedHbmi.timeStamp = crtTime
+	} else {
+		receivedHbmi.totalDownTime.Duration += crtDuration
+	}
+	receivedHbmi.lastUptimeDowntime = crtTime
 	receivedHbmi.genesisTime = m.genesisTime
 
-	m.heartbeatMessages[pubKey] = &receivedHbmi
-
-	return nil
+	return &receivedHbmi, nil
 }
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
@@ -194,10 +233,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 
 	computedShardID := m.computeShardID(pubKeyStr)
 
-	hbmi.updateMutex.Lock()
 	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName)
 	hbDTO := m.convertToExportedStruct(hbmi)
-	hbmi.updateMutex.Unlock()
 
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
 	if err != nil {
@@ -249,17 +286,27 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Lock()
 	counterActiveValidators := 0
 	counterConnectedNodes := 0
-	for _, v := range m.heartbeatMessages {
-		v.computeActive(m.timer.Now())
-		if v.isActive {
+	hbChangedStateToInactiveMap := make(map[string]*heartbeatMessageInfo)
+	for key, v := range m.heartbeatMessages {
+		previousActive := v.GetIsActive()
+		v.ComputeActive(m.timer.Now())
+		isActive := v.GetIsActive()
+
+		if isActive {
 			counterConnectedNodes++
 
-			if v.isValidator {
+			if v.GetIsValidator() {
 				counterActiveValidators++
 			}
 		}
+		changedStateToInactive := previousActive && !isActive
+		if changedStateToInactive {
+			hbChangedStateToInactiveMap[key] = v
+		}
 	}
+
 	m.mutHeartbeatMessages.Unlock()
+	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
 	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
 	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
@@ -306,6 +353,8 @@ func (m *Monitor) IsInterfaceNil() bool {
 }
 
 func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) HeartbeatDTO {
+	v.updateMutex.Lock()
+	defer v.updateMutex.Unlock()
 	return HeartbeatDTO{
 		TimeStamp:          v.timeStamp,
 		MaxInactiveTime:    v.maxInactiveTime,
