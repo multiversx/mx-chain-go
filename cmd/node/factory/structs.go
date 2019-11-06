@@ -1145,6 +1145,13 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = getCacherFromConfig(config.TrieNodesDataPool)
+	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		log.Info("error creating trieNodes")
+		return nil, err
+	}
+
 	return dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -1154,6 +1161,7 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
+		trieNodes,
 	)
 }
 
@@ -1182,6 +1190,13 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = getCacherFromConfig(config.TrieNodesDataPool)
+	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		log.Info("error creating trieNodes")
+		return nil, err
+	}
+
 	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Info("error creating shard headers nonces pool")
@@ -1205,7 +1220,15 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	return dataPool.NewMetaDataPool(metaBlockBody, txBlockBody, shardHeaders, headersNonces, txPool, uTxPool)
+	return dataPool.NewMetaDataPool(
+		metaBlockBody,
+		txBlockBody,
+		shardHeaders,
+		trieNodes,
+		headersNonces,
+		txPool,
+		uTxPool,
+	)
 }
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {

@@ -207,6 +207,7 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	MetaBlocks() storage.Cacher
+	TrieNodes() storage.Cacher
 	IsInterfaceNil() bool
 }
 
@@ -215,6 +216,7 @@ type MetaPoolsHolder interface {
 	MetaBlocks() storage.Cacher
 	MiniBlocks() storage.Cacher
 	ShardHeaders() storage.Cacher
+	TrieNodes() storage.Cacher
 	HeadersNonces() Uint64SyncMapCacher
 	Transactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier

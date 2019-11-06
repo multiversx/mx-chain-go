@@ -614,7 +614,7 @@ func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]stri
 }
 
 func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
-	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor()
+	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor(icf.dataPool.TrieNodes())
 	if err != nil {
 		return nil, err
 	}

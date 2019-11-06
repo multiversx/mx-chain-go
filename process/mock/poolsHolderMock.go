@@ -18,6 +18,7 @@ type PoolsHolderMock struct {
 	hdrNonces            dataRetriever.Uint64SyncMapCacher
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
+	trieNodes            storage.Cacher
 	metaHdrNonces        dataRetriever.Uint64SyncMapCacher
 }
 
@@ -28,6 +29,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	phf.rewardTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache})
 	phf.headers, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.metaBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	phf.trieNodes, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	cacheHdrNonces, _ := storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.hdrNonces, _ = dataPool.NewNonceSyncMapCacher(
 		cacheHdrNonces,
@@ -72,6 +74,10 @@ func (phm *PoolsHolderMock) PeerChangesBlocks() storage.Cacher {
 }
 
 func (phm *PoolsHolderMock) MetaBlocks() storage.Cacher {
+	return phm.metaBlocks
+}
+
+func (phm *PoolsHolderMock) TrieNodes() storage.Cacher {
 	return phm.metaBlocks
 }
 

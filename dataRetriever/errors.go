@@ -149,6 +149,9 @@ var ErrNilCacher = errors.New("nil cacher")
 // ErrNilMetaBlockPool signals that a nil meta block data pool was provided
 var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
 
+// ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
+var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
+
 // ErrNilMiniBlockHashesPool signals that a nil meta block data pool was provided
 var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes data pool")
 
