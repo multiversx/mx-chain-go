@@ -2,9 +2,11 @@ package metachain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -14,12 +16,18 @@ import (
 type vmContainerFactory struct {
 	blockChainHookImpl *hooks.BlockChainHookImpl
 	cryptoHook         vmcommon.CryptoHook
+	systemContracts    vm.SystemSCContainer
+	economics          *economics.EconomicsData
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
+	economics *economics.EconomicsData,
 ) (*vmContainerFactory, error) {
+	if economics == nil {
+		return nil, process.ErrNilEconomicsData
+	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
 	if err != nil {
@@ -30,6 +38,7 @@ func NewVMContainerFactory(
 	return &vmContainerFactory{
 		blockChainHookImpl: blockChainHookImpl,
 		cryptoHook:         cryptoHook,
+		economics:          economics,
 	}, nil
 }
 
@@ -37,12 +46,12 @@ func NewVMContainerFactory(
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
-	vm, err := vmf.createSystemVM()
+	currVm, err := vmf.createSystemVM()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(factory.SystemVirtualMachine, vm)
+	err = container.Add(factory.SystemVirtualMachine, currVm)
 	if err != nil {
 		return nil, err
 	}
@@ -56,17 +65,17 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		return nil, err
 	}
 
-	scFactory, err := systemVMFactory.NewSystemSCFactory(systemEI)
+	scFactory, err := systemVMFactory.NewSystemSCFactory(systemEI, vmf.economics)
 	if err != nil {
 		return nil, err
 	}
 
-	systemContracts, err := scFactory.Create()
+	vmf.systemContracts, err = scFactory.Create()
 	if err != nil {
 		return nil, err
 	}
 
-	systemVM, err := systemVMProcess.NewSystemVM(systemEI, systemContracts, factory.SystemVirtualMachine)
+	systemVM, err := systemVMProcess.NewSystemVM(systemEI, vmf.systemContracts, factory.SystemVirtualMachine)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +86,11 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 // BlockChainHookImpl returns the created blockChainHookImpl
 func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
 	return vmf.blockChainHookImpl
+}
+
+// SystemSmartContractContainer return the created system smart contracts
+func (vmf *vmContainerFactory) SystemSmartContractContainer() vm.SystemSCContainer {
+	return vmf.systemContracts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

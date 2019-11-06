@@ -38,10 +38,14 @@ type SystemEI interface {
 	GetStorage(key []byte) []byte
 	SelfDestruct(beneficiary []byte)
 	Finish(value []byte)
+	BlockChainHook() vmcommon.BlockchainHook
+	CryptoHook() vmcommon.CryptoHook
 
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
 	SetSCAddress(addr []byte)
+	AddCode(addr []byte, code []byte)
+	AddTxValueToSmartContract(value *big.Int, scAddress []byte)
 
 	IsInterfaceNil() bool
 }

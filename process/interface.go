@@ -468,6 +468,13 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
+// ValidatorSettingsHandler
+type ValidatorSettingsHandler interface {
+	UnBoundPeriod() uint64
+	StakeValue() *big.Int
+	IsInterfaceNil() bool
+}
+
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64

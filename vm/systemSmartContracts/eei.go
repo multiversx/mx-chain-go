@@ -131,6 +131,16 @@ func (host *vmContext) Finish(value []byte) {
 	host.output = append(host.output, value...)
 }
 
+// BlockChainHook returns the blockchain hook
+func (host *vmContext) BlockChainHook() vmcommon.BlockchainHook {
+	return host.blockChainHook
+}
+
+// CryptoHook returns the cryptoHook
+func (host *vmContext) CryptoHook() vmcommon.CryptoHook {
+	return host.cryptoHook
+}
+
 // CleanCache cleans the current vmContext
 func (host *vmContext) CleanCache() {
 	host.storageUpdate = make(map[string]map[string][]byte, 0)
@@ -173,6 +183,8 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		}
 		if outAcc.Nonce > 0 {
 			outAccs[addr].Nonce = outAcc.Nonce
+		} else {
+			outAccs[addr].Nonce, _ = host.blockChainHook.GetNonce(outAcc.Address)
 		}
 	}
 
@@ -199,6 +211,36 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 // SetSCAddress sets the smart contract address
 func (host *vmContext) SetSCAddress(addr []byte) {
 	host.scAddress = addr
+}
+
+// AddCode adds the input code to the address
+func (host *vmContext) AddCode(address []byte, code []byte) {
+	newSCAcc, ok := host.outputAccounts[string(address)]
+	if !ok {
+		host.outputAccounts[string(address)] = &vmcommon.OutputAccount{
+			Address:        address,
+			Nonce:          0,
+			BalanceDelta:   big.NewInt(0),
+			StorageUpdates: nil,
+			Code:           code,
+		}
+	} else {
+		newSCAcc.Code = code
+	}
+}
+
+// AddTxValueToSmartContract adds the input transaction value to the smart contract address
+func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
+	destAcc, ok := host.outputAccounts[string(scAddress)]
+	if !ok {
+		destAcc = &vmcommon.OutputAccount{
+			Address:      scAddress,
+			BalanceDelta: big.NewInt(0),
+		}
+		host.outputAccounts[string(destAcc.Address)] = destAcc
+	}
+
+	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

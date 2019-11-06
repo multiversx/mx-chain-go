@@ -242,6 +242,16 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.scToProtocol.UpdateProtocol(body, header.Round)
+	if err != nil {
+		return err
+	}
+
+	err = mp.peerChanges.VerifyPeerChanges(header.PeerInfo)
+	if err != nil {
+		return err
+	}
+
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
 		return err
@@ -501,6 +511,11 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
 
 	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), initialHdrData.GetRound(), haveTime)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.scToProtocol.UpdateProtocol(miniBlocks, initialHdrData.GetRound())
 	if err != nil {
 		return nil, err
 	}
@@ -1366,8 +1381,8 @@ func (mp *metaProcessor) createShardInfo(
 }
 
 func (mp *metaProcessor) createPeerInfo() ([]block.PeerData, error) {
-	// TODO: to be implemented
-	peerInfo := make([]block.PeerData, 0)
+	peerInfo := mp.peerChanges.PeerChanges()
+
 	return peerInfo, nil
 }
 

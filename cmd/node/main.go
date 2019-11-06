@@ -523,7 +523,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	stateArgs := factory.NewStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
+	stateArgs := factory.NewStateComponentsFactoryArgs(
+		generalConfig,
+		genesisConfig,
+		shardCoordinator,
+		coreComponents,
+		uniqueDBFolder,
+	)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
 		return err
@@ -738,6 +744,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusMetrics,
+		economicsData,
 	)
 	if err != nil {
 		return err
@@ -1229,6 +1236,7 @@ func createApiResolver(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
+	economics *economics.EconomicsData,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1244,7 +1252,7 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook)
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
 		if err != nil {
 			return nil, err
 		}

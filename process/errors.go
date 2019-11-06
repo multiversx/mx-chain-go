@@ -509,6 +509,9 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 // ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
 var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
+// ErrInvalidUnboundPeriod signals that an invalid unbound period has been read from config file
+var ErrInvalidUnboundPeriod = errors.New("invalid unbound period")
+
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
@@ -533,5 +536,11 @@ var ErrNilSCToProtocol = errors.New("nil sc to protocol")
 // ErrNilPeerChangesHandler signals that nil peer changes handler has been provided
 var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
 
+// ErrNilNodesSetup signals that nil nodes setup has been provided
+var ErrNilNodesSetup = errors.New("nil nodes setup")
+
 // ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
 var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
+
+// ErrNilEconomicsData signals that nil economics data has been provided
+var ErrNilEconomicsData = errors.New("nil economics data")

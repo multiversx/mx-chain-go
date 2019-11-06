@@ -6,14 +6,44 @@ import (
 )
 
 type SystemEIStub struct {
-	TransferCalled       func(destination []byte, sender []byte, value *big.Int, input []byte) error
-	GetBalanceCalled     func(addr []byte) *big.Int
-	SetStorageCalled     func(key []byte, value []byte)
-	GetStorageCalled     func(key []byte) []byte
-	SelfDestructCalled   func(beneficiary []byte)
-	CreateVMOutputCalled func() *vmcommon.VMOutput
-	CleanCacheCalled     func()
-	FinishCalled         func(value []byte)
+	TransferCalled                  func(destination []byte, sender []byte, value *big.Int, input []byte) error
+	GetBalanceCalled                func(addr []byte) *big.Int
+	SetStorageCalled                func(key []byte, value []byte)
+	GetStorageCalled                func(key []byte) []byte
+	SelfDestructCalled              func(beneficiary []byte)
+	CreateVMOutputCalled            func() *vmcommon.VMOutput
+	CleanCacheCalled                func()
+	FinishCalled                    func(value []byte)
+	AddCodeCalled                   func(addr []byte, code []byte)
+	AddTxValueToSmartContractCalled func(value *big.Int, scAddress []byte)
+	BlockChainHookCalled            func() vmcommon.BlockchainHook
+	CryptoHookCalled                func() vmcommon.CryptoHook
+}
+
+func (s *SystemEIStub) BlockChainHook() vmcommon.BlockchainHook {
+	if s.BlockChainHookCalled != nil {
+		return s.BlockChainHookCalled()
+	}
+	return &BlockChainHookStub{}
+}
+
+func (s *SystemEIStub) CryptoHook() vmcommon.CryptoHook {
+	if s.CryptoHookCalled != nil {
+		return s.CryptoHookCalled()
+	}
+	return &CryptoHookStub{}
+}
+
+func (s *SystemEIStub) AddCode(addr []byte, code []byte) {
+	if s.AddCodeCalled != nil {
+		s.AddCodeCalled(addr, code)
+	}
+}
+
+func (s *SystemEIStub) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
+	if s.AddTxValueToSmartContractCalled != nil {
+		s.AddTxValueToSmartContractCalled(value, scAddress)
+	}
 }
 
 func (s *SystemEIStub) SetSCAddress(addr []byte) {
