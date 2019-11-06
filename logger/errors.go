@@ -10,3 +10,6 @@ var ErrNilFormatter = errors.New("nil formatter provided")
 
 // ErrInvalidLogLevelPattern signals that an un-parsable log level and patter was provided
 var ErrInvalidLogLevelPattern = errors.New("un-parsable log level and pattern provided")
+
+// ErrWriterNotFound signals that the provided writer was not found while searching container list
+var ErrWriterNotFound = errors.New("writer not found while searching container")

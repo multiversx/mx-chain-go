@@ -17,15 +17,16 @@ var defaultLogLevel = LogInfo
 
 func init() {
 	logMut.Lock()
-	defer logMut.Unlock()
 
 	loggers = make(map[string]*logger)
 	defaultLogOut = &logOutputSubject{}
 	_ = defaultLogOut.AddObserver(os.Stdout, ConsoleFormatter{})
+
+	logMut.Unlock()
 }
 
-// Get returns a log based on the name provided, generating a new log if there is no log with provided name
-func Get(name string) *logger {
+// GetOrCreate returns a log based on the name provided, generating a new log if there is no log with provided name
+func GetOrCreate(name string) *logger {
 	logMut.Lock()
 	defer logMut.Unlock()
 
@@ -53,23 +54,25 @@ func ConvertHash(hash []byte) string {
 	return prefix + ellipsisCharacter + suffix
 }
 
-// SetLogLevel changes the log level of the contained loggers. The expected format is "LOG_LEVEL|MATCHING_STRING".
-// If matching string is * it will change the log levels of all contained loggers and will also set the
+// SetLogLevel changes the log level of the contained loggers. The expected format is
+// "MATCHING_STRING1:LOG_LEVEL1,MATCHING_STRING2:LOG_LEVEL2".
+// If matching string is *, it will change the log levels of all contained loggers and will also set the
 // defaultLogLevelProperty. Otherwise, the log level will be modified only on those loggers that will contain the
 // matching string on any position.
 // For example, having the parameter "DEBUG|process" will set the DEBUG level on all loggers that will contain
 // the "process" string in their name ("process/sync", "process/interceptors", "process" and so on).
+// The rules are applied in the exact manner as they are provided, starting from left to the right part of the string
+// Example: *:INFO,p2p:ERROR,*:DEBUG,data:INFO will result in having the data package logger(s) on INFO log level
+// and all other packages on DEBUG level
 func SetLogLevel(logLevelAndPattern string) error {
-	logLevel, pattern, err := ParseLogLevelAndMatchingString(logLevelAndPattern)
+	logLevels, patterns, err := ParseLogLevelAndMatchingString(logLevelAndPattern)
 	if err != nil {
 		return err
 	}
 
 	logMut.Lock()
-	defer logMut.Unlock()
-
-	setLogLevelOnMap(loggers, pattern, logLevel)
-	setLogLevelToVar(&defaultLogLevel, pattern, logLevel)
+	setLogLevelOnMap(loggers, &defaultLogLevel, logLevels, patterns)
+	logMut.Unlock()
 
 	return nil
 }
@@ -80,31 +83,60 @@ func AddLogObserver(w io.Writer, formatter Formatter) error {
 	return defaultLogOut.AddObserver(w, formatter)
 }
 
-func setLogLevelOnMap(loggers map[string]*logger, pattern string, logLevel LogLevel) {
-	for name, log := range loggers {
-		isMatching := pattern == "*" || strings.Contains(name, pattern)
-		if isMatching {
-			log.SetLevel(logLevel)
+// RemoveLogObserver removes an exiting observer by providing the writer pointer.
+func RemoveLogObserver(w io.Writer) error {
+	return defaultLogOut.RemoveObserver(w)
+}
+
+func setLogLevelOnMap(loggers map[string]*logger, dest *LogLevel, logLevels []LogLevel, patterns []string) {
+	for i := 0; i < len(logLevels); i++ {
+		pattern := patterns[i]
+		logLevel := logLevels[i]
+		for name, log := range loggers {
+			isMatching := pattern == "*" || strings.Contains(name, pattern)
+			if isMatching {
+				log.SetLevel(logLevel)
+			}
+		}
+
+		if pattern == "*" {
+			*dest = logLevel
 		}
 	}
 }
 
-func setLogLevelToVar(dest *LogLevel, pattern string, logLevel LogLevel) {
-	if pattern == "*" {
-		*dest = logLevel
+// ParseLogLevelAndMatchingString can parse a string in the form "MATCHING_STRING1:LOG_LEVEL1,MATCHING_STRING2:LOG_LEVEL2" into its
+// corresponding log level and matching string. Errors if something goes wrong.
+// For example, having the parameter "DEBUG|process" will set the DEBUG level on all loggers that will contain
+// the "process" string in their name ("process/sync", "process/interceptors", "process" and so on).
+// The rules are applied in the exact manner as they are provided, starting from left to the right part of the string
+// Example: *:INFO,p2p:ERROR,*:DEBUG,data:INFO will result in having the data package logger(s) on INFO log level
+// and all other packages on DEBUG level
+func ParseLogLevelAndMatchingString(logLevelAndPatterns string) ([]LogLevel, []string, error) {
+	splitLevelPatterns := strings.Split(logLevelAndPatterns, ",")
+
+	levels := make([]LogLevel, len(splitLevelPatterns))
+	patterns := make([]string, len(splitLevelPatterns))
+	for i, levelPattern := range splitLevelPatterns {
+		level, pattern, err := parseLevelPattern(levelPattern)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		levels[i] = level
+		patterns[i] = pattern
 	}
+
+	return levels, patterns, nil
 }
 
-// ParseLogLevelAndMatchingString can parse a string in the form "LOG_LEVEL|MATCHING_STRING" into its
-// corresponding log level and matching string. Errors if something goes wrong.
-// Example: "DEBUG|process" "INFO|*" "ERROR|process/sync" and so on
-func ParseLogLevelAndMatchingString(logLevelAndPattern string) (LogLevel, string, error) {
-	input := strings.Split(logLevelAndPattern, "|")
+func parseLevelPattern(logLevelAndPattern string) (LogLevel, string, error) {
+	input := strings.Split(logLevelAndPattern, ":")
 	if len(input) != 2 {
 		return LogTrace, "", ErrInvalidLogLevelPattern
 	}
 
-	logLevel, err := GetLogLevel(input[0])
+	logLevel, err := GetLogLevel(input[1])
 
-	return logLevel, input[1], err
+	return logLevel, input[0], err
 }

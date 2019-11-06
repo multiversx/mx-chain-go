@@ -13,7 +13,7 @@ func TestLogger_ExampleCreateLoggerAndOutputSimpleMessages(t *testing.T) {
 
 	//the following instruction might be done inside a var declaration, once on each package
 	// or in the init func of the package
-	log := logger.Get("test_logger")
+	log := logger.GetOrCreate("test_logger1")
 	//manual set of the log lev is required here for demonstration purposes
 	log.SetLevel(logger.LogTrace)
 
@@ -27,7 +27,7 @@ func TestLogger_ExampleCreateLoggerAndOutputSimpleMessages(t *testing.T) {
 func TestLogger_ExampleMessagesWithArguments(t *testing.T) {
 	t.Parallel()
 
-	log := logger.Get("test_logger")
+	log := logger.GetOrCreate("test_logger2")
 	log.SetLevel(logger.LogInfo)
 
 	log.Info("message1", "an-int", 45, "a-string", "string")
@@ -43,16 +43,3 @@ func generateHash() []byte {
 	_, _ = rand.Reader.Read(buff)
 	return buff
 }
-
-//
-//hash := generateHash()
-//log.Trace("Wrong nonce in block ", "short hash", ConvertHash(hash), "long hash", hex.EncodeToString(hash))
-//hash = generateHash()
-//log.Debug("debug message", "short hash", ConvertHash(hash), "long hash", hex.EncodeToString(hash))
-//hash = generateHash()
-//log.Info("info message", "short hash", ConvertHash(hash), "long hash", hex.EncodeToString(hash), "table", "r\n\nased",
-//	"int", 45, "bool", true, "map", map[string]int{"aaa": 2, "bbb": 3}, "slice", []int{1, 2, 3, 4, 5}, "nil", nil)
-//hash = generateHash()
-//log.Warn("warn message", "short hash", ConvertHash(hash), "long hash", hex.EncodeToString(hash))
-//hash = generateHash()
-//log.Error("error message", "short hash", ConvertHash(hash), "long hash", hex.EncodeToString(hash))

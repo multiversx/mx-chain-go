@@ -120,3 +120,85 @@ func TestLogOutputSubject_OutputCalledConcurrentShouldWork(t *testing.T) {
 	assert.Equal(t, int32(numCalls), atomic.LoadInt32(&writerCalled))
 	assert.Equal(t, int32(numCalls), atomic.LoadInt32(&formatterCalled))
 }
+
+//------- RemoveObserver
+
+func TestLogOutputSubject_RemoveObserverNilWriterShouldError(t *testing.T) {
+	t.Parallel()
+
+	los := logger.NewLogOutputSubject()
+
+	err := los.RemoveObserver(nil)
+
+	assert.Equal(t, logger.ErrNilWriter, err)
+}
+
+func TestLogOutputSubject_RemoveObserverEmptyListShouldError(t *testing.T) {
+	t.Parallel()
+
+	los := logger.NewLogOutputSubject()
+
+	err := los.RemoveObserver(&mock.WriterStub{})
+
+	assert.Equal(t, logger.ErrWriterNotFound, err)
+}
+
+func TestLogOutputSubject_RemoveObserverWriterNotFoundShouldError(t *testing.T) {
+	t.Parallel()
+
+	los := logger.NewLogOutputSubject()
+	_ = los.AddObserver(&mock.WriterStub{}, &mock.FormatterStub{})
+	_ = los.AddObserver(&mock.WriterStub{}, &mock.FormatterStub{})
+
+	err := los.RemoveObserver(&mock.WriterStub{})
+
+	assert.Equal(t, logger.ErrWriterNotFound, err)
+}
+
+func TestLogOutputSubject_RemoveObserverOneElementShouldWork(t *testing.T) {
+	t.Parallel()
+
+	los := logger.NewLogOutputSubject()
+	w := &mock.WriterStub{}
+	_ = los.AddObserver(w, &mock.FormatterStub{})
+
+	err := los.RemoveObserver(w)
+	writers, formatters := los.Observers()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(writers))
+	assert.Equal(t, 0, len(formatters))
+}
+
+func TestLogOutputSubject_RemoveObserverLastElementShouldWork(t *testing.T) {
+	t.Parallel()
+
+	los := logger.NewLogOutputSubject()
+	_ = los.AddObserver(&mock.WriterStub{}, &mock.FormatterStub{})
+	w := &mock.WriterStub{}
+	_ = los.AddObserver(w, &mock.FormatterStub{})
+
+	err := los.RemoveObserver(w)
+	writers, formatters := los.Observers()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(writers))
+	assert.Equal(t, 1, len(formatters))
+}
+
+func TestLogOutputSubject_RemoveObserverMiddleElementShouldWork(t *testing.T) {
+	t.Parallel()
+
+	los := logger.NewLogOutputSubject()
+	_ = los.AddObserver(&mock.WriterStub{}, &mock.FormatterStub{})
+	w := &mock.WriterStub{}
+	_ = los.AddObserver(w, &mock.FormatterStub{})
+	_ = los.AddObserver(&mock.WriterStub{}, &mock.FormatterStub{})
+
+	err := los.RemoveObserver(w)
+	writers, formatters := los.Observers()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(writers))
+	assert.Equal(t, 2, len(formatters))
+}

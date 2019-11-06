@@ -16,6 +16,7 @@ const (
 	LogInfo    LogLevel = 2
 	LogWarning LogLevel = 3
 	LogError   LogLevel = 4
+	LogNone    LogLevel = 5
 )
 
 // Levels contain all defined levels as a slice for an easier iteration
@@ -25,6 +26,7 @@ var Levels = []LogLevel{
 	LogInfo,
 	LogWarning,
 	LogError,
+	LogNone,
 }
 
 func (level LogLevel) String() string {
@@ -39,6 +41,8 @@ func (level LogLevel) String() string {
 		return "WARN "
 	case LogError:
 		return "ERROR"
+	case LogNone:
+		return "NONE "
 	default:
 		return ""
 	}
@@ -46,10 +50,10 @@ func (level LogLevel) String() string {
 
 // GetLogLevel gets the corresponding log level from provided string. The search is case insensitive.
 func GetLogLevel(logLevelAsString string) (LogLevel, error) {
-	providedLogLevelUpper := strings.ToUpper(logLevelAsString)
+	providedLogLevelUpperTrimmed := strings.Trim(strings.ToUpper(logLevelAsString), " ")
 	for _, level := range Levels {
-		levelUpper := strings.ToUpper(level.String())
-		if levelUpper == providedLogLevelUpper {
+		levelUpperTrimmed := strings.Trim(strings.ToUpper(level.String()), " ")
+		if levelUpperTrimmed == providedLogLevelUpperTrimmed {
 			return level, nil
 		}
 	}

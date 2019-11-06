@@ -13,7 +13,7 @@ func TestFormatMessage_ShouldOutputFixedOrLargerStringThanMsgFixedLength(t *test
 	testData := make(map[string]int)
 	testData[""] = 40
 	testData["small string"] = 40
-	largeString := "large stirng: " + strings.Repeat("A", msgFixedLength)
+	largeString := "large string: " + strings.Repeat("A", msgFixedLength)
 	testData[largeString] = len(largeString)
 
 	for k, v := range testData {

@@ -161,6 +161,17 @@ func TestLogger_WarnShouldCallIfLogLevelIsLower(t *testing.T) {
 
 //------- Error
 
+func TestLogger_ErrorShouldNotCallIfLogLevelIsHigher(t *testing.T) {
+	t.Parallel()
+
+	los, numCalls := generateTestLogOutputSubject()
+	log := logger.NewLogger("test", logger.LogNone, los)
+
+	log.Error("test")
+
+	assert.Equal(t, int32(0), atomic.LoadInt32(numCalls))
+}
+
 func TestLogger_ErrorShouldCallIfLogLevelIsEqual(t *testing.T) {
 	t.Parallel()
 

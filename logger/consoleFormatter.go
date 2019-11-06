@@ -2,6 +2,15 @@ package logger
 
 import "fmt"
 
+const (
+	ansiRegularGray      = "0;37m"
+	ansiRegularLightBlue = "0;36m"
+	ansiRegularGreen     = "0;32m"
+	ansiRegularYellow    = "0;33m"
+	ansiRegularRed       = "0;31m"
+	ansiRegularBlack     = "0;30m"
+)
+
 // ConsoleFormatter implements formatter interface and is used to format log lines to be written on the console
 // It uses ANSI-color for colorized console/terminal output.
 type ConsoleFormatter struct {
@@ -33,6 +42,7 @@ func displayArgs(levelColor string, args ...interface{}) string {
 	for index := 1; index < len(args); index += 2 {
 		argString += fmt.Sprintf("\033[%s%s\033[0m=%v ", levelColor, args[index-1], args[index])
 	}
+
 	return argString
 }
 
@@ -40,16 +50,16 @@ func displayArgs(levelColor string, args ...interface{}) string {
 func getLevelColor(level LogLevel) string {
 	switch level {
 	case LogTrace:
-		return "0;37m"
+		return ansiRegularGray
 	case LogDebug:
-		return "0;36m"
+		return ansiRegularLightBlue
 	case LogInfo:
-		return "0;32m"
+		return ansiRegularGreen
 	case LogWarning:
-		return "0;33m"
+		return ansiRegularYellow
 	case LogError:
-		return "0;31m"
+		return ansiRegularRed
 	default:
-		return "0;30m"
+		return ansiRegularBlack
 	}
 }

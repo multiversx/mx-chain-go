@@ -1,22 +1,14 @@
 package logger
 
 import (
-	"fmt"
 	"strings"
 	"time"
 )
 
 const msgFixedLength = 40
 
-func displayTime(time time.Time) string {
-	return fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d",
-		time.Year(),
-		time.Month(),
-		time.Day(),
-		time.Hour(),
-		time.Minute(),
-		time.Second(),
-	)
+func displayTime(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
 }
 
 func formatMessage(msg string) string {

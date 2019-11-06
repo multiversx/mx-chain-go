@@ -13,7 +13,7 @@ type Logger interface {
 	SetLevel(logLevel LogLevel)
 }
 
-// Formatter describes what an log formatter should be able to do
+// Formatter describes what a log formatter should be able to do
 type Formatter interface {
 	Output(line *LogLine) []byte
 }
@@ -23,4 +23,5 @@ type Formatter interface {
 type LogOutputHandler interface {
 	Output(line *LogLine)
 	AddObserver(w io.Writer, format Formatter) error
+	RemoveObserver(w io.Writer) error
 }

@@ -49,50 +49,38 @@ func (l *logger) shouldOutput(compareLogLevel LogLevel) bool {
 	return shouldOutput
 }
 
-// Trace outputs a tracing log message with optional provided arguments
-func (l *logger) Trace(message string, args ...interface{}) {
-	if l.shouldOutput(LogTrace) {
+func (l *logger) outputMessageFromLogLevel(level LogLevel, message string, args ...interface{}) {
+	if l.shouldOutput(level) {
 		return
 	}
 
-	logLine := newLogLine(message, LogTrace, args...)
+	logLine := newLogLine(message, level, args...)
 	l.logOutput.Output(logLine)
+}
+
+// Trace outputs a tracing log message with optional provided arguments
+func (l *logger) Trace(message string, args ...interface{}) {
+	l.outputMessageFromLogLevel(LogTrace, message, args...)
 }
 
 // Debug outputs a debugging log message with optional provided arguments
 func (l *logger) Debug(message string, args ...interface{}) {
-	if l.shouldOutput(LogDebug) {
-		return
-	}
-
-	logLine := newLogLine(message, LogDebug, args...)
-	l.logOutput.Output(logLine)
+	l.outputMessageFromLogLevel(LogDebug, message, args...)
 }
 
 // Info outputs an information log message with optional provided arguments
 func (l *logger) Info(message string, args ...interface{}) {
-	if l.shouldOutput(LogInfo) {
-		return
-	}
-
-	logLine := newLogLine(message, LogInfo, args...)
-	l.logOutput.Output(logLine)
+	l.outputMessageFromLogLevel(LogInfo, message, args...)
 }
 
 // Warn outputs a warning log message with optional provided arguments
 func (l *logger) Warn(message string, args ...interface{}) {
-	if l.shouldOutput(LogWarning) {
-		return
-	}
-
-	logLine := newLogLine(message, LogWarning, args...)
-	l.logOutput.Output(logLine)
+	l.outputMessageFromLogLevel(LogWarning, message, args...)
 }
 
 // Error outputs an error log message with optional provided arguments
 func (l *logger) Error(message string, args ...interface{}) {
-	logLine := newLogLine(message, LogError, args...)
-	l.logOutput.Output(logLine)
+	l.outputMessageFromLogLevel(LogError, message, args...)
 }
 
 // LogIfError outputs an error log message with optional provided arguments if the provided error parameter is not nil
@@ -101,8 +89,7 @@ func (l *logger) LogIfError(err error, args ...interface{}) {
 		return
 	}
 
-	logLine := newLogLine(err.Error(), LogError, args...)
-	l.logOutput.Output(logLine)
+	l.Error(err.Error(), args...)
 }
 
 // SetLevel sets the current level of the logger
