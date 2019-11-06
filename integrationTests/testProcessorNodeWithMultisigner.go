@@ -253,6 +253,9 @@ func VerifyNodesHaveHeaders(
 	headers map[uint32]data.HeaderHandler,
 	nodesMap map[uint32][]*TestProcessorNode,
 ) {
+	//TODO: These verifies should be skipped, as now headers pool is cleaned after each commit
+	return
+
 	var v interface{}
 	var ok bool
 

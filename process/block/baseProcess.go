@@ -745,3 +745,56 @@ func (bp *baseProcessor) isShardStuck(shardId uint32) bool {
 	isShardStuck := bp.rounder.Index()-int64(header.GetRound()) > process.MaxRoundsWithoutCommittedBlock
 	return isShardStuck
 }
+
+func (bp *baseProcessor) cleanupPools(
+	headersNoncesPool dataRetriever.Uint64SyncMapCacher,
+	headersPool storage.Cacher,
+	notarizedHeadersPool storage.Cacher,
+) {
+
+	bp.removeHeadersBehindNonceFromPool(headersPool, headersNoncesPool, bp.forkDetector.GetHighestFinalBlockNonce())
+
+	for shardId := range bp.notarizedHdrs {
+		lastNotarizedHdr := bp.lastNotarizedHdrForShard(shardId)
+		if check.IfNil(lastNotarizedHdr) {
+			continue
+		}
+
+		bp.removeHeadersBehindNonceFromPool(notarizedHeadersPool, headersNoncesPool, lastNotarizedHdr.GetNonce())
+	}
+
+	return
+}
+
+func (bp *baseProcessor) removeHeadersBehindNonceFromPool(
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	nonce uint64,
+) {
+
+	if check.IfNil(cacher) {
+		return
+	}
+
+	for _, key := range cacher.Keys() {
+		val, _ := cacher.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(data.HeaderHandler)
+		if !ok {
+			continue
+		}
+
+		if hdr.GetNonce() < nonce {
+			cacher.Remove(key)
+
+			if check.IfNil(uint64SyncMapCacher) {
+				continue
+			}
+
+			uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
+		}
+	}
+}

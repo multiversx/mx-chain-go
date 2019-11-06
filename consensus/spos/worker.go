@@ -409,6 +409,12 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Info(fmt.Sprintf("extend function is called from subround: %s\n",
 		wrk.consensusService.GetSubroundName(subroundId)))
 
+	wrk.displaySignatureStatistic()
+
+	wrk.mutHashConsensusMessage.Lock()
+	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
+	wrk.mutHashConsensusMessage.Unlock()
+
 	if wrk.bootstrapper.ShouldSync() {
 		return
 	}
@@ -426,12 +432,6 @@ func (wrk *Worker) Extend(subroundId int) {
 	if shouldBroadcastLastCommittedHeader {
 		wrk.broadcastLastCommittedHeader()
 	}
-
-	wrk.dysplaySignatureStatistic()
-
-	wrk.mutHashConsensusMessage.Lock()
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
-	wrk.mutHashConsensusMessage.Unlock()
 }
 
 func (wrk *Worker) broadcastLastCommittedHeader() {
@@ -447,10 +447,11 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 	}
 }
 
-func (wrk *Worker) dysplaySignatureStatistic() {
+func (wrk *Worker) displaySignatureStatistic() {
 	wrk.mutHashConsensusMessage.RLock()
 	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
-		log.Info(fmt.Sprintf("proposed header with hash %s has received %d signatures\n",
+		log.Info(fmt.Sprintf("proposed header for round %d with hash %s has received %d signatures\n",
+			consensusMessages[0].RoundIndex,
 			core.ToB64([]byte(hash)),
 			len(consensusMessages)))
 

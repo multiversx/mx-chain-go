@@ -180,6 +180,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.MaxSizeCalled = func() int {
 				return 1000
 			}
+			cs.KeysCalled = func() [][]byte {
+				return nil
+			}
 			return cs
 		},
 	}
