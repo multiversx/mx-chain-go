@@ -30,6 +30,7 @@ type forkInfo struct {
 	lastBlockRound         uint64
 	lastProposedBlockNonce uint64
 	shouldForceFork        bool
+	isNotarizedShardStuck  bool
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -344,6 +345,20 @@ func (bfd *baseForkDetector) shouldForceFork() bool {
 	return shouldForceFork
 }
 
+func (bfd *baseForkDetector) setIsNotarizedShardStuck(isNotarizedShardStuck bool) {
+	bfd.mutFork.Lock()
+	bfd.fork.isNotarizedShardStuck = isNotarizedShardStuck
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) isNotarizedShardStuck() bool {
+	bfd.mutFork.RLock()
+	isNotarizedShardStuck := bfd.fork.isNotarizedShardStuck
+	bfd.mutFork.RUnlock()
+
+	return isNotarizedShardStuck
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bfd *baseForkDetector) IsInterfaceNil() bool {
 	if bfd == nil {
@@ -477,20 +492,25 @@ func (bfd *baseForkDetector) activateForcedForkIfNeeded(
 
 	lastCheckpointRound := bfd.lastCheckpoint().round
 	lastCheckpointNonce := bfd.lastCheckpoint().nonce
+	finalCheckpointNonce := bfd.finalCheckpoint().nonce
 
 	roundsDifference := int64(header.GetRound()) - int64(lastCheckpointRound)
 	noncesDifference := int64(header.GetNonce()) - int64(lastCheckpointNonce)
+	noncesWithoutCrossNotarizedDifference := int64(header.GetNonce()) - int64(finalCheckpointNonce)
 	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
 
-	shouldForceFork := roundsDifference > process.MaxRoundsWithoutCommittedBlock &&
+	isConsensusStuck := roundsDifference > process.MaxRoundsWithoutCommittedBlock &&
 		noncesDifference <= 1 &&
 		isInProperRound
 
-	if !shouldForceFork {
-		return
-	}
+	isCrossNotarizedStuck := noncesWithoutCrossNotarizedDifference > process.MaxNoncesWithoutCrossNotarized &&
+		noncesDifference <= 1 &&
+		isInProperRound &&
+		!bfd.isNotarizedShardStuck()
 
-	bfd.setShouldForceFork(true)
+	if isConsensusStuck || isCrossNotarizedStuck {
+		bfd.setShouldForceFork(true)
+	}
 }
 
 func (bfd *baseForkDetector) isSyncing() bool {

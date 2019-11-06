@@ -220,8 +220,8 @@ var ErrNilTransactionPool = errors.New("nil transaction pool")
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 
-// ErrNilMetaBlockPool signals that a nil meta blocks pool was used
-var ErrNilMetaBlockPool = errors.New("nil meta block pool")
+// ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
+var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
 // ErrNilShardBlockPool signals that a nil shard blocks pool was used
 var ErrNilShardBlockPool = errors.New("nil shard block pool")

@@ -460,7 +460,7 @@ func createNetNode(
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
-				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 					return nil
 				},
 				GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -485,6 +485,7 @@ func createNetNode(
 			RequestHandler:               requestHandler,
 			Core:                         &mock.ServiceContainerMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        dPool,
 		TxCoordinator:   tc,
@@ -836,7 +837,7 @@ func createMetaNetNode(
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
-				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 					return nil
 				},
 				GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -860,6 +861,7 @@ func createMetaNetNode(
 			StartHeaders:    genesisBlocks,
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
+			Rounder:         &mock.RounderMock{},
 		},
 		DataPool: dPool,
 	}

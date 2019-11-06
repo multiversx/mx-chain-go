@@ -49,6 +49,7 @@ func (sfd *shardForkDetector) AddHeader(
 	state process.BlockHeaderState,
 	finalHeaders []data.HeaderHandler,
 	finalHeadersHashes [][]byte,
+	isNotarizedShardStuck bool,
 ) error {
 
 	if header == nil || header.IsInterfaceNil() {
@@ -75,6 +76,7 @@ func (sfd *shardForkDetector) AddHeader(
 		sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
 		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
 		sfd.removePastOrInvalidRecords()
+		sfd.setIsNotarizedShardStuck(isNotarizedShardStuck)
 	}
 
 	sfd.append(&headerInfo{

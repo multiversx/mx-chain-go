@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -28,6 +29,7 @@ type ArgBaseProcessor struct {
 	RequestHandler               process.RequestHandler
 	Core                         serviceContainer.Core
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	Rounder                      consensus.Rounder
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

@@ -49,6 +49,7 @@ func (mfd *metaForkDetector) AddHeader(
 	state process.BlockHeaderState,
 	finalHeaders []data.HeaderHandler,
 	finalHeadersHashes [][]byte,
+	isNotarizedShardStuck bool,
 ) error {
 
 	if header == nil || header.IsInterfaceNil() {
@@ -75,6 +76,7 @@ func (mfd *metaForkDetector) AddHeader(
 		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
 		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
 		mfd.removePastOrInvalidRecords()
+		mfd.setIsNotarizedShardStuck(isNotarizedShardStuck)
 	}
 
 	mfd.append(&headerInfo{

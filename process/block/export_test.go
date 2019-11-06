@@ -75,6 +75,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			RequestHandler:               &mock.RequestHandlerMock{},
 			Core:                         &mock.ServiceContainerMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        tdp,
 		TxCoordinator:   &mock.TransactionCoordinatorMock{},

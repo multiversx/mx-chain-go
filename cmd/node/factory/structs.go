@@ -533,6 +533,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		forkDetector,
 		shardsGenesisBlocks,
+		rounder,
 	)
 
 	if err != nil {
@@ -1561,6 +1562,7 @@ func newBlockProcessor(
 	resolversFinder dataRetriever.ResolversFinder,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	rounder consensus.Rounder,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1606,6 +1608,7 @@ func newBlockProcessor(
 			shardsGenesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
+			rounder,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1626,6 +1629,7 @@ func newBlockProcessor(
 			shardsGenesisBlocks,
 			processArgs.coreServiceContainer,
 			validatorStatisticsProcessor,
+			rounder,
 		)
 	}
 
@@ -1644,6 +1648,7 @@ func newShardBlockProcessor(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
+	rounder consensus.Rounder,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1825,6 +1830,7 @@ func newShardBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		Rounder:               rounder,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1858,6 +1864,7 @@ func newMetaBlockProcessor(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	rounder consensus.Rounder,
 ) (process.BlockProcessor, error) {
 
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
@@ -1886,6 +1893,7 @@ func newMetaBlockProcessor(
 		RequestHandler:               requestHandler,
 		Core:                         coreServiceContainer,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+		Rounder:                      rounder,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1915,14 +1923,14 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	storageService := processComponents.data.Store
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes: initialNodes,
-		PeerAdapter: peerAdapter,
-		AdrConv: processComponents.state.AddressConverter,
+		InitialNodes:     initialNodes,
+		PeerAdapter:      peerAdapter,
+		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool: processComponents.data.MetaDatapool,
-		StorageService: storageService,
-		Marshalizer: processComponents.core.Marshalizer,
+		DataPool:         processComponents.data.MetaDatapool,
+		StorageService:   storageService,
+		Marshalizer:      processComponents.core.Marshalizer,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

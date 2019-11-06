@@ -66,6 +66,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		uint64Converter:               arguments.Uint64Converter,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		rounder:                       arguments.Rounder,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -98,12 +99,14 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
-		return nil, process.ErrNilMetaBlockPool
+		return nil, process.ErrNilMetaBlocksPool
 	}
 	metaBlockPool.RegisterHandler(sp.receivedMetaBlock)
 	sp.onRequestHeaderHandler = arguments.RequestHandler.RequestHeader
 
 	sp.metaBlockFinality = process.MetaBlockFinality
+
+	sp.lastHdrs = make(mapShardHeader)
 
 	return &sp, nil
 }
@@ -499,7 +502,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]uint32, metaBlockHashes [][]byte) error {
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
-		return process.ErrNilMetaBlockPool
+		return process.ErrNilMetaBlocksPool
 	}
 
 	metaHeaderNoncesPool := sp.dataPool.HeadersNonces()
@@ -609,13 +612,20 @@ func (sp *shardProcessor) CommitBlock(
 	errNotCritical = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	log.LogIfError(errNotCritical)
 
-	headerNoncePool := sp.dataPool.HeadersNonces()
-	if headerNoncePool == nil {
+	headersNoncesPool := sp.dataPool.HeadersNonces()
+	if headersNoncesPool == nil {
 		err = process.ErrNilHeadersNoncesDataPool
 		return err
 	}
 
-	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
+	headersPool := sp.dataPool.Headers()
+	if headersPool == nil {
+		err = process.ErrNilHeadersDataPool
+		return err
+	}
+
+	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
+	headersPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
@@ -677,7 +687,9 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
+	isMetachainStuck := sp.isShardStuck(sharding.MetachainShardId)
+
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, isMetachainStuck)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -1043,12 +1055,12 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 // upon receiving, it parses the new metablock and requests miniblocks and transactions
 // which destination is the current shard
 func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
-	metaBlockPool := sp.dataPool.MetaBlocks()
-	if metaBlockPool == nil {
+	metaBlocksPool := sp.dataPool.MetaBlocks()
+	if metaBlocksPool == nil {
 		return
 	}
 
-	obj, ok := metaBlockPool.Peek(metaBlockHash)
+	obj, ok := metaBlocksPool.Peek(metaBlockHash)
 	if !ok {
 		return
 	}
@@ -1100,8 +1112,16 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	if sp.isHeaderOutOfRange(metaBlock, metaBlockPool) {
-		metaBlockPool.Remove(metaBlockHash)
+	sp.setLastHdrForShard(metaBlock.GetShardID(), metaBlock)
+
+	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool) {
+		metaBlocksPool.Remove(metaBlockHash)
+
+		headersNoncesPool := sp.dataPool.HeadersNonces()
+		if headersNoncesPool != nil {
+			headersNoncesPool.Remove(metaBlock.GetNonce(), metaBlock.GetShardID())
+		}
+
 		return
 	}
 
@@ -1236,7 +1256,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 func (sp *shardProcessor) getOrderedMetaBlocks(round uint64) ([]*hashAndHdr, error) {
 	metaBlocksPool := sp.dataPool.MetaBlocks()
 	if metaBlocksPool == nil {
-		return nil, process.ErrNilMetaBlockPool
+		return nil, process.ErrNilMetaBlocksPool
 	}
 
 	lastHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)

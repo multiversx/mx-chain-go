@@ -366,6 +366,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			RequestHandler:               &mock.RequestHandlerMock{},
 			Core:                         &mock.ServiceContainerMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxCoordinator:   &mock.TransactionCoordinatorMock{},

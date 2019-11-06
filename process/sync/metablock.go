@@ -55,7 +55,7 @@ func NewMetaBootstrap(
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 	if check.IfNil(poolsHolder.MetaBlocks()) {
-		return nil, process.ErrNilMetaBlockPool
+		return nil, process.ErrNilMetaBlocksPool
 	}
 
 	err := checkBootstrapNilParameters(

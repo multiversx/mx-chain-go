@@ -66,6 +66,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
+		rounder:                       arguments.Rounder,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -92,6 +93,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.ShardBlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
+
+	mp.lastHdrs = make(mapShardHeader)
 
 	return &mp, nil
 }
@@ -453,13 +456,20 @@ func (mp *metaProcessor) CommitBlock(
 	errNotCritical = mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
 	log.LogIfError(errNotCritical)
 
-	headerNoncePool := mp.dataPool.HeadersNonces()
-	if headerNoncePool == nil {
+	headersNoncesPool := mp.dataPool.HeadersNonces()
+	if headersNoncesPool == nil {
 		err = process.ErrNilHeadersNoncesDataPool
 		return err
 	}
 
-	headerNoncePool.Remove(header.GetNonce(), header.GetShardID())
+	metaBlocksPool := mp.dataPool.MetaBlocks()
+	if metaBlocksPool == nil {
+		err = process.ErrNilMetaBlocksPool
+		return err
+	}
+
+	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
+	metaBlocksPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {
@@ -521,7 +531,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.Info(errNotCritical.Error())
 	}
 
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil, false)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -890,8 +900,16 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
+	mp.setLastHdrForShard(shardHeader.GetShardID(), shardHeader)
+
 	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) {
 		shardHeaderPool.Remove(shardHeaderHash)
+
+		headersNoncesPool := mp.dataPool.HeadersNonces()
+		if headersNoncesPool != nil {
+			headersNoncesPool.Remove(shardHeader.GetNonce(), shardHeader.GetShardID())
+		}
+
 		return
 	}
 

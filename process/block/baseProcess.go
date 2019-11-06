@@ -6,7 +6,9 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -48,6 +50,7 @@ type hdrForBlock struct {
 }
 
 type mapShardHeaders map[uint32][]data.HeaderHandler
+type mapShardHeader map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
 	shardCoordinator             sharding.Coordinator
@@ -61,11 +64,15 @@ type baseProcessor struct {
 	store                        dataRetriever.StorageService
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler           process.BlockSizeThrottler
+	rounder                      consensus.Rounder
 
 	hdrsForCurrBlock hdrForBlock
 
 	mutNotarizedHdrs sync.RWMutex
 	notarizedHdrs    mapShardHeaders
+
+	mutLastHdrs sync.RWMutex
+	lastHdrs    mapShardHeader
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
@@ -312,6 +319,27 @@ func (bp *baseProcessor) lastNotarizedHdrForShard(shardId uint32) data.HeaderHan
 	return nil
 }
 
+func (bp *baseProcessor) lastHdrForShard(shardId uint32) data.HeaderHandler {
+	bp.mutLastHdrs.RLock()
+	defer bp.mutLastHdrs.RUnlock()
+
+	return bp.lastHdrs[shardId]
+}
+
+func (bp *baseProcessor) setLastHdrForShard(shardId uint32, header data.HeaderHandler) {
+	bp.mutLastHdrs.Lock()
+	lastHeader, ok := bp.lastHdrs[shardId]
+	if ok {
+		if lastHeader.GetRound() > header.GetRound() {
+			bp.mutLastHdrs.Unlock()
+			return
+		}
+	}
+
+	bp.lastHdrs[shardId] = header
+	bp.mutLastHdrs.Unlock()
+}
+
 func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
@@ -527,35 +555,38 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 // checkProcessorNilParameters will check the imput parameters for nil values
 func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 
-	if arguments.Accounts == nil || arguments.Accounts.IsInterfaceNil() {
+	if check.IfNil(arguments.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if arguments.ForkDetector == nil || arguments.ForkDetector.IsInterfaceNil() {
+	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if arguments.Hasher == nil || arguments.Hasher.IsInterfaceNil() {
+	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
 	}
-	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
+	if check.IfNil(arguments.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if arguments.Store == nil || arguments.Store.IsInterfaceNil() {
+	if check.IfNil(arguments.Store) {
 		return process.ErrNilStorage
 	}
-	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
 	}
-	if arguments.SpecialAddressHandler == nil || arguments.SpecialAddressHandler.IsInterfaceNil() {
+	if check.IfNil(arguments.SpecialAddressHandler) {
 		return process.ErrNilSpecialAddressHandler
 	}
-	if arguments.Uint64Converter == nil || arguments.Uint64Converter.IsInterfaceNil() {
+	if check.IfNil(arguments.Uint64Converter) {
 		return process.ErrNilUint64Converter
 	}
-	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
+	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
+	}
+	if check.IfNil(arguments.Rounder) {
+		return process.ErrNilRounder
 	}
 
 	return nil
@@ -703,4 +734,14 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	return missingFinalityAttestingHeaders
+}
+
+func (bp *baseProcessor) isShardStuck(shardId uint32) bool {
+	header := bp.lastHdrForShard(shardId)
+	if check.IfNil(header) {
+		return false
+	}
+
+	isShardStuck := bp.rounder.Index()-int64(header.GetRound()) > process.MaxRoundsWithoutCommittedBlock
+	return isShardStuck
 }
