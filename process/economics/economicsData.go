@@ -19,6 +19,7 @@ type EconomicsData struct {
 	minGasLimit         uint64
 	communityAddress    string
 	burnAddress         string
+	ratingsData         *RatingsData
 }
 
 const float64EqualityThreshold = 1e-9
@@ -50,6 +51,15 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		minGasLimit:         minGasLimit,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
+		ratingsData: &RatingsData{
+			startRating:                     economics.RatingSettings.StartRating,
+			maxRating:                       economics.RatingSettings.MaxRating,
+			minRating:                       economics.RatingSettings.MinRating,
+			increaseRatingStep:              economics.RatingSettings.IncreaseRatingStep,
+			decreaseRatingStep:              economics.RatingSettings.DecreaseRatingStep,
+			proposerExtraIncreaseRatingStep: economics.RatingSettings.ProposerExtraIncreaseRatingStep,
+			proposerExtraDecreaseRatingStep: economics.RatingSettings.ProposerExtraDecreaseRatingStep,
+		},
 	}, nil
 }
 
@@ -89,6 +99,11 @@ func checkValues(economics *config.ConfigEconomics) error {
 	isEqualsToOne := math.Abs(sumPercentage-1.0) <= float64EqualityThreshold
 	if !isEqualsToOne {
 		return process.ErrInvalidRewardsPercentages
+	}
+
+	err := checkRatingsValues(economics.RatingSettings)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -173,4 +188,9 @@ func (ed *EconomicsData) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// RatingsData will return the ratingsDataObject
+func (ed *EconomicsData) RatingsData() *RatingsData {
+	return ed.ratingsData
 }

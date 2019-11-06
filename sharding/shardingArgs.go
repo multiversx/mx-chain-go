@@ -11,4 +11,5 @@ type ArgNodesCoordinator struct {
 	NbShards                uint32
 	Nodes                   map[uint32][]Validator
 	SelfPublicKey           []byte
+	Rater                   Rater
 }

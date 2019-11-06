@@ -20,9 +20,21 @@ type FeeSettings struct {
 	MinGasLimit string
 }
 
+// RatingSettings will hold rating settings
+type RatingSettings struct {
+	StartRating                     uint64
+	MaxRating                       uint64
+	MinRating                       uint64
+	IncreaseRatingStep              uint64
+	DecreaseRatingStep              uint64
+	ProposerExtraIncreaseRatingStep uint64
+	ProposerExtraDecreaseRatingStep uint64
+}
+
 // ConfigEconomics will hold economics config
 type ConfigEconomics struct {
 	EconomicsAddresses EconomicsAddresses
 	RewardsSettings    RewardsSettings
 	FeeSettings        FeeSettings
+	RatingSettings     RatingSettings
 }

@@ -4,10 +4,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"math/rand"
+	"runtime"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
@@ -677,4 +681,53 @@ func TestIndexHashedGroupSelector_GetAllValidatorsPublicKeys(t *testing.T) {
 
 	allValidatorsPublicKeys := ihgs.GetAllValidatorsPublicKeys()
 	assert.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
+}
+
+func BenchmarkIndexHashedGroupSelector_TestExpandList(b *testing.B) {
+	m := runtime.MemStats{}
+	runtime.ReadMemStats(&m)
+
+	fmt.Println(m.TotalAlloc)
+
+	nrNodes := 40000
+	ratingSteps := 100
+	array := make([]int, nrNodes*ratingSteps)
+	for i := 0; i < nrNodes; i++ {
+		for j := 0; j < ratingSteps; j++ {
+			array[i*ratingSteps+j] = i
+		}
+	}
+
+	//a := []int{1, 2, 3, 4, 5, 6, 7, 8}
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(array), func(i, j int) { array[i], array[j] = array[j], array[i] })
+	m2 := runtime.MemStats{}
+
+	runtime.ReadMemStats(&m2)
+
+	fmt.Println(m2.TotalAlloc)
+	fmt.Println(fmt.Sprintf("Used %d MB", (m2.TotalAlloc-m.TotalAlloc)/1024/1024))
+	//fmt.Print(array[0:100])
+}
+
+func BenchmarkIndexHashedGroupSelector_TestHashes(b *testing.B) {
+	nrElementsInList := int64(4000000)
+	nrHashes := 100
+
+	hasher := blake2b.Blake2b{}
+
+	randomBits := ""
+
+	for i := 0; i < nrHashes; i++ {
+		randomBits = fmt.Sprintf("%s%d", randomBits, rand.Intn(2))
+	}
+	//computedListIndex := int64(0)
+	for i := 0; i < nrHashes; i++ {
+		computedHash := hasher.Compute(randomBits + fmt.Sprintf("%d", i))
+		computedLargeIndex := big.NewInt(0)
+		computedLargeIndex.SetBytes(computedHash)
+		fmt.Println(big.NewInt(0).Mod(computedLargeIndex, big.NewInt(nrElementsInList)).Int64())
+	}
+
+	//fmt.Print(array[0:100])
 }

@@ -29,6 +29,15 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			MinGasPrice: "18446744073709551615",
 			MinGasLimit: "500",
 		},
+		RatingSettings: config.RatingSettings{
+			StartRating:                     50,
+			MaxRating:                       100,
+			MinRating:                       1,
+			IncreaseRatingStep:              1,
+			DecreaseRatingStep:              2,
+			ProposerExtraIncreaseRatingStep: 1,
+			ProposerExtraDecreaseRatingStep: 2,
+		},
 	}
 }
 
@@ -357,4 +366,76 @@ func TestEconomicsData_BurnAddress(t *testing.T) {
 
 	value := economicsData.BurnAddress()
 	assert.Equal(t, burnAddress, value)
+}
+
+func TestEconomicsData_RatingsDataMinGreaterMaxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = 10
+	economicsConfig.RatingSettings.MaxRating = 8
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrMaxRatingIsSmallerThanMinRating, err)
+}
+
+func TestEconomicsData_RatingsStartGreaterMaxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = 10
+	economicsConfig.RatingSettings.MaxRating = 100
+	economicsConfig.RatingSettings.StartRating = 110
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
+}
+
+func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
+	t.Parallel()
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = 10
+	economicsConfig.RatingSettings.MaxRating = 100
+	economicsConfig.RatingSettings.StartRating = 5
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, economicsData)
+	assert.Equal(t, process.ErrStartRatingNotBetweenMinAndMax, err)
+}
+
+func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
+	t.Parallel()
+
+	minRating := uint64(10)
+	maxRating := uint64(100)
+	startRating := uint64(50)
+	increaseRatingStep := uint64(1)
+	decreaseRatingStep := uint64(2)
+	proposerExtraIncreaseRatingStep := uint64(3)
+	proposerExtraDecreaseRatingStep := uint64(4)
+
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.RatingSettings.MinRating = minRating
+	economicsConfig.RatingSettings.MaxRating = maxRating
+	economicsConfig.RatingSettings.StartRating = startRating
+	economicsConfig.RatingSettings.IncreaseRatingStep = increaseRatingStep
+	economicsConfig.RatingSettings.DecreaseRatingStep = decreaseRatingStep
+	economicsConfig.RatingSettings.ProposerExtraIncreaseRatingStep = proposerExtraIncreaseRatingStep
+	economicsConfig.RatingSettings.ProposerExtraDecreaseRatingStep = proposerExtraDecreaseRatingStep
+
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, economicsData)
+	assert.Equal(t, startRating, economicsData.RatingsData().StartRating())
+	assert.Equal(t, minRating, economicsData.RatingsData().MinRating())
+	assert.Equal(t, maxRating, economicsData.RatingsData().MaxRating())
+	assert.Equal(t, increaseRatingStep, economicsData.RatingsData().IncreaseRatingStep())
+	assert.Equal(t, decreaseRatingStep, economicsData.RatingsData().DecreaseRatingStep())
+	assert.Equal(t, proposerExtraIncreaseRatingStep, economicsData.RatingsData().ProposerExtraIncreaseRatingStep())
+	assert.Equal(t, proposerExtraDecreaseRatingStep, economicsData.RatingsData().ProposerExtraDecreaseRatingStep())
+
 }

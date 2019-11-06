@@ -511,11 +511,17 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	if err != nil {
+		return err
+	}
+
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,
 		pubKey,
-		coreComponents.Hasher)
+		coreComponents.Hasher,
+		economicsData.RatingsData())
 	if err != nil {
 		return err
 	}
@@ -657,11 +663,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-	if err != nil {
-		return err
 	}
 
 	processArgs := factory.NewProcessComponentsFactoryArgs(
@@ -941,6 +942,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
+	ratingsData *economics.RatingsData,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -975,6 +977,8 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
+	ratingCoordinator := factory.NewBlockSigningRater(ratingsData)
+
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -983,6 +987,7 @@ func createNodesCoordinator(
 		NbShards:                nbShards,
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
+		Rater:                   ratingCoordinator,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
