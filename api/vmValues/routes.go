@@ -53,7 +53,7 @@ func getInt(context *gin.Context) {
 	doGetVMValue(context, smartContract.AsBigInt)
 }
 
-func doGetVMValue(context *gin.Context, asType smartContract.ReturnDataAsType) {
+func doGetVMValue(context *gin.Context, asType smartContract.ReturnDataKind) {
 	vmOutput, err := doSimulateRunFunction(context)
 
 	if err != nil {

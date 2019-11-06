@@ -127,12 +127,12 @@ func (scdg *scDataGetter) IsInterfaceNil() bool {
 
 // TODO: Move to vm-common repository, output.go
 
-// ReturnDataAsType tells us how to interpret VMOutputs's return data
-type ReturnDataAsType int
+// ReturnDataKind tells us how to interpret VMOutputs's return data
+type ReturnDataKind int
 
 const (
 	// AsBigInt to interpret as big int
-	AsBigInt ReturnDataAsType = 1 << iota
+	AsBigInt ReturnDataKind = 1 << iota
 	// AsString to interpret as string
 	AsString
 	// AsHex to interpret as hex
@@ -140,7 +140,7 @@ const (
 )
 
 // GetFirstReturnData returns the first ReturnData of VMOutput, interpreted as specified.
-func GetFirstReturnData(vmOutput *vmcommon.VMOutput, asType ReturnDataAsType) (interface{}, error) {
+func GetFirstReturnData(vmOutput *vmcommon.VMOutput, asType ReturnDataKind) (interface{}, error) {
 	if len(vmOutput.ReturnData) == 0 {
 		return nil, fmt.Errorf("no return data")
 	}
