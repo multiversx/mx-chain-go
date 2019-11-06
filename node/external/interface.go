@@ -1,13 +1,16 @@
 package external
 
-import "github.com/ElrondNetwork/elrond-go/process/smartContract"
+import (
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // TODO: Move interface to scDataGetter.go
 // TODO: Rename ScDataGetter to "SmartContractRunSimulator"
 
 // ScDataGetter defines how data should be get from a SC account
 type ScDataGetter interface {
-	RunAndGetVMOutput(command *smartContract.CommandRunFunction) (interface{}, error)
+	RunAndGetVMOutput(command *smartContract.CommandRunFunction) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 

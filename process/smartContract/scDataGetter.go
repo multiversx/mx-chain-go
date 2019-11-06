@@ -46,7 +46,7 @@ func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecuti
 }
 
 // RunAndGetVMOutput returns the VMOutput resulted upon running the function on the smart contract
-func (scdg *scDataGetter) RunAndGetVMOutput(command *CommandRunFunction) (interface{}, error) {
+func (scdg *scDataGetter) RunAndGetVMOutput(command *CommandRunFunction) (*vmcommon.VMOutput, error) {
 	if command.ScAddress == nil {
 		return nil, process.ErrNilScAddress
 	}

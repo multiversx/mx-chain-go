@@ -14,7 +14,7 @@ import (
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	SimulateRunSmartContractFunction(*smartContract.CommandRunFunction) (interface{}, error)
+	SimulateRunSmartContractFunction(*smartContract.CommandRunFunction) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 
@@ -104,7 +104,7 @@ func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, err
 	}
 
-	return vmOutput.(*vmcommon.VMOutput), nil
+	return vmOutput, nil
 }
 
 func createCommandRunFunction(request *VMValueRequest) (*smartContract.CommandRunFunction, error) {

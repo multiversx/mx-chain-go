@@ -133,8 +133,7 @@ func TestRunAndGetVMOutput_ReturnsCorrectly(t *testing.T) {
 		Arguments: []*big.Int{},
 	}
 
-	result, err := target.RunAndGetVMOutput(&command)
-	vmOutput := result.(*vmcommon.VMOutput)
+	vmOutput, err := target.RunAndGetVMOutput(&command)
 
 	assert.Nil(t, err)
 	assert.Equal(t, data[0], vmOutput.ReturnData[0])

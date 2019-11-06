@@ -1,6 +1,9 @@
 package external
 
-import "github.com/ElrondNetwork/elrond-go/process/smartContract"
+import (
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // NodeApiResolver can resolve API requests
 type NodeApiResolver struct {
@@ -24,7 +27,7 @@ func NewNodeApiResolver(scDataGetter ScDataGetter, statusMetricsHandler StatusMe
 }
 
 // SimulateRunSmartContractFunction retrieves data stored in a SC account through a VM
-func (nar *NodeApiResolver) SimulateRunSmartContractFunction(command *smartContract.CommandRunFunction) (interface{}, error) {
+func (nar *NodeApiResolver) SimulateRunSmartContractFunction(command *smartContract.CommandRunFunction) (*vmcommon.VMOutput, error) {
 	return nar.scDataGetter.RunAndGetVMOutput(command)
 }
 
