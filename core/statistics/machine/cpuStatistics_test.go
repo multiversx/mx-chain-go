@@ -10,7 +10,7 @@ import (
 func TestCpuStatisticsUsagePercent(t *testing.T) {
 	t.Parallel()
 
-	cs := &CpuStatistics{}
+	cs := NewCpuStatistics()
 
 	cs.ComputeStatistics()
 	cpuUsagePercentValue := cs.CpuPercentUsage()
