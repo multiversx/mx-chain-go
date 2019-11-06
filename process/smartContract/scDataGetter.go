@@ -133,6 +133,8 @@ type ReturnDataKind int
 const (
 	// AsBigInt to interpret as big int
 	AsBigInt ReturnDataKind = 1 << iota
+	// AsBigIntString to interpret as big int string
+	AsBigIntString
 	// AsString to interpret as string
 	AsString
 	// AsHex to interpret as hex
@@ -152,6 +154,10 @@ func GetFirstReturnData(vmOutput *vmcommon.VMOutput, asType ReturnDataKind) (int
 
 	if asType == AsBigInt {
 		return returnData, nil
+	}
+
+	if asType == AsBigIntString {
+		return returnData.String(), nil
 	}
 
 	if asType == AsString {

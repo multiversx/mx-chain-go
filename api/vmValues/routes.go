@@ -50,7 +50,7 @@ func getString(context *gin.Context) {
 
 // getInt returns the data as big int
 func getInt(context *gin.Context) {
-	doGetVMValue(context, smartContract.AsBigInt)
+	doGetVMValue(context, smartContract.AsBigIntString)
 }
 
 func doGetVMValue(context *gin.Context, asType smartContract.ReturnDataKind) {
