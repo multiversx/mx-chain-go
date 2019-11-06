@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -44,8 +45,8 @@ func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecuti
 	return vm, nil
 }
 
-// Get returns the VMOutput resulted upon invoking the function on the smart contract
-func (scdg *scDataGetter) Get(scAddress []byte, funcName string, args ...[]byte) (interface{}, error) {
+// RunAndGetVMOutput returns the VMOutput resulted upon running the function on the smart contract
+func (scdg *scDataGetter) RunAndGetVMOutput(scAddress []byte, funcName string, args ...[]byte) (interface{}, error) {
 	if scAddress == nil {
 		return nil, process.ErrNilScAddress
 	}
@@ -122,4 +123,44 @@ func (scdg *scDataGetter) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// TODO: Move to vm-common repository, output.go
+
+// ReturnDataAsType tells us how to interpret VMOutputs's return data
+type ReturnDataAsType int
+
+const (
+	// AsBigInt to interpret as big int
+	AsBigInt ReturnDataAsType = 1 << iota
+	// AsString to interpret as string
+	AsString
+	// AsHex to interpret as hex
+	AsHex
+)
+
+// GetFirstReturnData returns the first ReturnData of VMOutput, interpreted as specified.
+func GetFirstReturnData(vmOutput *vmcommon.VMOutput, asType ReturnDataAsType) (interface{}, error) {
+	if len(vmOutput.ReturnData) == 0 {
+		return nil, fmt.Errorf("no return data")
+	}
+
+	returnData := vmOutput.ReturnData[0]
+	returnDataAsBytes := returnData.Bytes()
+	returnDataAsString := string(returnDataAsBytes)
+	returnDataAsHex := hex.EncodeToString(returnDataAsBytes)
+
+	if asType == AsBigInt {
+		return returnData, nil
+	}
+
+	if asType == AsString {
+		return returnDataAsString, nil
+	}
+
+	if asType == AsHex {
+		return returnDataAsHex, nil
+	}
+
+	return nil, fmt.Errorf("can't interpret return data")
 }
