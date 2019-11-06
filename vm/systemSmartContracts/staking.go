@@ -146,11 +146,6 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	r.eei.SetStorage(args.CallerAddr, data)
 
-	err = r.eei.Transfer(args.RecipientAddr, args.CallerAddr, args.CallValue, nil)
-	if err != nil {
-		log.Error("transfer error on stake function " + err.Error())
-	}
-
 	return vmcommon.Ok
 }
 

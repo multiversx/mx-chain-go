@@ -52,12 +52,14 @@ func (hc *headersCounter) calculateNumOfShardMBHeaders(header *block.MetaBlock) 
 
 func (hc *headersCounter) displayLogInfo(
 	header *block.MetaBlock,
+	body block.Body,
 	headerHash []byte,
 	numHeadersFromPool int,
 ) {
 	hc.calculateNumOfShardMBHeaders(header)
 
 	dispHeader, dispLines := hc.createDisplayableMetaHeader(header)
+	dispLines = hc.displayTxBlockBody(dispLines, body)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -124,6 +126,48 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 					"",
 					fmt.Sprintf("..."),
 					fmt.Sprintf("...")}))
+			}
+		}
+
+		lines[len(lines)-1].HorizontalRuleAfter = true
+	}
+
+	return lines
+}
+
+func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
+	currentBlockTxs := 0
+
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
+
+		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
+			miniBlock.Type.String(),
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID)
+
+		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part, "", "<EMPTY>"}))
+		}
+
+		currentBlockTxs += len(miniBlock.TxHashes)
+
+		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
+				lines = append(lines, display.NewLineData(false, []string{
+					part,
+					fmt.Sprintf("TxHash_%d", j+1),
+					core.ToB64(miniBlock.TxHashes[j])}))
+
+				part = ""
+			} else if j == 1 {
+				lines = append(lines, display.NewLineData(false, []string{
+					part,
+					fmt.Sprintf("..."),
+					fmt.Sprintf("...")}))
+
+				part = ""
 			}
 		}
 

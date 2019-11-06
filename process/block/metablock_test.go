@@ -809,24 +809,6 @@ func TestMetaProcessor_RemoveBlockInfoFromPoolShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_ApplyBodyToHeaderShouldNotReturnNilWhenCreateShardInfoFail(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockMetaArguments()
-	arguments.Accounts = &mock.AccountsStub{
-		JournalLenCalled: func() int {
-			return 1
-		},
-	}
-	arguments.DataPool = initMetaDataPool()
-	arguments.Store = initStore()
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	hdr := &block.MetaBlock{}
-	err := mp.ApplyBodyToHeader(hdr, nil)
-	assert.NotNil(t, err)
-}
-
 func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 

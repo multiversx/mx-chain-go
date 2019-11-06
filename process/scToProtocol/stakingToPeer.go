@@ -102,7 +102,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 }
 
 func (stp *stakingToPeer) getPeerAccount(key []byte) (*state.PeerAccount, error) {
-	adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes([]byte(key))
+	adrSrc, err := stp.adrConv.CreateAddressFromPublicKeyBytes(key)
 	if err != nil {
 		return nil, err
 	}

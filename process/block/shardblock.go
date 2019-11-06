@@ -244,13 +244,13 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	if !sp.verifyStateRoot(header.GetRootHash()) {
-		err = process.ErrRootStateDoesNotMatch
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
+	if err != nil {
 		return err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
-	if err != nil {
+	if !sp.verifyStateRoot(header.GetRootHash()) {
+		err = process.ErrRootStateDoesNotMatch
 		return err
 	}
 

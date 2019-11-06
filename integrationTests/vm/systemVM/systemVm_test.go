@@ -3,23 +3,22 @@ package systemVM
 import (
 	"context"
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
+func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	numOfShards := 2
 	nodesPerShard := 3
 	numMetachainNodes := 3
-	firstSkInShard := uint32(0)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
@@ -39,16 +38,6 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	}
 	idxProposers[numOfShards] = numOfShards * nodesPerShard
 
-	var metachainNodes []*integrationTests.TestProcessorNode
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-			metachainNodes = append(metachainNodes, node)
-		}
-	}
-	assert.NotNil(t, metachainNodes)
-
-	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard, integrationTests.GetConnectableAddress(advertiser))
-	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
@@ -60,6 +49,24 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 
 	initialVal := big.NewInt(10000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
+
+	// verify initial values
+	for _, node := range nodes {
+		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
+
+		for _, helperNode := range nodes {
+			if helperNode.ShardCoordinator.SelfId() == accShardId {
+				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
+				assert.Equal(t, initialVal, sndAcc.Balance)
+				break
+			}
+		}
+	}
+
+	for _, node := range nodes {
+		roothash, _ := node.AccntState.RootHash()
+		fmt.Printf("shardID: %d roothash: %s \n", node.ShardCoordinator.SelfId(), hex.EncodeToString(roothash))
+	}
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -75,7 +82,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 6
+	nrRoundsToPropagateMultiShard := 10
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -91,7 +98,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
-				sndAcc := getAccountFromAddrBytes(node.AccntState, node.OwnAccount.Address.Bytes())
+				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
 				assert.Equal(t, big.NewInt(0).Sub(initialVal, node.EconomicsData.StakeValue()), sndAcc.Balance)
 				break
 			}
@@ -142,7 +149,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
-				sndAcc := getAccountFromAddrBytes(node.AccntState, node.OwnAccount.Address.Bytes())
+				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
 				assert.Equal(t, initialVal, sndAcc.Balance)
 				break
 			}

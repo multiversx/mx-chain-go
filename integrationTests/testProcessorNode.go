@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -99,6 +100,7 @@ type TestProcessorNode struct {
 	ShardDataPool dataRetriever.PoolsHolder
 	MetaDataPool  dataRetriever.MetaPoolsHolder
 	Storage       dataRetriever.StorageService
+	PeerState     state.AccountsAdapter
 	AccntState    state.AccountsAdapter
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
@@ -211,22 +213,24 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(factory2.UserAccount)
+	tpn.PeerState, _, _ = CreateAccountsDB(factory2.ValidatorAccount)
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
+	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressConverter,
 		&sharding.NodesSetup{},
 		tpn.ShardCoordinator,
-		CreateMetaStore(tpn.ShardCoordinator),
+		tpn.Storage,
 		tpn.BlockChain,
 		TestMarshalizer,
 		TestHasher,
 		TestUint64Converter,
-		CreateTestMetaDataPool(),
+		tpn.MetaDataPool,
 		tpn.EconomicsData.EconomicsData,
 	)
 	tpn.initBlockProcessor()
@@ -239,7 +243,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }
@@ -372,6 +375,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
 			factory.MiniBlocksTopic,
+			100,
 		)
 	} else {
 		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
@@ -401,6 +405,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 
 func (tpn *TestProcessorNode) initInnerProcessors() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		tpn.initMetaInnerProcessors()
 		return
 	}
 
@@ -438,12 +443,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		Uint64Converter:  TestUint64Converter,
 	}
 
-	var vmFactory process.VirtualMachinesContainerFactory
-	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		vmFactory, _ = metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData)
-	} else {
-		vmFactory, _ = shard.NewVMContainerFactory(argsHook)
-	}
+	vmFactory, _ := shard.NewVMContainerFactory(argsHook)
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
@@ -507,6 +507,84 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	)
 }
 
+func (tpn *TestProcessorNode) initMetaInnerProcessors() {
+	interimProcFactory, _ := metaProcess.NewIntermediateProcessorsContainerFactory(
+		tpn.ShardCoordinator,
+		TestMarshalizer,
+		TestHasher,
+		TestAddressConverter,
+		tpn.Storage,
+		tpn.MetaDataPool,
+	)
+
+	tpn.InterimProcContainer, _ = interimProcFactory.Create()
+	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
+
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         tpn.AccntState,
+		AddrConv:         TestAddressConverter,
+		StorageService:   tpn.Storage,
+		BlockChain:       tpn.BlockChain,
+		ShardCoordinator: tpn.ShardCoordinator,
+		Marshalizer:      TestMarshalizer,
+		Uint64Converter:  TestUint64Converter,
+	}
+
+	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData)
+
+	tpn.VMContainer, _ = vmFactory.Create()
+	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
+
+	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
+		tpn.VMContainer,
+		tpn.ArgsParser,
+		TestHasher,
+		TestMarshalizer,
+		tpn.AccntState,
+		vmFactory.BlockChainHookImpl(),
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+		tpn.ScrForwarder,
+		&metaProcess.TransactionFeeHandler{},
+	)
+
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
+
+	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
+		tpn.AccntState,
+		TestAddressConverter,
+		tpn.ShardCoordinator,
+		tpn.ScProcessor,
+		txTypeHandler,
+	)
+
+	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator)
+
+	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
+		tpn.ShardCoordinator,
+		tpn.Storage,
+		TestMarshalizer,
+		TestHasher,
+		tpn.MetaDataPool,
+		tpn.AccntState,
+		tpn.RequestHandler,
+		tpn.TxProcessor,
+		tpn.EconomicsData.EconomicsData,
+		tpn.MiniBlocksCompacter,
+	)
+	tpn.PreProcessorsContainer, _ = fact.Create()
+
+	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
+		tpn.ShardCoordinator,
+		tpn.AccntState,
+		tpn.MetaDataPool.MiniBlocks(),
+		tpn.RequestHandler,
+		tpn.PreProcessorsContainer,
+		tpn.InterimProcContainer,
+	)
+}
+
 func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
@@ -535,19 +613,30 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		StartHeaders:                 tpn.GenesisBlocks,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
-		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+		BlockChainHook:               tpn.BlockChainHookImpl,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		argumentsBase.Core = &mock.ServiceContainerMock{}
-		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
+		argumentsBase.TxCoordinator = tpn.TxCoordinator
+
+		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
+			AdrConv:      TestAddressConverter,
+			Hasher:       TestHasher,
+			Marshalizer:  TestMarshalizer,
+			PeerState:    tpn.PeerState,
+			BaseState:    tpn.AccntState,
+			ArgParser:    tpn.ArgsParser,
+			CurrTxs:      tpn.MetaDataPool.CurrentBlockTxs(),
+			ScDataGetter: tpn.ScDataGetter,
+		}
+		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:   argumentsBase,
 			DataPool:           tpn.MetaDataPool,
-			SCDataGetter:       &mock.ScDataGetterMock{},
-			SCToProtocol:       &mock.SCToProtocolStub{},
-			PeerChangesHandler: &mock.PeerChangesHandler{},
+			SCDataGetter:       tpn.ScDataGetter,
+			SCToProtocol:       scToProtocol,
+			PeerChangesHandler: scToProtocol,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -684,7 +773,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second
+	maxTime := time.Second * 200000
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)
@@ -813,6 +902,33 @@ func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (dataBlock.
 	return body, nil
 }
 
+// GetMetaBlockBody returns the body for provided header parameter
+func (tpn *TestProcessorNode) GetMetaBlockBody(header *dataBlock.MetaBlock) (dataBlock.Body, error) {
+	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MiniBlocks() == nil
+	if invalidCachers {
+		return nil, errors.New("invalid data pool")
+	}
+
+	body := dataBlock.Body{}
+	for _, miniBlockHeader := range header.MiniBlockHeaders {
+		miniBlockHash := miniBlockHeader.Hash
+
+		mbObject, ok := tpn.MetaDataPool.MiniBlocks().Get(miniBlockHash)
+		if !ok {
+			return nil, errors.New(fmt.Sprintf("no miniblock found for hash %s", hex.EncodeToString(miniBlockHash)))
+		}
+
+		mb, ok := mbObject.(*dataBlock.MiniBlock)
+		if !ok {
+			return nil, errors.New(fmt.Sprintf("not a *dataBlock.MiniBlock stored in miniblocks found for hash %s", hex.EncodeToString(miniBlockHash)))
+		}
+
+		body = append(body, mb)
+	}
+
+	return body, nil
+}
+
 // GetMetaHeader returns the first *dataBlock.MetaBlock stored in datapools having the nonce provided as parameter
 func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock, error) {
 	invalidCachers := tpn.MetaDataPool == nil || tpn.MetaDataPool.MetaBlocks() == nil || tpn.MetaDataPool.HeadersNonces() == nil
@@ -889,19 +1005,24 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
+	body, err := tpn.GetMetaBlockBody(header)
+	if err != nil {
+		return err
+	}
+
 	err = tpn.BlockProcessor.ProcessBlock(
 		tpn.BlockChain,
 		header,
-		dataBlock.Body{},
+		body,
 		func() time.Duration {
-			return time.Second * 2
+			return time.Second * 2000
 		},
 	)
 	if err != nil {
 		return err
 	}
 
-	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, dataBlock.Body{})
+	err = tpn.BlockProcessor.CommitBlock(tpn.BlockChain, header, body)
 	if err != nil {
 		return err
 	}

@@ -76,10 +76,11 @@ func NewIntermediateResultsProcessor(
 
 // CreateAllInterMiniBlocks returns the cross shard miniblocks for the current round created from the smart contract results
 func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
-	miniBlocks := make([]*block.MiniBlock, irp.shardCoordinator.NumberOfShards())
+	miniBlocks := make(map[uint32]*block.MiniBlock)
 	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 	}
+	miniBlocks[sharding.MetachainShardId] = &block.MiniBlock{}
 
 	irp.currTxs.Clean()
 	irp.mutInterResultsForBlock.Lock()
@@ -91,17 +92,17 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 	}
 
 	finalMBs := make(map[uint32]*block.MiniBlock, 0)
-	for i := 0; i < len(miniBlocks); i++ {
-		if len(miniBlocks[i].TxHashes) > 0 {
-			miniBlocks[i].SenderShardID = irp.shardCoordinator.SelfId()
-			miniBlocks[i].ReceiverShardID = uint32(i)
-			miniBlocks[i].Type = irp.blockType
+	for shId, miniblock := range miniBlocks {
+		if len(miniblock.TxHashes) > 0 {
+			miniblock.SenderShardID = irp.shardCoordinator.SelfId()
+			miniblock.ReceiverShardID = shId
+			miniblock.Type = irp.blockType
 
-			sort.Slice(miniBlocks[i].TxHashes, func(a, b int) bool {
-				return bytes.Compare(miniBlocks[i].TxHashes[a], miniBlocks[i].TxHashes[b]) < 0
+			sort.Slice(miniblock.TxHashes, func(a, b int) bool {
+				return bytes.Compare(miniblock.TxHashes[a], miniblock.TxHashes[b]) < 0
 			})
 
-			finalMBs[uint32(i)] = miniBlocks[i]
+			finalMBs[shId] = miniblock
 		}
 	}
 

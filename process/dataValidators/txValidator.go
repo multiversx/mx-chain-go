@@ -14,9 +14,9 @@ var log = logger.DefaultLogger()
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
-	accounts         state.AccountsAdapter
-	shardCoordinator sharding.Coordinator
-	rejectedTxs      uint64
+	accounts             state.AccountsAdapter
+	shardCoordinator     sharding.Coordinator
+	rejectedTxs          uint64
 	maxNonceDeltaAllowed int
 }
 
@@ -25,7 +25,7 @@ func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	maxNonceDeltaAllowed int,
-	) (*txValidator, error) {
+) (*txValidator, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -35,9 +35,9 @@ func NewTxValidator(
 	}
 
 	return &txValidator{
-		accounts:         accounts,
-		shardCoordinator: shardCoordinator,
-		rejectedTxs:      uint64(0),
+		accounts:             accounts,
+		shardCoordinator:     shardCoordinator,
+		rejectedTxs:          uint64(0),
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 	}, nil
 }
@@ -49,6 +49,10 @@ func (tv *txValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	senderIsInAnotherShard := shardId != txShardId
 	if senderIsInAnotherShard {
 		return true
+	}
+
+	if txShardId == sharding.MetachainShardId {
+		log.Debug("got transaction from metachain")
 	}
 
 	sndAddr := interceptedTx.SenderAddress()

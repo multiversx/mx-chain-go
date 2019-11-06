@@ -67,6 +67,7 @@ func NewPeerAccount(
 	}
 
 	return &PeerAccount{
+		Stake:            big.NewInt(0),
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(nil),

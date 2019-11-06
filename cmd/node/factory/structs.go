@@ -2044,6 +2044,7 @@ func newMetaBlockProcessor(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		MaxTxsToRequest,
 	)
 	if err != nil {
 		return nil, err
