@@ -8,30 +8,32 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-// ThresholdMinimumConnectedPeers if the number of connected peers drop under this value, for each disconnecting
-// peer, a trigger to reconnect to initial peers is done
-var ThresholdMinimumConnectedPeers = 3
-
 // DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() to often
 // when there are a lot of peers disconnecting and reconnection to initial nodes succeed
 var DurationBetweenReconnectAttempts = time.Second * 5
 
 type libp2pConnectionMonitor struct {
-	chDoReconnect chan struct{}
-	reconnecter   p2p.Reconnecter
+	chDoReconnect              chan struct{}
+	reconnecter                p2p.Reconnecter
+	thresholdMinConnectedPeers int
 }
 
-func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter) *libp2pConnectionMonitor {
+func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int) (*libp2pConnectionMonitor, error) {
+	if thresholdMinConnectedPeers < 0 {
+		return nil, p2p.ErrInvalidValue
+	}
+
 	cm := &libp2pConnectionMonitor{
-		reconnecter:   reconnecter,
-		chDoReconnect: make(chan struct{}, 0),
+		reconnecter:                reconnecter,
+		chDoReconnect:              make(chan struct{}, 0),
+		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
 	}
 
 	if reconnecter != nil {
 		go cm.doReconnection()
 	}
 
-	return cm
+	return cm, nil
 }
 
 // Listen is called when network starts listening on an addr
@@ -45,7 +47,11 @@ func (lcm *libp2pConnectionMonitor) Connected(network.Network, network.Conn) {}
 
 // Disconnected is called when a connection closed
 func (lcm *libp2pConnectionMonitor) Disconnected(netw network.Network, conn network.Conn) {
-	if len(netw.Conns()) < ThresholdMinimumConnectedPeers {
+	lcm.doReconnectionIfNeeded(netw)
+}
+
+func (lcm *libp2pConnectionMonitor) doReconnectionIfNeeded(netw network.Network) {
+	if !lcm.isConnectedToTheNetwork(netw) {
 		select {
 		case lcm.chDoReconnect <- struct{}{}:
 		default:
@@ -68,4 +74,8 @@ func (lcm *libp2pConnectionMonitor) doReconnection() {
 
 		time.Sleep(DurationBetweenReconnectAttempts)
 	}
+}
+
+func (lcm *libp2pConnectionMonitor) isConnectedToTheNetwork(netw network.Network) bool {
+	return len(netw.Conns()) >= lcm.thresholdMinConnectedPeers
 }

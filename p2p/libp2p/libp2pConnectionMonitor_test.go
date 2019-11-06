@@ -4,24 +4,34 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	ThresholdMinimumConnectedPeers = 3
 	DurationBetweenReconnectAttempts = time.Millisecond
 }
 
 var durTimeoutWaiting = time.Second * 2
 var durStartGoRoutine = time.Second
 
+func TestNewLibp2pConnectionMonitor_WithNegativeThresholdShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cm, err := newLibp2pConnectionMonitor(nil, -1)
+
+	assert.Equal(t, p2p.ErrInvalidValue, err)
+	assert.Nil(t, cm)
+}
+
 func TestNewLibp2pConnectionMonitor_WithNilReconnecterShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cm := newLibp2pConnectionMonitor(nil)
+	cm, err := newLibp2pConnectionMonitor(nil, 3)
 
+	assert.Nil(t, err)
 	assert.NotNil(t, cm)
 }
 
@@ -50,7 +60,7 @@ func TestNewLibp2pConnectionMonitor_OnDisconnectedUnderThresholdShouldCallReconn
 		},
 	}
 
-	cm := newLibp2pConnectionMonitor(&rs)
+	cm, _ := newLibp2pConnectionMonitor(&rs, 3)
 	time.Sleep(durStartGoRoutine)
 	cm.Disconnected(&ns, nil)
 

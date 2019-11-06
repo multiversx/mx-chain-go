@@ -139,11 +139,208 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	assert.NotNil(t, irt)
 	assert.Nil(t, err)
 
-	assert.Equal(t, shardId, irt.RcvShard())
-	assert.Equal(t, shardId, irt.SndShard())
-	assert.Equal(t, &rewTx, irt.RewardTransaction())
-	assert.False(t, irt.IsAddressedToOtherShards())
+	assert.Equal(t, shardId, irt.ReceiverShardId())
+	assert.Equal(t, shardId, irt.SenderShardId())
+	assert.Equal(t, &rewTx, irt.Transaction())
+	assert.True(t, irt.IsForCurrentShard())
 
 	txHash := irt.Hasher().Compute(string(txBuff))
 	assert.Equal(t, txHash, irt.Hash())
+}
+
+func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   new(big.Int).SetInt64(100),
+		RcvAddr: nil,
+		ShardId: 0,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(rewTx)
+	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{Fail: true},
+		mock.NewMultiShardsCoordinatorMock(3))
+
+	assert.Nil(t, irt)
+	assert.Equal(t, process.ErrInvalidRcvAddr, err)
+}
+
+func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
+	t.Parallel()
+
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   new(big.Int).SetInt64(100),
+		RcvAddr: nil,
+		ShardId: 0,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3))
+
+	nonce := irt.Nonce()
+	assert.Equal(t, uint64(0), nonce)
+}
+
+func TestNewInterceptedRewardTransaction_TotalValue(t *testing.T) {
+	t.Parallel()
+
+	value := new(big.Int).SetInt64(100)
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   value,
+		RcvAddr: nil,
+		ShardId: 0,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3))
+
+	totalValue := irt.TotalValue()
+	assert.Equal(t, value, totalValue)
+}
+
+func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
+	t.Parallel()
+
+	value := new(big.Int).SetInt64(100)
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   value,
+		RcvAddr: nil,
+		ShardId: 0,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3))
+
+	senderAddr := irt.SenderAddress()
+	assert.Nil(t, senderAddr)
+}
+
+func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	value := new(big.Int).SetInt64(100)
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   value,
+		RcvAddr: nil,
+		ShardId: 0,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3))
+
+	err := irt.CheckValidity()
+	assert.Equal(t, process.ErrNilRcvAddr, err)
+}
+
+func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   nil,
+		RcvAddr: []byte("addr"),
+		ShardId: 0,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3))
+
+	err := irt.CheckValidity()
+	assert.Equal(t, process.ErrNilValue, err)
+}
+
+func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	value := new(big.Int).SetInt64(-100)
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   value,
+		RcvAddr: []byte("addr"),
+		ShardId: 0,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3))
+
+	err := irt.CheckValidity()
+	assert.Equal(t, process.ErrNegativeValue, err)
+}
+
+func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
+	t.Parallel()
+
+	value := new(big.Int).SetInt64(100)
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   value,
+		RcvAddr: []byte("addr"),
+		ShardId: 0,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(3))
+
+	err := irt.CheckValidity()
+	assert.Nil(t, err)
 }
