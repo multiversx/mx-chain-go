@@ -1,7 +1,7 @@
 package shard
 
 import (
-	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
+	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/context"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"

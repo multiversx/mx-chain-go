@@ -238,31 +238,41 @@ func TestWASMMetering(t *testing.T) {
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000))
+	aliceInitialBalance := uint64(3000)
+	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
 
 	testingValue := uint64(15)
+
+	gasLimit = uint64(2000)
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
 		Value:     big.NewInt(0).SetUint64(testingValue),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
-		GasPrice:  0,
+		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
 		Data:      "_main",
 		Signature: nil,
 		Challenge: nil,
 	}
 
-	_ = txProc.ProcessTransaction(tx, round)
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
 
 	expectedBalance := big.NewInt(985)
 	expectedNonce := uint64(1)
 
-	vm.TestAccount(
+	actualBalanceBigInt := vm.TestAccount(
 		t,
 		accnts,
 		alice,
 		expectedNonce,
 		expectedBalance)
+
+	actualBalance := actualBalanceBigInt.Uint64()
+
+	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
+
+	assert.Equal(t, 10, int64(consumedGasValue))
 }
