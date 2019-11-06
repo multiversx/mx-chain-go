@@ -1608,9 +1608,6 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		HasCalled: func(key []byte) error {
 			return nil
 		},
-		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, nil
-		},
 	}
 	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, hdrUnit)

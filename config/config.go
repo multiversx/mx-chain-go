@@ -79,8 +79,8 @@ type Config struct {
 
 	AccountsTrieStorage     StorageConfig
 	PeerAccountsTrieStorage StorageConfig
-	TrieSnapshotDB      DBConfig
-	EvictionWaitingList EvictionWaitingListConfig
+	TrieSnapshotDB          DBConfig
+	EvictionWaitingList     EvictionWaitingListConfig
 	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
