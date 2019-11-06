@@ -84,3 +84,6 @@ var ErrInvalidDurationProvided = errors.New("invalid time.Duration provided")
 
 // ErrTooManyGoroutines is raised when the number of goroutines has exceeded a threshold
 var ErrTooManyGoroutines = errors.New(" number of goroutines exceeded")
+
+// ErrInvalidValue signals that an invalid value has been provided
+var ErrInvalidValue = errors.New("invalid value")

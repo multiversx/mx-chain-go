@@ -2,6 +2,7 @@ package transaction_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -105,4 +106,30 @@ func TestTransaction_SetValue(t *testing.T) {
 	tx.SetValue(value)
 
 	assert.Equal(t, value, tx.Value)
+}
+
+func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
+	t.Parallel()
+
+	value := big.NewInt(445566)
+	tx := &transaction.Transaction{
+		Nonce:     112233,
+		Value:     value,
+		RcvAddr:   []byte("receiver"),
+		SndAddr:   []byte("sender"),
+		GasPrice:  1234,
+		GasLimit:  5678,
+		Data:      "data",
+		Signature: []byte("signature"),
+	}
+
+	buff, err := json.Marshal(tx)
+	assert.Nil(t, err)
+	txRecovered := &transaction.Transaction{}
+	err = json.Unmarshal(buff, txRecovered)
+	assert.Nil(t, err)
+	assert.Equal(t, tx, txRecovered)
+
+	buffAsString := string(buff)
+	assert.Contains(t, buffAsString, "\""+value.String()+"\"")
 }

@@ -782,6 +782,24 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
+// RevertStateToBlock recreates thee state tries to the root hashes indicated by the providd header
+func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+	err := sp.accounts.RecreateTrie(header.GetRootHash())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RevertAccountState reverts the account state for cleanup failed process
+func (sp *shardProcessor) RevertAccountState() {
+	err := sp.accounts.RevertToSnapshot(0)
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
 func (sp *shardProcessor) cleanTxsPools() {
 	_, err := sp.txsPoolsCleaner.Clean(maxCleanTime)
 	log.LogIfError(err)
@@ -1564,6 +1582,10 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
+}
+
+func (sp *shardProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	return nil
 }
 
 func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {

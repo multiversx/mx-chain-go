@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
@@ -178,7 +179,7 @@ func TestNewMemoryLibp2pMessenger_OkValsShouldWork(t *testing.T) {
 	mes, err := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
 
 	assert.Nil(t, err)
-	assert.NotNil(t, mes)
+	assert.False(t, check.IfNil(mes))
 
 	_ = mes.Close()
 }
@@ -324,7 +325,7 @@ func TestNewNetworkMessenger_WithConnMgrShouldWork(t *testing.T) {
 }
 
 func TestNewNetworkMessenger_WithNullPeerDiscoveryShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
 	if testing.Short() {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
@@ -379,7 +380,7 @@ func TestNewNetworkMessenger_NilPeerDiscoveryShouldErr(t *testing.T) {
 }
 
 func TestNewNetworkMessenger_PeerDiscovererFailsWhenApplyingContextShouldErr(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
 	if testing.Short() {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
@@ -414,7 +415,7 @@ func TestNewNetworkMessenger_PeerDiscovererFailsWhenApplyingContextShouldErr(t *
 }
 
 func TestNewNetworkMessengerWithPortSweep_ShouldFindFreePort(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
 	if testing.Short() {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
@@ -442,7 +443,7 @@ func TestNewNetworkMessengerWithPortSweep_ShouldFindFreePort(t *testing.T) {
 
 //------- Messenger functionality
 
-func TestLibp2pMessenger_ConnectToPeerShoulsCallUpgradedHost(t *testing.T) {
+func TestLibp2pMessenger_ConnectToPeerShouldCallUpgradedHost(t *testing.T) {
 	netw := mocknet.New(context.Background())
 
 	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
@@ -641,6 +642,11 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T) {
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	msg := make([]byte, libp2p.MaxSendBuffSize+1)
 
 	_, sk := createLibP2PCredentialsMessenger()
@@ -668,6 +674,11 @@ func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	msg := []byte("test message")
 
 	_, mes1, mes2 := createMockNetworkOf2()
@@ -704,6 +715,11 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines(t *testing.T) {
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	port := 4000
 	msg := []byte("test message")
 	numBroadcasts := 10000
@@ -758,6 +774,11 @@ func emptyChannel(ch chan *p2p.SendableData) int {
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *testing.T) {
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	msg := make([]byte, libp2p.MaxSendBuffSize)
 
 	_, mes1, mes2 := createMockNetworkOf2()
@@ -794,6 +815,11 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *tes
 }
 
 func TestLibp2pMessenger_BroadcastDataOnTopicPipeBetween2PeersShouldWork(t *testing.T) {
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
+
 	msg := []byte("test message")
 
 	_, mes1, mes2 := createMockNetworkOf2()
@@ -1473,4 +1499,56 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 	assert.True(t, wasCalled)
 
 	_ = mes.Close()
+}
+
+//------- SetThresholdMinConnectedPeers
+
+func TestNetworkMessenger_SetThresholdMinConnectedPeersInvalidValueShouldErr(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	err := mes.SetThresholdMinConnectedPeers(-1)
+
+	assert.Equal(t, p2p.ErrInvalidValue, err)
+}
+
+func TestNetworkMessenger_SetThresholdMinConnectedPeersShouldWork(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 56
+	err := mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.Nil(t, err)
+	assert.Equal(t, minConnectedPeers, mes.ThresholdMinConnectedPeers())
+}
+
+//------- IsConnectedToTheNetwork
+
+func TestNetworkMessenger_IsConnectedToTheNetworkRetFalse(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 56
+	_ = mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.False(t, mes.IsConnectedToTheNetwork())
+}
+
+func TestNetworkMessenger_IsConnectedToTheNetworkWithZeroRetTrue(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	minConnectedPeers := 0
+	_ = mes.SetThresholdMinConnectedPeers(minConnectedPeers)
+
+	assert.True(t, mes.IsConnectedToTheNetwork())
 }
