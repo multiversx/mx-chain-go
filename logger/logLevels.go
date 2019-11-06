@@ -1,5 +1,11 @@
 package logger
 
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
+
 // LogLevel defines the priority level of a log line. Trace is the lowest priority level, Error is the highest
 type LogLevel byte
 
@@ -11,6 +17,15 @@ const (
 	LogWarning LogLevel = 3
 	LogError   LogLevel = 4
 )
+
+// Levels contain all defined levels as a slice for an easier iteration
+var Levels = []LogLevel{
+	LogTrace,
+	LogDebug,
+	LogInfo,
+	LogWarning,
+	LogError,
+}
 
 func (level LogLevel) String() string {
 	switch level {
@@ -27,4 +42,17 @@ func (level LogLevel) String() string {
 	default:
 		return ""
 	}
+}
+
+// GetLogLevel gets the corresponding log level from provided string. The search is case insensitive.
+func GetLogLevel(logLevelAsString string) (LogLevel, error) {
+	providedLogLevelUpper := strings.ToUpper(logLevelAsString)
+	for _, level := range Levels {
+		levelUpper := strings.ToUpper(level.String())
+		if levelUpper == providedLogLevelUpper {
+			return level, nil
+		}
+	}
+
+	return LogTrace, errors.New(fmt.Sprintf("unknown log level provided '%s'", logLevelAsString))
 }

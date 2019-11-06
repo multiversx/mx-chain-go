@@ -2,8 +2,6 @@ package logger
 
 import (
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -103,27 +101,7 @@ func parseLogLevelAndMatchingString(logLevelAndPattern string) (LogLevel, string
 		return LogTrace, "", ErrInvalidLogLevelPattern
 	}
 
-	logLevel, err := getLogLevel(input[0])
+	logLevel, err := GetLogLevel(input[0])
 
 	return logLevel, input[1], err
-}
-
-func getLogLevel(logLevelAsString string) (LogLevel, error) {
-	levels := []LogLevel{
-		LogTrace,
-		LogDebug,
-		LogInfo,
-		LogWarning,
-		LogError,
-	}
-
-	providedLogLevelUpper := strings.ToUpper(logLevelAsString)
-	for _, level := range levels {
-		levelUpper := strings.ToUpper(level.String())
-		if levelUpper == providedLogLevelUpper {
-			return level, nil
-		}
-	}
-
-	return LogTrace, errors.New(fmt.Sprintf("unknown log level provided '%s'", logLevelAsString))
 }
