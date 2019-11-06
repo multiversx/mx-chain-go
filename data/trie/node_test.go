@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var snapshotDelay = time.Millisecond
+var snapshotDelay = time.Second
 var batchDelay = 2 * time.Second
 
 func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
