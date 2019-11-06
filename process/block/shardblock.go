@@ -1506,10 +1506,6 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	return nil
 }
 
-func (sp *shardProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	return nil
-}
-
 func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 	select {
 	case <-sp.chRcvAllMetaHdrs:

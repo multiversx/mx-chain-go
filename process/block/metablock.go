@@ -1436,16 +1436,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.MiniBlockHeaders = miniBlockHeaders
 	metaHdr.TxCount += uint32(totalTxCount)
 
-	return nil
-}
-
-func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	metaHdr, ok := header.(*block.MetaBlock)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
 	if err != nil {
 		return err
 	}

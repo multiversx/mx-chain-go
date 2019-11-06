@@ -23,7 +23,6 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
-	ApplyValidatorStatisticsCalled   func(header data.HeaderHandler) error
 }
 
 func (blProcMock *BlockProcessorMock) CreateNewHeader() data.HeaderHandler {
@@ -64,13 +63,6 @@ func (blProcMock *BlockProcessorMock) RestoreBlockIntoPools(header data.HeaderHa
 
 func (blProcMock BlockProcessorMock) ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error {
 	return blProcMock.ApplyBodyToHeaderCalled(hdr, body)
-}
-
-func (blProcMock *BlockProcessorMock) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	if blProcMock.ApplyValidatorStatisticsCalled != nil {
-		return blProcMock.ApplyValidatorStatisticsCalled(header)
-	}
-	return nil
 }
 
 func (blProcMock BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
