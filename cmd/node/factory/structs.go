@@ -1538,7 +1538,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
-		newShardCoordinator, accounts, err := createInMemoryShardCoordinatorAndAccount(
+		newShardCoordinator, newAccounts, err := createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
 			sharding.MetachainShardId,
@@ -1547,13 +1547,13 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			return nil, err
 		}
 
-		store, blkc, metaDataPool, err := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator)
+		newStore, newBlkc, newMetaDataPool, err := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
-		argsMetaGenesis.Accounts = accounts
-		argsMetaGenesis.Store = store
-		argsMetaGenesis.Blkc = blkc
-		argsMetaGenesis.MetaDatapool = metaDataPool
+		argsMetaGenesis.Accounts = newAccounts
+		argsMetaGenesis.Store = newStore
+		argsMetaGenesis.Blkc = newBlkc
+		argsMetaGenesis.MetaDatapool = newMetaDataPool
 	}
 
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
@@ -1563,6 +1563,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		return nil, err
 	}
 
+	log.Info("MetaGenesisBlock created with roothash " + hex.EncodeToString(genesisBlock.GetRootHash()))
 	genesisBlocks[sharding.MetachainShardId] = genesisBlock
 
 	return genesisBlocks, nil
@@ -2228,7 +2229,7 @@ func generateInMemoryAccountsAdapter(
 ) state.AccountsAdapter {
 
 	tr, _ := trie.NewTrie(createMemUnit(), marshalizer, hasher)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, accountFactory)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
 
 	return adb
 }
@@ -2253,8 +2254,8 @@ func createMemMetaDataPool() dataRetriever.MetaPoolsHolder {
 	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	shardHeadersNonces, _ := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache, Shards: 1})
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache, Shards: 1})
+	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
