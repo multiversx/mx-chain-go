@@ -60,7 +60,7 @@ func ConvertHash(hash []byte) string {
 // For example, having the parameter "DEBUG|process" will set the DEBUG level on all loggers that will contain
 // the "process" string in their name ("process/sync", "process/interceptors", "process" and so on).
 func SetLogLevel(logLevelAndPattern string) error {
-	logLevel, pattern, err := parseLogLevelAndMatchingString(logLevelAndPattern)
+	logLevel, pattern, err := ParseLogLevelAndMatchingString(logLevelAndPattern)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,10 @@ func setLogLevelToVar(dest *LogLevel, pattern string, logLevel LogLevel) {
 	}
 }
 
-func parseLogLevelAndMatchingString(logLevelAndPattern string) (LogLevel, string, error) {
+// ParseLogLevelAndMatchingString can parse a string in the form "LOG_LEVEL|MATCHING_STRING" into its
+// corresponding log level and matching string. Errors if something goes wrong.
+// Example: "DEBUG|process" "INFO|*" "ERROR|process/sync" and so on
+func ParseLogLevelAndMatchingString(logLevelAndPattern string) (LogLevel, string, error) {
 	input := strings.Split(logLevelAndPattern, "|")
 	if len(input) != 2 {
 		return LogTrace, "", ErrInvalidLogLevelPattern
