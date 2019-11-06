@@ -43,9 +43,6 @@ var ErrSnapshotInProgress = errors.New("another snapshot is already in progress"
 // ErrNilTrie is raised when the trie we are trying to use is nil
 var ErrNilTrie = errors.New("the trie is nil")
 
-// ErrHashNotPresent is raised when the given hash is not present in the map
-var ErrHashNotPresent = errors.New("the received hash is not present")
-
 // ErrNilResolver is raised when the given resolver is nil
 var ErrNilResolver = errors.New("the resolver is nil")
 

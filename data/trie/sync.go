@@ -89,6 +89,11 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 		nextNodes = append(nextNodes, children...)
 	}
 
+	err = ts.trie.Commit()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

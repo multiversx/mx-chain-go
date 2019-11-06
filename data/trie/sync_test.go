@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/stretchr/testify/assert"
 )
 
 func getInterceptedNodes(tr data.Trie, marshalizer marshal.Marshalizer, hasher hashing.Hasher) []*trie.InterceptedTrieNode {
@@ -49,12 +50,19 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	syncTrie := initTrie()
 	interceptedNodesCacher, _ := lrucache.NewCache(100)
 	interceptedNodes := getInterceptedNodes(syncTrie, marshalizer, hasher)
+	nrNodesToSend := 2
+	nodesIndex := 0
+	nrRequests := 0
+	expectedRequests := 3
 
 	resolver := &mock.TrieNodesResolverStub{
 		RequestDataFromHashCalled: func(hash []byte) error {
-			for i := range interceptedNodes {
+			for i := nodesIndex; i < nodesIndex+nrNodesToSend; i++ {
 				interceptedNodesCacher.Put(interceptedNodes[i].Hash(), interceptedNodes[i])
 			}
+			nodesIndex += nrNodesToSend
+			nrRequests++
+
 			return nil
 		},
 	}
@@ -63,4 +71,7 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	sync, _ := trie.NewTrieSyncer(resolver, interceptedNodesCacher, tr, time.Second)
 
 	_ = sync.StartSyncing(rootHash)
+	newTrieRootHash, _ := tr.Root()
+	assert.Equal(t, rootHash, newTrieRootHash)
+	assert.Equal(t, expectedRequests, nrRequests)
 }

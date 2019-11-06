@@ -7,11 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-
 	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/assert"
 )
 
