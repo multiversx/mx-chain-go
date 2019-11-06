@@ -371,6 +371,7 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	lastNotarizedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		log.Info(err.Error())
+		return
 	}
 
 	for i := 0; i < len(sortedHdrs); i++ {
