@@ -51,3 +51,6 @@ var ErrNilDatabase = errors.New("no database provided")
 
 // ErrInvalidCacheSize is raised when the given size for the cache is invalid
 var ErrInvalidCacheSize = errors.New("cache size is invalid")
+
+// ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
+var ErrInvalidValue = errors.New("invalid value")
