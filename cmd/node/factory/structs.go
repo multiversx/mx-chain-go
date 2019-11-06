@@ -2179,6 +2179,7 @@ func newValidatorStatisticsProcessor(
 		DataPool:         processComponents.data.MetaDatapool,
 		StorageService:   storageService,
 		Marshalizer:      processComponents.core.Marshalizer,
+		Economics:        processComponents.economicsData,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

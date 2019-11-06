@@ -225,7 +225,6 @@ type BlockProcessor interface {
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
-	SaveInitialState(in []*sharding.InitialNode) error
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	RevertPeerStateToSnapshot(snapshot int) error
