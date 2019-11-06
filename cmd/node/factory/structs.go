@@ -703,7 +703,7 @@ func getTrie(
 
 	evictionDb, err := storageUnit.NewDB(
 		storageUnit.DBType(evictionWaitingListCfg.DB.Type),
-		filepath.Join(uniqueID, evictionWaitingListCfg.DB.FilePath),
+		filepath.Join(uniqueID, cfg.DB.FilePath, evictionWaitingListCfg.DB.FilePath),
 		evictionWaitingListCfg.DB.MaxBatchSize,
 		evictionWaitingListCfg.DB.BatchDelaySeconds,
 		evictionWaitingListCfg.DB.MaxOpenFiles,
@@ -712,7 +712,7 @@ func getTrie(
 		return nil, errors.New("error creating evictionDb: " + err.Error())
 	}
 
-	snapshotDbCfg.FilePath = filepath.Join(uniqueID, snapshotDbCfg.FilePath)
+	snapshotDbCfg.FilePath = filepath.Join(uniqueID, cfg.DB.FilePath, snapshotDbCfg.FilePath)
 
 	return trie.NewTrie(
 		accountsTrieStorage,
@@ -1932,14 +1932,14 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	storageService := processComponents.data.Store
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes: initialNodes,
-		PeerAdapter: peerAdapter,
-		AdrConv: processComponents.state.AddressConverter,
+		InitialNodes:     initialNodes,
+		PeerAdapter:      peerAdapter,
+		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool: processComponents.data.MetaDatapool,
-		StorageService: storageService,
-		Marshalizer: processComponents.core.Marshalizer,
+		DataPool:         processComponents.data.MetaDatapool,
+		StorageService:   storageService,
+		Marshalizer:      processComponents.core.Marshalizer,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1954,6 +1954,8 @@ func getPeerAdapter(processComponents *processComponentsFactoryArgs) (*state.Pee
 	coreComponents := processComponents.coreComponents
 	peerAccountsTrie, err := getTrie(
 		coreComponents.config.PeerAccountsTrieStorage,
+		coreComponents.config.EvictionWaitingList,
+		coreComponents.config.TrieSnapshotDB,
 		processComponents.core.Marshalizer,
 		processComponents.core.Hasher,
 		coreComponents.uniqueID,
