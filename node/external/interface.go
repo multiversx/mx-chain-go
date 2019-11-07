@@ -5,7 +5,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// TODO: Move interface to scDataGetter.go
 // TODO: Rename ScDataGetter to "SmartContractRunSimulator"
 
 // ScDataGetter defines how data should be get from a SC account
