@@ -55,3 +55,5 @@ require (
 	golang.org/x/sys v0.0.0-20190825160603-fb81701db80f // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/ElrondNetwork/elrond-vm-common v0.0.9 => github.com/ElrondNetwork/elrond-vm-common v0.0.0-20191107084538-46ed993eab27

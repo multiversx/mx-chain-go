@@ -41,20 +41,20 @@ func Routes(router *gin.RouterGroup) {
 
 // getHex returns the data as bytes, hex-encoded
 func getHex(context *gin.Context) {
-	doGetVMValue(context, smartContract.AsHex)
+	doGetVMValue(context, vmcommon.AsHex)
 }
 
 // getString returns the data as string
 func getString(context *gin.Context) {
-	doGetVMValue(context, smartContract.AsString)
+	doGetVMValue(context, vmcommon.AsString)
 }
 
 // getInt returns the data as big int
 func getInt(context *gin.Context) {
-	doGetVMValue(context, smartContract.AsBigIntString)
+	doGetVMValue(context, vmcommon.AsBigIntString)
 }
 
-func doGetVMValue(context *gin.Context, asType smartContract.ReturnDataKind) {
+func doGetVMValue(context *gin.Context, asType vmcommon.ReturnDataKind) {
 	vmOutput, err := doSimulateRunFunction(context)
 
 	if err != nil {
@@ -62,7 +62,7 @@ func doGetVMValue(context *gin.Context, asType smartContract.ReturnDataKind) {
 		return
 	}
 
-	returnData, err := smartContract.GetFirstReturnData(vmOutput, asType)
+	returnData, err := vmOutput.GetFirstReturnData(asType)
 	if err != nil {
 		returnBadRequest(context, "doGetVMValue", err)
 		return
