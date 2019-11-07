@@ -3,6 +3,8 @@ package presenter
 import (
 	"math/big"
 	"strconv"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 const invalidKey = "[invalid key]"
@@ -56,6 +58,16 @@ func (psh *PresenterStatusHandler) getBigIntFromStringMetric(metric string) *big
 	return bigIntValue
 }
 
+func (psh *PresenterStatusHandler) getBigFloatFromStringMetric(metric string) *big.Float {
+	stringValue := psh.getFromCacheAsString(metric)
+	bigFloatValue, ok := big.NewFloat(0).SetString(stringValue)
+	if !ok {
+		return big.NewFloat(0)
+	}
+
+	return bigFloatValue
+}
+
 func areEqualsWithZero(parameters ...uint64) bool {
 	for _, param := range parameters {
 		if param == 0 {
@@ -64,4 +76,41 @@ func areEqualsWithZero(parameters ...uint64) bool {
 	}
 
 	return false
+}
+
+func (psh *PresenterStatusHandler) computeChanceToBeInConsensus() float64 {
+	consensusGroupSize := psh.getFromCacheAsUint64(core.MetricConsensusGroupSize)
+	numValidators := psh.getFromCacheAsUint64(core.MetricNumValidators)
+	areEqualsWithZero := areEqualsWithZero(consensusGroupSize, numValidators)
+	if areEqualsWithZero {
+		return 0
+	}
+
+	return float64(consensusGroupSize) / float64(numValidators)
+}
+
+func (psh *PresenterStatusHandler) computeRoundsPerHourAccordingToHitRate() float64 {
+	totalBlocks := psh.GetProbableHighestNonce()
+	rounds := psh.GetCurrentRound()
+	roundDuration := psh.GetRoundTime()
+	secondsInAnHour := uint64(3600)
+	areEqualsWithZero := areEqualsWithZero(totalBlocks, rounds, roundDuration)
+	if areEqualsWithZero {
+		return 0
+	}
+
+	hitRate := float64(totalBlocks) / float64(rounds)
+	roundsPerHour := float64(secondsInAnHour) / float64(roundDuration)
+	return hitRate * roundsPerHour
+}
+
+func (psh *PresenterStatusHandler) computeRewardsInErd() *big.Float {
+	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
+	denominationCoefficient := psh.getBigFloatFromStringMetric(core.MetricDenominationCoefficient)
+	if rewardsValue.Cmp(big.NewInt(0)) <= 0 {
+		return big.NewFloat(0)
+	}
+
+	rewardsInErd := big.NewFloat(0).Mul(big.NewFloat(0).SetInt(rewardsValue), denominationCoefficient)
+	return rewardsInErd
 }
