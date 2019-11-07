@@ -64,6 +64,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		Signer:           createMockSigner(),
 		AddrConv:         createMockAddressConverter(),
 		FeeHandler:       createMockFeeHandler(),
+		Trie:             &mock.TrieStub{},
 	}
 }
 

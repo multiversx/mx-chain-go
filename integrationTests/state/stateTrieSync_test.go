@@ -34,7 +34,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		_ = nResolver.Node.Stop()
 	}()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
 	assert.Nil(t, err)
 

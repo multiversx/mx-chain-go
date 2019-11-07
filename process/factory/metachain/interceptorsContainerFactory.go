@@ -482,10 +482,7 @@ func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic str
 		return nil, err
 	}
 
-	trieNodesFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedTrieNode,
-	)
+	trieNodesFactory, err := interceptorFactory.NewInterceptedTrieNodeDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
