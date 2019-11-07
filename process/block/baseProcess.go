@@ -697,6 +697,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	shardId uint32,
 	finality uint32,
 	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
+	cacher storage.Cacher,
 ) uint32 {
 	requestedHeaders := uint32(0)
 	missingFinalityAttestingHeaders := uint32(0)
@@ -708,11 +709,17 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	lastFinalityAttestingHeader := bp.hdrsForCurrBlock.highestHdrNonce[shardId] + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		header, headerHash, err := getHeaderFromPoolWithNonce(
-			i,
-			shardId)
+		headers, headersHashes := bp.getHeadersWithNonceFromHeadersPool(cacher, i)
+		for i := 0; i < len(headers); i++ {
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[i])] = &hdrInfo{hdr: headers[i], usedInBlock: false}
+		}
 
-		if err != nil {
+		header, headerHash, err := getHeaderFromPoolWithNonce(i, shardId)
+		if err == nil {
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
+		}
+
+		if err != nil && len(headers) == 0 {
 			missingFinalityAttestingHeaders++
 			wasHeaderRequested := bp.wasHeaderRequested(shardId, i)
 			if !wasHeaderRequested {
@@ -723,8 +730,6 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 			continue
 		}
-
-		bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
 	}
 
 	if requestedHeaders > 0 {
@@ -797,4 +802,62 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPool(
 			uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
 		}
 	}
+}
+
+func (bp *baseProcessor) removeHeaderFromPools(
+	header data.HeaderHandler,
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+) {
+
+	if check.IfNil(header) {
+		return
+	}
+	if check.IfNil(uint64SyncMapCacher) {
+		return
+	}
+
+	uint64SyncMapCacher.Remove(header.GetNonce(), header.GetShardID())
+
+	hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, header)
+	if err != nil {
+		log.Info(err.Error())
+		return
+	}
+
+	if check.IfNil(cacher) {
+		return
+	}
+
+	cacher.Remove(hash)
+}
+
+func (bp *baseProcessor) getHeadersWithNonceFromHeadersPool(
+	cacher storage.Cacher,
+	nonce uint64,
+) ([]data.HeaderHandler, [][]byte) {
+
+	headers := make([]data.HeaderHandler, 0)
+	headersHashes := make([][]byte, 0)
+
+	bp.mutNotarizedHdrs.RLock()
+	for _, key := range cacher.Keys() {
+		val, _ := cacher.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		header, ok := val.(data.HeaderHandler)
+		if !ok {
+			continue
+		}
+
+		if header.GetNonce() == nonce {
+			headers = append(headers, header)
+			headersHashes = append(headersHashes, key)
+		}
+	}
+	bp.mutNotarizedHdrs.RUnlock()
+
+	return headers, headersHashes
 }

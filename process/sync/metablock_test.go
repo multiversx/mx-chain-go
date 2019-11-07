@@ -787,6 +787,9 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
 	}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1053,6 +1056,9 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
 	}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1154,6 +1160,9 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {}
 	forkDetector.ResetProbableHighestNonceCalled = func() {}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -2416,7 +2425,7 @@ func TestMetaBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) 
 	assert.Equal(t, process.ErrNotEnoughValidBlocksInStorage, err)
 }
 
-func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
+func TestMetaBootstrap_SyncFromStorerShouldErrNilNotarized(t *testing.T) {
 	t.Parallel()
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
@@ -2435,6 +2444,9 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
 		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
+			return nil
+		},
+		GetNotarizedHeaderHashCalled: func(nonce uint64) []byte {
 			return nil
 		},
 	}
@@ -2502,7 +2514,7 @@ func TestMetaBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 		process.ShardBlockFinality,
 		dataRetriever.ShardHdrNonceHashDataUnit)
 
-	assert.Nil(t, err)
+	assert.Equal(t, sync.ErrNilNotarizedHeader, err)
 }
 
 func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetFinalNotarizedShardHeaderFromStorageFails(t *testing.T) {
@@ -2570,15 +2582,15 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetFinalNotarizedShardHea
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
+	lastNotarized := bs.InitNotarizedMap()
+	finalNotarized := bs.InitNotarizedMap()
 
-	lastNotarized[0] = 1
-	finalNotarized[0] = 1
+	bs.SetNotarizedMap(lastNotarized, 0, 1, []byte("A"))
+	bs.SetNotarizedMap(finalNotarized, 0, 1, []byte("A"))
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
-	assert.Equal(t, errKeyNotFound, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedShardHeaderFromStorageFails(t *testing.T) {
@@ -2652,15 +2664,15 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedShardHead
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
+	lastNotarized := bs.InitNotarizedMap()
+	finalNotarized := bs.InitNotarizedMap()
 
-	lastNotarized[0] = 1
-	finalNotarized[0] = 2
+	bs.SetNotarizedMap(lastNotarized, 0, 1, []byte("A"))
+	bs.SetNotarizedMap(finalNotarized, 0, 2, []byte("B"))
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
-	assert.Equal(t, errKeyNotFound, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
@@ -2734,11 +2746,11 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
+	lastNotarized := bs.InitNotarizedMap()
+	finalNotarized := bs.InitNotarizedMap()
 
-	finalNotarized[0] = 1
-	lastNotarized[0] = 1
+	bs.SetNotarizedMap(lastNotarized, 0, 1, hash)
+	bs.SetNotarizedMap(finalNotarized, 0, 1, hash)
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 

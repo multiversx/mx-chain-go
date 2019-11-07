@@ -237,7 +237,8 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	return sp.requestMissingFinalityAttestingHeaders(
 		sharding.MetachainShardId,
 		sp.metaBlockFinality,
-		sp.getMetaHeaderFromPoolWithNonce)
+		sp.getMetaHeaderFromPoolWithNonce,
+		sp.dataPool.MetaBlocks())
 }
 
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {

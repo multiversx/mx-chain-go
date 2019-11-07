@@ -174,15 +174,15 @@ func (boot *MetaBootstrap) RemoveBlockBody(
 }
 
 func (boot *ShardBootstrap) ApplyNotarizedBlocks(
-	finalNotarized map[uint32]uint64,
-	lastNotarized map[uint32]uint64,
+	finalNotarized map[uint32]*HdrInfo,
+	lastNotarized map[uint32]*HdrInfo,
 ) error {
 	return boot.applyNotarizedBlocks(finalNotarized, lastNotarized)
 }
 
 func (boot *MetaBootstrap) ApplyNotarizedBlocks(
-	finalNotarized map[uint32]uint64,
-	lastNotarized map[uint32]uint64,
+	finalNotarized map[uint32]*HdrInfo,
+	lastNotarized map[uint32]*HdrInfo,
 ) error {
 	return boot.applyNotarizedBlocks(finalNotarized, lastNotarized)
 }
@@ -219,9 +219,9 @@ type StorageBootstrapperMock struct {
 	GetHeaderCalled                 func(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error)
 	GetBlockBodyCalled              func(data.HeaderHandler) (data.BodyHandler, error)
 	RemoveBlockBodyCalled           func(nonce uint64, blockUnit dataRetriever.UnitType, hdrNonceHashDataUnit dataRetriever.UnitType) error
-	GetNonceWithLastNotarizedCalled func(currentNonce uint64) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64)
-	ApplyNotarizedBlocksCalled      func(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error
-	CleanupNotarizedStorageCalled   func(lastNotarized map[uint32]uint64)
+	GetNonceWithLastNotarizedCalled func(currentNonce uint64) (startNonce uint64, finalNotarized map[uint32]*HdrInfo, lastNotarized map[uint32]*HdrInfo)
+	ApplyNotarizedBlocksCalled      func(finalNotarized map[uint32]*HdrInfo, lastNotarized map[uint32]*HdrInfo) error
+	CleanupNotarizedStorageCalled   func(lastNotarized map[uint32]*HdrInfo)
 	AddHeaderToForkDetectorCalled   func(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
 }
 
@@ -244,20 +244,20 @@ func (sbm *StorageBootstrapperMock) removeBlockBody(
 
 func (sbm *StorageBootstrapperMock) getNonceWithLastNotarized(
 	currentNonce uint64,
-) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) {
+) (startNonce uint64, finalNotarized map[uint32]*HdrInfo, lastNotarized map[uint32]*HdrInfo) {
 
 	return sbm.GetNonceWithLastNotarizedCalled(currentNonce)
 }
 
 func (sbm *StorageBootstrapperMock) applyNotarizedBlocks(
-	finalNotarized map[uint32]uint64,
-	lastNotarized map[uint32]uint64,
+	finalNotarized map[uint32]*HdrInfo,
+	lastNotarized map[uint32]*HdrInfo,
 ) error {
 
 	return sbm.ApplyNotarizedBlocksCalled(finalNotarized, lastNotarized)
 }
 
-func (sbm *StorageBootstrapperMock) cleanupNotarizedStorage(lastNotarized map[uint32]uint64) {
+func (sbm *StorageBootstrapperMock) cleanupNotarizedStorage(lastNotarized map[uint32]*HdrInfo) {
 	sbm.CleanupNotarizedStorageCalled(lastNotarized)
 }
 
@@ -309,4 +309,19 @@ func GetCacherWithHeaders(
 		},
 	}
 	return sds
+}
+
+func (boot *baseBootstrap) InitNotarizedMap() map[uint32]*HdrInfo {
+	return make(map[uint32]*HdrInfo, 0)
+}
+
+func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, shardId uint32, nonce uint64, hash []byte) {
+	hdrInfo, ok := notarizedMap[shardId]
+	if !ok {
+		notarizedMap[shardId] = &HdrInfo{Nonce: nonce, Hash: hash}
+		return
+	}
+
+	hdrInfo.Nonce = nonce
+	hdrInfo.Hash = hash
 }

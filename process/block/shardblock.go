@@ -323,6 +323,8 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 
 	finalityAttestingMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(false)
 
+	var errFinal error
+
 	lastVerifiedHdr := header
 	// verify if there are "K" block after current to make this one final
 	nextBlocksVerified := uint32(0)
@@ -335,6 +337,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		if metaHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := sp.isHdrConstructionValid(metaHdr, lastVerifiedHdr)
 			if err != nil {
+				//sp.removeHeaderFromPools(metaHdr, sp.dataPool.MetaBlocks(), sp.dataPool.HeadersNonces())
 				log.Debug(err.Error())
 				continue
 			}
@@ -346,10 +349,10 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 
 	if nextBlocksVerified < sp.metaBlockFinality {
 		go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
-		return process.ErrHeaderNotFinal
+		errFinal = process.ErrHeaderNotFinal
 	}
 
-	return nil
+	return errFinal
 }
 
 // check if header has the same miniblocks as presented in body
@@ -1096,7 +1099,8 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 				sharding.MetachainShardId,
 				sp.metaBlockFinality,
-				sp.getMetaHeaderFromPoolWithNonce)
+				sp.getMetaHeaderFromPoolWithNonce,
+				sp.dataPool.MetaBlocks())
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Info(fmt.Sprintf("received all missing finality attesting meta headers\n"))
 			}
@@ -1165,7 +1169,8 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32,
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			sharding.MetachainShardId,
 			sp.metaBlockFinality,
-			sp.getMetaHeaderFromPoolWithNonce)
+			sp.getMetaHeaderFromPoolWithNonce,
+			sp.dataPool.MetaBlocks())
 	}
 
 	requestedHdrs := sp.hdrsForCurrBlock.missingHdrs

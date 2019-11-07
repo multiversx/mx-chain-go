@@ -164,9 +164,13 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testi
 func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
-	bfd.SetFinalCheckpoint(1, 1)
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, process.BHProcessed)
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return false
+		},
+	})
+	bfd.SetFinalCheckpoint(2, 2)
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, process.BHProcessed)
 	assert.Equal(t, sync.ErrLowerNonceInBlock, err)
 }
 
@@ -264,6 +268,9 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
 		AddCalled: func(key string) error {
 			return nil
+		},
+		HasCalled: func(key string) bool {
+			return false
 		},
 	})
 	_ = bfd.AddHeader(

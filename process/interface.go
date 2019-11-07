@@ -261,6 +261,7 @@ type ForkDetector interface {
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonce()
 	ResetFork()
+	GetNotarizedHeaderHash(nonce uint64) []byte
 	IsInterfaceNil() bool
 }
 

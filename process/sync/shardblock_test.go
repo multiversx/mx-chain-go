@@ -259,6 +259,9 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 		ProbableHighestNonceCalled: func() uint64 {
 			return uint64(0)
 		},
+		GetNotarizedHeaderHashCalled: func(nonce uint64) []byte {
+			return nil
+		},
 	}
 }
 
@@ -1069,6 +1072,9 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 100
 	}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1168,6 +1174,9 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return 1
 	}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1228,6 +1237,9 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 1
+	}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1346,6 +1358,9 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
+	}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1466,6 +1481,9 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	forkDetector.ProbableHighestNonceCalled = func() uint64 {
 		return 2
 	}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1582,6 +1600,9 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64, hash []byte) {}
 	forkDetector.ResetProbableHighestNonceCalled = func() {}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -4466,15 +4487,15 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetFinalNotarizedMetaHeaderFr
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
+	lastNotarized := bs.InitNotarizedMap()
+	finalNotarized := bs.InitNotarizedMap()
 
-	lastNotarized[sharding.MetachainShardId] = 1
-	finalNotarized[sharding.MetachainShardId] = 1
+	bs.SetNotarizedMap(lastNotarized, sharding.MetachainShardId, 1, []byte("A"))
+	bs.SetNotarizedMap(finalNotarized, sharding.MetachainShardId, 1, []byte("A"))
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
-	assert.Equal(t, errKeyNotFound, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedMetaHeaderFromStorageFails(t *testing.T) {
@@ -4569,16 +4590,15 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedMetaHeaderFro
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
 	)
+	lastNotarized := bs.InitNotarizedMap()
+	finalNotarized := bs.InitNotarizedMap()
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
-
-	lastNotarized[sharding.MetachainShardId] = 1
-	finalNotarized[sharding.MetachainShardId] = 2
+	bs.SetNotarizedMap(lastNotarized, sharding.MetachainShardId, 1, []byte("A"))
+	bs.SetNotarizedMap(finalNotarized, sharding.MetachainShardId, 2, []byte("B"))
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
-	assert.Equal(t, errKeyNotFound, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 }
 
 func TestBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
@@ -4674,11 +4694,11 @@ func TestBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
+	lastNotarized := bs.InitNotarizedMap()
+	finalNotarized := bs.InitNotarizedMap()
 
-	finalNotarized[sharding.MetachainShardId] = 1
-	lastNotarized[sharding.MetachainShardId] = 1
+	bs.SetNotarizedMap(lastNotarized, sharding.MetachainShardId, 1, hash)
+	bs.SetNotarizedMap(finalNotarized, sharding.MetachainShardId, 1, hash)
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
@@ -4999,23 +5019,23 @@ func NewStorageBootstrapperMock() *sync.StorageBootstrapperMock {
 
 			return nil
 		},
-		GetNonceWithLastNotarizedCalled: func(currentNonce uint64) (uint64, map[uint32]uint64, map[uint32]uint64) {
-			lastNotarized := make(map[uint32]uint64, 0)
-			finalNotarized := make(map[uint32]uint64, 0)
+		GetNonceWithLastNotarizedCalled: func(currentNonce uint64) (uint64, map[uint32]*sync.HdrInfo, map[uint32]*sync.HdrInfo) {
+			lastNotarized := make(map[uint32]*sync.HdrInfo, 0)
+			finalNotarized := make(map[uint32]*sync.HdrInfo, 0)
 			nonceWithLastNotarized := currentNonce
 
 			fmt.Printf("get last notarized at nonce %d\n", currentNonce)
 
 			return nonceWithLastNotarized, finalNotarized, lastNotarized
 		},
-		ApplyNotarizedBlocksCalled: func(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error {
+		ApplyNotarizedBlocksCalled: func(finalNotarized map[uint32]*sync.HdrInfo, lastNotarized map[uint32]*sync.HdrInfo) error {
 			fmt.Printf("final notarized items: %d and last notarized items: %d\n",
 				len(finalNotarized),
 				len(lastNotarized))
 
 			return nil
 		},
-		CleanupNotarizedStorageCalled: func(lastNotarized map[uint32]uint64) {
+		CleanupNotarizedStorageCalled: func(lastNotarized map[uint32]*sync.HdrInfo) {
 			fmt.Printf("last notarized items: %d\n", len(lastNotarized))
 		},
 		AddHeaderToForkDetectorCalled: func(shardId uint32, nonce uint64, lastNotarizedMeta uint64) {

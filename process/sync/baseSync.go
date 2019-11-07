@@ -27,17 +27,23 @@ var log = logger.DefaultLogger()
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
 
+// HdrInfo hold the data related to a header
+type HdrInfo struct {
+	Nonce uint64
+	Hash  []byte
+}
+
 type notarizedInfo struct {
-	lastNotarized           map[uint32]uint64
-	finalNotarized          map[uint32]uint64
+	lastNotarized           map[uint32]*HdrInfo
+	finalNotarized          map[uint32]*HdrInfo
 	blockWithLastNotarized  map[uint32]uint64
 	blockWithFinalNotarized map[uint32]uint64
 	startNonce              uint64
 }
 
 func (ni *notarizedInfo) reset() {
-	ni.lastNotarized = make(map[uint32]uint64, 0)
-	ni.finalNotarized = make(map[uint32]uint64, 0)
+	ni.lastNotarized = make(map[uint32]*HdrInfo, 0)
+	ni.finalNotarized = make(map[uint32]*HdrInfo, 0)
 	ni.blockWithLastNotarized = make(map[uint32]uint64, 0)
 	ni.blockWithFinalNotarized = make(map[uint32]uint64, 0)
 	ni.startNonce = uint64(0)
@@ -112,8 +118,8 @@ func (boot *baseBootstrap) loadBlocks(
 
 	log.Info(fmt.Sprintf("the highest header nonce committed in storer is %d\n", highestNonceInStorer))
 
-	var finalNotarized map[uint32]uint64
-	var lastNotarized map[uint32]uint64
+	var finalNotarized map[uint32]*HdrInfo
+	var lastNotarized map[uint32]*HdrInfo
 
 	shardId := boot.shardCoordinator.SelfId()
 
@@ -155,8 +161,8 @@ func (boot *baseBootstrap) loadBlocks(
 
 	defer func() {
 		if err != nil {
-			lastNotarized = make(map[uint32]uint64, 0)
-			finalNotarized = make(map[uint32]uint64, 0)
+			lastNotarized = make(map[uint32]*HdrInfo, 0)
+			finalNotarized = make(map[uint32]*HdrInfo, 0)
 			validNonce = 0
 		}
 
@@ -858,8 +864,13 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedHeaderNonce(nil)
 
+	hash := boot.forkDetector.GetNotarizedHeaderHash(nonce)
 	if boot.forkInfo.IsDetected {
-		return boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(boot.forkInfo.Hash)
+		hash = boot.forkInfo.Hash
+	}
+
+	if hash != nil {
+		return boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(hash)
 	}
 
 	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)

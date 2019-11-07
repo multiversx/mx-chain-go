@@ -57,10 +57,10 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(header data.HeaderHandler, 
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
 
-	if roundDif <= 0 {
+	if roundDif < 0 {
 		return ErrLowerRoundInBlock
 	}
-	if nonceDif <= 0 {
+	if nonceDif < 0 {
 		return ErrLowerNonceInBlock
 	}
 	if int64(header.GetRound()) > nextRound {
@@ -69,10 +69,10 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(header data.HeaderHandler, 
 	if roundDif < nonceDif {
 		return ErrHigherNonceInBlock
 	}
+	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
+		return process.ErrHeaderIsBlackListed
+	}
 	if state == process.BHProposed {
-		if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
-			return process.ErrHeaderIsBlackListed
-		}
 		if !isRandomSeedValid(header) {
 			return ErrRandomSeedNotValid
 		}
@@ -517,4 +517,19 @@ func (bfd *baseForkDetector) isSyncing() bool {
 	noncesDifference := int64(bfd.ProbableHighestNonce()) - int64(bfd.lastCheckpoint().nonce)
 	isSyncing := noncesDifference > process.NonceDifferenceWhenSynced
 	return isSyncing
+}
+
+// GetNotarizedHeaderHash returns the hash of the header with a given nonce, if it has been received with state notarized
+func (bfd *baseForkDetector) GetNotarizedHeaderHash(nonce uint64) []byte {
+	bfd.mutHeaders.RLock()
+	defer bfd.mutHeaders.RUnlock()
+
+	hdrInfos := bfd.headers[nonce]
+	for _, hdrInfo := range hdrInfos {
+		if hdrInfo.state == process.BHNotarized {
+			return hdrInfo.hash
+		}
+	}
+
+	return nil
 }

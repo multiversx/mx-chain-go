@@ -763,6 +763,8 @@ func (mp *metaProcessor) checkShardHeadersValidity() (map[uint32]data.HeaderHand
 func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]data.HeaderHandler) error {
 	finalityAttestingShardHdrs := mp.sortHeadersForCurrentBlockByNonce(false)
 
+	var errFinal error
+
 	for shardId, lastVerifiedHdr := range highestNonceHdrs {
 		if lastVerifiedHdr == nil || lastVerifiedHdr.IsInterfaceNil() {
 			return process.ErrNilBlockHeader
@@ -782,6 +784,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 				err := mp.isHdrConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
+					//mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
 					log.Debug(err.Error())
 					continue
 				}
@@ -793,11 +796,11 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 		if nextBlocksVerified < mp.shardBlockFinality {
 			go mp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
-			return process.ErrHeaderNotFinal
+			errFinal = process.ErrHeaderNotFinal
 		}
 	}
 
-	return nil
+	return errFinal
 }
 
 func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
@@ -933,7 +936,8 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 		missingFinalityAttestingHeaders := mp.requestMissingFinalityAttestingHeaders(
 			shardId,
 			mp.shardBlockFinality,
-			mp.getShardHeaderFromPoolWithNonce)
+			mp.getShardHeaderFromPoolWithNonce,
+			mp.dataPool.ShardHeaders())
 
 		missingFinalityAttestingShardHeaders += missingFinalityAttestingHeaders
 	}
