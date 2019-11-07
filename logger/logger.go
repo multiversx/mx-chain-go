@@ -92,6 +92,15 @@ func (l *logger) LogIfError(err error, args ...interface{}) {
 	l.Error(err.Error(), args...)
 }
 
+// Log forwards the log line towards underlying log output handler
+func (l *logger) Log(line *LogLine) {
+	if line == nil {
+		return
+	}
+
+	l.logOutput.Output(line)
+}
+
 // SetLevel sets the current level of the logger
 func (l *logger) SetLevel(logLevel LogLevel) {
 	l.mutLevel.Lock()

@@ -21,7 +21,7 @@ func generateTestLogOutputSubject() (logger.LogOutputHandler, *int32) {
 			},
 		},
 		&mock.FormatterStub{
-			OutputCalled: func(line *logger.LogLine) []byte {
+			OutputCalled: func(line logger.LogLineHandler) []byte {
 				return nil
 			},
 		},
@@ -232,5 +232,29 @@ func TestLogger_SetLevelShouldWork(t *testing.T) {
 	log.SetLevel(logger.LogDebug)
 
 	log.Debug("test")
+	assert.Equal(t, int32(1), atomic.LoadInt32(numCalls))
+}
+
+//------- Log
+
+func TestLogger_LogNilShouldNotCallWrite(t *testing.T) {
+	t.Parallel()
+
+	los, numCalls := generateTestLogOutputSubject()
+	log := logger.NewLogger("test", logger.LogError, los)
+
+	log.Log(nil)
+
+	assert.Equal(t, int32(0), atomic.LoadInt32(numCalls))
+}
+
+func TestLogger_LogShouldWork(t *testing.T) {
+	t.Parallel()
+
+	los, numCalls := generateTestLogOutputSubject()
+	log := logger.NewLogger("test", logger.LogError, los)
+
+	log.Log(&logger.LogLine{})
+
 	assert.Equal(t, int32(1), atomic.LoadInt32(numCalls))
 }

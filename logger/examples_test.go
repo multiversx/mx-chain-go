@@ -9,8 +9,6 @@ import (
 )
 
 func TestLogger_ExampleCreateLoggerAndOutputSimpleMessages(t *testing.T) {
-	t.Parallel()
-
 	//the following instruction might be done inside a var declaration, once on each package
 	// or in the init func of the package
 	log := logger.GetOrCreate("test_logger1")
@@ -25,8 +23,6 @@ func TestLogger_ExampleCreateLoggerAndOutputSimpleMessages(t *testing.T) {
 }
 
 func TestLogger_ExampleMessagesWithArguments(t *testing.T) {
-	t.Parallel()
-
 	log := logger.GetOrCreate("test_logger2")
 	log.SetLevel(logger.LogInfo)
 

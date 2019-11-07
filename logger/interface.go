@@ -13,9 +13,17 @@ type Logger interface {
 	SetLevel(logLevel LogLevel)
 }
 
+// LogLineHandler defines the get methods for a log line struct used by the formatter interface
+type LogLineHandler interface {
+	GetMessage() string
+	GetLogLevel() int32
+	GetArgs() []string
+	GetTimestamp() int64
+}
+
 // Formatter describes what a log formatter should be able to do
 type Formatter interface {
-	Output(line *LogLine) []byte
+	Output(line LogLineHandler) []byte
 }
 
 // LogOutputHandler defines the properties of a subject-observer component
