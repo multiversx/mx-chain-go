@@ -35,7 +35,7 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-const scAddress = "0000000000000000000000000000000000000000000000000000000000000000"
+const scAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
 func TestGetDataValueAsHexBytes(t *testing.T) {
 	t.Parallel()
