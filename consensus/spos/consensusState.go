@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("consensus/spos")
 
 // ConsensusState defines the data needed by spos to do the consensus in each round
 type ConsensusState struct {
@@ -66,9 +66,8 @@ func (cns *ConsensusState) ResetConsensusState() {
 // IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round
 func (cns *ConsensusState) IsNodeLeaderInCurrentRound(node string) bool {
 	leader, err := cns.GetLeader()
-
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("GetLeader", "error", err.Error())
 		return false
 	}
 
@@ -137,9 +136,8 @@ func (cns *ConsensusState) IsConsensusDataEqual(data []byte) bool {
 // IsJobDone method returns true if the node job for the current subround is done and false otherwise
 func (cns *ConsensusState) IsJobDone(node string, currentSubroundId int) bool {
 	jobDone, err := cns.JobDone(node, currentSubroundId)
-
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("JobDone", "error", err.Error())
 		return false
 	}
 
@@ -229,9 +227,8 @@ func (cns *ConsensusState) GenerateBitmap(subroundId int) []byte {
 	for i := 0; i < sizeConsensus; i++ {
 		pubKey := cns.ConsensusGroup()[i]
 		isJobDone, err := cns.JobDone(pubKey, subroundId)
-
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("JobDone", "error", err.Error())
 			continue
 		}
 

@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic/termuiRenders"
@@ -22,7 +22,7 @@ const refreshInterval = time.Second
 // in order to clean the unwanted appeared characters
 const numOfTicksBeforeRedrawing = 10
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("statushandler/termui")
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
@@ -35,7 +35,7 @@ type TermuiConsole struct {
 //NewTermuiConsole method is used to return a new TermuiConsole structure
 func NewTermuiConsole(presenter view.Presenter) (*TermuiConsole, error) {
 	if presenter == nil || presenter.IsInterfaceNil() {
-		return nil, statusHandler.ErrorNilPresenterInterface
+		return nil, statusHandler.ErrNilPresenterInterface
 	}
 
 	tc := TermuiConsole{
@@ -63,14 +63,14 @@ func (tc *TermuiConsole) Start() error {
 func (tc *TermuiConsole) eventLoop() {
 	tc.grid = termuiRenders.NewDrawableContainer()
 	if tc.grid == nil {
-		log.Warn("Cannot render termui console", statusHandler.ErrorNilGrid)
+		log.Debug("cannot render termui console", "error", statusHandler.ErrNilGrid.Error())
 		return
 	}
 
 	var err error
 	tc.consoleRender, err = termuiRenders.NewWidgetsRender(tc.presenter, tc.grid)
 	if err != nil {
-		log.Warn("nil console render", err)
+		log.Debug("nil console render", "error", err.Error())
 		return
 	}
 

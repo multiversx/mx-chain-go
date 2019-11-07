@@ -1,8 +1,6 @@
 package bls
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -71,7 +69,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	sigPart, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("CreateSignatureShare",
+			"type", "spos/bls",
+			"error", err.Error())
 		return false
 	}
 
@@ -88,11 +88,13 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 		if err != nil {
-			log.Info(err.Error())
+			log.Debug("BroadcastConsensusMessage", "type", "spos/bls", "error", err.Error())
 			return false
 		}
 
-		log.Info(fmt.Sprintf("%sStep 2: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
+		log.Debug("step 2: signature has been sent",
+			"type", "spos/bls",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 		// Validator has finished its job for this round
 		sr.RoundCanceled = true
@@ -100,7 +102,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	err = sr.SetSelfJobDone(SrSignature, true)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("SetSelfJobDone",
+			"type", "spos/bls",
+			"error", err.Error())
 		return false
 	}
 
@@ -136,28 +140,31 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("ConsensusGroupIndex", "type", "spos/bls", "error", err.Error())
 		return false
 	}
 
 	currentMultiSigner := sr.MultiSigner()
 	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("StoreSignatureShare", "type", "spos/bls", "error", err.Error())
 		return false
 	}
 
 	err = sr.SetJobDone(node, SrSignature, true)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("SetJobDone", "type", "spos/bls", "error", err.Error())
 		return false
 	}
 
 	if sr.IsSelfLeaderInCurrentRound() {
 		threshold := sr.Threshold(SrSignature)
 		if ok, n := sr.signaturesCollected(threshold); ok {
-			log.Info(fmt.Sprintf("%sStep 2: received %d from %d signatures\n",
-				sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
+			log.Debug("step 2: signatures",
+				"type", "spos/bls",
+				"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+				"received", n,
+				"total", len(sr.ConsensusGroup()))
 		}
 	}
 
@@ -179,7 +186,10 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	threshold := sr.Threshold(SrSignature)
 	if ok, _ := sr.signaturesCollected(threshold); ok {
-		log.Info(fmt.Sprintf("%sStep 2: Subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		log.Debug("step 2: Subround has been finished",
+			"type", "spos/bls",
+			"subround", sr.Name(),
+			"time [s]", sr.SyncTimer().FormattedCurrentTime())
 		sr.SetStatus(SrSignature, spos.SsFinished)
 
 		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
@@ -200,7 +210,7 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 
 		isSignJobDone, err := sr.JobDone(node, SrSignature)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("JobDone", "type", "spos/bls", "error", err.Error())
 			continue
 		}
 

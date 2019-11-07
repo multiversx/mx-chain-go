@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -43,7 +43,7 @@ const defaultThresholdMinConnectedPeers = 3
 var messageHeader = 64 * 1024 //64kB
 var maxSendBuffSize = (1 << 20) - messageHeader
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("p2p/libp2p")
 
 //TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
@@ -186,9 +186,12 @@ func createMessenger(
 		}
 	}(pb, netMes.outgoingPLB)
 
-	for _, address := range netMes.ctxProvider.Host().Addrs() {
-		log.Info(address.String() + "/p2p/" + netMes.ID().Pretty())
+	addresses := make([]interface{}, 0)
+	for i, address := range netMes.ctxProvider.Host().Addrs() {
+		addresses = append(addresses, fmt.Sprintf("addr%d", i))
+		addresses = append(addresses, address.String()+"/p2p/"+netMes.ID().Pretty())
 	}
+	log.Info("listening on addresses", addresses...)
 
 	return &netMes, nil
 }
@@ -419,7 +422,7 @@ func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string,
 	go func() {
 		err := netMes.BroadcastOnChannelBlocking(channel, topic, buff)
 		if err != nil {
-			log.Error(fmt.Sprintf("Broadcast: '%s'", err))
+			log.Debug("p2p broadcast", "error", err.Error())
 		}
 	}()
 }
@@ -452,7 +455,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 		err := handler.ProcessReceivedMessage(NewMessage(message), broadcastHandler)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("p2p validator", "error", err.Error(), "topics", message.TopicIDs)
 		}
 
 		return err == nil
@@ -506,9 +509,8 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 
 	go func(msg p2p.MessageP2P) {
 		err := processor.ProcessReceivedMessage(msg, nil)
-
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("p2p validator", "error", err.Error(), "topics", msg.TopicIDs())
 		}
 	}(message)
 

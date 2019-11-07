@@ -106,7 +106,7 @@ func (rtxh *rewardsHandler) SaveCurrentIntermediateTxToStorage() error {
 
 		errNotCritical := rtxh.store.Put(dataRetriever.RewardTransactionUnit, rtxh.hasher.Compute(string(buff)), buff)
 		if errNotCritical != nil {
-			log.Error(errNotCritical.Error())
+			log.Debug("RewardTransactionUnit.Put", "error", errNotCritical.Error())
 		}
 	}
 
@@ -168,12 +168,12 @@ func (rtxh *rewardsHandler) addTransactionsToPool(rewardTxs []data.TransactionHa
 	for _, rTx := range rewardTxs {
 		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRecvAddress())
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("ShardIdForAddress", "error", err.Error())
 		}
 
 		txHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, rTx)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("CalculateHash", "error", err.Error())
 		}
 
 		// add the reward transaction to the the pool so that the processor can find it
@@ -190,13 +190,13 @@ func (rtxh *rewardsHandler) miniblocksFromRewardTxs(
 	for _, rTx := range rewardTxs {
 		dstShId, err := rtxh.address.ShardIdForAddress(rTx.GetRecvAddress())
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("ShardIdForAddress", "error", err.Error())
 			continue
 		}
 
 		txHash, err := core.CalculateHash(rtxh.marshalizer, rtxh.hasher, rTx)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("CalculateHash", "error", err.Error())
 			continue
 		}
 
@@ -253,7 +253,7 @@ func (rtxh *rewardsHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, 
 // ProcessTransactionFee adds the tx cost to the accumulated amount
 func (rtxh *rewardsHandler) ProcessTransactionFee(cost *big.Int) {
 	if cost == nil {
-		log.Debug(process.ErrNilValue.Error())
+		log.Debug("nil costin ProcessTransactionFee", "err", process.ErrNilValue.Error())
 		return
 	}
 
@@ -374,7 +374,7 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 		for _, address := range metaConsensusSet.Addresses {
 			shardId, err := rtxh.address.ShardIdForAddress([]byte(address))
 			if err != nil {
-				log.Error(err.Error())
+				log.Debug("ShardIdForAddress", "error", err.Error())
 				continue
 			}
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -68,14 +69,14 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	bitmap := sr.GenerateBitmap(SrBitmap)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("checkSignaturesValidity", "type", "spos/bn", "error", err.Error())
 		return false
 	}
 
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("AggregateSigs", "type", "spos/bn", "error", err.Error())
 		return false
 	}
 
@@ -85,32 +86,34 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	// Commit the block (commits also the account state)
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("CommitBlock", "type", "spos/bn", "error", err.Error())
 		return false
 	}
 	timeAfter := time.Now()
 
-	log.Info(fmt.Sprintf("time elapsed to commit block: %v sec\n", timeAfter.Sub(timeBefore).Seconds()))
+	log.Debug("block committed", "type", "spos/bn", "elapsed seconds", timeAfter.Sub(timeBefore).Seconds())
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("BroadcastBlock", "type", "spos/bn", "error", err.Error())
 	}
 
 	// broadcast header to metachain
 	err = sr.BroadcastMessenger().BroadcastShardHeader(sr.Header)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("BroadcastShardHeader", "type", "spos/bn", "error", err.Error())
 	}
 
-	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been committed and broadcast\n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Debug("step 6: TxBlockBody and Header has been committed and broadcast",
+		"type", "spos/bn",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 	err = sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("broadcastMiniBlocksAndTransactions", "type", "spos/bn", "error", err.Error())
 	}
 
 	actionMsg := "synchronized"
@@ -119,7 +122,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	}
 
 	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.Header.GetNonce())
-	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
+	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	sr.updateMetricsForLeader()
 

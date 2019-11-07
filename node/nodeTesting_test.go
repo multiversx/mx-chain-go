@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var timeoutWait = time.Duration(time.Second)
+var timeoutWait = time.Second
 
 //------- GenerateAndSendBulkTransactions
 

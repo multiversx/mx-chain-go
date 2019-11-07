@@ -2,19 +2,19 @@ package preprocess
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -22,7 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("process/block/preprocess")
 
 // TODO: increase code coverage with unit tests
 
@@ -127,13 +127,15 @@ func (txs *transactions) waitForTxHashes(waitTime time.Duration) error {
 // IsDataPrepared returns non error if all the requested transactions arrived and were saved into the pool
 func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error {
 	if requestedTxs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
+		log.Debug("requested missing txs",
+			"num txs", requestedTxs)
 		err := txs.waitForTxHashes(haveTime())
 		txs.txsForCurrBlock.mutTxsForBlock.Lock()
 		missingTxs := txs.txsForCurrBlock.missingTxs
 		txs.txsForCurrBlock.missingTxs = 0
 		txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-		log.Info(fmt.Sprintf("received %d missing txs\n", requestedTxs-missingTxs))
+		log.Debug("received missing txs",
+			"num txs", requestedTxs-missingTxs)
 		if err != nil {
 			return err
 		}
@@ -520,16 +522,22 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 	timeAfter := time.Now()
 
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("computeOrderedTxs", "error", err.Error())
 		return nil, err
 	}
 
 	if !haveTime() {
-		log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
+		log.Debug("time is up ordering txs",
+			"num txs", len(orderedTxs),
+			"time [s]", timeAfter.Sub(timeBefore).Seconds(),
+		)
 		return nil, process.ErrTimeIsOut
 	}
 
-	log.Debug(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxs), timeAfter.Sub(timeBefore).Seconds()))
+	log.Trace("time elapsed to ordered txs,"+
+		"num txs", len(orderedTxs),
+		"time [s]", timeAfter.Sub(timeBefore).Seconds(),
+	)
 
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = sndShardId
@@ -555,9 +563,10 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 
 		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
 		if isGasLimitReached {
-			log.Debug(fmt.Sprintf("max gas limit per mini block is reached: added %d txs from %d txs\n",
-				len(miniBlock.TxHashes),
-				len(orderedTxs)))
+			log.Trace("max gas limit per mini block is reached",
+				"num added txs", len(miniBlock.TxHashes),
+				"ordered txs", len(orderedTxs),
+			)
 			continue
 		}
 
@@ -573,10 +582,13 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		)
 
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("bad tx",
+				"error", err.Error(),
+				"hash", display.ConvertHash(orderedTxHashes[index]),
+			)
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
-				log.Error(err.Error())
+				log.Warn("revert to snapshot", "error", err.Error())
 			}
 			continue
 		}
@@ -586,9 +598,10 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
-			log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n",
-				len(miniBlock.TxHashes),
-				len(orderedTxs)))
+			log.Debug("max txs accepted in one block is reached",
+				"num added txs", len(miniBlock.TxHashes),
+				"total txs", len(orderedTxs),
+			)
 			return miniBlock, nil
 		}
 	}
@@ -625,10 +638,11 @@ func (txs *transactions) computeOrderedTxs(
 			return nil, nil, err
 		}
 
-		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard %d from shard %d\n",
-			len(orderedTxs),
-			dstShardId,
-			sndShardId))
+		log.Debug("creating mini blocks has been started",
+			"have num txs", len(orderedTxs),
+			"snd shard", sndShardId,
+			"dest shard", dstShardId,
+		)
 
 		txs.mutOrderedTxs.Lock()
 		txs.orderedTxs[strCache] = orderedTxs

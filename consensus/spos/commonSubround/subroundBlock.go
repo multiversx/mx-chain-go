@@ -1,13 +1,12 @@
 package commonSubround
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -93,7 +92,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 
 	err := sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("SetSelfJobDone", "error", err.Error())
 		return false
 	}
 
@@ -114,13 +113,13 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 		haveTimeInCurrentSubround,
 	)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("CreateBlockBody", "error", err.Error())
 		return false
 	}
 
 	blkStr, err := sr.Marshalizer().Marshal(blockBody)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("Marshal", "error", err.Error())
 		return false
 	}
 
@@ -135,11 +134,12 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("BroadcastConsensusMessage", "error", err.Error())
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 1: block body has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Debug("step 1: block body has been sent",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 	sr.BlockBody = blockBody
 
@@ -150,13 +150,13 @@ func (sr *SubroundBlock) sendBlockBody() bool {
 func (sr *SubroundBlock) sendBlockHeader() bool {
 	hdr, err := sr.createHeader()
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("createHeader", "error", err.Error())
 		return false
 	}
 
 	hdrStr, err := sr.Marshalizer().Marshal(hdr)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("Marshal", "error", err.Error())
 		return false
 	}
 
@@ -173,12 +173,14 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("BroadcastConsensusMessage", "error", err.Error())
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been sent\n",
-		sr.SyncTimer().FormattedCurrentTime(), hdr.GetNonce(), core.ToB64(hdrHash)))
+	log.Debug("step 1: block header has been sent",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+		"nonce", hdr.GetNonce(),
+		"hash", display.ConvertHash(hdrHash))
 
 	sr.Data = hdrHash
 	sr.Header = hdr
@@ -257,7 +259,8 @@ func (sr *SubroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 1: block body has been received\n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Debug("step 1: block body has been received",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
@@ -293,9 +296,10 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
-		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), core.ToB64(cnsDta.BlockHeaderHash)))
-
+	log.Debug("step 1: block header has been received",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+		"nonce", sr.Header.GetNonce(),
+		"hash", display.ConvertHash(cnsDta.BlockHeaderHash))
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
 	return blockProcessedWithSuccess
@@ -332,14 +336,18 @@ func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	)
 
 	if cnsDta.RoundIndex < sr.Rounder().Index() {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, meantime round index has been changed to %d\n",
-			cnsDta.RoundIndex, sr.getSubroundName(sr.Current()), sr.Rounder().Index()))
+		log.Debug("canceled round, meantime round index has been changed",
+			"old round", cnsDta.RoundIndex,
+			"subround", sr.getSubroundName(sr.Current()),
+			"new round", sr.Rounder().Index())
 		return false
 	}
 
 	if err != nil {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
-			sr.Rounder().Index(), sr.getSubroundName(sr.Current()), err.Error()))
+		log.Debug("canceled round",
+			"round", sr.Rounder().Index(),
+			"subround", sr.getSubroundName(sr.Current()),
+			"error", err.Error())
 		if err == process.ErrTimeIsOut {
 			sr.RoundCanceled = true
 		}
@@ -348,8 +356,10 @@ func (sr *SubroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
-			sr.Rounder().Index(), sr.getSubroundName(sr.Current()), err.Error()))
+		log.Debug("canceled round",
+			"round", sr.Rounder().Index(),
+			"subround", sr.getSubroundName(sr.Current()),
+			"error", err.Error())
 		return false
 	}
 
@@ -368,7 +378,9 @@ func (sr *SubroundBlock) doBlockConsensusCheck() bool {
 
 	threshold := sr.Threshold(sr.Current())
 	if sr.isBlockReceived(threshold) {
-		log.Info(fmt.Sprintf("%sStep 1: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		log.Debug("step 1: subround has been finished",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 		return true
 	}
@@ -385,7 +397,7 @@ func (sr *SubroundBlock) isBlockReceived(threshold int) bool {
 		isJobDone, err := sr.JobDone(node, sr.Current())
 
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("BroadcastConsensusMessage", "error", err.Error())
 			continue
 		}
 

@@ -8,11 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("consensus/spos/common")
 
 // SubroundStartRound defines the data needed by the subround StartRound
 type SubroundStartRound struct {
@@ -118,7 +119,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("generateNextConsensusGroup", "error", err.Error())
 
 		sr.RoundCanceled = true
 
@@ -127,7 +128,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	leader, err := sr.GetLeader()
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("GetLeader", "error", err.Error())
 
 		sr.RoundCanceled = true
 
@@ -142,8 +143,10 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 		msg = " (my turn)"
 	}
 
-	log.Info(fmt.Sprintf("%sStep 0: preparing for this round with leader %s%s\n",
-		sr.SyncTimer().FormattedCurrentTime(), core.GetTrimmedPk(hex.EncodeToString([]byte(leader))), msg))
+	log.Debug("step 0: preparing the round",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+		"leader", core.GetTrimmedPk(hex.EncodeToString([]byte(leader))),
+		"messsage", msg)
 
 	pubKeys := sr.ConsensusGroup()
 
@@ -151,8 +154,10 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, not in the consensus group\n",
-			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), sr.getSubroundName(sr.Current())))
+		log.Debug("canceled round, not in the consensus group",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+			"round", sr.Rounder().Index(),
+			"subround", sr.getSubroundName(sr.Current()))
 
 		sr.RoundCanceled = true
 
@@ -166,7 +171,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("Reset", "error", err.Error())
 
 		sr.RoundCanceled = true
 
@@ -177,8 +182,10 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	startTime = sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
-		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, time is out\n",
-			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), sr.getSubroundName(sr.Current())))
+		log.Debug("canceled round, time is out",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+			"round", sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(),
+			"subround", sr.getSubroundName(sr.Current()))
 
 		sr.RoundCanceled = true
 
@@ -224,9 +231,8 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	randomSeed := currentHeader.GetRandSeed()
 
-	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n",
-		core.ToB64(randomSeed)),
-	)
+	log.Debug("random source for the next consensus group",
+		"rand", display.ConvertHash(randomSeed))
 
 	shardId := sr.ShardCoordinator().SelfId()
 
@@ -240,14 +246,12 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		return err
 	}
 
-	log.Debug(fmt.Sprintf("consensus group for round %d is formed by next validators:\n",
-		roundIndex))
+	log.Trace("consensus group is formed by next validators:",
+		"round", roundIndex)
 
 	for i := 0; i < len(nextConsensusGroup); i++ {
-		log.Debug(fmt.Sprintf("%s", core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i])))))
+		log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i])))))
 	}
-
-	log.Debug(fmt.Sprintf("\n"))
 
 	sr.SetConsensusGroup(nextConsensusGroup)
 

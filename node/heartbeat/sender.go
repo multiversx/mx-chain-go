@@ -81,7 +81,7 @@ func (s *Sender) SendHeartbeat() error {
 
 	err = verifyLengths(hb)
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug("verify hb length", "error", err.Error())
 		trimLengths(hb)
 	}
 

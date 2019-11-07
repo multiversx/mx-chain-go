@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -17,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/genesis"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
@@ -48,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -94,7 +93,8 @@ const (
 	MaxTxsToRequest = 100
 )
 
-var log = logger.DefaultLogger()
+//TODO remove this
+var log = logger.GetOrCreate("main")
 
 const maxTxNonceDeltaAllowed = 15000
 
@@ -313,7 +313,7 @@ type cryptoComponentsFactoryArgs struct {
 	shardCoordinator             sharding.Coordinator
 	keyGen                       crypto.KeyGenerator
 	privKey                      crypto.PrivateKey
-	log                          *logger.Logger
+	log                          logger.Logger
 	initialBalancesSkPemFileName string
 	txSignSkName                 string
 	txSignSkIndexName            string
@@ -327,7 +327,7 @@ func NewCryptoComponentsFactoryArgs(
 	shardCoordinator sharding.Coordinator,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
-	log *logger.Logger,
+	log logger.Logger,
 	initialBalancesSkPemFileName string,
 	txSignSkName string,
 	txSignSkIndexName string,
@@ -381,7 +381,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 	if err != nil {
 		return nil, err
 	}
-	args.log.Info("Starting with tx sign public key: " + GetPkEncoded(txSignPubKey))
+	args.log.Debug("starting with", "tx sign pubkey", GetPkEncoded(txSignPubKey))
 
 	return &Crypto{
 		TxSingleSigner: txSingleSigner,
@@ -395,7 +395,7 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 }
 
 // NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log *logger.Logger, core *Core) (*Network, error) {
+func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, core *Core) (*Network, error) {
 	var randReader io.Reader
 	if p2pConfig.Node.Seed != "" {
 		randReader = NewSeedRandReader(core.Hasher.Compute(p2pConfig.Node.Seed))
@@ -568,11 +568,11 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks
 
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
-		log.LogIfError(errNotCritical)
+		log.Error("error storing genesis metablock", "error", errNotCritical)
 
 	} else {
 		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
-		log.LogIfError(errNotCritical)
+		log.Error("error storing genesis shardblock", "error", errNotCritical)
 	}
 
 	return nil
@@ -1055,63 +1055,63 @@ func createShardDataPoolFromConfig(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (dataRetriever.PoolsHolder, error) {
 
-	log.Info("creatingShardDataPool from config")
+	log.Debug("creatingShardDataPool from config")
 
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
-		log.Info("error creating txpool")
+		log.Error("error creating txpool")
 		return nil, err
 	}
 
 	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
-		log.Info("error creating smart contract result pool")
+		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
 	rewardTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.RewardTransactionDataPool))
 	if err != nil {
-		log.Info("error creating reward transaction pool")
+		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
 
 	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
 	hdrPool, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating hdrpool")
+		log.Error("error creating hdrpool")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating metaBlockBody")
+		log.Error("error creating metaBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
 	hdrNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating hdrNoncesCacher")
+		log.Error("error creating hdrNoncesCacher")
 		return nil, err
 	}
 	hdrNonces, err := dataPool.NewNonceSyncMapCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
-		log.Info("error creating hdrNonces")
+		log.Error("error creating hdrNonces")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating txBlockBody")
+		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating peerChangeBlockBody")
+		log.Error("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
@@ -1134,44 +1134,44 @@ func createMetaDataPoolFromConfig(
 	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating metaBlockBody")
+		log.Error("error creating metaBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
 	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating txBlockBody")
+		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
 	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating shardHeaders")
+		log.Error("error creating shardHeaders")
 		return nil, err
 	}
 
 	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
-		log.Info("error creating shard headers nonces pool")
+		log.Error("error creating shard headers nonces pool")
 		return nil, err
 	}
 	headersNonces, err := dataPool.NewNonceSyncMapCacher(headersNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
-		log.Info("error creating shard headers nonces pool")
+		log.Error("error creating shard headers nonces pool")
 		return nil, err
 	}
 
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
-		log.Info("error creating txpool")
+		log.Error("error creating txpool")
 		return nil, err
 	}
 
 	uTxPool, err := shardedData.NewShardedData(getCacherFromConfig(config.UnsignedTransactionDataPool))
 	if err != nil {
-		log.Info("error creating smart contract result pool")
+		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
@@ -1228,7 +1228,7 @@ func createMultiSigner(
 
 func createNetMessenger(
 	p2pConfig *config.P2PConfig,
-	log *logger.Logger,
+	log logger.Logger,
 	randReader io.Reader,
 ) (p2p.Messenger, error) {
 
@@ -1243,7 +1243,7 @@ func createNetMessenger(
 		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
+	log.Debug("starting with", "peer discovery", pDiscoverer.Name())
 
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)
@@ -1904,14 +1904,14 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	storageService := processComponents.data.Store
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes: initialNodes,
-		PeerAdapter: peerAdapter,
-		AdrConv: processComponents.state.AddressConverter,
+		InitialNodes:     initialNodes,
+		PeerAdapter:      peerAdapter,
+		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool: processComponents.data.MetaDatapool,
-		StorageService: storageService,
-		Marshalizer: processComponents.core.Marshalizer,
+		DataPool:         processComponents.data.MetaDatapool,
+		StorageService:   storageService,
+		Marshalizer:      processComponents.core.Marshalizer,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -2002,7 +2002,7 @@ func createMemUnit() storage.Storer {
 // GetSigningParams returns a key generator, a private key, and a public key
 func GetSigningParams(
 	ctx *cli.Context,
-	log *logger.Logger,
+	log logger.Logger,
 	skName string,
 	skIndexName string,
 	skPemFileName string,
@@ -2046,7 +2046,7 @@ func decodeAddress(address string) ([]byte, error) {
 
 func getSk(
 	ctx *cli.Context,
-	log *logger.Logger,
+	log logger.Logger,
 	skName string,
 	skIndexName string,
 	skPemFileName string,
@@ -2059,7 +2059,7 @@ func getSk(
 	}
 
 	skIndex := ctx.GlobalInt(skIndexName)
-	encodedSk, err := core.LoadSkFromPemFile(skPemFileName, log, skIndex)
+	encodedSk, err := core.LoadSkFromPemFile(skPemFileName, skIndex)
 	if err != nil {
 		return nil, err
 	}

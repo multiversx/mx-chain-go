@@ -25,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -33,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -57,7 +57,7 @@ const (
 	defaultEpochString = "Epoch"
 	defaultShardString = "Shard"
 	metachainShardName = "metachain"
-	DefaultRestApiPort = "off"
+	defaultRestApiPort = "off"
 )
 
 var (
@@ -192,7 +192,7 @@ VERSION:
 	restApiPort = cli.StringFlag{
 		Name:  "rest-api-port",
 		Usage: "The port on which the rest API will start on",
-		Value: DefaultRestApiPort,
+		Value: defaultRestApiPort,
 	}
 
 	// networkID defines the version of the network. If set, will override the same parameter from config.toml
@@ -239,7 +239,7 @@ VERSION:
 	logLevel = cli.StringFlag{
 		Name:  "logLevel",
 		Usage: "This flag specifies the logger level",
-		Value: logger.LogInfo,
+		Value: "*:" + logger.LogInfo.String(),
 	}
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	bootstrapRoundIndex = cli.Uint64Flag{
@@ -289,7 +289,7 @@ var coreServiceContainer serviceContainer.Core
 var appVersion = core.UnVersionedAppString
 
 func main() {
-	log := logger.DefaultLogger()
+	log := logger.GetOrCreate("main")
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
@@ -359,9 +359,12 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 	return nil, errors.New("no consensus provided in config file")
 }
 
-func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
+func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	logLevel := ctx.GlobalString(logLevel.Name)
-	log.SetLevel(logLevel)
+	err := logger.SetLogLevel(logLevel)
+	if err != nil{
+		return err
+	}
 
 	enableGopsIfNeeded(ctx, log)
 
@@ -369,29 +372,28 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Info(fmt.Sprintf("Starting node with version %s\n", version))
-	log.Info(fmt.Sprintf("Process ID: %d\n", os.Getpid()))
+	log.Info("starting node", "version", version, "pid", os.Getpid())
 
 	configurationFileName := ctx.GlobalString(configurationFile.Name)
-	generalConfig, err := loadMainConfig(configurationFileName, log)
+	generalConfig, err := loadMainConfig(configurationFileName)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFileName))
+	log.Debug("initialized", "config", configurationFileName)
 
 	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
-	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName, log)
+	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with config economics from: %s", configurationEconomicsFileName))
+	log.Debug("initialized", "economics", configurationEconomicsFileName)
 
 	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
-	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName, log)
+	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with config preferences from: %s", configurationPreferencesFileName))
+	log.Debug("initialized", "prefs", configurationPreferencesFileName)
 
 	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
 	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
@@ -399,7 +401,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFileName))
+	log.Debug("initialized", "p2p", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
@@ -408,18 +410,18 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(genesisFile.Name)))
+	log.Debug("initialized", "genesis", ctx.GlobalString(genesisFile.Name))
 
 	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name), ctx.GlobalUint64(numOfNodes.Name))
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with nodes config from: %s", ctx.GlobalString(nodesFile.Name)))
+	log.Debug("initialized", "nodes", ctx.GlobalString(nodesFile.Name))
 
 	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
 	go syncer.StartSync()
 
-	log.Info(fmt.Sprintf("NTP average clock offset: %s", syncer.ClockOffset()))
+	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if nodesConfig.StartTime == 0 {
@@ -430,8 +432,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	startTime := time.Unix(nodesConfig.StartTime, 0)
 
-	log.Info(fmt.Sprintf("Start time formatted: %s", startTime.Format("Mon Jan 2 15:04:05 MST 2006")))
-	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
+	log.Info("start time", "formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
+		"seconds", startTime.Unix())
 
 	suite, err := getSuite(generalConfig)
 	if err != nil {
@@ -449,7 +451,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Starting with public key: " + factory.GetPkEncoded(pubKey))
+	log.Debug("starting with ", "pubkey", factory.GetPkEncoded(pubKey))
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
@@ -552,7 +554,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 		writer, ok := presenterStatusHandler.(io.Writer)
 		if ok {
-			err = log.ChangePrinterHookWriter(writer)
+			err = logger.AddLogObserver(writer, &logger.ConsoleFormatter{})
 			if err != nil {
 				return err
 			}
@@ -578,7 +580,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		}
 	} else {
 		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
-		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
+		log.Debug("no AppStatusHandler used, started with NilStatusHandler")
 	}
 
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
@@ -648,7 +650,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 			shardCoordinator,
 			coreComponents.Marshalizer,
 			coreComponents.Hasher,
-			log)
+		)
 		if err != nil {
 			return err
 		}
@@ -717,7 +719,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 
 	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(coreComponents.StatusHandler)
 	if err != nil {
-		log.Info("nil software version checker", err)
+		log.Debug("nil software version checker", "error", err)
 	} else {
 		softwareVersionChecker.StartCheckSoftwareVersion()
 	}
@@ -766,7 +768,6 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		PrometheusJobName: generalConfig.GeneralSettings.NetworkID,
 	}
 
-	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
 	ef.SetTpsBenchmark(tpsBenchmark)
 	ef.SetConfig(efConfig)
@@ -776,7 +777,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	wg.Wait()
 
 	if !ctx.Bool(withUI.Name) {
-		log.Info("Bootstrapping node....")
+		log.Debug("bootstrapping node...")
 		err = ef.StartNode()
 		if err != nil {
 			log.Error("starting node failed", err.Error())
@@ -790,7 +791,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		stop <- true
 	}()
 
-	log.Info("Application is now running...")
+	log.Info("application is now running...")
 	<-stop
 
 	if rm != nil {
@@ -841,7 +842,7 @@ func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {
 	return joinURL, nil
 }
 
-func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
+func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 	var gopsEnabled bool
 	if ctx.IsSet(gopsEn.Name) {
 		gopsEnabled = ctx.GlobalBool(gopsEn.Name)
@@ -849,14 +850,14 @@ func enableGopsIfNeeded(ctx *cli.Context, log *logger.Logger) {
 
 	if gopsEnabled {
 		if err := agent.Listen(agent.Options{}); err != nil {
-			log.Error(err.Error())
+			log.Error("failure to init gops", "error", err.Error())
 		}
 	}
 }
 
-func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
+func loadMainConfig(filepath string) (*config.Config, error) {
 	cfg := &config.Config{}
-	err := core.LoadTomlFile(cfg, filepath, log)
+	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -864,9 +865,9 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 	return cfg, nil
 }
 
-func loadEconomicsConfig(filepath string, log *logger.Logger) (*config.ConfigEconomics, error) {
+func loadEconomicsConfig(filepath string) (*config.ConfigEconomics, error) {
 	cfg := &config.ConfigEconomics{}
-	err := core.LoadTomlFile(cfg, filepath, log)
+	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -874,9 +875,9 @@ func loadEconomicsConfig(filepath string, log *logger.Logger) (*config.ConfigEco
 	return cfg, nil
 }
 
-func loadPreferencesConfig(filepath string, log *logger.Logger) (*config.ConfigPreferences, error) {
+func loadPreferencesConfig(filepath string) (*config.ConfigPreferences, error) {
 	cfg := &config.ConfigPreferences{}
-	err := core.LoadTomlFile(cfg, filepath, log)
+	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -906,13 +907,13 @@ func createShardCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
-	log *logger.Logger,
+	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		nodeType = core.NodeTypeObserver
-		log.Info("Starting as observer node...")
+		log.Info("starting as observer node...")
 
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
@@ -926,7 +927,7 @@ func createShardCoordinator(
 	} else {
 		shardName = fmt.Sprintf("%d", selfShardId)
 	}
-	log.Info(fmt.Sprintf("Starting in shard: %s", shardName))
+	log.Info("starting", "shard", shardName)
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {
@@ -1018,7 +1019,6 @@ func createElasticIndexer(
 	coordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	log *logger.Logger,
 ) (indexer.Indexer, error) {
 	serversConfig, err := core.LoadServersPConfig(serversConfigurationFileName)
 	if err != nil {
@@ -1032,7 +1032,6 @@ func createElasticIndexer(
 		coordinator,
 		marshalizer,
 		hasher,
-		log,
 		&indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)})
 	if err != nil {
 		return nil, err
@@ -1143,7 +1142,7 @@ func createNode(
 	return nd, nil
 }
 
-func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger,
+func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log logger.Logger,
 	workingDir string) error {
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
@@ -1151,13 +1150,6 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 	}
 
 	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-	err = log.ApplyOptions(
-		logger.WithFileRotation(hexPublicKey, filepath.Join(workingDir, defaultLogPath), "log"),
-		logger.WithStderrRedirect(),
-	)
-	if err != nil {
-		return err
-	}
 
 	statsFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultStatsPath), "txt")
 	if err != nil {
@@ -1191,7 +1183,7 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 	return errors.New("could not init core service container")
 }
 
-func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log *logger.Logger) error {
+func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log logger.Logger) error {
 	if !config.Enabled {
 		return nil
 	}

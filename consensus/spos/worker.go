@@ -1,7 +1,6 @@
 package spos
 
 import (
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -234,12 +234,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	msgType := consensus.MessageType(cnsDta.MsgType)
 
-	log.Debug(fmt.Sprintf("received %s from %s for consensus message with header hash %s and round %d\n",
-		wrk.consensusService.GetStringValue(msgType),
-		core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
-		base64.StdEncoding.EncodeToString(cnsDta.BlockHeaderHash),
-		cnsDta.RoundIndex,
-	))
+	log.Trace("received from consensus topic",
+		"msg type", wrk.consensusService.GetStringValue(msgType),
+		"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
+		"header hash", display.ConvertHash(cnsDta.BlockHeaderHash),
+		"round", cnsDta.RoundIndex,
+	)
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
@@ -247,11 +247,13 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
-		log.Debug(fmt.Sprintf("received late message %s from %s for round %d in round %d\n",
-			wrk.consensusService.GetStringValue(consensus.MessageType(cnsDta.MsgType)),
-			core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
-			cnsDta.RoundIndex,
-			wrk.consensusState.RoundIndex))
+		log.Trace("late received from consensus topic",
+			"msg type", wrk.consensusService.GetStringValue(msgType),
+			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
+			"header hash", display.ConvertHash(cnsDta.BlockHeaderHash),
+			"msg round", cnsDta.RoundIndex,
+			"round", wrk.consensusState.RoundIndex,
+		)
 		return ErrMessageForPastRound
 	}
 
@@ -270,16 +272,16 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		if isHeaderValid {
 			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 			if errNotCritical != nil {
-				log.Debug(errNotCritical.Error())
+				log.Debug("add header in forkdetector", "error", errNotCritical.Error())
 			}
 
-			log.Info(fmt.Sprintf("received proposed block from %s with round: %d, nonce: %d, hash: %s and previous hash: %s\n",
-				core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
-				header.GetRound(),
-				header.GetNonce(),
-				core.ToB64(cnsDta.BlockHeaderHash),
-				core.ToB64(header.GetPrevHash()),
-			))
+			log.Debug("received proposed block",
+				"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
+				"header hash", display.ConvertHash(cnsDta.BlockHeaderHash),
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"prev hash", display.ConvertHash(header.GetPrevHash()),
+			)
 		}
 	}
 
@@ -292,7 +294,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 	errNotCritical := wrk.checkSelfState(cnsDta)
 	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
+		log.Trace("checkSelfState", "error", errNotCritical.Error())
 		//in this case should return nil but do not process the message
 		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
 		return nil
@@ -406,8 +408,8 @@ func (wrk *Worker) checkChannels() {
 
 //Extend does an extension for the subround with subroundId
 func (wrk *Worker) Extend(subroundId int) {
-	log.Info(fmt.Sprintf("extend function is called from subround: %s\n",
-		wrk.consensusService.GetSubroundName(subroundId)))
+	log.Debug("extend function is called",
+		"subround", wrk.consensusService.GetSubroundName(subroundId))
 
 	if wrk.bootstrapper.ShouldSync() {
 		return
@@ -417,7 +419,7 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	log.Debug(fmt.Sprintf("account state is reverted to snapshot\n"))
+	log.Trace("account state is reverted to snapshot")
 
 	wrk.blockProcessor.RevertAccountState()
 
@@ -443,22 +445,21 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 
 	err := wrk.broadcastMessenger.BroadcastHeader(header)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("BroadcastHeader", "error", err.Error())
 	}
 }
 
 func (wrk *Worker) dysplaySignatureStatistic() {
 	wrk.mutHashConsensusMessage.RLock()
 	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
-		log.Info(fmt.Sprintf("proposed header with hash %s has received %d signatures\n",
-			core.ToB64([]byte(hash)),
-			len(consensusMessages)))
+		log.Debug("proposed header with signatures",
+			"hash", display.ConvertHash([]byte(hash)),
+			"sigs num", len(consensusMessages))
 
 		for _, consensusMessage := range consensusMessages {
-			log.Debug(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex([]byte(consensusMessage.PubKey)))))
+			log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex([]byte(consensusMessage.PubKey)))))
 		}
 
-		log.Debug("")
 	}
 	wrk.mutHashConsensusMessage.RUnlock()
 }

@@ -61,20 +61,20 @@ func (hc *headersCounter) displayLogInfo(
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("CreateTableString", "error", err.Error())
 		return
 	}
 
 	hc.shardMBHeaderCounterMutex.RLock()
-	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal shard MB headers "+
-		"processed until now: %d. Total shard MB headers processed for this block: %d. Total shard headers remained in pool: %d\n",
-		core.ToB64(headerHash),
-		hc.shardMBHeadersTotalProcessed,
-		hc.shardMBHeadersCurrentBlockProcessed,
-		numHeadersFromPool)
+	message := fmt.Sprintf("header hash: %s\n%s", display.ConvertHash(headerHash), tblString)
+	arguments := []interface{}{
+		"total MB processed", hc.shardMBHeadersTotalProcessed,
+		"block MB processed", hc.shardMBHeadersCurrentBlockProcessed,
+		"shard headers in pool", numHeadersFromPool,
+	}
 	hc.shardMBHeaderCounterMutex.RUnlock()
 
-	log.Info(tblString)
+	log.Debug(message, arguments...)
 }
 
 func (hc *headersCounter) createDisplayableMetaHeader(
@@ -103,7 +103,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 		lines = append(lines, display.NewLineData(false, []string{
 			fmt.Sprintf("ShardData_%d", shardData.ShardId),
 			"Header hash",
-			base64.StdEncoding.EncodeToString(shardData.HeaderHash)}))
+			display.ConvertHash(shardData.HeaderHash)}))
 
 		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -118,7 +118,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d_%d", j+1, senderShard, receiverShard),
-					core.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					display.ConvertHash(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",

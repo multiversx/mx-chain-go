@@ -3,12 +3,12 @@ package shardedData
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("dataretriever/shardeddata")
 
 // shardedData holds the list of data organised by destination shard
 //
@@ -76,7 +76,9 @@ func (sd *shardedData) CreateShardStore(cacheId string) {
 
 func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
 	shardStore, err := newShardStore(cacheId, sd.cacherConfig)
-	log.LogIfError(err)
+	if err != nil {
+		log.Error("newShardStore", "error", err)
+	}
 
 	sd.shardedDataStore[cacheId] = shardStore
 	return shardStore

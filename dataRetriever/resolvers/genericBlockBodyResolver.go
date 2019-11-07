@@ -1,10 +1,9 @@
 package resolvers
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -67,7 +66,7 @@ func (gbbRes *genericBlockBodyResolver) ProcessReceivedMessage(message p2p.Messa
 	}
 
 	if buff == nil {
-		log.Debug(fmt.Sprintf("missing data: %v", rd))
+		log.Trace("missing data", "data", rd)
 		return nil
 	}
 
@@ -185,7 +184,9 @@ func (gbbRes *genericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 	for i := 0; i < len(hashes); i++ {
 		buff, err := gbbRes.miniBlockStorage.Get(hashes[i])
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("missing miniblock",
+				"error", err.Error(),
+				"hash", display.ConvertHash(hashes[i]))
 			missingMiniBlocksHashes = append(missingMiniBlocksHashes, hashes[i])
 			continue
 		}
@@ -193,9 +194,9 @@ func (gbbRes *genericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 		miniBlock := &block.MiniBlock{}
 		err = gbbRes.marshalizer.Unmarshal(miniBlock, buff)
 		if err != nil {
-			log.Debug(err.Error())
-			gbbRes.miniBlockPool.Remove([]byte(hashes[i]))
-			err = gbbRes.miniBlockStorage.Remove([]byte(hashes[i]))
+			log.Debug("marshal error", "error", err.Error())
+			gbbRes.miniBlockPool.Remove(hashes[i])
+			err = gbbRes.miniBlockStorage.Remove(hashes[i])
 			if err != nil {
 				log.Debug(err.Error())
 			}

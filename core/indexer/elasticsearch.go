@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -21,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -40,6 +40,8 @@ const shardTpsDocIDPrefix = "shard"
 
 const badRequest = 400
 
+var log = logger.GetOrCreate("core/elasticsearch")
+
 // Options structure holds the indexer's configuration options
 type Options struct {
 	TxIndexingEnabled bool
@@ -51,7 +53,6 @@ type elasticIndexer struct {
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
-	logger           *logger.Logger
 	options          *Options
 	isNilIndexer     bool
 }
@@ -65,7 +66,6 @@ func NewElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	logger *logger.Logger,
 	options *Options,
 ) (Indexer, error) {
 
@@ -74,7 +74,6 @@ func NewElasticIndexer(
 		shardCoordinator,
 		marshalizer,
 		hasher,
-		logger,
 	)
 	if err != nil {
 		return nil, err
@@ -95,7 +94,6 @@ func NewElasticIndexer(
 		shardCoordinator,
 		marshalizer,
 		hasher,
-		logger,
 		options,
 		false,
 	}
@@ -133,7 +131,6 @@ func checkElasticSearchParams(
 	coordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	logger *logger.Logger,
 ) error {
 	if url == "" {
 		return core.ErrNilUrl
@@ -146,9 +143,6 @@ func checkElasticSearchParams(
 	}
 	if hasher == nil || hasher.IsInterfaceNil() {
 		return core.ErrNilHasher
-	}
-	if logger == nil {
-		return core.ErrNilLogger
 	}
 
 	return nil
@@ -202,7 +196,7 @@ func (ei *elasticIndexer) createIndex(index string, body io.Reader) error {
 			return nil
 		}
 
-		ei.logger.Warn(res.String())
+		log.Warn("indexer: resource already exists", "error", res.String())
 		return ErrCannotCreateIndex
 	}
 
@@ -218,20 +212,20 @@ func (ei *elasticIndexer) SaveBlock(
 ) {
 
 	if headerhandler == nil || headerhandler.IsInterfaceNil() {
-		ei.logger.Warn(ErrNoHeader.Error())
+		log.Debug("indexer: no header", "error", ErrNoHeader.Error())
 		return
 	}
 
 	body, ok := bodyHandler.(block.Body)
 	if !ok {
-		ei.logger.Warn(ErrBodyTypeAssertion.Error())
+		log.Debug("indexer", "error", ErrBodyTypeAssertion.Error())
 		return
 	}
 
 	go ei.saveHeader(headerhandler, signersIndexes)
 
 	if len(body) == 0 {
-		ei.logger.Warn(ErrNoMiniblocks.Error())
+		log.Debug("indexer", "error", ErrNoMiniblocks.Error())
 		return
 	}
 
@@ -243,7 +237,7 @@ func (ei *elasticIndexer) SaveBlock(
 // SaveMetaBlock will index a meta block in elastic search
 func (ei *elasticIndexer) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
 	if header == nil || header.IsInterfaceNil() {
-		ei.logger.Warn(ErrNoHeader.Error())
+		log.Debug("indexer: nil header", "error", ErrNoHeader.Error())
 		return
 	}
 
@@ -256,7 +250,7 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 
 	marshalizedRoundInfo, err := ei.marshalizer.Marshal(roundInfo)
 	if err != nil {
-		ei.logger.Warn("could not marshal signers indexes")
+		log.Debug("indexer: marshal", "error", "could not marshal signers indexes")
 		return
 	}
 
@@ -272,14 +266,14 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		ei.logger.Warn(fmt.Sprintf("Could not index round informations: %s", err))
+		log.Warn("indexer: can not index round info", "error", err)
 		return
 	}
 
 	defer closeESResponseBody(res)
 
 	if res.IsError() {
-		ei.logger.Warn(res.String())
+		log.Warn("indexer", "error", res.String())
 	}
 }
 
@@ -307,7 +301,7 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
 	marshalizedValidatorPubKeys, err := ei.marshalizer.Marshal(shardValPubKeys)
 	if err != nil {
-		ei.logger.Warn("could not marshal validators public keys")
+		log.Debug("indexer: marshal", "error", "could not marshal validators public keys")
 		return
 	}
 
@@ -323,22 +317,22 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		ei.logger.Warn(fmt.Sprintf("Could not index validators public keys: %s", err))
+		log.Warn("indexer: can not index validators pubkey", "error", err)
 		return
 	}
-	ei.logger.Info(fmt.Sprintf("Response validators public key elastic indexer %s", res.String()))
+	log.Debug("indexer: response validators pubkey", "msg", res.String())
 
 	defer closeESResponseBody(res)
 
 	if res.IsError() {
-		ei.logger.Warn(res.String())
+		log.Warn("indexer", "error", res.String())
 	}
 }
 
 func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler, signersIndexes []uint64) ([]byte, []byte) {
 	h, err := ei.marshalizer.Marshal(header)
 	if err != nil {
-		ei.logger.Warn("could not marshal header")
+		log.Debug("indexer: marshal", "error", "could not marshal header")
 		return nil, nil
 	}
 
@@ -360,7 +354,7 @@ func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(header data.Hea
 
 	serializedBlock, err := json.Marshal(elasticBlock)
 	if err != nil {
-		ei.logger.Warn("could not marshal elastic header")
+		log.Debug("indexer: marshal", "error", "could not marshal elastic header")
 		return nil, nil
 	}
 
@@ -384,14 +378,14 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler, signersIndexes [
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		ei.logger.Warn(fmt.Sprintf("Could not index block header: %s", err))
+		log.Warn("indexer: could not index block header", "error", err)
 		return
 	}
 
 	defer closeESResponseBody(res)
 
 	if res.IsError() {
-		ei.logger.Warn(res.String())
+		log.Warn("indexer", "error", res.String())
 	}
 }
 
@@ -401,7 +395,9 @@ func (ei *elasticIndexer) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
 		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
 		serializedTx, err := json.Marshal(tx)
 		if err != nil {
-			ei.logger.Warn("could not serialize transaction, will skip indexing: ", tx.Hash)
+			log.Debug("indexer: marshal",
+				"error", "could not serialize transaction, will skip indexing",
+				"tx hash", tx.Hash)
 			continue
 		}
 		// append a newline foreach element
@@ -425,11 +421,11 @@ func (ei *elasticIndexer) saveTransactions(
 		buff := ei.serializeBulkTx(bulk)
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(txIndex))
 		if err != nil {
-			ei.logger.Warn("error indexing bulk of transactions")
+			log.Warn("indexer", "error", "indexing bulk of transactions")
 			continue
 		}
 		if res.IsError() {
-			ei.logger.Warn(res.String())
+			log.Warn("indexer", "error", res.String())
 		}
 
 		closeESResponseBody(res)
@@ -451,7 +447,7 @@ func (ei *elasticIndexer) buildTransactionBulks(
 	for _, mb := range body {
 		mbMarshal, err := ei.marshalizer.Marshal(mb)
 		if err != nil {
-			ei.logger.Warn("could not marshal miniblock")
+			log.Debug("indexer: marshal", "error", "could not marshal miniblock")
 			continue
 		}
 		mbHash := ei.hasher.Compute(string(mbMarshal))
@@ -467,13 +463,13 @@ func (ei *elasticIndexer) buildTransactionBulks(
 			currentBulk := processedTxCount / txBulkSize
 			currentTxHandler, ok := txPool[string(txHash)]
 			if !ok {
-				ei.logger.Warn("elasticsearch could not find tx hash in pool")
+				log.Debug("indexer: elasticsearch could not find tx hash in pool")
 				continue
 			}
 
 			currentTx := getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
 			if currentTx == nil {
-				ei.logger.Warn("elasticsearch found tx in pool but of wrong type")
+				log.Debug("indexer: elasticsearch found tx in pool but of wrong type")
 				continue
 			}
 
@@ -502,7 +498,7 @@ func (ei *elasticIndexer) serializeShardInfo(shardInfo statistics.ShardStatistic
 
 	serializedInfo, err := json.Marshal(shardTPS)
 	if err != nil {
-		ei.logger.Warn("could not serialize tps info, will skip indexing tps this shard")
+		log.Debug("indexer: could not serialize tps info, will skip indexing tps this shard")
 		return nil, nil
 	}
 	// append a newline foreach element in the bulk we create
@@ -514,7 +510,7 @@ func (ei *elasticIndexer) serializeShardInfo(shardInfo statistics.ShardStatistic
 // UpdateTPS updates the tps and statistics into elasticsearch index
 func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	if tpsBenchmark == nil {
-		ei.logger.Warn("update tps called, but the tpsBenchmark is nil")
+		log.Debug("indexer: update tps called, but the tpsBenchmark is nil")
 		return
 	}
 
@@ -537,7 +533,7 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 
 	serializedInfo, err := json.Marshal(generalInfo)
 	if err != nil {
-		ei.logger.Warn("could not serialize tps info, will skip indexing tps this round")
+		log.Debug("indexer: could not serialize tps info, will skip indexing tps this round")
 		return
 	}
 	// append a newline foreach element in the bulk we create
@@ -559,12 +555,11 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 
 		res, err := ei.db.Bulk(bytes.NewReader(buff.Bytes()), ei.db.Bulk.WithIndex(tpsIndex))
 		if err != nil {
-			ei.logger.Warn("error indexing tps information")
+			log.Warn("indexer: error indexing tps information")
 			continue
 		}
 		if res.IsError() {
-			fmt.Println(res.String())
-			ei.logger.Warn("error from elasticsearch indexing tps information")
+			log.Warn("indexer", "error", res.String())
 		}
 
 		closeESResponseBody(res)

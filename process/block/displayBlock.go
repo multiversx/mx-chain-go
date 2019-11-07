@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -90,22 +91,21 @@ func (txc *transactionCounter) displayLogInfo(
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("CreateTableString", "error", err.Error())
 		return
 	}
 
 	txc.mutex.RLock()
-	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\n"+
-		"Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n\n"+
-		"Total shards: %d. Current shard id: %d\n",
-		core.ToB64(headerHash),
-		txc.totalTxs,
-		txc.currentBlockTxs,
-		txc.getNumTxsFromPool(selfId, dataPool, numShards),
-		numShards,
-		selfId)
+	message := fmt.Sprintf("header hash: %s\n%s", display.ConvertHash(headerHash), tblString)
+	arguments := []interface{}{
+		"total txs processed", txc.totalTxs,
+		"block txs processed", txc.currentBlockTxs,
+		"txs in pool", txc.getNumTxsFromPool(selfId, dataPool, numShards),
+		"num shards", numShards,
+		"shard", selfId,
+	}
 	txc.mutex.RUnlock()
-	log.Info(tblString)
+	log.Debug(message, arguments...)
 }
 
 func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
@@ -156,7 +156,7 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 			lines = append(lines, display.NewLineData(false, []string{
 				part,
 				fmt.Sprintf("MetaBlockHash_%d", i+1),
-				core.ToB64(header.MetaBlockHashes[i])}))
+				display.ConvertHash(header.MetaBlockHashes[i])}))
 
 			part = ""
 		} else if i == 1 {
@@ -197,7 +197,7 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					core.ToB64(miniBlock.TxHashes[j])}))
+					display.ConvertHash(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {
@@ -229,7 +229,7 @@ func DisplayLastNotarized(
 	shardId uint32) {
 
 	if lastNotarizedHdrForShard == nil || lastNotarizedHdrForShard.IsInterfaceNil() {
-		log.Error("last notarized header for shard is nil")
+		log.Debug("last notarized header for shard is nil")
 		return
 	}
 
@@ -238,12 +238,12 @@ func DisplayLastNotarized(
 		hasher,
 		lastNotarizedHdrForShard)
 	if errNotCritical != nil {
-		log.Debug(errNotCritical.Error())
+		log.Trace("CalculateHash", "error", errNotCritical.Error())
 	}
 
-	log.Info(fmt.Sprintf("last notarized block from shard %d has: round = %d, nonce = %d, hash = %s\n",
-		shardId,
-		lastNotarizedHdrForShard.GetRound(),
-		lastNotarizedHdrForShard.GetNonce(),
-		core.ToB64(lastNotarizedHdrHashForShard)))
+	log.Info("last notarized block from shard",
+		"shard", shardId,
+		"round", lastNotarizedHdrForShard.GetRound(),
+		"nonce", lastNotarizedHdrForShard.GetNonce(),
+		"hash", display.ConvertHash(lastNotarizedHdrHashForShard))
 }

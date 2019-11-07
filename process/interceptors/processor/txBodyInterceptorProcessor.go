@@ -3,9 +3,9 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("process/interceptors")
 
 // TxBodyInterceptorProcessor is the processor used when intercepting miniblocks grouped in a block.TxBlockBody structure
 type TxBodyInterceptorProcessor struct {
@@ -78,7 +78,7 @@ func (tbip *TxBodyInterceptorProcessor) Save(data process.InterceptedData) error
 func (tbip *TxBodyInterceptorProcessor) processMiniblock(miniblock *block.MiniBlock) error {
 	err := tbip.checkMiniblock(miniblock)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("TxBodyInterceptorProcessor checkMiniblock", "error", err.Error())
 		return nil
 	}
 
