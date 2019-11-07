@@ -34,11 +34,11 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		_ = nResolver.Node.Stop()
 	}()
 
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
 	assert.Nil(t, err)
 
-	time.Sleep(time.Second)
+	time.Sleep(integrationTests.SyncDelay)
 
 	_ = nResolver.StateTrie.Update([]byte("doe"), []byte("reindeer"))
 	_ = nResolver.StateTrie.Update([]byte("dog"), []byte("puppy"))

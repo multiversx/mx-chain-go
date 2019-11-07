@@ -360,6 +360,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
 			factory.MiniBlocksTopic,
+			factory.TrieNodesTopic,
 		)
 	} else {
 		resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(

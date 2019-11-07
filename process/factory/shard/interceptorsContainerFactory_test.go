@@ -678,6 +678,33 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 	assert.Equal(t, errExpected, err)
 }
 
+func TestInterceptorsContainerFactory_CreateRegisterTrieNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, _ := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		createStubTopicHandler("", factory.TrieNodesTopic),
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
+	)
+
+	container, err := icf.Create()
+
+	assert.Nil(t, container)
+	assert.Equal(t, errExpected, err)
+}
+
 func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 

@@ -843,6 +843,7 @@ func createMetaNetNode(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.TrieNodesTopic,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)

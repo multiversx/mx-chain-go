@@ -89,6 +89,7 @@ func NewMetaResolverRequestHandler(
 	txRequestTopic string,
 	scrRequestTopic string,
 	mbRequestTopic string,
+	trieNodesRequestTopic string,
 ) (*resolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
@@ -108,15 +109,19 @@ func NewMetaResolverRequestHandler(
 	if len(mbRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockRequestTopic
 	}
+	if len(trieNodesRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyTrieNodesRequestTopic
+	}
 
 	rrh := &resolverRequestHandler{
-		resolversFinder:      finder,
-		shardHdrRequestTopic: shardHdrRequestTopic,
-		metaHdrRequestTopic:  metaHdrRequestTopic,
-		txRequestTopic:       txRequestTopic,
-		mbRequestTopic:       mbRequestTopic,
-		scrRequestTopic:      scrRequestTopic,
-		isMetaChain:          true,
+		resolversFinder:       finder,
+		shardHdrRequestTopic:  shardHdrRequestTopic,
+		metaHdrRequestTopic:   metaHdrRequestTopic,
+		txRequestTopic:        txRequestTopic,
+		mbRequestTopic:        mbRequestTopic,
+		scrRequestTopic:       scrRequestTopic,
+		trieNodesRequestTopic: trieNodesRequestTopic,
+		isMetaChain:           true,
 	}
 
 	return rrh, nil

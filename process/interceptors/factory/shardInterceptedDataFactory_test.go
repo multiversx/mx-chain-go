@@ -191,6 +191,18 @@ func TestNewShardInterceptedDataFactory_NilFeeHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
+func TestNewShardInterceptedDataFactory_NilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.Trie = nil
+
+	sidf, err := factory.NewShardInterceptedDataFactory(arg, factory.InterceptedTrieNode)
+
+	assert.Nil(t, sidf)
+	assert.Equal(t, process.ErrNilTrie, err)
+}
+
 func TestNewShardInterceptedDataFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 

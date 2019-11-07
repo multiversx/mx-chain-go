@@ -131,6 +131,18 @@ func TestNewMetaInterceptedDataFactory_NilAddressConverterShouldErr(t *testing.T
 	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
+func TestNewMetaInterceptedDataFactory_NilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.Trie = nil
+
+	midf, err := factory.NewMetaInterceptedDataFactory(arg, factory.InterceptedTrieNode)
+
+	assert.Nil(t, midf)
+	assert.Equal(t, process.ErrNilTrie, err)
+}
+
 func TestNewMetaInterceptedDataFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 

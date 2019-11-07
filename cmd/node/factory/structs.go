@@ -1910,6 +1910,7 @@ func newMetaBlockProcessor(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.TrieNodesTopic,
 	)
 	if err != nil {
 		return nil, err

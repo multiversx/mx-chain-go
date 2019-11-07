@@ -22,6 +22,7 @@ func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -38,6 +39,7 @@ func TestNewMetaResolverRequestShardHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -54,6 +56,7 @@ func TestNewMetaResolverRequestMetaHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -70,6 +73,7 @@ func TestNewMetaResolverRequestTxHandlerEmptyTopic(t *testing.T) {
 		"",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -86,6 +90,7 @@ func TestNewMetaResolverRequestScrHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -102,10 +107,28 @@ func TestNewMetaResolverRequestMiniBlockHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyMiniBlockRequestTopic, err)
+}
+
+func TestNewMetaResolverRequestTrieNodeHandlerEmptyTopic(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"meta topic",
+		"tx topic",
+		"scr topic",
+		"miniblock topic",
+		"",
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrEmptyTrieNodesRequestTopic, err)
 }
 
 func TestNewMetaResolverRequestHandler(t *testing.T) {
@@ -118,6 +141,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rrh)
@@ -733,6 +757,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceMetaShouldRequest(t *testing
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 	)
 
 	rrh.RequestHeaderByNonce(0, 0)
@@ -885,4 +910,104 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 	}
 
 	time.Sleep(time.Second)
+}
+
+//------- RequestTrieNode
+
+func TestResolverRequestHandler_RequestTrieNodeErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	errExpected := errors.New("expected error")
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return nil, errExpected
+			},
+		},
+		"txTopic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
+
+	rrh.RequestTrieNode(0, make([]byte, 0))
+}
+
+func TestResolverRequestHandler_RequestTrieNodeErrorsOnRequestShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	errExpected := errors.New("expected error")
+	mbResolver := &mock.ResolverStub{
+		RequestDataFromHashCalled: func(hash []byte) error {
+			return errExpected
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return mbResolver, nil
+			},
+		},
+		"txTopic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
+
+	rrh.RequestTrieNode(0, []byte("mbHash"))
+}
+
+func TestResolverRequestHandler_RequestTrieNodeShouldCallRequestOnResolver(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	mbResolver := &mock.ResolverStub{
+		RequestDataFromHashCalled: func(hash []byte) error {
+			wasCalled = true
+			return nil
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return mbResolver, nil
+			},
+		},
+		"txTopic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
+
+	rrh.RequestTrieNode(0, []byte("mbHash"))
+
+	assert.True(t, wasCalled)
 }

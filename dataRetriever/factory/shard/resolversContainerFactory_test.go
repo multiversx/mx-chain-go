@@ -410,6 +410,26 @@ func TestResolversContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *t
 	assert.Equal(t, errExpected, err)
 }
 
+func TestResolversContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rcf, _ := shard.NewResolversContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		createStubTopicMessageHandler("", factory.TrieNodesTopic),
+		createStore(),
+		&mock.MarshalizerMock{},
+		createDataPools(),
+		&mock.Uint64ByteSliceConverterMock{},
+		&mock.DataPackerStub{},
+		&mock.TrieStub{},
+	)
+
+	container, err := rcf.Create()
+
+	assert.Nil(t, container)
+	assert.Equal(t, errExpected, err)
+}
+
 func TestResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
