@@ -5,6 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,14 +42,17 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(&mock.SCQueryServiceStub{
-		GetCalled: func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
+		ExecuteQueryCalled: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			wasCalled = true
-			return make([]byte, 0), nil
+			return &vmcommon.VMOutput{}, nil
 		},
 	},
 		&mock.StatusMetricsStub{})
 
-	_, _ = nar.GetVmValue("", "")
+	_, _ = nar.ExecuteSCQuery(&smartContract.SCQuery{
+		ScAddress: []byte{0},
+		FuncName:  "",
+	})
 
 	assert.True(t, wasCalled)
 }
