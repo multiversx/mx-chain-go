@@ -359,7 +359,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 	ef := NewElrondNodeFacade(
 		&mock.NodeMock{},
 		&mock.ApiResolverStub{
-			SimulateRunSmartContractFunctionHandler: func(command *smartContract.CommandRunFunction) (*vmcommon.VMOutput, error) {
+			ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
 				wasCalled = true
 				return &vmcommon.VMOutput{}, nil
 			},
@@ -367,7 +367,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 		false,
 	)
 
-	_, _ = ef.SimulateRunSmartContractFunction(nil)
+	_, _ = ef.ExecuteSCQuery(nil)
 	assert.True(t, wasCalled)
 }
 

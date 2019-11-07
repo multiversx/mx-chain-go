@@ -5,11 +5,9 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// TODO: Rename ScDataGetter to "SmartContractRunSimulator"
-
-// ScDataGetter defines how data should be get from a SC account
-type ScDataGetter interface {
-	RunAndGetVMOutput(command *smartContract.CommandRunFunction) (*vmcommon.VMOutput, error)
+// SCQueryService defines how data should be get from a SC account
+type SCQueryService interface {
+	ExecuteQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 

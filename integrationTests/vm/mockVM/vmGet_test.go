@@ -23,13 +23,20 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return mockVM, nil
 		}}
-	scgd, _ := smartContract.NewSCDataGetter(vmContainer)
+	service, _ := smartContract.NewSCQueryService(vmContainer)
 
 	functionName := "Get"
-	returnedVals, err := scgd.Get(destinationAddressBytes, functionName)
+	query := smartContract.SCQuery{
+		ScAddress: destinationAddressBytes,
+		FuncName:  functionName,
+		Arguments: []*big.Int{},
+	}
+
+	vmOutput, err := service.ExecuteQuery(&query)
+	returnData, _ := vmOutput.GetFirstReturnData(vmcommon.AsBigInt)
 
 	assert.Nil(t, err)
-	assert.Equal(t, expectedValueForVar.Bytes(), returnedVals)
+	assert.Equal(t, expectedValueForVar, returnData)
 }
 
 func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int) {

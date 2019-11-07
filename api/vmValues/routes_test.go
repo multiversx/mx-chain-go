@@ -43,7 +43,7 @@ func TestGetDataValueAsHexBytes(t *testing.T) {
 	valueBuff, _ := hex.DecodeString("DEADBEEF")
 
 	facade := mock.Facade{
-		SimulateRunSmartContractFunctionHandler: func(command *smartContract.CommandRunFunction) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			returnData := big.NewInt(0).SetBytes([]byte(valueBuff))
 			return &vmcommon.VMOutput{
 				ReturnData: []*big.Int{returnData},
@@ -71,7 +71,7 @@ func TestGetDataValueAsString(t *testing.T) {
 	valueBuff := "DEADBEEF"
 
 	facade := mock.Facade{
-		SimulateRunSmartContractFunctionHandler: func(command *smartContract.CommandRunFunction) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			returnData := big.NewInt(0).SetBytes([]byte(valueBuff))
 			return &vmcommon.VMOutput{
 				ReturnData: []*big.Int{returnData},
@@ -99,7 +99,7 @@ func TestGetDataValueAsInt(t *testing.T) {
 	value := "1234567"
 
 	facade := mock.Facade{
-		SimulateRunSmartContractFunctionHandler: func(command *smartContract.CommandRunFunction) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			returnData := big.NewInt(0)
 			returnData.SetString(value, 10)
 			return &vmcommon.VMOutput{
@@ -126,7 +126,7 @@ func TestSimulateRunFunction(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		SimulateRunSmartContractFunctionHandler: func(command *smartContract.CommandRunFunction) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 
 			return &vmcommon.VMOutput{
 				ReturnData: []*big.Int{big.NewInt(42)},
@@ -148,14 +148,14 @@ func TestSimulateRunFunction(t *testing.T) {
 	assert.Equal(t, int64(42), response.Data.ReturnData[0].Int64())
 }
 
-func TestCreateCommandRunFunction_ArgumentIsNotHexShouldErr(t *testing.T) {
+func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
 	request := VMValueRequest{
 		ScAddress: DummyScAddress,
 		FuncName:  "function",
 		Args:      []string{"bad arg"},
 	}
 
-	_, err := createCommandRunFunction(&request)
+	_, err := createSCQuery(&request)
 	assert.Contains(t, err.Error(), "'bad arg' is not a valid hex string")
 }
 
@@ -164,7 +164,7 @@ func TestGetDataValue_FacadeErrorsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected error")
 	facade := mock.Facade{
-		SimulateRunSmartContractFunctionHandler: func(command *smartContract.CommandRunFunction) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			return nil, errExpected
 		},
 	}

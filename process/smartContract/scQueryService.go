@@ -14,29 +14,29 @@ import (
 
 var maxGasValue = big.NewInt(math.MaxInt64)
 
-// scDataGetter can execute Get functions over SC to fetch stored values
-type scDataGetter struct {
+// SCQueryService can execute Get functions over SC to fetch stored values
+type SCQueryService struct {
 	vmContainer process.VirtualMachinesContainer
 	mutRunSc    sync.Mutex
 }
 
-// NewSCDataGetter returns a new instance of scDataGetter
-func NewSCDataGetter(
+// NewSCQueryService returns a new instance of SCQueryService
+func NewSCQueryService(
 	vmContainer process.VirtualMachinesContainer,
-) (*scDataGetter, error) {
+) (*SCQueryService, error) {
 
 	if vmContainer == nil || vmContainer.IsInterfaceNil() {
 		return nil, process.ErrNoVM
 	}
 
-	return &scDataGetter{
+	return &SCQueryService{
 		vmContainer: vmContainer,
 	}, nil
 }
 
-func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecutionHandler, error) {
+func (service *SCQueryService) getVMFromAddress(scAddress []byte) (vmcommon.VMExecutionHandler, error) {
 	vmType := hooks.VMTypeFromAddressBytes(scAddress)
-	vm, err := scdg.vmContainer.Get(vmType)
+	vm, err := service.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
 	}
@@ -44,30 +44,30 @@ func (scdg *scDataGetter) getVMFromAddress(scAddress []byte) (vmcommon.VMExecuti
 	return vm, nil
 }
 
-// RunAndGetVMOutput returns the VMOutput resulted upon running the function on the smart contract
-func (scdg *scDataGetter) RunAndGetVMOutput(command *CommandRunFunction) (*vmcommon.VMOutput, error) {
-	if command.ScAddress == nil {
+// ExecuteQuery returns the VMOutput resulted upon running the function on the smart contract
+func (service *SCQueryService) ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error) {
+	if query.ScAddress == nil {
 		return nil, process.ErrNilScAddress
 	}
-	if len(command.FuncName) == 0 {
+	if len(query.FuncName) == 0 {
 		return nil, process.ErrEmptyFunctionName
 	}
 
-	scdg.mutRunSc.Lock()
-	defer scdg.mutRunSc.Unlock()
+	service.mutRunSc.Lock()
+	defer service.mutRunSc.Unlock()
 
-	vm, err := scdg.getVMFromAddress(command.ScAddress)
+	vm, err := service.getVMFromAddress(query.ScAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	vmInput := scdg.createVMCallInput(command)
+	vmInput := service.createVMCallInput(query)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
 	}
 
-	err = scdg.checkVMOutput(vmOutput)
+	err = service.checkVMOutput(vmOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (scdg *scDataGetter) RunAndGetVMOutput(command *CommandRunFunction) (*vmcom
 	return vmOutput, nil
 }
 
-func (scdg *scDataGetter) createVMCallInput(command *CommandRunFunction) *vmcommon.ContractCallInput {
+func (service *SCQueryService) createVMCallInput(query *SCQuery) *vmcommon.ContractCallInput {
 	maxGasLimit := math.MaxInt64
 	header := &vmcommon.SCCallHeader{
 		GasLimit:    big.NewInt(int64(maxGasLimit)),
@@ -85,24 +85,24 @@ func (scdg *scDataGetter) createVMCallInput(command *CommandRunFunction) *vmcomm
 	}
 
 	vmInput := vmcommon.VMInput{
-		CallerAddr:  command.ScAddress,
+		CallerAddr:  query.ScAddress,
 		CallValue:   big.NewInt(0),
 		GasPrice:    big.NewInt(0),
 		GasProvided: maxGasValue,
-		Arguments:   command.Arguments,
+		Arguments:   query.Arguments,
 		Header:      header,
 	}
 
 	vmContractCallInput := &vmcommon.ContractCallInput{
-		RecipientAddr: command.ScAddress,
-		Function:      command.FuncName,
+		RecipientAddr: query.ScAddress,
+		Function:      query.FuncName,
 		VMInput:       vmInput,
 	}
 
 	return vmContractCallInput
 }
 
-func (scdg *scDataGetter) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
+func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return errors.New(fmt.Sprintf("error running vm func: code: %d, %s", vmOutput.ReturnCode, vmOutput.ReturnCode))
 	}
@@ -111,17 +111,15 @@ func (scdg *scDataGetter) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (scdg *scDataGetter) IsInterfaceNil() bool {
-	if scdg == nil {
+func (service *SCQueryService) IsInterfaceNil() bool {
+	if service == nil {
 		return true
 	}
 	return false
 }
 
-// TODO: Move code below to vm-common repository!
-
-// CommandRunFunction represents a prepared command for executing a function of the smart contract
-type CommandRunFunction struct {
+// SCQuery represents a prepared query for executing a function of the smart contract
+type SCQuery struct {
 	ScAddress []byte
 	FuncName  string
 	Arguments []*big.Int

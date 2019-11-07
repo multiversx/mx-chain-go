@@ -334,13 +334,13 @@ func CheckScBalanceOf(
 ) {
 	fmt.Println("Checking SC.balanceOf...")
 
-	command := smartContract.CommandRunFunction{
+	query := smartContract.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  "balanceOf",
 		Arguments: []*big.Int{big.NewInt(0).SetBytes(nodeWithCaller.OwnAccount.PkTxSignBytes)},
 	}
 
-	vmOutput, _ := nodeWithSc.ScDataGetter.RunAndGetVMOutput(&command)
+	vmOutput, _ := nodeWithSc.SCQueryService.ExecuteQuery(&query)
 
 	retrievedValue := vmOutput.ReturnData[0]
 	fmt.Printf("SC balanceOf returned %d\n", retrievedValue)

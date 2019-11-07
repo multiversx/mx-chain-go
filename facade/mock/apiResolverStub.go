@@ -7,12 +7,12 @@ import (
 )
 
 type ApiResolverStub struct {
-	SimulateRunSmartContractFunctionHandler func(command *smartContract.CommandRunFunction) (*vmcommon.VMOutput, error)
-	StatusMetricsHandler                    func() external.StatusMetricsHandler
+	ExecuteSCQueryHandler func(query *smartContract.SCQuery) (*vmcommon.VMOutput, error)
+	StatusMetricsHandler  func() external.StatusMetricsHandler
 }
 
-func (ars *ApiResolverStub) SimulateRunSmartContractFunction(command *smartContract.CommandRunFunction) (*vmcommon.VMOutput, error) {
-	return ars.SimulateRunSmartContractFunctionHandler(command)
+func (ars *ApiResolverStub) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+	return ars.ExecuteSCQueryHandler(query)
 }
 
 func (ars *ApiResolverStub) StatusMetrics() external.StatusMetricsHandler {

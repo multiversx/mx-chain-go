@@ -344,14 +344,14 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 
 func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMsContainerAndBlockchainHook(accnts)
-	scDataGetter, _ := smartContract.NewSCDataGetter(vmContainer)
+	scQueryService, _ := smartContract.NewSCQueryService(vmContainer)
 
 	arguments := make([]*big.Int, len(args))
 	for i, arg := range args {
 		arguments[i] = big.NewInt(0).SetBytes(arg)
 	}
 
-	vmOutput, _ := scDataGetter.RunAndGetVMOutput(&smartContract.CommandRunFunction{
+	vmOutput, _ := scQueryService.ExecuteQuery(&smartContract.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  funcName,
 		Arguments: arguments,

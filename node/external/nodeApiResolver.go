@@ -7,28 +7,28 @@ import (
 
 // NodeApiResolver can resolve API requests
 type NodeApiResolver struct {
-	scDataGetter         ScDataGetter
+	scQueryService       SCQueryService
 	statusMetricsHandler StatusMetricsHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
-func NewNodeApiResolver(scDataGetter ScDataGetter, statusMetricsHandler StatusMetricsHandler) (*NodeApiResolver, error) {
-	if scDataGetter == nil || scDataGetter.IsInterfaceNil() {
-		return nil, ErrNilScDataGetter
+func NewNodeApiResolver(scQueryService SCQueryService, statusMetricsHandler StatusMetricsHandler) (*NodeApiResolver, error) {
+	if scQueryService == nil || scQueryService.IsInterfaceNil() {
+		return nil, ErrNilSCQueryService
 	}
 	if statusMetricsHandler == nil || statusMetricsHandler.IsInterfaceNil() {
 		return nil, ErrNilStatusMetrics
 	}
 
 	return &NodeApiResolver{
-		scDataGetter:         scDataGetter,
+		scQueryService:       scQueryService,
 		statusMetricsHandler: statusMetricsHandler,
 	}, nil
 }
 
-// SimulateRunSmartContractFunction retrieves data stored in a SC account through a VM
-func (nar *NodeApiResolver) SimulateRunSmartContractFunction(command *smartContract.CommandRunFunction) (*vmcommon.VMOutput, error) {
-	return nar.scDataGetter.RunAndGetVMOutput(command)
+// ExecuteSCQuery retrieves data stored in a SC account through a VM
+func (nar *NodeApiResolver) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+	return nar.scQueryService.ExecuteQuery(query)
 }
 
 // StatusMetrics returns an implementation of the StatusMetricsHandler interface

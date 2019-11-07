@@ -15,59 +15,59 @@ import (
 
 const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
-func TestNewSCDataGetter_NilVmShouldErr(t *testing.T) {
+func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCDataGetter(nil)
+	target, err := NewSCQueryService(nil)
 
 	assert.Nil(t, target)
 	assert.Equal(t, process.ErrNoVM, err)
 }
 
-func TestNewSCDataGetter_ShouldWork(t *testing.T) {
+func TestNewSCQueryService_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCDataGetter(&mock.VMContainerMock{})
+	target, err := NewSCQueryService(&mock.VMContainerMock{})
 
 	assert.NotNil(t, target)
 	assert.Nil(t, err)
 }
 
-func TestRunAndGetVMOutput_GetNilAddressShouldErr(t *testing.T) {
+func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, _ := NewSCDataGetter(&mock.VMContainerMock{})
+	target, _ := NewSCQueryService(&mock.VMContainerMock{})
 
-	command := CommandRunFunction{
+	query := SCQuery{
 		ScAddress: nil,
 		FuncName:  "function",
 		Arguments: []*big.Int{},
 	}
 
-	output, err := target.RunAndGetVMOutput(&command)
+	output, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, output)
 	assert.Equal(t, process.ErrNilScAddress, err)
 }
 
-func TestRunAndGetVMOutput_EmptyFunctionShouldErr(t *testing.T) {
+func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, _ := NewSCDataGetter(&mock.VMContainerMock{})
+	target, _ := NewSCQueryService(&mock.VMContainerMock{})
 
-	command := CommandRunFunction{
+	query := SCQuery{
 		ScAddress: []byte{0},
 		FuncName:  "",
 		Arguments: []*big.Int{},
 	}
 
-	output, err := target.RunAndGetVMOutput(&command)
+	output, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, output)
 	assert.Equal(t, process.ErrEmptyFunctionName, err)
 }
 
-func TestRunAndGetVMOutput_ShouldReceiveCommandCorrectly(t *testing.T) {
+func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 	t.Parallel()
 
 	funcName := "function"
@@ -89,7 +89,7 @@ func TestRunAndGetVMOutput_ShouldReceiveCommandCorrectly(t *testing.T) {
 		},
 	}
 
-	target, _ := NewSCDataGetter(
+	target, _ := NewSCQueryService(
 		&mock.VMContainerMock{
 			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 				return mockVM, nil
@@ -97,17 +97,17 @@ func TestRunAndGetVMOutput_ShouldReceiveCommandCorrectly(t *testing.T) {
 		},
 	)
 
-	command := CommandRunFunction{
+	query := SCQuery{
 		ScAddress: scAddress,
 		FuncName:  funcName,
 		Arguments: args,
 	}
 
-	_, _ = target.RunAndGetVMOutput(&command)
+	_, _ = target.ExecuteQuery(&query)
 	assert.True(t, runWasCalled)
 }
 
-func TestRunAndGetVMOutput_ReturnsCorrectly(t *testing.T) {
+func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	t.Parallel()
 
 	data := []*big.Int{big.NewInt(90), big.NewInt(91)}
@@ -121,7 +121,7 @@ func TestRunAndGetVMOutput_ReturnsCorrectly(t *testing.T) {
 		},
 	}
 
-	target, _ := NewSCDataGetter(
+	target, _ := NewSCQueryService(
 		&mock.VMContainerMock{
 			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 				return mockVM, nil
@@ -129,20 +129,20 @@ func TestRunAndGetVMOutput_ReturnsCorrectly(t *testing.T) {
 		},
 	)
 
-	command := CommandRunFunction{
+	query := SCQuery{
 		ScAddress: []byte(DummyScAddress),
 		FuncName:  "function",
 		Arguments: []*big.Int{},
 	}
 
-	vmOutput, err := target.RunAndGetVMOutput(&command)
+	vmOutput, err := target.ExecuteQuery(&query)
 
 	assert.Nil(t, err)
 	assert.Equal(t, data[0], vmOutput.ReturnData[0])
 	assert.Equal(t, data[1], vmOutput.ReturnData[1])
 }
 
-func TestRunAndGetVMOutput_WhenNotOkCodeShouldErr(t *testing.T) {
+func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mockVM := &mock.VMExecutionHandlerStub{
@@ -152,7 +152,7 @@ func TestRunAndGetVMOutput_WhenNotOkCodeShouldErr(t *testing.T) {
 			}, nil
 		},
 	}
-	target, _ := NewSCDataGetter(
+	target, _ := NewSCQueryService(
 		&mock.VMContainerMock{
 			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 				return mockVM, nil
@@ -160,20 +160,20 @@ func TestRunAndGetVMOutput_WhenNotOkCodeShouldErr(t *testing.T) {
 		},
 	)
 
-	command := CommandRunFunction{
+	query := SCQuery{
 		ScAddress: []byte(DummyScAddress),
 		FuncName:  "function",
 		Arguments: []*big.Int{},
 	}
 
-	returnedData, err := target.RunAndGetVMOutput(&command)
+	returnedData, err := target.ExecuteQuery(&query)
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "error running vm func")
 	assert.Nil(t, returnedData)
 }
 
-func TestRunAndGetVMOutput_ShouldCallRunScSequentially(t *testing.T) {
+func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 	t.Parallel()
 
 	running := int32(0)
@@ -194,7 +194,7 @@ func TestRunAndGetVMOutput_ShouldCallRunScSequentially(t *testing.T) {
 		},
 	}
 
-	target, _ := NewSCDataGetter(
+	target, _ := NewSCQueryService(
 		&mock.VMContainerMock{
 			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 				return mockVM, nil
@@ -207,13 +207,13 @@ func TestRunAndGetVMOutput_ShouldCallRunScSequentially(t *testing.T) {
 	wg.Add(noOfGoRoutines)
 	for i := 0; i < noOfGoRoutines; i++ {
 		go func() {
-			command := CommandRunFunction{
+			query := SCQuery{
 				ScAddress: []byte(DummyScAddress),
 				FuncName:  "function",
 				Arguments: []*big.Int{},
 			}
 
-			_, _ = target.RunAndGetVMOutput(&command)
+			_, _ = target.ExecuteQuery(&query)
 			wg.Done()
 		}()
 	}

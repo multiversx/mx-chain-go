@@ -14,7 +14,7 @@ import (
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	SimulateRunSmartContractFunction(*smartContract.CommandRunFunction) (*vmcommon.VMOutput, error)
+	ExecuteSCQuery(*smartContract.SCQuery) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 
@@ -94,12 +94,12 @@ func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, err
 	}
 
-	command, err := createCommandRunFunction(&request)
+	command, err := createSCQuery(&request)
 	if err != nil {
 		return nil, err
 	}
 
-	vmOutput, err := facade.SimulateRunSmartContractFunction(command)
+	vmOutput, err := facade.ExecuteSCQuery(command)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
 	return vmOutput, nil
 }
 
-func createCommandRunFunction(request *VMValueRequest) (*smartContract.CommandRunFunction, error) {
+func createSCQuery(request *VMValueRequest) (*smartContract.SCQuery, error) {
 	decodedAddress, err := hex.DecodeString(request.ScAddress)
 	if err != nil {
 		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
@@ -123,7 +123,7 @@ func createCommandRunFunction(request *VMValueRequest) (*smartContract.CommandRu
 		argumentsAsInt = append(argumentsAsInt, big.NewInt(0).SetBytes(argBytes))
 	}
 
-	return &smartContract.CommandRunFunction{
+	return &smartContract.SCQuery{
 		ScAddress: decodedAddress,
 		FuncName:  request.FuncName,
 		Arguments: argumentsAsInt,

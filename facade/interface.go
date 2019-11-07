@@ -71,7 +71,7 @@ type NodeWrapper interface {
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
-	SimulateRunSmartContractFunction(command *smartContract.CommandRunFunction) (*vmcommon.VMOutput, error)
+	ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }
