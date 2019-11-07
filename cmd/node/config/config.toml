@@ -268,5 +268,5 @@
    Version = 0  # Setting 0 means 'use default value'
 
 [EndOfEpochConfig]
-	MinRoundsBetweenEpochs = 10
-	RoundsPerEpoch 		   = 20
+	MinRoundsBetweenEpochs = 100
+	RoundsPerEpoch 		   = 20000
