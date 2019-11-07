@@ -2,6 +2,8 @@ package mock
 
 type ReconnecterStub struct {
 	ReconnectToNetworkCalled func() <-chan struct{}
+	PauseCall                func()
+	ResumeCall               func()
 }
 
 func (rs *ReconnecterStub) ReconnectToNetwork() <-chan struct{} {
@@ -15,3 +17,6 @@ func (rs *ReconnecterStub) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func (rs *ReconnecterStub) Pause()  { rs.PauseCall() }
+func (rs *ReconnecterStub) Resume() { rs.ResumeCall() }

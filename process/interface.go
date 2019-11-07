@@ -491,3 +491,10 @@ type MiniBlocksCompacter interface {
 	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
 	IsInterfaceNil() bool
 }
+
+// NetworkConnectionWatcher defines a watchdog functionality used to specify if the current node
+// is still connected to the rest of the network
+type NetworkConnectionWatcher interface {
+	IsConnectedToTheNetwork() bool
+	IsInterfaceNil() bool
+}

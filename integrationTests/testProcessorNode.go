@@ -76,6 +76,7 @@ var MinTxGasPrice = uint64(0)
 var MinTxGasLimit = uint64(4)
 
 const maxTxNonceDeltaAllowed = 8000
+const minConnectedPeers = 0
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -183,6 +184,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()

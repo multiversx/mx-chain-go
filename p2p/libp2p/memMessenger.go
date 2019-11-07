@@ -45,6 +45,7 @@ func NewMemoryMessenger(
 		false,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		peerDiscoverer,
+		0,
 	)
 	if err != nil {
 		return nil, err
@@ -78,5 +79,6 @@ func NewNetworkMessengerOnFreePort(
 		outgoingPLB,
 		peerDiscoverer,
 		ListenLocalhostAddrWithIp4AndTcp,
+		0,
 	)
 }
