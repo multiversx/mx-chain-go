@@ -25,18 +25,12 @@ type VMValueRequest struct {
 	Args      []string `form:"args"  json:"args"`
 }
 
-type runFunctionCommand struct {
-	ScAddress string
-	FuncName  string
-	Args      [][]byte // or big ints already?
-}
-
 // Routes defines address related routes
 func Routes(router *gin.RouterGroup) {
 	router.POST("/hex", getHex)
 	router.POST("/string", getString)
 	router.POST("/int", getInt)
-	router.POST("/simulate-run", SimulateRunFunction)
+	router.POST("/query", executeQuery)
 }
 
 // getHex returns the data as bytes, hex-encoded
@@ -55,7 +49,7 @@ func getInt(context *gin.Context) {
 }
 
 func doGetVMValue(context *gin.Context, asType vmcommon.ReturnDataKind) {
-	vmOutput, err := doSimulateRunFunction(context)
+	vmOutput, err := doExecuteQuery(context)
 
 	if err != nil {
 		returnBadRequest(context, "doGetVMValue", err)
@@ -71,18 +65,18 @@ func doGetVMValue(context *gin.Context, asType vmcommon.ReturnDataKind) {
 	returnOkResponse(context, returnData)
 }
 
-// SimulateRunFunction returns the data as string
-func SimulateRunFunction(context *gin.Context) {
-	vmOutput, err := doSimulateRunFunction(context)
+// executeQuery returns the data as string
+func executeQuery(context *gin.Context) {
+	vmOutput, err := doExecuteQuery(context)
 	if err != nil {
-		returnBadRequest(context, "SimulateRunFunction", err)
+		returnBadRequest(context, "executeQuery", err)
 		return
 	}
 
 	returnOkResponse(context, vmOutput)
 }
 
-func doSimulateRunFunction(context *gin.Context) (*vmcommon.VMOutput, error) {
+func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 	facade, ok := context.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		return nil, errors.ErrInvalidAppContext

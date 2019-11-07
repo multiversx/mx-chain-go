@@ -122,7 +122,7 @@ func TestGetDataValueAsInt(t *testing.T) {
 	assert.Equal(t, value, response.Data)
 }
 
-func TestSimulateRunFunction(t *testing.T) {
+func TestExecuteQuery(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
@@ -141,7 +141,7 @@ func TestSimulateRunFunction(t *testing.T) {
 	}
 
 	response := vmOutputResponse{}
-	statusCode := doPost(&facade, "/vm-values/simulate-run", request, &response)
+	statusCode := doPost(&facade, "/vm-values/query", request, &response)
 
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
@@ -156,6 +156,7 @@ func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
 	}
 
 	_, err := createSCQuery(&request)
+	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "'bad arg' is not a valid hex string")
 }
 
