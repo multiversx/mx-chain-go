@@ -25,7 +25,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
 			data:     scCode + "@" + hex.EncodeToString(factory.IELEVirtualMachine),
 			gasLimit: 100000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: uint64(0),
 		})
 	nodes[senderIdx].OwnAccount.Nonce++
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
@@ -55,7 +55,7 @@ func PlayerJoinsGame(
 			sndAddr:  player.Address.Bytes(),
 			data:     fmt.Sprintf("joinGame@%s", round),
 			gasLimit: 5000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: uint64(0),
 		})
 	player.Nonce++
 	newBalance := big.NewInt(0)
@@ -87,7 +87,7 @@ func NodeCallsRewardAndSend(
 			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("rewardAndSendToWallet@%s@%s@%X", round, hex.EncodeToString(winnerAddress), prize),
 			gasLimit: 30000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: uint64(0),
 		})
 	nodes[idxNodeOwner].OwnAccount.Nonce++
 
@@ -123,7 +123,7 @@ func NodeDoesWithdraw(
 			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("withdraw@%X", withdrawValue),
 			gasLimit: 5000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: uint64(0),
 		})
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
@@ -151,7 +151,7 @@ func NodeDoesTopUp(
 			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("topUp"),
 			gasLimit: 5000,
-			gasPrice: MinTxGasPrice,
+			gasPrice: uint64(0),
 		})
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)

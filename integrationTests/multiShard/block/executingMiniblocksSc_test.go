@@ -37,11 +37,16 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodeShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	nodeShard0.EconomicsData.SetMinGasPrice(0)
+
 	nodeShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	nodeShard1.EconomicsData.SetMinGasPrice(0)
+
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
 	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
 
@@ -134,12 +139,15 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		0,
 		advertiserAddr,
 	)
+	nodeProposerShard0.EconomicsData.SetMinGasPrice(0)
+
 	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(
 		maxShards,
 		0,
 		0,
 		advertiserAddr,
 	)
+	nodeValidatorShard0.EconomicsData.SetMinGasPrice(0)
 
 	nodeProposerShard1 := integrationTests.NewTestProcessorNode(
 		maxShards,
@@ -147,6 +155,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		1,
 		advertiserAddr,
 	)
+	nodeProposerShard1.EconomicsData.SetMinGasPrice(0)
+
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
@@ -156,6 +166,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		1,
 		advertiserAddr,
 	)
+	nodeValidatorShard1.EconomicsData.SetMinGasPrice(0)
 
 	nodeProposerMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
@@ -163,12 +174,15 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		0,
 		advertiserAddr,
 	)
+	nodeProposerMeta.EconomicsData.SetMinGasPrice(0)
+
 	nodeValidatorMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
 		sharding.MetachainShardId,
 		0,
 		advertiserAddr,
 	)
+	nodeValidatorMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{
 		nodeProposerShard0,
@@ -274,16 +288,23 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodeProposerShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	nodeProposerShard0.EconomicsData.SetMinGasPrice(0)
 	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	nodeValidatorShard0.EconomicsData.SetMinGasPrice(0)
 
 	nodeProposerShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	nodeProposerShard1.EconomicsData.SetMinGasPrice(0)
+
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
 	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	nodeValidatorShard1.EconomicsData.SetMinGasPrice(0)
 
 	nodeProposerMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeProposerMeta.EconomicsData.SetMinGasPrice(0)
 	nodeValidatorMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+	nodeValidatorMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{
 		nodeProposerShard0,

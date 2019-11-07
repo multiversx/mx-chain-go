@@ -64,11 +64,10 @@ var TestMultiSig = mock.NewMultiSigner(1)
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 // MinTxGasPrice minimum gas price required by a transaction
-//TODO refactor all tests to pass with a non zero value
-var MinTxGasPrice = uint64(0)
+var MinTxGasPrice = uint64(10)
 
 // MinTxGasLimit minimum gas limit required by a transaction
-var MinTxGasLimit = uint64(4)
+var MinTxGasLimit = uint64(1000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -179,7 +178,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
-	messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
+	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()

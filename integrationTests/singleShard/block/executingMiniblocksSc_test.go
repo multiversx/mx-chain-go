@@ -44,6 +44,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 			0,
 			advertiserAddr,
 		)
+		nodes[i].EconomicsData.SetMinGasPrice(0)
 	}
 
 	idxProposer := 0
