@@ -3,6 +3,7 @@ package shard
 import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -36,6 +37,7 @@ type interceptorsContainerFactory struct {
 	nodesCoordinator       sharding.NodesCoordinator
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalTxThrottler      process.InterceptorThrottler
+	stateTrie              data.Trie
 	maxTxNonceDeltaAllowed int
 }
 
@@ -55,6 +57,7 @@ func NewInterceptorsContainerFactory(
 	addrConverter state.AddressConverter,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
+	stateTrie data.Trie,
 ) (*interceptorsContainerFactory, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -95,6 +98,9 @@ func NewInterceptorsContainerFactory(
 	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if stateTrie == nil || stateTrie.IsInterfaceNil() {
+		return nil, process.ErrNilTrie
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
@@ -106,6 +112,7 @@ func NewInterceptorsContainerFactory(
 		Signer:           singleSigner,
 		AddrConv:         addrConverter,
 		FeeHandler:       txFeeHandler,
+		Trie:             stateTrie,
 	}
 
 	icf := &interceptorsContainerFactory{

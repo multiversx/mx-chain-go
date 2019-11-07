@@ -25,7 +25,7 @@ type metaInterceptedDataFactory struct {
 	multiSigVerifier    crypto.MultiSigVerifier
 	nodesCoordinator    sharding.NodesCoordinator
 	feeHandler          process.FeeHandler
-	stateDb             data.DBWriteCacher
+	trie                data.Trie
 }
 
 // NewMetaInterceptedDataFactory creates an instance of interceptedDataFactory that can create
@@ -65,8 +65,8 @@ func NewMetaInterceptedDataFactory(
 	if check.IfNil(argument.AddrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if check.IfNil(argument.StateDb) {
-		return nil, process.ErrNilStateDb
+	if check.IfNil(argument.Trie) {
+		return nil, process.ErrNilTrie
 	}
 
 	return &metaInterceptedDataFactory{
@@ -80,7 +80,7 @@ func NewMetaInterceptedDataFactory(
 		keyGen:              argument.KeyGen,
 		singleSigner:        argument.Signer,
 		addrConverter:       argument.AddrConv,
-		stateDb:             argument.StateDb,
+		trie:                argument.Trie,
 	}, nil
 }
 
@@ -141,7 +141,7 @@ func (midf *metaInterceptedDataFactory) createInterceptedTx(buff []byte) (proces
 }
 
 func (midf *metaInterceptedDataFactory) createInterceptedTrieNode(buff []byte) (process.InterceptedData, error) {
-	return trie.NewInterceptedTrieNode(buff, midf.stateDb, midf.marshalizer, midf.hasher)
+	return trie.NewInterceptedTrieNode(buff, midf.trie.GetDatabase(), midf.marshalizer, midf.hasher)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

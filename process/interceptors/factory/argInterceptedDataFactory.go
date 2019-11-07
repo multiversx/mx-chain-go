@@ -22,5 +22,5 @@ type ArgInterceptedDataFactory struct {
 	Signer           crypto.SingleSigner
 	AddrConv         state.AddressConverter
 	FeeHandler       process.FeeHandler
-	StateDb          data.DBWriteCacher
+	Trie             data.Trie
 }

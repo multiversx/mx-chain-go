@@ -7,6 +7,7 @@ type RequestHandlerMock struct {
 	RequestMiniBlockHandlerCalled     func(destShardID uint32, miniblockHash []byte)
 	RequestHeaderHandlerCalled        func(destShardID uint32, hash []byte)
 	RequestHeaderHandlerByNonceCalled func(destShardID uint32, nonce uint64)
+	RequestTrieNodeCalled             func(destShardID uint32, hash []byte)
 }
 
 func (rrh *RequestHandlerMock) RequestTransaction(destShardID uint32, txHashes [][]byte) {
@@ -42,6 +43,13 @@ func (rrh *RequestHandlerMock) RequestHeader(shardId uint32, hash []byte) {
 		return
 	}
 	rrh.RequestHeaderHandlerCalled(shardId, hash)
+}
+
+func (rrh *RequestHandlerMock) RequestTrieNode(shardId uint32, hash []byte) {
+	if rrh.RequestTrieNodeCalled == nil {
+		return
+	}
+	rrh.RequestTrieNodeCalled(shardId, hash)
 }
 
 func (rrh *RequestHandlerMock) RequestHeaderByNonce(destShardID uint32, nonce uint64) {

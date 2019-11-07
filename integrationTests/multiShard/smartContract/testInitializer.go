@@ -263,7 +263,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	return dPool
 }
 
-func createAccountsDB() *state.AccountsDB {
+func createAccountsDB() (*state.AccountsDB, data.Trie) {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 	evictionWaitListSize := 100
@@ -274,7 +274,7 @@ func createAccountsDB() *state.AccountsDB {
 			return state.NewAccount(address, tracker)
 		},
 	})
-	return adb
+	return adb, tr
 }
 
 func createMockTxFeeHandler() process.FeeHandler {
@@ -303,6 +303,7 @@ func createNetNode(
 	initialAddr string,
 	params *cryptoParams,
 	keysIndex int,
+	trie data.Trie,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -339,6 +340,7 @@ func createNetNode(
 		testAddressConverter,
 		maxTxNonceDeltaAllowed,
 		createMockTxFeeHandler(),
+		trie,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -353,6 +355,7 @@ func createNetNode(
 		dPool,
 		uint64Converter,
 		dataPacker,
+		trie,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
@@ -364,6 +367,7 @@ func createNetNode(
 		factory.MiniBlocksTopic,
 		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
+		factory.TrieNodesTopic,
 		100,
 	)
 
@@ -604,7 +608,7 @@ func createNodes(
 			}
 			nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
-			accntAdapter := createAccountsDB()
+			accntAdapter, tr := createAccountsDB()
 			n, mes, resFinder, blkProcessor, txProcessor, transactionCoordinator, scrForwarder, blkc, store := createNetNode(
 				testNode.dPool,
 				accntAdapter,
@@ -614,6 +618,7 @@ func createNodes(
 				serviceID,
 				cp,
 				j,
+				tr,
 			)
 			_ = n.CreateShardedStores()
 
@@ -681,14 +686,16 @@ func createNodes(
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
+		accountsDb, tr := createAccountsDB()
 		metaNodes[i] = createMetaNetNode(
 			createTestMetaDataPool(),
-			createAccountsDB(),
+			accountsDb,
 			shardCoordinatorMeta,
 			nodesCoordinator,
 			serviceID,
 			cp,
 			i,
+			tr,
 		)
 	}
 
@@ -763,6 +770,7 @@ func createMetaNetNode(
 	initialAddr string,
 	params *cryptoParams,
 	keysIndex int,
+	trie data.Trie,
 ) *testNode {
 
 	tn := testNode{}
@@ -806,6 +814,7 @@ func createMetaNetNode(
 		params.keyGen,
 		maxTxNonceDeltaAllowed,
 		feeHandler,
+		trie,
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -822,6 +831,7 @@ func createMetaNetNode(
 		dPool,
 		uint64Converter,
 		dataPacker,
+		trie,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)

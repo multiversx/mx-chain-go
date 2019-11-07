@@ -70,6 +70,9 @@ func createDataPools() dataRetriever.PoolsHolder {
 	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
+	pools.TrieNodesCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
 	return pools
 }
 
@@ -100,6 +103,7 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -124,6 +128,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -148,6 +153,7 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -172,6 +178,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -196,6 +203,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -220,6 +228,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -244,6 +253,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -268,6 +278,7 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -292,6 +303,7 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -316,6 +328,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -340,6 +353,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -364,6 +378,7 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		nil,
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -388,10 +403,36 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		nil,
+		&mock.TrieStub{},
 	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewInterceptorsContainerFactory_NilStateTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilTrie, err)
 }
 
 func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
@@ -412,6 +453,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	assert.NotNil(t, icf)
@@ -438,6 +480,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -464,6 +507,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -490,6 +534,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -516,6 +561,7 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -542,6 +588,7 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -568,6 +615,7 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -594,6 +642,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -620,6 +669,7 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -653,6 +703,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -699,6 +750,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.TrieStub{},
 	)
 
 	container, err := icf.Create()
@@ -709,8 +761,9 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards + 1
 	numInterceptorMetachainHeaders := 1
+	numInterceptorTrieNodes := noOfShards + 1
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
-		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders
+		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())

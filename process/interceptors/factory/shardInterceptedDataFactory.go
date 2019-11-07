@@ -26,7 +26,7 @@ type shardInterceptedDataFactory struct {
 	multiSigVerifier    crypto.MultiSigVerifier
 	nodesCoordinator    sharding.NodesCoordinator
 	feeHandler          process.FeeHandler
-	stateDb             data.DBWriteCacher
+	trie                data.Trie
 }
 
 // NewShardInterceptedDataFactory creates an instance of interceptedDataFactory that can create
@@ -66,8 +66,8 @@ func NewShardInterceptedDataFactory(
 	if check.IfNil(argument.FeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(argument.StateDb) {
-		return nil, process.ErrNilStateDb
+	if check.IfNil(argument.Trie) {
+		return nil, process.ErrNilTrie
 	}
 
 	return &shardInterceptedDataFactory{
@@ -81,7 +81,7 @@ func NewShardInterceptedDataFactory(
 		multiSigVerifier:    argument.MultiSigVerifier,
 		nodesCoordinator:    argument.NodesCoordinator,
 		feeHandler:          argument.FeeHandler,
-		stateDb:             argument.StateDb,
+		trie:                argument.Trie,
 	}, nil
 }
 
@@ -167,7 +167,7 @@ func (sidf *shardInterceptedDataFactory) createInterceptedTxBlockBody(buff []byt
 }
 
 func (sidf *shardInterceptedDataFactory) createInterceptedTrieNode(buff []byte) (process.InterceptedData, error) {
-	return trie.NewInterceptedTrieNode(buff, sidf.stateDb, sidf.marshalizer, sidf.hasher)
+	return trie.NewInterceptedTrieNode(buff, sidf.trie.GetDatabase(), sidf.marshalizer, sidf.hasher)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

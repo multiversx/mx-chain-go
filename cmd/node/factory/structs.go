@@ -1382,6 +1382,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		state.AddressConverter,
 		maxTxNonceDeltaAllowed,
 		economics,
+		core.Trie,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1435,6 +1436,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		crypto.TxSignKeyGen,
 		maxTxNonceDeltaAllowed,
 		economics,
+		core.Trie,
 	)
 	if err != nil {
 		return nil, nil, err

@@ -100,6 +100,7 @@ type TestProcessorNode struct {
 	MetaDataPool  dataRetriever.MetaPoolsHolder
 	Storage       dataRetriever.StorageService
 	AccntState    state.AccountsAdapter
+	StateTrie     data.Trie
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
 
@@ -211,7 +212,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.NodesCoordinator,
 	)
 	tpn.initStorage()
-	tpn.AccntState, _, _ = CreateAccountsDB(0)
+	tpn.AccntState, tpn.StateTrie, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
 	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData()
@@ -302,6 +303,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.OwnAccount.KeygenTxSign,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
+			tpn.StateTrie,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -324,6 +326,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestAddressConverter,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
+			tpn.StateTrie,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -345,6 +348,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.MetaDataPool,
 			TestUint64Converter,
 			dataPacker,
+			tpn.StateTrie,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -366,6 +370,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			tpn.ShardDataPool,
 			TestUint64Converter,
 			dataPacker,
+			tpn.StateTrie,
 		)
 
 		tpn.ResolversContainer, _ = resolversContainerFactory.Create()
@@ -378,6 +383,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 			factory.MiniBlocksTopic,
 			factory.HeadersTopic,
 			factory.MetachainBlocksTopic,
+			factory.TrieNodesTopic,
 			100,
 		)
 	}
