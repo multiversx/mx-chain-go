@@ -262,7 +262,7 @@
    Type = "bls"
 
 [NTPConfig]
-   Host = "time.google.com"
+   Host = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
    Port = 123
    Timeout = 0  # Setting 0 means 'use default value'
    Version = 0  # Setting 0 means 'use default value'

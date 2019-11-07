@@ -64,9 +64,18 @@ func queryMock4(options ntp2.NTPOptions) (*ntp.Response, error) {
 	return nil, errNtpMock
 }
 
+func queryMock5(options ntp2.NTPOptions) (*ntp.Response, error) {
+	switch options.HostIndex {
+	case 0:
+		return nil, errNtpMock
+	default:
+		return &ntp.Response{ClockOffset: time.Second}, nil
+	}
+}
+
 func TestHandleErrorInDoSync(t *testing.T) {
 	failNtpMock1 = true
-	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock1)
+	st := ntp2.NewSyncTime(config.NTPConfig{Host: []string{""}}, time.Millisecond, queryMock1)
 
 	st.Sync()
 
@@ -84,7 +93,7 @@ func TestValueInDoSync(t *testing.T) {
 	responseMock2 = &ntp.Response{ClockOffset: 23456}
 
 	failNtpMock2 = false
-	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock2)
+	st := ntp2.NewSyncTime(config.NTPConfig{Host: []string{""}}, time.Millisecond, queryMock2)
 
 	assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
 	st.Sync()
@@ -101,7 +110,7 @@ func TestGetOffset(t *testing.T) {
 	responseMock3 = &ntp.Response{ClockOffset: 23456}
 
 	failNtpMock3 = false
-	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock3)
+	st := ntp2.NewSyncTime(config.NTPConfig{Host: []string{""}}, time.Millisecond, queryMock3)
 
 	assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
 	st.Sync()
@@ -110,7 +119,7 @@ func TestGetOffset(t *testing.T) {
 }
 
 func TestCallQuery(t *testing.T) {
-	st := ntp2.NewSyncTime(config.NTPConfig{}, time.Millisecond, queryMock4)
+	st := ntp2.NewSyncTime(config.NTPConfig{Host: []string{""}}, time.Millisecond, queryMock4)
 	go st.StartSync()
 
 	assert.NotNil(t, st.Query())
@@ -125,4 +134,15 @@ func TestCallQuery(t *testing.T) {
 	assert.NotEqual(t, qmc, 0)
 
 	fmt.Printf("Current time: %v\n", st.FormattedCurrentTime())
+}
+
+func TestNtpHostIsChange(t *testing.T) {
+	t.Parallel()
+
+	ntpConfig := config.NTPConfig{Host: []string{"host1", "host2", "host3"}}
+	st := ntp2.NewSyncTime(ntpConfig, time.Millisecond, queryMock5)
+	st.Sync()
+
+	//HostIndex will be equal with 1 and time offset will be a second
+	assert.Equal(t, time.Second, st.ClockOffset())
 }

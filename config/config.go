@@ -50,7 +50,7 @@ type TypeConfig struct {
 
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
-	Host    string
+	Host    []string
 	Port    int
 	Timeout time.Duration
 	Version int

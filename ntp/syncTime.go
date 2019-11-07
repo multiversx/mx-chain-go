@@ -17,11 +17,12 @@ var log = logger.DefaultLogger()
 
 // NTPOptions defines configuration options for an NTP query
 type NTPOptions struct {
-	Host         string
+	Host         []string
 	Version      int
 	LocalAddress string
 	Timeout      time.Duration
 	Port         int
+	HostIndex    int
 }
 
 // NewNTPGoogleConfig creates an NTPConfig object that configures NTP to use
@@ -29,20 +30,22 @@ type NTPOptions struct {
 // loading a configuration file just to have an NTPConfig.
 func NewNTPGoogleConfig() config.NTPConfig {
 	return config.NTPConfig{
-		Host:    "time.google.com",
+		Host:    []string{"time.google.com"},
 		Port:    123,
 		Version: 0,
 		Timeout: 0}
 }
 
 // NewNTPOptions creates a new NTPOptions object.
-func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
+func NewNTPOptions(ntpConfig config.NTPConfig, hostIndex int) NTPOptions {
 	return NTPOptions{
 		Host:         ntpConfig.Host,
 		Port:         ntpConfig.Port,
 		Version:      ntpConfig.Version,
 		LocalAddress: "",
-		Timeout:      ntpConfig.Timeout}
+		Timeout:      ntpConfig.Timeout,
+		HostIndex:    hostIndex,
+	}
 }
 
 // queryNTP wraps beevikntp.QueryWithOptions, in order to use NTPOptions, which
@@ -54,7 +57,7 @@ func queryNTP(options NTPOptions) (*ntp.Response, error) {
 		LocalAddress: options.LocalAddress,
 		Port:         options.Port}
 	log.Debug(fmt.Sprintf("NTP Request to %s:%d", options.Host, options.Port))
-	return ntp.QueryWithOptions(options.Host, queryOptions)
+	return ntp.QueryWithOptions(options.Host[options.HostIndex], queryOptions)
 }
 
 // syncTime defines an object for time synchronization
@@ -76,12 +79,32 @@ func NewSyncTime(ntpConfig config.NTPConfig, syncPeriod time.Duration, customQue
 	} else {
 		queryFunc = customQueryFunc
 	}
+
+	hostIndex := checkNTPHost(ntpConfig, queryFunc)
+	log.Info(fmt.Sprintf("Using NTP server : %s", ntpConfig.Host[hostIndex]))
+
 	s := syncTime{
 		clockOffset: 0,
 		syncPeriod:  syncPeriod,
 		query:       queryFunc,
-		ntpOptions:  NewNTPOptions(ntpConfig)}
+		ntpOptions:  NewNTPOptions(ntpConfig, hostIndex)}
+
 	return &s
+}
+
+func checkNTPHost(ntpConfig config.NTPConfig, customQueryFunc func(options NTPOptions) (*ntp.Response, error)) int {
+	ntpConfig.Timeout = 10 * time.Millisecond
+
+	for hostIndex := range ntpConfig.Host {
+		_, err := customQueryFunc(NewNTPOptions(ntpConfig, hostIndex))
+		if err != nil {
+			continue
+		}
+
+		return hostIndex
+	}
+
+	return 0
 }
 
 // StartSync method does the time synchronization at every syncPeriod time elapsed. This should be started
@@ -105,6 +128,13 @@ func (s *syncTime) sync() {
 
 			if err != nil {
 				log.Error(fmt.Sprintf("NTP Error: %s", err))
+				//Change host if current host return an error
+				newHostIndex := checkNTPHost(config.NTPConfig{
+					Host: s.ntpOptions.Host,
+					Port: s.ntpOptions.Port,
+				}, s.query)
+				s.ntpOptions.HostIndex = newHostIndex
+
 				continue
 			}
 
