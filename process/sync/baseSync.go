@@ -774,6 +774,8 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
+		boot.statusHandler.Decrement(core.MetricCountConsensusAcceptedBlocks)
+
 		if revertUsingForkNonce && currHeader.GetNonce() > boot.forkNonce {
 			continue
 		}
