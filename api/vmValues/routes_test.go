@@ -35,7 +35,7 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-const scAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
+const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
 func TestGetDataValueAsHexBytes(t *testing.T) {
 	t.Parallel()
@@ -52,7 +52,7 @@ func TestGetDataValueAsHexBytes(t *testing.T) {
 	}
 
 	request := VMValueRequest{
-		ScAddress: scAddress,
+		ScAddress: DummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -80,7 +80,7 @@ func TestGetDataValueAsString(t *testing.T) {
 	}
 
 	request := VMValueRequest{
-		ScAddress: scAddress,
+		ScAddress: DummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -109,7 +109,7 @@ func TestGetDataValueAsInt(t *testing.T) {
 	}
 
 	request := VMValueRequest{
-		ScAddress: scAddress,
+		ScAddress: DummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -135,7 +135,7 @@ func TestSimulateRunFunction(t *testing.T) {
 	}
 
 	request := VMValueRequest{
-		ScAddress: scAddress,
+		ScAddress: DummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}
@@ -150,7 +150,7 @@ func TestSimulateRunFunction(t *testing.T) {
 
 func TestCreateCommandRunFunction_ArgumentIsNotHexShouldErr(t *testing.T) {
 	request := VMValueRequest{
-		ScAddress: scAddress,
+		ScAddress: DummyScAddress,
 		FuncName:  "function",
 		Args:      []string{"bad arg"},
 	}
@@ -170,7 +170,7 @@ func TestGetDataValue_FacadeErrorsShouldErr(t *testing.T) {
 	}
 
 	request := VMValueRequest{
-		ScAddress: scAddress,
+		ScAddress: DummyScAddress,
 		FuncName:  "function",
 		Args:      []string{},
 	}

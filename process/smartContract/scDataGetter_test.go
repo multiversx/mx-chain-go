@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
+
 func TestNewSCDataGetter_NilVmShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -69,7 +71,7 @@ func TestRunAndGetVMOutput_ShouldReceiveCommandCorrectly(t *testing.T) {
 	t.Parallel()
 
 	funcName := "function"
-	scAddress := []byte("0000000000000000050000000000000000000000000000000000000000000000")
+	scAddress := []byte(DummyScAddress)
 	args := []*big.Int{big.NewInt(42), big.NewInt(43)}
 	runWasCalled := false
 
@@ -128,7 +130,7 @@ func TestRunAndGetVMOutput_ReturnsCorrectly(t *testing.T) {
 	)
 
 	command := CommandRunFunction{
-		ScAddress: []byte("0000000000000000050000000000000000000000000000000000000000000000"),
+		ScAddress: []byte(DummyScAddress),
 		FuncName:  "function",
 		Arguments: []*big.Int{},
 	}
@@ -159,7 +161,7 @@ func TestRunAndGetVMOutput_WhenNotOkCodeShouldErr(t *testing.T) {
 	)
 
 	command := CommandRunFunction{
-		ScAddress: []byte("0000000000000000050000000000000000000000000000000000000000000000"),
+		ScAddress: []byte(DummyScAddress),
 		FuncName:  "function",
 		Arguments: []*big.Int{},
 	}
@@ -206,7 +208,7 @@ func TestRunAndGetVMOutput_ShouldCallRunScSequentially(t *testing.T) {
 	for i := 0; i < noOfGoRoutines; i++ {
 		go func() {
 			command := CommandRunFunction{
-				ScAddress: []byte("0000000000000000050000000000000000000000000000000000000000000000"),
+				ScAddress: []byte(DummyScAddress),
 				FuncName:  "function",
 				Arguments: []*big.Int{},
 			}
