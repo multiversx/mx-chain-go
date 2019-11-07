@@ -51,6 +51,7 @@ type Presenter interface {
 
 	GetTotalRewardsValue() (string, string)
 	CalculateRewardsPerHour() string
+	GetZeros() string
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
