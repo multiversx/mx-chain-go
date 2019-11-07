@@ -115,49 +115,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	return nil
 }
 
-// GenerateAndSendBulkTransactionsOneByOne is a method for generating and propagating a set
-// of transactions to be processed. It is mainly used for demo purposes
-//func (n *Node) GenerateAndSendBulkTransactionsOneByOne(receiverHex string, value *big.Int, noOfTx uint64) error {
-//	err := n.generateBulkTransactionsChecks(noOfTx)
-//	if err != nil {
-//		return err
-//	}
-//
-//	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex)
-//	if err != nil {
-//		return err
-//	}
-//
-//	generated := 0
-//	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
-//	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
-//		_, signedTxBuff, err := n.generateAndSignTxBuffArray(
-//			nonce,
-//			value,
-//			recvAddressBytes,
-//			senderAddressBytes,
-//			"",
-//		)
-//		if err != nil {
-//			return err
-//		}
-//
-//		generated++
-//
-//		n.messenger.BroadcastOnChannel(
-//			SendTransactionsPipe,
-//			identifier,
-//			signedTxBuff,
-//		)
-//	}
-//
-//	if generated != int(noOfTx) {
-//		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", generated, noOfTx))
-//	}
-//
-//	return nil
-//}
-
 func (n *Node) generateBulkTransactionsChecks(noOfTx uint64) error {
 	if noOfTx == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
