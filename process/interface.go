@@ -50,7 +50,7 @@ type TxTypeHandler interface {
 
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
-	IsTxValidForProcessing(txHandler TxValidatorHandler) bool
+	CheckTxValidity(txHandler TxValidatorHandler) error
 	NumRejectedTxs() uint64
 	IsInterfaceNil() bool
 }

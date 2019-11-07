@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	nodeCmdFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -33,8 +34,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -57,6 +60,7 @@ type Node struct {
 	marshalizer              marshal.Marshalizer
 	ctx                      context.Context
 	hasher                   hashing.Hasher
+	feeHandler               process.FeeHandler
 	initialNodesPubkeys      map[uint32][]string
 	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
@@ -76,15 +80,16 @@ type Node struct {
 	heartbeatSender          *heartbeat.Sender
 	appStatusHandler         core.AppStatusHandler
 
-	txSignPrivKey  crypto.PrivateKey
-	txSignPubKey   crypto.PublicKey
-	pubKey         crypto.PublicKey
-	privKey        crypto.PrivateKey
-	keyGen         crypto.KeyGenerator
-	singleSigner   crypto.SingleSigner
-	txSingleSigner crypto.SingleSigner
-	multiSigner    crypto.MultiSigner
-	forkDetector   process.ForkDetector
+	txSignPrivKey     crypto.PrivateKey
+	txSignPubKey      crypto.PublicKey
+	pubKey            crypto.PublicKey
+	privKey           crypto.PrivateKey
+	keyGen            crypto.KeyGenerator
+	keyGenForAccounts crypto.KeyGenerator
+	singleSigner      crypto.SingleSigner
+	txSingleSigner    crypto.SingleSigner
+	multiSigner       crypto.MultiSigner
+	forkDetector      process.ForkDetector
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
@@ -521,6 +526,11 @@ func (n *Node) SendTransaction(
 		Signature: signature,
 	}
 
+	err = n.validateTx(&tx)
+	if err != nil {
+		return "", err
+	}
+
 	txBuff, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return "", err
@@ -565,6 +575,11 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 			continue
 		}
 
+		err = n.validateTx(tx)
+		if err != nil {
+			continue
+		}
+
 		transactionsByShards[senderShardId] = append(transactionsByShards[senderShardId], marshalizedTx)
 	}
 
@@ -579,6 +594,39 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	}
 
 	return numOfSentTxs, nil
+}
+
+func (n *Node) validateTx(tx *transaction.Transaction) error {
+	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, nodeCmdFactory.MaxTxNonceDeltaAllowed)
+	if err != nil {
+		return nil
+	}
+
+	marshalizedTx, err := n.marshalizer.Marshal(tx)
+	if err != nil {
+		return err
+	}
+
+	intTx, err := procTx.NewInterceptedTransaction(
+		marshalizedTx,
+		n.marshalizer,
+		n.hasher,
+		n.keyGenForAccounts,
+		n.txSingleSigner,
+		n.addrConverter,
+		n.shardCoordinator,
+		n.feeHandler,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = intTx.CheckValidity()
+	if err != nil {
+		return err
+	}
+
+	return txValidator.CheckTxValidity(intTx)
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
@@ -614,7 +662,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	return nil
 }
 
-// CreateTransaction can generate a transaction from provided parameters
+// CreateTransaction will return a transaction from all the required fields
 func (n *Node) CreateTransaction(
 	nonce uint64,
 	value string,
