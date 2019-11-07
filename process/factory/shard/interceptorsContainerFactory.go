@@ -16,7 +16,6 @@ import (
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -282,10 +281,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (p
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedTx,
-	)
+	txFactory, err := interceptorFactory.NewInterceptedTxDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -353,10 +349,7 @@ func (icf *interceptorsContainerFactory) createOneUnsignedTxInterceptor(topic st
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedUnsignedTx,
-	)
+	txFactory, err := interceptorFactory.NewInterceptedUnsignedTxDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -409,22 +402,38 @@ func (icf *interceptorsContainerFactory) generateRewardTxInterceptors() ([]strin
 	return keys, interceptorSlice, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneRewardTxInterceptor(identifier string) (process.Interceptor, error) {
-	rewardTxStorer := icf.store.GetStorer(dataRetriever.RewardTransactionUnit)
+func (icf *interceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
+	//TODO replace the nil tx validator with white list validator
+	txValidator, err := mock.NewNilTxValidator()
+	if err != nil {
+		return nil, err
+	}
 
-	interceptor, err := rewardTransaction.NewRewardTxInterceptor(
+	argProcessor := &processor.ArgTxInterceptorProcessor{
+		ShardedDataCache: icf.dataPool.RewardTransactions(),
+		TxValidator:      txValidator,
+	}
+	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	txFactory, err := interceptorFactory.NewInterceptedRewardTxDataFactory(icf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewMultiDataInterceptor(
 		icf.marshalizer,
-		icf.dataPool.RewardTransactions(),
-		rewardTxStorer,
-		icf.addrConverter,
-		icf.hasher,
-		icf.shardCoordinator,
+		txFactory,
+		txProcessor,
+		icf.globalTxThrottler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 //------- Hdr interceptor
@@ -438,10 +447,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		return nil, nil, err
 	}
 
-	hdrFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedShardHeader,
-	)
+	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -520,10 +526,7 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedTxBlockBody,
-	)
+	txFactory, err := interceptorFactory.NewInterceptedTxBlockBodyDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -551,10 +554,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 		return nil, nil, err
 	}
 
-	hdrFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedMetaHeader,
-	)
+	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, nil, err
 	}

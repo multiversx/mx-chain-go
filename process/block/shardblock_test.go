@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -1579,6 +1580,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	errPersister := errors.New("failure")
 	wasCalled := false
 	rootHash := []byte("root hash to be tested")
+	marshalizer := &mock.MarshalizerMock{}
 	accounts := &mock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
@@ -1599,15 +1601,16 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	}
 	body := make(block.Body, 0)
 	hdrUnit := &mock.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			hdr, _ := marshalizer.Marshal(&block.Header{})
+			return hdr, nil
+		},
 		PutCalled: func(key, data []byte) error {
 			wasCalled = true
 			return errPersister
 		},
 		HasCalled: func(key []byte) error {
 			return nil
-		},
-		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, nil
 		},
 	}
 	store := initStore()
@@ -3078,7 +3081,10 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	hasherMock := &mock.HasherStub{}
 
 	body := make(block.Body, 0)
-	tx := transaction.Transaction{Nonce: 1}
+	tx := &transaction.Transaction{
+		Nonce: 1,
+		Value: big.NewInt(0),
+	}
 	buffTx, _ := marshalizerMock.Marshal(tx)
 
 	store := &mock.ChainStorerMock{
@@ -3172,7 +3178,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	txFromPool, _ := datapool.Transactions().SearchFirstData(txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, &miniblock, miniblockFromPool)
-	assert.Equal(t, &tx, txFromPool)
+	assert.Equal(t, tx, txFromPool)
 	assert.Equal(t, false, sp.IsMiniBlockProcessed(metablockHash, miniblockHash))
 }
 

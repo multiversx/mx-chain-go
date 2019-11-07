@@ -77,10 +77,11 @@ type Config struct {
 	MetaBlockStorage StorageConfig
 	PeerDataStorage  StorageConfig
 
-	AccountsTrieStorage StorageConfig
-	TrieSnapshotDB      DBConfig
-	EvictionWaitingList EvictionWaitingListConfig
-	BadBlocksCache      CacheConfig
+	AccountsTrieStorage     StorageConfig
+	PeerAccountsTrieStorage StorageConfig
+	TrieSnapshotDB          DBConfig
+	EvictionWaitingList     EvictionWaitingListConfig
+	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	StateBlockBodyDataPool      CacheConfig

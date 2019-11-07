@@ -227,6 +227,11 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
 
+	err = sr.BlockProcessor().ApplyValidatorStatistics(hdr)
+	if err != nil {
+		return nil, err
+	}
+
 	return hdr, nil
 }
 
