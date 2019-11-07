@@ -38,6 +38,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			RequestHandler:               &mock.RequestHandlerMock{},
 			Core:                         &mock.ServiceContainerMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
 		},
 		DataPool: mdp,
 	}

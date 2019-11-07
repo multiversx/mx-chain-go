@@ -365,6 +365,12 @@ type VirtualMachinesContainerFactory interface {
 	IsInterfaceNil() bool
 }
 
+type EndOfEpochTriggerHandler interface {
+	IsEndOfEpoch() bool
+	Epoch() uint32
+	IsInterfaceNil() bool
+}
+
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {

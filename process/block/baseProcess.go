@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"sort"
 	"sync"
 
@@ -61,6 +62,7 @@ type baseProcessor struct {
 	store                        dataRetriever.StorageService
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler           process.BlockSizeThrottler
+	endOfEpochTrigger            process.EndOfEpochTriggerHandler
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -177,6 +179,16 @@ func (bp *baseProcessor) checkBlockValidity(
 
 	if bodyHandler != nil {
 		// TODO: add bodyHandler verification here
+	}
+
+	// verification of epoch
+	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
+		return process.ErrEpochDoesNotMatch
+	}
+
+	if headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		bp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch() {
+		return process.ErrEpochDoesNotMatch
 	}
 
 	// TODO: add signature validation as well, with randomness source and all
@@ -527,35 +539,38 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 // checkProcessorNilParameters will check the imput parameters for nil values
 func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 
-	if arguments.Accounts == nil || arguments.Accounts.IsInterfaceNil() {
+	if check.IfNil(arguments.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if arguments.ForkDetector == nil || arguments.ForkDetector.IsInterfaceNil() {
+	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if arguments.Hasher == nil || arguments.Hasher.IsInterfaceNil() {
+	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
 	}
-	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
+	if check.IfNil(arguments.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if arguments.Store == nil || arguments.Store.IsInterfaceNil() {
+	if check.IfNil(arguments.Store) {
 		return process.ErrNilStorage
 	}
-	if arguments.ShardCoordinator == nil || arguments.ShardCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if arguments.NodesCoordinator == nil || arguments.NodesCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
 	}
-	if arguments.SpecialAddressHandler == nil || arguments.SpecialAddressHandler.IsInterfaceNil() {
+	if check.IfNil(arguments.SpecialAddressHandler) {
 		return process.ErrNilSpecialAddressHandler
 	}
-	if arguments.Uint64Converter == nil || arguments.Uint64Converter.IsInterfaceNil() {
+	if check.IfNil(arguments.Uint64Converter) {
 		return process.ErrNilUint64Converter
 	}
-	if arguments.RequestHandler == nil || arguments.RequestHandler.IsInterfaceNil() {
+	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
+	}
+	if check.IfNil(arguments.EndOfEpochTrigger) {
+		return process.ErrNilEndOfEpochTrigger
 	}
 
 	return nil

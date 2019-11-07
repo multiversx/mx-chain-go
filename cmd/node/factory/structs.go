@@ -483,7 +483,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	endOfEpochTrigger, err := newEndOfEpochTrigger(args, rounder)
+	endOfEpochTrigger, err := newEndOfEpochTrigger(args)
 	if err != nil {
 		return nil, err
 	}
@@ -543,6 +543,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		forkDetector,
 		shardsGenesisBlocks,
+		endOfEpochTrigger,
 	)
 
 	if err != nil {
@@ -594,7 +595,16 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks
 	return nil
 }
 
-func newEndOfEpochTrigger(args *processComponentsFactoryArgs, rounder consensus.Rounder) (endOfEpoch.TriggerHandler, error) {
+func newEndOfEpochTrigger(args *processComponentsFactoryArgs) (endOfEpoch.TriggerHandler, error) {
+	rounder, err := round.NewRound(
+		time.Unix(args.nodesConfig.StartTime, 0),
+		args.syncer.CurrentTime(),
+		time.Millisecond*time.Duration(args.nodesConfig.RoundDuration),
+		args.syncer)
+	if err != nil {
+		return nil, err
+	}
+
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
 		argEndOfEpoch := &shardchain.ArgsNewShardEndOfEpochTrigger{}
 		endOfEpochTrigger, err := shardchain.NewEndOfEpochTrigger(argEndOfEpoch)
@@ -1597,6 +1607,7 @@ func newBlockProcessor(
 	resolversFinder dataRetriever.ResolversFinder,
 	forkDetector process.ForkDetector,
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
+	endOfEpochTrigger endOfEpoch.TriggerHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1642,6 +1653,7 @@ func newBlockProcessor(
 			shardsGenesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
+			endOfEpochTrigger,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1662,6 +1674,7 @@ func newBlockProcessor(
 			shardsGenesisBlocks,
 			processArgs.coreServiceContainer,
 			validatorStatisticsProcessor,
+			endOfEpochTrigger,
 		)
 	}
 
@@ -1680,6 +1693,7 @@ func newShardBlockProcessor(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
+	endOfEpochTrigger endOfEpoch.TriggerHandler,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1861,6 +1875,7 @@ func newShardBlockProcessor(
 		StartHeaders:          shardsGenesisBlocks,
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
+		EndOfEpochTrigger:     endOfEpochTrigger,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1894,6 +1909,7 @@ func newMetaBlockProcessor(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	endOfEpochTrigger endOfEpoch.TriggerHandler,
 ) (process.BlockProcessor, error) {
 
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
@@ -1922,6 +1938,7 @@ func newMetaBlockProcessor(
 		RequestHandler:               requestHandler,
 		Core:                         coreServiceContainer,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+		EndOfEpochTrigger:            endOfEpochTrigger,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,

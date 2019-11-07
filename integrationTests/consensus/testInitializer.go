@@ -5,6 +5,8 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -361,6 +363,23 @@ func createConsensusOnlyNode(
 		time.Millisecond*time.Duration(uint64(roundTime)),
 		syncer)
 
+	rounderForEndOfEpoch, err := round.NewRound(
+		time.Unix(startTime, 0),
+		syncer.CurrentTime(),
+		time.Millisecond*time.Duration(uint64(roundTime)),
+		syncer)
+	argsNewMetaEndOfEpoch := &metachain.ArgsNewMetaEndOfEpochTrigger{
+		Rounder:     rounderForEndOfEpoch,
+		SyncTimer:   syncer,
+		GenesisTime: time.Unix(startTime, 0),
+		Settings: &config.EndOfEpochConfig{
+			MinRoundsBetweenEpochs: 1,
+			RoundsPerEpoch:         3,
+		},
+		Epoch: 0,
+	}
+	endOfEpochTrigger, _ := metachain.NewEndOfEpochTrigger(argsNewMetaEndOfEpoch)
+
 	forkDetector, _ := syncFork.NewShardForkDetector(rounder)
 
 	hdrResolver := &mock.HeaderResolverMock{}
@@ -416,6 +435,7 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
+		node.WithEndOfEpochTrigger(endOfEpochTrigger),
 	)
 
 	if err != nil {

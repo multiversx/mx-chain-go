@@ -49,6 +49,9 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 	if args.Settings.MinRoundsBetweenEpochs < 1 {
 		return nil, endOfEpoch.ErrInvalidSettingsForEndOfEpochTrigger
 	}
+	if args.Settings.MinRoundsBetweenEpochs > args.Settings.RoundsPerEpoch {
+		return nil, endOfEpoch.ErrInvalidSettingsForEndOfEpochTrigger
+	}
 
 	return &trigger{
 		rounder:                       args.Rounder,
