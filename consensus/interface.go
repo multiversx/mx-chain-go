@@ -43,6 +43,13 @@ type ChronologyHandler interface {
 	RemoveAllSubrounds()
 	// StartRounds starts rounds in a sequential manner, one after the other
 	StartRounds()
+	Epoch() uint32
+	IsInterfaceNil() bool
+}
+
+type EndOfEpochHandler interface {
+	IsEndOfEpoch() bool
+	Epoch() uint32
 	IsInterfaceNil() bool
 }
 

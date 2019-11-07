@@ -82,6 +82,9 @@ var ErrNilInterceptorsContainer = errors.New("nil interceptors container")
 // ErrNilResolversFinder signals that a nil resolvers finder has been provided
 var ErrNilResolversFinder = errors.New("nil resolvers finder")
 
+// ErrNilEndOfEpochTrigger signals that a nil end of epoch trigger has been provided
+var ErrNilEndOfEpochTrigger = errors.New("nil end of epoch trigger")
+
 // ErrNilBlockHeader is raised when a valid block header is expected but nil was used
 var ErrNilBlockHeader = errors.New("block header is nil")
 

@@ -7,6 +7,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch/genesis"
+	metachain2 "github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch/shardchain"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -16,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -147,6 +150,7 @@ type Process struct {
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversFinder       dataRetriever.ResolversFinder
 	Rounder               consensus.Rounder
+	EndOfEpochTrigger     endOfEpoch.TriggerHandler
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
 }
@@ -427,6 +431,8 @@ type processComponentsFactoryArgs struct {
 	state                *State
 	network              *Network
 	coreServiceContainer serviceContainer.Core
+	endOfEpoch           *config.EndOfEpochConfig
+	startEpoch           uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -444,6 +450,8 @@ func NewProcessComponentsFactoryArgs(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
+	endOfEpoch *config.EndOfEpochConfig,
+	startEpoch uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:       coreComponents,
@@ -459,11 +467,27 @@ func NewProcessComponentsFactoryArgs(
 		state:                state,
 		network:              network,
 		coreServiceContainer: coreServiceContainer,
+		endOfEpoch:           endOfEpoch,
+		startEpoch:           startEpoch,
 	}
 }
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
+	rounder, err := round.NewRound(
+		time.Unix(args.nodesConfig.StartTime, 0),
+		args.syncer.CurrentTime(),
+		time.Millisecond*time.Duration(args.nodesConfig.RoundDuration),
+		args.syncer)
+	if err != nil {
+		return nil, err
+	}
+
+	endOfEpochTrigger, err := newEndOfEpochTrigger(args, rounder)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptorContainerFactory, resolversContainerFactory, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
@@ -489,15 +513,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	resolversFinder, err := containers.NewResolversFinder(resolversContainer, args.shardCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	rounder, err := round.NewRound(
-		time.Unix(args.nodesConfig.StartTime, 0),
-		args.syncer.CurrentTime(),
-		time.Millisecond*time.Duration(args.nodesConfig.RoundDuration),
-		args.syncer)
 	if err != nil {
 		return nil, err
 	}
@@ -540,6 +555,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		Rounder:               rounder,
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
+		EndOfEpochTrigger:     endOfEpochTrigger,
 	}, nil
 }
 
@@ -576,6 +592,36 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks
 	}
 
 	return nil
+}
+
+func newEndOfEpochTrigger(args *processComponentsFactoryArgs, rounder consensus.Rounder) (endOfEpoch.TriggerHandler, error) {
+	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
+		argEndOfEpoch := &shardchain.ArgsNewShardEndOfEpochTrigger{}
+		endOfEpochTrigger, err := shardchain.NewEndOfEpochTrigger(argEndOfEpoch)
+		if err != nil {
+			return nil, errors.New("error creating new end of epoch trigger" + err.Error())
+		}
+
+		return endOfEpochTrigger, nil
+	}
+
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		argEndOfEpoch := &metachain2.ArgsNewMetaEndOfEpochTrigger{
+			Rounder:     rounder,
+			SyncTimer:   args.syncer,
+			GenesisTime: time.Unix(args.nodesConfig.StartTime, 0),
+			Settings:    args.endOfEpoch,
+			Epoch:       args.startEpoch,
+		}
+		endOfEpochTrigger, err := metachain2.NewEndOfEpochTrigger(argEndOfEpoch)
+		if err != nil {
+			return nil, errors.New("error creating new end of epoch trigger" + err.Error())
+		}
+
+		return endOfEpochTrigger, nil
+	}
+
+	return nil, errors.New("error creating new end of epoch trigger because of invalid shard id")
 }
 
 type seedRandReader struct {
@@ -1905,14 +1951,14 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	storageService := processComponents.data.Store
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes: initialNodes,
-		PeerAdapter: peerAdapter,
-		AdrConv: processComponents.state.AddressConverter,
+		InitialNodes:     initialNodes,
+		PeerAdapter:      peerAdapter,
+		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool: processComponents.data.MetaDatapool,
-		StorageService: storageService,
-		Marshalizer: processComponents.core.Marshalizer,
+		DataPool:         processComponents.data.MetaDatapool,
+		StorageService:   storageService,
+		Marshalizer:      processComponents.core.Marshalizer,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

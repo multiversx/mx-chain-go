@@ -56,6 +56,11 @@ type NTPConfig struct {
 	Version int
 }
 
+type EndOfEpochConfig struct {
+	MinRoundsBetweenEpochs int64
+	RoundsPerEpoch         int64
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -102,6 +107,8 @@ type Config struct {
 	Explorer        ExplorerConfig
 
 	NTPConfig NTPConfig
+
+	EndOfEpoch EndOfEpochConfig
 }
 
 // NodeConfig will hold basic p2p settings

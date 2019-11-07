@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"math/big"
 	"math/rand"
 	"sync/atomic"
@@ -65,6 +66,7 @@ type Node struct {
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
 	genesisTime              time.Time
+	endOfEpochTrigger        endOfEpoch.TriggerHandler
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -347,7 +349,8 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
-		n.syncTimer)
+		n.syncTimer,
+		n.endOfEpochTrigger)
 
 	if err != nil {
 		return nil, err

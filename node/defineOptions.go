@@ -1,6 +1,8 @@
 package node
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"math/big"
 	"time"
 
@@ -375,6 +377,16 @@ func WithTxStorageSize(txStorageSize uint32) Option {
 func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	return func(n *Node) error {
 		n.bootstrapRoundIndex = bootstrapRoundIndex
+		return nil
+	}
+}
+
+func WithEndOfEpochTrigger(endOfEpochTrigger endOfEpoch.TriggerHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(endOfEpochTrigger) {
+			return ErrNilEndOfEpochTrigger
+		}
+		n.endOfEpochTrigger = endOfEpochTrigger
 		return nil
 	}
 }
