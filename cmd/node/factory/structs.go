@@ -1579,7 +1579,10 @@ func createInMemoryStoreBlkcAndMetaDataPool(
 		return nil, nil, nil, err
 	}
 
-	metaDataPool := createMemMetaDataPool()
+	metaDataPool, err := createMemMetaDataPool()
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
@@ -1637,11 +1640,14 @@ func createInMemoryShardCoordinatorAndAccount(
 		return nil, nil, err
 	}
 
-	accounts := generateInMemoryAccountsAdapter(
+	accounts, err := generateInMemoryAccountsAdapter(
 		accountFactory,
 		coreComponents.Hasher,
 		coreComponents.Marshalizer,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return newShardCoordinator, accounts, nil
 }
@@ -2227,40 +2233,88 @@ func generateInMemoryAccountsAdapter(
 	accountFactory state.AccountFactory,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
-) state.AccountsAdapter {
+) (state.AccountsAdapter, error) {
 
-	tr, _ := trie.NewTrie(createMemUnit(), marshalizer, hasher)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	tr, err := trie.NewTrie(createMemUnit(), marshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
 
-	return adb
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return adb, nil
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	cache, err := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+	if err != nil {
+		log.Error("error creating cache for mem unit " + err.Error())
+		return nil
+	}
+
+	persist, err := memorydb.New()
+	if err != nil {
+		log.Error("error creating persister for mem unit " + err.Error())
+		return nil
+	}
+
+	unit, err := storageUnit.NewStorageUnit(cache, persist)
+	if err != nil {
+		log.Error("error creating unit " + err.Error())
+		return nil
+	}
+
 	return unit
 }
 
-func createMemMetaDataPool() dataRetriever.MetaPoolsHolder {
+func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
-	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	metaBlocks, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
 
 	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
 
 	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
-	shardHeaders, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
 
-	shardHeadersNoncesCacher, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
-	shardHeadersNonces, _ := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	shardHeadersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
 
-	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	shardHeadersNonces, err := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	if err != nil {
+		return nil, err
+	}
 
-	currTxs, _ := dataPool.NewCurrentBlockPool()
+	txPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	if err != nil {
+		return nil, err
+	}
 
-	dPool, _ := dataPool.NewMetaDataPool(
+	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	if err != nil {
+		return nil, err
+	}
+
+	currTxs, err := dataPool.NewCurrentBlockPool()
+	if err != nil {
+		return nil, err
+	}
+
+	dPool, err := dataPool.NewMetaDataPool(
 		metaBlocks,
 		txBlockBody,
 		shardHeaders,
@@ -2269,8 +2323,11 @@ func createMemMetaDataPool() dataRetriever.MetaPoolsHolder {
 		uTxPool,
 		currTxs,
 	)
+	if err != nil {
+		return nil, err
+	}
 
-	return dPool
+	return dPool, nil
 }
 
 // GetSigningParams returns a key generator, a private key, and a public key

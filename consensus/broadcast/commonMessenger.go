@@ -60,17 +60,15 @@ func (cm *commonMessenger) signMessage(message *consensus.Message) ([]byte, erro
 
 // BroadcastMiniBlocks will send on miniblocks topic the cross-shard miniblocks
 func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
-	mbs := 0
 	for k, v := range miniBlocks {
-		mbs++
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			cm.shardCoordinator.CommunicationIdentifier(k)
 
 		go cm.messenger.Broadcast(miniBlocksTopic, v)
 	}
 
-	if mbs > 0 {
-		log.Info(fmt.Sprintf("sent %d miniblocks\n", mbs))
+	if len(miniBlocks) > 0 {
+		log.Info(fmt.Sprintf("sent %d miniblocks\n", len(miniBlocks)))
 	}
 
 	return nil

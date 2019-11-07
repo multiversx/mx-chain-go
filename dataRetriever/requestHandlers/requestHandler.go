@@ -172,7 +172,6 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", rrh.mbRequestTopic, destShardID, core.ToB64(miniblockHash)))
 
 	resolver, err := rrh.resolversFinder.CrossShardResolver(rrh.mbRequestTopic, destShardID)
-
 	if err != nil {
 		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.mbRequestTopic, destShardID))
 		return
