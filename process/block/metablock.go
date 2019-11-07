@@ -469,7 +469,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
-	metaBlocksPool.Remove(headerHash)
+	//metaBlocksPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {
@@ -580,7 +580,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.dataPool.ShardHeaders().MaxSize(),
 	))
 
-	mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
+	//mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
 
 	return nil
 }

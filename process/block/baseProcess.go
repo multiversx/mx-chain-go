@@ -709,17 +709,18 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	lastFinalityAttestingHeader := bp.hdrsForCurrBlock.highestHdrNonce[shardId] + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes := bp.getHeadersWithNonceFromHeadersPool(cacher, i)
-		for i := 0; i < len(headers); i++ {
-			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[i])] = &hdrInfo{hdr: headers[i], usedInBlock: false}
-		}
+		//headers, headersHashes := bp.getHeadersWithNonceFromHeadersPool(cacher, i)
+		//for i := 0; i < len(headers); i++ {
+		//	bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[i])] = &hdrInfo{hdr: headers[i], usedInBlock: false}
+		//}
 
 		header, headerHash, err := getHeaderFromPoolWithNonce(i, shardId)
-		if err == nil {
-			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
-		}
+		//if err == nil {
+		//	bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
+		//}
 
-		if err != nil && len(headers) == 0 {
+		//if err != nil && len(headers) == 0 {
+		if err != nil {
 			missingFinalityAttestingHeaders++
 			wasHeaderRequested := bp.wasHeaderRequested(shardId, i)
 			if !wasHeaderRequested {
@@ -730,6 +731,8 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 			continue
 		}
+
+		bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
 	}
 
 	if requestedHeaders > 0 {

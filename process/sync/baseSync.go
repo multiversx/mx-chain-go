@@ -504,7 +504,7 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 		return nil
 	}
 
-	boot.headers.Remove(hash)
+	//boot.headers.Remove(hash)
 
 	return hash
 }
