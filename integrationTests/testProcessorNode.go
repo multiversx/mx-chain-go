@@ -522,8 +522,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor: argumentsBase,
-			DataPool:         tpn.MetaDataPool,
+			ArgBaseProcessor:  argumentsBase,
+			DataPool:          tpn.MetaDataPool,
+			PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

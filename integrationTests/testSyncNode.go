@@ -118,8 +118,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor: argumentsBase,
-			DataPool:         tpn.MetaDataPool,
+			ArgBaseProcessor:  argumentsBase,
+			DataPool:          tpn.MetaDataPool,
+			PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

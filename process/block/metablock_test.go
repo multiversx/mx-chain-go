@@ -40,7 +40,8 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
 		},
-		DataPool: mdp,
+		DataPool:          mdp,
+		PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
 	}
 	return arguments
 }

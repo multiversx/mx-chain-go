@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// TriggerHandler is an interface to notify end of epoch
 type TriggerHandler interface {
 	ForceEndOfEpoch()
 	IsEndOfEpoch() bool
@@ -14,9 +15,11 @@ type TriggerHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks
 type PendingMiniBlocksHandler interface {
-	PendingMiniBlocks() []block.MiniBlockHeader
-	AddMiniBlockHeader([]block.MiniBlockHeader)
+	PendingMiniBlockHeaders() []block.ShardMiniBlockHeader
+	AddCommittedHeader(handler data.HeaderHandler) error
+	RevertHeader(handler data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -27,11 +30,5 @@ type Rounder interface {
 	UpdateRound(time.Time, time.Time)
 	// TimeStamp returns the time stamp of the round
 	TimeStamp() time.Time
-	IsInterfaceNil() bool
-}
-
-type SettingsHandler interface {
-	MinRoundsBetweenEpochs() int64
-	RoundsPerEpoch() int64
 	IsInterfaceNil() bool
 }

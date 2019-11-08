@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -39,11 +40,14 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, err
 	}
 
-	if arguments.DataPool == nil || arguments.DataPool.IsInterfaceNil() {
+	if check.IfNil(arguments.DataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if arguments.DataPool.ShardHeaders() == nil || arguments.DataPool.ShardHeaders().IsInterfaceNil() {
+	if check.IfNil(arguments.DataPool.ShardHeaders()) {
 		return nil, process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.PendingMiniBlocks) {
+		return nil, process.ErrNilPendingMiniBlocksHandler
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle()
@@ -300,7 +304,7 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 			return process.ErrWrongTypeAssertion
 		}
 
-		headerPool.Remove([]byte(shardHeaderHash))
+		headerPool.Remove(shardHeaderHash)
 		headerNoncesPool.Remove(shardBlock.Nonce, shardBlock.ShardId)
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
