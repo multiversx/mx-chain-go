@@ -38,7 +38,7 @@ func ToHex(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
 	}
-	return "0x" + hex.EncodeToString(buff)
+	return hex.EncodeToString(buff)
 }
 
 // CalculateHash marshalizes the interface and calculates its hash

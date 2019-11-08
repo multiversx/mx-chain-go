@@ -79,6 +79,12 @@ func (s *Sender) SendHeartbeat() error {
 		return err
 	}
 
+	err = verifyLengths(hb)
+	if err != nil {
+		log.Info(err.Error())
+		trimLengths(hb)
+	}
+
 	hbBytes, err := s.marshalizer.Marshal(hb)
 	if err != nil {
 		return err

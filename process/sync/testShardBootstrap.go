@@ -7,9 +7,9 @@ type TestShardBootstrap struct {
 	*ShardBootstrap
 }
 
-// ForkChoice decides to call (or not) the rollback on the current block from the blockchain structure
-func (tsb *TestShardBootstrap) ForkChoice(revertUsingForkNonce bool) error {
-	return tsb.forkChoice(revertUsingForkNonce)
+// RollBack decides to call (or not) the rollBackOneBlock on the current block from the blockchain structure
+func (tsb *TestShardBootstrap) RollBack(revertUsingForkNonce bool) error {
+	return tsb.rollBack(revertUsingForkNonce)
 }
 
 // SetProbableHighestNonce sets the probable highest nonce in the contained fork detector
