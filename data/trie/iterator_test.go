@@ -59,7 +59,7 @@ func TestIterator_GetMarshalizedNode(t *testing.T) {
 	tr := initTrie()
 	it, _ := trie.NewIterator(tr)
 
-	encNode, err := it.GetMarshalizedNode()
+	encNode, err := it.MarshalizedNode()
 	assert.Nil(t, err)
 	assert.NotEqual(t, 0, len(encNode))
 

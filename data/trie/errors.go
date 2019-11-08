@@ -40,7 +40,7 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrSnapshotInProgress is raised when we try to take a snapshot, but another snapshot is already in progress
 var ErrSnapshotInProgress = errors.New("another snapshot is already in progress")
 
-// ErrNilTrie is raised when the trie we are trying to use is nil
+// ErrNilTrie is raised when the trie is nil
 var ErrNilTrie = errors.New("the trie is nil")
 
 // ErrNilResolver is raised when the given resolver is nil

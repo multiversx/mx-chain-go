@@ -72,10 +72,7 @@ func (inTn *InterceptedTrieNode) Hash() []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (inTn *InterceptedTrieNode) IsInterfaceNil() bool {
-	if inTn == nil {
-		return true
-	}
-	return false
+	return inTn == nil
 }
 
 // EncodedNode returns the intercepted encoded node

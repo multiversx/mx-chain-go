@@ -24,7 +24,7 @@ type TrieStub struct {
 	AppendToOldHashesCalled  func([][]byte)
 	SnapshotCalled           func() error
 	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
-	GetDatabaseCalled        func() data.DBWriteCacher
+	DatabaseCalled           func() data.DBWriteCacher
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -153,9 +153,9 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 	return nil, nil
 }
 
-func (ts *TrieStub) GetDatabase() data.DBWriteCacher {
-	if ts.GetDatabaseCalled != nil {
-		return ts.GetDatabaseCalled()
+func (ts *TrieStub) Database() data.DBWriteCacher {
+	if ts.DatabaseCalled != nil {
+		return ts.DatabaseCalled()
 	}
 	return nil
 }

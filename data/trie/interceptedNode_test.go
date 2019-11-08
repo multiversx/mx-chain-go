@@ -21,7 +21,7 @@ func getDefaultInterceptedTrieNodeParameters() ([]byte, data.DBWriteCacher, mars
 
 func getEncodedTrieNodesAndHashes(tr data.Trie) ([][]byte, [][]byte) {
 	it, _ := trie.NewIterator(tr)
-	encNode, _ := it.GetMarshalizedNode()
+	encNode, _ := it.MarshalizedNode()
 
 	nodes := make([][]byte, 0)
 	nodes = append(nodes, encNode)
@@ -32,7 +32,7 @@ func getEncodedTrieNodesAndHashes(tr data.Trie) ([][]byte, [][]byte) {
 
 	for it.HasNext() {
 		_ = it.Next()
-		encNode, _ = it.GetMarshalizedNode()
+		encNode, _ = it.MarshalizedNode()
 
 		nodes = append(nodes, encNode)
 		hash, _ = it.GetHash()

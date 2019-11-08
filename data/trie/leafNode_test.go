@@ -535,7 +535,7 @@ func TestLeafNode_loadChildren(t *testing.T) {
 
 	resolver := &mock.TrieNodesResolverStub{}
 	for i := range nodes {
-		node, _ := NewInterceptedTrieNode(nodes[i], tr.GetDatabase(), marsh, hasher)
+		node, _ := NewInterceptedTrieNode(nodes[i], tr.Database(), marsh, hasher)
 		nodesCacher.Put(node.hash, node)
 	}
 	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
