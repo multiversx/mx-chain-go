@@ -580,7 +580,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.dataPool.ShardHeaders().MaxSize(),
 	))
 
-	//mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
+	mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
 
 	return nil
 }

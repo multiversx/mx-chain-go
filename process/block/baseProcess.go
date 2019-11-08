@@ -709,17 +709,9 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes := bp.getHeadersFromHeadersPool(cacher, shardId, i)
-		for i := 0; i < len(headers); i++ {
-			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[i])] = &hdrInfo{hdr: headers[i], usedInBlock: false}
-		}
+		headers, headersHashes := bp.getHeadersFromPool(getHeaderFromPoolWithNonce, cacher, shardId, i)
 
-		header, headerHash, err := getHeaderFromPoolWithNonce(i, shardId)
-		if err == nil {
-			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
-		}
-
-		if err != nil && len(headers) == 0 {
+		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
 			wasHeaderRequested := bp.wasHeaderRequested(shardId, i)
 			if !wasHeaderRequested {
@@ -729,6 +721,10 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 			}
 
 			continue
+		}
+
+		for i := 0; i < len(headers); i++ {
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[i])] = &hdrInfo{hdr: headers[i], usedInBlock: false}
 		}
 	}
 
@@ -757,7 +753,11 @@ func (bp *baseProcessor) cleanupPools(
 	notarizedHeadersPool storage.Cacher,
 ) {
 
-	bp.removeHeadersBehindNonceFromPool(headersPool, headersNoncesPool, bp.forkDetector.GetHighestFinalBlockNonce())
+	bp.removeHeadersBehindNonceFromPool(
+		headersPool,
+		headersNoncesPool,
+		bp.shardCoordinator.SelfId(),
+		bp.forkDetector.GetHighestFinalBlockNonce())
 
 	for shardId := range bp.notarizedHdrs {
 		lastNotarizedHdr := bp.lastNotarizedHdrForShard(shardId)
@@ -765,7 +765,11 @@ func (bp *baseProcessor) cleanupPools(
 			continue
 		}
 
-		bp.removeHeadersBehindNonceFromPool(notarizedHeadersPool, headersNoncesPool, lastNotarizedHdr.GetNonce())
+		bp.removeHeadersBehindNonceFromPool(
+			notarizedHeadersPool,
+			headersNoncesPool,
+			shardId,
+			lastNotarizedHdr.GetNonce())
 	}
 
 	return
@@ -774,8 +778,13 @@ func (bp *baseProcessor) cleanupPools(
 func (bp *baseProcessor) removeHeadersBehindNonceFromPool(
 	cacher storage.Cacher,
 	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	shardId uint32,
 	nonce uint64,
 ) {
+
+	if nonce <= 1 {
+		return
+	}
 
 	if check.IfNil(cacher) {
 		return
@@ -792,15 +801,17 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPool(
 			continue
 		}
 
-		if hdr.GetNonce() < nonce {
-			cacher.Remove(key)
-
-			if check.IfNil(uint64SyncMapCacher) {
-				continue
-			}
-
-			uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
+		if hdr.GetShardID() != shardId || hdr.GetNonce() >= nonce {
+			continue
 		}
+
+		cacher.Remove(key)
+
+		if check.IfNil(uint64SyncMapCacher) {
+			continue
+		}
+
+		uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
 	}
 }
 
@@ -840,7 +851,8 @@ func (bp *baseProcessor) removeHeaderFromPools(
 	}
 }
 
-func (bp *baseProcessor) getHeadersFromHeadersPool(
+func (bp *baseProcessor) getHeadersFromPool(
+	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
 	cacher storage.Cacher,
 	shardId uint32,
 	nonce uint64,
@@ -849,9 +861,8 @@ func (bp *baseProcessor) getHeadersFromHeadersPool(
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
-	bp.mutNotarizedHdrs.RLock()
-	for _, key := range cacher.Keys() {
-		val, _ := cacher.Peek(key)
+	for _, headerHash := range cacher.Keys() {
+		val, _ := cacher.Peek(headerHash)
 		if val == nil {
 			continue
 		}
@@ -863,10 +874,17 @@ func (bp *baseProcessor) getHeadersFromHeadersPool(
 
 		if header.GetShardID() == shardId && header.GetNonce() == nonce {
 			headers = append(headers, header)
-			headersHashes = append(headersHashes, key)
+			headersHashes = append(headersHashes, headerHash)
 		}
 	}
-	bp.mutNotarizedHdrs.RUnlock()
+
+	header, headerHash, err := getHeaderFromPoolWithNonce(nonce, shardId)
+	if err != nil {
+		return headers, headersHashes
+	}
+
+	headers = append(headers, header)
+	headersHashes = append(headersHashes, headerHash)
 
 	return headers, headersHashes
 }
