@@ -709,7 +709,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes := bp.getHeadersFromPool(getHeaderFromPoolWithNonce, cacher, shardId, i)
+		headers, headersHashes := bp.getHeadersFromPools(getHeaderFromPoolWithNonce, cacher, shardId, i)
 
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
@@ -753,7 +753,7 @@ func (bp *baseProcessor) cleanupPools(
 	notarizedHeadersPool storage.Cacher,
 ) {
 
-	bp.removeHeadersBehindNonceFromPool(
+	bp.removeHeadersBehindNonceFromPools(
 		headersPool,
 		headersNoncesPool,
 		bp.shardCoordinator.SelfId(),
@@ -765,7 +765,7 @@ func (bp *baseProcessor) cleanupPools(
 			continue
 		}
 
-		bp.removeHeadersBehindNonceFromPool(
+		bp.removeHeadersBehindNonceFromPools(
 			notarizedHeadersPool,
 			headersNoncesPool,
 			shardId,
@@ -775,7 +775,7 @@ func (bp *baseProcessor) cleanupPools(
 	return
 }
 
-func (bp *baseProcessor) removeHeadersBehindNonceFromPool(
+func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 	cacher storage.Cacher,
 	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 	shardId uint32,
@@ -851,7 +851,7 @@ func (bp *baseProcessor) removeHeaderFromPools(
 	}
 }
 
-func (bp *baseProcessor) getHeadersFromPool(
+func (bp *baseProcessor) getHeadersFromPools(
 	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
 	cacher storage.Cacher,
 	shardId uint32,
