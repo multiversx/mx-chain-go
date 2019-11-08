@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -22,6 +20,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -44,6 +43,7 @@ import (
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
+	scToProtocol2 "github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -185,7 +185,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
-	messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
+	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()

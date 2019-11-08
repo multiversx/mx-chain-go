@@ -49,10 +49,6 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 		return nil
 	}
 
-	if txShardId == sharding.MetachainShardId {
-		log.Debug("got transaction from metachain")
-	}
-
 	sndAddr := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
