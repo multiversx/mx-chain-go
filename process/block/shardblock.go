@@ -337,7 +337,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		if metaHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := sp.isHdrConstructionValid(metaHdr, lastVerifiedHdr)
 			if err != nil {
-				//sp.removeHeaderFromPools(metaHdr, sp.dataPool.MetaBlocks(), sp.dataPool.HeadersNonces())
+				sp.removeHeaderFromPools(metaHdr, sp.dataPool.MetaBlocks(), sp.dataPool.HeadersNonces())
 				log.Debug(err.Error())
 				continue
 			}
@@ -627,7 +627,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
+	//headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
 	//headersPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(block.Body)

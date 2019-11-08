@@ -468,7 +468,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
+	//headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
 	//metaBlocksPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
@@ -784,7 +784,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 				err := mp.isHdrConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
-					//mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
+					mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
 					log.Debug(err.Error())
 					continue
 				}

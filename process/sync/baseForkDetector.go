@@ -253,6 +253,7 @@ func (bfd *baseForkDetector) ResetProbableHighestNonce() {
 
 // ResetFork resets the forced fork
 func (bfd *baseForkDetector) ResetFork() {
+	bfd.cleanupReceivedHeadersHigherThanNonce(bfd.lastCheckpoint().nonce)
 	bfd.setShouldForceFork(false)
 }
 
@@ -532,4 +533,32 @@ func (bfd *baseForkDetector) GetNotarizedHeaderHash(nonce uint64) []byte {
 	}
 
 	return nil
+}
+
+func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64) {
+	bfd.mutHeaders.Lock()
+	for hdrNonce, hdrInfos := range bfd.headers {
+		if hdrNonce <= nonce {
+			continue
+		}
+
+		preservedHdrInfos := make([]*headerInfo, 0)
+
+		for _, hdrInfo := range hdrInfos {
+			if hdrInfo.state != process.BHNotarized {
+				continue
+			}
+
+			preservedHdrInfos = append(preservedHdrInfos, hdrInfo)
+		}
+
+		if len(preservedHdrInfos) == 0 {
+			delete(bfd.headers, hdrNonce)
+			continue
+		}
+
+		bfd.headers[hdrNonce] = preservedHdrInfos
+	}
+	bfd.mutHeaders.Unlock()
+
 }
