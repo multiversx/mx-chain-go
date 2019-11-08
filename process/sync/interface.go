@@ -28,3 +28,8 @@ type blockBootstrapper interface {
 	haveHeaderInPoolWithNonce(nonce uint64) bool
 	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
+
+// syncStarter defines the behavior of component that can start sync-ing blocks
+type syncStarter interface {
+	SyncBlock() error
+}
