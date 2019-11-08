@@ -2,25 +2,7 @@ package logger
 
 import (
 	"sync"
-	"time"
 )
-
-// LogLine is the structure used to hold a log line
-type LogLine struct {
-	Message   string
-	LogLevel  LogLevel
-	Args      []interface{}
-	Timestamp time.Time
-}
-
-func newLogLine(message string, logLevel LogLevel, args ...interface{}) *LogLine {
-	return &LogLine{
-		Message:   message,
-		LogLevel:  logLevel,
-		Args:      args,
-		Timestamp: time.Now(),
-	}
-}
 
 // logger is the primary structure used to interact with the productive code
 type logger struct {

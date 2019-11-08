@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
-	protobuf "github.com/ElrondNetwork/elrond-go/logger/proto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
@@ -247,12 +246,12 @@ func generateLogLine(idxCrtLogLevel *int, count *int) logger.LogLineHandler {
 		*idxCrtLogLevel = (*idxCrtLogLevel + 1) % len(logger.Levels)
 	}
 
-	logLine := &protobuf.LogLineMessage{
-		Message:   "websocket test message",
-		LogLevel:  int32(logLevel),
-		Args:      []string{"count", fmt.Sprintf("%v", *count)},
-		Timestamp: time.Now().Unix(),
-	}
+	logLine := &logger.LogLineWrapper{}
+	logLine.Message = "websocket test message"
+	logLine.LogLevel = int32(logLevel)
+	logLine.Args = []string{"count", fmt.Sprintf("%v", *count)}
+	logLine.Timestamp = time.Now().Unix()
+
 	*count = *count + 1
 
 	return logLine

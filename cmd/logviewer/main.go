@@ -13,7 +13,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/logger"
-	protobuf "github.com/ElrondNetwork/elrond-go/logger/proto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
@@ -267,7 +266,7 @@ func waitForUserToTerminateApp(conn *websocket.Conn) {
 }
 
 func outputMessage(message []byte) {
-	logLine := &protobuf.LogLineMessage{}
+	logLine := &logger.LogLineWrapper{}
 
 	err := marshalizer.Unmarshal(logLine, message)
 	if err != nil {
