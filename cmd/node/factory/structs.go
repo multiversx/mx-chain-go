@@ -288,12 +288,12 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
 	}
-	//if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
-	metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
-	if err != nil {
-		return nil, errors.New("could not create shard data pools: " + err.Error())
+	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
+		if err != nil {
+			return nil, errors.New("could not create shard data pools: " + err.Error())
+		}
 	}
-	//}
 	if datapool == nil && metaDatapool == nil {
 		return nil, errors.New("could not create data pools: ")
 	}
@@ -1907,13 +1907,20 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
+	var peerDataPool peer.DataPool
+	if processComponents.shardCoordinator.SelfId() < processComponents.shardCoordinator.NumberOfShards() {
+		peerDataPool = processComponents.data.Datapool
+	} else {
+		peerDataPool = processComponents.data.MetaDatapool
+	}
+
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes:     initialNodes,
 		PeerAdapter:      peerAdapter,
 		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool:         processComponents.data.MetaDatapool,
+		DataPool:         peerDataPool,
 		StorageService:   storageService,
 		Marshalizer:      processComponents.core.Marshalizer,
 	}

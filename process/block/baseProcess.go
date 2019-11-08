@@ -704,3 +704,17 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 	return missingFinalityAttestingHeaders
 }
+
+func (bp *baseProcessor) commitAll() error {
+	_, err := bp.accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	_, err = bp.validatorStatisticsProcessor.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

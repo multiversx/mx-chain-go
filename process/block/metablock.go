@@ -649,20 +649,6 @@ func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
 	}
 }
 
-func (mp *metaProcessor) commitAll() error {
-	_, err := mp.accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	_, err = mp.validatorStatisticsProcessor.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 	crossCheckBlockHeight := ""
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
@@ -1073,6 +1059,7 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.Round = currentHeader.Round
 		shardData.PrevHash = currentHeader.PrevHash
 		shardData.Nonce = currentHeader.Nonce
+		shardData.PrevRandSeed = currentHeader.PrevRandSeed
 
 		snapshot := mp.accounts.JournalLen()
 

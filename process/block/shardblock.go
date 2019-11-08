@@ -270,6 +270,12 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}
 
+	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()
+	if !bytes.Equal(vRootHash, header.GetValidatorStatsRootHash()) {
+		err = process.ErrValidatorStatsRootHashDoesNotMatch
+		return err
+	}
+
 	return nil
 }
 
@@ -684,7 +690,8 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
-	_, err = sp.accounts.Commit()
+
+	err = sp.commitAll()
 	if err != nil {
 		return err
 	}
@@ -1485,6 +1492,11 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, err
 	}
 
+	err = sp.updatePeerStateForFinalMetaHeaders(processedMetaHdrs)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Info(fmt.Sprintf("processed %d miniblocks and %d txs with destination in self shard\n", len(destMeMiniBlocks), nbTxs))
 
 	if len(destMeMiniBlocks) > 0 {
@@ -1572,6 +1584,13 @@ func (sp *shardProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round 
 }
 
 func (sp *shardProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
+	rootHash, err := sp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return err
+	}
+
+	header.SetValidatorStatsRootHash(rootHash)
+
 	return nil
 }
 
@@ -1733,4 +1752,14 @@ func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(
 		sp.dataPool.HeadersNonces())
 
 	return metaHeader, metaHeaderHash, err
+}
+
+func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data.HeaderHandler) error {
+	for _, header := range finalHeaders {
+		_, err := sp.validatorStatisticsProcessor.UpdatePeerState(header)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
