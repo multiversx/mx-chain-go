@@ -23,9 +23,9 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core     serviceContainer.Core
-	dataPool dataRetriever.MetaPoolsHolder
-	//TODO: add	txCoordinator process.TransactionCoordinator
+	core              serviceContainer.Core
+	dataPool          dataRetriever.MetaPoolsHolder
+	pendingMiniBlocks process.PendingMiniBlocksHandler
 
 	shardsHeadersNonce *sync.Map
 	shardBlockFinality uint32
@@ -78,10 +78,11 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	mp := metaProcessor{
-		core:           arguments.Core,
-		baseProcessor:  base,
-		dataPool:       arguments.DataPool,
-		headersCounter: NewHeaderCounter(),
+		core:              arguments.Core,
+		baseProcessor:     base,
+		dataPool:          arguments.DataPool,
+		headersCounter:    NewHeaderCounter(),
+		pendingMiniBlocks: arguments.PendingMiniBlocks,
 	}
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
@@ -340,6 +341,11 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		hdrHashes[i] = header.ShardInfo[i].HeaderHash
 	}
 
+	err := mp.pendingMiniBlocks.RevertHeader(header)
+	if err != nil {
+		return err
+	}
+
 	for _, hdrHash := range hdrHashes {
 		buff, err := mp.store.Get(dataRetriever.BlockHeaderUnit, hdrHash)
 		if err != nil {
@@ -568,6 +574,11 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.indexBlock(header, lastMetaBlock)
+
+	err = mp.pendingMiniBlocks.AddCommittedHeader(header)
+	if err != nil {
+		return err
+	}
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
