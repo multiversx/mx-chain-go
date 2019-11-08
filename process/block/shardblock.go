@@ -155,8 +155,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	numTxWithDst := sp.txCounter.getNumTxsFromPool(header.ShardId, sp.dataPool, sp.shardCoordinator.NumberOfShards())
-	totalTxs := sp.txCounter.totalTxs
-	go getMetricsFromHeader(header, uint64(numTxWithDst), totalTxs, sp.marshalizer, sp.appStatusHandler)
+	go getMetricsFromHeader(header, uint64(numTxWithDst), sp.marshalizer, sp.appStatusHandler)
 
 	log.Info(fmt.Sprintf("Total txs in pool: %d\n", numTxWithDst))
 
@@ -739,6 +738,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.shardCoordinator.NumberOfShards(),
 		sp.shardCoordinator.SelfId(),
 		sp.dataPool,
+		sp.appStatusHandler,
 	)
 
 	sp.blockSizeThrottler.Succeed(header.Round)

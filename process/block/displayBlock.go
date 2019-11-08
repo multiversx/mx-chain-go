@@ -92,8 +92,13 @@ func (txc *transactionCounter) displayLogInfo(
 	numShards uint32,
 	selfId uint32,
 	dataPool dataRetriever.PoolsHolder,
+	appStatusHandler core.AppStatusHandler,
 ) {
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
+
+	txc.mutex.RLock()
+	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, txc.totalTxs)
+	txc.mutex.RUnlock()
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
