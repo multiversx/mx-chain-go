@@ -15,6 +15,8 @@ type NetworkStub struct {
 	ConnsCalled         func() []network.Conn
 	ConnectednessCalled func(peer.ID) network.Connectedness
 	NotifyCalled        func(network.Notifiee)
+	PeersCall           func() []peer.ID
+	ClosePeerCall       func(peer.ID) error
 }
 
 func (ns *NetworkStub) Peerstore() peerstore.Peerstore {
@@ -22,7 +24,7 @@ func (ns *NetworkStub) Peerstore() peerstore.Peerstore {
 }
 
 func (ns *NetworkStub) LocalPeer() peer.ID {
-	panic("implement me")
+	return peer.ID("not a peer")
 }
 
 func (ns *NetworkStub) DialPeer(ctx context.Context, pid peer.ID) (network.Conn, error) {
@@ -30,7 +32,7 @@ func (ns *NetworkStub) DialPeer(ctx context.Context, pid peer.ID) (network.Conn,
 }
 
 func (ns *NetworkStub) ClosePeer(pid peer.ID) error {
-	panic("implement me")
+	return ns.ClosePeerCall(pid)
 }
 
 func (ns *NetworkStub) Connectedness(pid peer.ID) network.Connectedness {
@@ -38,7 +40,7 @@ func (ns *NetworkStub) Connectedness(pid peer.ID) network.Connectedness {
 }
 
 func (ns *NetworkStub) Peers() []peer.ID {
-	panic("implement me")
+	return ns.PeersCall()
 }
 
 func (ns *NetworkStub) Conns() []network.Conn {

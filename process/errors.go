@@ -544,3 +544,6 @@ var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
+
+// ErrNilNetworkWatcher signals that a nil network watcher has been provided
+var ErrNilNetworkWatcher = errors.New("nil network watcher")

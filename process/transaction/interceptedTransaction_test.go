@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -263,7 +264,7 @@ func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
-		[]byte("{}"),
+		[]byte("{\"value\": \"0\"}"),
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
@@ -377,11 +378,9 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	_, err := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
 
-	err := txi.CheckValidity()
-
-	assert.Equal(t, process.ErrNilValue, err)
+	assert.Equal(t, data.ErrInvalidValue, err)
 }
 
 func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testing.T) {

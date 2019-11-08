@@ -996,17 +996,17 @@ func (mp *metaProcessor) commitAll() error {
 func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 	crossCheckBlockHeight := ""
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		valueStoredI, ok := mp.shardsHeadersNonce.Load(i)
-		if !ok {
-			continue
+		heightValue := uint64(0)
+
+		valueStoredI, isValueInMap := mp.shardsHeadersNonce.Load(i)
+		if isValueInMap {
+			valueStored, ok := valueStoredI.(uint64)
+			if ok {
+				heightValue = valueStored
+			}
 		}
 
-		valueStored, ok := valueStoredI.(uint64)
-		if !ok {
-			continue
-		}
-
-		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, valueStored)
+		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, heightValue)
 	}
 
 	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)

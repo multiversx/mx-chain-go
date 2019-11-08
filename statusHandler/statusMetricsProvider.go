@@ -67,6 +67,9 @@ func (nd *statusMetrics) Decrement(key string) {
 	if !ok {
 		return
 	}
+	if keyValue == 0 {
+		return
+	}
 
 	keyValue--
 	nd.nodeMetrics.Store(key, keyValue)

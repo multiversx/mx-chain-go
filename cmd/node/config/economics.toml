@@ -7,7 +7,8 @@
     RewardsValue = "1000"
     CommunityPercentage = 0.10
     LeaderPercentage = 0.50
-    BurnPercentage = 0.40	
+    BurnPercentage = 0.40
+    DenominationCoefficientForView = "0.0001"
 
 [FeeSettings]
     MinGasPrice = "0"
