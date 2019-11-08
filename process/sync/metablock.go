@@ -42,6 +42,7 @@ func NewMetaBootstrap(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	bootstrapRoundIndex uint64,
+	networkWatcher process.NetworkConnectionWatcher,
 ) (*MetaBootstrap, error) {
 
 	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
@@ -65,6 +66,7 @@ func NewMetaBootstrap(
 		shardCoordinator,
 		accounts,
 		store,
+		networkWatcher,
 	)
 	if err != nil {
 		return nil, err
@@ -84,6 +86,7 @@ func NewMetaBootstrap(
 		shardCoordinator:    shardCoordinator,
 		accounts:            accounts,
 		bootstrapRoundIndex: bootstrapRoundIndex,
+		networkWatcher:      networkWatcher,
 	}
 
 	boot := MetaBootstrap{
@@ -93,6 +96,7 @@ func NewMetaBootstrap(
 	base.storageBootstrapper = &boot
 	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
+	base.syncStarter = &boot
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
@@ -363,27 +367,6 @@ func (boot *MetaBootstrap) StartSync() {
 	}
 
 	go boot.syncBlocks()
-}
-
-// StopSync method will stop SyncBlocks
-func (boot *MetaBootstrap) StopSync() {
-	boot.chStopSync <- true
-}
-
-// syncBlocks method calls repeatedly synchronization method SyncBlock
-func (boot *MetaBootstrap) syncBlocks() {
-	for {
-		time.Sleep(sleepTime)
-		select {
-		case <-boot.chStopSync:
-			return
-		default:
-			err := boot.SyncBlock()
-			if err != nil {
-				log.Info(err.Error())
-			}
-		}
-	}
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool

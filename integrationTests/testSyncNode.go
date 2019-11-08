@@ -156,6 +156,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		1,
+		tpn.Messenger,
 	)
 	if err != nil {
 		return nil, err
@@ -181,6 +182,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		1,
+		tpn.Messenger,
 	)
 
 	if err != nil {

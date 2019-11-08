@@ -50,7 +50,7 @@ type TxTypeHandler interface {
 
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
-	IsTxValidForProcessing(txHandler TxValidatorHandler) bool
+	CheckTxValidity(txHandler TxValidatorHandler) error
 	NumRejectedTxs() uint64
 	IsInterfaceNil() bool
 }
@@ -490,5 +490,12 @@ type EconomicsAddressesHandler interface {
 type MiniBlocksCompacter interface {
 	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice
 	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
+	IsInterfaceNil() bool
+}
+
+// NetworkConnectionWatcher defines a watchdog functionality used to specify if the current node
+// is still connected to the rest of the network
+type NetworkConnectionWatcher interface {
+	IsConnectedToTheNetwork() bool
 	IsInterfaceNil() bool
 }

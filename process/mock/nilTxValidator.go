@@ -13,9 +13,9 @@ func NewNilTxValidator() (*nilTxValidator, error) {
 	return &nilTxValidator{}, nil
 }
 
-// IsTxValidForProcessing is a nil implementation that will return true
-func (ntv *nilTxValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorHandler) bool {
-	return true
+// CheckTxValidity is a nil implementation that will return nil
+func (ntv *nilTxValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
+	return nil
 }
 
 // NumRejectedTxs will return number of rejected transaction

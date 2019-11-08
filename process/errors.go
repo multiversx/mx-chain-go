@@ -521,6 +521,9 @@ var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 // ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
 var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 
+// ErrNilNetworkWatcher signals that a nil network watcher has been provided
+var ErrNilNetworkWatcher = errors.New("nil network watcher")
+
 // ErrMissingPrevShardData signals that a required shard data information is missing
 var ErrMissingPrevShardData = errors.New("shard data is missing")
 
