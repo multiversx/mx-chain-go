@@ -38,10 +38,9 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 		return process.ErrWrongTypeAssertion
 	}
 
-	//TODO change the IsTxValidForProcessing to output error
-	isTxValid := txip.txValidator.IsTxValidForProcessing(interceptedTx)
-	if !isTxValid {
-		return process.ErrTxNotValid
+	errTxValidation := txip.txValidator.CheckTxValidity(interceptedTx)
+	if errTxValidation != nil {
+		return errTxValidation
 	}
 
 	return nil

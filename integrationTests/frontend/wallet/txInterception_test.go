@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -11,45 +12,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInterceptedTxFromFrontendGeneratedParamsAllParams(t *testing.T) {
+func TestInterceptedTxFromFrontendLargeValue(t *testing.T) {
+	value := big.NewInt(0)
+	value.SetString("1000999999999999999999991234", 10)
+
+	fmt.Println(value.Text(10))
+	fmt.Println(value.Text(16))
+
 	testInterceptedTxFromFrontendGeneratedParams(
 		t,
 		0,
-		big.NewInt(10),
-		"53669be65aac358a6add8e8a8b1251bb994dc1e4a0cc885956f5ecd53396f0d8",
-		"a10e99839fe19bdb2ec8b22e0805da40053d4e5b6ace564949f26d49095e36e8",
-		"e1e38ae48088baeca9da900cf054d71d7500171986a73cd04027d32fe3435241338979db530bd79e5148d8b0146204c9b2d985d201019a1728218841b8454a09",
+		value,
+		"c2981474860ebd42f9da812a41dcace8a0c2fdac52e3a66a45603821ca4c6d43",
+		"c2981474860ebd42f9da812a41dcace8a0c2fdac52e3a66a45603821ca4c6d43",
+		"469d44b058faadb56cabbc696f2a0f5c9d4a361b3432c37135d6216feb03fcce890ebc3b98d1506be0cf88f5f22ad533a90386b2211aaad6df32a41be4b01e09",
 		10,
-		1000,
-		"aa@bbbb@cccc",
-	)
-}
-
-func TestInterceptedTxFromFrontendGeneratedParamsAllParams2(t *testing.T) {
-	testInterceptedTxFromFrontendGeneratedParams(
-		t,
-		12,
-		big.NewInt(2),
-		"943643524936191d1c5627e044f7b5e4ca559c7d0ba1c2b85d1b2e6c299ebcd8",
-		"943643524936191d1c5627e044f7b5e4ca559c7d0ba1c2b85d1b2e6c299ebcd8",
-		"1ef83bae21227e93e9717f45a4ec34e3f5c6a110e31dfa438ac2b8c1f5459e5167fd8424d1dfa6de59756437fe599def6872217ddad5717fe61a41853606450c",
-		1,
-		10000,
-		"aa@dd@cc",
-	)
-}
-
-func TestInterceptedTxFromFrontendGeneratedParamsGasPriceGasLimitNoData(t *testing.T) {
-	testInterceptedTxFromFrontendGeneratedParams(
-		t,
-		0,
-		big.NewInt(10),
-		"53669be65aac358a6add8e8a8b1251bb994dc1e4a0cc885956f5ecd53396f0d8",
-		"6afb8018dcc5a53d22d4dcdda39ceaf25dafd1ea353a9bbe12073057f4e6d262",
-		"1d96166ecd6cae86797046126b64028099fcd026a37a82c4bdd19700bd49828069a822fb5453e0b32f66ed895d4f162af35ea8aca862af498e2831c596250e03",
-		10,
-		1000,
-		"",
+		1002,
+		"de",
 	)
 }
 
@@ -76,7 +55,8 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	nodeShardId := uint32(0)
 	txSignPrivKeyShardId := uint32(0)
 	initialNodeAddr := "nodeAddr"
-	valMinting := big.NewInt(20000)
+	valMinting := big.NewInt(0).Set(frontendValue)
+	valMinting.Mul(valMinting, big.NewInt(2))
 
 	node := integrationTests.NewTestProcessorNode(
 		maxShards,
@@ -121,16 +101,17 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 	integrationTests.MintAddress(node.AccntState, sndAddrBytes, valMinting)
 
-	txHexHash, err = node.SendTransaction(&transaction.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:     frontendNonce,
-		Value:     frontendValue,
 		RcvAddr:   rcvAddrBytes,
 		SndAddr:   sndAddrBytes,
 		GasPrice:  frontendGasPrice,
 		GasLimit:  frontendGasLimit,
 		Data:      frontendData,
 		Signature: signatureBytes,
-	})
+	}
+	tx.SetValue(frontendValue)
+	txHexHash, err = node.SendTransaction(tx)
 
 	assert.Nil(t, err)
 

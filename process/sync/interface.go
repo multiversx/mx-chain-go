@@ -3,6 +3,7 @@ package sync
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // storageBootstrapper is the main interface for bootstrap from storage execution engine
@@ -15,4 +16,20 @@ type storageBootstrapper interface {
 	cleanupNotarizedStorage(lastNotarized map[uint32]uint64)
 	addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
 	IsInterfaceNil() bool
+}
+
+// blockBootstrapper is the interface needed by base sync to deal with shards and meta nodes while they bootstrap
+type blockBootstrapper interface {
+	getCurrHeader() (data.HeaderHandler, error)
+	getPrevHeader(data.HeaderHandler, storage.Storer) (data.HeaderHandler, error)
+	getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+	getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error)
+	getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error)
+	haveHeaderInPoolWithNonce(nonce uint64) bool
+	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+}
+
+// syncStarter defines the behavior of component that can start sync-ing blocks
+type syncStarter interface {
+	SyncBlock() error
 }

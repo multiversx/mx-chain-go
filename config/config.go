@@ -71,8 +71,9 @@ type Config struct {
 	MetaBlockStorage StorageConfig
 	PeerDataStorage  StorageConfig
 
-	AccountsTrieStorage StorageConfig
-	BadBlocksCache      CacheConfig
+	AccountsTrieStorage     StorageConfig
+	PeerAccountsTrieStorage StorageConfig
+	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	StateBlockBodyDataPool      CacheConfig
@@ -105,8 +106,9 @@ type Config struct {
 
 // NodeConfig will hold basic p2p settings
 type NodeConfig struct {
-	Port int
-	Seed string
+	Port            int
+	Seed            string
+	TargetPeerCount int
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings

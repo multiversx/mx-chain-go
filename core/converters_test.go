@@ -30,7 +30,7 @@ func TestToHexShouldReturnNil(t *testing.T) {
 func TestToHexShouldWork(t *testing.T) {
 	buff := []byte("test")
 	val := core.ToHex(buff)
-	assert.Equal(t, "0x"+hex.EncodeToString(buff), val)
+	assert.Equal(t, hex.EncodeToString(buff), val)
 }
 
 func TestCalculateHash_NilMarshalizer(t *testing.T) {
