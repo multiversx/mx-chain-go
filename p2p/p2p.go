@@ -59,6 +59,8 @@ type PeerDiscoverer interface {
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
+	Pause()  // pause the peer discovery
+	Resume() // resume the peer discovery
 	IsInterfaceNil() bool
 }
 
@@ -154,6 +156,10 @@ type Messenger interface {
 	// bypassing pubsub and topics. It opens a new connection with the given
 	// peer, but reuses a connection and a stream if possible.
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
+
+	IsConnectedToTheNetwork() bool
+	ThresholdMinConnectedPeers() int
+	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

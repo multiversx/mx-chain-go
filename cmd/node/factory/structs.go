@@ -98,7 +98,9 @@ const (
 
 var log = logger.DefaultLogger()
 
-const maxTxNonceDeltaAllowed = 15000
+// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
+// in order to mark the transaction as valid.
+const MaxTxNonceDeltaAllowed = 15000
 
 // ErrCreateForkDetector signals that a fork detector could not be created
 //TODO: Extract all others error messages from this file in some defined errors
@@ -1304,6 +1306,7 @@ func createNetMessenger(
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		pDiscoverer,
 		libp2p.ListenAddrWithIp4AndTcp,
+		p2pConfig.Node.TargetPeerCount,
 	)
 	if err != nil {
 		return nil, err
@@ -1375,7 +1378,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		crypto.MultiSigner,
 		data.Datapool,
 		state.AddressConverter,
-		maxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed,
 		economics,
 	)
 	if err != nil {
@@ -1427,7 +1430,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		state.AddressConverter,
 		crypto.SingleSigner,
 		crypto.TxSignKeyGen,
-		maxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed,
 		economics,
 	)
 	if err != nil {
