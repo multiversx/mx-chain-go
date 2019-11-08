@@ -14,9 +14,6 @@ var ErrNilSystemContractsContainer = errors.New("system contract container is ni
 // ErrNilVMType signals that the provided vm type is nil
 var ErrNilVMType = errors.New("vm type is nil")
 
-// ErrCannotCreateNewSystemSmartContract signals that creation of new system smart contracts is not available
-var ErrCannotCreateNewSystemSmartContract = errors.New("creation of new system smart contract is not enabled")
-
 // ErrInputArgsIsNil signals that input arguments are nil for system smart contract
 var ErrInputArgsIsNil = errors.New("input system smart contract arguments are nil")
 

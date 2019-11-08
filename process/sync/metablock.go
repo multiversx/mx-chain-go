@@ -1,11 +1,9 @@
 package sync
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -247,7 +245,7 @@ func (boot *MetaBootstrap) isMetaBlockValid(nonce uint64) (*block.MetaBlock, boo
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Debug("headerHandler is not of type MetaBlock", "error", process.ErrWrongTypeAssertion.Error())
+		log.Debug("headerHandler is not of type metaBlock", "error", process.ErrWrongTypeAssertion.Error())
 		return nil, false
 	}
 

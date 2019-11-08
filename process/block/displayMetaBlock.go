@@ -1,11 +1,9 @@
 package block
 
 import (
-	"encoding/base64"
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/display"
 )

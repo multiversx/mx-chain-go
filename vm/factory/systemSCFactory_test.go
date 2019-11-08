@@ -3,6 +3,7 @@ package factory
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
@@ -43,5 +44,5 @@ func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
 	assert.False(t, scFactory.IsInterfaceNil())
 
 	scFactory = nil
-	assert.True(t, scFactory.IsInterfaceNil())
+	assert.True(t, check.IfNil(scFactory))
 }

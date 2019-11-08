@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
@@ -209,15 +208,6 @@ func TestElrondFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *t
 	tx, err := ef.GetTransaction("unknownHash")
 	assert.Nil(t, err)
 	assert.Nil(t, tx)
-}
-
-func TestElrondNodeFacade_SetLogger(t *testing.T) {
-	node := &mock.NodeMock{}
-
-	ef := createElrondNodeFacadeWithMockResolver(node)
-	log := logger.DefaultLogger()
-	ef.SetLogger(log)
-	assert.Equal(t, log, ef.GetLogger())
 }
 
 func TestElrondNodeFacade_SetSyncer(t *testing.T) {
