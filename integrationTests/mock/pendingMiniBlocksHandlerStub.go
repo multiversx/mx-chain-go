@@ -7,7 +7,7 @@ import (
 
 type PendingMiniBlocksHandlerStub struct {
 	PendingMiniBlockHeadersCalled func() []block.ShardMiniBlockHeader
-	AddCommittedHeaderCalled      func(handler data.HeaderHandler) error
+	AddProcessedHeaderCalled      func(handler data.HeaderHandler) error
 	RevertHeaderCalled            func(handler data.HeaderHandler) error
 }
 
@@ -18,9 +18,9 @@ func (p *PendingMiniBlocksHandlerStub) PendingMiniBlockHeaders() []block.ShardMi
 	return nil
 }
 
-func (p *PendingMiniBlocksHandlerStub) AddCommittedHeader(handler data.HeaderHandler) error {
-	if p.AddCommittedHeaderCalled != nil {
-		return p.AddCommittedHeaderCalled(handler)
+func (p *PendingMiniBlocksHandlerStub) AddProcessedHeader(handler data.HeaderHandler) error {
+	if p.AddProcessedHeaderCalled != nil {
+		return p.AddProcessedHeaderCalled(handler)
 	}
 	return nil
 }

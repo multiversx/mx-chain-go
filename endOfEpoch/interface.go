@@ -18,7 +18,7 @@ type TriggerHandler interface {
 // PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks
 type PendingMiniBlocksHandler interface {
 	PendingMiniBlockHeaders() []block.ShardMiniBlockHeader
-	AddCommittedHeader(handler data.HeaderHandler) error
+	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

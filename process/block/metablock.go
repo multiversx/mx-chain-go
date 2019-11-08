@@ -70,6 +70,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
+		endOfEpochTrigger:             arguments.EndOfEpochTrigger,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -215,6 +216,11 @@ func (mp *metaProcessor) ProcessBlock(
 
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
 		err = process.ErrValidatorStatsRootHashDoesNotMatch
+		return err
+	}
+
+	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
+	if err != nil {
 		return err
 	}
 
@@ -574,11 +580,6 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.indexBlock(header, lastMetaBlock)
-
-	err = mp.pendingMiniBlocks.AddCommittedHeader(header)
-	if err != nil {
-		return err
-	}
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
@@ -1192,6 +1193,11 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	header.PeerInfo = peerInfo
 	header.RootHash = mp.getRootHash()
 	header.TxCount = getTxCount(shardInfo)
+
+	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
+	if err != nil {
+		return nil, err
+	}
 
 	mp.blockSizeThrottler.Add(
 		round,

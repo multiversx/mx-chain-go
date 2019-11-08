@@ -55,7 +55,7 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders() []block.ShardMiniBlo
 	return shardMiniBlokcHeaders
 }
 
-func (p *pendingMiniBlockHeaders) AddCommittedHeader(handler data.HeaderHandler) error {
+func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler) error {
 	metaHdr, ok := handler.(*block.MetaBlock)
 	if !ok {
 		return endOfEpoch.ErrWongTypeAssertion
@@ -71,8 +71,14 @@ func (p *pendingMiniBlockHeaders) AddCommittedHeader(handler data.HeaderHandler)
 	//	mapMetaMiniBlockHdrs[string(miniBlockHeader.Hash)] = &miniBlockHeader
 	//}
 
+	var err error
 	p.mutPending.Lock()
-	defer p.mutPending.Unlock()
+	defer func() {
+		p.mutPending.Unlock()
+		if err != nil {
+			_ = p.RevertHeader(handler)
+		}
+	}()
 
 	for _, shardData := range metaHdr.ShardInfo {
 		for _, mbHeader := range shardData.ShardMiniBlockHeaders {
@@ -92,7 +98,8 @@ func (p *pendingMiniBlockHeaders) AddCommittedHeader(handler data.HeaderHandler)
 
 			delete(p.mapMiniBlockHeaders, string(mbHeader.Hash))
 
-			buff, err := p.marshalizer.Marshal(mbHeader)
+			var buff []byte
+			buff, err = p.marshalizer.Marshal(mbHeader)
 			if err != nil {
 				return err
 			}
