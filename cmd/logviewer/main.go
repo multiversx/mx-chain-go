@@ -90,17 +90,16 @@ VERSION:
 
 	argsConfig = &config{}
 
-	log         = logger.GetOrCreate("logviewer")
-	cliApp      *cli.App
-	webSocket   *websocket.Conn
-	manualStop  chan struct{}
-	fileForLogs *os.File
-	marshalizer marshal.Marshalizer
+	log           = logger.GetOrCreate("logviewer")
+	cliApp        *cli.App
+	webSocket     *websocket.Conn
+	fileForLogs   *os.File
+	marshalizer   marshal.Marshalizer
+	retryDuration = time.Second * 10
 )
 
 func main() {
 	initCliFlags()
-	manualStop = make(chan struct{})
 	marshalizer = &marshal.ProtobufMarshalizer{}
 
 	cliApp.Action = func(c *cli.Context) error {
@@ -163,11 +162,19 @@ func startLogViewer(ctx *cli.Context) error {
 		}()
 	}
 
-	webSocket, err = openWebSocket(argsConfig.address, argsConfig.logLevelPatterns)
-	if err != nil {
-		return err
-	}
-	go listeningOnWebSocket()
+	go func() {
+		for {
+			webSocket, err = openWebSocket(argsConfig.address, argsConfig.logLevelPatterns)
+			if err != nil {
+				log.Error(fmt.Sprintf("logviewer websocket error, retrying in %v...", retryDuration), "error", err.Error())
+				time.Sleep(retryDuration)
+				continue
+			}
+
+			listeningOnWebSocket()
+			time.Sleep(retryDuration)
+		}
+	}()
 
 	//set this log's level to the lowest desired log level that matches received logs from elrond-go
 	lowestLogLevel := getLowestLogLevel(logLevels)
@@ -235,8 +242,9 @@ func listeningOnWebSocket() {
 
 		_, isConnectionClosed := err.(*websocket.CloseError)
 		if !isConnectionClosed {
-			log.Error("logviewer websocket error", "error", err.Error())
-			manualStop <- struct{}{}
+			log.Error("logviewer websocket error, retrying in %v...", "error", err.Error())
+		} else {
+			log.Error(fmt.Sprintf("logviewer websocket terminated by the server side, retrying in %v...", retryDuration), "error", err.Error())
 		}
 		return
 	}
@@ -246,13 +254,13 @@ func waitForUserToTerminateApp(conn *websocket.Conn) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	select {
-	case <-sigs:
-		log.Info("terminating logviewer app at user's signal...")
+	<-sigs
+
+	log.Info("terminating logviewer app at user's signal...")
+	if conn != nil {
 		err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		log.LogIfError(err)
 		time.Sleep(time.Second)
-	case <-manualStop:
 	}
 
 	log.Info("logviewer application stopped")
