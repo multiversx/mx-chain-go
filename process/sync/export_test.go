@@ -1,10 +1,14 @@
 package sync
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
@@ -12,7 +16,7 @@ func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 }
 
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return boot.miniBlockResolver.GetMiniBlocks(hashes)
+	return boot.miniBlocksResolver.GetMiniBlocks(hashes)
 }
 
 func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
@@ -23,12 +27,12 @@ func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
 }
 
-func (boot *ShardBootstrap) ForkChoice(revertUsingForkNonce bool) error {
-	return boot.forkChoice(revertUsingForkNonce)
+func (boot *ShardBootstrap) RollBack(revertUsingForkNonce bool) error {
+	return boot.rollBack(revertUsingForkNonce)
 }
 
-func (boot *MetaBootstrap) ForkChoice(revertUsingForkNonce bool) error {
-	return boot.forkChoice(revertUsingForkNonce)
+func (boot *MetaBootstrap) RollBack(revertUsingForkNonce bool) error {
+	return boot.rollBack(revertUsingForkNonce)
 }
 
 func (bfd *baseForkDetector) GetHeaders(nonce uint64) []*headerInfo {
@@ -279,4 +283,26 @@ func (bfd *baseForkDetector) SetProbableHighestNonce(nonce uint64) {
 
 func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
 	sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
+}
+
+func GetCacherWithHeaders(
+	hdr1 data.HeaderHandler,
+	hdr2 data.HeaderHandler,
+	hash1 []byte,
+	hash2 []byte,
+) storage.Cacher {
+	sds := &mock.CacherStub{
+		RegisterHandlerCalled: func(func(key []byte)) {},
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal(key, hash1) {
+				return &hdr1, true
+			}
+			if bytes.Equal(key, hash2) {
+				return &hdr2, true
+			}
+
+			return nil, false
+		},
+	}
+	return sds
 }

@@ -6,8 +6,15 @@ import (
 )
 
 type MockTimer struct {
-	secondsMutex sync.RWMutex
+	secondsMutex *sync.RWMutex
 	seconds      int64
+}
+
+func NewMockTimer() *MockTimer {
+	return &MockTimer{
+		seconds:      0,
+		secondsMutex: &sync.RWMutex{},
+	}
 }
 
 func (m *MockTimer) Now() time.Time {

@@ -12,11 +12,12 @@ type P2PMessenger interface {
 	Bootstrap() error
 	Broadcast(topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte)
+	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
 	CreateTopic(name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
 	PeerAddress(pid p2p.PeerID) string
+	IsConnectedToTheNetwork() bool
 	IsInterfaceNil() bool
 }

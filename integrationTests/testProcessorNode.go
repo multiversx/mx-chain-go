@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -59,6 +61,9 @@ var TestAddressConverter, _ = addressConverters.NewPlainAddressConverter(32, "0x
 // TestMultiSig represents a mock multisig
 var TestMultiSig = mock.NewMultiSigner(1)
 
+// TestKeyGenForAccounts represents a mock key generator for balances
+var TestKeyGenForAccounts = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
@@ -70,6 +75,7 @@ var MinTxGasPrice = uint64(0)
 var MinTxGasLimit = uint64(4)
 
 const maxTxNonceDeltaAllowed = 8000
+const minConnectedPeers = 0
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -177,6 +183,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
@@ -229,6 +236,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initNode()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
@@ -489,18 +497,19 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:              tpn.AccntState,
-		ForkDetector:          tpn.ForkDetector,
-		Hasher:                TestHasher,
-		Marshalizer:           TestMarshalizer,
-		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator,
-		NodesCoordinator:      tpn.NodesCoordinator,
-		SpecialAddressHandler: tpn.SpecialAddressHandler,
-		Uint64Converter:       TestUint64Converter,
-		StartHeaders:          tpn.GenesisBlocks,
-		RequestHandler:        tpn.RequestHandler,
-		Core:                  nil,
+		Accounts:                     tpn.AccntState,
+		ForkDetector:                 tpn.ForkDetector,
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		Store:                        tpn.Storage,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		NodesCoordinator:             tpn.NodesCoordinator,
+		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		Uint64Converter:              TestUint64Converter,
+		StartHeaders:                 tpn.GenesisBlocks,
+		RequestHandler:               tpn.RequestHandler,
+		Core:                         nil,
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -545,6 +554,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithAddressConverter(TestAddressConverter),
 		node.WithAccountsAdapter(tpn.AccntState),
 		node.WithKeyGen(tpn.OwnAccount.KeygenTxSign),
+		node.WithKeyGenForAccounts(TestKeyGenForAccounts),
+		node.WithTxFeeHandler(tpn.EconomicsData),
 		node.WithShardCoordinator(tpn.ShardCoordinator),
 		node.WithNodesCoordinator(tpn.NodesCoordinator),
 		node.WithBlockChain(tpn.BlockChain),
@@ -587,7 +598,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		tx.Nonce,
 		hex.EncodeToString(tx.SndAddr),
 		hex.EncodeToString(tx.RcvAddr),
-		tx.Value,
+		tx.Value.String(),
 		tx.GasPrice,
 		tx.GasLimit,
 		tx.Data,
@@ -697,7 +708,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
-	_ = tpn.BroadcastMessenger.BroadcastHeader(header)
+	_ = tpn.BroadcastMessenger.BroadcastShardHeader(header)
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)

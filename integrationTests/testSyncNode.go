@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -74,24 +75,41 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initNode()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
+}
+
+func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
+	for shardId, header := range tpn.GenesisBlocks {
+		buffHeader, _ := TestMarshalizer.Marshal(header)
+		headerHash := TestHasher.Compute(string(buffHeader))
+
+		if shardId == sharding.MetachainShardId {
+			metablockStorer := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+			_ = metablockStorer.Put(headerHash, buffHeader)
+		} else {
+			shardblockStorer := tpn.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+			_ = shardblockStorer.Put(headerHash, buffHeader)
+		}
+	}
 }
 
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:              tpn.AccntState,
-		ForkDetector:          nil,
-		Hasher:                TestHasher,
-		Marshalizer:           TestMarshalizer,
-		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator,
-		NodesCoordinator:      tpn.NodesCoordinator,
-		SpecialAddressHandler: tpn.SpecialAddressHandler,
-		Uint64Converter:       TestUint64Converter,
-		StartHeaders:          tpn.GenesisBlocks,
-		RequestHandler:        tpn.RequestHandler,
-		Core:                  nil,
+		Accounts:                     tpn.AccntState,
+		ForkDetector:                 nil,
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		Store:                        tpn.Storage,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		NodesCoordinator:             tpn.NodesCoordinator,
+		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		Uint64Converter:              TestUint64Converter,
+		StartHeaders:                 tpn.GenesisBlocks,
+		RequestHandler:               tpn.RequestHandler,
+		Core:                         nil,
+		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -138,6 +156,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		1,
+		tpn.Messenger,
 	)
 	if err != nil {
 		return nil, err
@@ -163,6 +182,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		1,
+		tpn.Messenger,
 	)
 
 	if err != nil {

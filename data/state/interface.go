@@ -66,6 +66,16 @@ type AccountHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PeerAccountHandler models a peer state account, which can journalize a normal account's data
+//  with some extra features like signing statistics or rating information
+type PeerAccountHandler interface {
+	AccountHandler
+	IncreaseLeaderSuccessRateWithJournal() error
+	DecreaseLeaderSuccessRateWithJournal() error
+	IncreaseValidatorSuccessRateWithJournal() error
+	DecreaseValidatorSuccessRateWithJournal() error
+}
+
 // DataTrieTracker models what how to manipulate data held by a SC account
 type DataTrieTracker interface {
 	ClearDataCaches()
