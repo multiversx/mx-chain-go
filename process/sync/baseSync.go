@@ -245,10 +245,10 @@ func (boot *baseBootstrap) cleanupStorage(
 		log.Info(fmt.Sprintf("remove block body with nonce %d: %s\n", nonce, errNotCritical.Error()))
 	}
 
-	//errNotCritical = boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
-	//if errNotCritical != nil {
-	//	log.Info(fmt.Sprintf("remove block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
-	//}
+	errNotCritical = boot.removeBlockHeader(nonce, blockUnit, hdrNonceHashDataUnit)
+	if errNotCritical != nil {
+		log.Info(fmt.Sprintf("remove block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
+	}
 }
 
 func (boot *baseBootstrap) removeBlockHeader(
@@ -256,16 +256,16 @@ func (boot *baseBootstrap) removeBlockHeader(
 	blockUnit dataRetriever.UnitType,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	headerNonceHashStore := boot.store.GetStorer(hdrNonceHashDataUnit)
-	if headerNonceHashStore == nil {
-		return process.ErrNilHeadersNonceHashStorage
-	}
-
-	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	err := headerNonceHashStore.Remove(nonceToByteSlice)
-	if err != nil {
-		return err
-	}
+	//headerNonceHashStore := boot.store.GetStorer(hdrNonceHashDataUnit)
+	//if headerNonceHashStore == nil {
+	//	return process.ErrNilHeadersNonceHashStorage
+	//}
+	//
+	//nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
+	//err := headerNonceHashStore.Remove(nonceToByteSlice)
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
@@ -512,8 +512,8 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHandler) {
 	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
-	//nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
-	//_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
+	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
 
 // checkBootstrapNilParameters will check the imput parameters for nil values
