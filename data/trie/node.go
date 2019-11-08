@@ -39,6 +39,10 @@ type node interface {
 	print(writer io.Writer, index int)
 	deepClone() node
 	getDirtyHashes() ([][]byte, error)
+	getChildren() ([]node, error)
+	isValid() bool
+	setDirty(bool)
+	loadChildren(*trieSyncer) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -129,12 +133,12 @@ func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal
 		return nil, err
 	}
 
-	node, err := decodeNode(encChild, db, marshalizer, hasher)
+	decodedNode, err := decodeNode(encChild, db, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
 
-	return node, nil
+	return decodedNode, nil
 }
 
 func resolveIfCollapsed(n node, pos byte) error {
@@ -184,21 +188,21 @@ func decodeNode(encNode []byte, db data.DBWriteCacher, marshalizer marshal.Marsh
 	nodeType := encNode[len(encNode)-1]
 	encNode = encNode[:len(encNode)-1]
 
-	node, err := getEmptyNodeOfType(nodeType)
+	newNode, err := getEmptyNodeOfType(nodeType)
 	if err != nil {
 		return nil, err
 	}
 
-	err = marshalizer.Unmarshal(node, encNode)
+	err = marshalizer.Unmarshal(newNode, encNode)
 	if err != nil {
 		return nil, err
 	}
 
-	node.setDb(db)
-	node.setMarshalizer(marshalizer)
-	node.setHasher(hasher)
+	newNode.setDb(db)
+	newNode.setMarshalizer(marshalizer)
+	newNode.setHasher(hasher)
 
-	return node, nil
+	return newNode, nil
 }
 
 func getEmptyNodeOfType(t byte) (node, error) {

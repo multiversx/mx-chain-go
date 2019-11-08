@@ -39,3 +39,15 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrSnapshotInProgress is raised when we try to take a snapshot, but another snapshot is already in progress
 var ErrSnapshotInProgress = errors.New("another snapshot is already in progress")
+
+// ErrNilTrie is raised when the trie is nil
+var ErrNilTrie = errors.New("the trie is nil")
+
+// ErrNilResolver is raised when the given resolver is nil
+var ErrNilResolver = errors.New("the resolver is nil")
+
+// ErrInvalidHash is raised when the given hash is invalid
+var ErrInvalidHash = errors.New("the received hash is invalid")
+
+// ErrTimeIsOut signals that time is out
+var ErrTimeIsOut = errors.New("time is out")

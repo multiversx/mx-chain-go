@@ -9,20 +9,22 @@ import (
 var errNotImplemented = errors.New("not implemented")
 
 type TrieStub struct {
-	GetCalled               func(key []byte) ([]byte, error)
-	UpdateCalled            func(key, value []byte) error
-	DeleteCalled            func(key []byte) error
-	RootCalled              func() ([]byte, error)
-	ProveCalled             func(key []byte) ([][]byte, error)
-	VerifyProofCalled       func(proofs [][]byte, key []byte) (bool, error)
-	CommitCalled            func() error
-	RecreateCalled          func(root []byte) (data.Trie, error)
-	DeepCloneCalled         func() (data.Trie, error)
-	CancelPruneCalled       func(rootHash []byte, identifier data.TriePruningIdentifier)
-	PruneCalled             func(rootHash []byte, identifier data.TriePruningIdentifier) error
-	ResetOldHashesCalled    func() [][]byte
-	AppendToOldHashesCalled func([][]byte)
-	SnapshotCalled          func() error
+	GetCalled                func(key []byte) ([]byte, error)
+	UpdateCalled             func(key, value []byte) error
+	DeleteCalled             func(key []byte) error
+	RootCalled               func() ([]byte, error)
+	ProveCalled              func(key []byte) ([][]byte, error)
+	VerifyProofCalled        func(proofs [][]byte, key []byte) (bool, error)
+	CommitCalled             func() error
+	RecreateCalled           func(root []byte) (data.Trie, error)
+	DeepCloneCalled          func() (data.Trie, error)
+	CancelPruneCalled        func(rootHash []byte, identifier data.TriePruningIdentifier)
+	PruneCalled              func(rootHash []byte, identifier data.TriePruningIdentifier) error
+	ResetOldHashesCalled     func() [][]byte
+	AppendToOldHashesCalled  func([][]byte)
+	SnapshotCalled           func() error
+	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
+	DatabaseCalled           func() data.DBWriteCacher
 }
 
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
@@ -140,6 +142,20 @@ func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
 func (ts *TrieStub) Snapshot() error {
 	if ts.SnapshotCalled != nil {
 		return ts.SnapshotCalled()
+	}
+	return nil
+}
+
+func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, error) {
+	if ts.GetSerializedNodesCalled != nil {
+		return ts.GetSerializedNodesCalled(hash, maxBuffToSend)
+	}
+	return nil, nil
+}
+
+func (ts *TrieStub) Database() data.DBWriteCacher {
+	if ts.DatabaseCalled != nil {
+		return ts.DatabaseCalled()
 	}
 	return nil
 }

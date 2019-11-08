@@ -153,12 +153,13 @@ func (bn *branchNode) getCollapsed() (node, error) {
 	collapsed := bn.clone()
 	for i := range bn.children {
 		if bn.children[i] != nil {
-			ok, err := hasValidHash(bn.children[i])
+			var ok bool
+			ok, err = hasValidHash(bn.children[i])
 			if err != nil {
 				return nil, err
 			}
 			if !ok {
-				err := bn.children[i].setHash()
+				err = bn.children[i].setHash()
 				if err != nil {
 					return nil, err
 				}
@@ -179,7 +180,8 @@ func (bn *branchNode) setHash() error {
 		return nil
 	}
 	if bn.isCollapsed() {
-		hash, err := encodeNodeAndGetHash(bn)
+		var hash []byte
+		hash, err = encodeNodeAndGetHash(bn)
 		if err != nil {
 			return err
 		}
@@ -203,7 +205,8 @@ func (bn *branchNode) setRootHash() error {
 		return nil
 	}
 	if bn.isCollapsed() {
-		hash, err := encodeNodeAndGetHash(bn)
+		var hash []byte
+		hash, err = encodeNodeAndGetHash(bn)
 		if err != nil {
 			return err
 		}
@@ -222,7 +225,7 @@ func (bn *branchNode) setRootHash() error {
 	}
 	wg.Wait()
 	if len(errc) != 0 {
-		for err := range errc {
+		for err = range errc {
 			return err
 		}
 	}
@@ -247,7 +250,8 @@ func (bn *branchNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
 		return
 	}
 	if bn.isCollapsed() {
-		hash, err := encodeNodeAndGetHash(bn)
+		var hash []byte
+		hash, err = encodeNodeAndGetHash(bn)
 		if err != nil {
 			c <- err
 			return
@@ -271,7 +275,7 @@ func (bn *branchNode) hashChildren() error {
 	}
 	for i := 0; i < nrOfChildren; i++ {
 		if bn.children[i] != nil {
-			err := bn.children[i].setHash()
+			err = bn.children[i].setHash()
 			if err != nil {
 				return err
 			}
@@ -287,7 +291,8 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	}
 	for i := range bn.EncodedChildren {
 		if bn.children[i] != nil {
-			encChild, err := encodeNodeAndGetHash(bn.children[i])
+			var encChild []byte
+			encChild, err = encodeNodeAndGetHash(bn.children[i])
 			if err != nil {
 				return nil, err
 			}
@@ -332,7 +337,8 @@ func (bn *branchNode) commit(force bool, level byte, targetDb data.DBWriteCacher
 		return err
 	}
 	if level == maxTrieLevelAfterCommit {
-		collapsed, err := bn.getCollapsed()
+		var collapsed node
+		collapsed, err = bn.getCollapsed()
 		if err != nil {
 			return err
 		}
@@ -365,7 +371,8 @@ func (bn *branchNode) resolveCollapsed(pos byte) error {
 		return ErrChildPosOutOfRange
 	}
 	if len(bn.EncodedChildren[pos]) != 0 {
-		child, err := getNodeFromDBAndDecode(bn.EncodedChildren[pos], bn.db, bn.marsh, bn.hasher)
+		var child node
+		child, err = getNodeFromDBAndDecode(bn.EncodedChildren[pos], bn.db, bn.marsh, bn.hasher)
 		if err != nil {
 			return err
 		}
@@ -456,7 +463,11 @@ func (bn *branchNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 	}
 
 	if bn.children[childPos] != nil {
-		dirty, newNode, oldHashes, err := bn.children[childPos].insert(n)
+		var dirty bool
+		var newNode node
+		var oldHashes [][]byte
+
+		dirty, newNode, oldHashes, err = bn.children[childPos].insert(n)
 		if !dirty || err != nil {
 			return false, bn, emptyHashes, err
 		}
@@ -523,9 +534,9 @@ func (bn *branchNode) delete(key []byte) (bool, node, [][]byte, error) {
 		bn.EncodedChildren[childPos] = nil
 	}
 
-	nrOfChildren, pos := getChildPosition(bn)
+	numChildren, pos := getChildPosition(bn)
 
-	if nrOfChildren == 1 {
+	if numChildren == 1 {
 		err = resolveIfCollapsed(bn, byte(pos))
 		if err != nil {
 			return false, nil, emptyHashes, err
@@ -659,7 +670,8 @@ func (bn *branchNode) getDirtyHashes() ([][]byte, error) {
 			continue
 		}
 
-		hashes, err := bn.children[i].getDirtyHashes()
+		var hashes [][]byte
+		hashes, err = bn.children[i].getDirtyHashes()
 		if err != nil {
 			return nil, err
 		}
@@ -669,4 +681,72 @@ func (bn *branchNode) getDirtyHashes() ([][]byte, error) {
 
 	dirtyHashes = append(dirtyHashes, bn.getHash())
 	return dirtyHashes, nil
+}
+
+func (bn *branchNode) getChildren() ([]node, error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
+
+	nextNodes := make([]node, 0)
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i))
+		if err != nil {
+			return nil, err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		nextNodes = append(nextNodes, bn.children[i])
+	}
+
+	return nextNodes, nil
+}
+
+func (bn *branchNode) isValid() bool {
+	nrChildren := 0
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) != 0 || bn.children[i] != nil {
+			nrChildren++
+		}
+	}
+
+	if nrChildren < 2 {
+		return false
+	}
+
+	return true
+}
+
+func (bn *branchNode) setDirty(dirty bool) {
+	bn.dirty = dirty
+}
+
+func (bn *branchNode) loadChildren(syncer *trieSyncer) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) == 0 {
+			continue
+		}
+
+		var child node
+		child, err = syncer.getNode(bn.EncodedChildren[i])
+		if err != nil {
+			return err
+		}
+
+		bn.children[i] = child
+	}
+
+	syncer.interceptedNodes.Remove(bn.hash)
+
+	return nil
 }

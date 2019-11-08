@@ -118,9 +118,11 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		return err
 	}
 
+	var newRoot node
+	var oldHashes [][]byte
 	if len(value) != 0 {
 		if tr.root == nil {
-			newRoot, err := newLeafNode(hexKey, value, tr.db, tr.marshalizer, tr.hasher)
+			newRoot, err = newLeafNode(hexKey, value, tr.db, tr.marshalizer, tr.hasher)
 			if err != nil {
 				return err
 			}
@@ -133,7 +135,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err := tr.root.insert(newLn)
+		_, newRoot, oldHashes, err = tr.root.insert(newLn)
 		if err != nil {
 			return err
 		}
@@ -148,7 +150,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err := tr.root.delete(hexKey)
+		_, newRoot, oldHashes, err = tr.root.delete(hexKey)
 		if err != nil {
 			return err
 		}
@@ -214,25 +216,26 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 
 	var proof [][]byte
 	hexKey := keyBytesToHex(key)
-	node := tr.root
+	n := tr.root
 
-	err := node.setRootHash()
+	err := n.setRootHash()
 	if err != nil {
 		return nil, err
 	}
 
+	var encNode []byte
 	for {
-		encNode, err := node.getEncodedNode()
+		encNode, err = n.getEncodedNode()
 		if err != nil {
 			return nil, err
 		}
 		proof = append(proof, encNode)
 
-		node, hexKey, err = node.getNext(hexKey)
+		n, hexKey, err = n.getNext(hexKey)
 		if err != nil {
 			return nil, err
 		}
-		if node == nil {
+		if n == nil {
 			return proof, nil
 		}
 	}
@@ -260,7 +263,8 @@ func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, er
 			return false, nil
 		}
 
-		n, err := decodeNode(encNode, tr.db, tr.marshalizer, tr.hasher)
+		var n node
+		n, err = decodeNode(encNode, tr.db, tr.marshalizer, tr.hasher)
 		if err != nil {
 			return false, err
 		}
@@ -336,38 +340,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	newTr, err := NewTrie(
-		tr.db,
-		tr.marshalizer,
-		tr.hasher,
-		memorydb.New(),
-		tr.dbEvictionWaitingList.GetSize(),
-		tr.snapshotDbCfg,
-	)
-	if err != nil {
-		return nil, err
-	}
-	newTr.dbEvictionWaitingList = tr.dbEvictionWaitingList
-	newTr.snapshots = tr.snapshots
-	newTr.snapshotId = tr.snapshotId
-
-	if emptyTrie(root) {
-		return newTr, nil
-	}
-
-	encRoot, err := tr.db.Get(root)
-	if err != nil {
-		return nil, err
-	}
-
-	newRoot, err := decodeNode(encRoot, tr.db, tr.marshalizer, tr.hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	newRoot.setGivenHash(root)
-	newTr.root = newRoot
-	return newTr, nil
+	return tr.recreateFromDb(root, tr.db)
 }
 
 // DeepClone returns a new trie with all nodes deeply copied
@@ -581,6 +554,112 @@ func (tr *patriciaMerkleTrie) removeFromDb(hash []byte) error {
 		err = tr.db.Remove(hashes[i])
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+// Database returns the trie database
+func (tr *patriciaMerkleTrie) Database() data.DBWriteCacher {
+	return tr.db
+}
+
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCacher) (data.Trie, error) {
+	newTr, err := NewTrie(
+		db,
+		tr.marshalizer,
+		tr.hasher,
+		memorydb.New(),
+		tr.dbEvictionWaitingList.GetSize(),
+		tr.snapshotDbCfg,
+	)
+	if err != nil {
+		return nil, err
+	}
+	newTr.dbEvictionWaitingList = tr.dbEvictionWaitingList
+	newTr.snapshots = tr.snapshots
+	newTr.snapshotId = tr.snapshotId
+
+	if emptyTrie(rootHash) {
+		return newTr, nil
+	}
+
+	encRoot, err := db.Get(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	newRoot, err := decodeNode(encRoot, db, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	newRoot.setGivenHash(rootHash)
+	newTr.root = newRoot
+	return newTr, nil
+}
+
+// GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
+func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	size := uint64(0)
+	db := tr.getDbThatContainsHash(rootHash)
+	newTr, err := tr.recreateFromDb(rootHash, db)
+	if err != nil {
+		return nil, err
+	}
+
+	it, err := NewIterator(newTr)
+	if err != nil {
+		return nil, err
+	}
+
+	encNode, err := it.MarshalizedNode()
+	if err != nil {
+		return nil, err
+	}
+
+	nodes := make([][]byte, 0)
+	nodes = append(nodes, encNode)
+	size += uint64(len(encNode))
+
+	for it.HasNext() {
+		err = it.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		encNode, err = it.MarshalizedNode()
+		if err != nil {
+			return nil, err
+		}
+
+		if size+uint64(len(encNode)) > maxBuffToSend {
+			return nodes, nil
+		}
+		nodes = append(nodes, encNode)
+		size += uint64(len(encNode))
+	}
+
+	return nodes, nil
+}
+
+func (tr *patriciaMerkleTrie) getDbThatContainsHash(rootHash []byte) data.DBWriteCacher {
+	encNode, err := tr.db.Get(rootHash)
+	hashPresent := err == nil
+	if hashPresent {
+		return tr.db
+	}
+
+	for i := range tr.snapshots {
+		encNode, err = tr.snapshots[i].Get(rootHash)
+
+		hashPresent = err == nil && encNode != nil
+		if hashPresent {
+			return tr.snapshots[i]
 		}
 	}
 

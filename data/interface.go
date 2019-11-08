@@ -114,6 +114,8 @@ type Trie interface {
 	Snapshot() error
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
+	Database() DBWriteCacher
+	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -130,5 +132,11 @@ type DBRemoveCacher interface {
 	Put([]byte, [][]byte) error
 	Evict([]byte) ([][]byte, error)
 	GetSize() int
+	IsInterfaceNil() bool
+}
+
+// TrieSyncer synchronizes the trie, asking on the network for the missing nodes
+type TrieSyncer interface {
+	StartSyncing(rootHash []byte) error
 	IsInterfaceNil() bool
 }
