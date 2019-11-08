@@ -1,7 +1,6 @@
 package peer
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -409,7 +408,7 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 
 	metaDataPool, ok := p.dataPool.(dataRetriever.MetaPoolsHolder)
 	if !ok {
-		return errors.New("woooot")
+		return process.ErrInvalidMetaPoolHolder
 	}
 
 	for _, shardData := range header.ShardInfo {

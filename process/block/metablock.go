@@ -213,8 +213,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Info("Updated metaPeerState to: " + string(validatorStatsRH))
-
 	return nil
 }
 

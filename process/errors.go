@@ -523,3 +523,6 @@ var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 
 // ErrMissingPrevShardData signals that a required shard data information is missing
 var ErrMissingPrevShardData = errors.New("shard data is missing")
+
+// ErrInvalidMetaPoolHolder signals that a required shard data information is missing
+var ErrInvalidMetaPoolHolder = errors.New("invalid meta pool holder")
