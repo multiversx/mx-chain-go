@@ -148,7 +148,8 @@ func (en *extensionNode) setHash() error {
 		return nil
 	}
 	if en.isCollapsed() {
-		hash, err := encodeNodeAndGetHash(en)
+		var hash []byte
+		hash, err = encodeNodeAndGetHash(en)
 		if err != nil {
 			return err
 		}
@@ -194,7 +195,8 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 		return nil, err
 	}
 	if en.child != nil {
-		encChild, err := encodeNodeAndGetHash(en.child)
+		var encChild []byte
+		encChild, err = encodeNodeAndGetHash(en.child)
 		if err != nil {
 			return nil, err
 		}
@@ -235,7 +237,8 @@ func (en *extensionNode) commit(force bool, level byte, targetDb data.DBWriteCac
 		return err
 	}
 	if level == maxTrieLevelAfterCommit {
-		collapsed, err := en.getCollapsed()
+		var collapsed node
+		collapsed, err = en.getCollapsed()
 		if err != nil {
 			return err
 		}
@@ -340,8 +343,12 @@ func (en *extensionNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
+		var dirty bool
+		var newNode, newEn node
+		var oldHashes [][]byte
+
 		n.Key = n.Key[keyMatchLen:]
-		dirty, newNode, oldHashes, err := en.child.insert(n)
+		dirty, newNode, oldHashes, err = en.child.insert(n)
 		if !dirty || err != nil {
 			return false, nil, emptyHashes, err
 		}
@@ -350,7 +357,7 @@ func (en *extensionNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 			oldHashes = append(oldHashes, en.hash)
 		}
 
-		newEn, err := newExtensionNode(en.Key, newNode, en.db, en.marsh, en.hasher)
+		newEn, err = newExtensionNode(en.Key, newNode, en.db, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
@@ -364,7 +371,7 @@ func (en *extensionNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 	}
 
 	// Otherwise branch out at the index where they differ.
-	branch, err := newBranchNode(en.db, en.marsh, en.hasher)
+	bn, err := newBranchNode(en.db, en.marsh, en.hasher)
 	if err != nil {
 		return false, nil, emptyHashes, err
 	}
@@ -381,18 +388,18 @@ func (en *extensionNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 	}
 
 	if len(followingExtensionNode.Key) < 1 {
-		branch.children[oldChildPos] = en.child
+		bn.children[oldChildPos] = en.child
 	} else {
-		branch.children[oldChildPos] = followingExtensionNode
+		bn.children[oldChildPos] = followingExtensionNode
 	}
 	n.Key = n.Key[keyMatchLen+1:]
-	branch.children[newChildPos] = n
+	bn.children[newChildPos] = n
 
 	if keyMatchLen == 0 {
-		return true, branch, oldHash, nil
+		return true, bn, oldHash, nil
 	}
 
-	newEn, err := newExtensionNode(en.Key[:keyMatchLen], branch, en.db, en.marsh, en.hasher)
+	newEn, err := newExtensionNode(en.Key[:keyMatchLen], bn, en.db, en.marsh, en.hasher)
 	if err != nil {
 		return false, nil, emptyHashes, err
 	}
@@ -427,28 +434,29 @@ func (en *extensionNode) delete(key []byte) (bool, node, [][]byte, error) {
 		oldHashes = append(oldHashes, en.hash)
 	}
 
+	var n node
 	switch newNode := newNode.(type) {
 	case *leafNode:
-		newLn, err := newLeafNode(concat(en.Key, newNode.Key...), newNode.Value, en.db, en.marsh, en.hasher)
+		n, err = newLeafNode(concat(en.Key, newNode.Key...), newNode.Value, en.db, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
 
-		return true, newLn, oldHashes, nil
+		return true, n, oldHashes, nil
 	case *extensionNode:
-		newEn, err := newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.db, en.marsh, en.hasher)
+		n, err = newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.db, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
 
-		return true, newEn, oldHashes, nil
+		return true, n, oldHashes, nil
 	default:
-		newEn, err := newExtensionNode(en.Key, newNode, en.db, en.marsh, en.hasher)
+		n, err = newExtensionNode(en.Key, newNode, en.db, en.marsh, en.hasher)
 		if err != nil {
 			return false, nil, emptyHashes, err
 		}
 
-		return true, newEn, oldHashes, nil
+		return true, n, oldHashes, nil
 	}
 }
 

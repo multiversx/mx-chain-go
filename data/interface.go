@@ -114,7 +114,7 @@ type Trie interface {
 	Snapshot() error
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
-	GetDatabase() DBWriteCacher
+	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	IsInterfaceNil() bool
 }

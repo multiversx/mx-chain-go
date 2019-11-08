@@ -118,9 +118,11 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		return err
 	}
 
+	var newRoot node
+	var oldHashes [][]byte
 	if len(value) != 0 {
 		if tr.root == nil {
-			newRoot, err := newLeafNode(hexKey, value, tr.db, tr.marshalizer, tr.hasher)
+			newRoot, err = newLeafNode(hexKey, value, tr.db, tr.marshalizer, tr.hasher)
 			if err != nil {
 				return err
 			}
@@ -133,7 +135,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err := tr.root.insert(newLn)
+		_, newRoot, oldHashes, err = tr.root.insert(newLn)
 		if err != nil {
 			return err
 		}
@@ -148,7 +150,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err := tr.root.delete(hexKey)
+		_, newRoot, oldHashes, err = tr.root.delete(hexKey)
 		if err != nil {
 			return err
 		}
@@ -214,25 +216,26 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 
 	var proof [][]byte
 	hexKey := keyBytesToHex(key)
-	node := tr.root
+	n := tr.root
 
-	err := node.setRootHash()
+	err := n.setRootHash()
 	if err != nil {
 		return nil, err
 	}
 
+	var encNode []byte
 	for {
-		encNode, err := node.getEncodedNode()
+		encNode, err = n.getEncodedNode()
 		if err != nil {
 			return nil, err
 		}
 		proof = append(proof, encNode)
 
-		node, hexKey, err = node.getNext(hexKey)
+		n, hexKey, err = n.getNext(hexKey)
 		if err != nil {
 			return nil, err
 		}
-		if node == nil {
+		if n == nil {
 			return proof, nil
 		}
 	}
@@ -260,7 +263,8 @@ func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, er
 			return false, nil
 		}
 
-		n, err := decodeNode(encNode, tr.db, tr.marshalizer, tr.hasher)
+		var n node
+		n, err = decodeNode(encNode, tr.db, tr.marshalizer, tr.hasher)
 		if err != nil {
 			return false, err
 		}
@@ -556,8 +560,8 @@ func (tr *patriciaMerkleTrie) removeFromDb(hash []byte) error {
 	return nil
 }
 
-// GetDatabase returns the trie database
-func (tr *patriciaMerkleTrie) GetDatabase() data.DBWriteCacher {
+// Database returns the trie database
+func (tr *patriciaMerkleTrie) Database() data.DBWriteCacher {
 	return tr.db
 }
 
@@ -613,7 +617,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 		return nil, err
 	}
 
-	encNode, err := it.GetMarshalizedNode()
+	encNode, err := it.MarshalizedNode()
 	if err != nil {
 		return nil, err
 	}
@@ -628,7 +632,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 			return nil, err
 		}
 
-		encNode, err = it.GetMarshalizedNode()
+		encNode, err = it.MarshalizedNode()
 		if err != nil {
 			return nil, err
 		}
@@ -645,7 +649,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 func (tr *patriciaMerkleTrie) getDbThatContainsHash(rootHash []byte) data.DBWriteCacher {
 	encNode, err := tr.db.Get(rootHash)
-	hashPresent := err == nil && encNode != nil
+	hashPresent := err == nil
 	if hashPresent {
 		return tr.db
 	}

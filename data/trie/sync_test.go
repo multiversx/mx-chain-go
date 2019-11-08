@@ -24,7 +24,7 @@ func getInterceptedNodes(tr data.Trie, marshalizer marshal.Marshalizer, hasher h
 
 	interceptedNodes := make([]*trie.InterceptedTrieNode, 0)
 	for i := range nodes {
-		node, _ := trie.NewInterceptedTrieNode(nodes[i], tr.GetDatabase(), marshalizer, hasher)
+		node, _ := trie.NewInterceptedTrieNode(nodes[i], tr.Database(), marshalizer, hasher)
 		interceptedNodes = append(interceptedNodes, node)
 	}
 

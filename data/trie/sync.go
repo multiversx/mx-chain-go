@@ -3,6 +3,7 @@ package trie
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -23,10 +24,13 @@ func NewTrieSyncer(
 	trie data.Trie,
 	waitTime time.Duration,
 ) (*trieSyncer, error) {
-	if resolver == nil || resolver.IsInterfaceNil() {
+	if check.IfNil(resolver) {
 		return nil, ErrNilResolver
 	}
-	if trie == nil || trie.IsInterfaceNil() {
+	if check.IfNil(interceptedNodes) {
+		return nil, data.ErrNilCacher
+	}
+	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
 
@@ -53,12 +57,12 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 
 	nextNodes := make([]node, 0)
 
-	rootNode, err := ts.getNode(rootHash)
+	currentNode, err := ts.getNode(rootHash)
 	if err != nil {
 		return err
 	}
 
-	ts.trie.root = rootNode
+	ts.trie.root = currentNode
 	err = ts.trie.root.loadChildren(ts)
 	if err != nil {
 		return err
@@ -70,7 +74,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 	}
 
 	for len(nextNodes) != 0 {
-		currentNode, err := ts.getNode(nextNodes[0].getHash())
+		currentNode, err = ts.getNode(nextNodes[0].getHash())
 		if err != nil {
 			return err
 		}
@@ -82,7 +86,8 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 			return err
 		}
 
-		children, err := currentNode.getChildren()
+		var children []node
+		children, err = currentNode.getChildren()
 		if err != nil {
 			return err
 		}
@@ -145,8 +150,5 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ts *trieSyncer) IsInterfaceNil() bool {
-	if ts == nil {
-		return true
-	}
-	return false
+	return ts == nil
 }

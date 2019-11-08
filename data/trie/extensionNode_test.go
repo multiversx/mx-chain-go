@@ -829,7 +829,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	resolver := &mock.TrieNodesResolverStub{
 		RequestDataFromHashCalled: func(hash []byte) error {
 			for i := range nodes {
-				node, _ := NewInterceptedTrieNode(nodes[i], tr.GetDatabase(), marsh, hasher)
+				node, _ := NewInterceptedTrieNode(nodes[i], tr.Database(), marsh, hasher)
 				nodesCacher.Put(node.hash, node)
 			}
 			return nil

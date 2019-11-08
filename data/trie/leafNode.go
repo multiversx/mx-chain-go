@@ -240,7 +240,7 @@ func (ln *leafNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 	}
 
 	keyMatchLen := prefixLen(n.Key, ln.Key)
-	branch, err := newBranchNode(ln.db, ln.marsh, ln.hasher)
+	bn, err := newBranchNode(ln.db, ln.marsh, ln.hasher)
 	if err != nil {
 		return false, nil, [][]byte{}, err
 	}
@@ -255,19 +255,19 @@ func (ln *leafNode) insert(n *leafNode) (bool, node, [][]byte, error) {
 	if err != nil {
 		return false, nil, [][]byte{}, err
 	}
-	branch.children[oldChildPos] = newLnOldChildPos
+	bn.children[oldChildPos] = newLnOldChildPos
 
 	newLnNewChildPos, err := newLeafNode(n.Key[keyMatchLen+1:], n.Value, ln.db, ln.marsh, ln.hasher)
 	if err != nil {
 		return false, nil, [][]byte{}, err
 	}
-	branch.children[newChildPos] = newLnNewChildPos
+	bn.children[newChildPos] = newLnNewChildPos
 
 	if keyMatchLen == 0 {
-		return true, branch, oldHash, nil
+		return true, bn, oldHash, nil
 	}
 
-	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], branch, ln.db, ln.marsh, ln.hasher)
+	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], bn, ln.db, ln.marsh, ln.hasher)
 	if err != nil {
 		return false, nil, [][]byte{}, err
 	}
@@ -378,10 +378,7 @@ func (ln *leafNode) getChildren() ([]node, error) {
 }
 
 func (ln *leafNode) isValid() bool {
-	if len(ln.Value) == 0 {
-		return false
-	}
-	return true
+	return len(ln.Value) > 0
 }
 
 func (ln *leafNode) setDirty(dirty bool) {

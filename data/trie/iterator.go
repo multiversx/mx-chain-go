@@ -1,6 +1,9 @@
 package trie
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
+)
 
 type iterator struct {
 	currentNode node
@@ -9,7 +12,7 @@ type iterator struct {
 
 // NewIterator creates a new instance of trie iterator
 func NewIterator(trie data.Trie) (*iterator, error) {
-	if trie == nil || trie.IsInterfaceNil() {
+	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
 
@@ -31,17 +34,19 @@ func NewIterator(trie data.Trie) (*iterator, error) {
 
 // HasNext returns true if there is a next node
 func (it *iterator) HasNext() bool {
-	if len(it.nextNodes) == 0 {
-		return false
-	}
-
-	return true
+	return len(it.nextNodes) > 0
 }
 
 // Next moves the iterator to the next node
 func (it *iterator) Next() error {
-	it.currentNode = it.nextNodes[0]
+	n := it.nextNodes[0]
 
+	err := n.isEmptyOrNil()
+	if err != nil {
+		return ErrNilNode
+	}
+
+	it.currentNode = n
 	nextChildren, err := it.currentNode.getChildren()
 	if err != nil {
 		return err
@@ -52,8 +57,8 @@ func (it *iterator) Next() error {
 	return nil
 }
 
-// GetMarshalizedNode marshalizes the current node, and then returns the serialized node
-func (it *iterator) GetMarshalizedNode() ([]byte, error) {
+// MarshalizedNode marshalizes the current node, and then returns the serialized node
+func (it *iterator) MarshalizedNode() ([]byte, error) {
 	err := it.currentNode.setHash()
 	if err != nil {
 		return nil, err
