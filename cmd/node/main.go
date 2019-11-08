@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -54,6 +55,8 @@ const (
 	defaultEpochString = "Epoch"
 	defaultShardString = "Shard"
 	metachainShardName = "metachain"
+	// DefaultRestApiPort specifies the default Rest API port which will be used in case that another one wasn't provided.
+	// If set to "off" then the endpoints won't be available
 	DefaultRestApiPort = "off"
 )
 
@@ -655,6 +658,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		generalConfig,
 		preferencesConfig,
 		nodesConfig,
+		economicsData,
 		syncer,
 		keyGen,
 		privKey,
@@ -888,7 +892,7 @@ func createNodesCoordinator(
 	initNodesInfo := nodesConfig.InitialNodesInfo()
 	initValidators := make(map[uint32][]sharding.Validator)
 
-	for shardId, nodeInfoList := range initNodesInfo {
+	for shId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
 			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
@@ -898,7 +902,7 @@ func createNodesCoordinator(
 
 			validators = append(validators, validator)
 		}
-		initValidators[shardId] = validators
+		initValidators[shId] = validators
 	}
 
 	pubKeyBytes, err := pubKey.ToByteArray()
@@ -987,6 +991,7 @@ func createNode(
 	config *config.Config,
 	preferencesConfig *config.ConfigPreferences,
 	nodesConfig *sharding.NodesSetup,
+	economicsData process.FeeHandler,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -1012,6 +1017,7 @@ func createNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
 		node.WithMarshalizer(core.Marshalizer),
+		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
 		node.WithAccountsAdapter(state.AccountsAdapter),
@@ -1029,6 +1035,7 @@ func createNode(
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
+		node.WithKeyGenForAccounts(crypto.TxSignKeyGen),
 		node.WithTxSignPubKey(crypto.TxSignPubKey),
 		node.WithTxSignPrivKey(crypto.TxSignPrivKey),
 		node.WithPubKey(pubKey),
@@ -1131,14 +1138,14 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
-	rm, err := statistics.NewResourceMonitor(file)
+	resMon, err := statistics.NewResourceMonitor(file)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			err = rm.SaveStatistics()
+			err = resMon.SaveStatistics()
 			log.LogIfError(err)
 			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
 		}
