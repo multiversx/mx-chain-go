@@ -244,13 +244,13 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	if !sp.verifyStateRoot(header.GetRootHash()) {
-		err = process.ErrRootStateDoesNotMatch
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
+	if err != nil {
 		return err
 	}
 
-	err = sp.txCoordinator.VerifyCreatedBlockTransactions(body)
-	if err != nil {
+	if !sp.verifyStateRoot(header.GetRootHash()) {
+		err = process.ErrRootStateDoesNotMatch
 		return err
 	}
 
@@ -371,6 +371,7 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	lastNotarizedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		log.Info(err.Error())
+		return
 	}
 
 	for i := 0; i < len(sortedHdrs); i++ {
@@ -1502,10 +1503,6 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 		hdr.GetRound(),
 		core.MaxUint32(hdr.ItemsInBody(), hdr.ItemsInHeader()))
 
-	return nil
-}
-
-func (sp *shardProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
 	return nil
 }
 

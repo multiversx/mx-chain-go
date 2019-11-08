@@ -98,7 +98,7 @@ func (sr *SubroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	err = sr.BlockProcessor().ApplyBodyToHeader(hdr, sr.BlockBody)
+	err = sr.BlockProcessor().ApplyBodyToHeader(hdr, body)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -226,11 +226,6 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
-
-	err = sr.BlockProcessor().ApplyValidatorStatistics(hdr)
-	if err != nil {
-		return nil, err
-	}
 
 	return hdr, nil
 }

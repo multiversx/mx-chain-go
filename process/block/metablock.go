@@ -242,6 +242,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.txCoordinator.VerifyCreatedBlockTransactions(body)
+	if err != nil {
+		return err
+	}
+
 	err = mp.scToProtocol.UpdateProtocol(body, header.Round)
 	if err != nil {
 		return err
@@ -264,11 +269,6 @@ func (mp *metaProcessor) ProcessBlock(
 
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
 		err = process.ErrValidatorStatsRootHashDoesNotMatch
-		return err
-	}
-
-	err = mp.txCoordinator.VerifyCreatedBlockTransactions(body)
-	if err != nil {
 		return err
 	}
 
@@ -901,6 +901,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	go mp.headersCounter.displayLogInfo(
 		header,
+		body,
 		headerHash,
 		mp.dataPool.ShardHeaders().Len(),
 	)
@@ -1331,10 +1332,6 @@ func (mp *metaProcessor) createShardInfo(
 
 	shardInfo := make([]block.ShardData, 0)
 
-	if mp.accounts.JournalLen() != 0 {
-		return nil, process.ErrAccountStateDirty
-	}
-
 	log.Info(fmt.Sprintf("creating shard info has been started \n"))
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
@@ -1439,16 +1436,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.MiniBlockHeaders = miniBlockHeaders
 	metaHdr.TxCount += uint32(totalTxCount)
 
-	return nil
-}
-
-func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	metaHdr, ok := header.(*block.MetaBlock)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header)
+	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
 	if err != nil {
 		return err
 	}

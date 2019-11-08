@@ -481,12 +481,12 @@ func createNetNode(
 				shardCoordinator,
 				nodesCoordinator,
 			),
-			Uint64Converter: uint64Converter,
-			StartHeaders:    genesisBlocks,
-			RequestHandler:  requestHandler,
-			Core:            &mock.ServiceContainerMock{},
-			BlockChainHook:  blockChainHook,
-			TxCoordinator:   tc,
+			Uint64Converter:              uint64Converter,
+			StartHeaders:                 genesisBlocks,
+			RequestHandler:               requestHandler,
+			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               blockChainHook,
+			TxCoordinator:                tc,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		},
 		DataPool:        dPool,
@@ -832,6 +832,7 @@ func createMetaNetNode(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		100,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)

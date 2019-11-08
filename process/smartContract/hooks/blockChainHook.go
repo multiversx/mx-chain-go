@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -52,7 +53,7 @@ func NewBlockChainHookImpl(
 		uint64Converter:  args.Uint64Converter,
 	}
 
-	blockChainHookImpl.currentHdr = args.BlockChain.GetGenesisHeader()
+	blockChainHookImpl.currentHdr = &block.Header{}
 	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler, 0)
 
 	return blockChainHookImpl, nil
@@ -270,6 +271,7 @@ func (bh *BlockChainHookImpl) GetStateRootHash() []byte {
 func (bh *BlockChainHookImpl) CurrentNonce() uint64 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
+
 	return bh.currentHdr.GetNonce()
 }
 
@@ -434,6 +436,10 @@ func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
 
 // SetCurrentHeader sets current header to be used by smart contracts
 func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
+	if hdr == nil || hdr.IsInterfaceNil() {
+		return
+	}
+
 	bh.mutCurrentHdr.Lock()
 	bh.currentHdr = hdr
 	bh.mutCurrentHdr.Unlock()

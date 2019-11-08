@@ -53,7 +53,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
-	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
+	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
 		TestAddressConverter,
 		tpn.ShardCoordinator,
@@ -98,19 +98,19 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
 	argumentsBase := block.ArgBaseProcessor{
-		Accounts:              tpn.AccntState,
-		ForkDetector:          nil,
-		Hasher:                TestHasher,
-		Marshalizer:           TestMarshalizer,
-		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator,
-		NodesCoordinator:      tpn.NodesCoordinator,
-		SpecialAddressHandler: tpn.SpecialAddressHandler,
-		Uint64Converter:       TestUint64Converter,
-		StartHeaders:          tpn.GenesisBlocks,
-		RequestHandler:        tpn.RequestHandler,
-		Core:                  nil,
-		BlockChainHook:        &mock.BlockChainHookHandlerMock{},
+		Accounts:                     tpn.AccntState,
+		ForkDetector:                 nil,
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		Store:                        tpn.Storage,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		NodesCoordinator:             tpn.NodesCoordinator,
+		SpecialAddressHandler:        tpn.SpecialAddressHandler,
+		Uint64Converter:              TestUint64Converter,
+		StartHeaders:                 tpn.GenesisBlocks,
+		RequestHandler:               tpn.RequestHandler,
+		Core:                         nil,
+		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 	}
 

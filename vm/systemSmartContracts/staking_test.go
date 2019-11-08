@@ -216,11 +216,6 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 	err := json.Unmarshal(data, &registrationData)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRegistrationData, registrationData)
-
-	receiverBalance := stakingSmartContract.eei.GetBalance(arguments.RecipientAddr)
-	senderBalance := stakingSmartContract.eei.GetBalance(arguments.CallerAddr)
-	assert.Equal(t, big.NewInt(-100), senderBalance)
-	assert.Equal(t, big.NewInt(100), receiverBalance)
 }
 
 func TestStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T) {

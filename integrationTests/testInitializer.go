@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -26,19 +27,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -242,20 +247,20 @@ func CreateMetaChain() data.ChainHandler {
 	return metaChain
 }
 
-// CreateGenesisBlocks creates empty genesis blocks for all known shards, including metachain
-func CreateGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+// CreateSimpleGenesisBlocks creates empty genesis blocks for all known shards, including metachain
+func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateGenesisBlock(shardId)
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
 	}
 
-	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock()
+	genesisBlocks[sharding.MetachainShardId] = CreateSimpleGenesisMetaBlock()
 
 	return genesisBlocks
 }
 
-// CreateGenesisBlock creates a new mock shard genesis block
-func CreateGenesisBlock(shardId uint32) *dataBlock.Header {
+// CreateSimpleGenesisBlock creates a new mock shard genesis block
+func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.Header{
@@ -271,20 +276,119 @@ func CreateGenesisBlock(shardId uint32) *dataBlock.Header {
 	}
 }
 
-// CreateGenesisMetaBlock creates a new mock meta genesis block
-func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
+// CreateSimpleGenesisMetaBlock creates a new mock meta genesis block
+func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 	rootHash := []byte("root hash")
 
 	return &dataBlock.MetaBlock{
-		Nonce:         0,
-		Round:         0,
-		Signature:     rootHash,
-		RandSeed:      rootHash,
-		PrevRandSeed:  rootHash,
-		PubKeysBitmap: rootHash,
-		RootHash:      rootHash,
-		PrevHash:      rootHash,
+		Nonce:                  0,
+		Epoch:                  0,
+		Round:                  0,
+		TimeStamp:              0,
+		ShardInfo:              nil,
+		PeerInfo:               nil,
+		Signature:              nil,
+		PubKeysBitmap:          nil,
+		PrevHash:               rootHash,
+		PrevRandSeed:           rootHash,
+		RandSeed:               rootHash,
+		RootHash:               rootHash,
+		ValidatorStatsRootHash: rootHash,
+		TxCount:                0,
+		MiniBlockHeaders:       nil,
 	}
+}
+
+// CreateGenesisBlocks creates empty genesis blocks for all known shards, including metachain
+func CreateGenesisBlocks(
+	accounts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	nodesSetup *sharding.NodesSetup,
+	shardCoordinator sharding.Coordinator,
+	store dataRetriever.StorageService,
+	blkc data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	metaDataPool dataRetriever.MetaPoolsHolder,
+	economics *economics.EconomicsData,
+) map[uint32]data.HeaderHandler {
+
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+	}
+
+	genesisBlocks[sharding.MetachainShardId] = CreateGenesisMetaBlock(
+		accounts,
+		addrConv,
+		nodesSetup,
+		shardCoordinator,
+		store,
+		blkc,
+		marshalizer,
+		hasher,
+		uint64Converter,
+		metaDataPool,
+		economics,
+	)
+
+	return genesisBlocks
+}
+
+// CreateGenesisMetaBlock creates a new mock meta genesis block
+func CreateGenesisMetaBlock(
+	accounts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	nodesSetup *sharding.NodesSetup,
+	shardCoordinator sharding.Coordinator,
+	store dataRetriever.StorageService,
+	blkc data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	metaDataPool dataRetriever.MetaPoolsHolder,
+	economics *economics.EconomicsData,
+) data.HeaderHandler {
+	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
+		GenesisTime:              0,
+		Accounts:                 accounts,
+		AddrConv:                 addrConv,
+		NodesSetup:               nodesSetup,
+		ShardCoordinator:         shardCoordinator,
+		Store:                    store,
+		Blkc:                     blkc,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		Uint64ByteSliceConverter: uint64Converter,
+		MetaDatapool:             metaDataPool,
+		Economics:                economics,
+	}
+
+	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+		newShardCoordinator, _ := sharding.NewMultiShardCoordinator(
+			shardCoordinator.NumberOfShards(),
+			sharding.MetachainShardId,
+		)
+
+		newStore := CreateMetaStore(newShardCoordinator)
+		newMetaDataPool := CreateTestMetaDataPool()
+
+		cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+		newBlkc, _ := blockchain.NewMetaChain(cache)
+		newAccounts, _, _ := CreateAccountsDB(factory.UserAccount)
+
+		argsMetaGenesis.ShardCoordinator = newShardCoordinator
+		argsMetaGenesis.Accounts = newAccounts
+		argsMetaGenesis.Store = newStore
+		argsMetaGenesis.Blkc = newBlkc
+		argsMetaGenesis.MetaDatapool = newMetaDataPool
+	}
+
+	metaHdr, _ := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
+
+	return metaHdr
 }
 
 // CreateAddressFromAddrBytes creates an address container object from address bytes provided
@@ -486,7 +590,7 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 		}
 
 		n.OwnAccount.Balance = big.NewInt(0).Set(value)
-		MintAddress(targetNode.AccntState, n.OwnAccount.PkTxSignBytes, value)
+		MintAddress(targetNode.AccntState, n.OwnAccount.Address.Bytes(), value)
 	}
 }
 
@@ -753,6 +857,29 @@ func GenerateAndDisseminateTxs(
 			incrementalNonce[i]++
 		}
 	}
+}
+
+func CreateAndSendTransaction(
+	node *TestProcessorNode,
+	txValue *big.Int,
+	rcvAddress []byte,
+	txData string,
+) {
+	tx := &transaction.Transaction{
+		Nonce:    node.OwnAccount.Nonce,
+		Value:    txValue,
+		SndAddr:  node.OwnAccount.Address.Bytes(),
+		RcvAddr:  rcvAddress,
+		Data:     txData,
+		GasPrice: MinTxGasPrice,
+		GasLimit: MinTxGasLimit*5 + uint64(len(txData)),
+	}
+
+	txBuff, _ := TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
+
+	_, _ = node.SendTransaction(tx)
+	node.OwnAccount.Nonce++
 }
 
 type txArgs struct {

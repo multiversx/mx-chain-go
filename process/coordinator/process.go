@@ -579,36 +579,38 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 			continue
 		}
 
+		appended := false
 		preproc := tc.getPreProcessor(miniblock.Type)
-		if preproc == nil || preproc.IsInterfaceNil() {
-			continue
-		}
+		if preproc != nil && !preproc.IsInterfaceNil() {
+			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			appended = true
 
-		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
+			if err != nil {
+				log.Debug(err.Error())
+				continue
+			}
 
-		currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
-		if err != nil {
-			log.Debug(err.Error())
-			continue
-		}
-
-		if len(currMrsTxs) > 0 {
-			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+			if len(currMrsTxs) > 0 {
+				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+			}
 		}
 
 		interimProc := tc.getInterimProcessor(miniblock.Type)
-		if interimProc == nil || interimProc.IsInterfaceNil() {
-			continue
-		}
+		if interimProc != nil && !interimProc.IsInterfaceNil() {
+			if !appended {
+				bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			}
 
-		currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
-		if err != nil {
-			log.Debug(err.Error())
-			continue
-		}
+			currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
+			if err != nil {
+				log.Debug(err.Error())
+				continue
+			}
 
-		if len(currMrsInterTxs) > 0 {
-			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
+			if len(currMrsInterTxs) > 0 {
+				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
+			}
 		}
 	}
 

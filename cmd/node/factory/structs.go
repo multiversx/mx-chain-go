@@ -1510,18 +1510,20 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		genesisBlocks[shardId] = genesisBlock
 	}
 
-	genesisBlockForCurrentShard, err := createGenesisBlockAndApplyInitialBalances(
-		stateComponents.AccountsAdapter,
-		shardCoordinator,
-		stateComponents.AddressConverter,
-		genesisConfig,
-		uint64(nodesSetup.StartTime),
-	)
-	if err != nil {
-		return nil, err
-	}
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		genesisBlockForCurrentShard, err := createGenesisBlockAndApplyInitialBalances(
+			stateComponents.AccountsAdapter,
+			shardCoordinator,
+			stateComponents.AddressConverter,
+			genesisConfig,
+			uint64(nodesSetup.StartTime),
+		)
+		if err != nil {
+			return nil, err
+		}
 
-	genesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
+		genesisBlocks[shardCoordinator.SelfId()] = genesisBlockForCurrentShard
+	}
 
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
@@ -1537,6 +1539,26 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		MetaDatapool:             dataComponents.MetaDatapool,
 		Economics:                economics,
 	}
+
+	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+		newShardCoordinator, newAccounts, err := createInMemoryShardCoordinatorAndAccount(
+			coreComponents,
+			shardCoordinator.NumberOfShards(),
+			sharding.MetachainShardId,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		newStore, newBlkc, newMetaDataPool, err := createInMemoryStoreBlkcAndMetaDataPool(newShardCoordinator)
+
+		argsMetaGenesis.ShardCoordinator = newShardCoordinator
+		argsMetaGenesis.Accounts = newAccounts
+		argsMetaGenesis.Store = newStore
+		argsMetaGenesis.Blkc = newBlkc
+		argsMetaGenesis.MetaDatapool = newMetaDataPool
+	}
+
 	genesisBlock, err := genesis.CreateMetaGenesisBlock(
 		argsMetaGenesis,
 	)
@@ -1544,9 +1566,43 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		return nil, err
 	}
 
+	log.Info("MetaGenesisBlock created with roothash " + hex.EncodeToString(genesisBlock.GetRootHash()))
 	genesisBlocks[sharding.MetachainShardId] = genesisBlock
 
 	return genesisBlocks, nil
+}
+
+func createInMemoryStoreBlkcAndMetaDataPool(
+	shardCoordinator sharding.Coordinator,
+) (dataRetriever.StorageService, data.ChainHandler, dataRetriever.MetaPoolsHolder, error) {
+
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+	blkc, err := blockchain.NewMetaChain(cache)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	metaDataPool, err := createMemMetaDataPool()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaShardDataUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaPeerDataUnit, createMemUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, createMemUnit())
+	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+		store.AddStorer(hdrNonceHashDataUnit, createMemUnit())
+	}
+	store.AddStorer(dataRetriever.HeartbeatUnit, createMemUnit())
+
+	return store, blkc, metaDataPool, nil
 }
 
 func createGenesisBlockAndApplyInitialBalances(
@@ -1587,11 +1643,14 @@ func createInMemoryShardCoordinatorAndAccount(
 		return nil, nil, err
 	}
 
-	accounts := generateInMemoryAccountsAdapter(
+	accounts, err := generateInMemoryAccountsAdapter(
 		accountFactory,
 		coreComponents.Hasher,
 		coreComponents.Marshalizer,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return newShardCoordinator, accounts, nil
 }
@@ -1995,6 +2054,7 @@ func newMetaBlockProcessor(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		MaxTxsToRequest,
 	)
 	if err != nil {
 		return nil, err
@@ -2128,6 +2188,7 @@ func newValidatorStatisticsProcessor(
 		DataPool:         processComponents.data.MetaDatapool,
 		StorageService:   storageService,
 		Marshalizer:      processComponents.core.Marshalizer,
+		Economics:        processComponents.economicsData,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -2175,19 +2236,101 @@ func generateInMemoryAccountsAdapter(
 	accountFactory state.AccountFactory,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
-) state.AccountsAdapter {
+) (state.AccountsAdapter, error) {
 
-	tr, _ := trie.NewTrie(createMemUnit(), marshalizer, hasher)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, accountFactory)
+	tr, err := trie.NewTrie(createMemUnit(), marshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
 
-	return adb
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return adb, nil
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	persist, _ := memorydb.New()
-	unit, _ := storageUnit.NewStorageUnit(cache, persist)
+	cache, err := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+	if err != nil {
+		log.Error("error creating cache for mem unit " + err.Error())
+		return nil
+	}
+
+	persist, err := memorydb.New()
+	if err != nil {
+		log.Error("error creating persister for mem unit " + err.Error())
+		return nil
+	}
+
+	unit, err := storageUnit.NewStorageUnit(cache, persist)
+	if err != nil {
+		log.Error("error creating unit " + err.Error())
+		return nil
+	}
+
 	return unit
+}
+
+func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
+	cacherCfg := storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
+	metaBlocks, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache, Shards: 1}
+	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = storageUnit.CacheConfig{Size: 10, Type: storageUnit.LRUCache}
+	shardHeaders, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	shardHeadersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	shardHeadersNonces, err := dataPool.NewNonceSyncMapCacher(shardHeadersNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	if err != nil {
+		return nil, err
+	}
+
+	txPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	if err != nil {
+		return nil, err
+	}
+
+	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 1000, Type: storageUnit.LRUCache, Shards: 1})
+	if err != nil {
+		return nil, err
+	}
+
+	currTxs, err := dataPool.NewCurrentBlockPool()
+	if err != nil {
+		return nil, err
+	}
+
+	dPool, err := dataPool.NewMetaDataPool(
+		metaBlocks,
+		txBlockBody,
+		shardHeaders,
+		shardHeadersNonces,
+		txPool,
+		uTxPool,
+		currTxs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return dPool, nil
 }
 
 // GetSigningParams returns a key generator, a private key, and a public key
