@@ -625,12 +625,14 @@ func (sp *shardProcessor) CommitBlock(
 
 	errNotCritical := sp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if errNotCritical != nil {
-		log.Debug(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", header.ShardId), "error", errNotCritical)
+		log.Debug(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", header.ShardId),
+			"error", errNotCritical.Error(),
+		)
 	}
 
 	errNotCritical = sp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	if errNotCritical != nil {
-		log.Trace("BlockHeaderUnit store.Put", "error", errNotCritical)
+		log.Trace("BlockHeaderUnit store.Put", "error", errNotCritical.Error())
 	}
 
 	headerNoncePool := sp.dataPool.HeadersNonces()
@@ -668,7 +670,7 @@ func (sp *shardProcessor) CommitBlock(
 		miniBlockHash := sp.hasher.Compute(string(buff))
 		errNotCritical = sp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, buff)
 		if errNotCritical != nil {
-			log.Trace("MiniBlockUnit store.Put", "error", errNotCritical)
+			log.Trace("MiniBlockUnit store.Put", "error", errNotCritical.Error())
 		}
 	}
 
@@ -704,17 +706,17 @@ func (sp *shardProcessor) CommitBlock(
 
 	errNotCritical = sp.txCoordinator.RemoveBlockDataFromPool(body)
 	if errNotCritical != nil {
-		log.Debug("RemoveBlockDataFromPool", "error", errNotCritical)
+		log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
 	}
 
 	errNotCritical = sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
 	if errNotCritical != nil {
-		log.Debug("removeProcessedMetaBlocksFromPool", "error", errNotCritical)
+		log.Debug("removeProcessedMetaBlocksFromPool", "error", errNotCritical.Error())
 	}
 
 	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
 	if errNotCritical != nil {
-		log.Debug("forkDetector.AddHeader", "error", errNotCritical)
+		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
@@ -793,14 +795,14 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 func (sp *shardProcessor) RevertAccountState() {
 	err := sp.accounts.RevertToSnapshot(0)
 	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err)
+		log.Debug("RevertToSnapshot", "error", err.Error())
 	}
 }
 
 func (sp *shardProcessor) cleanTxsPools() {
 	_, err := sp.txsPoolsCleaner.Clean(maxCleanTime)
 	if err != nil {
-		log.Debug("txsPoolsCleaner.Clean", "error", err)
+		log.Debug("txsPoolsCleaner.Clean", "error", err.Error())
 	}
 	log.Debug("cleaned txs pool",
 		"num txs removed", sp.txsPoolsCleaner.NumRemovedTxs(),
@@ -1051,7 +1053,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		// metablock was processed and finalized
 		buff, err := sp.marshalizer.Marshal(hdr)
 		if err != nil {
-			log.Debug("marshalizer.Marshal", "error", err)
+			log.Debug("marshalizer.Marshal", "error", err.Error())
 			continue
 		}
 
@@ -1059,13 +1061,13 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(hdr.GetNonce())
 		err = sp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 		if err != nil {
-			log.Debug("MetaHdrNonceHashDataUnit store.Put", "error", err)
+			log.Debug("MetaHdrNonceHashDataUnit store.Put", "error", err.Error())
 			continue
 		}
 
 		err = sp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
 		if err != nil {
-			log.Debug("MetaBlockUnit store.Put", "error", err)
+			log.Debug("MetaBlockUnit store.Put", "error", err.Error())
 			continue
 		}
 
@@ -1507,12 +1509,12 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
 	if err != nil {
-		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err)
+		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
 
 	processedMetaHdrs, errNotCritical := sp.getOrderedProcessedMetaBlocksFromMiniBlocks(destMeMiniBlocks)
 	if errNotCritical != nil {
-		log.Debug("getOrderedProcessedMetaBlocksFromMiniBlocks", "error", errNotCritical)
+		log.Debug("getOrderedProcessedMetaBlocksFromMiniBlocks", "error", errNotCritical.Error())
 	}
 
 	err = sp.setMetaConsensusData(processedMetaHdrs)
@@ -1666,7 +1668,7 @@ func (sp *shardProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 
 	err := sp.marshalizer.Unmarshal(&body, dta)
 	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err)
+		log.Debug("marshalizer.Unmarshal", "error", err.Error())
 		return nil
 	}
 
@@ -1683,7 +1685,7 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 
 	err := sp.marshalizer.Unmarshal(&header, dta)
 	if err != nil {
-		log.Debug("marshalizer.Unmarshal", "error", err)
+		log.Debug("marshalizer.Unmarshal", "error", err.Error())
 		return nil
 	}
 

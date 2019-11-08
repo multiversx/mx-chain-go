@@ -29,7 +29,7 @@ var Modulus = func() *big.Int {
 
 	m, ok := new(big.Int).SetString(modString, 10)
 	if !ok {
-		log.Error("error converting modulus to big int")
+		log.Debug("error converting modulus to big int")
 	}
 	return m
 }()

@@ -1,7 +1,6 @@
 package facade
 
 import (
-	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
@@ -141,13 +140,15 @@ func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 
 	switch ef.RestApiPort() {
 	case DefaultRestPortOff:
-		log.Info(fmt.Sprintf("Web server is off"))
+		log.Debug("web server is off")
 		break
 	default:
-		log.Info("Starting web server...")
+		log.Debug("starting web server...")
 		err := api.Start(ef)
 		if err != nil {
-			log.Error("Could not start webserver", err.Error())
+			log.Debug("could not start webserver",
+				"error", err.Error(),
+			)
 		}
 	}
 }

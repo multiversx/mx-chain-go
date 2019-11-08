@@ -482,7 +482,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 			errAccountState := rtp.accounts.RevertToSnapshot(snapshot)
 			if errAccountState != nil {
 				// TODO: evaluate if reloading the trie from disk will solve the problem
-				log.Warn("RevertToSnapshot", "error", errAccountState.Error())
+				log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 			}
 			return nil, err
 		}

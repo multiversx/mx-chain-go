@@ -183,7 +183,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 
 			err := preproc.IsDataPrepared(requestedTxs, haveTime)
 			if err != nil {
-				log.Trace("IsDataPrepared", "error", err)
+				log.Trace("IsDataPrepared", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -219,7 +219,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 			err := preproc.SaveTxBlockToStorage(blockBody)
 			if err != nil {
-				log.Trace("SaveTxBlockToStorage", "error", err)
+				log.Trace("SaveTxBlockToStorage", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -240,7 +240,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 			err := intermediateProc.SaveCurrentIntermediateTxToStorage()
 			if err != nil {
-				log.Trace("SaveCurrentIntermediateTxToStorage", "error", err)
+				log.Trace("SaveCurrentIntermediateTxToStorage", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -277,7 +277,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 
 			restoredTxs, err := preproc.RestoreTxBlockIntoPools(blockBody, tc.miniBlockPool)
 			if err != nil {
-				log.Trace("RestoreTxBlockIntoPools", "error", err)
+				log.Trace("RestoreTxBlockIntoPools", "error", err.Error())
 
 				localMutex.Lock()
 				errFound = err
@@ -318,7 +318,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 
 			err := preproc.RemoveTxBlockFromPools(blockBody, tc.miniBlockPool)
 			if err != nil {
-				log.Trace("RemoveTxBlockFromPools", "error", err)
+				log.Trace("RemoveTxBlockFromPools", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -465,7 +465,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			haveTime,
 		)
 		if err != nil {
-			log.Debug("CreateAndProcessMiniBlocks", "error", err)
+			log.Debug("CreateAndProcessMiniBlocks", "error", err.Error())
 		}
 
 		if len(mbs) > 0 {
@@ -581,7 +581,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, receiverShardId, miniblock.Type)
 		if err != nil {
-			log.Trace("createBroadcastTopic", "error", err)
+			log.Trace("createBroadcastTopic", "error", err.Error())
 			continue
 		}
 
@@ -594,7 +594,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
 		if err != nil {
-			log.Trace("CreateMarshalizedData", "error", err)
+			log.Trace("CreateMarshalizedData", "error", err.Error())
 			continue
 		}
 
@@ -609,7 +609,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
 		if err != nil {
-			log.Trace("CreateMarshalizedData", "error", err)
+			log.Trace("CreateMarshalizedData", "error", err.Error())
 			continue
 		}
 
@@ -690,11 +690,11 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	snapshot := tc.accounts.JournalLen()
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
-		log.Debug("ProcessMiniBlock", "error", err)
+		log.Debug("ProcessMiniBlock", "error", err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
-			log.Debug("RevertToSnapshot", "error", errAccountState)
+			log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 		}
 
 		return err

@@ -72,3 +72,13 @@ func (los *logOutputSubject) RemoveObserver(w io.Writer) error {
 
 	return ErrWriterNotFound
 }
+
+// ClearObservers clears the observers lists
+func (los *logOutputSubject) ClearObservers() {
+	los.mutObservers.Lock()
+
+	los.writers = make([]io.Writer, 0)
+	los.formatters = make([]Formatter, 0)
+
+	los.mutObservers.Unlock()
+}

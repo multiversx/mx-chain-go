@@ -240,7 +240,7 @@ func DisplayLastNotarized(
 		log.Trace("CalculateHash", "error", errNotCritical.Error())
 	}
 
-	log.Info("last notarized block from shard",
+	log.Debug("last notarized block from shard",
 		"shard", shardId,
 		"round", lastNotarizedHdrForShard.GetRound(),
 		"nonce", lastNotarizedHdrForShard.GetNonce(),

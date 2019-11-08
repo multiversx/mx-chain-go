@@ -15,7 +15,7 @@ import (
 func OpenFile(relativePath string) (*os.File, error) {
 	path, err := filepath.Abs(relativePath)
 	if err != nil {
-		log.Error("cannot create absolute path for the provided file", "error", err.Error())
+		log.Warn("cannot create absolute path for the provided file", "error", err.Error())
 		return nil, err
 	}
 	f, err := os.Open(path)
@@ -36,7 +36,7 @@ func LoadTomlFile(dest interface{}, relativePath string) error {
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			log.Error("cannot close file", "error", err.Error())
+			log.Warn("cannot close file", "error", err.Error())
 		}
 	}()
 
@@ -53,7 +53,7 @@ func LoadJsonFile(dest interface{}, relativePath string) error {
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			log.Error("cannot close file", "error", err.Error())
+			log.Warn("cannot close file", "error", err.Error())
 		}
 	}()
 

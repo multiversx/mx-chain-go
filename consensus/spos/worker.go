@@ -457,7 +457,7 @@ func (wrk *Worker) dysplaySignatureStatistic() {
 			"sigs num", len(consensusMessages))
 
 		for _, consensusMessage := range consensusMessages {
-			log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex([]byte(consensusMessage.PubKey)))))
+			log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey))))
 		}
 
 	}

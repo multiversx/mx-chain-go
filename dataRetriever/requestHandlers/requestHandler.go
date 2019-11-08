@@ -136,7 +136,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	txResolver, ok := resolver.(HashSliceResolver)
 	if !ok {
-		log.Error("wrong assertion type when creating transaction resolver")
+		log.Debug("wrong assertion type when creating transaction resolver")
 		return
 	}
 
@@ -229,7 +229,7 @@ func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 	}
 
 	if err != nil {
-		log.Error("missing resolver",
+		log.Debug("missing resolver",
 			"topic", topic,
 			"shard", destShardID,
 		)
@@ -238,7 +238,7 @@ func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 
 	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
 	if !ok {
-		log.Error("resolver is not a header resolver",
+		log.Debug("resolver is not a header resolver",
 			"topic", topic,
 			"shard", destShardID,
 		)

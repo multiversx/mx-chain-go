@@ -362,7 +362,7 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	logLevel := ctx.GlobalString(logLevel.Name)
 	err := logger.SetLogLevel(logLevel)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -432,7 +432,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	startTime := time.Unix(nodesConfig.StartTime, 0)
 
-	log.Info("start time", "formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
+	log.Info("start time",
+		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 		"seconds", startTime.Unix())
 
 	suite, err := getSuite(generalConfig)
@@ -443,7 +444,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
 	keyGen, privKey, pubKey, err := factory.GetSigningParams(
 		ctx,
-		log,
 		sk.Name,
 		skIndex.Name,
 		initialNodesSkPemFileName,
@@ -554,7 +554,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		writer, ok := presenterStatusHandler.(io.Writer)
 		if ok {
-			err = logger.AddLogObserver(writer, &logger.ConsoleFormatter{})
+			logger.ClearLogObservers()
+			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
 			if err != nil {
 				return err
 			}
@@ -567,7 +568,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	if views == nil {
-		log.Warn("No views for current node")
+		log.Warn("no views for current node")
 	}
 
 	statusMetrics := statusHandler.NewStatusMetrics()
@@ -576,7 +577,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if len(appStatusHandlers) > 0 {
 		coreComponents.StatusHandler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
 		if err != nil {
-			log.Warn("Cannot init AppStatusFacade", err)
+			log.Debug("cannot init AppStatusFacade",
+				"error", err.Error(),
+			)
 		}
 	} else {
 		coreComponents.StatusHandler = statusHandler.NewNilStatusHandler()
@@ -719,7 +722,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(coreComponents.StatusHandler)
 	if err != nil {
-		log.Debug("nil software version checker", "error", err)
+		log.Debug("nil software version checker", "error", err.Error())
 	} else {
 		softwareVersionChecker.StartCheckSoftwareVersion()
 	}
@@ -791,7 +794,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stop <- true
 	}()
 
-	log.Info("application is now running...")
+	log.Info("application is now running")
 	<-stop
 
 	if rm != nil {
@@ -913,7 +916,7 @@ func createShardCoordinator(
 	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
 		nodeType = core.NodeTypeObserver
-		log.Info("starting as observer node...")
+		log.Info("starting as observer node")
 
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
 	}
@@ -927,7 +930,7 @@ func createShardCoordinator(
 	} else {
 		shardName = fmt.Sprintf("%d", selfShardId)
 	}
-	log.Info("starting", "shard", shardName)
+	log.Info("starting", "in shard", shardName)
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {

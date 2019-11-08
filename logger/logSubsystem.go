@@ -70,6 +70,11 @@ func RemoveLogObserver(w io.Writer) error {
 	return defaultLogOut.RemoveObserver(w)
 }
 
+// ClearLogObservers clears the observers lists
+func ClearLogObservers() {
+	defaultLogOut.ClearObservers()
+}
+
 func setLogLevelOnMap(loggers map[string]*logger, dest *LogLevel, logLevels []LogLevel, patterns []string) {
 	for i := 0; i < len(logLevels); i++ {
 		pattern := patterns[i]

@@ -91,7 +91,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	// Commit the block (commits also the account state)
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
 	if err != nil {
-		log.Error("commit block", "type", "spos/bls", "error", err.Error())
+		log.Debug("commit block", "type", "spos/bls", "error", err.Error())
 		return false
 	}
 	timeAfter := time.Now()

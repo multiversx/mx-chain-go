@@ -464,12 +464,12 @@ func (mp *metaProcessor) CommitBlock(
 	nonceToByteSlice := mp.uint64Converter.ToByteSlice(header.Nonce)
 	errNotCritical := mp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
 	if errNotCritical != nil {
-		log.Trace("MetaHdrNonceHashDataUnit store.Put", "error", errNotCritical)
+		log.Trace("MetaHdrNonceHashDataUnit store.Put", "error", errNotCritical.Error())
 	}
 
 	errNotCritical = mp.store.Put(dataRetriever.MetaBlockUnit, headerHash, buff)
 	if errNotCritical != nil {
-		log.Trace("MetaBlockUnit store.Put", "error", errNotCritical)
+		log.Trace("MetaBlockUnit store.Put", "error", errNotCritical.Error())
 	}
 
 	headerNoncePool := mp.dataPool.HeadersNonces()
@@ -520,12 +520,14 @@ func (mp *metaProcessor) CommitBlock(
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardBlock.ShardId)
 		errNotCritical = mp.store.Put(hdrNonceHashDataUnit, nonceToByteSlice, shardHeaderHash)
 		if errNotCritical != nil {
-			log.Trace(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", shardBlock.ShardId), "error", errNotCritical)
+			log.Trace(fmt.Sprintf("ShardHdrNonceHashDataUnit_%d store.Put", shardBlock.ShardId),
+				"error", errNotCritical.Error(),
+			)
 		}
 
 		errNotCritical = mp.store.Put(dataRetriever.BlockHeaderUnit, shardHeaderHash, buff)
 		if errNotCritical != nil {
-			log.Trace("BlockHeaderUnit store.Put", "error", errNotCritical)
+			log.Trace("BlockHeaderUnit store.Put", "error", errNotCritical.Error())
 		}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
@@ -549,12 +551,12 @@ func (mp *metaProcessor) CommitBlock(
 
 	errNotCritical = mp.removeBlockInfoFromPool(header)
 	if errNotCritical != nil {
-		log.Debug("removeBlockInfoFromPool", "error", errNotCritical)
+		log.Debug("removeBlockInfoFromPool", "error", errNotCritical.Error())
 	}
 
 	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
-		log.Debug("forkDetector.AddHeader", "error", errNotCritical)
+		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
 	log.Debug("highest final meta block",
@@ -623,12 +625,12 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 func (mp *metaProcessor) RevertAccountState() {
 	err := mp.accounts.RevertToSnapshot(0)
 	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err)
+		log.Debug("RevertToSnapshot", "error", err.Error())
 	}
 
 	err = mp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
 	if err != nil {
-		log.Debug("RevertPeerStateToSnapshot", "error", err)
+		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
 	}
 }
 
@@ -801,7 +803,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 				err := mp.isHdrConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
-					log.Debug("isHdrConstructionValid", "error", err)
+					log.Debug("isHdrConstructionValid", "error", err.Error())
 					continue
 				}
 

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 )
@@ -419,27 +420,32 @@ func TestElasticIndexer_serializeBulkTx(t *testing.T) {
 	assert.Equal(t, buff, serializedTx)
 }
 
-//TODO fix these tests
-//func TestElasticIndexer_UpdateTPS(t *testing.T) {
-//	var output bytes.Buffer
-//	log.SetOutput(&output)
-//	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-//
-//	tpsBench := mock.TpsBenchmarkMock{}
-//	tpsBench.Update(newTestMetaBlock())
-//
-//	ei.UpdateTPS(&tpsBench)
-//	assert.Empty(t, output.String())
-//}
-//
-//func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
-//	var output bytes.Buffer
-//	log.SetOutput(&output)
-//	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-//
-//	ei.UpdateTPS(nil)
-//	assert.NotEmpty(t, output.String())
-//}
+func TestElasticIndexer_UpdateTPS(t *testing.T) {
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/elasticsearch:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
+
+	tpsBench := mock.TpsBenchmarkMock{}
+	tpsBench.Update(newTestMetaBlock())
+
+	ei.UpdateTPS(&tpsBench)
+	assert.Empty(t, output.String())
+	_ = logger.RemoveLogObserver(output)
+	_ = logger.SetLogLevel("core/elasticsearch:INFO")
+}
+
+func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/elasticsearch:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
+
+	ei.UpdateTPS(nil)
+	assert.NotEmpty(t, output.String())
+	_ = logger.RemoveLogObserver(output)
+	_ = logger.SetLogLevel("core/elasticsearch:INFO")
+}
 
 func TestElasticIndexer_SerializeShardInfo(t *testing.T) {
 	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})

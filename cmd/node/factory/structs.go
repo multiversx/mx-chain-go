@@ -373,7 +373,6 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 	initialBalancesSkPemFileName := args.ctx.GlobalString(args.initialBalancesSkPemFileName)
 	txSignKeyGen, txSignPrivKey, txSignPubKey, err := GetSigningParams(
 		args.ctx,
-		args.log,
 		args.txSignSkName,
 		args.txSignSkIndexName,
 		initialBalancesSkPemFileName,
@@ -568,11 +567,14 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks
 
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
-		log.Error("error storing genesis metablock", "error", errNotCritical)
-
+		if errNotCritical != nil {
+			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
+		}
 	} else {
 		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
-		log.Error("error storing genesis shardblock", "error", errNotCritical)
+		if errNotCritical != nil {
+			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
+		}
 	}
 
 	return nil
@@ -2002,14 +2004,13 @@ func createMemUnit() storage.Storer {
 // GetSigningParams returns a key generator, a private key, and a public key
 func GetSigningParams(
 	ctx *cli.Context,
-	log logger.Logger,
 	skName string,
 	skIndexName string,
 	skPemFileName string,
 	suite crypto.Suite,
 ) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
 
-	sk, err := getSk(ctx, log, skName, skIndexName, skPemFileName)
+	sk, err := getSk(ctx, skName, skIndexName, skPemFileName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -2046,7 +2047,6 @@ func decodeAddress(address string) ([]byte, error) {
 
 func getSk(
 	ctx *cli.Context,
-	log logger.Logger,
 	skName string,
 	skIndexName string,
 	skPemFileName string,

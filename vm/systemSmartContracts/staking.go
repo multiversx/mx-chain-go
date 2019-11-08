@@ -123,7 +123,8 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	err = r.eei.Transfer(args.RecipientAddr, args.CallerAddr, args.CallValue, nil)
 	if err != nil {
-		log.Error("transfer error on stake function " + err.Error())
+		log.Debug("transfer error on stake function",
+			"error", err.Error())
 	}
 
 	return vmcommon.Ok
@@ -150,7 +151,9 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	data, err = json.Marshal(registrationData)
 	if err != nil {
-		log.Error("marshal error in unStake function of staking smart contract" + err.Error())
+		log.Debug("marshal error in unStake function of staking SC",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 

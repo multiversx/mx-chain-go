@@ -266,7 +266,7 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		log.Warn("indexer: can not index round info", "error", err)
+		log.Warn("indexer: can not index round info", "error", err.Error())
 		return
 	}
 
@@ -317,7 +317,7 @@ func (ei *elasticIndexer) saveShardValidatorsPubKeys(shardId uint32, shardValida
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		log.Warn("indexer: can not index validators pubkey", "error", err)
+		log.Warn("indexer: can not index validators pubkey", "error", err.Error())
 		return
 	}
 	log.Debug("indexer: response validators pubkey", "msg", res.String())
@@ -378,7 +378,7 @@ func (ei *elasticIndexer) saveHeader(header data.HeaderHandler, signersIndexes [
 
 	res, err := req.Do(context.Background(), ei.db)
 	if err != nil {
-		log.Warn("indexer: could not index block header", "error", err)
+		log.Warn("indexer: could not index block header", "error", err.Error())
 		return
 	}
 

@@ -2,7 +2,6 @@ package sync
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -112,7 +111,9 @@ func (boot *baseBootstrap) loadBlocks(
 
 	highestNonceInStorer := boot.computeHighestNonce(hdrNonceHashDataUnit)
 
-	log.Info(fmt.Sprintf("the highest header nonce committed in storer is %d\n", highestNonceInStorer))
+	log.Debug("the highest header nonce committed in storer",
+		"nonce", highestNonceInStorer,
+	)
 
 	var finalNotarized map[uint32]uint64
 	var lastNotarized map[uint32]uint64
@@ -373,9 +374,10 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 	}
 
 	if bytes.Equal(hash, headerHash) {
-		log.Info(fmt.Sprintf("received requested header with hash %s and nonce %d from network\n",
-			core.ToB64(hash),
-			headerHandler.GetNonce()))
+		log.Debug("received requested header from network",
+			"nonce", headerHandler.GetNonce(),
+			"hash", display.ConvertHash(hash),
+		)
 		boot.setRequestedHeaderHash(nil)
 		boot.mutRcvHdrHash.Unlock()
 		boot.chRcvHdrHash <- true

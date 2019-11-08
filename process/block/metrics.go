@@ -105,7 +105,7 @@ func saveMetachainCommitBlockMetrics(
 
 	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, sharding.MetachainShardId)
 	if err != nil {
-		log.Debug("cannot get validators public keys", "error", err)
+		log.Debug("cannot get validators public keys", "error", err.Error())
 	}
 
 	countNotarizedHeaders(pubKeys, nodesCoordinator.GetOwnPublicKey(), appStatusHandler, len(header.ShardInfo))

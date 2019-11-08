@@ -18,5 +18,5 @@ func Headline(message string, timestamp string, delimiter string) string {
 	}
 	delimiterLength := (maxHeadlineLength - len(message)) / 2
 	delimiterText := strings.Repeat(delimiter, delimiterLength)
-	return fmt.Sprintf("\n%s %s %s %s\n\n", timestamp, delimiterText, message, delimiterText)
+	return fmt.Sprintf("%s %s %s %s", timestamp, delimiterText, message, delimiterText)
 }

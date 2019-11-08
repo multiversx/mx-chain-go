@@ -100,7 +100,7 @@ func setBalancesToTrie(
 	if err != nil {
 		errToLog := accounts.RevertToSnapshot(0)
 		if errToLog != nil {
-			log.Error("error reverting to snapshot", "error", errToLog.Error())
+			log.Debug("error reverting to snapshot", "error", errToLog.Error())
 		}
 
 		return nil, err

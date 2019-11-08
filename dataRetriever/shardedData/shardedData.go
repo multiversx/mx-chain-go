@@ -77,7 +77,7 @@ func (sd *shardedData) CreateShardStore(cacheId string) {
 func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
 	shardStore, err := newShardStore(cacheId, sd.cacherConfig)
 	if err != nil {
-		log.Error("newShardStore", "error", err)
+		log.Debug("newShardStore", "error", err.Error())
 	}
 
 	sd.shardedDataStore[cacheId] = shardStore

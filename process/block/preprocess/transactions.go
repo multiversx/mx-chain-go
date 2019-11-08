@@ -588,7 +588,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			)
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
-				log.Warn("revert to snapshot", "error", err.Error())
+				log.Debug("revert to snapshot", "error", err.Error())
 			}
 			continue
 		}

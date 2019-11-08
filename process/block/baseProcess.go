@@ -253,14 +253,20 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		log.Debug(fmt.Sprintf("block hash does not match in shard %d: local block hash is %s and node received block with previous hash %s\n",
-			currHdr.GetShardID(), core.ToB64(prevHeaderHash), core.ToB64(currHdr.GetPrevHash())))
+		log.Debug("block hash does not match",
+			"shard", currHdr.GetShardID(),
+			"local prev hash", display.ConvertHash(prevHeaderHash),
+			"received block with prev hash", display.ConvertHash(currHdr.GetPrevHash()),
+		)
 		return process.ErrBlockHashDoesNotMatch
 	}
 
 	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		log.Debug(fmt.Sprintf("random seed does not match in shard %d: local block random seed is %s and node received block with previous random seed %s\n",
-			currHdr.GetShardID(), core.ToB64(prevHdr.GetRandSeed()), core.ToB64(currHdr.GetPrevRandSeed())))
+		log.Debug("random seed does not match",
+			"shard", currHdr.GetShardID(),
+			"local rand seed", display.ConvertHash(prevHdr.GetRandSeed()),
+			"received block with rand seed", display.ConvertHash(currHdr.GetPrevRandSeed()),
+		)
 		return process.ErrRandSeedDoesNotMatch
 	}
 
@@ -509,15 +515,15 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev hash",
-		core.ToB64(headerHandler.GetPrevHash())}))
+		display.ConvertHash(headerHandler.GetPrevHash())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev rand seed",
-		core.ToB64(headerHandler.GetPrevRandSeed())}))
+		display.ConvertHash(headerHandler.GetPrevRandSeed())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Rand seed",
-		core.ToB64(headerHandler.GetRandSeed())}))
+		display.ConvertHash(headerHandler.GetRandSeed())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Pub keys bitmap",
@@ -525,11 +531,11 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Signature",
-		core.ToB64(headerHandler.GetSignature())}))
+		display.ConvertHash(headerHandler.GetSignature())}))
 	lines = append(lines, display.NewLineData(true, []string{
 		"",
 		"Root hash",
-		core.ToB64(headerHandler.GetRootHash())}))
+		display.ConvertHash(headerHandler.GetRootHash())}))
 	return lines
 }
 
