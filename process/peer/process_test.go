@@ -734,6 +734,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
+	header.Nonce = 2
 	_, err := validatorStatistics.UpdatePeerState(header)
 
 	assert.Equal(t, process.ErrMissingHeader, err)
@@ -792,6 +793,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
+	header.Nonce = 2
 	_, err := validatorStatistics.UpdatePeerState(header)
 
 	assert.Equal(t, process.ErrUnmarshalWithoutSuccess, err)

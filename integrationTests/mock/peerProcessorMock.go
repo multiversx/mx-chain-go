@@ -12,6 +12,7 @@ type ValidatorStatisticsProcessorMock struct {
 	IsInterfaceNilCalled   func() bool
 	RevertPeerStateToSnapshotCalled func(snapshot int) error
 	CommitCalled func() ([]byte, error)
+	RootHashCalled func() ([]byte, error)
 }
 
 func (vsp *ValidatorStatisticsProcessorMock) SaveInitialState(in []*sharding.InitialNode) error {
@@ -45,6 +46,13 @@ func (vsp *ValidatorStatisticsProcessorMock) RevertPeerStateToSnapshot(snapshot 
 func (vsp *ValidatorStatisticsProcessorMock) Commit() ([]byte, error) {
 	if vsp.CommitCalled != nil {
 		return vsp.CommitCalled()
+	}
+	return nil, nil
+}
+
+func (vsp *ValidatorStatisticsProcessorMock) RootHash() ([]byte, error) {
+	if vsp.RootHashCalled != nil {
+		return vsp.RootHash()
 	}
 	return nil, nil
 }
