@@ -4,7 +4,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -15,8 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
-
+// DataPool indicates the main funcitonality needed in order to fetch the required blocks from the pool
 type DataPool interface {
 	MetaBlocks() storage.Cacher
 	IsInterfaceNil() bool
@@ -120,7 +118,7 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 	return true
 }
 
-// UpdatePeerState takes the ca header, updates the peer state for all of the
+// UpdatePeerState takes the in a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
@@ -247,7 +245,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 		prevShardData, ok := p.prevShardInfo[h.ShardId]
 		p.mutPrevShardInfo.RUnlock()
 		if !ok {
-			return errors.New("SHOULDEXTRACT")
+			return process.ErrMissingPrevShardData
 		}
 
 		err = p.checkForMissedBlocks(
