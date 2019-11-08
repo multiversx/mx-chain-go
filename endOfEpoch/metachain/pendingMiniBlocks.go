@@ -1,16 +1,18 @@
 package metachain
 
 import (
+	"sort"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"sort"
-	"sync"
 )
 
+//ArgsPendingMiniBlocks is structure that contain components that are used to create a new pendingMiniBlockHeaders object
 type ArgsPendingMiniBlocks struct {
 	Marshalizer marshal.Marshalizer
 	Storage     storage.Storer
@@ -24,6 +26,7 @@ type pendingMiniBlockHeaders struct {
 	mapMiniBlockHeaders map[string]block.ShardMiniBlockHeader
 }
 
+// NewPendingMiniBlocks will create a new pendingMiniBlockHeaders object
 func NewPendingMiniBlocks(args *ArgsPendingMiniBlocks) (*pendingMiniBlockHeaders, error) {
 	if args == nil {
 		return nil, endOfEpoch.ErrNilArgsPendingMiniblocks
@@ -35,9 +38,14 @@ func NewPendingMiniBlocks(args *ArgsPendingMiniBlocks) (*pendingMiniBlockHeaders
 		return nil, endOfEpoch.ErrNilStorage
 	}
 
-	return &pendingMiniBlockHeaders{}, nil
+	return &pendingMiniBlockHeaders{
+		marshalizer:         args.Marshalizer,
+		storage:             args.Storage,
+		mapMiniBlockHeaders: make(map[string]block.ShardMiniBlockHeader),
+	}, nil
 }
 
+//PendingMiniBlockHeaders will return a sorted list of ShardMiniBlockHeaders
 func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders() []block.ShardMiniBlockHeader {
 	shardMiniBlokcHeaders := make([]block.ShardMiniBlockHeader, 0)
 
@@ -55,10 +63,15 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders() []block.ShardMiniBlo
 	return shardMiniBlokcHeaders
 }
 
+// AddProcessedHeader will add all miniblocks headers in a map
 func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler) error {
+	if check.IfNil(handler) {
+		return endOfEpoch.ErrNilHeaderHandler
+	}
+
 	metaHdr, ok := handler.(*block.MetaBlock)
 	if !ok {
-		return endOfEpoch.ErrWongTypeAssertion
+		return endOfEpoch.ErrWrongTypeAssertion
 	}
 
 	// TODO: uncomment after merge with system vm
@@ -114,10 +127,15 @@ func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler)
 	return nil
 }
 
+// RevertHeader will remove  all minibloks headers that are in metablock from pending
 func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error {
+	if check.IfNil(handler) {
+		return endOfEpoch.ErrNilHeaderHandler
+	}
+
 	metaHdr, ok := handler.(*block.MetaBlock)
 	if !ok {
-		return endOfEpoch.ErrWongTypeAssertion
+		return endOfEpoch.ErrWrongTypeAssertion
 	}
 
 	// TODO: uncomment after merge with system vm
@@ -161,6 +179,7 @@ func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (p *pendingMiniBlockHeaders) IsInterfaceNil() bool {
 	return p == nil
 }
