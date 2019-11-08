@@ -1,29 +1,34 @@
 package external
 
+import (
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
+
 // NodeApiResolver can resolve API requests
 type NodeApiResolver struct {
-	scDataGetter         ScDataGetter
+	scQueryService       SCQueryService
 	statusMetricsHandler StatusMetricsHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
-func NewNodeApiResolver(scDataGetter ScDataGetter, statusMetricsHandler StatusMetricsHandler) (*NodeApiResolver, error) {
-	if scDataGetter == nil || scDataGetter.IsInterfaceNil() {
-		return nil, ErrNilScDataGetter
+func NewNodeApiResolver(scQueryService SCQueryService, statusMetricsHandler StatusMetricsHandler) (*NodeApiResolver, error) {
+	if scQueryService == nil || scQueryService.IsInterfaceNil() {
+		return nil, ErrNilSCQueryService
 	}
 	if statusMetricsHandler == nil || statusMetricsHandler.IsInterfaceNil() {
 		return nil, ErrNilStatusMetrics
 	}
 
 	return &NodeApiResolver{
-		scDataGetter:         scDataGetter,
+		scQueryService:       scQueryService,
 		statusMetricsHandler: statusMetricsHandler,
 	}, nil
 }
 
-// GetVmValue retrieves data stored in a SC account through a VM
-func (nar *NodeApiResolver) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
-	return nar.scDataGetter.Get([]byte(address), funcName, argsBuff...)
+// ExecuteSCQuery retrieves data stored in a SC account through a VM
+func (nar *NodeApiResolver) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+	return nar.scQueryService.ExecuteQuery(query)
 }
 
 // StatusMetrics returns an implementation of the StatusMetricsHandler interface

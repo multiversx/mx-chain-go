@@ -137,8 +137,8 @@ type TestProcessorNode struct {
 	MultiSigner crypto.MultiSigner
 
 	//Node is used to call the functionality already implemented in it
-	Node         *node.Node
-	ScDataGetter external.ScDataGetter
+	Node           *node.Node
+	SCQueryService external.SCQueryService
 
 	CounterHdrRecv int32
 	CounterMbRecv  int32
@@ -234,7 +234,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }

@@ -1227,10 +1227,10 @@ func createApiResolver(accounts state.AccountsAdapter, converter state.AddressCo
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCDataGetter(vmContainer)
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer)
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scDataGetter, statusMetrics)
+	return external.NewNodeApiResolver(scQueryService, statusMetrics)
 }

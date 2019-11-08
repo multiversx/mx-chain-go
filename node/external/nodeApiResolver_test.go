@@ -5,22 +5,24 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewNodeApiResolver_NilScDataGetterShouldErr(t *testing.T) {
+func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	nar, err := external.NewNodeApiResolver(nil, &mock.StatusMetricsStub{})
 
 	assert.Nil(t, nar)
-	assert.Equal(t, external.ErrNilScDataGetter, err)
+	assert.Equal(t, external.ErrNilSCQueryService, err)
 }
 
 func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(&mock.ScDataGetterStub{}, nil)
+	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, nil)
 
 	assert.Nil(t, nar)
 	assert.Equal(t, external.ErrNilStatusMetrics, err)
@@ -29,7 +31,7 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(&mock.ScDataGetterStub{}, &mock.StatusMetricsStub{})
+	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{})
 
 	assert.NotNil(t, nar)
 	assert.Nil(t, err)
@@ -39,15 +41,18 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	nar, _ := external.NewNodeApiResolver(&mock.ScDataGetterStub{
-		GetCalled: func(scAddress []byte, funcName string, args ...[]byte) (bytes []byte, e error) {
+	nar, _ := external.NewNodeApiResolver(&mock.SCQueryServiceStub{
+		ExecuteQueryCalled: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			wasCalled = true
-			return make([]byte, 0), nil
+			return &vmcommon.VMOutput{}, nil
 		},
 	},
 		&mock.StatusMetricsStub{})
 
-	_, _ = nar.GetVmValue("", "")
+	_, _ = nar.ExecuteSCQuery(&smartContract.SCQuery{
+		ScAddress: []byte{0},
+		FuncName:  "",
+	})
 
 	assert.True(t, wasCalled)
 }
@@ -57,7 +62,7 @@ func TestNodeApiResolver_StatusMetricsMapShouldBeCalled(t *testing.T) {
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
-		&mock.ScDataGetterStub{},
+		&mock.SCQueryServiceStub{},
 		&mock.StatusMetricsStub{
 			StatusMetricsMapCalled: func() (map[string]interface{}, error) {
 				wasCalled = true
