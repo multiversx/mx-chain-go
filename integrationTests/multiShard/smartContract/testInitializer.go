@@ -860,7 +860,8 @@ func createMetaNetNode(
 			Core:              &mock.ServiceContainerMock{},
 			EndOfEpochTrigger: &mock.EndOfEpochTriggerStub{},
 		},
-		DataPool: dPool,
+		DataPool:          dPool,
+		PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
 
