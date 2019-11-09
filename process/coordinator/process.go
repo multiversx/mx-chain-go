@@ -708,37 +708,35 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 func (tc *transactionCoordinator) VerifyCreatedBlockTransactions(body block.Body) error {
 	tc.mutInterimProcessors.RLock()
 	defer tc.mutInterimProcessors.RUnlock()
-	//errMutex := sync.Mutex{}
-	//var errFound error
+	errMutex := sync.Mutex{}
+	var errFound error
 	// TODO: think if it is good in parallel or it is needed in sequences
-	//wg := sync.WaitGroup{}
-	//wg.Add(len(tc.interimProcessors))
+	wg := sync.WaitGroup{}
+	wg.Add(len(tc.interimProcessors))
 
 	for key, interimProc := range tc.interimProcessors {
 		if key == block.RewardsBlock {
 			// this has to be processed last
-			//wg.Done()
+			wg.Done()
 			continue
 		}
 
-		//go func(intermediateProcessor process.IntermediateTransactionHandler) {
-		//err := intermediateProcessor.VerifyInterMiniBlocks(body)
-		err := interimProc.VerifyInterMiniBlocks(body)
-		if err != nil {
-			//errMutex.Lock()
-			//errFound = err
-			//errMutex.Unlock()
-			return err
-		}
-		//	wg.Done()
-		//}(interimProc)
+		go func(intermediateProcessor process.IntermediateTransactionHandler) {
+			err := intermediateProcessor.VerifyInterMiniBlocks(body)
+			if err != nil {
+				errMutex.Lock()
+				errFound = err
+				errMutex.Unlock()
+			}
+			wg.Done()
+		}(interimProc)
 	}
 
-	//wg.Wait()
+	wg.Wait()
 
-	//if errFound != nil {
-	//	return errFound
-	//}
+	if errFound != nil {
+		return errFound
+	}
 
 	interimProc := tc.getInterimProcessor(block.RewardsBlock)
 	if interimProc == nil {

@@ -69,10 +69,10 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(header data.HeaderHandler, 
 	if roundDif < nonceDif {
 		return ErrHigherNonceInBlock
 	}
+	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
+		return process.ErrHeaderIsBlackListed
+	}
 	if state == process.BHProposed {
-		if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
-			return process.ErrHeaderIsBlackListed
-		}
 		if !isRandomSeedValid(header) {
 			return ErrRandomSeedNotValid
 		}

@@ -487,22 +487,23 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return process.ErrWrongTypeAssertion
 	}
 
-	restoredTxNr, err := sp.txCoordinator.RestoreBlockDataFromStorage(body)
-	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
+	miniBlockHashes := header.MapMiniBlockHashesToShards()
+	err := sp.restoreMetaBlockIntoPool(miniBlockHashes, header.MetaBlockHashes)
 	if err != nil {
 		return err
 	}
 
-	miniBlockHashes := header.MapMiniBlockHashesToShards()
-	err = sp.restoreMetaBlockIntoPool(miniBlockHashes, header.MetaBlockHashes)
-	if err != nil {
-		return err
+	restoredTxNr, errNotCritical := sp.txCoordinator.RestoreBlockDataFromStorage(body)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
 	}
+
+	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 
 	return nil
 }
 
-func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]uint32, metaBlockHashes [][]byte) error {
+func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string]uint32, metaBlockHashes [][]byte) error {
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
 		return process.ErrNilMetaBlocksPool
@@ -513,22 +514,23 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 		return process.ErrNilMetaHeadersNoncesDataPool
 	}
 
+	mapMetaHashMiniBlockHashes := make(map[string][][]byte, 0)
+
 	for _, metaBlockHash := range metaBlockHashes {
 		buff, err := sp.store.Get(dataRetriever.MetaBlockUnit, metaBlockHash)
 		if err != nil {
-			continue
+			return err
 		}
 
 		metaBlock := block.MetaBlock{}
 		err = sp.marshalizer.Unmarshal(&metaBlock, buff)
 		if err != nil {
-			log.Error(err.Error())
-			continue
+			return err
 		}
 
 		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for mbHash := range processedMiniBlocks {
-			sp.addProcessedMiniBlock(metaBlockHash, []byte(mbHash))
+			mapMetaHashMiniBlockHashes[string(metaBlockHash)] = append(mapMetaHashMiniBlockHashes[string(metaBlockHash)], []byte(mbHash))
 		}
 
 		metaBlockPool.Put(metaBlockHash, &metaBlock)
@@ -543,7 +545,13 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[string]ui
 		}
 	}
 
-	for miniBlockHash := range miniBlockHashes {
+	for metaBlockHash, miniBlockHashes := range mapMetaHashMiniBlockHashes {
+		for _, miniBlockHash := range miniBlockHashes {
+			sp.addProcessedMiniBlock([]byte(metaBlockHash), miniBlockHash)
+		}
+	}
+
+	for miniBlockHash := range mapMiniBlockHashes {
 		sp.removeProcessedMiniBlock([]byte(miniBlockHash))
 	}
 

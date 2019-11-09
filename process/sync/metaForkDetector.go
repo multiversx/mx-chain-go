@@ -61,7 +61,7 @@ func (mfd *metaForkDetector) AddHeader(
 
 	err := mfd.checkBlockBasicValidity(header, state)
 	if err != nil {
-		process.AddHeaderToBlackList(mfd.blackListHandler, headerHash)
+		//process.AddHeaderToBlackList(mfd.blackListHandler, headerHash)
 		return err
 	}
 

@@ -791,6 +791,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			boot.forkDetector.GetHighestFinalBlockNonce()))
 
 		err = boot.rollBackOneBlock(
+			currHeaderHash,
 			currHeader,
 			currBlockBody,
 			prevHeader,
@@ -820,11 +821,23 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(
+	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
 	currBlockBody data.BodyHandler,
 	prevHeader data.HeaderHandler,
 	prevBlockBody data.BodyHandler,
 ) error {
+
+	var err error
+
+	defer func() {
+		if err != nil {
+			_ = boot.blkc.SetCurrentBlockHeader(currHeader)
+			_ = boot.blkc.SetCurrentBlockBody(currBlockBody)
+			boot.blkc.SetCurrentBlockHeaderHash(currHeaderHash)
+			boot.blkExecutor.RevertStateToBlock(currHeader)
+		}
+	}()
 
 	var prevHeaderHash []byte
 
@@ -832,7 +845,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		prevHeaderHash = currHeader.GetPrevHash()
 	}
 
-	err := boot.blkc.SetCurrentBlockHeader(prevHeader)
+	err = boot.blkc.SetCurrentBlockHeader(prevHeader)
 	if err != nil {
 		return err
 	}
@@ -849,11 +862,12 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		return err
 	}
 
-	boot.cleanCachesAndStorageOnRollback(currHeader)
-	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(currHeader, currBlockBody)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+	err = boot.blkExecutor.RestoreBlockIntoPools(currHeader, currBlockBody)
+	if err != nil {
+		return err
 	}
+
+	boot.cleanCachesAndStorageOnRollback(currHeader)
 
 	return nil
 }

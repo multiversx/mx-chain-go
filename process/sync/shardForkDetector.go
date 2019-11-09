@@ -61,7 +61,7 @@ func (sfd *shardForkDetector) AddHeader(
 
 	err := sfd.checkBlockBasicValidity(header, state)
 	if err != nil {
-		process.AddHeaderToBlackList(sfd.blackListHandler, headerHash)
+		//process.AddHeaderToBlackList(sfd.blackListHandler, headerHash)
 		return err
 	}
 
