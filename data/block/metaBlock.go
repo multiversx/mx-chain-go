@@ -59,6 +59,19 @@ type ShardData struct {
 	TxCount               uint32                 `capid:"6"`
 }
 
+// FinalizedHeaders hold the last finalized headers hash and state root hash
+type FinalizedHeaders struct {
+	ShardId               uint32                 `capid:"0"`
+	HeaderHash            []byte                 `capid:"1"`
+	RootHash              []byte                 `capid:"2"`
+}
+
+// EndOfEpoch holds the block information for end-of-epoch
+type EndOfEpoch struct {
+	PendingMiniBlockHeaders []ShardMiniBlockHeader `capid:"0"`
+	LastFinalizedHeaders    []FinalizedHeaders     `capid:"1"`
+}
+
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
 	Nonce                  uint64      `capid:"0"`

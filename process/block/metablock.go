@@ -183,7 +183,7 @@ func (mp *metaProcessor) ProcessBlock(
 		go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 	}()
 
-	highestNonceHdrs, err := mp.checkShardHeadersValidity()
+	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
 		return err
 	}
@@ -740,7 +740,7 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 
 // check if shard headers were signed and constructed correctly and returns headers which has to be
 // checked for finality
-func (mp *metaProcessor) checkShardHeadersValidity() (map[uint32]data.HeaderHandler, error) {
+func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
 	mp.mutNotarizedHdrs.RLock()
 	if mp.notarizedHdrs == nil {
 		mp.mutNotarizedHdrs.RUnlock()
@@ -769,6 +769,38 @@ func (mp *metaProcessor) checkShardHeadersValidity() (map[uint32]data.HeaderHand
 
 			tmpLastNotarized[shardId] = shardHdr
 			highestNonceHdrs[shardId] = shardHdr
+		}
+	}
+
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	mapShardMiniBlockHeadersData := make(map[string]struct{})
+	mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
+
+	for _, shardData := range metaHdr.ShardInfo {
+		actualHdr := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)].hdr
+		shardHdr, ok := actualHdr.(*block.Header)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		if len(shardData.ShardMiniBlockHeaders) != len(shardHdr.MiniBlockHeaders) {
+			return nil, process.ErrHeaderShardDataMismatch
+		}
+
+		for _, shardMiniBlockHdr := range shardData.ShardMiniBlockHeaders {
+			mapMiniBlockHeadersInMetaBlock[string(shardMiniBlockHdr.Hash)] = struct{}{}
+		}
+
+		for _, actualMiniBlockHdr := range shardHdr.MiniBlockHeaders {
+			mapShardMiniBlockHeadersData[string(actualMiniBlockHdr.Hash)] = struct{}{}
+		}
+	}
+
+	for mbHdrHash, _ := range mapMiniBlockHeadersInMetaBlock {
+		if _, ok := mapShardMiniBlockHeadersData[mbHdrHash]; !ok {
+			return nil, process.ErrHeaderShardDataMismatch
 		}
 	}
 
@@ -1197,6 +1229,12 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
 	if err != nil {
 		return nil, err
+	}
+
+	if mp.endOfEpochTrigger.IsEndOfEpoch() {
+		//pendingMiniBlocks := mp.pendingMiniBlocks.PendingMiniBlockHeaders()
+
+
 	}
 
 	mp.blockSizeThrottler.Add(

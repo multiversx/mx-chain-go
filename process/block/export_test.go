@@ -174,8 +174,8 @@ func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error 
 	return mp.saveLastNotarizedHeader(header)
 }
 
-func (mp *metaProcessor) CheckShardHeadersValidity() (map[uint32]data.HeaderHandler, error) {
-	return mp.checkShardHeadersValidity()
+func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
+	return mp.checkShardHeadersValidity(header)
 }
 
 func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]data.HeaderHandler) error {

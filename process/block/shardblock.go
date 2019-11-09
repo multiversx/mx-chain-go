@@ -66,6 +66,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		uint64Converter:               arguments.Uint64Converter,
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
+		endOfEpochTrigger:             arguments.EndOfEpochTrigger,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -414,6 +415,7 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
 	lastNotarizedHdr, err := sp.getLastNotarizedHdr(sharding.MetachainShardId)
 	if err != nil {
 		log.Info(err.Error())
+		return
 	}
 
 	for i := 0; i < len(sortedHdrs); i++ {
@@ -1237,7 +1239,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
-			miniBlockMetaHashes[hash] = []byte(metaBlockHash)
+			miniBlockMetaHashes[hash] = metaBlockHash
 		}
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()

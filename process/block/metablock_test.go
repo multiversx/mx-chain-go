@@ -1614,7 +1614,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	mp.SetHdrForCurrentBlock(wrongCurrHash, wrongCurrHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
-	_, err := mp.CheckShardHeadersValidity()
+	_, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	shDataCurr = block.ShardData{ShardId: 0, HeaderHash: currHash}
@@ -1627,7 +1627,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
-	highestNonceHdrs, err := mp.CheckShardHeadersValidity()
+	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Nil(t, err)
 	assert.NotNil(t, highestNonceHdrs)
 	assert.Equal(t, currHdr.Nonce, highestNonceHdrs[currHdr.ShardId].GetNonce())
@@ -1678,7 +1678,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 
-	highestNonceHdrs, err := mp.CheckShardHeadersValidity()
+	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Nil(t, highestNonceHdrs)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
@@ -1727,12 +1727,12 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
 
-	highestNonceHdrs, err := mp.CheckShardHeadersValidity()
+	highestNonceHdrs, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.Equal(t, 0, len(highestNonceHdrs))
 
 	pool.ShardHeaders().Put(currHash, currHdr)
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
-	highestNonceHdrs, err = mp.CheckShardHeadersValidity()
+	highestNonceHdrs, err = mp.CheckShardHeadersValidity(metaHdr)
 	assert.NotNil(t, highestNonceHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, currHdr.Nonce, highestNonceHdrs[currHdr.ShardId].GetNonce())
