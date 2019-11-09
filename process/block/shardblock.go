@@ -776,16 +776,6 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the providd header
-func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := sp.accounts.RecreateTrie(header.GetRootHash())
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // RevertAccountState reverts the account state for cleanup failed process
 func (sp *shardProcessor) RevertAccountState() {
 	err := sp.accounts.RevertToSnapshot(0)
