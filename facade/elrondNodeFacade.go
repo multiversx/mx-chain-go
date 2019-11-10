@@ -87,7 +87,8 @@ func (ef *ElrondNodeFacade) StartNode() error {
 	return err
 }
 
-// GetCurrentPublicKey SHOULD BE REMOVED
+// GetCurrentPublicKey is just a mock method to satisfies FacadeHandler
+//TODO: Remove this method when it will not be used in elrond facade
 func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
 	return ""
 }

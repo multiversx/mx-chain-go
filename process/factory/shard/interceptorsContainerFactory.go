@@ -79,7 +79,7 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(keyGen) {
 		return nil, process.ErrNilKeyGen
 	}
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
 	if check.IfNil(multiSigner) {

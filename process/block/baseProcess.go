@@ -327,6 +327,10 @@ func (bp *baseProcessor) lastHdrForShard(shardId uint32) data.HeaderHandler {
 }
 
 func (bp *baseProcessor) setLastHdrForShard(shardId uint32, header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+
 	bp.mutLastHdrs.Lock()
 	lastHeader, ok := bp.lastHdrs[shardId]
 	if ok {

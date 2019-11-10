@@ -256,17 +256,6 @@ func (boot *baseBootstrap) removeBlockHeader(
 	blockUnit dataRetriever.UnitType,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	//headerNonceHashStore := boot.store.GetStorer(hdrNonceHashDataUnit)
-	//if headerNonceHashStore == nil {
-	//	return process.ErrNilHeadersNonceHashStorage
-	//}
-	//
-	//nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	//err := headerNonceHashStore.Remove(nonceToByteSlice)
-	//if err != nil {
-	//	return err
-	//}
-
 	return nil
 }
 
@@ -503,8 +492,6 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 		log.Info(err.Error())
 		return nil
 	}
-
-	//boot.headers.Remove(hash)
 
 	return hash
 }
@@ -801,8 +788,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		//TODO: Should be analyzed if boot.blockBootstrapper.isForkTriggeredByMeta() should be also true,
-		//when a header which has been rollback is added in the black list
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {
 			process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)

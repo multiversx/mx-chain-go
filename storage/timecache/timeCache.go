@@ -29,6 +29,10 @@ func NewTimeCache(span time.Duration) *TimeCache {
 // Add will store the key in the time cache
 // Double adding the key is not permitted by the time cache. Also, add will trigger sweeping.
 func (tc *TimeCache) Add(key string) error {
+	if len(key) == 0 {
+		return storage.ErrEmptyKey
+	}
+
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 

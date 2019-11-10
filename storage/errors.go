@@ -36,3 +36,6 @@ var ErrInvalidNumOpenFiles = errors.New("maxOpenFiles is invalid")
 
 // ErrDuplicateKeyToAdd signals that a key can not be added as it already exists
 var ErrDuplicateKeyToAdd = errors.New("the key can not be added as it already exists")
+
+// ErrEmptyKey is raised when a key is empty
+var ErrEmptyKey = errors.New("key is empty")

@@ -399,6 +399,31 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilBlackListHandler, err)
+}
+
+func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
 		nil,
 		&mock.BlackListHandlerStub{},
 	)

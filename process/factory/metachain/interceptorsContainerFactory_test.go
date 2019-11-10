@@ -406,6 +406,31 @@ func TestNewInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
+func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := metachain.NewInterceptorsContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AccountsStub{},
+		&mock.AddressConverterMock{},
+		&mock.SignerMock{},
+		&mock.SingleSignKeyGenMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilBlackListHandler, err)
+}
+
 func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 

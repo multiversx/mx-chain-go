@@ -470,8 +470,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	//headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
-	//metaBlocksPool.Remove(headerHash)
+	headersNoncesPool.Remove(header.GetNonce(), header.GetShardID())
+	metaBlocksPool.Remove(headerHash)
 
 	body, ok := bodyHandler.(*block.MetaBlockBody)
 	if !ok {

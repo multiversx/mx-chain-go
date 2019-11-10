@@ -2607,8 +2607,8 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	err := bs.RollBack(true)
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
-	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
-	assert.False(t, remFlags.flagHdrRemovedFromStorage)
+	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
+	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
 	assert.Equal(t, blkc.GetCurrentBlockBody(), prevTxBlockBody)
@@ -2778,8 +2778,8 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	err := bs.RollBack(true)
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
-	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
-	assert.False(t, remFlags.flagHdrRemovedFromStorage)
+	assert.False(t, remFlags.flagHdrRemovedFromHeaders)
+	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
 	assert.Nil(t, blkc.GetCurrentBlockBody())
@@ -3768,77 +3768,6 @@ func TestBootstrap_ApplyBlockShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestBootstrap_RemoveBlockHeaderShouldErrNilHeadersNonceHashStorage(t *testing.T) {
-	t.Parallel()
-
-	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
-		}
-
-		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-
-		return hnc
-	}
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
-		}
-
-		return cs
-	}
-
-	blkc := initBlockchain()
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	store := createStore()
-	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-		if unitType == dataRetriever.BlockHeaderUnit {
-			return &mock.StorerStub{}
-		}
-		if unitType == dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()) {
-			return nil
-		}
-
-		return nil
-	}
-
-	bs, _ := sync.NewShardBootstrap(
-		pools,
-		store,
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		createMockResolversFinder(),
-		shardCoordinator,
-		account,
-		math.MaxUint32,
-		&mock.BlackListHandlerStub{},
-		&mock.NetworkConnectionWatcherStub{},
-	)
-
-	err := bs.RemoveBlockHeader(1,
-		dataRetriever.BlockHeaderUnit,
-		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
-
-	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, err)
-}
-
 func TestBootstrap_RemoveBlockHeaderShouldWorkWhenHeaderHashIsNotFound(t *testing.T) {
 	t.Parallel()
 
@@ -3980,86 +3909,6 @@ func TestBootstrap_RemoveBlockHeaderShouldWorkWhenRemoveHeaderHashFails(t *testi
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Nil(t, err)
-}
-
-func TestBootstrap_RemoveBlockHeaderShouldErrWhenRemoveHeaderNonceFails(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("remove header nonce failed")
-	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
-		}
-
-		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-
-		return hnc
-	}
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
-		}
-
-		return cs
-	}
-
-	blkc := initBlockchain()
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	store := createStore()
-	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-		if unitType == dataRetriever.BlockHeaderUnit {
-			return &mock.StorerStub{
-				RemoveCalled: func(key []byte) error {
-					return nil
-				},
-			}
-		}
-		if unitType == dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()) {
-			return &mock.StorerStub{
-				RemoveCalled: func(key []byte) error {
-					return errExpected
-				},
-			}
-		}
-
-		return nil
-	}
-
-	bs, _ := sync.NewShardBootstrap(
-		pools,
-		store,
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		createMockResolversFinder(),
-		shardCoordinator,
-		account,
-		math.MaxUint32,
-		&mock.BlackListHandlerStub{},
-		&mock.NetworkConnectionWatcherStub{},
-	)
-
-	err := bs.RemoveBlockHeader(1,
-		dataRetriever.BlockHeaderUnit,
-		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
-
-	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_RemoveBlockHeaderShouldWork(t *testing.T) {
@@ -4705,75 +4554,6 @@ func TestBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestBootstrap_RemoveNotarizedBlockShouldErrNilHeadersNonceHashStorage(t *testing.T) {
-	t.Parallel()
-
-	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
-		}
-
-		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-
-		return hnc
-	}
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
-		}
-
-		return cs
-	}
-
-	blkc := initBlockchain()
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	store := createStore()
-	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-		if unitType == dataRetriever.BlockHeaderUnit {
-			return &mock.StorerStub{}
-		}
-
-		return nil
-	}
-
-	bs, _ := sync.NewShardBootstrap(
-		pools,
-		store,
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		createMockResolversFinder(),
-		shardCoordinator,
-		account,
-		math.MaxUint32,
-		&mock.BlackListHandlerStub{},
-		&mock.NetworkConnectionWatcherStub{},
-	)
-
-	err := bs.RemoveBlockHeader(
-		1,
-		dataRetriever.BlockHeaderUnit,
-		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
-
-	assert.Equal(t, process.ErrNilHeadersNonceHashStorage, err)
-}
-
 func TestBootstrap_RemoveNotarizedBlockShouldWorkWhenRemoveHeaderHashFails(t *testing.T) {
 	t.Parallel()
 
@@ -4853,88 +4633,6 @@ func TestBootstrap_RemoveNotarizedBlockShouldWorkWhenRemoveHeaderHashFails(t *te
 		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
 
 	assert.Nil(t, err)
-}
-
-func TestBootstrap_RemoveNotarizedBlockShouldErrWhenRemoveHeaderNonceFails(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("remove header nonce failed")
-	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
-		}
-
-		return sds
-	}
-	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
-		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
-
-		return hnc
-	}
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
-		}
-
-		return cs
-	}
-
-	blkc := initBlockchain()
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	store := createStore()
-	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-		if unitType == dataRetriever.BlockHeaderUnit {
-			return &mock.StorerStub{
-				RemoveCalled: func(key []byte) error {
-					return nil
-				},
-			}
-		}
-
-		if unitType == dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()) {
-			return &mock.StorerStub{
-				RemoveCalled: func(key []byte) error {
-					return errExpected
-				},
-			}
-		}
-
-		return nil
-	}
-
-	bs, _ := sync.NewShardBootstrap(
-		pools,
-		store,
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		createMockResolversFinder(),
-		shardCoordinator,
-		account,
-		math.MaxUint32,
-		&mock.BlackListHandlerStub{},
-		&mock.NetworkConnectionWatcherStub{},
-	)
-
-	err := bs.RemoveBlockHeader(
-		1,
-		dataRetriever.BlockHeaderUnit,
-		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
-
-	assert.Equal(t, errExpected, err)
 }
 
 func TestBootstrap_RemoveNotarizedBlockShouldWork(t *testing.T) {
