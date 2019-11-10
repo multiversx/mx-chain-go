@@ -3859,13 +3859,13 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = poolFake
 	arguments.Store = &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-			return marshalizer.Marshal(&metaBlock)
-		},
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
+				},
+				GetCalled: func(key []byte) ([]byte, error) {
+					return marshalizer.Marshal(&metaBlock)
 				},
 			}
 		},
@@ -4236,6 +4236,9 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 		return &mock.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
+			},
+			GetCalled: func(key []byte) ([]byte, error) {
+				return metaBytes, nil
 			},
 		}
 	}

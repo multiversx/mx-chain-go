@@ -318,7 +318,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return process.ErrNilMetaBlockHeader
 	}
 
-	header, ok := headerHandler.(*block.MetaBlock)
+	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -333,36 +333,30 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return process.ErrNilHeadersNoncesDataPool
 	}
 
-	hdrHashes := make([][]byte, len(header.ShardInfo))
-	for i := 0; i < len(header.ShardInfo); i++ {
-		hdrHashes[i] = header.ShardInfo[i].HeaderHash
+	hdrHashes := make([][]byte, len(metaBlock.ShardInfo))
+	for i := 0; i < len(metaBlock.ShardInfo); i++ {
+		hdrHashes[i] = metaBlock.ShardInfo[i].HeaderHash
 	}
 
 	for _, hdrHash := range hdrHashes {
-		buff, err := mp.store.Get(dataRetriever.BlockHeaderUnit, hdrHash)
+		shardHeader, err := process.GetShardHeader(hdrHash, headerPool, mp.marshalizer, mp.store)
 		if err != nil {
 			log.Info(fmt.Sprintf("error getting shard header with hash %s form BlockHeaderUnit\n", core.ToB64(hdrHash)))
 			return err
 		}
 
-		hdr := block.Header{}
-		err = mp.marshalizer.Unmarshal(&hdr, buff)
-		if err != nil {
-			return err
-		}
-
-		headerPool.Put(hdrHash, &hdr)
+		headerPool.Put(hdrHash, shardHeader)
 		syncMap := &dataPool.ShardIdHashSyncMap{}
-		syncMap.Store(hdr.ShardId, hdrHash)
-		headerNoncesPool.Merge(hdr.Nonce, syncMap)
+		syncMap.Store(shardHeader.GetShardID(), hdrHash)
+		headerNoncesPool.Merge(shardHeader.GetNonce(), syncMap)
 
-		nonceToByteSlice := mp.uint64Converter.ToByteSlice(hdr.Nonce)
+		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardHeader.GetNonce())
 		errNotCritical := mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 		}
 
-		mp.headersCounter.subtractRestoredMBHeaders(len(hdr.MiniBlockHeaders))
+		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.MiniBlockHeaders))
 	}
 
 	mp.removeLastNotarized()

@@ -518,15 +518,9 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte, 0)
 
 	for _, metaBlockHash := range metaBlockHashes {
-		buff, err := sp.store.Get(dataRetriever.MetaBlockUnit, metaBlockHash)
+		metaBlock, err := process.GetMetaHeader(metaBlockHash, metaBlockPool, sp.marshalizer, sp.store)
 		if err != nil {
 			log.Info(fmt.Sprintf("error getting meta block with hash %s form MetaBlockUnit\n", core.ToB64(metaBlockHash)))
-			return err
-		}
-
-		metaBlock := block.MetaBlock{}
-		err = sp.marshalizer.Unmarshal(&metaBlock, buff)
-		if err != nil {
 			return err
 		}
 
@@ -535,12 +529,12 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 			mapMetaHashMiniBlockHashes[string(metaBlockHash)] = append(mapMetaHashMiniBlockHashes[string(metaBlockHash)], []byte(mbHash))
 		}
 
-		metaBlockPool.Put(metaBlockHash, &metaBlock)
+		metaBlockPool.Put(metaBlockHash, metaBlock)
 		syncMap := &dataPool.ShardIdHashSyncMap{}
 		syncMap.Store(metaBlock.GetShardID(), metaBlockHash)
-		metaHeaderNoncesPool.Merge(metaBlock.Nonce, syncMap)
+		metaHeaderNoncesPool.Merge(metaBlock.GetNonce(), syncMap)
 
-		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.Nonce)
+		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.GetNonce())
 		errNotCritical := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
