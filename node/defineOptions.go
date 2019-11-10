@@ -1,19 +1,19 @@
 package node
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -403,6 +403,7 @@ func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	}
 }
 
+// WithEndOfEpochTrigger sets up an end of trigger option for the node
 func WithEndOfEpochTrigger(endOfEpochTrigger endOfEpoch.TriggerHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(endOfEpochTrigger) {

@@ -56,6 +56,7 @@ type NTPConfig struct {
 	Version int
 }
 
+// EndOfEpochConfig will hold the configuration of EndOfEpoch settings
 type EndOfEpochConfig struct {
 	MinRoundsBetweenEpochs int64
 	RoundsPerEpoch         int64

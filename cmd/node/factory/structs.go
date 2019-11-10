@@ -7,10 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/genesis"
-	metachain2 "github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/shardchain"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -48,6 +44,10 @@ import (
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch/genesis"
+	metachainEndOfEpoch "github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -434,7 +434,7 @@ type processComponentsFactoryArgs struct {
 	network              *Network
 	coreServiceContainer serviceContainer.Core
 	endOfEpoch           *config.EndOfEpochConfig
-	startEpoch           uint32
+	startEpochNum        uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -453,7 +453,7 @@ func NewProcessComponentsFactoryArgs(
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
 	endOfEpoch *config.EndOfEpochConfig,
-	startEpoch uint32,
+	startEpochNum uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:       coreComponents,
@@ -470,7 +470,7 @@ func NewProcessComponentsFactoryArgs(
 		network:              network,
 		coreServiceContainer: coreServiceContainer,
 		endOfEpoch:           endOfEpoch,
-		startEpoch:           startEpoch,
+		startEpochNum:        startEpochNum,
 	}
 }
 
@@ -618,14 +618,14 @@ func newEndOfEpochTrigger(args *processComponentsFactoryArgs) (endOfEpoch.Trigge
 	}
 
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		argEndOfEpoch := &metachain2.ArgsNewMetaEndOfEpochTrigger{
+		argEndOfEpoch := &metachainEndOfEpoch.ArgsNewMetaEndOfEpochTrigger{
 			Rounder:     rounder,
 			SyncTimer:   args.syncer,
 			GenesisTime: time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:    args.endOfEpoch,
-			Epoch:       args.startEpoch,
+			Epoch:       args.startEpochNum,
 		}
-		endOfEpochTrigger, err := metachain2.NewEndOfEpochTrigger(argEndOfEpoch)
+		endOfEpochTrigger, err := metachainEndOfEpoch.NewEndOfEpochTrigger(argEndOfEpoch)
 		if err != nil {
 			return nil, errors.New("error creating new end of epoch trigger" + err.Error())
 		}

@@ -3,16 +3,17 @@ package mock
 import "github.com/ElrondNetwork/elrond-go/data"
 
 type EndOfEpochTriggerStub struct {
-	ForceEndOfEpochCalled func()
+	ForceEndOfEpochCalled func() error
 	IsEndOfEpochCalled    func() bool
 	EpochCalled           func() uint32
 	ReceivedHeaderCalled  func(handler data.HeaderHandler)
 }
 
-func (e *EndOfEpochTriggerStub) ForceEndOfEpoch() {
+func (e *EndOfEpochTriggerStub) ForceEndOfEpoch() error {
 	if e.ForceEndOfEpochCalled != nil {
-		e.ForceEndOfEpochCalled()
+		return e.ForceEndOfEpochCalled()
 	}
+	return nil
 }
 
 func (e *EndOfEpochTriggerStub) IsEndOfEpoch() bool {

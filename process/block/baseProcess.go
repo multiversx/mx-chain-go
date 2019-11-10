@@ -3,11 +3,11 @@ package block
 import (
 	"bytes"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -186,8 +186,9 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	if headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		bp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch() {
+	isEpochInCorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		bp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
+	if isEpochInCorrect {
 		return process.ErrEpochDoesNotMatch
 	}
 

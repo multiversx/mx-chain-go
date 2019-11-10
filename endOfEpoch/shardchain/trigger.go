@@ -5,12 +5,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 )
 
+// ArgsNewShardEndOfEpochTrigger defines the arguments needed for new end of epoch trigger
 type ArgsNewShardEndOfEpochTrigger struct {
 }
 
 type trigger struct {
 }
 
+// NewEndOfEpochTrigger creates a trigger to signal end of epoch
 func NewEndOfEpochTrigger(args *ArgsNewShardEndOfEpochTrigger) (*trigger, error) {
 	if args == nil {
 		return nil, endOfEpoch.ErrNilArgsNewShardEndOfEpochTrigger
@@ -19,23 +21,28 @@ func NewEndOfEpochTrigger(args *ArgsNewShardEndOfEpochTrigger) (*trigger, error)
 	return &trigger{}, nil
 }
 
+// IsEndOfEpoch return true if conditions are fullfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
 
 	return false
 }
 
+// Epoch returns the current epoch number
 func (t *trigger) Epoch() uint32 {
 	return 0
 }
 
-func (t *trigger) ForceEndOfEpoch() {
-
+// ForceEndOfEpoch sets the conditions ofr end of epoch to true in case of edge cases
+func (t *trigger) ForceEndOfEpoch() error {
+	return nil
 }
 
+// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fullfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 
 }
 
+// IsInterfaceNil return true if underlying object is nil
 func (t *trigger) IsInterfaceNil() bool {
 	return t == nil
 }

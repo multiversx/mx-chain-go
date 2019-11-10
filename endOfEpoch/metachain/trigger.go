@@ -1,18 +1,16 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
-var log = logger.DefaultLogger()
-
+// ArgsNewMetaEndOfEpochTrigger defines struct needed to create a new end of epoch trigger
 type ArgsNewMetaEndOfEpochTrigger struct {
 	Rounder     endOfEpoch.Rounder
 	SyncTimer   ntp.SyncTimer
@@ -30,6 +28,7 @@ type trigger struct {
 	syncTimer                     ntp.SyncTimer
 }
 
+// NewEndOfEpochTrigger creates a trigger for end of epoch
 func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) {
 	if args == nil {
 		return nil, endOfEpoch.ErrNilArgsNewMetaEndOfEpochTrigger
@@ -38,7 +37,7 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 		return nil, endOfEpoch.ErrNilRounder
 	}
 	if args.Settings == nil {
-		return nil, endOfEpoch.ErrNilSettingsHandler
+		return nil, endOfEpoch.ErrNilEndOfEpochSettings
 	}
 	if check.IfNil(args.SyncTimer) {
 		return nil, endOfEpoch.ErrNilSyncTimer
@@ -63,6 +62,7 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 	}, nil
 }
 
+// IsEndOfEpoch return true if conditions are fullfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
 	t.rounder.UpdateRound(t.epochStartTime, t.syncTimer.CurrentTime())
 	currRoundIndex := t.rounder.Index()
@@ -80,26 +80,36 @@ func (t *trigger) IsEndOfEpoch() bool {
 	return false
 }
 
-func (t *trigger) ForceEndOfEpoch() {
+// ForceEndOfEpoch sets the conditions ofr end of epoch to true in case of edge cases
+func (t *trigger) ForceEndOfEpoch() error {
+	oldRoundIndex := t.rounder.Index()
 	t.rounder.UpdateRound(t.epochStartTime, t.syncTimer.CurrentTime())
 	currRoundIndex := t.rounder.Index()
 
 	if currRoundIndex < t.roundsBetweenForcedEndOfEpoch {
-		log.Info("Tried to force end of epoch before passing of enough rounds")
-		return
+		return endOfEpoch.ErrNotEnoughRoundsBetweenEpochs
+	}
+
+	if oldRoundIndex != currRoundIndex {
+		return endOfEpoch.ErrForceEndOfEpochCanBeNotCalledOnNewRound
 	}
 
 	t.epochStartTime = t.rounder.TimeStamp()
 	t.epoch += 1
+
+	return nil
 }
 
+// Epoch return the current epoch
 func (t *trigger) Epoch() uint32 {
 	return t.epoch
 }
 
+// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fullfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 }
 
+// IsInterfaceNil return true if underlying object is nil
 func (t *trigger) IsInterfaceNil() bool {
 	return t == nil
 }
