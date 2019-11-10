@@ -896,24 +896,11 @@ func (boot *baseBootstrap) isForcedFork() bool {
 }
 
 func (boot *baseBootstrap) rollBackOnForcedFork() {
-	//for {
-	//	currHeader, err := boot.blockBootstrapper.getCurrHeader()
-	//	if err != nil {
-	//		log.Info(err.Error())
-	//		break
-	//	}
-
-	//if currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce() {
-	//	break
-	//}
-
 	err := boot.rollBack(false)
 	if err != nil {
 		log.Info(err.Error())
-		//break
 		return
 	}
-	//}
 
 	boot.forkDetector.ResetProbableHighestNonce()
 	boot.forkDetector.ResetFork()
