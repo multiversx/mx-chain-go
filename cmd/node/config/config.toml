@@ -108,13 +108,13 @@
 
 [RewardTxStorage]
     [RewardTxStorage.Cache]
-        Size = 10000
+        Size = 100000
         Type = "LRU"
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
-        MaxBatchSize = 500
+        MaxBatchSize = 45000
         MaxOpenFiles = 10
 
 [ShardHdrNonceHashStorage]
@@ -146,8 +146,8 @@
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
-        MaxBatchSize = 45000
+        BatchDelaySeconds = 30
+        MaxBatchSize = 1
         MaxOpenFiles = 10
 
 [PeerAccountsTrieStorage]
@@ -157,8 +157,8 @@
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
-        MaxBatchSize = 45000
+        BatchDelaySeconds = 30
+        MaxBatchSize = 1
         MaxOpenFiles = 10
 
 [BadBlocksCache]
@@ -199,7 +199,7 @@
     Type = "LRU"
 
 [RewardTransactionDataPool]
-    Size = 5000
+    Size = 100000
     Type = "LRU"
 
 [ShardHeadersDataPool]

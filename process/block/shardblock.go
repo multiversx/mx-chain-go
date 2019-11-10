@@ -494,7 +494,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 
 	restoredTxNr, errNotCritical := sp.txCoordinator.RestoreBlockDataFromStorage(body)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 	}
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
@@ -520,6 +520,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 	for _, metaBlockHash := range metaBlockHashes {
 		buff, err := sp.store.Get(dataRetriever.MetaBlockUnit, metaBlockHash)
 		if err != nil {
+			log.Info(fmt.Sprintf("error getting meta block with hash %s form MetaBlockUnit\n", core.ToB64(metaBlockHash)))
 			return err
 		}
 
@@ -542,7 +543,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.Nonce)
 		errNotCritical := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if errNotCritical != nil {
-			log.Info(errNotCritical.Error())
+			log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 		}
 	}
 
@@ -773,6 +774,10 @@ func (sp *shardProcessor) CommitBlock(
 func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	err := sp.accounts.RecreateTrie(header.GetRootHash())
 	if err != nil {
+		log.Info(fmt.Sprintf("recreate trie with error for header with nonce %d and root hash %s\n",
+			header.GetNonce(),
+			core.ToB64(header.GetRootHash())))
+
 		return err
 	}
 

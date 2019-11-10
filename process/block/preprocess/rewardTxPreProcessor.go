@@ -148,6 +148,11 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		rewardTxBuff, err := rtp.storage.GetAll(dataRetriever.RewardTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
+			log.Info(fmt.Sprintf("reward tx from mini block with sender shard %d and receiver shard %d, having %d txs, has not found in RewardTransactionUnit\n",
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID,
+				len(miniBlock.TxHashes)))
+
 			return rewardTxsRestored, err
 		}
 

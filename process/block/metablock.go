@@ -341,6 +341,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	for _, hdrHash := range hdrHashes {
 		buff, err := mp.store.Get(dataRetriever.BlockHeaderUnit, hdrHash)
 		if err != nil {
+			log.Info(fmt.Sprintf("error getting shard header with hash %s form BlockHeaderUnit\n", core.ToB64(hdrHash)))
 			return err
 		}
 
@@ -358,7 +359,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(hdr.Nonce)
 		errNotCritical := mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if errNotCritical != nil {
-			log.Info(errNotCritical.Error())
+			log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 		}
 
 		mp.headersCounter.subtractRestoredMBHeaders(len(hdr.MiniBlockHeaders))
@@ -590,11 +591,19 @@ func (mp *metaProcessor) CommitBlock(
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	err := mp.accounts.RecreateTrie(header.GetRootHash())
 	if err != nil {
+		log.Info(fmt.Sprintf("recreate trie with error for header with nonce %d and root hash %s\n",
+			header.GetNonce(),
+			core.ToB64(header.GetRootHash())))
+
 		return err
 	}
 
 	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
 	if err != nil {
+		log.Info(fmt.Sprintf("revert peer state with error for header with nonce %d and validators stats root hash %s\n",
+			header.GetNonce(),
+			header.GetValidatorStatsRootHash()))
+
 		return err
 	}
 
