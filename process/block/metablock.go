@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -313,9 +314,7 @@ func (mp *metaProcessor) removeBlockInfoFromPool(header *block.MetaBlock) error 
 
 // RestoreBlockIntoPools restores the block into associated pools
 func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
-	mp.removeLastNotarized()
-
-	if headerHandler == nil || headerHandler.IsInterfaceNil() {
+	if check.IfNil(headerHandler) {
 		return process.ErrNilMetaBlockHeader
 	}
 
@@ -325,12 +324,12 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	}
 
 	headerPool := mp.dataPool.ShardHeaders()
-	if headerPool == nil || headerPool.IsInterfaceNil() {
+	if check.IfNil(headerPool) {
 		return process.ErrNilHeadersDataPool
 	}
 
 	headerNoncesPool := mp.dataPool.HeadersNonces()
-	if headerNoncesPool == nil || headerNoncesPool.IsInterfaceNil() {
+	if check.IfNil(headerNoncesPool) {
 		return process.ErrNilHeadersNoncesDataPool
 	}
 
@@ -357,13 +356,15 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		headerNoncesPool.Merge(hdr.Nonce, syncMap)
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(hdr.Nonce)
-		err = mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
-		if err != nil {
-			return err
+		errNotCritical := mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		if errNotCritical != nil {
+			log.Info(errNotCritical.Error())
 		}
 
 		mp.headersCounter.subtractRestoredMBHeaders(len(hdr.MiniBlockHeaders))
 	}
+
+	mp.removeLastNotarized()
 
 	return nil
 }
