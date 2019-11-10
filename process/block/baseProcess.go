@@ -752,9 +752,6 @@ func (bp *baseProcessor) cleanupPools(
 	headersPool storage.Cacher,
 	notarizedHeadersPool storage.Cacher,
 ) {
-	//TODO: Delete next line
-	return
-
 	bp.removeHeadersBehindNonceFromPools(
 		headersPool,
 		headersNoncesPool,
