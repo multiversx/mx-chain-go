@@ -58,8 +58,8 @@ func NewTxsPoolsCleaner(
 	}, nil
 }
 
-// Clean will check if transactions with a nonce witch is lower that the nonce of
-// the sender's accounts exits in pools. If so, they will be removed.
+// Clean will check if transactions with a nonce which is lower that the nonce of
+// the sender's account exist in pools. If so, they will be removed.
 func (tpc *TxPoolsCleaner) Clean(duration time.Duration) (bool, error) {
 	if duration == 0 {
 		return false, process.ErrZeroMaxCleanTime
