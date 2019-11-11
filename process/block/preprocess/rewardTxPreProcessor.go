@@ -241,7 +241,7 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 
 			rTx, ok := tx.(*rewardTx.RewardTx)
 			if !ok {
-				log.Warn("not a reward txs in pool", "error", process.ErrWrongTypeAssertion.Error())
+				log.Warn("not a reward tx in pool", "error", process.ErrWrongTypeAssertion.Error())
 			}
 
 			rtp.rewardTxsForBlock.mutTxsForBlock.Lock()

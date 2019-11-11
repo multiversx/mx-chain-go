@@ -3,7 +3,6 @@ package resolvers
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -186,7 +185,7 @@ func (gbbRes *genericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 		if err != nil {
 			log.Trace("missing miniblock",
 				"error", err.Error(),
-				"hash", display.ConvertHash(hashes[i]))
+				"hash", hashes[i])
 			missingMiniBlocksHashes = append(missingMiniBlocksHashes, hashes[i])
 			continue
 		}

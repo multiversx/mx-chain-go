@@ -130,8 +130,8 @@ func (bp *baseProcessor) checkBlockValidity(
 			}
 
 			log.Debug("hash does not match",
-				"local block hash", display.ConvertHash(chainHandler.GetGenesisHeaderHash()),
-				"received previous hash", display.ConvertHash(headerHandler.GetPrevHash()))
+				"local block hash", chainHandler.GetGenesisHeaderHash(),
+				"received previous hash", headerHandler.GetPrevHash())
 
 			return process.ErrBlockHashDoesNotMatch
 		}
@@ -166,16 +166,16 @@ func (bp *baseProcessor) checkBlockValidity(
 
 	if !bytes.Equal(headerHandler.GetPrevHash(), prevHeaderHash) {
 		log.Debug("hash does not match",
-			"local block hash", display.ConvertHash(prevHeaderHash),
-			"received previous hash", display.ConvertHash(headerHandler.GetPrevHash()))
+			"local block hash", prevHeaderHash,
+			"received previous hash", headerHandler.GetPrevHash())
 
 		return process.ErrBlockHashDoesNotMatch
 	}
 
 	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
 		log.Debug("random seed does not match", ": local block random seed is %s and node received block with previous random seed %s\n",
-			"local random seed", display.ConvertHash(currentBlockHeader.GetRandSeed()),
-			"received previous random seed", display.ConvertHash(headerHandler.GetPrevRandSeed()))
+			"local random seed", currentBlockHeader.GetRandSeed(),
+			"received previous random seed", headerHandler.GetPrevRandSeed())
 
 		return process.ErrRandSeedDoesNotMatch
 	}
@@ -255,8 +255,8 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
 		log.Debug("block hash does not match",
 			"shard", currHdr.GetShardID(),
-			"local prev hash", display.ConvertHash(prevHeaderHash),
-			"received block with prev hash", display.ConvertHash(currHdr.GetPrevHash()),
+			"local prev hash", prevHeaderHash,
+			"received block with prev hash", currHdr.GetPrevHash(),
 		)
 		return process.ErrBlockHashDoesNotMatch
 	}
@@ -264,8 +264,8 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
 		log.Debug("random seed does not match",
 			"shard", currHdr.GetShardID(),
-			"local rand seed", display.ConvertHash(prevHdr.GetRandSeed()),
-			"received block with rand seed", display.ConvertHash(currHdr.GetPrevRandSeed()),
+			"local rand seed", prevHdr.GetRandSeed(),
+			"received block with rand seed", currHdr.GetPrevRandSeed(),
 		)
 		return process.ErrRandSeedDoesNotMatch
 	}
@@ -515,15 +515,15 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev hash",
-		display.ConvertHash(headerHandler.GetPrevHash())}))
+		display.DisplayByteSlice(headerHandler.GetPrevHash())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev rand seed",
-		display.ConvertHash(headerHandler.GetPrevRandSeed())}))
+		display.DisplayByteSlice(headerHandler.GetPrevRandSeed())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Rand seed",
-		display.ConvertHash(headerHandler.GetRandSeed())}))
+		display.DisplayByteSlice(headerHandler.GetRandSeed())}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Pub keys bitmap",
@@ -531,11 +531,11 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Signature",
-		display.ConvertHash(headerHandler.GetSignature())}))
+		display.DisplayByteSlice(headerHandler.GetSignature())}))
 	lines = append(lines, display.NewLineData(true, []string{
 		"",
 		"Root hash",
-		display.ConvertHash(headerHandler.GetRootHash())}))
+		display.DisplayByteSlice(headerHandler.GetRootHash())}))
 	return lines
 }
 

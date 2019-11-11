@@ -69,9 +69,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	sigPart, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
 	if err != nil {
-		log.Debug("CreateSignatureShare",
-			"type", "spos/bls",
-			"error", err.Error())
+		debugError("CreateSignatureShare", err)
 		return false
 	}
 
@@ -88,7 +86,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 		if err != nil {
-			log.Debug("BroadcastConsensusMessage", "type", "spos/bls", "error", err.Error())
+			debugError("BroadcastConsensusMessage", err)
 			return false
 		}
 
@@ -102,9 +100,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	err = sr.SetSelfJobDone(SrSignature, true)
 	if err != nil {
-		log.Debug("SetSelfJobDone",
-			"type", "spos/bls",
-			"error", err.Error())
+		debugError("SetSelfJobDone", err)
 		return false
 	}
 
@@ -140,20 +136,20 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Debug("ConsensusGroupIndex", "type", "spos/bls", "error", err.Error())
+		debugError("ConsensusGroupIndex", err)
 		return false
 	}
 
 	currentMultiSigner := sr.MultiSigner()
 	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
-		log.Debug("StoreSignatureShare", "type", "spos/bls", "error", err.Error())
+		debugError("StoreSignatureShare", err)
 		return false
 	}
 
 	err = sr.SetJobDone(node, SrSignature, true)
 	if err != nil {
-		log.Debug("SetJobDone", "type", "spos/bls", "error", err.Error())
+		debugError("SetJobDone", err)
 		return false
 	}
 
@@ -210,7 +206,7 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 
 		isSignJobDone, err := sr.JobDone(node, SrSignature)
 		if err != nil {
-			log.Debug("JobDone", "type", "spos/bls", "error", err.Error())
+			debugError("JobDone", err)
 			continue
 		}
 

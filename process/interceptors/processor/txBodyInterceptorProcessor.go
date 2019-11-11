@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("process/interceptors")
+var log = logger.GetOrCreate("process/interceptors/processor")
 
 // TxBodyInterceptorProcessor is the processor used when intercepting miniblocks grouped in a block.TxBlockBody structure
 type TxBodyInterceptorProcessor struct {

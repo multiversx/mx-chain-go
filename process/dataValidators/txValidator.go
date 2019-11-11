@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-var log = logger.GetOrCreate("process/coordinator")
+var log = logger.GetOrCreate("process/dataValidators")
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {

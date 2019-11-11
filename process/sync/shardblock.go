@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -458,7 +457,7 @@ func (boot *ShardBootstrap) isHeaderValid(nonce uint64) (*block.Header, bool) {
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
-		log.Debug("headerHandler is not of type shardblock", "error", process.ErrWrongTypeAssertion.Error())
+		log.Debug("headerHandler is not type of header", "error", process.ErrWrongTypeAssertion.Error())
 		return nil, false
 	}
 
@@ -657,7 +656,7 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 	}
 
 	log.Debug("requested header from network",
-		"hash", display.ConvertHash(hash),
+		"hash", hash,
 	)
 }
 

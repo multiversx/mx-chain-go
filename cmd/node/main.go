@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -289,6 +290,7 @@ var coreServiceContainer serviceContainer.Core
 var appVersion = core.UnVersionedAppString
 
 func main() {
+	_ = display.SetDisplayByteSlice(display.ToHexShort)
 	log := logger.GetOrCreate("main")
 
 	app := cli.NewApp()
@@ -379,21 +381,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("initialized", "config", configurationFileName)
+	log.Debug("config", "file", configurationFileName)
 
 	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
 	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
 	if err != nil {
 		return err
 	}
-	log.Debug("initialized", "economics", configurationEconomicsFileName)
+	log.Debug("config", "file", configurationEconomicsFileName)
 
 	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
 	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName)
 	if err != nil {
 		return err
 	}
-	log.Debug("initialized", "prefs", configurationPreferencesFileName)
+	log.Debug("config", "file", configurationPreferencesFileName)
 
 	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
 	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
@@ -401,7 +403,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	log.Debug("initialized", "p2p", p2pConfigurationFileName)
+	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
@@ -410,13 +412,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("initialized", "genesis", ctx.GlobalString(genesisFile.Name))
+	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
 	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name), ctx.GlobalUint64(numOfNodes.Name))
 	if err != nil {
 		return err
 	}
-	log.Debug("initialized", "nodes", ctx.GlobalString(nodesFile.Name))
+	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
 
 	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, time.Hour, nil)
 	go syncer.StartSync()
@@ -451,7 +453,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("starting with ", "pubkey", factory.GetPkEncoded(pubKey))
+	log.Debug("block sign pubkey", "hex", factory.GetPkEncoded(pubKey))
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		generalConfig.GeneralSettings.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
@@ -930,7 +932,7 @@ func createShardCoordinator(
 	} else {
 		shardName = fmt.Sprintf("%d", selfShardId)
 	}
-	log.Info("starting", "in shard", shardName)
+	log.Info("shard info", "started in shard", shardName)
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
 	if err != nil {

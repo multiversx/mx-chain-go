@@ -52,7 +52,14 @@ func (los *logOutputSubject) convertLogLine(logLine *LogLine) LogLineHandler {
 	}
 
 	for i, obj := range logLine.Args {
-		line.Args[i] = fmt.Sprintf("%v", obj)
+		switch obj.(type) {
+		case []byte:
+			mutDisplayByteSlice.RLock()
+			line.Args[i] = displayByteSlice(obj.([]byte))
+			mutDisplayByteSlice.RUnlock()
+		default:
+			line.Args[i] = fmt.Sprintf("%v", obj)
+		}
 	}
 
 	return line

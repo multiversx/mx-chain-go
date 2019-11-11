@@ -422,7 +422,7 @@ func TestElasticIndexer_serializeBulkTx(t *testing.T) {
 
 func TestElasticIndexer_UpdateTPS(t *testing.T) {
 	output := &bytes.Buffer{}
-	_ = logger.SetLogLevel("core/elasticsearch:TRACE")
+	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
 
@@ -432,19 +432,19 @@ func TestElasticIndexer_UpdateTPS(t *testing.T) {
 	ei.UpdateTPS(&tpsBench)
 	assert.Empty(t, output.String())
 	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/elasticsearch:INFO")
+	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
 	output := &bytes.Buffer{}
-	_ = logger.SetLogLevel("core/elasticsearch:TRACE")
+	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
 
 	ei.UpdateTPS(nil)
 	assert.NotEmpty(t, output.String())
 	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/elasticsearch:INFO")
+	_ = logger.SetLogLevel("core/indexer:INFO")
 }
 
 func TestElasticIndexer_SerializeShardInfo(t *testing.T) {

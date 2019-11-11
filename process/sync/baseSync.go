@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -358,7 +357,7 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	log.Trace("received header from network",
 		"nonce", headerHandler.GetNonce(),
-		"hash", display.ConvertHash(headerHash),
+		"hash", headerHash,
 	)
 
 	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
@@ -376,7 +375,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 	if bytes.Equal(hash, headerHash) {
 		log.Debug("received requested header from network",
 			"nonce", headerHandler.GetNonce(),
-			"hash", display.ConvertHash(hash),
+			"hash", hash,
 		)
 		boot.setRequestedHeaderHash(nil)
 		boot.mutRcvHdrHash.Unlock()
@@ -391,7 +390,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, hash []byte) {
 	log.Trace("received header from network",
 		"nonce", nonce,
-		"hash", display.ConvertHash(hash),
+		"hash", hash,
 	)
 
 	err := boot.addReceivedHeaderToForkDetector(hash)
@@ -413,7 +412,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 	if *n == nonce {
 		log.Debug("received requested header from network",
 			"nonce", nonce,
-			"hash", display.ConvertHash(hash),
+			"hash", hash,
 		)
 		boot.setRequestedHeaderNonce(nil)
 		boot.mutRcvHdrNonce.Unlock()
@@ -696,7 +695,7 @@ func (boot *baseBootstrap) syncBlock() error {
 
 		log.Debug("fork detected",
 			"nonce", boot.forkNonce,
-			"hash", display.ConvertHash(boot.forkHash),
+			"hash", boot.forkHash,
 		)
 
 		err := boot.rollBack(true)
@@ -791,7 +790,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 		log.Debug("roll back to block",
 			"nonce", currHeader.GetNonce()-1,
-			"hash", display.ConvertHash(currHeader.GetPrevHash()),
+			"hash", currHeader.GetPrevHash(),
 		)
 		log.Debug("highest final block nonce",
 			"nonce", boot.forkDetector.GetHighestFinalBlockNonce(),

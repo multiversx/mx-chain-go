@@ -64,7 +64,7 @@ func (hc *headersCounter) displayLogInfo(
 	}
 
 	hc.shardMBHeaderCounterMutex.RLock()
-	message := fmt.Sprintf("header hash: %s\n%s", display.ConvertHash(headerHash), tblString)
+	message := fmt.Sprintf("header hash: %s\n%s", display.DisplayByteSlice(headerHash), tblString)
 	arguments := []interface{}{
 		"total MB processed", hc.shardMBHeadersTotalProcessed,
 		"block MB processed", hc.shardMBHeadersCurrentBlockProcessed,
@@ -101,7 +101,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 		lines = append(lines, display.NewLineData(false, []string{
 			fmt.Sprintf("ShardData_%d", shardData.ShardId),
 			"Header hash",
-			display.ConvertHash(shardData.HeaderHash)}))
+			display.DisplayByteSlice(shardData.HeaderHash)}))
 
 		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -116,7 +116,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d_%d", j+1, senderShard, receiverShard),
-					display.ConvertHash(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					display.DisplayByteSlice(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",

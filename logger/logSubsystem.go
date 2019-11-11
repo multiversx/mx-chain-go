@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"encoding/hex"
 	"io"
 	"os"
 	"strings"
@@ -12,14 +13,21 @@ var loggers map[string]*logger
 var defaultLogOut LogOutputHandler
 var defaultLogLevel = LogInfo
 
+var mutDisplayByteSlice = &sync.RWMutex{}
+var displayByteSlice func(slice []byte) string
+
 func init() {
 	logMut.Lock()
-
 	loggers = make(map[string]*logger)
 	defaultLogOut = &logOutputSubject{}
 	_ = defaultLogOut.AddObserver(os.Stdout, ConsoleFormatter{})
-
 	logMut.Unlock()
+
+	mutDisplayByteSlice.Lock()
+	displayByteSlice = func(slice []byte) string {
+		return hex.EncodeToString(slice)
+	}
+	mutDisplayByteSlice.Unlock()
 }
 
 // GetOrCreate returns a log based on the name provided, generating a new log if there is no log with provided name
@@ -126,4 +134,18 @@ func parseLevelPattern(logLevelAndPattern string) (LogLevel, string, error) {
 	logLevel, err := GetLogLevel(input[1])
 
 	return logLevel, input[0], err
+}
+
+// SetDisplayByteSlice sets the converter function from byte slice to string
+// default, this will call hex.EncodeToString
+func SetDisplayByteSlice(f func(slice []byte) string) error {
+	if f == nil {
+		return ErrNilDisplayByteSliceHandler
+	}
+
+	mutDisplayByteSlice.Lock()
+	displayByteSlice = f
+	mutDisplayByteSlice.Unlock()
+
+	return nil
 }

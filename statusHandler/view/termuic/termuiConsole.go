@@ -22,7 +22,7 @@ const refreshInterval = time.Second
 // in order to clean the unwanted appeared characters
 const numOfTicksBeforeRedrawing = 10
 
-var log = logger.GetOrCreate("statushandler/termui")
+var log = logger.GetOrCreate("statushandler/view/termuic")
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {

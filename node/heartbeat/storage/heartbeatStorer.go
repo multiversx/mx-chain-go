@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("node/heartbeat")
+var log = logger.GetOrCreate("node/heartbeat/storage")
 
 const peersKeysDbEntry = "keys"
 const genesisTimeDbEntry = "genesisTime"

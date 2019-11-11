@@ -63,26 +63,26 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	err := sr.checkCommitmentsValidity(bitmap)
 	if err != nil {
-		log.Debug("checkCommitmentsValidity", "type", "spos/bn", "error", err.Error())
+		debugError("checkCommitmentsValidity", err)
 		return false
 	}
 
 	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
-		log.Debug("currentMultiSigner", "type", "spos/bn", "error", err.Error())
+		debugError("getBnMultiSigner", err)
 		return false
 	}
 
 	// first compute commitment aggregation
 	err = currentMultiSigner.AggregateCommitments(bitmap)
 	if err != nil {
-		log.Debug("AggregateCommitments", "type", "spos/bn", "error", err.Error())
+		debugError("AggregateCommitments", err)
 		return false
 	}
 
 	sigPart, err := currentMultiSigner.CreateSignatureShare(sr.GetData(), bitmap)
 	if err != nil {
-		log.Debug("CreateSignatureShare", "type", "spos/bn", "error", err.Error())
+		debugError("CreateSignatureShare", err)
 		return false
 	}
 
@@ -97,7 +97,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
-		log.Debug("BroadcastConsensusMessage", "type", "spos/bn", "error", err.Error())
+		debugError("BroadcastConsensusMessage", err)
 		return false
 	}
 
@@ -107,9 +107,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	err = sr.SetSelfJobDone(SrSignature, true)
 	if err != nil {
-		log.Debug("SetSelfJobDone",
-			"type", "spos/bn",
-			"error", err.Error())
+		debugError("SetSelfJobDone", err)
 		return false
 	}
 
@@ -191,20 +189,20 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Debug("ConsensusGroupIndex", "type", "spos/bn", "error", err.Error())
+		debugError("ConsensusGroupIndex", err)
 		return false
 	}
 
 	currentMultiSigner := sr.MultiSigner()
 	err = currentMultiSigner.StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
-		log.Debug("StoreSignatureShare", "type", "spos/bn", "error", err.Error())
+		debugError("StoreSignatureShare", err)
 		return false
 	}
 
 	err = sr.SetJobDone(node, SrSignature, true)
 	if err != nil {
-		log.Debug("SetJobDone SrSignature", "type", "spos/bn", "error", err.Error())
+		debugError("SetJobDone SrSignature", err)
 		return false
 	}
 
@@ -253,14 +251,14 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 		node := sr.ConsensusGroup()[i]
 		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
 		if err != nil {
-			log.Debug("SetJobDone SrSignature", "type", "spos/bn", "error", err.Error())
+			debugError("SetJobDone SrSignature", err)
 			continue
 		}
 
 		if isBitmapJobDone {
 			isSignJobDone, err := sr.JobDone(node, SrSignature)
 			if err != nil {
-				log.Debug("SetJobDone SrSignature", "type", "spos/bn", "error", err.Error())
+				debugError("SetJobDone SrSignature", err)
 				continue
 			}
 

@@ -125,7 +125,7 @@ func (sp *shardProcessor) ProcessBlock(
 	if err != nil {
 		if err == process.ErrBlockHashDoesNotMatch {
 			log.Debug("requested missing shard header",
-				"hash", display.ConvertHash(headerHandler.GetPrevHash()),
+				"hash", headerHandler.GetPrevHash(),
 				"for shard", headerHandler.GetShardID(),
 			)
 
@@ -701,7 +701,7 @@ func (sp *shardProcessor) CommitBlock(
 	log.Info("shard block has been committed successfully",
 		"nonce", header.Nonce,
 		"round", header.Round,
-		"hash", display.ConvertHash(headerHash),
+		"hash", headerHash,
 	)
 
 	errNotCritical = sp.txCoordinator.RemoveBlockDataFromPool(body)
@@ -750,7 +750,7 @@ func (sp *shardProcessor) CommitBlock(
 	saveMetricsForACommittedBlock(
 		sp.appStatusHandler,
 		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
-		display.ConvertHash(headerHash),
+		display.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
 		headerMeta.GetNonce(),
 	)
@@ -862,7 +862,7 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 			go sp.onRequestHeaderHandler(shardInfo.ShardId, shardInfo.HeaderHash)
 
 			log.Debug("requested missing shard header",
-				"hash", display.ConvertHash(shardInfo.HeaderHash),
+				"hash", shardInfo.HeaderHash,
 				"shard", shardInfo.ShardId,
 			)
 
@@ -1075,10 +1075,10 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		sp.dataPool.HeadersNonces().Remove(hdr.GetNonce(), sharding.MetachainShardId)
 		sp.removeAllProcessedMiniBlocks(headerHash)
 
-		log.Trace("metaBlock been processed completely and removed from pool",
+		log.Trace("metaBlock has been processed completely and removed from pool",
 			"round", hdr.GetRound(),
 			"nonce", hdr.GetNonce(),
-			"hash", display.ConvertHash(headerHash),
+			"hash", headerHash,
 		)
 
 		processed++
@@ -1113,7 +1113,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	}
 
 	log.Trace("received meta block from network",
-		"hash", display.ConvertHash(metaBlockHash),
+		"hash", metaBlockHash,
 		"nonce", metaBlock.Nonce,
 	)
 

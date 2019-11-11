@@ -3,7 +3,6 @@ package requestHandlers
 import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -121,7 +120,7 @@ func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 
 func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string) {
 	log.Trace("requesting transactions from network",
-		"txs", len(hashes),
+		"num txs", len(hashes),
 		"topic", topic,
 		"shard", destShardID,
 	)
@@ -189,7 +188,7 @@ func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte
 	log.Trace("requesting by hash",
 		"topic", baseTopic,
 		"shard", destShardID,
-		"hash", display.ConvertHash(hash),
+		"hash", hash,
 	)
 
 	var resolver dataRetriever.Resolver

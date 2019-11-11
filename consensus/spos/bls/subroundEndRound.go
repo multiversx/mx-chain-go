@@ -73,14 +73,14 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
-		log.Debug("checkSignaturesValidity", "type", "spos/bls", "error", err.Error())
+		debugError("checkSignaturesValidity", err)
 		return false
 	}
 
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
 	if err != nil {
-		log.Debug("multisigner.AggregateSigs", "type", "spos/bls", "error", err.Error())
+		debugError("multisigner.AggregateSigs", err)
 		return false
 	}
 
@@ -91,25 +91,25 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	// Commit the block (commits also the account state)
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
 	if err != nil {
-		log.Debug("commit block", "type", "spos/bls", "error", err.Error())
+		debugError("commit block", err)
 		return false
 	}
 	timeAfter := time.Now()
 
-	log.Debug("commit block", "type", "spos/bls", "time elapsed (sec)", timeAfter.Sub(timeBefore).Seconds())
+	log.Debug("commit block", "type", "spos/bls", "time elapsed [s]", timeAfter.Sub(timeBefore).Seconds())
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
 	if err != nil {
-		log.Debug("BroadcastBlock", "type", "spos/bls", "error", err.Error())
+		debugError("BroadcastBlock", err)
 	}
 
 	// broadcast header to metachain
 	err = sr.BroadcastMessenger().BroadcastShardHeader(sr.Header)
 	if err != nil {
-		log.Debug("BroadcastShardHeader", "type", "spos/bls", "error", err.Error())
+		debugError("BroadcastShardHeader", err)
 	}
 
 	log.Debug("step 3: BlockBody and Header has been committed and broadcast",
@@ -118,7 +118,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	err = sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {
-		log.Debug("broadcastMiniBlocksAndTransactions", "type", "spos/bls", "error", err.Error())
+		debugError("broadcastMiniBlocksAndTransactions", err)
 	}
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())

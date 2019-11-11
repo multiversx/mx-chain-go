@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -113,7 +112,7 @@ func (mp *metaProcessor) ProcessBlock(
 	if err != nil {
 		if err == process.ErrBlockHashDoesNotMatch {
 			log.Debug("requested missing meta header",
-				"hash", display.ConvertHash(headerHandler.GetPrevHash()),
+				"hash", headerHandler.GetPrevHash(),
 				"for shard", headerHandler.GetShardID(),
 			)
 
@@ -409,7 +408,7 @@ func (mp *metaProcessor) processBlockHeaders(header *block.MetaBlock, round uint
 				return err
 			}
 
-			arguments = append(arguments, "hash", display.ConvertHash(shardMiniBlockHeader.Hash))
+			arguments = append(arguments, "hash", shardMiniBlockHeader.Hash)
 		}
 	}
 
@@ -547,7 +546,7 @@ func (mp *metaProcessor) CommitBlock(
 	log.Info("meta block has been committed successfully",
 		"nonce", header.Nonce,
 		"round", header.Round,
-		"hash", display.ConvertHash(headerHash))
+		"hash", headerHash)
 
 	errNotCritical = mp.removeBlockInfoFromPool(header)
 	if errNotCritical != nil {
@@ -887,7 +886,7 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 
 	log.Debug("received shard block from network",
 		"nonce", shardHeader.Nonce,
-		"hash", display.ConvertHash(shardHeaderHash),
+		"hash", shardHeaderHash,
 	)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()

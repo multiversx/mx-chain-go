@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
-var log = logger.GetOrCreate("storage/badgerdb")
+var log = logger.GetOrCreate("storage/fifocache")
 
 // FIFOShardedCache implements a First In First Out eviction cache
 type FIFOShardedCache struct {

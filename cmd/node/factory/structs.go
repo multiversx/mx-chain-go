@@ -1245,7 +1245,7 @@ func createNetMessenger(
 		return nil, err
 	}
 
-	log.Debug("starting with", "peer discovery", pDiscoverer.Name())
+	log.Debug("peer discovery", "method", pDiscoverer.Name())
 
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
 	sk := (*libp2pCrypto.Secp256k1PrivateKey)(prvKey)

@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -416,7 +415,7 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	}
 
 	log.Debug("requested header from network",
-		"hash", display.ConvertHash(hash),
+		"hash", hash,
 	)
 }
 

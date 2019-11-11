@@ -8,12 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-var log = logger.GetOrCreate("consensus/spos/common")
+var log = logger.GetOrCreate("consensus/spos/commonsubround")
 
 // SubroundStartRound defines the data needed by the subround StartRound
 type SubroundStartRound struct {
@@ -232,7 +231,7 @@ func (sr *SubroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	randomSeed := currentHeader.GetRandSeed()
 
 	log.Debug("random source for the next consensus group",
-		"rand", display.ConvertHash(randomSeed))
+		"rand", randomSeed)
 
 	shardId := sr.ShardCoordinator().SelfId()
 

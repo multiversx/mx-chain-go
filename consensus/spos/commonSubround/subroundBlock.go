@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -180,7 +179,7 @@ func (sr *SubroundBlock) sendBlockHeader() bool {
 	log.Debug("step 1: block header has been sent",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"nonce", hdr.GetNonce(),
-		"hash", display.ConvertHash(hdrHash))
+		"hash", hdrHash)
 
 	sr.Data = hdrHash
 	sr.Header = hdr
@@ -299,7 +298,7 @@ func (sr *SubroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	log.Debug("step 1: block header has been received",
 		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
 		"nonce", sr.Header.GetNonce(),
-		"hash", display.ConvertHash(cnsDta.BlockHeaderHash))
+		"hash", cnsDta.BlockHeaderHash)
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
 	return blockProcessedWithSuccess

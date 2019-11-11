@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -237,7 +236,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 	log.Trace("received from consensus topic",
 		"msg type", wrk.consensusService.GetStringValue(msgType),
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
-		"header hash", display.ConvertHash(cnsDta.BlockHeaderHash),
+		"header hash", cnsDta.BlockHeaderHash,
 		"round", cnsDta.RoundIndex,
 	)
 
@@ -250,7 +249,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		log.Trace("late received from consensus topic",
 			"msg type", wrk.consensusService.GetStringValue(msgType),
 			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
-			"header hash", display.ConvertHash(cnsDta.BlockHeaderHash),
+			"header hash", cnsDta.BlockHeaderHash,
 			"msg round", cnsDta.RoundIndex,
 			"round", wrk.consensusState.RoundIndex,
 		)
@@ -277,10 +276,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 
 			log.Debug("received proposed block",
 				"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
-				"header hash", display.ConvertHash(cnsDta.BlockHeaderHash),
+				"header hash", cnsDta.BlockHeaderHash,
 				"round", header.GetRound(),
 				"nonce", header.GetNonce(),
-				"prev hash", display.ConvertHash(header.GetPrevHash()),
+				"prev hash", header.GetPrevHash(),
 			)
 		}
 	}
@@ -453,7 +452,7 @@ func (wrk *Worker) dysplaySignatureStatistic() {
 	wrk.mutHashConsensusMessage.RLock()
 	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
 		log.Debug("proposed header with signatures",
-			"hash", display.ConvertHash([]byte(hash)),
+			"hash", []byte(hash),
 			"sigs num", len(consensusMessages))
 
 		for _, consensusMessage := range consensusMessages {

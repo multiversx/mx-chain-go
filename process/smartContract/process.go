@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -447,7 +446,7 @@ func (sc *scProcessor) processVMOutput(
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Debug("error processing tx VM",
-			"hash", display.ConvertHash(txHash),
+			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
 		)
 

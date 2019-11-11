@@ -55,7 +55,7 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 
 	commitmentHash, err := sr.genCommitmentHash()
 	if err != nil {
-		log.Debug("genCommitmentHash", "type", "spos/bn", "error", err.Error())
+		debugError("genCommitmentHash", err)
 		return false
 	}
 
@@ -70,7 +70,7 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
-		log.Debug("BroadcastConsensusMessage", "type", "spos/bn", "error", err.Error())
+		debugError("BroadcastConsensusMessage", err)
 		return false
 	}
 
@@ -80,7 +80,7 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 
 	err = sr.SetSelfJobDone(SrCommitmentHash, true)
 	if err != nil {
-		log.Debug("SetSelfJobDone", "type", "spos/bn", "error", err.Error())
+		debugError("SetSelfJobDone", err)
 		return false
 	}
 
@@ -120,25 +120,25 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Messa
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Debug("ConsensusGroupIndex", "type", "spos/bn", "error", err.Error())
+		debugError("ConsensusGroupIndex", err)
 		return false
 	}
 
 	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
-		log.Debug("getBnMultiSigner", "type", "spos/bn", "error", err.Error())
+		debugError("getBnMultiSigner", err)
 		return false
 	}
 
 	err = currentMultiSigner.StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
-		log.Debug("StoreCommitmentHash", "type", "spos/bn", "error", err.Error())
+		debugError("StoreCommitmentHash", err)
 		return false
 	}
 
 	err = sr.SetJobDone(node, SrCommitmentHash, true)
 	if err != nil {
-		log.Debug("SetJobDone", "type", "spos/bn", "error", err.Error())
+		debugError("SetJobDone", err)
 		return false
 	}
 
@@ -215,7 +215,7 @@ func (sr *subroundCommitmentHash) isCommitmentHashReceived(threshold int) bool {
 		node := sr.ConsensusGroup()[i]
 		isJobDone, err := sr.JobDone(node, SrCommitmentHash)
 		if err != nil {
-			log.Debug("JobDone SrCommitmentHash", "type", "spos/bn", "error", err.Error())
+			debugError("JobDone SrCommitmentHash", err)
 			continue
 		}
 
@@ -236,14 +236,14 @@ func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool 
 		node := sr.ConsensusGroup()[i]
 		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
 		if err != nil {
-			log.Debug("JobDone SrBitmap", "type", "spos/bn", "error", err.Error())
+			debugError("JobDone SrBitmap", err)
 			continue
 		}
 
 		if isBitmapJobDone {
 			isCommHashJobDone, err := sr.JobDone(node, SrCommitmentHash)
 			if err != nil {
-				log.Debug("JobDone SrCommitmentHash", "type", "spos/bn", "error", err.Error())
+				debugError("JobDone SrCommitmentHash", err)
 				continue
 			}
 

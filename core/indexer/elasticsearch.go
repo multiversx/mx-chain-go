@@ -40,7 +40,7 @@ const shardTpsDocIDPrefix = "shard"
 
 const badRequest = 400
 
-var log = logger.GetOrCreate("core/elasticsearch")
+var log = logger.GetOrCreate("core/indexer")
 
 // Options structure holds the indexer's configuration options
 type Options struct {

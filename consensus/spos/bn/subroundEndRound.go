@@ -69,14 +69,14 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	bitmap := sr.GenerateBitmap(SrBitmap)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
-		log.Debug("checkSignaturesValidity", "type", "spos/bn", "error", err.Error())
+		debugError("checkSignaturesValidity", err)
 		return false
 	}
 
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
 	if err != nil {
-		log.Debug("AggregateSigs", "type", "spos/bn", "error", err.Error())
+		debugError("AggregateSigs", err)
 		return false
 	}
 
@@ -86,7 +86,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	// Commit the block (commits also the account state)
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
 	if err != nil {
-		log.Debug("CommitBlock", "type", "spos/bn", "error", err.Error())
+		debugError("CommitBlock", err)
 		return false
 	}
 	timeAfter := time.Now()
@@ -98,13 +98,13 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
 	if err != nil {
-		log.Debug("BroadcastBlock", "type", "spos/bn", "error", err.Error())
+		debugError("BroadcastBlock", err)
 	}
 
 	// broadcast header to metachain
 	err = sr.BroadcastMessenger().BroadcastShardHeader(sr.Header)
 	if err != nil {
-		log.Debug("BroadcastShardHeader", "type", "spos/bn", "error", err.Error())
+		debugError("BroadcastShardHeader", err)
 	}
 
 	log.Debug("step 6: TxBlockBody and Header has been committed and broadcast",
@@ -113,7 +113,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	err = sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {
-		log.Debug("broadcastMiniBlocksAndTransactions", "type", "spos/bn", "error", err.Error())
+		debugError("broadcastMiniBlocksAndTransactions", err)
 	}
 
 	actionMsg := "synchronized"

@@ -141,7 +141,7 @@ func (scm *shardChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte
 	}
 
 	if mbs > 0 {
-		log.Debug("sent", "miniblocks num", mbs)
+		log.Debug("miniblocks sent", "number", mbs)
 	}
 
 	return nil
@@ -169,7 +169,7 @@ func (scm *shardChainMessenger) BroadcastTransactions(transactions map[string][]
 	}
 
 	if txs > 0 {
-		log.Debug("sent", "tx num", txs)
+		log.Debug("transactions sent", "number", txs)
 	}
 
 	return nil

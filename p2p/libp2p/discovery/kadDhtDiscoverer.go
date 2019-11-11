@@ -15,7 +15,7 @@ var noOfQueries = 1
 
 const kadDhtName = "kad-dht discovery"
 
-var log = logger.GetOrCreate("p2p/libp2p")
+var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
 // KadDhtDiscoverer is the kad-dht discovery type implementation
 type KadDhtDiscoverer struct {

@@ -70,9 +70,7 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
-		log.Debug("BroadcastConsensusMessage",
-			"type", "spos/bn",
-			"error", err.Error())
+		debugError("BroadcastConsensusMessage", err)
 		return false
 	}
 
@@ -91,7 +89,7 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 		if isJobCommHashJobDone {
 			err = sr.SetJobDone(pubKey, SrBitmap, true)
 			if err != nil {
-				log.Debug("SetJobDone", "type", "spos/bn", "error", err.Error())
+				debugError("SetJobDone", err)
 				return false
 			}
 		}
@@ -130,7 +128,7 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.Message) bool {
 	nbSigners := countBitmapFlags(signersBitmap)
 
 	if int(nbSigners) < sr.Threshold(SrBitmap) {
-		log.Debug("canceled round, too few signers in bitmap",
+		log.Debug("canceled round, not enough signers in bitmap",
 			"type", "spos/bn",
 			"round", sr.Rounder().Index(),
 			"subround", getSubroundName(SrBitmap))
@@ -148,7 +146,7 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.Message) bool {
 		if isNodeSigner {
 			err := sr.SetJobDone(publicKeys[i], SrBitmap, true)
 			if err != nil {
-				log.Debug("SetJobDone", "type", "spos/bn", "error", err.Error())
+				debugError("SetJobDone", err)
 				return false
 			}
 		}
@@ -222,7 +220,7 @@ func (sr *subroundBitmap) isBitmapReceived(threshold int) bool {
 		node := sr.ConsensusGroup()[i]
 		isJobDone, err := sr.JobDone(node, SrBitmap)
 		if err != nil {
-			log.Debug("JobDone", "type", "spos/bn", "error", err.Error())
+			debugError("JobDone", err)
 			continue
 		}
 

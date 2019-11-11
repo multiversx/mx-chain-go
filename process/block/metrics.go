@@ -101,7 +101,7 @@ func saveMetachainCommitBlockMetrics(
 	nodesCoordinator sharding.NodesCoordinator,
 
 ) {
-	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.ConvertHash(headerHash))
+	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
 
 	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, sharding.MetachainShardId)
 	if err != nil {

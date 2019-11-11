@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -584,7 +583,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		if err != nil {
 			log.Trace("bad tx",
 				"error", err.Error(),
-				"hash", display.ConvertHash(orderedTxHashes[index]),
+				"hash", orderedTxHashes[index],
 			)
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
