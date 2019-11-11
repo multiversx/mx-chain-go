@@ -245,6 +245,8 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -254,6 +256,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		currTxs,
 	)
 
 	return dPool
@@ -389,7 +392,7 @@ func createNetNode(
 		shardCoordinator,
 		rewardsInter,
 	)
-	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter)
+	vm, blockChainHook := createVMAndBlockchainHook(accntAdapter, shardCoordinator)
 	vmContainer := &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
@@ -446,7 +449,7 @@ func createNetNode(
 	tc, _ := coordinator.NewTransactionCoordinator(
 		shardCoordinator,
 		accntAdapter,
-		dPool,
+		dPool.MiniBlocks(),
 		requestHandler,
 		container,
 		interimProcContainer,
@@ -482,10 +485,11 @@ func createNetNode(
 			StartHeaders:                 genesisBlocks,
 			RequestHandler:               requestHandler,
 			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               blockChainHook,
+			TxCoordinator:                tc,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		},
 		DataPool:        dPool,
-		TxCoordinator:   tc,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
@@ -735,6 +739,8 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
 	dPool, _ := dataPool.NewMetaDataPool(
 		metaBlocks,
 		miniblocks,
@@ -742,6 +748,7 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 		headersNonces,
 		txPool,
 		uTxPool,
+		currTxs,
 	)
 
 	return dPool
@@ -825,6 +832,7 @@ func createMetaNetNode(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		100,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
@@ -857,8 +865,13 @@ func createMetaNetNode(
 			StartHeaders:    genesisBlocks,
 			RequestHandler:  requestHandler,
 			Core:            &mock.ServiceContainerMock{},
+			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		},
-		DataPool: dPool,
+		DataPool:           dPool,
+		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCToProtocol:       &mock.SCToProtocolStub{},
+		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
 
@@ -981,8 +994,21 @@ func createMintingForSenders(
 	}
 }
 
-func createVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+func createVMAndBlockchainHook(
+	accnts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
+) (vmcommon.VMExecutionHandler, *hooks.BlockChainHookImpl) {
+	args := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   &mock.ChainStorerMock{},
+		BlockChain:       &mock.BlockChainMock{},
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      testMarshalizer,
+		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+	}
+
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = uint64(opGas)
 

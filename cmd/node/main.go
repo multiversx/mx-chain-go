@@ -28,7 +28,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -38,12 +41,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
-	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -520,7 +522,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	stateArgs := factory.NewStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
+	stateArgs := factory.NewStateComponentsFactoryArgs(
+		generalConfig,
+		genesisConfig,
+		shardCoordinator,
+		coreComponents,
+		uniqueDBFolder,
+	)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
 		return err
@@ -690,15 +698,17 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(
+	apiResolver, err := createApiResolver(
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
+		dataComponents.Store,
+		dataComponents.Blkc,
+		coreComponents.Marshalizer,
+		coreComponents.Uint64ByteSliceConverter,
+		shardCoordinator,
+		statusHandlersInfo.StatusMetrics,
+		economicsData,
 	)
-	if err != nil {
-		return err
-	}
-
-	apiResolver, err := createApiResolver(vmAccountsDB, statusHandlersInfo.StatusMetrics)
 	if err != nil {
 		return err
 	}
@@ -1154,12 +1164,48 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
-	//TODO replace this with a vm factory
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
+func createApiResolver(
+	accnts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	storageService dataRetriever.StorageService,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	statusMetrics external.StatusMetricsHandler,
+	economics *economics.EconomicsData,
+) (facade.ApiResolver, error) {
+	var vmFactory process.VirtualMachinesContainerFactory
+	var err error
 
-	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   storageService,
+		BlockChain:       blockChain,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      marshalizer,
+		Uint64Converter:  uint64Converter,
+	}
+
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		vmFactory, err = shard.NewVMContainerFactory(argsHook)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	scDataGetter, err := smartContract.NewSCDataGetter(addrConv, vmContainer)
 	if err != nil {
 		return nil, err
 	}
