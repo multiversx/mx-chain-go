@@ -1867,6 +1867,15 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      core.Hasher,
+		Marshalizer: core.Marshalizer,
+	}
+	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:              state.AccountsAdapter,
 		ForkDetector:          forkDetector,
@@ -1881,6 +1890,7 @@ func newShardBlockProcessor(
 		RequestHandler:        requestHandler,
 		Core:                  coreServiceContainer,
 		EndOfEpochTrigger:     endOfEpochTrigger,
+		HeaderValidator:       headerValidator,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1943,6 +1953,15 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      core.Hasher,
+		Marshalizer: core.Marshalizer,
+	}
+	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:                     state.AccountsAdapter,
 		ForkDetector:                 forkDetector,
@@ -1958,6 +1977,7 @@ func newMetaBlockProcessor(
 		Core:                         coreServiceContainer,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EndOfEpochTrigger:            endOfEpochTrigger,
+		HeaderValidator:              headerValidator,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:  argumentsBaseProcessor,

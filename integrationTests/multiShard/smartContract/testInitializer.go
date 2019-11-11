@@ -454,6 +454,12 @@ func createNetNode(
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      testHasher,
+		Marshalizer: testMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
@@ -484,6 +490,7 @@ func createNetNode(
 			Core:                         &mock.ServiceContainerMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			HeaderValidator:              headerValidator,
 		},
 		DataPool:        dPool,
 		TxCoordinator:   tc,
@@ -830,6 +837,12 @@ func createMetaNetNode(
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      testHasher,
+		Marshalizer: testMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
@@ -859,6 +872,7 @@ func createMetaNetNode(
 			RequestHandler:    requestHandler,
 			Core:              &mock.ServiceContainerMock{},
 			EndOfEpochTrigger: &mock.EndOfEpochTriggerStub{},
+			HeaderValidator:   headerValidator,
 		},
 		DataPool:          dPool,
 		PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},

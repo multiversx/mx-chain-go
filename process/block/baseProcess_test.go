@@ -351,6 +351,12 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 		shardCoordinator,
 		nodesCoordinator,
 	)
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:                     &mock.AccountsStub{},
@@ -367,6 +373,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			Core:                         &mock.ServiceContainerMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			HeaderValidator:              headerValidator,
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxCoordinator:   &mock.TransactionCoordinatorMock{},
@@ -797,6 +804,13 @@ func TestBaseProcessor_SaveLastNoterizedHdrShardGood(t *testing.T) {
 	base.SetHasher(hasher)
 	marshalizer := &mock.MarshalizerMock{}
 	base.SetMarshalizer(marshalizer)
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      hasher,
+		Marshalizer: marshalizer,
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+	base.SetHeaderValidator(headerValidator)
+
 	genesisBlcks := createGenesisBlocks(shardCoordinator)
 	_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
 
@@ -819,6 +833,14 @@ func TestBaseProcessor_SaveLastNoterizedHdrMetaGood(t *testing.T) {
 	base.SetHasher(hasher)
 	marshalizer := &mock.MarshalizerMock{}
 	base.SetMarshalizer(marshalizer)
+
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      hasher,
+		Marshalizer: marshalizer,
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+	base.SetHeaderValidator(headerValidator)
+
 	genesisBlcks := createGenesisBlocks(shardCoordinator)
 	_ = base.SetLastNotarizedHeadersSlice(genesisBlcks)
 

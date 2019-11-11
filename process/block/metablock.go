@@ -71,6 +71,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 		endOfEpochTrigger:             arguments.EndOfEpochTrigger,
+		headerValidator:               arguments.HeaderValidator,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -762,7 +763,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 
 	for shardId, hdrsForShard := range usedShardHdrs {
 		for _, shardHdr := range hdrsForShard {
-			err := mp.isHdrConstructionValid(shardHdr, tmpLastNotarized[shardId])
+			err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, tmpLastNotarized[shardId])
 			if err != nil {
 				return nil, err
 			}
@@ -828,7 +829,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 			// found a header with the next nonce
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-				err := mp.isHdrConstructionValid(shardHdr, lastVerifiedHdr)
+				err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
 					log.Debug(err.Error())
 					continue
@@ -859,7 +860,7 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 		return false, nil
 	}
 
-	err := mp.isHdrConstructionValid(currHdr, lastHdr)
+	err := mp.headerValidator.IsHeaderConstructionValid(currHdr, lastHdr)
 	if err != nil {
 		return false, nil
 	}
@@ -876,7 +877,7 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 		// found a header with the next nonce
 		tmpHdr := sortedShardHdrs[i]
 		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-			err := mp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
+			err := mp.headerValidator.IsHeaderConstructionValid(tmpHdr, lastVerifiedHdr)
 			if err != nil {
 				continue
 			}

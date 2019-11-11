@@ -96,6 +96,12 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      TestHasher,
+		Marshalizer: TestMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 nil,
@@ -111,6 +117,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		Core:                         nil,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+		HeaderValidator:              headerValidator,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

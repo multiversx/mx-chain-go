@@ -34,3 +34,9 @@ type Rounder interface {
 	TimeStamp() time.Time
 	IsInterfaceNil() bool
 }
+
+// HeaderValidator defines the actions needed to validate a header
+type HeaderValidator interface {
+	IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error
+	IsInterfaceNil() bool
+}

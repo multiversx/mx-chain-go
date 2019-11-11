@@ -23,6 +23,12 @@ import (
 func createMockMetaArguments() blproc.ArgMetaProcessor {
 	mdp := initMetaDataPool()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      &mock.HasherStub{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
+
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			Accounts:                     &mock.AccountsStub{},
@@ -39,6 +45,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Core:                         &mock.ServiceContainerMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			HeaderValidator:              headerValidator,
 		},
 		DataPool:          mdp,
 		PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
@@ -1560,6 +1567,13 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	arguments.Store = initStore()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	arguments.StartHeaders = createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(noOfShards))
+
+	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Hasher:      arguments.Hasher,
+		Marshalizer: arguments.Marshalizer,
+	}
+	arguments.HeaderValidator, _ = blproc.NewHeaderValidator(argsHeaderValidator)
+
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	prevRandSeed := []byte("prevrand")

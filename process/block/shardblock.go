@@ -67,6 +67,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		onRequestHeaderHandlerByNonce: arguments.RequestHandler.RequestHeaderByNonce,
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 		endOfEpochTrigger:             arguments.EndOfEpochTrigger,
+		headerValidator:               arguments.HeaderValidator,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -297,7 +298,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	}
 
 	for _, metaHdr := range usedMetaHdrs[sharding.MetachainShardId] {
-		err = sp.isHdrConstructionValid(metaHdr, tmpNotedHdr)
+		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, tmpNotedHdr)
 		if err != nil {
 			return err
 		}
@@ -331,7 +332,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 
 		// found a header with the next nonce
 		if metaHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-			err := sp.isHdrConstructionValid(metaHdr, lastVerifiedHdr)
+			err := sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastVerifiedHdr)
 			if err != nil {
 				log.Debug(err.Error())
 				continue
@@ -1313,7 +1314,7 @@ func (sp *shardProcessor) isMetaHeaderFinal(currHdr data.HeaderHandler, sortedHd
 		// found a header with the next nonce
 		tmpHdr := sortedHdrs[i].hdr
 		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-			err := sp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
+			err := sp.headerValidator.IsHeaderConstructionValid(tmpHdr, lastVerifiedHdr)
 			if err != nil {
 				continue
 			}
@@ -1377,7 +1378,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		err = sp.isHdrConstructionValid(hdr, lastMetaHdr)
+		err = sp.headerValidator.IsHeaderConstructionValid(hdr, lastMetaHdr)
 		if err != nil {
 			continue
 		}

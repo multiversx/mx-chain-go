@@ -502,6 +502,12 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 	}
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      TestHasher,
+		Marshalizer: TestMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 tpn.ForkDetector,
@@ -517,6 +523,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Core:                         nil,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+		HeaderValidator:              headerValidator,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

@@ -244,6 +244,12 @@ type Checker interface {
 	IsInterfaceNil() bool
 }
 
+// HeaderConstructionValidator provides functionality to verify header construction
+type HeaderConstructionValidator interface {
+	IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
 // SigVerifier provides functionality to verify a signature of a signed data structure that holds also the verifying parameters
 type SigVerifier interface {
 	VerifySig() error
