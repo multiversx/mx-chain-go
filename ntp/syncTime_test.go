@@ -25,7 +25,7 @@ var queryMock4Call = 0
 var mutex = sync.Mutex{}
 
 func queryMock1(options ntp2.NTPOptions) (*ntp.Response, error) {
-	fmt.Printf("Host: %s\n", options.Host)
+	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock1 {
 		return nil, errNtpMock
@@ -35,7 +35,7 @@ func queryMock1(options ntp2.NTPOptions) (*ntp.Response, error) {
 }
 
 func queryMock2(options ntp2.NTPOptions) (*ntp.Response, error) {
-	fmt.Printf("Host: %s\n", options.Host)
+	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock2 {
 		return nil, errNtpMock
@@ -45,7 +45,7 @@ func queryMock2(options ntp2.NTPOptions) (*ntp.Response, error) {
 }
 
 func queryMock3(options ntp2.NTPOptions) (*ntp.Response, error) {
-	fmt.Printf("Host: %s\n", options.Host)
+	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock3 {
 		return nil, errNtpMock
@@ -55,7 +55,7 @@ func queryMock3(options ntp2.NTPOptions) (*ntp.Response, error) {
 }
 
 func queryMock4(options ntp2.NTPOptions) (*ntp.Response, error) {
-	fmt.Printf("Host: %s\n", options.Host)
+	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	mutex.Lock()
 	queryMock4Call++

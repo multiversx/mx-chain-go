@@ -14,7 +14,7 @@ var log = logger.DefaultLogger()
 
 // NTPOptions defines configuration options for an NTP query
 type NTPOptions struct {
-	Host         []string
+	Hosts        []string
 	Version      int
 	LocalAddress string
 	Timeout      time.Duration
@@ -41,7 +41,7 @@ func NewNTPOptions(ntpConfig config.NTPConfig, hostIndex int) NTPOptions {
 	timeout := time.Duration(ntpConfig.TimeoutMilliseconds) * time.Millisecond
 
 	return NTPOptions{
-		Host:         ntpConfig.Hosts,
+		Hosts:        ntpConfig.Hosts,
 		Port:         ntpConfig.Port,
 		Version:      ntpConfig.Version,
 		LocalAddress: "",
@@ -58,8 +58,8 @@ func queryNTP(options NTPOptions) (*ntp.Response, error) {
 		Version:      options.Version,
 		LocalAddress: options.LocalAddress,
 		Port:         options.Port}
-	log.Debug(fmt.Sprintf("NTP Request to %s:%d", options.Host, options.Port))
-	return ntp.QueryWithOptions(options.Host[options.HostIndex], queryOptions)
+	log.Debug(fmt.Sprintf("NTP Request to %s:%d", options.Hosts[options.HostIndex], options.Port))
+	return ntp.QueryWithOptions(options.Hosts[options.HostIndex], queryOptions)
 }
 
 // syncTime defines an object for time synchronization
@@ -99,7 +99,7 @@ func checkNTPHost(ntpConfig config.NTPConfig, customQueryFunc func(options NTPOp
 		if err != nil {
 			continue
 		}
-		log.Info(fmt.Sprintf("Using NTP server : %s", ntpConfig.Hosts[hostIndex]))
+		log.Info(fmt.Sprintf("using NTP server : %s", ntpConfig.Hosts[hostIndex]))
 		return hostIndex
 	}
 
@@ -121,14 +121,14 @@ func (s *syncTime) sync() {
 	clockOffsetSum := time.Duration(0)
 	succeededRequests := 0
 
-	for i := 0; i < len(s.ntpOptions.Host); i++ {
+	for i := 0; i < len(s.ntpOptions.Hosts); i++ {
 		r, err := s.query(s.ntpOptions)
 
 		if err != nil {
 			log.Error(fmt.Sprintf("NTP Error: %s", err))
 			//Change host if the current host returns an error
 			newHostIndex := checkNTPHost(config.NTPConfig{
-				Hosts: s.ntpOptions.Host,
+				Hosts: s.ntpOptions.Hosts,
 				Port:  s.ntpOptions.Port,
 			}, s.query)
 			s.ntpOptions.HostIndex = newHostIndex
