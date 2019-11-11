@@ -227,7 +227,7 @@ func (boot *ShardBootstrap) getHighestHdrForShardFromMetachain(hdr *block.MetaBl
 	highestNonceOwnShIdHdr := &block.Header{}
 	// search for own shard id in shardInfo from metaHeaders
 	for _, shardInfo := range hdr.ShardInfo {
-		if shardInfo.ShardId != boot.shardCoordinator.SelfId() {
+		if shardInfo.ShardID != boot.shardCoordinator.SelfId() {
 			continue
 		}
 

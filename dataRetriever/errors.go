@@ -196,3 +196,6 @@ var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
 
 // ErrNilPeerListCreator signals that a nil peer list creator implementation has been provided
 var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
+
+// ErrNilCurrBlockTxs signals that nil current blocks txs holder was provided
+var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")
