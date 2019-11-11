@@ -798,7 +798,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		}
 	}
 
-	for mbHdrHash, _ := range mapMiniBlockHeadersInMetaBlock {
+	for mbHdrHash := range mapMiniBlockHeadersInMetaBlock {
 		if _, ok := mapShardMiniBlockHeadersData[mbHdrHash]; !ok {
 			return nil, process.ErrHeaderShardDataMismatch
 		}
@@ -1231,17 +1231,52 @@ func (mp *metaProcessor) CreateBlockHeader(bodyHandler data.BodyHandler, round u
 		return nil, err
 	}
 
-	if mp.endOfEpochTrigger.IsEndOfEpoch() {
-		//pendingMiniBlocks := mp.pendingMiniBlocks.PendingMiniBlockHeaders()
-
-
+	endOfEpoch, err := mp.createEndOfEpochForMetablock(header)
+	if err != nil {
+		return nil, err
 	}
+	header.EndOfEpoch = *endOfEpoch
 
 	mp.blockSizeThrottler.Add(
 		round,
 		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
 
 	return header, nil
+}
+
+func (mp *metaProcessor) createEndOfEpochForMetablock(metaBlock *block.MetaBlock) (*block.EndOfEpoch, error) {
+	endOfEpoch := &block.EndOfEpoch{
+		PendingMiniBlockHeaders: make([]block.ShardMiniBlockHeader, 0),
+		LastFinalizedHeaders:    make([]block.FinalizedHeaders, 0),
+	}
+
+	if !mp.endOfEpochTrigger.IsEndOfEpoch() {
+		return endOfEpoch, nil
+	}
+
+	pendingMiniBlocks := mp.pendingMiniBlocks.PendingMiniBlockHeaders()
+	endOfEpoch.PendingMiniBlockHeaders = pendingMiniBlocks
+
+	mp.mutNotarizedHdrs.RLock()
+	defer mp.mutNotarizedHdrs.RUnlock()
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		lastNotarizedHdr := mp.lastNotarizedHdrForShard(i)
+
+		hdrHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, lastNotarizedHdr)
+		if err != nil {
+			return nil, err
+		}
+
+		finalHeader := block.FinalizedHeaders{
+			ShardId:    lastNotarizedHdr.GetShardID(),
+			HeaderHash: hdrHash,
+			RootHash:   lastNotarizedHdr.GetRootHash(),
+		}
+
+		endOfEpoch.LastFinalizedHeaders = append(endOfEpoch.LastFinalizedHeaders, finalHeader)
+	}
+
+	return endOfEpoch, nil
 }
 
 func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {

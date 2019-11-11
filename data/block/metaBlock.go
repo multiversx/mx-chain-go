@@ -61,9 +61,9 @@ type ShardData struct {
 
 // FinalizedHeaders hold the last finalized headers hash and state root hash
 type FinalizedHeaders struct {
-	ShardId               uint32                 `capid:"0"`
-	HeaderHash            []byte                 `capid:"1"`
-	RootHash              []byte                 `capid:"2"`
+	ShardId    uint32 `capid:"0"`
+	HeaderHash []byte `capid:"1"`
+	RootHash   []byte `capid:"2"`
 }
 
 // EndOfEpoch holds the block information for end-of-epoch
@@ -88,6 +88,7 @@ type MetaBlock struct {
 	RootHash               []byte      `capid:"11"`
 	ValidatorStatsRootHash []byte      `capid:"12"`
 	TxCount                uint32      `capid:"13"`
+	EndOfEpoch             EndOfEpoch  `capid:"14"`
 }
 
 // MetaBlockBody hold the data for metablock body
