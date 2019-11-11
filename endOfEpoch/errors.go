@@ -26,5 +26,5 @@ var ErrNotEnoughRoundsBetweenEpochs = errors.New("tried to force end of epoch be
 // ErrForceEndOfEpochCanBeCalledOnNewRound signals that force end of epoch was called on wrong round
 var ErrForceEndOfEpochCanBeCalledOnNewRound = errors.New("invalid time to call force end of epoch, possible only on new round")
 
-// ErrSavedRoundIsHigherThanSaved signals that input round was wrong
-var ErrSavedRoundIsHigherThanSaved = errors.New("saved round is higher than input round")
+// ErrSavedRoundIsHigherThanInput signals that input round was wrong
+var ErrSavedRoundIsHigherThanInput = errors.New("saved round is higher than input round")

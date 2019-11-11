@@ -27,7 +27,7 @@ type PendingMiniBlocksHandler interface {
 
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
-	// Index return the current round
+	// Index returns the current round
 	Index() int64
 	// TimeStamp returns the time stamp of the round
 	TimeStamp() time.Time
