@@ -326,7 +326,7 @@ func TestWASMMetering(t *testing.T) {
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(985)
+	expectedBalance := big.NewInt(2429)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -340,5 +340,5 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	assert.Equal(t, 10, int64(consumedGasValue))
+	assert.Equal(t, 556, int(consumedGasValue))
 }

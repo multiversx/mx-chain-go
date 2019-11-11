@@ -26,3 +26,13 @@ func LoadServersPConfig(filepath string) (*config.ServersConfig, error) {
 	}
 	return cfg, nil
 }
+
+// LoadGasScheduleConfig returns a map[string]uint64 of gas costs read from the provided config file
+func LoadGasScheduleConfig(filepath string) (map[string]uint64, error) {
+	var gasSchedule map[string]uint64
+	err := LoadTomlFile(gasSchedule, filepath, log)
+	if err != nil {
+		return nil, err
+	}
+	return gasSchedule, nil
+}

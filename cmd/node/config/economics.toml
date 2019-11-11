@@ -11,5 +11,6 @@
     DenominationCoefficientForView = "0.0001"
 
 [FeeSettings]
+    MaxGasLimitPerBlock = "100000"
     MinGasPrice = "0"
     MinGasLimit = "5"
