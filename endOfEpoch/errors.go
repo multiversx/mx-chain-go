@@ -28,6 +28,3 @@ var ErrForceEndOfEpochCanBeCalledOnNewRound = errors.New("invalid time to call f
 
 // ErrSavedRoundIsHigherThanSaved signals that input round was wrong
 var ErrSavedRoundIsHigherThanSaved = errors.New("saved round is higher than input round")
-
-// ErrNewRoundIsNotTheNextRound signals that input round is not the next round
-var ErrNewRoundIsNotTheNextRound = errors.New("new round is not the next round")

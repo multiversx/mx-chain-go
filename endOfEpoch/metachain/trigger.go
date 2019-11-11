@@ -63,16 +63,13 @@ func (t *trigger) IsEndOfEpoch() bool {
 	return t.isEndOfEpoch
 }
 
-// ForceEndOfEpoch sets the conditions ofr end of epoch to true in case of edge cases
+// ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
 func (t *trigger) ForceEndOfEpoch(round int64) error {
 	if t.currentRoundIndex > round {
 		return endOfEpoch.ErrSavedRoundIsHigherThanSaved
 	}
 	if t.currentRoundIndex == round {
 		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnNewRound
-	}
-	if t.currentRoundIndex+1 != round {
-		return endOfEpoch.ErrNewRoundIsNotTheNextRound
 	}
 
 	t.currentRoundIndex = round
