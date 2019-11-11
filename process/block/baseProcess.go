@@ -727,8 +727,8 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 			continue
 		}
 
-		for i := 0; i < len(headers); i++ {
-			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[i])] = &hdrInfo{hdr: headers[i], usedInBlock: false}
+		for index := range headers {
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[index])] = &hdrInfo{hdr: headers[index], usedInBlock: false}
 		}
 	}
 

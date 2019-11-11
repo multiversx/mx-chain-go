@@ -518,10 +518,10 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte, 0)
 
 	for _, metaBlockHash := range metaBlockHashes {
-		metaBlock, err := process.GetMetaHeader(metaBlockHash, metaBlockPool, sp.marshalizer, sp.store)
-		if err != nil {
-			log.Info(fmt.Sprintf("error getting meta block with hash %s form MetaBlockUnit\n", core.ToB64(metaBlockHash)))
-			return err
+		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
+		if errNotCritical != nil {
+			log.Info(fmt.Sprintf("error not critical: meta block with hash %s is not yet full processed and committed in MetaBlockUnit\n", core.ToB64(metaBlockHash)))
+			continue
 		}
 
 		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
@@ -535,7 +535,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 		metaHeaderNoncesPool.Merge(metaBlock.GetNonce(), syncMap)
 
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-		errNotCritical := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		errNotCritical = sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 		}

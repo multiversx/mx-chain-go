@@ -339,10 +339,10 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	}
 
 	for _, hdrHash := range hdrHashes {
-		shardHeader, err := process.GetShardHeader(hdrHash, headerPool, mp.marshalizer, mp.store)
-		if err != nil {
-			log.Info(fmt.Sprintf("error getting shard header with hash %s form BlockHeaderUnit\n", core.ToB64(hdrHash)))
-			return err
+		shardHeader, errNotCritical := process.GetShardHeaderFromStorage(hdrHash, mp.marshalizer, mp.store)
+		if errNotCritical != nil {
+			log.Info(fmt.Sprintf("error not critical: shard header with hash %s is not found in BlockHeaderUnit\n", core.ToB64(hdrHash)))
+			continue
 		}
 
 		headerPool.Put(hdrHash, shardHeader)
@@ -351,7 +351,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		headerNoncesPool.Merge(shardHeader.GetNonce(), syncMap)
 
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardHeader.GetNonce())
-		errNotCritical := mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		errNotCritical = mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 		}

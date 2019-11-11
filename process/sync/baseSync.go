@@ -901,7 +901,6 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 	err := boot.rollBack(false)
 	if err != nil {
 		log.Info(err.Error())
-		return
 	}
 
 	boot.forkDetector.ResetProbableHighestNonce()
