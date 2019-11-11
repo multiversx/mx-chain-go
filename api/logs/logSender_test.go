@@ -18,14 +18,13 @@ func removeWriterFromLogSubsystem(w io.Writer) {
 }
 
 func createMockLogSender() (*logs.LogSender, *mock.WsConnStub, io.Writer) {
-	conn := &mock.WsConnStub{
-		CloseCalled: func() error {
-			return nil
-		},
-		ReadMessageCalled: func() (messageType int, p []byte, err error) {
-			return websocket.TextMessage, []byte("*:INFO"), nil
-		},
-	}
+	conn := &mock.WsConnStub{}
+	conn.SetCloseHandler(func() error {
+		return nil
+	})
+	conn.SetReadMessageHandler(func() (messageType int, p []byte, err error) {
+		return websocket.TextMessage, []byte("*:INFO"), nil
+	})
 
 	ls, _ := logs.NewLogSender(
 		&mock.MarshalizerStub{},
@@ -87,17 +86,17 @@ func TestLogSender_StartSendingBlockingConnReadMessageErrShouldCloseConn(t *test
 	t.Parallel()
 
 	closeCalled := false
+	conn := &mock.WsConnStub{}
+	conn.SetCloseHandler(func() error {
+		closeCalled = true
+		return nil
+	})
+	conn.SetReadMessageHandler(func() (messageType int, p []byte, err error) {
+		return websocket.TextMessage, nil, errors.New("")
+	})
 	ls, _ := logs.NewLogSender(
 		&mock.MarshalizerStub{},
-		&mock.WsConnStub{
-			CloseCalled: func() error {
-				closeCalled = true
-				return nil
-			},
-			ReadMessageCalled: func() (messageType int, p []byte, err error) {
-				return websocket.TextMessage, nil, errors.New("")
-			},
-		},
+		conn,
 		&mock.LoggerStub{},
 	)
 	removeWriterFromLogSubsystem(ls.Writer())
@@ -111,17 +110,17 @@ func TestLogSender_StartSendingBlockingWrongPatternShouldCloseConn(t *testing.T)
 	t.Parallel()
 
 	closeCalled := false
+	conn := &mock.WsConnStub{}
+	conn.SetCloseHandler(func() error {
+		closeCalled = true
+		return nil
+	})
+	conn.SetReadMessageHandler(func() (messageType int, p []byte, err error) {
+		return websocket.TextMessage, []byte("wrong log pattern"), nil
+	})
 	ls, _ := logs.NewLogSender(
 		&mock.MarshalizerStub{},
-		&mock.WsConnStub{
-			CloseCalled: func() error {
-				closeCalled = true
-				return nil
-			},
-			ReadMessageCalled: func() (messageType int, p []byte, err error) {
-				return websocket.TextMessage, []byte("wrong log pattern"), nil
-			},
-		},
+		conn,
 		&mock.LoggerStub{},
 	)
 	removeWriterFromLogSubsystem(ls.Writer())
@@ -137,10 +136,10 @@ func TestLogSender_StartSendingBlockingSendsMessage(t *testing.T) {
 	ls, conn, writer := createMockLogSender()
 	data := []byte("random data")
 	var retrievedData []byte
-	conn.WriteMessageCalled = func(messageType int, data []byte) error {
+	conn.SetWriteMessageHandler(func(messageType int, data []byte) error {
 		retrievedData = data
 		return nil
-	}
+	})
 
 	go func() {
 		//watchdog function
@@ -162,18 +161,18 @@ func TestLogSender_StartSendingBlockingSendsMessageAndStopsWhenReadClose(t *test
 	ls, conn, writer := createMockLogSender()
 	data := []byte("random data")
 	var retrievedData []byte
-	conn.WriteMessageCalled = func(messageType int, data []byte) error {
+	conn.SetWriteMessageHandler(func(messageType int, data []byte) error {
 		retrievedData = data
 		return nil
-	}
+	})
 
 	go func() {
 		//watchdog function
 		time.Sleep(time.Millisecond * 10)
 
-		conn.ReadMessageCalled = func() (messageType int, p []byte, err error) {
+		conn.SetReadMessageHandler(func() (messageType int, p []byte, err error) {
 			return websocket.CloseMessage, []byte(""), nil
-		}
+		})
 	}()
 
 	_, err := writer.Write(data)
@@ -189,13 +188,13 @@ func TestLogSender_StartSendingBlockingConnWriteFailsShouldStop(t *testing.T) {
 	ls, conn, writer := createMockLogSender()
 	data := []byte("random data")
 	closeCalled := false
-	conn.WriteMessageCalled = func(messageType int, data []byte) error {
+	conn.SetWriteMessageHandler(func(messageType int, data []byte) error {
 		return errors.New("")
-	}
-	conn.CloseCalled = func() error {
+	})
+	conn.SetCloseHandler(func() error {
 		closeCalled = true
 		return nil
-	}
+	})
 
 	_, _ = writer.Write(data)
 	ls.StartSendingBlocking()

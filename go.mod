@@ -25,6 +25,7 @@ require (
 	github.com/golang/protobuf v1.3.1
 	github.com/google/gops v0.3.6
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
+	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
