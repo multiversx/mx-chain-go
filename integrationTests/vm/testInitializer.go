@@ -310,7 +310,7 @@ func TestAccount(
 	senderAddressBytes []byte,
 	expectedNonce uint64,
 	expectedBalance *big.Int,
-) {
+) *big.Int {
 
 	senderAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(senderAddressBytes)
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
@@ -318,6 +318,7 @@ func TestAccount(
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance)
+	return senderRecovShardAccount.Balance
 }
 
 func ComputeExpectedBalance(
