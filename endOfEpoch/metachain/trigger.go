@@ -1,31 +1,31 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
 // ArgsNewMetaEndOfEpochTrigger defines struct needed to create a new end of epoch trigger
 type ArgsNewMetaEndOfEpochTrigger struct {
 	Rounder     endOfEpoch.Rounder
-	SyncTimer   ntp.SyncTimer
 	GenesisTime time.Time
 	Settings    *config.EndOfEpochConfig
 	Epoch       uint32
 }
 
 type trigger struct {
+	isEndOfEpoch                  bool
 	epoch                         uint32
-	rounder                       endOfEpoch.Rounder
+	currentRoundIndex             int64
+	epochStartRound               int64
 	roundsPerEpoch                int64
 	roundsBetweenForcedEndOfEpoch int64
 	epochStartTime                time.Time
-	syncTimer                     ntp.SyncTimer
+	rounder                       endOfEpoch.Rounder
 }
 
 // NewEndOfEpochTrigger creates a trigger for end of epoch
@@ -39,9 +39,6 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 	if args.Settings == nil {
 		return nil, endOfEpoch.ErrNilEndOfEpochSettings
 	}
-	if check.IfNil(args.SyncTimer) {
-		return nil, endOfEpoch.ErrNilSyncTimer
-	}
 	if args.Settings.RoundsPerEpoch < 1 {
 		return nil, endOfEpoch.ErrInvalidSettingsForEndOfEpochTrigger
 	}
@@ -53,51 +50,70 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 	}
 
 	return &trigger{
-		rounder:                       args.Rounder,
 		roundsPerEpoch:                args.Settings.RoundsPerEpoch,
 		epochStartTime:                args.GenesisTime,
-		syncTimer:                     args.SyncTimer,
 		epoch:                         args.Epoch,
 		roundsBetweenForcedEndOfEpoch: args.Settings.MinRoundsBetweenEpochs,
+		rounder:                       args.Rounder,
 	}, nil
 }
 
 // IsEndOfEpoch return true if conditions are fullfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
-	t.rounder.UpdateRound(t.epochStartTime, t.syncTimer.CurrentTime())
-	currRoundIndex := t.rounder.Index()
-
-	if currRoundIndex == 0 {
-		return true
-	}
-
-	if currRoundIndex > t.roundsPerEpoch {
-		t.epoch += 1
-		t.epochStartTime = t.rounder.TimeStamp()
-		return true
-	}
-
-	return false
+	return t.isEndOfEpoch
 }
 
 // ForceEndOfEpoch sets the conditions ofr end of epoch to true in case of edge cases
-func (t *trigger) ForceEndOfEpoch() error {
-	oldRoundIndex := t.rounder.Index()
-	t.rounder.UpdateRound(t.epochStartTime, t.syncTimer.CurrentTime())
-	currRoundIndex := t.rounder.Index()
-
-	if currRoundIndex < t.roundsBetweenForcedEndOfEpoch {
-		return endOfEpoch.ErrNotEnoughRoundsBetweenEpochs
+func (t *trigger) ForceEndOfEpoch(round int64) error {
+	if t.currentRoundIndex > round {
+		return endOfEpoch.ErrSavedRoundIsHigherThanSaved
+	}
+	if t.currentRoundIndex == round {
+		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnNewRound
+	}
+	if t.currentRoundIndex+1 != round {
+		return endOfEpoch.ErrNewRoundIsNotTheNextRound
 	}
 
-	if oldRoundIndex != currRoundIndex {
-		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnNewRound
+	t.currentRoundIndex = round
+
+	if t.currentRoundIndex-t.epochStartRound < t.roundsBetweenForcedEndOfEpoch {
+		return endOfEpoch.ErrNotEnoughRoundsBetweenEpochs
 	}
 
 	t.epochStartTime = t.rounder.TimeStamp()
 	t.epoch += 1
+	t.epochStartRound = t.currentRoundIndex
+	t.isEndOfEpoch = true
 
 	return nil
+}
+
+// Update processes changes in the trigger
+func (t *trigger) Update(round int64) {
+	if t.currentRoundIndex > round {
+		return
+	}
+	if t.currentRoundIndex == round {
+		return
+	}
+	if t.currentRoundIndex+1 != round {
+		return
+	}
+
+	t.currentRoundIndex = round
+
+	if t.currentRoundIndex > t.roundsPerEpoch {
+		t.epoch += 1
+		t.epochStartTime = t.rounder.TimeStamp()
+		t.isEndOfEpoch = true
+		t.epochStartRound = t.currentRoundIndex
+	}
+}
+
+// Processed signals end of epoch processing is done
+func (t *trigger) Processed() {
+	t.isEndOfEpoch = false
 }
 
 // Epoch return the current epoch

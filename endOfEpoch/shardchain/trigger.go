@@ -32,12 +32,20 @@ func (t *trigger) Epoch() uint32 {
 }
 
 // ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
-func (t *trigger) ForceEndOfEpoch() error {
+func (t *trigger) ForceEndOfEpoch(round int64) error {
 	return nil
 }
 
 // ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fullfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
+}
+
+// Update updates the end-of-epoch trigger
+func (t *trigger) Update(round int64) {
+}
+
+// Processed signals that end-of-epoch has been processed
+func (t *trigger) Processed() {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -163,6 +163,8 @@ func (chr *chronology) updateRound() {
 	chr.rounder.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
 
 	if oldRoundIndex != chr.rounder.Index() {
+		chr.endOfEpochTrigger.Update(chr.rounder.Index())
+
 		if chr.endOfEpochTrigger.IsEndOfEpoch() {
 			msg := fmt.Sprintf("EPOCH %d BEGINS", chr.endOfEpochTrigger.Epoch())
 			log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))

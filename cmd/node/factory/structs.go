@@ -485,7 +485,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	endOfEpochTrigger, err := newEndOfEpochTrigger(args)
+	endOfEpochTrigger, err := newEndOfEpochTrigger(args, rounder)
 	if err != nil {
 		return nil, err
 	}
@@ -597,16 +597,7 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, shardsGenesisBlocks
 	return nil
 }
 
-func newEndOfEpochTrigger(args *processComponentsFactoryArgs) (endOfEpoch.TriggerHandler, error) {
-	rounder, err := round.NewRound(
-		time.Unix(args.nodesConfig.StartTime, 0),
-		args.syncer.CurrentTime(),
-		time.Millisecond*time.Duration(args.nodesConfig.RoundDuration),
-		args.syncer)
-	if err != nil {
-		return nil, err
-	}
-
+func newEndOfEpochTrigger(args *processComponentsFactoryArgs, rounder endOfEpoch.Rounder) (endOfEpoch.TriggerHandler, error) {
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
 		argEndOfEpoch := &shardchain.ArgsNewShardEndOfEpochTrigger{}
 		endOfEpochTrigger, err := shardchain.NewEndOfEpochTrigger(argEndOfEpoch)
@@ -620,7 +611,6 @@ func newEndOfEpochTrigger(args *processComponentsFactoryArgs) (endOfEpoch.Trigge
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		argEndOfEpoch := &metachainEndOfEpoch.ArgsNewMetaEndOfEpochTrigger{
 			Rounder:     rounder,
-			SyncTimer:   args.syncer,
 			GenesisTime: time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:    args.endOfEpoch,
 			Epoch:       args.startEpochNum,
