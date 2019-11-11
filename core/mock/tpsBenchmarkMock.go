@@ -124,7 +124,7 @@ func (s *TpsBenchmarkMock) UpdateWithShardStats(mb *block.MetaBlock) {
 	for _, shardInfo := range mb.ShardInfo {
 		updatedShardStats := &ShardStatisticsMock{}
 		updatedShardStats.roundTime = 6
-		s.shardStatistics[shardInfo.ShardId] = updatedShardStats
+		s.shardStatistics[shardInfo.ShardID] = updatedShardStats
 	}
 }
 

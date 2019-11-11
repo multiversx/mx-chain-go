@@ -175,7 +175,7 @@ func (boot *MetaBootstrap) getHeader(shardId uint32, nonce uint64) (data.HeaderH
 }
 
 func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return &block.MetaBlockBody{}, nil
+	return block.Body{}, nil
 }
 
 func (boot *MetaBootstrap) removeBlockBody(
@@ -256,19 +256,19 @@ func (boot *MetaBootstrap) getMaxNotarizedHeadersNoncesInMetaBlock(
 	ni *notarizedInfo,
 ) (map[uint32]uint64, error) {
 
-	maxNonces := make(map[uint32]uint64, 0)
+	maxNonce := make(map[uint32]uint64, 0)
 	for _, shardData := range metaBlock.ShardInfo {
 		header, err := process.GetShardHeaderFromStorage(shardData.HeaderHash, boot.marshalizer, boot.store)
 		if err != nil {
-			return maxNonces, err
+			return maxNonce, err
 		}
 
-		if header.Nonce > maxNonces[shardData.ShardId] {
-			maxNonces[shardData.ShardId] = header.Nonce
+		if header.Nonce > maxNonce[shardData.ShardID] {
+			maxNonce[shardData.ShardID] = header.Nonce
 		}
 	}
 
-	return maxNonces, nil
+	return maxNonce, nil
 }
 
 func (boot *MetaBootstrap) areNotarizedShardHeadersFound(

@@ -28,5 +28,9 @@ func CheckIfNil(args *vmcommon.ContractCallInput) error {
 	if args.GasPrice == nil {
 		return vm.ErrInputGasPriceIsNil
 	}
+	if args.Header == nil {
+		return vm.ErrInputHeaderIsNil
+	}
+
 	return nil
 }
