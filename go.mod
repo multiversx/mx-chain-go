@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
-	github.com/ElrondNetwork/arwen-wasm-vm v0.2.4
+	github.com/ElrondNetwork/arwen-wasm-vm v0.2.5
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.19
 	github.com/ElrondNetwork/elrond-vm-common v0.1.1
@@ -46,7 +46,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/sirupsen/logrus v1.4.0
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.20.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
