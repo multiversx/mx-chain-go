@@ -74,11 +74,12 @@ func TestLoadGasScheduleConfig(t *testing.T) {
 	file.WriteString(testString)
 	file.Close()
 
-	file, err = os.Open("testGasSchedule.toml")
-	assert.Nil(t, err)
-
 	gasSchedule, err := core.LoadGasScheduleConfig("testGasSchedule.toml")
 	assert.Nil(t, err)
+
+	if _, err = os.Stat("testGasSchedule.toml"); err == nil {
+		_ = os.Remove("testGasSchedule.toml")
+	}
 
 	expectedGasSchedule := make(map[string]uint64)
 	expectedGasSchedule["GetFunction"] = 84
