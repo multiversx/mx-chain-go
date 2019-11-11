@@ -91,7 +91,7 @@ func (t *trigger) ForceEndOfEpoch() error {
 	}
 
 	if oldRoundIndex != currRoundIndex {
-		return endOfEpoch.ErrForceEndOfEpochCanBeNotCalledOnNewRound
+		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnNewRound
 	}
 
 	t.epochStartTime = t.rounder.TimeStamp()

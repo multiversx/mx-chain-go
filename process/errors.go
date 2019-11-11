@@ -469,9 +469,6 @@ var ErrNilTxValidator = errors.New("nil transaction validator")
 // ErrNilHdrValidator signals that a nil header validator has been provided
 var ErrNilHdrValidator = errors.New("nil header validator")
 
-// ErrTxNotValid signals that a tx is not valid
-var ErrTxNotValid = errors.New("transaction is not valid")
-
 // ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
 // processed on the current shard
 var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")

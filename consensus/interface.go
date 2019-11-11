@@ -47,6 +47,7 @@ type ChronologyHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EndOfEpochHandler defines that actions which should be handled by an end of epoch implementation
 type EndOfEpochHandler interface {
 	IsEndOfEpoch() bool
 	Epoch() uint32

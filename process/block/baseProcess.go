@@ -186,9 +186,9 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	isEpochInCorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
+	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		bp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
-	if isEpochInCorrect {
+	if isEpochIncorrect {
 		return process.ErrEpochDoesNotMatch
 	}
 

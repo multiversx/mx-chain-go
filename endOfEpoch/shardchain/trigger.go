@@ -21,9 +21,8 @@ func NewEndOfEpochTrigger(args *ArgsNewShardEndOfEpochTrigger) (*trigger, error)
 	return &trigger{}, nil
 }
 
-// IsEndOfEpoch return true if conditions are fullfilled for end of epoch
+// IsEndOfEpoch returns true if conditions are fullfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
-
 	return false
 }
 
@@ -32,17 +31,16 @@ func (t *trigger) Epoch() uint32 {
 	return 0
 }
 
-// ForceEndOfEpoch sets the conditions ofr end of epoch to true in case of edge cases
+// ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
 func (t *trigger) ForceEndOfEpoch() error {
 	return nil
 }
 
-// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fullfilled
+// ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fullfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
-
 }
 
-// IsInterfaceNil return true if underlying object is nil
+// IsInterfaceNil returns true if underlying object is nil
 func (t *trigger) IsInterfaceNil() bool {
 	return t == nil
 }
