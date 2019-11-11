@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -1943,11 +1944,11 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
 	}
 
-	argsPendingMiniBlocks := &metachain2.ArgsPendingMiniBlocks{
+	argsPendingMiniBlocks := &metachainEndOfEpoch.ArgsPendingMiniBlocks{
 		Marshalizer: core.Marshalizer,
 		Storage:     nil,
 	}
-	pendingMiniBlocks, err := metachain2.NewPendingMiniBlocks(argsPendingMiniBlocks)
+	pendingMiniBlocks, err := metachainEndOfEpoch.NewPendingMiniBlocks(argsPendingMiniBlocks)
 	if err != nil {
 		return nil, err
 	}

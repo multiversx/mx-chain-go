@@ -29,7 +29,7 @@ func TestNewEndOfEpochTrigger_NilArgumentsShouldErr(t *testing.T) {
 	neoet, err := NewEndOfEpochTrigger(nil)
 
 	assert.Nil(t, neoet)
-	assert.Equal(t, endOfEpoch.ErrNilRounder, err)
+	assert.Equal(t, endOfEpoch.ErrNilArgsNewMetaEndOfEpochTrigger, err)
 }
 
 func TestNewEndOfEpochTrigger_NilRounderShouldErr(t *testing.T) {
@@ -51,7 +51,7 @@ func TestNewEndOfEpochTrigger_NilSettingsShouldErr(t *testing.T) {
 
 	neoet, err := NewEndOfEpochTrigger(arguments)
 	assert.Nil(t, neoet)
-	assert.Equal(t, endOfEpoch.ErrNilSettingsHandler, err)
+	assert.Equal(t, endOfEpoch.ErrNilEndOfEpochSettings, err)
 }
 
 func TestNewEndOfEpochTrigger_NilSyncTimerShouldErr(t *testing.T) {

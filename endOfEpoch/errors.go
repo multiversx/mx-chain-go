@@ -37,3 +37,6 @@ var ErrNilStorage = errors.New("nil storage")
 
 // ErrNilHeaderHandler signal that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
+
+// ErrNilArgsPendingMiniblocks signals that nil argument was passed
+var ErrNilArgsPendingMiniblocks = errors.New("nil arguments for pending miniblock object")
