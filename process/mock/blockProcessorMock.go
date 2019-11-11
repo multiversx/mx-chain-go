@@ -83,7 +83,7 @@ func (blProcMock *BlockProcessorMock) ApplyValidatorStatistics(header data.Heade
 // RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
 func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
 	if blProcMock.RevertStateToBlockCalled != nil {
-		return blProcMock.RevertStateToBlock(header)
+		return blProcMock.RevertStateToBlockCalled(header)
 	}
 	return nil
 }
