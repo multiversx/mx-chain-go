@@ -53,7 +53,7 @@ struct MetaBlockCapn {
     rootHash               @11: Data;
     validatorStatsRootHash @12: Data;
     txCount                @13: UInt32;
-    endOfEpoch             @14: EndOfEpochCapn
+    endOfEpoch             @14: EndOfEpochCapn;
 }
 
 ##compile with:
