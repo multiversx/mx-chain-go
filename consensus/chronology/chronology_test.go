@@ -57,6 +57,22 @@ func TestChronology_NewChronologyNilSyncerShouldFail(t *testing.T) {
 	assert.Equal(t, err, chronology.ErrNilSyncTimer)
 }
 
+func TestChronology_NewChronologyNilEndOfEpochTriggerShouldFail(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	genesisTime := time.Now()
+	chr, err := chronology.NewChronology(
+		genesisTime,
+		rounderMock,
+		syncTimerMock,
+		nil,
+	)
+
+	assert.Nil(t, chr)
+	assert.Equal(t, err, chronology.ErrNilEndOfEpochTrigger)
+}
+
 func TestChronology_NewChronologyShouldWork(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}

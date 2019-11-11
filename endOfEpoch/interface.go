@@ -1,21 +1,22 @@
 package endOfEpoch
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"time"
 )
 
-// TriggerHandler is an interface to notify end of epoch
+// TriggerHandler defines the functionalities for an end of epoch trigger
 type TriggerHandler interface {
-	ForceEndOfEpoch()
+	ForceEndOfEpoch() error
 	IsEndOfEpoch() bool
 	Epoch() uint32
 	ReceivedHeader(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
-// PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks
+// PendingMiniBlocksHandler defines the actions which should be handled by pending miniblocks implementation
 type PendingMiniBlocksHandler interface {
 	PendingMiniBlockHeaders() []block.ShardMiniBlockHeader
 	AddProcessedHeader(handler data.HeaderHandler) error
