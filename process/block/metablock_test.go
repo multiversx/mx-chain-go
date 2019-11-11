@@ -2160,3 +2160,19 @@ func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 		assert.Equal(t, expectedData[i], mapDates[i])
 	}
 }
+
+func TestMetaProcessor_CreateBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments()
+	arguments.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{
+		IsEndOfEpochCalled: func() bool {
+			return true
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	header, err := mp.CreateBlockHeader(nil, 10, func() bool { return true })
+	assert.NotNil(t, header)
+	assert.Nil(t, err)
+}
