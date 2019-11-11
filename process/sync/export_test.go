@@ -87,6 +87,21 @@ func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
 }
 
+func (bfd *baseForkDetector) ActivateForcedForkIfNeeded(
+	header data.HeaderHandler,
+	state process.BlockHeaderState,
+) {
+	bfd.activateForcedForkIfNeeded(header, state)
+}
+
+func (bfd *baseForkDetector) ShouldForceFork() bool {
+	return bfd.shouldForceFork()
+}
+
+func (bfd *baseForkDetector) SetShouldForceFork(shouldForceFork bool) {
+	bfd.setShouldForceFork(shouldForceFork)
+}
+
 func (hi *headerInfo) Hash() []byte {
 	return hi.hash
 }
@@ -127,6 +142,37 @@ func (boot *MetaBootstrap) IsForkDetected() bool {
 	return boot.isForkDetected
 }
 
+func (boot *MetaBootstrap) GetMaxNotarizedHeadersNoncesInMetaBlock(
+	metaBlock *block.MetaBlock,
+	ni *notarizedInfo,
+) (map[uint32]uint64, error) {
+	return boot.getMaxNotarizedHeadersNoncesInMetaBlock(metaBlock, ni)
+}
+
+func (boot *MetaBootstrap) GetNotarizedInfo(
+	lastNotarized map[uint32]uint64,
+	finalNotarized map[uint32]uint64,
+	blockWithLastNotarized map[uint32]uint64,
+	blockWithFinalNotarized map[uint32]uint64,
+	startNonce uint64,
+) *notarizedInfo {
+	return &notarizedInfo{
+		lastNotarized:           lastNotarized,
+		finalNotarized:          finalNotarized,
+		blockWithLastNotarized:  blockWithLastNotarized,
+		blockWithFinalNotarized: blockWithFinalNotarized,
+		startNonce:              startNonce,
+	}
+}
+
+func (boot *MetaBootstrap) AreNotarizedShardHeadersFound(
+	ni *notarizedInfo,
+	notarizedNonce map[uint32]uint64,
+	nonce uint64,
+) bool {
+	return boot.areNotarizedShardHeadersFound(ni, notarizedNonce, nonce)
+}
+
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	boot.processReceivedHeader(headerHandler, headerHash)
 }
@@ -163,6 +209,10 @@ func (boot *ShardBootstrap) RemoveBlockBody(
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
 	return boot.removeBlockBody(nonce, blockUnit, hdrNonceHashDataUnit)
+}
+
+func (boot *ShardBootstrap) RequestMiniBlocksFromHeaderWithNonceIfMissing(shardId uint32, nonce uint64) {
+	boot.requestMiniBlocksFromHeaderWithNonceIfMissing(shardId, nonce)
 }
 
 func (boot *MetaBootstrap) RemoveBlockBody(
