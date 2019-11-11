@@ -37,6 +37,7 @@ func NewTxsPoolsCleaner(
 	if dataPool == nil || dataPool.IsInterfaceNil() {
 		return nil, process.ErrNilDataPoolHolder
 	}
+
 	transactionPool := dataPool.Transactions()
 	if transactionPool == nil || transactionPool.IsInterfaceNil() {
 		return nil, process.ErrNilTransactionPool
@@ -81,6 +82,8 @@ func (tpc *TxPoolsCleaner) Clean(duration time.Duration) (bool, error) {
 }
 
 func (tpc *TxPoolsCleaner) cleanPools(haveTime func() bool) {
+	atomic.StoreUint64(&tpc.numRemovedTxs, 0)
+
 	shardId := tpc.shardCoordinator.SelfId()
 	transactions := tpc.dataPool.Transactions()
 	numOfShards := tpc.shardCoordinator.NumberOfShards()
