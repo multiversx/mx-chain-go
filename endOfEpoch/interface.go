@@ -9,10 +9,12 @@ import (
 
 // TriggerHandler defines the functionalities for an end of epoch trigger
 type TriggerHandler interface {
-	ForceEndOfEpoch() error
+	ForceEndOfEpoch(round int64) error
 	IsEndOfEpoch() bool
 	Epoch() uint32
 	ReceivedHeader(header data.HeaderHandler)
+	Update(round int64)
+	Processed()
 	IsInterfaceNil() bool
 }
 
@@ -26,9 +28,8 @@ type PendingMiniBlocksHandler interface {
 
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
+	// Index return the current round
 	Index() int64
-	// UpdateRound updates the index and the time stamp of the round depending of the epoch genesis time and the current time given
-	UpdateRound(time.Time, time.Time)
 	// TimeStamp returns the time stamp of the round
 	TimeStamp() time.Time
 	IsInterfaceNil() bool

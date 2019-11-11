@@ -362,14 +362,8 @@ func createConsensusOnlyNode(
 		time.Millisecond*time.Duration(roundTime),
 		syncer)
 
-	rounderForEndOfEpoch, err := round.NewRound(
-		time.Unix(startTime, 0),
-		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(roundTime),
-		syncer)
 	argsNewMetaEndOfEpoch := &metachain.ArgsNewMetaEndOfEpochTrigger{
-		Rounder:     rounderForEndOfEpoch,
-		SyncTimer:   syncer,
+		Rounder:     rounder,
 		GenesisTime: time.Unix(startTime, 0),
 		Settings: &config.EndOfEpochConfig{
 			MinRoundsBetweenEpochs: 1,
