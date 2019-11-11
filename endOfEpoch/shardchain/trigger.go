@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -36,9 +37,11 @@ type trigger struct {
 	mapNonceHashes    map[uint64][]string
 	mapEndOfEpochHdrs map[string]*block.MetaBlock
 
-	metaHdrPool    storage.Cacher
-	metaHdrNonces  dataRetriever.Uint64SyncMapCacher
-	metaHdrStorage storage.Storer
+	metaHdrPool         storage.Cacher
+	metaHdrNonces       dataRetriever.Uint64SyncMapCacher
+	metaHdrStorage      storage.Storer
+	metaNonceHdrStorage storage.Storer
+	uint64Converter     typeConverters.Uint64ByteSliceConverter
 
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
@@ -108,7 +111,53 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	t.mutReceived.Unlock()
 }
 
-func (t *trigger) getHeader(nonce uint64, neededHash []byte) (*block.MetaBlock, error) {
+func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaBlock) bool {
+	isMetaHdrValid := true
+	currHdr := metaHdr
+	for i := metaHdr.Nonce - 1; i >= metaHdr.Nonce-t.validity; i-- {
+		neededHdr, err := t.getHeaderWithNonceAndHash(i, currHdr.PrevHash)
+		if err != nil {
+			isMetaHdrValid = false
+		}
+
+		err = t.isHdrConstructionValid(currHdr, neededHdr)
+		if err != nil {
+			isMetaHdrValid = false
+		}
+	}
+
+	isMetaHdrFinal := false
+	nextBlocksVerified := uint64(0)
+	currHdr = metaHdr
+	for i := metaHdr.Nonce + 1; i <= metaHdr.Nonce+t.finality; i++ {
+		currHash, err := core.CalculateHash(t.marshalizer, t.hasher, currHdr)
+		if err != nil {
+			continue
+		}
+
+		neededHdr, err := t.getHeaderWithNonceAndPrevHash(i, currHash)
+
+		err = t.isHdrConstructionValid(neededHdr, currHdr)
+		if err != nil {
+			continue
+		}
+
+		currHdr = neededHdr
+		nextBlocksVerified += 1
+	}
+
+	if nextBlocksVerified < t.finality {
+		for i := currHdr.Nonce + 1; i <= currHdr.Nonce+t.finality; i++ {
+			go t.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
+		}
+	} else {
+		isMetaHdrFinal = true
+	}
+
+	return isMetaHdrFinal && isMetaHdrValid
+}
+
+func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*block.MetaBlock, error) {
 	metaHdrHashesWithNonce := t.mapNonceHashes[nonce]
 	for _, hash := range metaHdrHashesWithNonce {
 		if bytes.Equal(neededHash, []byte(hash)) {
@@ -119,21 +168,19 @@ func (t *trigger) getHeader(nonce uint64, neededHash []byte) (*block.MetaBlock, 
 		}
 	}
 
-	peekedData, ok := t.metaHdrPool.Peek(neededHash)
+	peekedData, _ := t.metaHdrPool.Peek(neededHash)
+	neededHdr, ok := peekedData.(*block.MetaBlock)
 	if ok {
-		neededHdr, ok := peekedData.(*block.MetaBlock)
-		if ok {
-			t.mapHashHdr[string(neededHash)] = neededHdr
-			t.mapNonceHashes[nonce] = append(t.mapNonceHashes[nonce], string(neededHash))
-			return neededHdr, nil
-		}
+		t.mapHashHdr[string(neededHash)] = neededHdr
+		t.mapNonceHashes[nonce] = append(t.mapNonceHashes[nonce], string(neededHash))
+		return neededHdr, nil
 	}
 
 	storageData, err := t.metaHdrStorage.Get(neededHash)
-	if err != nil {
+	if err == nil {
 		var neededHdr block.MetaBlock
 		err = t.marshalizer.Unmarshal(&neededHdr, storageData)
-		if err != nil {
+		if err == nil {
 			t.mapHashHdr[string(neededHash)] = &neededHdr
 			t.mapNonceHashes[nonce] = append(t.mapNonceHashes[nonce], string(neededHash))
 			return &neededHdr, nil
@@ -145,52 +192,40 @@ func (t *trigger) getHeader(nonce uint64, neededHash []byte) (*block.MetaBlock, 
 	return nil, endOfEpoch.ErrMetaHdrNotFound
 }
 
-func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaBlock) bool {
-	isMetaHdrValid := true
-	currHdr := metaHdr
-	for i := metaHdr.Nonce - 1; i >= metaHdr.Nonce-t.validity; i-- {
-		neededHdr, err := t.getHeader(i, currHdr.PrevHash)
-		if err != nil {
-			isMetaHdrValid = false
-		}
-
-		err = t.isHdrConstructionValid(currHdr, neededHdr)
-		if err != nil {
-			isMetaHdrValid = false
+func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (*block.MetaBlock, error) {
+	metaHdrHashesWithNonce := t.mapNonceHashes[nonce]
+	for _, hash := range metaHdrHashesWithNonce {
+		hdrWithNonce := t.mapHashHdr[hash]
+		if hdrWithNonce != nil && bytes.Equal(hdrWithNonce.PrevHash, prevHash) {
+			return hdrWithNonce, nil
 		}
 	}
 
-	for i := metaHdr.Nonce + 1; i <= metaHdr.Nonce+t.finality; i++ {
-
-	}
-
-	isMetaHdrFinal := true
-	// verify if there are "K" block after current to make this one final
-	nextBlocksVerified := uint32(0)
-	for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
-		if nextBlocksVerified >= mp.shardBlockFinality {
-			break
-		}
-
-		// found a header with the next nonce
-		if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-			err := mp.isHdrConstructionValid(shardHdr, lastVerifiedHdr)
-			if err != nil {
-				log.Debug(err.Error())
-				continue
+	shIdMap, ok := t.metaHdrNonces.Get(nonce)
+	if ok {
+		hdrhash, ok := shIdMap.Load(sharding.MetachainShardId)
+		if ok {
+			dataHdr, _ := t.metaHdrPool.Peek(hdrhash)
+			hdrWithNonce, ok := dataHdr.(*block.MetaBlock)
+			if ok && bytes.Equal(hdrWithNonce.PrevHash, prevHash) {
+				return hdrWithNonce, nil
 			}
-
-			lastVerifiedHdr = shardHdr
-			nextBlocksVerified += 1
 		}
 	}
 
-	if nextBlocksVerified < mp.shardBlockFinality {
-		go mp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
-		return process.ErrHeaderNotFinal
+	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
+	dataHdr, err := t.metaNonceHdrStorage.Get(nonceToByteSlice)
+	if err != nil {
+		return nil, err
 	}
 
-	return isMetaHdrFinal && isMetaHdrValid
+	var neededHash []byte
+	err = t.marshalizer.Unmarshal(neededHash, dataHdr)
+	if err == nil {
+		return nil, err
+	}
+
+	return t.getHeaderWithNonceAndHash(nonce, neededHash)
 }
 
 // Update updates the end-of-epoch trigger
