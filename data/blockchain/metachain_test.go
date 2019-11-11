@@ -87,7 +87,7 @@ func TestMetaChain_SetCurrentBlockBody(t *testing.T) {
 	t.Parallel()
 
 	m := blockchain.MetaChain{}
-	err := m.SetCurrentBlockBody(&block.Body{})
+	err := m.SetCurrentBlockBody(block.Body{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, nil, m.GetCurrentBlockBody())
