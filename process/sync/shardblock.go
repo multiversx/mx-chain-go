@@ -292,12 +292,18 @@ func (boot *ShardBootstrap) getMinNotarizedMetaBlockNonceInHeader(
 			return minNonce, err
 		}
 
-		if ni.blockWithLastNotarized[shardId] == 0 && ni.lastNotarized[shardId] != nil && metaBlock.Nonce == ni.lastNotarized[shardId].Nonce {
+		foundShardHeaderWithLastNotarizedMeta := ni.blockWithLastNotarized[shardId] == 0 &&
+			ni.lastNotarized[shardId] != nil && ni.lastNotarized[shardId].Nonce == metaBlock.Nonce
+
+		if foundShardHeaderWithLastNotarizedMeta {
 			ni.lastNotarized[shardId].Hash = metaBlockHash
 			ni.blockWithLastNotarized[shardId] = header.Nonce
 		}
 
-		if ni.blockWithFinalNotarized[shardId] == 0 && ni.finalNotarized[shardId] != nil && metaBlock.Nonce == ni.finalNotarized[shardId].Nonce {
+		foundShardHeaderWithFinalNotarizedMeta := ni.blockWithFinalNotarized[shardId] == 0 &&
+			ni.finalNotarized[shardId] != nil && ni.finalNotarized[shardId].Nonce == metaBlock.Nonce
+
+		if foundShardHeaderWithFinalNotarizedMeta {
 			ni.finalNotarized[shardId].Hash = metaBlockHash
 			ni.blockWithFinalNotarized[shardId] = header.Nonce
 		}
@@ -372,10 +378,10 @@ func (boot *ShardBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]*Hd
 		return
 	}
 
-	for i := lastNotarized[sharding.MetachainShardId].Nonce + 1; i <= highestNonceInStorer; i++ {
-		errNotCritical := boot.removeBlockHeader(i, dataRetriever.MetaBlockUnit, dataRetriever.MetaHdrNonceHashDataUnit)
+	for nonce := lastNotarized[sharding.MetachainShardId].Nonce + 1; nonce <= highestNonceInStorer; nonce++ {
+		errNotCritical := boot.removeBlockHeader(nonce, dataRetriever.MetaBlockUnit, dataRetriever.MetaHdrNonceHashDataUnit)
 		if errNotCritical != nil {
-			log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", i, errNotCritical.Error()))
+			log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
 		}
 	}
 }

@@ -501,6 +501,16 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 
 	sp.removeLastNotarized()
 
+	//TODO: Remove this print
+	metaBlock := sp.lastNotarizedHdrForShard(sharding.MetachainShardId)
+	metaBlockHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, metaBlock)
+	if metaBlockHash != nil {
+		log.Info(fmt.Sprintf("restored last notarized metablock with round = %d, nonce = %d, hash = %s\n",
+			metaBlock.GetRound(),
+			metaBlock.GetNonce(),
+			core.ToB64(metaBlockHash)))
+	}
+
 	return nil
 }
 
@@ -518,10 +528,10 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte, 0)
 
 	for _, metaBlockHash := range metaBlockHashes {
-		metaBlock, err := process.GetMetaHeader(metaBlockHash, metaBlockPool, sp.marshalizer, sp.store)
-		if err != nil {
-			log.Info(fmt.Sprintf("error getting meta block with hash %s form MetaBlockUnit\n", core.ToB64(metaBlockHash)))
-			return err
+		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
+		if errNotCritical != nil {
+			log.Info(fmt.Sprintf("error not critical: meta block with hash %s is not fully processed yet and not committed in MetaBlockUnit\n", core.ToB64(metaBlockHash)))
+			continue
 		}
 
 		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
@@ -534,11 +544,23 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 		syncMap.Store(metaBlock.GetShardID(), metaBlockHash)
 		metaHeaderNoncesPool.Merge(metaBlock.GetNonce(), syncMap)
 
+		err := sp.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
+		if err != nil {
+			log.Info(fmt.Sprintf("error critical: unable to remove hash %s from MetaBlockUnit\n", core.ToB64(metaBlockHash)))
+			return err
+		}
+
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-		errNotCritical := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		errNotCritical = sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 		}
+
+		//TODO: Change this print to debug
+		log.Info(fmt.Sprintf("meta block with round = %d, nonce = %d, hash = %s has been restored successfully\n",
+			metaBlock.Round,
+			metaBlock.Nonce,
+			core.ToB64(metaBlockHash)))
 	}
 
 	for metaBlockHash, miniBlockHashes := range mapMetaHashMiniBlockHashes {
@@ -1049,7 +1071,8 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		sp.dataPool.HeadersNonces().Remove(hdr.GetNonce(), sharding.MetachainShardId)
 		sp.removeAllProcessedMiniBlocks(headerHash)
 
-		log.Debug(fmt.Sprintf("metaBlock with round %d nonce %d and hash %s has been processed completely and removed from pool\n",
+		//TODO: Change this print to debug
+		log.Info(fmt.Sprintf("metaBlock with round %d nonce %d and hash %s has been processed completely and removed from pool\n",
 			hdr.GetRound(),
 			hdr.GetNonce(),
 			core.ToB64(headerHash)))

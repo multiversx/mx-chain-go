@@ -3089,13 +3089,6 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 			m[string(txHash)] = buffTx
 			return m, nil
 		},
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
-				RemoveCalled: func(key []byte) error {
-					return nil
-				},
-			}
-		},
 	}
 
 	factory, _ := shard.NewPreProcessorsContainerFactory(
@@ -3155,8 +3148,15 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		metablockHeader,
 	)
 
-	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-		return marshalizerMock.Marshal(metablockHeader)
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			RemoveCalled: func(key []byte) error {
+				return nil
+			},
+			GetCalled: func(key []byte) ([]byte, error) {
+				return marshalizerMock.Marshal(metablockHeader)
+			},
+		}
 	}
 
 	miniBlockHeader := block.MiniBlockHeader{

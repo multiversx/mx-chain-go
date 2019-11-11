@@ -306,6 +306,17 @@ func (bp *baseProcessor) removeLastNotarized() {
 		if notarizedHdrsCount > 1 {
 			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][:notarizedHdrsCount-1]
 		}
+
+		//TODO: Remove this print later
+		if notarizedHdrsCount == 1 {
+			if bp.notarizedHdrs[shardId][0].GetNonce() > 0 {
+				log.Info(fmt.Sprintf("critical error: remove last notarized header for shard %d with round %d and nonce %d has been failed\n",
+					bp.notarizedHdrs[shardId][0].GetShardID(),
+					bp.notarizedHdrs[shardId][0].GetRound(),
+					bp.notarizedHdrs[shardId][0].GetNonce(),
+				))
+			}
+		}
 	}
 	bp.mutNotarizedHdrs.Unlock()
 }
@@ -727,8 +738,8 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 			continue
 		}
 
-		for i := 0; i < len(headers); i++ {
-			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[i])] = &hdrInfo{hdr: headers[i], usedInBlock: false}
+		for index := range headers {
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[index])] = &hdrInfo{hdr: headers[index], usedInBlock: false}
 		}
 	}
 

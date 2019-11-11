@@ -399,12 +399,12 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
-		&mock.FeeHandlerStub{},
 		nil,
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
 func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
@@ -424,12 +424,12 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
 		nil,
-		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+	assert.Equal(t, process.ErrNilBlackListHandler, err)
 }
 
 func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {

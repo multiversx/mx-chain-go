@@ -819,10 +819,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 
 	defer func() {
 		if err != nil {
-			_ = boot.blkc.SetCurrentBlockHeader(currHeader)
-			_ = boot.blkc.SetCurrentBlockBody(currBlockBody)
-			boot.blkc.SetCurrentBlockHeaderHash(currHeaderHash)
-			boot.blkExecutor.RevertStateToBlock(currHeader)
+			boot.restoreState(currHeaderHash, currHeader, currBlockBody)
 		}
 	}()
 
@@ -901,7 +898,6 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 	err := boot.rollBack(false)
 	if err != nil {
 		log.Info(err.Error())
-		return
 	}
 
 	boot.forkDetector.ResetProbableHighestNonce()
@@ -934,4 +930,31 @@ func (boot *baseBootstrap) addHeaderToForkDetector(
 	}
 
 	return
+}
+
+func (boot *baseBootstrap) restoreState(
+	currHeaderHash []byte,
+	currHeader data.HeaderHandler,
+	currBlockBody data.BodyHandler,
+) {
+	log.Info(fmt.Sprintf("revert state to header with nonce %d and hash %s\n",
+		currHeader.GetNonce(),
+		core.ToB64(currHeaderHash)))
+
+	err := boot.blkc.SetCurrentBlockHeader(currHeader)
+	if err != nil {
+		log.Info(err.Error())
+	}
+
+	err = boot.blkc.SetCurrentBlockBody(currBlockBody)
+	if err != nil {
+		log.Info(err.Error())
+	}
+
+	boot.blkc.SetCurrentBlockHeaderHash(currHeaderHash)
+
+	err = boot.blkExecutor.RevertStateToBlock(currHeader)
+	if err != nil {
+		log.Info(err.Error())
+	}
 }

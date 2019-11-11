@@ -146,7 +146,7 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		scrBuff, err := scr.storage.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			log.Info(fmt.Sprintf("unsigned tx from mini block with sender shard %d and receiver shard %d, having %d txs, has not found in UnsignedTransactionUnit\n",
+			log.Info(fmt.Sprintf("unsigned tx from mini block with sender shard %d and receiver shard %d, having %d txs, was not found in UnsignedTransactionUnit\n",
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
 				len(miniBlock.TxHashes)))

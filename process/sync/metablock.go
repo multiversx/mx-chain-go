@@ -336,18 +336,18 @@ func (boot *MetaBootstrap) applyNotarizedBlocks(
 }
 
 func (boot *MetaBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]*HdrInfo) {
-	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
+	for shardId := uint32(0); shardId < boot.shardCoordinator.NumberOfShards(); shardId++ {
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardId)
 		highestNonceInStorer := boot.computeHighestNonce(hdrNonceHashDataUnit)
 
-		if lastNotarized[i] == nil {
+		if lastNotarized[shardId] == nil {
 			continue
 		}
 
-		for i := lastNotarized[i].Nonce + 1; i <= highestNonceInStorer; i++ {
-			errNotCritical := boot.removeBlockHeader(i, dataRetriever.BlockHeaderUnit, hdrNonceHashDataUnit)
+		for nonce := lastNotarized[shardId].Nonce + 1; nonce <= highestNonceInStorer; nonce++ {
+			errNotCritical := boot.removeBlockHeader(nonce, dataRetriever.BlockHeaderUnit, hdrNonceHashDataUnit)
 			if errNotCritical != nil {
-				log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", i, errNotCritical.Error()))
+				log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
 			}
 		}
 	}
