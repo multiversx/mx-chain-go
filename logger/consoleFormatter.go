@@ -16,31 +16,36 @@ const (
 type ConsoleFormatter struct {
 }
 
-// Output converts the provided LogLine into a slice of bytes ready for output
-func (ConsoleFormatter) Output(line *LogLine) []byte {
-	levelColor := getLevelColor(line.LogLevel)
+// Output converts the provided LogLineHandler into a slice of bytes ready for output
+func (ConsoleFormatter) Output(line LogLineHandler) []byte {
+	if line == nil {
+		return nil
+	}
+
+	level := LogLevel(line.GetLogLevel())
+	levelColor := getLevelColor(level)
 
 	return []byte(fmt.Sprintf("\033[%s%s\033[0m[%s] %s %s\n",
 		levelColor,
-		line.LogLevel.String(),
-		displayTime(line.Timestamp),
-		formatMessage(line.Message),
-		displayArgs(levelColor, line.Args...),
+		level,
+		displayTime(line.GetTimestamp()),
+		formatMessage(line.GetMessage()),
+		formatArgs(levelColor, line.GetArgs()...),
 	),
 	)
 }
 
-// displayArgs iterates through the provided arguments displaying the argument name and after that its value
+// formatArgs iterates through the provided arguments displaying the argument name and after that its value
 // The arguments must be provided in the following format: "name1", "val1", "name2", "val2" ...
 // It ignores odd number of arguments
-func displayArgs(levelColor string, args ...interface{}) string {
+func formatArgs(levelColor string, args ...string) string {
 	if len(args) == 0 {
 		return ""
 	}
 
 	argString := ""
 	for index := 1; index < len(args); index += 2 {
-		argString += fmt.Sprintf("\033[%s%s\033[0m=%v ", levelColor, args[index-1], args[index])
+		argString += fmt.Sprintf("\033[%s%s\033[0m=%s ", levelColor, args[index-1], args[index])
 	}
 
 	return argString
