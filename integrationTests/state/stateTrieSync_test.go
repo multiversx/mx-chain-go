@@ -49,7 +49,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	nilRootHash, _ := nRequester.StateTrie.Root()
 	trieNodesResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.TrieNodesTopic)
 
-	trieSyncer, _ := trie.NewTrieSyncer(trieNodesResolver, nRequester.ShardDataPool.TrieNodes(), nRequester.StateTrie, time.Second)
+	waitTime := 5 * time.Second
+	trieSyncer, _ := trie.NewTrieSyncer(trieNodesResolver, nRequester.ShardDataPool.TrieNodes(), nRequester.StateTrie, waitTime)
 	err = trieSyncer.StartSyncing(rootHash)
 	assert.Nil(t, err)
 
