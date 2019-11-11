@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -212,21 +211,20 @@ type BlockProcessor interface {
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
 	RevertStateToBlock(header data.HeaderHandler) error
-	CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error)
+	CreateNewHeader() data.HeaderHandler
+	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
-	ApplyValidatorStatistics(header data.HeaderHandler) error
 }
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
-	SaveInitialState(in []*sharding.InitialNode) error
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	RevertPeerStateToSnapshot(snapshot int) error
@@ -361,8 +359,13 @@ type VirtualMachinesContainer interface {
 // VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
-	VMAccountsDB() *hooks.VMAccountsDB
+	BlockChainHookImpl() BlockChainHookHandler
 	IsInterfaceNil() bool
+}
+
+type BlockChainHookHandler interface {
+	TemporaryAccountsHandler
+	SetCurrentHeader(hdr data.HeaderHandler)
 }
 
 // Interceptor defines what a data interceptor should do
@@ -463,6 +466,13 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
+// ValidatorSettingsHandler
+type ValidatorSettingsHandler interface {
+	UnBoundPeriod() uint64
+	StakeValue() *big.Int
+	IsInterfaceNil() bool
+}
+
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
@@ -482,6 +492,19 @@ type TransactionWithFeeHandler interface {
 type EconomicsAddressesHandler interface {
 	CommunityAddress() string
 	BurnAddress() string
+	IsInterfaceNil() bool
+}
+
+// SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes
+type SmartContractToProtocolHandler interface {
+	UpdateProtocol(body block.Body, nonce uint64) error
+	IsInterfaceNil() bool
+}
+
+// PeerChangesHandler will create the peer changes data for current block and will verify them
+type PeerChangesHandler interface {
+	PeerChanges() []block.PeerData
+	VerifyPeerChanges(peerChanges []block.PeerData) error
 	IsInterfaceNil() bool
 }
 

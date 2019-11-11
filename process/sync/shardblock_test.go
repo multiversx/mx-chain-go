@@ -5004,7 +5004,7 @@ func NewStorageBootstrapperMock() *sync.StorageBootstrapperMock {
 		},
 		GetBlockBodyCalled: func(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 			if headerHandler != nil {
-				return &block.Body{}, nil
+				return block.Body{}, nil
 			}
 
 			return nil, errors.New("get block body failed")
