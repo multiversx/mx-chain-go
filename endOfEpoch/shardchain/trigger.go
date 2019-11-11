@@ -3,6 +3,7 @@ package shardchain
 import (
 	"bytes"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -17,6 +18,19 @@ import (
 
 // ArgsNewShardEndOfEpochTrigger defines the arguments needed for new end of epoch trigger
 type ArgsNewShardEndOfEpochTrigger struct {
+	Marshalizer marshal.Marshalizer
+	Hasher      hashing.Hasher
+
+	HeaderValidator endOfEpoch.HeaderValidator
+	Uint64Converter typeConverters.Uint64ByteSliceConverter
+
+	DataPool       dataRetriever.PoolsHolder
+	Storage        dataRetriever.StorageService
+	RequestHandler endOfEpoch.RequestHandler
+
+	Epoch    uint32
+	Validity uint64
+	Finality uint64
 }
 
 type trigger struct {
@@ -44,8 +58,7 @@ type trigger struct {
 	hasher          hashing.Hasher
 	headerValidator endOfEpoch.HeaderValidator
 
-	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
-	onRequestHeaderHandler        func(shardId uint32, hash []byte)
+	requestHandler endOfEpoch.RequestHandler
 }
 
 // NewEndOfEpochTrigger creates a trigger to signal end of epoch
@@ -53,8 +66,67 @@ func NewEndOfEpochTrigger(args *ArgsNewShardEndOfEpochTrigger) (*trigger, error)
 	if args == nil {
 		return nil, endOfEpoch.ErrNilArgsNewShardEndOfEpochTrigger
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, endOfEpoch.ErrNilHasher
+	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, endOfEpoch.ErrNilMarshalizer
+	}
+	if check.IfNil(args.HeaderValidator) {
+		return nil, endOfEpoch.ErrNilHeaderValidator
+	}
+	if check.IfNil(args.DataPool) {
+		return nil, endOfEpoch.ErrNilDataPoolsHolder
+	}
+	if check.IfNil(args.Storage) {
+		return nil, endOfEpoch.ErrNilStorageService
+	}
+	if check.IfNil(args.RequestHandler) {
+		return nil, endOfEpoch.ErrNilRequestHandler
+	}
+	if check.IfNil(args.DataPool.MetaBlocks()) {
+		return nil, endOfEpoch.ErrNilMetaBlocksPool
+	}
+	if check.IfNil(args.DataPool.HeadersNonces()) {
+		return nil, endOfEpoch.ErrNilHeaderNoncesPool
+	}
+	if check.IfNil(args.Uint64Converter) {
+		return nil, endOfEpoch.ErrNilUint64Converter
+	}
 
-	return &trigger{}, nil
+	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaHdrStorage) {
+		return nil, endOfEpoch.ErrNilMetaHdrStorage
+	}
+
+	metaHdrNoncesStorage := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if check.IfNil(metaHdrNoncesStorage) {
+		return nil, endOfEpoch.ErrNilMetaNonceHashStorage
+	}
+
+	newTrigger := &trigger{
+		epoch:               args.Epoch,
+		currentRoundIndex:   0,
+		epochStartRound:     0,
+		isEndOfEpoch:        false,
+		finality:            args.Validity,
+		validity:            args.Finality,
+		newEpochHdrReceived: false,
+		mutReceived:         sync.Mutex{},
+		mapHashHdr:          make(map[string]*block.MetaBlock),
+		mapNonceHashes:      make(map[uint64][]string),
+		mapEndOfEpochHdrs:   make(map[string]*block.MetaBlock),
+		metaHdrPool:         args.DataPool.MetaBlocks(),
+		metaHdrNonces:       args.DataPool.HeadersNonces(),
+		metaHdrStorage:      metaHdrStorage,
+		metaNonceHdrStorage: metaHdrNoncesStorage,
+		uint64Converter:     args.Uint64Converter,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		headerValidator:     args.HeaderValidator,
+		requestHandler:      args.RequestHandler,
+	}
+	return newTrigger, nil
 }
 
 // IsEndOfEpoch returns true if conditions are fullfilled for end of epoch
@@ -146,7 +218,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 
 	if nextBlocksVerified < t.finality {
 		for i := currHdr.Nonce + 1; i <= currHdr.Nonce+t.finality; i++ {
-			go t.onRequestHeaderHandlerByNonce(sharding.MetachainShardId, i)
+			go t.requestHandler.RequestHeaderByNonce(sharding.MetachainShardId, i)
 		}
 	} else {
 		isMetaHdrFinal = true
@@ -185,7 +257,7 @@ func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*b
 		}
 	}
 
-	go t.onRequestHeaderHandler(sharding.MetachainShardId, neededHash)
+	go t.requestHandler.RequestHeader(sharding.MetachainShardId, neededHash)
 
 	return nil, endOfEpoch.ErrMetaHdrNotFound
 }
@@ -213,7 +285,8 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 
 	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
 	dataHdr, err := t.metaNonceHdrStorage.Get(nonceToByteSlice)
-	if err != nil {
+	if err != nil || len(dataHdr) == 0 {
+		go t.requestHandler.RequestHeaderByNonce(sharding.MetachainShardId, nonce)
 		return nil, err
 	}
 

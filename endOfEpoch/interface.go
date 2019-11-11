@@ -40,3 +40,10 @@ type HeaderValidator interface {
 	IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
+
+// RequestHandler defines the methods through which request to data can be made
+type RequestHandler interface {
+	RequestHeaderByNonce(shardId uint32, nonce uint64)
+	RequestHeader(shardId uint32, hash []byte)
+	IsInterfaceNil() bool
+}
