@@ -324,8 +324,6 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 
 	finalityAttestingMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(false)
 
-	var errFinal error
-
 	lastVerifiedHdr := header
 	// verify if there are "K" block after current to make this one final
 	nextBlocksVerified := uint32(0)
@@ -350,10 +348,10 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 
 	if nextBlocksVerified < sp.metaBlockFinality {
 		go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
-		errFinal = process.ErrHeaderNotFinal
+		return process.ErrHeaderNotFinal
 	}
 
-	return errFinal
+	return nil
 }
 
 // check if header has the same miniblocks as presented in body

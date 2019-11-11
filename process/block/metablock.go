@@ -941,7 +941,8 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 			shardId,
 			mp.shardBlockFinality,
 			mp.getShardHeaderFromPoolWithNonce,
-			mp.dataPool.ShardHeaders())
+			mp.dataPool.ShardHeaders(),
+		)
 
 		missingFinalityAttestingShardHeaders += missingFinalityAttestingHeaders
 	}

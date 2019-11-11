@@ -71,8 +71,8 @@ func (bfd *baseForkDetector) FinalCheckpointRound() uint64 {
 	return bfd.finalCheckpoint().round
 }
 
-func (bfd *baseForkDetector) CheckBlockValidity(header *block.Header, state process.BlockHeaderState) error {
-	return bfd.checkBlockBasicValidity(header, state)
+func (bfd *baseForkDetector) CheckBlockValidity(header *block.Header, headerHash []byte, state process.BlockHeaderState) error {
+	return bfd.checkBlockBasicValidity(header, headerHash, state)
 }
 
 func (bfd *baseForkDetector) RemovePastHeaders() {

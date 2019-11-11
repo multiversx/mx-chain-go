@@ -59,7 +59,7 @@ func (mfd *metaForkDetector) AddHeader(
 		return ErrNilHash
 	}
 
-	err := mfd.checkBlockBasicValidity(header, state)
+	err := mfd.checkBlockBasicValidity(header, headerHash, state)
 	if err != nil {
 		return err
 	}

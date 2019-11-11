@@ -59,7 +59,7 @@ func (sfd *shardForkDetector) AddHeader(
 		return ErrNilHash
 	}
 
-	err := sfd.checkBlockBasicValidity(header, state)
+	err := sfd.checkBlockBasicValidity(header, headerHash, state)
 	if err != nil {
 		return err
 	}

@@ -51,7 +51,12 @@ func (bfd *baseForkDetector) removePastOrInvalidRecords() {
 	bfd.removePastCheckpoints()
 }
 
-func (bfd *baseForkDetector) checkBlockBasicValidity(header data.HeaderHandler, state process.BlockHeaderState) error {
+func (bfd *baseForkDetector) checkBlockBasicValidity(
+	header data.HeaderHandler,
+	headerHash []byte,
+	state process.BlockHeaderState,
+) error {
+
 	roundDif := int64(header.GetRound()) - int64(bfd.finalCheckpoint().round)
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
@@ -70,6 +75,9 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(header data.HeaderHandler, 
 		return ErrHigherNonceInBlock
 	}
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
+		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
+		// which is bound to a previous black listed header.
+		bfd.blackListHandler.Add(string(headerHash))
 		return process.ErrHeaderIsBlackListed
 	}
 	if state == process.BHProposed {

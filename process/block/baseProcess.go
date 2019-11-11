@@ -343,16 +343,14 @@ func (bp *baseProcessor) setLastHdrForShard(shardId uint32, header data.HeaderHa
 	}
 
 	bp.mutLastHdrs.Lock()
+	defer bp.mutLastHdrs.Unlock()
+
 	lastHeader, ok := bp.lastHdrs[shardId]
-	if ok {
-		if lastHeader.GetRound() > header.GetRound() {
-			bp.mutLastHdrs.Unlock()
-			return
-		}
+	if ok && lastHeader.GetRound() > header.GetRound() {
+		return
 	}
 
 	bp.lastHdrs[shardId] = header
-	bp.mutLastHdrs.Unlock()
 }
 
 func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
