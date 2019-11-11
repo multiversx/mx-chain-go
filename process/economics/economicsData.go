@@ -19,6 +19,8 @@ type EconomicsData struct {
 	minGasLimit         uint64
 	communityAddress    string
 	burnAddress         string
+	stakeValue          *big.Int
+	unBoundPeriod       uint64
 	ratingsData         *RatingsData
 }
 
@@ -27,12 +29,12 @@ const float64EqualityThreshold = 1e-9
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	//TODO check what happens if addresses are wrong
-	rewardsValue, minGasPrice, minGasLimit, err := convertValues(economics)
+	data, err := convertValues(economics)
 	if err != nil {
 		return nil, err
 	}
 
-	notGreaterThanZero := rewardsValue.Cmp(big.NewInt(0))
+	notGreaterThanZero := data.rewardsValue.Cmp(big.NewInt(0))
 	if notGreaterThanZero < 0 {
 		return nil, process.ErrInvalidRewardsValue
 	}
@@ -43,14 +45,16 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}
 
 	return &EconomicsData{
-		rewardsValue:        rewardsValue,
+		rewardsValue:        data.rewardsValue,
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
 		burnPercentage:      economics.RewardsSettings.BurnPercentage,
-		minGasPrice:         minGasPrice,
-		minGasLimit:         minGasLimit,
+		minGasPrice:         data.minGasPrice,
+		minGasLimit:         data.minGasLimit,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
+		stakeValue:          data.stakeValue,
+		unBoundPeriod:       data.unBoundPeriod,
 		ratingsData: &RatingsData{
 			startRating:                     economics.RatingSettings.StartRating,
 			maxRating:                       economics.RatingSettings.MaxRating,
@@ -63,27 +67,44 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}, nil
 }
 
-func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64, error) {
+func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
 	rewardsValue := new(big.Int)
 	rewardsValue, ok := rewardsValue.SetString(economics.RewardsSettings.RewardsValue, conversionBase)
 	if !ok {
-		return nil, 0, 0, process.ErrInvalidRewardsValue
+		return nil, process.ErrInvalidRewardsValue
 	}
 
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, process.ErrInvalidMinimumGasPrice
+		return nil, process.ErrInvalidMinimumGasPrice
 	}
 
 	minGasLimit, err := strconv.ParseUint(economics.FeeSettings.MinGasLimit, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, process.ErrInvalidMinimumGasLimitForTx
+		return nil, process.ErrInvalidMinimumGasLimitForTx
 	}
 
-	return rewardsValue, minGasPrice, minGasLimit, nil
+	stakeValue := new(big.Int)
+	stakeValue, ok = stakeValue.SetString(economics.ValidatorSettings.StakeValue, conversionBase)
+	if !ok {
+		return nil, process.ErrInvalidRewardsValue
+	}
+
+	unBoundPeriod, err := strconv.ParseUint(economics.ValidatorSettings.UnBoundPeriod, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidUnboundPeriod
+	}
+
+	return &EconomicsData{
+		rewardsValue:  rewardsValue,
+		minGasPrice:   minGasPrice,
+		minGasLimit:   minGasLimit,
+		stakeValue:    stakeValue,
+		unBoundPeriod: unBoundPeriod,
+	}, nil
 }
 
 func checkValues(economics *config.ConfigEconomics) error {
@@ -180,6 +201,16 @@ func (ed *EconomicsData) CommunityAddress() string {
 // BurnAddress will return burn address
 func (ed *EconomicsData) BurnAddress() string {
 	return ed.burnAddress
+}
+
+// StakeValue will return the minimum stake value
+func (ed *EconomicsData) StakeValue() *big.Int {
+	return ed.stakeValue
+}
+
+// UnBoundPeriod will return the unbound period
+func (ed *EconomicsData) UnBoundPeriod() uint64 {
+	return ed.unBoundPeriod
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

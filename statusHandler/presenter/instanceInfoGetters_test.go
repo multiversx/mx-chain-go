@@ -165,21 +165,17 @@ func TestPresenterStatusHandler_CalculateRewardsTotal(t *testing.T) {
 	t.Parallel()
 
 	rewardsValue := "1000"
-	expectedDifValue := "9000"
+
 	numSignedBlocks := uint64(50)
-	numProposedBlocks := uint64(10)
-	leaderPercentage := "0.5"
-	communityPercentage := "0.1"
 
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
-	presenterStatusHandler.SetStringValue(core.MetricLeaderPercentage, leaderPercentage)
-	presenterStatusHandler.SetStringValue(core.MetricCommunityPercentage, communityPercentage)
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
-	presenterStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, numProposedBlocks)
+	presenterStatusHandler.SetStringValue(core.MetricDenominationCoefficient, "0.0001")
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
+	expectedDifValue := "5" + presenterStatusHandler.GetZeros()
 
-	assert.Equal(t, "0", totalRewards)
+	assert.Equal(t, "0"+presenterStatusHandler.GetZeros(), totalRewards)
 	assert.Equal(t, expectedDifValue, diff)
 }
 
@@ -187,23 +183,18 @@ func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
 	t.Parallel()
 
 	rewardsValue := "1000"
-	numSignedBlocks := uint64(50)
-	leaderPercentage := "0.5"
-	communityPercentage := "0.1"
-	numProposedBlocks := uint64(10)
-	expectedDiffValue := "8000"
+	numSignedBlocks := uint64(50000)
 
 	presenterStatusHandler := NewPresenterStatusHandler()
-	totalRewardsOld, _ := big.NewInt(0).SetString(rewardsValue, 10)
-	presenterStatusHandler.totalRewardsOld = big.NewInt(0).Set(totalRewardsOld)
-	presenterStatusHandler.SetStringValue(core.MetricLeaderPercentage, leaderPercentage)
-	presenterStatusHandler.SetStringValue(core.MetricCommunityPercentage, communityPercentage)
+	totalRewardsOld, _ := big.NewFloat(0).SetString(rewardsValue)
+	presenterStatusHandler.totalRewardsOld = big.NewFloat(0).Set(totalRewardsOld)
 	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
-	presenterStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, numProposedBlocks)
+	presenterStatusHandler.SetStringValue(core.MetricDenominationCoefficient, "0.0001")
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
+	expectedDiffValue := "4000" + presenterStatusHandler.GetZeros()
 
-	assert.Equal(t, totalRewardsOld.Text(10), totalRewards)
+	assert.Equal(t, totalRewardsOld.Text('f', precisionRewards), totalRewards)
 	assert.Equal(t, expectedDiffValue, diff)
 }
 
@@ -219,15 +210,12 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourReturnZero(t *testing.T) 
 func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) {
 	t.Parallel()
 
-	consensusGroupSize := uint64(10)
+	consensusGroupSize := uint64(50)
 	numValidators := uint64(100)
-	totalBlocks := uint64(100)
+	totalBlocks := uint64(1000)
 	totalRounds := uint64(1000)
 	roundTime := uint64(6)
-	leaderPercentage := "0.5"
-	communityPercentage := "0.1"
-	rewardsValue := "1000"
-	expectedValue := "840"
+	rewardsValue := "10000"
 
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, consensusGroupSize)
@@ -236,10 +224,9 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) 
 	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, totalRounds)
 	presenterStatusHandler.SetUInt64Value(core.MetricRoundTime, roundTime)
-	presenterStatusHandler.SetStringValue(core.MetricLeaderPercentage, leaderPercentage)
-	presenterStatusHandler.SetStringValue(core.MetricCommunityPercentage, communityPercentage)
+	presenterStatusHandler.SetStringValue(core.MetricDenominationCoefficient, "0.0001")
+	expectedValue := "300" + presenterStatusHandler.GetZeros()
 
 	result := presenterStatusHandler.CalculateRewardsPerHour()
 	assert.Equal(t, expectedValue, result)
 }
-

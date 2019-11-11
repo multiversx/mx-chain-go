@@ -210,6 +210,8 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -219,6 +221,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		currTxs,
 	)
 
 	return dPool
@@ -311,16 +314,19 @@ func createConsensusOnlyNode(
 		},
 		RevertAccountStateCalled: func() {
 		},
-		CreateBlockCalled: func(round uint64, haveTime func() bool) (handler data.BodyHandler, e error) {
+		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (handler data.BodyHandler, e error) {
 			return &dataBlock.Body{}, nil
 		},
-		CreateBlockHeaderCalled: func(body data.BodyHandler, round uint64, haveTime func() bool) (handler data.HeaderHandler, e error) {
-			return &dataBlock.Header{Round: uint64(round)}, nil
+		ApplyBodyToHeaderCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+			return nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
+		},
+		CreateNewHeaderCalled: func() data.HeaderHandler {
+			return &dataBlock.Header{}
 		},
 	}
 
