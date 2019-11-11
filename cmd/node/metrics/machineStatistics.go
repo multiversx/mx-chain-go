@@ -75,7 +75,11 @@ func registeNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPol
 }
 
 func registerCpuStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
-	cpuStats := machine.NewCpuStatistics()
+	cpuStats, err := machine.NewCpuStatistics()
+	if err != nil {
+		return err
+	}
+
 	go func() {
 		for {
 			cpuStats.ComputeStatistics()
