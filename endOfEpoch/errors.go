@@ -23,11 +23,11 @@ var ErrNilArgsNewShardEndOfEpochTrigger = errors.New("nil arguments for shard en
 // ErrNotEnoughRoundsBetweenEpochs signals that not enough rounds has passed since last epoch start
 var ErrNotEnoughRoundsBetweenEpochs = errors.New("tried to force end of epoch before passing of enough rounds")
 
-// ErrForceEndOfEpochCanBeCalledOnNewRound signals that force end of epoch was called on wrong round
-var ErrForceEndOfEpochCanBeCalledOnNewRound = errors.New("invalid time to call force end of epoch, possible only on new round")
+// ErrForceEndOfEpochCannotBeCalledOnNewRound signals that force end of epoch was called on wrong round
+var ErrForceEndOfEpochCannotBeCalledOnNewRound = errors.New("invalid time to call force end of epoch, possible only on new round")
 
-// ErrSavedRoundIsHigherThanSaved signals that input round was wrong
-var ErrSavedRoundIsHigherThanSaved = errors.New("saved round is higher than input round")
+// ErrSavedRoundIsHigherThanInputRound signals that input round was wrong
+var ErrSavedRoundIsHigherThanInputRound = errors.New("saved round is higher than input round")
 
 // ErrWrongTypeAssertion signals wrong type assertion
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")

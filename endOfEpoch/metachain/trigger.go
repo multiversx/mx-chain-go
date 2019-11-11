@@ -58,7 +58,7 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 	}, nil
 }
 
-// IsEndOfEpoch return true if conditions are fullfilled for end of epoch
+// IsEndOfEpoch return true if conditions are fulfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
 	return t.isEndOfEpoch
 }
@@ -66,10 +66,10 @@ func (t *trigger) IsEndOfEpoch() bool {
 // ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
 func (t *trigger) ForceEndOfEpoch(round int64) error {
 	if t.currentRoundIndex > round {
-		return endOfEpoch.ErrSavedRoundIsHigherThanSaved
+		return endOfEpoch.ErrSavedRoundIsHigherThanInputRound
 	}
 	if t.currentRoundIndex == round {
-		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnNewRound
+		return endOfEpoch.ErrForceEndOfEpochCannotBeCalledOnNewRound
 	}
 
 	t.currentRoundIndex = round
@@ -88,12 +88,6 @@ func (t *trigger) ForceEndOfEpoch(round int64) error {
 
 // Update processes changes in the trigger
 func (t *trigger) Update(round int64) {
-	if t.currentRoundIndex > round {
-		return
-	}
-	if t.currentRoundIndex == round {
-		return
-	}
 	if t.currentRoundIndex+1 != round {
 		return
 	}

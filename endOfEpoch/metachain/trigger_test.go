@@ -97,3 +97,83 @@ func TestNewEndOfEpochTrigger_ShouldOk(t *testing.T) {
 	assert.NotNil(t, neoet)
 	assert.Nil(t, err)
 }
+
+func TestTrigger_Update(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	round := int64(0)
+	arguments := createMockEndOfEpochTriggerArguments()
+	arguments.Epoch = epoch
+	neoet, _ := NewEndOfEpochTrigger(arguments)
+
+	neoet.Update(round)
+	round++
+	neoet.Update(round)
+	round++
+	neoet.Update(round)
+	round++
+	neoet.Update(round)
+
+	ret := neoet.IsEndOfEpoch()
+	assert.True(t, ret)
+
+	epc := neoet.Epoch()
+	assert.Equal(t, epoch+1, epc)
+
+	neoet.Processed()
+	ret = neoet.IsEndOfEpoch()
+	assert.False(t, ret)
+}
+
+func TestTrigger_ForceEndOfEpochIncorrectRoundShouldErr(t *testing.T) {
+	t.Parallel()
+
+	round := int64(1)
+	arguments := createMockEndOfEpochTriggerArguments()
+	neoet, _ := NewEndOfEpochTrigger(arguments)
+
+	neoet.Update(round)
+
+	err := neoet.ForceEndOfEpoch(0)
+	assert.Equal(t, endOfEpoch.ErrSavedRoundIsHigherThanInputRound, err)
+}
+
+func TestTrigger_ForceEndOfEpochRoundEqualWithSavedRoundShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEndOfEpochTriggerArguments()
+	neoet, _ := NewEndOfEpochTrigger(arguments)
+
+	err := neoet.ForceEndOfEpoch(0)
+	assert.Equal(t, endOfEpoch.ErrForceEndOfEpochCannotBeCalledOnNewRound, err)
+}
+
+func TestTrigger_ForceEndOfEpochNotEnoughRoundsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEndOfEpochTriggerArguments()
+	arguments.Settings.MinRoundsBetweenEpochs = 2
+	neoet, _ := NewEndOfEpochTrigger(arguments)
+
+	err := neoet.ForceEndOfEpoch(1)
+	assert.Equal(t, endOfEpoch.ErrNotEnoughRoundsBetweenEpochs, err)
+}
+
+func TestTrigger_ForceEndOfEpochShouldOk(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	arguments := createMockEndOfEpochTriggerArguments()
+	arguments.Epoch = epoch
+	neoet, _ := NewEndOfEpochTrigger(arguments)
+
+	err := neoet.ForceEndOfEpoch(1)
+	assert.Nil(t, err)
+
+	newEpoch := neoet.Epoch()
+	assert.Equal(t, epoch+1, newEpoch)
+
+	isEndOfEpoch := neoet.IsEndOfEpoch()
+	assert.True(t, isEndOfEpoch)
+}

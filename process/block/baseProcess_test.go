@@ -862,3 +862,78 @@ func TestBaseProcessor_RemoveLastNotarizedShouldNotDeleteTheLastRecord(t *testin
 		assert.Equal(t, genesisBlcks[i], hdr)
 	}
 }
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: 2,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: 1,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{
+		EpochCalled: func() uint32 {
+			return 2
+		},
+		IsEndOfEpochCalled: func() bool {
+			return true
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: 1,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+}
