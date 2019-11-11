@@ -129,3 +129,69 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	assert.False(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
 }
+
+func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+
+	arguments := createMockArguments()
+	arguments.Storage = &mock.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			return nil
+		},
+		RemoveCalled: func(key []byte) error {
+			return nil
+		},
+	}
+	arguments.Marshalizer = &mock.MarshalizerMock{
+		Fail: true,
+	}
+
+	pmb, _ := NewPendingMiniBlocks(arguments)
+	header := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
+				{Hash: hash1, SenderShardId: 1},
+				{Hash: hash2, SenderShardId: 1},
+			}},
+		},
+	}
+
+	err := pmb.AddProcessedHeader(header)
+	assert.Nil(t, err)
+
+	shdMbHdrs := pmb.PendingMiniBlockHeaders()
+	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
+	assert.True(t, isMbInSlice(hash2, shdMbHdrs))
+
+	err = pmb.AddProcessedHeader(header)
+	assert.NotNil(t, err)
+
+	//Check miniblocks headers are not removed from pending list
+	shdMbHdrs = pmb.PendingMiniBlockHeaders()
+	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
+	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
+}
+
+func TestPendingMiniBlockHeaders_RevertHeaderNilHeaderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	pmb, _ := NewPendingMiniBlocks(arguments)
+
+	err := pmb.RevertHeader(nil)
+	assert.Equal(t, endOfEpoch.ErrNilHeaderHandler, err)
+}
+
+func TestPendingMiniBlockHeaders_RevertHeaderWrongHeaderTypeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	pmb, _ := NewPendingMiniBlocks(arguments)
+	header := &block.Header{}
+
+	err := pmb.RevertHeader(header)
+	assert.Equal(t, endOfEpoch.ErrWrongTypeAssertion, err)
+}

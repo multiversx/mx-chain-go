@@ -13,6 +13,7 @@ import (
 
 var log = logger.DefaultLogger()
 
+//ArgsNewMetaEndOfEpochTrigger is structure that contain components that are used to create a new endOfTheEpochTrigger object
 type ArgsNewMetaEndOfEpochTrigger struct {
 	Rounder     endOfEpoch.Rounder
 	SyncTimer   ntp.SyncTimer
@@ -30,6 +31,7 @@ type trigger struct {
 	syncTimer                     ntp.SyncTimer
 }
 
+// NewEndOfEpochTrigger will create a new trigger object
 func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) {
 	if args == nil {
 		return nil, endOfEpoch.ErrNilArgsNewMetaEndOfEpochTrigger
@@ -63,6 +65,7 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 	}, nil
 }
 
+// IsEndOfEpoch is the method that tells if now is end of the epoch or not
 func (t *trigger) IsEndOfEpoch() bool {
 	t.rounder.UpdateRound(t.epochStartTime, t.syncTimer.CurrentTime())
 	currRoundIndex := t.rounder.Index()
@@ -80,6 +83,7 @@ func (t *trigger) IsEndOfEpoch() bool {
 	return false
 }
 
+// ForceEndOfEpoch will force an end of the epoch
 func (t *trigger) ForceEndOfEpoch() {
 	t.rounder.UpdateRound(t.epochStartTime, t.syncTimer.CurrentTime())
 	currRoundIndex := t.rounder.Index()
@@ -93,6 +97,7 @@ func (t *trigger) ForceEndOfEpoch() {
 	t.epoch += 1
 }
 
+// Epoch will return index of the current epoch
 func (t *trigger) Epoch() uint32 {
 	return t.epoch
 }
