@@ -1,21 +1,22 @@
 package networksharding
 
 import (
-	"github.com/libp2p/go-libp2p-core/peer"
 	"math/big"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // NoSharder default sharder, only uses Kademlia distance in sorting
-type NoSharder struct {
+type noSharder struct {
 }
 
 // GetShard always 0
-func (ns *NoSharder) GetShard(id peer.ID) uint32 {
+func (ns *noSharder) GetShard(id peer.ID) uint32 {
 	return 0
 }
 
 // GetDistance Kademlia XOR distance
-func (ns *NoSharder) GetDistance(a, b sortingID) *big.Int {
+func (ns *noSharder) GetDistance(a, b sortingID) *big.Int {
 	c := make([]byte, len(a.key))
 	for i := 0; i < len(a.key); i++ {
 		c[i] = a.key[i] ^ b.key[i]
@@ -25,7 +26,7 @@ func (ns *NoSharder) GetDistance(a, b sortingID) *big.Int {
 	return ret
 }
 
-// SortList do sort
-func (ns *NoSharder) SortList(peers []peer.ID, ref peer.ID) []peer.ID {
+// SortList sort the list
+func (ns *noSharder) SortList(peers []peer.ID, ref peer.ID) []peer.ID {
 	return sortList(ns, peers, ref)
 }

@@ -4,8 +4,8 @@ import (
 	"math"
 	"time"
 
-	ns "github.com/ElrondNetwork/elrond-go/networksharding"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	ns "github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 )

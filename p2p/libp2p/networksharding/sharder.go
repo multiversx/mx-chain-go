@@ -1,16 +1,16 @@
 package networksharding
 
 import (
-	"fmt"
-	"github.com/libp2p/go-libp2p-core/peer"
-	sha256 "github.com/minio/sha256-simd"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/libp2p/go-libp2p-core/peer"
+	sha256 "github.com/minio/sha256-simd"
 )
 
 var (
-	currentSharder Sharder = &NoSharder{}
+	currentSharder Sharder = &noSharder{}
 	onceSetter     sync.Once
 )
 
@@ -22,10 +22,10 @@ func Get() Sharder {
 // Set the sharder, can only be done once
 func Set(s Sharder) error {
 	if s == nil {
-		return fmt.Errorf("The sharder cannot be nil")
+		return ErrNilSharder
 	}
 
-	ret := fmt.Errorf("Already set")
+	ret := ErrAlreadySet
 	onceSetter.Do(func() {
 		currentSharder = s
 		ret = nil
@@ -35,41 +35,12 @@ func Set(s Sharder) error {
 
 // Sharder - Main sharder interface
 type Sharder interface {
-	// Get the shard id of the peer
+	// GetShard get the shard id of the peer
 	GetShard(id peer.ID) uint32
-	// Get the distance between a and b
+	// GetDistance get the distance between a and b
 	GetDistance(a, b sortingID) *big.Int
-
-	// Sort a list of peers
+	// SortList sort the provided peers list
 	SortList(peers []peer.ID, ref peer.ID) []peer.ID
-}
-
-type sortingID struct {
-	id       peer.ID
-	key      []byte
-	shard    uint32
-	distance *big.Int
-}
-
-type sortingList struct {
-	ref   sortingID
-	peers []sortingID
-}
-
-// Len is the number of elements in the collection.
-func (sl *sortingList) Len() int {
-	return len(sl.peers)
-}
-
-// Less reports whether the element with
-// index i should sort before the element with index j.
-func (sl *sortingList) Less(i int, j int) bool {
-	return sl.peers[i].distance.Cmp(sl.peers[j].distance) < 0
-}
-
-// Swap swaps the elements with indexes i and j.
-func (sl *sortingList) Swap(i int, j int) {
-	sl.peers[i], sl.peers[j] = sl.peers[j], sl.peers[i]
 }
 
 func keyFromID(id peer.ID) []byte {
