@@ -7,7 +7,9 @@ import (
 
 const msgFixedLength = 40
 
-func displayTime(t time.Time) string {
+func displayTime(timestamp int64) string {
+	t := time.Unix(timestamp, 0)
+
 	return t.Format("2006-01-02 15:04:05")
 }
 

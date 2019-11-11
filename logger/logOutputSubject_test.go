@@ -70,7 +70,7 @@ func TestLogOutputSubject_OutputShouldCallFormatterAndWriter(t *testing.T) {
 			},
 		},
 		&mock.FormatterStub{
-			OutputCalled: func(line *logger.LogLine) []byte {
+			OutputCalled: func(line logger.LogLineHandler) []byte {
 				atomic.AddInt32(&formatterCalled, 1)
 				return nil
 			},
@@ -97,7 +97,7 @@ func TestLogOutputSubject_OutputCalledConcurrentShouldWork(t *testing.T) {
 			},
 		},
 		&mock.FormatterStub{
-			OutputCalled: func(line *logger.LogLine) []byte {
+			OutputCalled: func(line logger.LogLineHandler) []byte {
 				atomic.AddInt32(&formatterCalled, 1)
 				return nil
 			},

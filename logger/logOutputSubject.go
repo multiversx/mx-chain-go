@@ -1,8 +1,11 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"sync"
+
+	protobuf "github.com/ElrondNetwork/elrond-go/logger/proto"
 )
 
 // logOutputSubject follows the observer-subject pattern by which it holds n Writer and n Formatters.
@@ -26,13 +29,33 @@ func NewLogOutputSubject() *logOutputSubject {
 func (los *logOutputSubject) Output(line *LogLine) {
 	los.mutObservers.RLock()
 
+	convertedLine := los.convertLogLine(line)
 	for i := 0; i < len(los.writers); i++ {
 		format := los.formatters[i]
-		buff := format.Output(line)
+		buff := format.Output(convertedLine)
 		_, _ = los.writers[i].Write(buff)
 	}
 
 	los.mutObservers.RUnlock()
+}
+
+func (los *logOutputSubject) convertLogLine(logLine *LogLine) LogLineHandler {
+	if logLine == nil {
+		return nil
+	}
+
+	line := &protobuf.LogLineMessage{
+		Message:   logLine.Message,
+		LogLevel:  int32(logLine.LogLevel),
+		Args:      make([]string, len(logLine.Args)),
+		Timestamp: logLine.Timestamp.Unix(),
+	}
+
+	for i, obj := range logLine.Args {
+		line.Args[i] = fmt.Sprintf("%v", obj)
+	}
+
+	return line
 }
 
 // AddObserver adds a writer + formatter (called here observer) to the containing observer-like lists
