@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	protobuf "github.com/ElrondNetwork/elrond-go/logger/proto"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 // logOutputSubject follows the observer-subject pattern by which it holds n Writer and n Formatters.
@@ -44,12 +44,11 @@ func (los *logOutputSubject) convertLogLine(logLine *LogLine) LogLineHandler {
 		return nil
 	}
 
-	line := &protobuf.LogLineMessage{
-		Message:   logLine.Message,
-		LogLevel:  int32(logLine.LogLevel),
-		Args:      make([]string, len(logLine.Args)),
-		Timestamp: logLine.Timestamp.Unix(),
-	}
+	line := &LogLineWrapper{}
+	line.Message = logLine.Message
+	line.LogLevel = int32(logLine.LogLevel)
+	line.Args = make([]string, len(logLine.Args))
+	line.Timestamp = logLine.Timestamp.Unix()
 
 	for i, obj := range logLine.Args {
 		line.Args[i] = fmt.Sprintf("%v", obj)
@@ -63,7 +62,7 @@ func (los *logOutputSubject) AddObserver(w io.Writer, format Formatter) error {
 	if w == nil {
 		return ErrNilWriter
 	}
-	if format == nil {
+	if check.IfNil(format) {
 		return ErrNilFormatter
 	}
 
@@ -94,4 +93,9 @@ func (los *logOutputSubject) RemoveObserver(w io.Writer) error {
 	}
 
 	return ErrWriterNotFound
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (los *logOutputSubject) IsInterfaceNil() bool {
+	return los == nil
 }

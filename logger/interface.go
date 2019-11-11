@@ -11,6 +11,7 @@ type Logger interface {
 	Error(message string, args ...interface{})
 	LogIfError(err error, args ...interface{})
 	SetLevel(logLevel LogLevel)
+	IsInterfaceNil() bool
 }
 
 // LogLineHandler defines the get methods for a log line struct used by the formatter interface
@@ -19,11 +20,13 @@ type LogLineHandler interface {
 	GetLogLevel() int32
 	GetArgs() []string
 	GetTimestamp() int64
+	IsInterfaceNil() bool
 }
 
 // Formatter describes what a log formatter should be able to do
 type Formatter interface {
 	Output(line LogLineHandler) []byte
+	IsInterfaceNil() bool
 }
 
 // LogOutputHandler defines the properties of a subject-observer component
@@ -32,4 +35,5 @@ type LogOutputHandler interface {
 	Output(line *LogLine)
 	AddObserver(w io.Writer, format Formatter) error
 	RemoveObserver(w io.Writer) error
+	IsInterfaceNil() bool
 }

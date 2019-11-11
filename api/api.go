@@ -7,18 +7,24 @@ import (
 	"reflect"
 
 	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/logs"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gin-gonic/gin/json"
+	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/go-playground/validator.v8"
 )
+
+var log = logger.GetOrCreate("api")
 
 type validatorInput struct {
 	Name      string
@@ -122,6 +128,9 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	if apiHandler.PprofEnabled() {
 		pprof.Register(ws)
 	}
+
+	marshalizerForLogs := &marshal.ProtobufMarshalizer{}
+	registerLoggerWsRoute(ws, marshalizerForLogs)
 }
 
 func registerValidators() error {
@@ -137,6 +146,30 @@ func registerValidators() error {
 		}
 	}
 	return nil
+}
+
+func registerLoggerWsRoute(ws *gin.Engine, marshalizer marshal.Marshalizer) {
+	upgrader := websocket.Upgrader{}
+
+	ws.GET("/log", func(c *gin.Context) {
+		upgrader.CheckOrigin = func(r *http.Request) bool {
+			return true
+		}
+
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		ls, err := logs.NewLogSender(marshalizer, conn, log)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		ls.StartSendingBlocking()
+	})
 }
 
 // skValidator validates a secret key from user input for correctness

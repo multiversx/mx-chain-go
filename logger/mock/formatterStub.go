@@ -9,3 +9,7 @@ type FormatterStub struct {
 func (fs *FormatterStub) Output(line logger.LogLineHandler) []byte {
 	return fs.OutputCalled(line)
 }
+
+func (fs *FormatterStub) IsInterfaceNil() bool {
+	return fs == nil
+}

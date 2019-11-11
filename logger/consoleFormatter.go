@@ -17,7 +17,7 @@ type ConsoleFormatter struct {
 }
 
 // Output converts the provided LogLineHandler into a slice of bytes ready for output
-func (ConsoleFormatter) Output(line LogLineHandler) []byte {
+func (cf *ConsoleFormatter) Output(line LogLineHandler) []byte {
 	if line == nil {
 		return nil
 	}
@@ -67,4 +67,9 @@ func getLevelColor(level LogLevel) string {
 	default:
 		return ansiRegularBlack
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (cf *ConsoleFormatter) IsInterfaceNil() bool {
+	return cf == nil
 }

@@ -20,7 +20,7 @@ func init() {
 
 	loggers = make(map[string]*logger)
 	defaultLogOut = &logOutputSubject{}
-	_ = defaultLogOut.AddObserver(os.Stdout, ConsoleFormatter{})
+	_ = defaultLogOut.AddObserver(os.Stdout, &ConsoleFormatter{})
 
 	logMut.Unlock()
 }
