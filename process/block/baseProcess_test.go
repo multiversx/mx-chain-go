@@ -26,7 +26,7 @@ import (
 )
 
 func haveTime() time.Duration {
-	return time.Duration(2000 * time.Millisecond)
+	return 2000 * time.Millisecond
 }
 
 func createTestBlockchain() *mock.BlockChainMock {
@@ -180,6 +180,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.MaxSizeCalled = func() int {
 				return 1000
 			}
+			cs.KeysCalled = func() [][]byte {
+				return nil
+			}
 			return cs
 		},
 	}
@@ -285,15 +288,15 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 	metaBlock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{
-				ShardId:               senderShardId,
+				ShardID:               senderShardId,
 				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(miniBlockHashes)),
 			},
 		},
 	}
 
 	for idx, mbHash := range miniBlockHashes {
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardId = destShardId
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardId = senderShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardID = destShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardID = senderShardId
 		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].Hash = mbHash
 	}
 
@@ -353,23 +356,25 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 	)
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			Accounts:                     &mock.AccountsStub{},
-			ForkDetector:                 &mock.ForkDetectorMock{},
-			Hasher:                       &mock.HasherStub{},
-			Marshalizer:                  &mock.MarshalizerMock{},
-			Store:                        initStore(),
-			ShardCoordinator:             shardCoordinator,
-			NodesCoordinator:             nodesCoordinator,
-			SpecialAddressHandler:        specialAddressHandler,
-			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:                 createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-			RequestHandler:               &mock.RequestHandlerMock{},
-			Core:                         &mock.ServiceContainerMock{},
+			Accounts:              &mock.AccountsStub{},
+			ForkDetector:          &mock.ForkDetectorMock{},
+			Hasher:                &mock.HasherStub{},
+			Marshalizer:           &mock.MarshalizerMock{},
+			Store:                 initStore(),
+			ShardCoordinator:      shardCoordinator,
+			NodesCoordinator:      nodesCoordinator,
+			SpecialAddressHandler: specialAddressHandler,
+			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:          createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+			RequestHandler:        &mock.RequestHandlerMock{},
+			Core:                  &mock.ServiceContainerMock{},
+			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:   	   &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
-		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
@@ -383,7 +388,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	arguments.Hasher = &mock.HasherMock{}
 	bp, _ := blproc.NewShardProcessor(arguments)
 	blkc := createTestBlockchain()
-	body := &block.Body{}
+	body := block.Body{}
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.Round = 1
@@ -614,7 +619,7 @@ func createShardProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.Header{
 			Nonce:         i,
-			Round:         uint64(i),
+			Round:         i,
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,
@@ -645,7 +650,7 @@ func createMetaProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.MetaBlock{
 			Nonce:         i,
-			Round:         uint64(i),
+			Round:         i,
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,

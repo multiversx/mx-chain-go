@@ -12,16 +12,17 @@ import (
 
 func TestPeerData_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
-		PublicKey: []byte("public key"),
-		Action:    block.PeerRegistrantion,
-		TimeStamp: uint64(1234),
-		Value:     big.NewInt(1),
+		PublicKey:   []byte("public key"),
+		Action:      block.PeerRegistrantion,
+		TimeStamp:   uint64(1234),
+		ValueChange: big.NewInt(1),
+		Address:     []byte("address"),
 	}
 	var b bytes.Buffer
-	pd.Save(&b)
+	_ = pd.Save(&b)
 
 	loadPd := block.PeerData{}
-	loadPd.Load(&b)
+	_ = loadPd.Load(&b)
 
 	assert.Equal(t, loadPd, pd)
 }
@@ -30,13 +31,13 @@ func TestShardData_SaveLoad(t *testing.T) {
 
 	mbh := block.ShardMiniBlockHeader{
 		Hash:            []byte("miniblock hash"),
-		SenderShardId:   uint32(0),
-		ReceiverShardId: uint32(1),
+		SenderShardID:   uint32(0),
+		ReceiverShardID: uint32(1),
 		TxCount:         uint32(1),
 	}
 
 	sd := block.ShardData{
-		ShardId:               uint32(10),
+		ShardID:               uint32(10),
 		HeaderHash:            []byte("header_hash"),
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 		PubKeysBitmap:         []byte{1},
@@ -46,31 +47,32 @@ func TestShardData_SaveLoad(t *testing.T) {
 	}
 
 	var b bytes.Buffer
-	sd.Save(&b)
+	_ = sd.Save(&b)
 
 	loadSd := block.ShardData{}
-	loadSd.Load(&b)
+	_ = loadSd.Load(&b)
 
 	assert.Equal(t, loadSd, sd)
 }
 
 func TestMetaBlock_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
-		PublicKey: []byte("public key"),
-		Action:    block.PeerRegistrantion,
-		TimeStamp: uint64(1234),
-		Value:     big.NewInt(1),
+		Address:     []byte("address"),
+		PublicKey:   []byte("public key"),
+		Action:      block.PeerRegistrantion,
+		TimeStamp:   uint64(1234),
+		ValueChange: big.NewInt(1),
 	}
 
 	mbh := block.ShardMiniBlockHeader{
 		Hash:            []byte("miniblock hash"),
-		SenderShardId:   uint32(0),
-		ReceiverShardId: uint32(1),
+		SenderShardID:   uint32(0),
+		ReceiverShardID: uint32(1),
 		TxCount:         uint32(1),
 	}
 
 	sd := block.ShardData{
-		ShardId:               uint32(10),
+		ShardID:               uint32(10),
 		HeaderHash:            []byte("header_hash"),
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 		TxCount:               uint32(1),
@@ -79,26 +81,34 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PrevRandSeed:          []byte("rand"),
 	}
 
+	mbHdr := block.MiniBlockHeader{
+		Hash:            []byte("mini block hash"),
+		ReceiverShardID: uint32(0),
+		SenderShardID:   uint32(10),
+		TxCount:         uint32(10),
+	}
+
 	mb := block.MetaBlock{
-		Nonce:         uint64(1),
-		Epoch:         uint32(1),
-		Round:         uint64(1),
-		TimeStamp:     uint64(100000),
-		ShardInfo:     []block.ShardData{sd},
-		PeerInfo:      []block.PeerData{pd},
-		Signature:     []byte("signature"),
-		PubKeysBitmap: []byte("pub keys"),
-		PrevHash:      []byte("previous hash"),
-		PrevRandSeed:  []byte("previous random seed"),
-		RandSeed:      []byte("random seed"),
-		RootHash:      []byte("root hash"),
-		TxCount:       uint32(1),
+		Nonce:            uint64(1),
+		Epoch:            uint32(1),
+		Round:            uint64(1),
+		TimeStamp:        uint64(100000),
+		ShardInfo:        []block.ShardData{sd},
+		PeerInfo:         []block.PeerData{pd},
+		Signature:        []byte("signature"),
+		PubKeysBitmap:    []byte("pub keys"),
+		PrevHash:         []byte("previous hash"),
+		PrevRandSeed:     []byte("previous random seed"),
+		RandSeed:         []byte("random seed"),
+		RootHash:         []byte("root hash"),
+		TxCount:          uint32(1),
+		MiniBlockHeaders: []block.MiniBlockHeader{mbHdr},
 	}
 	var b bytes.Buffer
-	mb.Save(&b)
+	_ = mb.Save(&b)
 
 	loadMb := block.MetaBlock{}
-	loadMb.Load(&b)
+	_ = loadMb.Load(&b)
 
 	assert.Equal(t, loadMb, mb)
 }
@@ -349,14 +359,14 @@ func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
 
 	shardMBHeader := make([]block.ShardMiniBlockHeader, 0)
-	shMBHdr1 := block.ShardMiniBlockHeader{SenderShardId: 0, ReceiverShardId: 1, Hash: []byte("hash1")}
-	shMBHdr2 := block.ShardMiniBlockHeader{SenderShardId: 0, ReceiverShardId: 1, Hash: []byte("hash2")}
+	shMBHdr1 := block.ShardMiniBlockHeader{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("hash1")}
+	shMBHdr2 := block.ShardMiniBlockHeader{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("hash2")}
 	shardMBHeader = append(shardMBHeader, shMBHdr1, shMBHdr2)
 
-	shData1 := block.ShardData{ShardId: 0, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}
+	shData1 := block.ShardData{ShardID: 0, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shData1)
 
-	shData2 := block.ShardData{ShardId: 1, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}
+	shData2 := block.ShardData{ShardID: 1, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shData2)
 
 	mbDst0 := metaHdr.GetMiniBlockHeadersWithDst(0)
