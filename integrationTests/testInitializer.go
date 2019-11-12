@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -287,7 +288,9 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 func CreateVMContainerAndBlockchainHook(
 	accnts state.AccountsAdapter,
 ) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, TestAddressConverter)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, TestAddressConverter, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
 	return vmContainer, vmFactory.VMAccountsDB()

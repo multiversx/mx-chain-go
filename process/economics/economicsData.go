@@ -15,6 +15,7 @@ type EconomicsData struct {
 	communityPercentage float64
 	leaderPercentage    float64
 	burnPercentage      float64
+	maxGasLimitPerBlock uint64
 	minGasPrice         uint64
 	minGasLimit         uint64
 	communityAddress    string
@@ -26,7 +27,7 @@ const float64EqualityThreshold = 1e-9
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	//TODO check what happens if addresses are wrong
-	rewardsValue, minGasPrice, minGasLimit, err := convertValues(economics)
+	rewardsValue, maxGasLimitPerBlock, minGasPrice, minGasLimit, err := convertValues(economics)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +47,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
 		burnPercentage:      economics.RewardsSettings.BurnPercentage,
+		maxGasLimitPerBlock: maxGasLimitPerBlock,
 		minGasPrice:         minGasPrice,
 		minGasLimit:         minGasLimit,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
@@ -53,27 +55,32 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 	}, nil
 }
 
-func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64, error) {
+func convertValues(economics *config.ConfigEconomics) (*big.Int, uint64, uint64, uint64, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
 	rewardsValue := new(big.Int)
 	rewardsValue, ok := rewardsValue.SetString(economics.RewardsSettings.RewardsValue, conversionBase)
 	if !ok {
-		return nil, 0, 0, process.ErrInvalidRewardsValue
+		return nil, 0, 0, 0, process.ErrInvalidRewardsValue
+	}
+
+	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, 0, 0, 0, process.ErrInvalidMaxGasLimitPerBlock
 	}
 
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, process.ErrInvalidMinimumGasPrice
+		return nil, 0, 0, 0, process.ErrInvalidMinimumGasPrice
 	}
 
 	minGasLimit, err := strconv.ParseUint(economics.FeeSettings.MinGasLimit, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, process.ErrInvalidMinimumGasLimitForTx
+		return nil, 0, 0, 0, process.ErrInvalidMinimumGasLimitForTx
 	}
 
-	return rewardsValue, minGasPrice, minGasLimit, nil
+	return rewardsValue, maxGasLimitPerBlock, minGasPrice, minGasLimit, nil
 }
 
 func checkValues(economics *config.ConfigEconomics) error {
@@ -143,6 +150,11 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 	}
 
 	return nil
+}
+
+// MaxGasLimitPerBlock will return maximum gas limit allowed per block
+func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
+	return ed.maxGasLimitPerBlock
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed

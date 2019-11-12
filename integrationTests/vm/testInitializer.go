@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -135,7 +136,9 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 func CreateVMsContainerAndBlockchainHook(accnts state.AccountsAdapter) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
 	return vmContainer, blockChainHook
@@ -145,7 +148,9 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
 ) (process.TransactionProcessor, vmcommon.BlockchainHook) {
 
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
 	argsParser, _ := smartContract.NewAtArgumentParser()
@@ -310,7 +315,7 @@ func TestAccount(
 	senderAddressBytes []byte,
 	expectedNonce uint64,
 	expectedBalance *big.Int,
-) {
+) *big.Int {
 
 	senderAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(senderAddressBytes)
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
@@ -318,6 +323,7 @@ func TestAccount(
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance)
+	return senderRecovShardAccount.Balance
 }
 
 func ComputeExpectedBalance(

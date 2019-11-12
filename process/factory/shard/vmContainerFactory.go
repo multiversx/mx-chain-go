@@ -1,7 +1,7 @@
 package shard
 
 import (
-	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
+	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/context"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -16,18 +16,25 @@ type vmContainerFactory struct {
 	addressConverter state.AddressConverter
 	vmAccountsDB     *hooks.VMAccountsDB
 	cryptoHook       vmcommon.CryptoHook
+	blockGasLimit    uint64
+	gasSchedule      map[string]uint64
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	accounts state.AccountsAdapter,
 	addressConverter state.AddressConverter,
+	blockGasLimit uint64,
+	gasSchedule map[string]uint64,
 ) (*vmContainerFactory, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if addressConverter == nil || addressConverter.IsInterfaceNil() {
 		return nil, process.ErrNilAddressConverter
+	}
+	if gasSchedule == nil {
+		return nil, process.ErrNilGasSchedule
 	}
 
 	vmAccountsDB, err := hooks.NewVMAccountsDB(accounts, addressConverter)
@@ -41,6 +48,8 @@ func NewVMContainerFactory(
 		addressConverter: addressConverter,
 		vmAccountsDB:     vmAccountsDB,
 		cryptoHook:       cryptoHook,
+		blockGasLimit:    blockGasLimit,
+		gasSchedule:      gasSchedule,
 	}, nil
 }
 
@@ -77,7 +86,7 @@ func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, erro
 }
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
-	arwenVM, err := arwen.NewArwenVM(vmf.vmAccountsDB, vmf.cryptoHook, factory.ArwenVirtualMachine)
+	arwenVM, err := arwen.NewArwenVM(vmf.vmAccountsDB, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
 	return arwenVM, err
 }
 

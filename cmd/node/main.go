@@ -131,6 +131,12 @@ VERSION:
 		Usage: "The configuration file for servers confidential data",
 		Value: "./config/server.toml",
 	}
+	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
+	gasScheduleConfigurationFile = cli.StringFlag{
+		Name:  "gasCostsConfig",
+		Usage: "The configuration file for gas costs used in SmartContract execution",
+		Value: "./config/gasSchedule.toml",
+	}
 	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	withUI = cli.BoolTFlag{
 		Name:  "with-ui",
@@ -304,6 +310,7 @@ func main() {
 		configurationEconomicsFile,
 		configurationPreferencesFile,
 		p2pConfigurationFile,
+		gasScheduleConfigurationFile,
 		txSignSk,
 		sk,
 		profileMode,
@@ -664,11 +671,17 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
+	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
+	if err != nil {
+		return err
+	}
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
 		genesisConfig,
 		economicsData,
 		nodesConfig,
+		gasSchedule,
 		syncer,
 		shardCoordinator,
 		nodesCoordinator,
@@ -731,6 +744,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
 		statusMetrics,
+		economicsData.MaxGasLimitPerBlock(),
+		gasSchedule,
 	)
 	if err != nil {
 		return err
@@ -1216,8 +1231,14 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(accounts state.AccountsAdapter, converter state.AddressConverter, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
-	vmFactory, err := shard.NewVMContainerFactory(accounts, converter)
+func createApiResolver(
+	accounts state.AccountsAdapter,
+	converter state.AddressConverter,
+	statusMetrics external.StatusMetricsHandler,
+	maxGasLimitPerBlock uint64,
+	gasSchedule map[string]uint64,
+) (facade.ApiResolver, error) {
+	vmFactory, err := shard.NewVMContainerFactory(accounts, converter, maxGasLimitPerBlock, gasSchedule)
 	if err != nil {
 		return nil, err
 	}

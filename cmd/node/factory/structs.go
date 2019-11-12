@@ -420,6 +420,7 @@ type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
 	economicsData        *economics.EconomicsData
 	nodesConfig          *sharding.NodesSetup
+	gasSchedule          map[string]uint64
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
 	nodesCoordinator     sharding.NodesCoordinator
@@ -437,6 +438,7 @@ func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
+	gasSchedule map[string]uint64,
 	syncer ntp.SyncTimer,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -452,6 +454,7 @@ func NewProcessComponentsFactoryArgs(
 		genesisConfig:        genesisConfig,
 		economicsData:        economicsData,
 		nodesConfig:          nodesConfig,
+		gasSchedule:          gasSchedule,
 		syncer:               syncer,
 		shardCoordinator:     shardCoordinator,
 		nodesCoordinator:     nodesCoordinator,
@@ -1598,6 +1601,7 @@ func newBlockProcessor(
 			shardsGenesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
+			processArgs.gasSchedule,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1636,13 +1640,14 @@ func newShardBlockProcessor(
 	shardsGenesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
+	gasSchedule map[string]uint64,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
 		return nil, err
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter)
+	vmFactory, err := shard.NewVMContainerFactory(state.AccountsAdapter, state.AddressConverter, economics.MaxGasLimitPerBlock(), gasSchedule)
 	if err != nil {
 		return nil, err
 	}
@@ -1907,14 +1912,14 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	storageService := processComponents.data.Store
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes: initialNodes,
-		PeerAdapter: peerAdapter,
-		AdrConv: processComponents.state.AddressConverter,
+		InitialNodes:     initialNodes,
+		PeerAdapter:      peerAdapter,
+		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool: processComponents.data.MetaDatapool,
-		StorageService: storageService,
-		Marshalizer: processComponents.core.Marshalizer,
+		DataPool:         processComponents.data.MetaDatapool,
+		StorageService:   storageService,
+		Marshalizer:      processComponents.core.Marshalizer,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

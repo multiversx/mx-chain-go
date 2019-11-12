@@ -74,6 +74,9 @@ var MinTxGasPrice = uint64(0)
 // MinTxGasLimit minimum gas limit required by a transaction
 var MinTxGasLimit = uint64(4)
 
+// MaxGasLimitPerBlock defines maximum gas limit allowed per one block
+const MaxGasLimitPerBlock = uint64(100000)
+
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
 
@@ -264,7 +267,8 @@ func (tpn *TestProcessorNode) initChainHandler() {
 }
 
 func (tpn *TestProcessorNode) initEconomicsData() {
-	mingGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
+	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
+	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
 
 	economicsData, _ := economics.NewEconomicsData(
@@ -280,8 +284,9 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MinGasPrice: mingGasPrice,
-				MinGasLimit: minGasLimit,
+				MaxGasLimitPerBlock: maxGasLimitPerBlock,
+				MinGasPrice:         minGasPrice,
+				MinGasLimit:         minGasLimit,
 			},
 		},
 	)
