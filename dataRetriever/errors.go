@@ -200,8 +200,8 @@ var ErrInvalidMaxTxRequest = errors.New("max tx request number is invalid")
 // ErrNilPeerListCreator signals that a nil peer list creator implementation has been provided
 var ErrNilPeerListCreator = errors.New("nil peer list creator provided")
 
-// ErrNilTrie signals that a nil trie has been provided
-var ErrNilTrie = errors.New("nil trie provided")
+// ErrNilTrieDataGetter signals that a nil trie data getter has been provided
+var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
 // ErrEmptyTrieNodesRequestTopic signals that an empty trie nodes topic has been provided
 var ErrEmptyTrieNodesRequestTopic = errors.New("empty trie nodes request topic")

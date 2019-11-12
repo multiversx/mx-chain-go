@@ -78,7 +78,7 @@ func (phm *PoolsHolderMock) MetaBlocks() storage.Cacher {
 }
 
 func (phm *PoolsHolderMock) TrieNodes() storage.Cacher {
-	return phm.metaBlocks
+	return phm.trieNodes
 }
 
 func (phm *PoolsHolderMock) MetaHeadersNonces() dataRetriever.Uint64SyncMapCacher {

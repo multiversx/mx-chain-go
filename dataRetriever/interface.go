@@ -249,3 +249,9 @@ type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
 	IsInterfaceNil() bool
 }
+
+// TrieDataGetter returns requested data from the trie
+type TrieDataGetter interface {
+	GetSerializedNodes([]byte, uint64) ([][]byte, error)
+	IsInterfaceNil() bool
+}

@@ -306,7 +306,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.OwnAccount.KeygenTxSign,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
-			tpn.StateTrie,
+			tpn.StateTrie.Database(),
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -329,7 +329,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestAddressConverter,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
-			tpn.StateTrie,
+			tpn.StateTrie.Database(),
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()

@@ -340,7 +340,7 @@ func createNetNode(
 		testAddressConverter,
 		maxTxNonceDeltaAllowed,
 		createMockTxFeeHandler(),
-		trie,
+		trie.Database(),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -815,7 +815,7 @@ func createMetaNetNode(
 		params.keyGen,
 		maxTxNonceDeltaAllowed,
 		feeHandler,
-		trie,
+		trie.Database(),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {

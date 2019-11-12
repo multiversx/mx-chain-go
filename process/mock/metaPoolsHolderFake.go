@@ -10,13 +10,13 @@ import (
 )
 
 type MetaPoolsHolderFake struct {
-	metaBlocks storage.Cacher
-	miniBlocks      storage.Cacher
-	shardHeaders    storage.Cacher
+	metaBlocks    storage.Cacher
+	miniBlocks    storage.Cacher
+	shardHeaders  storage.Cacher
 	trieNodes     storage.Cacher
-	headersNonces   dataRetriever.Uint64SyncMapCacher
-	transactions    dataRetriever.ShardedDataCacherNotifier
-	unsigned        dataRetriever.ShardedDataCacherNotifier
+	headersNonces dataRetriever.Uint64SyncMapCacher
+	transactions  dataRetriever.ShardedDataCacherNotifier
+	unsigned      dataRetriever.ShardedDataCacherNotifier
 
 	MetaBlocksCalled func() storage.Cacher
 }
@@ -62,7 +62,7 @@ func (mphf *MetaPoolsHolderFake) ShardHeaders() storage.Cacher {
 }
 
 func (mphf *MetaPoolsHolderFake) TrieNodes() storage.Cacher {
-	return mphf.shardHeaders
+	return mphf.trieNodes
 }
 
 func (mphf *MetaPoolsHolderFake) HeadersNonces() dataRetriever.Uint64SyncMapCacher {

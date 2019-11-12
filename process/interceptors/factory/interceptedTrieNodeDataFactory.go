@@ -10,7 +10,7 @@ import (
 )
 
 type interceptedTrieNodeDataFactory struct {
-	trie        data.Trie
+	db          data.DBWriteCacher
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
 }
@@ -23,8 +23,8 @@ func NewInterceptedTrieNodeDataFactory(
 	if argument == nil {
 		return nil, process.ErrNilArguments
 	}
-	if check.IfNil(argument.Trie) {
-		return nil, process.ErrNilTrie
+	if check.IfNil(argument.Db) {
+		return nil, process.ErrNilDatabase
 	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -34,7 +34,7 @@ func NewInterceptedTrieNodeDataFactory(
 	}
 
 	return &interceptedTrieNodeDataFactory{
-		trie:        argument.Trie,
+		db:          argument.Db,
 		marshalizer: argument.Marshalizer,
 		hasher:      argument.Hasher,
 	}, nil
@@ -42,7 +42,7 @@ func NewInterceptedTrieNodeDataFactory(
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (sidf *interceptedTrieNodeDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	return trie.NewInterceptedTrieNode(buff, sidf.trie.Database(), sidf.marshalizer, sidf.hasher)
+	return trie.NewInterceptedTrieNode(buff, sidf.db, sidf.marshalizer, sidf.hasher)
 
 }
 

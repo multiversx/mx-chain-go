@@ -34,7 +34,7 @@ func TestNewTrieNodeResolver_NilTrieShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Equal(t, dataRetriever.ErrNilTrie, err)
+	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 	assert.Nil(t, tnRes)
 }
 

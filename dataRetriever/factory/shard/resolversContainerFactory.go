@@ -2,7 +2,6 @@ package shard
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/random"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -24,7 +23,7 @@ type resolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	intRandomizer            dataRetriever.IntRandomizer
 	dataPacker               dataRetriever.DataPacker
-	trie                     data.Trie
+	trieDataGetter           dataRetriever.TrieDataGetter
 }
 
 // NewResolversContainerFactory creates a new container filled with topic resolvers
@@ -36,7 +35,7 @@ func NewResolversContainerFactory(
 	dataPools dataRetriever.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	dataPacker dataRetriever.DataPacker,
-	trie data.Trie,
+	trieDataGetter dataRetriever.TrieDataGetter,
 ) (*resolversContainerFactory, error) {
 
 	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
@@ -60,8 +59,8 @@ func NewResolversContainerFactory(
 	if dataPacker == nil || dataPacker.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
-	if trie == nil || trie.IsInterfaceNil() {
-		return nil, dataRetriever.ErrNilTrie
+	if trieDataGetter == nil || trieDataGetter.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilTrieDataGetter
 	}
 
 	return &resolversContainerFactory{
@@ -73,7 +72,7 @@ func NewResolversContainerFactory(
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
 		dataPacker:               dataPacker,
-		trie:                     trie,
+		trieDataGetter:           trieDataGetter,
 	}, nil
 }
 
@@ -583,32 +582,29 @@ func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
 
 func (rcf *resolversContainerFactory) generateTrieNodesResolver() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
-	noOfShards := shardC.NumberOfShards()
 
-	keys := make([]string, noOfShards+1)
-	resolverSlice := make([]dataRetriever.Resolver, noOfShards+1)
+	keys := make([]string, 0)
+	resolverSlice := make([]dataRetriever.Resolver, 0)
 
-	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(idx)
-
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		resolverSlice[idx] = resolver
-		keys[idx] = identifierTrieNodes
-	}
-
-	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	resolverSlice[noOfShards] = resolver
-	keys[noOfShards] = identifierTrieNodes
+	resolverSlice = append(resolverSlice, resolver)
+	keys = append(keys, identifierTrieNodes)
+
+	identifierTrieNodes = factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	resolver, err = rcf.createTrieNodesResolver(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resolverSlice = append(resolverSlice, resolver)
+	keys = append(keys, identifierTrieNodes)
 
 	return keys, resolverSlice, nil
 }
@@ -633,7 +629,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(topic string) (dat
 
 	resolver, err := resolvers.NewTrieNodeResolver(
 		resolverSender,
-		rcf.trie,
+		rcf.trieDataGetter,
 		rcf.marshalizer,
 	)
 	if err != nil {

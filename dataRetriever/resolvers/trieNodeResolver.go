@@ -2,7 +2,6 @@ package resolvers
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -14,21 +13,21 @@ var maxBuffToSendTrieNodes = uint64(2 << 17) //128KB
 // TrieNodeResolver is a wrapper over Resolver that is specialized in resolving trie node requests
 type TrieNodeResolver struct {
 	dataRetriever.TopicResolverSender
-	trie        data.Trie
-	marshalizer marshal.Marshalizer
+	trieDataGetter dataRetriever.TrieDataGetter
+	marshalizer    marshal.Marshalizer
 }
 
 // NewTrieNodeResolver creates a new trie node resolver
 func NewTrieNodeResolver(
 	senderResolver dataRetriever.TopicResolverSender,
-	trie data.Trie,
+	trieDataGetter dataRetriever.TrieDataGetter,
 	marshalizer marshal.Marshalizer,
 ) (*TrieNodeResolver, error) {
 	if check.IfNil(senderResolver) {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if check.IfNil(trie) {
-		return nil, dataRetriever.ErrNilTrie
+	if check.IfNil(trieDataGetter) {
+		return nil, dataRetriever.ErrNilTrieDataGetter
 	}
 	if check.IfNil(marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
@@ -36,7 +35,7 @@ func NewTrieNodeResolver(
 
 	return &TrieNodeResolver{
 		TopicResolverSender: senderResolver,
-		trie:                trie,
+		trieDataGetter:      trieDataGetter,
 		marshalizer:         marshalizer,
 	}, nil
 }
@@ -56,7 +55,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		serializedNodes, err := tnRes.trie.GetSerializedNodes(rd.Value, maxBuffToSendTrieNodes)
+		serializedNodes, err := tnRes.trieDataGetter.GetSerializedNodes(rd.Value, maxBuffToSendTrieNodes)
 		if err != nil {
 			return err
 		}

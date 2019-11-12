@@ -212,7 +212,7 @@ func TestNewResolversContainerFactory_NilSliceSplitterShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 }
 
-func TestNewResolversContainerFactory_NilTrieShouldErr(t *testing.T) {
+func TestNewResolversContainerFactory_NilTrieDataGetterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rcf, err := shard.NewResolversContainerFactory(
@@ -227,7 +227,7 @@ func TestNewResolversContainerFactory_NilTrieShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilTrie, err)
+	assert.Equal(t, dataRetriever.ErrNilTrieDataGetter, err)
 }
 
 func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
@@ -480,7 +480,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverPeerChanges := 1
 	numResolverMetachainShardHeaders := 1
 	numResolverMetaBlockHeaders := 1
-	numResolverTrieNodes := noOfShards + 1
+	numResolverTrieNodes := 2
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
 		numResolverMetachainShardHeaders + numResolverMetaBlockHeaders + numResolverSCRs + numResolverRewardTxs +
 		numResolverTrieNodes
