@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -452,18 +453,23 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	senders := integrationTests.CreateSendersWithInitialBalances(nodesMap, initialVal)
 
 	deployValue := big.NewInt(0)
-	gasLimit := integrationTests.OpGasValueForMockVm + integrationTests.MinTxGasLimit
+	nodeShard0 := nodesMap[0][0]
+	txData := "DEADBEEF@" + hex.EncodeToString(factory.InternalTestingVM) + "@00"
+	dummyTx := &transaction.Transaction{
+		Data: txData,
+	}
+	gasLimit := nodeShard0.EconomicsData.ComputeGasLimit(dummyTx)
+	gasLimit += integrationTests.OpGasValueForMockVm
 	gasPrice := integrationTests.MinTxGasPrice
 	txNonce := uint64(0)
 	owner := senders[0][0]
-	nodeShard0 := nodesMap[0][0]
 	ownerPk, _ := owner.GeneratePublic().ToByteArray()
 	ownerAddr, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(ownerPk)
 	integrationTests.ScCallTxWithParams(
 		nodeShard0,
 		owner,
 		txNonce,
-		"DEADBEEF@"+hex.EncodeToString(factory.InternalTestingVM)+"@00",
+		txData,
 		deployValue,
 		gasLimit,
 		gasPrice,
@@ -483,7 +489,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(*state.Account)
 	expectedBalance := big.NewInt(0).Set(initialVal)
-	txCost := big.NewInt(0).SetUint64(gasPrice * (integrationTests.MinTxGasLimit + integrationTests.OpGasValueForMockVm))
+	txCost := big.NewInt(0).SetUint64(gasPrice * gasLimit)
 	expectedBalance.Sub(expectedBalance, txCost)
 	assert.Equal(t, expectedBalance, ownerAccnt.Balance)
 
