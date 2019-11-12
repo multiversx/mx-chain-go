@@ -110,6 +110,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

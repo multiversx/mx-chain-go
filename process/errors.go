@@ -358,9 +358,6 @@ var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
-// ErrNoRewardTransactionInMessage signals that message does not contain required data
-var ErrNoRewardTransactionInMessage = errors.New("no reward transactions in message")
-
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
@@ -369,9 +366,6 @@ var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
 
 // ErrNilUTxStorage signals that unsigned transaction storage is nil
 var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
-
-// ErrNilRewardsTxStorage signals that rewards transaction storage is nil
-var ErrNilRewardsTxStorage = errors.New("reward transactions storage is nil")
 
 // ErrNilScAddress signals that a nil smart contract address has been provided
 var ErrNilScAddress = errors.New("nil SC address")
@@ -424,9 +418,6 @@ var ErrNilInterceptedDataProcessor = errors.New("nil intercepted data processor"
 // ErrNilInterceptorThrottler signals that a nil interceptor throttler was provided
 var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
 
-// ErrInterceptedDataTypeNotDefined signals that the required data type has not been defined
-var ErrInterceptedDataTypeNotDefined = errors.New("intercepted data type is not defined")
-
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
@@ -457,11 +448,11 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
 
-// ErrNilShardHeaderStorage signals that nil storage was provided for shard headers
-var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
+// ErrNilEndOfEpochTrigger signals that a nil end of epoch trigger was provided
+var ErrNilEndOfEpochTrigger = errors.New("nil end of epoch trigger")
 
-// ErrNilMetaHeaderStorage signals that nil storage was provided for meta headers
-var ErrNilMetaHeaderStorage = errors.New("nil meta header storage")
+// ErrEpochDoesNotMatch signals that epoch does not match between headers
+var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
 // ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
 var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
@@ -477,9 +468,6 @@ var ErrNilTxValidator = errors.New("nil transaction validator")
 
 // ErrNilHdrValidator signals that a nil header validator has been provided
 var ErrNilHdrValidator = errors.New("nil header validator")
-
-// ErrTxNotValid signals that a tx is not valid
-var ErrTxNotValid = errors.New("transaction is not valid")
 
 // ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
 // processed on the current shard

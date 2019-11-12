@@ -184,7 +184,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
-	messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
+	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
@@ -516,6 +516,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

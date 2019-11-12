@@ -89,7 +89,7 @@ func createShardedDataChacherNotifier(
 }
 
 func initDataPool(testHash []byte) *mock.PoolsHolderStub {
-	rewardTx := &rewardTx.RewardTx{
+	rwdTx := &rewardTx.RewardTx{
 		Round:   1,
 		Epoch:   0,
 		Value:   big.NewInt(10),
@@ -98,7 +98,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	}
 	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
 	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
-	rewardTransactionsCalled := createShardedDataChacherNotifier(rewardTx, testHash)
+	rewardTransactionsCalled := createShardedDataChacherNotifier(rwdTx, testHash)
 
 	sdp := &mock.PoolsHolderStub{
 		TransactionsCalled:         txCalled,
@@ -366,6 +366,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			RequestHandler:               &mock.RequestHandlerMock{},
 			Core:                         &mock.ServiceContainerMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxCoordinator:   &mock.TransactionCoordinatorMock{},

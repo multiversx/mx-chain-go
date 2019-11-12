@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
@@ -69,6 +70,7 @@ type Node struct {
 	rounder                  consensus.Rounder
 	blockProcessor           process.BlockProcessor
 	genesisTime              time.Time
+	endOfEpochTrigger        endOfEpoch.TriggerHandler
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -352,7 +354,8 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
-		n.syncTimer)
+		n.syncTimer,
+		n.endOfEpochTrigger)
 
 	if err != nil {
 		return nil, err

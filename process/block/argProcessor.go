@@ -28,6 +28,7 @@ type ArgBaseProcessor struct {
 	RequestHandler               process.RequestHandler
 	Core                         serviceContainer.Core
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	EndOfEpochTrigger            process.EndOfEpochTriggerHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

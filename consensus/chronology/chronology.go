@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -26,10 +27,11 @@ type chronology struct {
 
 	subroundId int
 
-	subrounds        map[int]int
-	subroundHandlers []consensus.SubroundHandler
-	mutSubrounds     sync.RWMutex
-	appStatusHandler core.AppStatusHandler
+	subrounds         map[int]int
+	subroundHandlers  []consensus.SubroundHandler
+	mutSubrounds      sync.RWMutex
+	appStatusHandler  core.AppStatusHandler
+	endOfEpochTrigger consensus.EndOfEpochHandler
 }
 
 // NewChronology creates a new chronology object
@@ -37,11 +39,13 @@ func NewChronology(
 	genesisTime time.Time,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
+	endOfEpochTrigger consensus.EndOfEpochHandler,
 ) (*chronology, error) {
 
 	err := checkNewChronologyParams(
 		rounder,
 		syncTimer,
+		endOfEpochTrigger,
 	)
 
 	if err != nil {
@@ -49,10 +53,12 @@ func NewChronology(
 	}
 
 	chr := chronology{
-		genesisTime:      genesisTime,
-		rounder:          rounder,
-		syncTimer:        syncTimer,
-		appStatusHandler: statusHandler.NewNilStatusHandler()}
+		genesisTime:       genesisTime,
+		rounder:           rounder,
+		syncTimer:         syncTimer,
+		appStatusHandler:  statusHandler.NewNilStatusHandler(),
+		endOfEpochTrigger: endOfEpochTrigger,
+	}
 
 	chr.subroundId = srBeforeStartRound
 
@@ -65,14 +71,17 @@ func NewChronology(
 func checkNewChronologyParams(
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
+	endOfEpochTrigger consensus.EndOfEpochHandler,
 ) error {
 
-	if rounder == nil || rounder.IsInterfaceNil() {
+	if check.IfNil(rounder) {
 		return ErrNilRounder
 	}
-
-	if syncTimer == nil || syncTimer.IsInterfaceNil() {
+	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
+	}
+	if check.IfNil(endOfEpochTrigger) {
+		return ErrNilEndOfEpochTrigger
 	}
 
 	return nil
@@ -116,6 +125,11 @@ func (chr *chronology) StartRounds() {
 	}
 }
 
+// Epoch returns the current epoch of the system
+func (chr *chronology) Epoch() uint32 {
+	return chr.endOfEpochTrigger.Epoch()
+}
+
 // startRound calls the current subround, given by the finished tasks in this round
 func (chr *chronology) startRound() {
 	if chr.subroundId == srBeforeStartRound {
@@ -149,6 +163,13 @@ func (chr *chronology) updateRound() {
 	chr.rounder.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
 
 	if oldRoundIndex != chr.rounder.Index() {
+		chr.endOfEpochTrigger.Update(chr.rounder.Index())
+
+		if chr.endOfEpochTrigger.IsEndOfEpoch() {
+			msg := fmt.Sprintf("EPOCH %d BEGINS", chr.endOfEpochTrigger.Epoch())
+			log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
+		}
+
 		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.rounder.Index(), chr.rounder.TimeStamp().Unix())
 		log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 

@@ -12,3 +12,6 @@ var ErrNilSyncTimer = errors.New("sync timer is nil")
 
 // ErrNilAppStatusHandler is raised when the AppStatusHandler is nil when setting it
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNilEndOfEpochTrigger is raised when a valid end of epoch trigger is expected but nil used
+var ErrNilEndOfEpochTrigger = errors.New("nil end of epoch trigger")
