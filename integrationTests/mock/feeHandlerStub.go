@@ -14,24 +14,25 @@ type FeeHandlerStub struct {
 	CheckValidityTxValuesCalled func(tx process.TransactionWithFeeHandler) error
 }
 
-func (fhs *FeeHandlerStub) SetMinGasPrice(minGasPrice uint64) {
-	fhs.SetMinGasPriceCalled(minGasPrice)
-}
-
-func (fhs *FeeHandlerStub) SetMinGasLimit(minGasLimit uint64) {
-	fhs.SetMinGasLimitCalled(minGasLimit)
-}
-
 func (fhs *FeeHandlerStub) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
-	return fhs.ComputeGasLimitCalled(tx)
+	if fhs.ComputeGasLimitCalled != nil {
+		return fhs.ComputeGasLimitCalled(tx)
+	}
+	return 0
 }
 
 func (fhs *FeeHandlerStub) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
-	return fhs.ComputeFeeCalled(tx)
+	if fhs.ComputeFeeCalled != nil {
+		return fhs.ComputeFeeCalled(tx)
+	}
+	return big.NewInt(0)
 }
 
 func (fhs *FeeHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
-	return fhs.CheckValidityTxValuesCalled(tx)
+	if fhs.CheckValidityTxValuesCalled != nil {
+		return fhs.CheckValidityTxValuesCalled(tx)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

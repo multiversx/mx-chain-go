@@ -1702,6 +1702,7 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		scForwarder,
 		rewardsTxHandler,
+		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -1907,14 +1908,14 @@ func newValidatorStatisticsProcessor(processComponents *processComponentsFactory
 	storageService := processComponents.data.Store
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		InitialNodes: initialNodes,
-		PeerAdapter: peerAdapter,
-		AdrConv: processComponents.state.AddressConverter,
+		InitialNodes:     initialNodes,
+		PeerAdapter:      peerAdapter,
+		AdrConv:          processComponents.state.AddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
-		DataPool: processComponents.data.MetaDatapool,
-		StorageService: storageService,
-		Marshalizer: processComponents.core.Marshalizer,
+		DataPool:         processComponents.data.MetaDatapool,
+		StorageService:   storageService,
+		Marshalizer:      processComponents.core.Marshalizer,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
