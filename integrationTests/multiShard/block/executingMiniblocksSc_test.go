@@ -2,6 +2,7 @@ package block
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -388,4 +393,151 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 
 	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
 	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
+}
+
+// TestShouldSubtractTheCorrectTxFee uses the mock VM as it's gas model is predictable
+// The test checks the tx fee subtraction from the sender account when deploying a SC
+// It also checks the fee obtained by the leader is correct
+// Test parameters: 2 shards + meta, each with 2 nodes
+func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	logger.DefaultLogger().SetLevel("DEBUG")
+
+	maxShards := 2
+	consensusGroupSize := 2
+	nodesPerShard := 2
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		nodesPerShard,
+		maxShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	for _, nodes := range nodesMap {
+		integrationTests.DisplayAndStartNodes(nodes)
+		integrationTests.SetEconomicsParameters(nodes, integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
+		//set rewards = 0 so we can easily tests the balances taking into account only the tx fee
+		for _, n := range nodes {
+			n.EconomicsData.SetRewards(big.NewInt(0))
+		}
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(stepDelay)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	initialVal := big.NewInt(10000000)
+	senders := integrationTests.CreateSendersWithInitialBalances(nodesMap, initialVal)
+
+	deployValue := big.NewInt(0)
+	gasLimit := integrationTests.OpGasValueForMockVm + integrationTests.MinTxGasLimit
+	gasPrice := integrationTests.MinTxGasPrice
+	txNonce := uint64(0)
+	owner := senders[0][0]
+	nodeShard0 := nodesMap[0][0]
+	ownerPk, _ := owner.GeneratePublic().ToByteArray()
+	ownerAddr, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(ownerPk)
+	integrationTests.ScCallTxWithParams(
+		nodeShard0,
+		owner,
+		txNonce,
+		"DEADBEEF@"+hex.EncodeToString(factory.InternalTestingVM)+"@00",
+		deployValue,
+		gasLimit,
+		gasPrice,
+	)
+	txNonce++
+
+	randomness := generateInitialRandomness(uint32(maxShards))
+	_, _, _, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+	leaderPkBytes := nodeShard0.SpecialAddressHandler.LeaderAddress()
+	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// test sender account decreased its balance with gasPrice * gasLimit
+	accnt, err := nodeShard0.AccntState.GetExistingAccount(ownerAddr)
+	assert.Nil(t, err)
+	ownerAccnt := accnt.(*state.Account)
+	expectedBalance := big.NewInt(0).Set(initialVal)
+	txCost := big.NewInt(0).SetUint64(gasPrice * (integrationTests.MinTxGasLimit + integrationTests.OpGasValueForMockVm))
+	expectedBalance.Sub(expectedBalance, txCost)
+	assert.Equal(t, expectedBalance, ownerAccnt.Balance)
+
+	printContainingTxs(nodeShard0, nodeShard0.BlockChain.GetCurrentBlockHeader().(*block.Header))
+
+	accnt, err = nodeShard0.AccntState.GetExistingAccount(leaderAddress)
+	assert.Nil(t, err)
+	leaderAccnt := accnt.(*state.Account)
+	expectedBalance = big.NewInt(0).Set(txCost)
+	expectedBalance.Div(expectedBalance, big.NewInt(2))
+	assert.Equal(t, expectedBalance, leaderAccnt.Balance)
+}
+
+func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr *block.Header) {
+	for _, miniblockHdr := range hdr.MiniBlockHeaders {
+		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.Hash)
+		if err != nil {
+			fmt.Println("miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash) + "not found")
+			continue
+		}
+
+		miniblock := &block.MiniBlock{}
+		err = integrationTests.TestMarshalizer.Unmarshal(miniblock, miniblockBytes)
+		if err != nil {
+			fmt.Println("can not unmarshal miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash))
+			continue
+		}
+
+		for _, txHash := range miniblock.TxHashes {
+			txBytes := []byte("not found")
+
+			mbType := miniblockHdr.Type
+			switch mbType {
+			case block.TxBlock:
+				txBytes, err = tpn.Storage.Get(dataRetriever.TransactionUnit, txHash)
+				if err != nil {
+					fmt.Println("tx hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
+					continue
+				}
+			case block.SmartContractResultBlock:
+				txBytes, err = tpn.Storage.Get(dataRetriever.UnsignedTransactionUnit, txHash)
+				if err != nil {
+					fmt.Println("scr hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
+					continue
+				}
+			case block.RewardsBlock:
+				txBytes, err = tpn.Storage.Get(dataRetriever.RewardTransactionUnit, txHash)
+				if err != nil {
+					fmt.Println("reward hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
+					continue
+				}
+			}
+
+			fmt.Println(string(txBytes))
+		}
+	}
 }

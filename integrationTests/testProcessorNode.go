@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -75,6 +76,10 @@ var MinTxGasLimit = uint64(1000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
+
+// OpGasValueForMockVm represents the gas value that it consumed by each operation called on the mock VM
+// By operation, we mean each go function that is called on the VM implementation
+const OpGasValueForMockVm = uint64(50)
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -478,6 +483,13 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
 	)
+}
+
+func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) {
+	mockVM, _ := mock.NewOneSCExecutorMockVM(blockchainHook, TestHasher)
+	mockVM.GasForOperation = OpGasValueForMockVm
+
+	_ = tpn.VmProcessors.Add(factory.InternalTestingVM, mockVM)
 }
 
 func (tpn *TestProcessorNode) initBlockProcessor() {

@@ -283,12 +283,17 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 	}
 }
 
-// CreateIeleVMAndBlockchainHook creates a new instance of a iele VM
+// CreateVMContainerAndBlockchainHook creates a new instance of a VM container returning the container and
+// the used hook. It also adds the mock VM to be used in some tests
 func CreateVMContainerAndBlockchainHook(
 	accnts state.AccountsAdapter,
 ) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
 	vmFactory, _ := shard.NewVMContainerFactory(accnts, TestAddressConverter)
 	vmContainer, _ := vmFactory.Create()
+
+	mockVM, _ := mock.NewOneSCExecutorMockVM(vmFactory.VMAccountsDB(), TestHasher)
+	mockVM.GasForOperation = OpGasValueForMockVm
+	_ = vmContainer.Add(procFactory.InternalTestingVM, mockVM)
 
 	return vmContainer, vmFactory.VMAccountsDB()
 }
@@ -759,6 +764,35 @@ func GenerateAndDisseminateTxs(
 			incrementalNonce[i]++
 		}
 	}
+}
+
+// CreateSendersWithInitialBalances creates a map of 1 sender per shard with an initial balance
+func CreateSendersWithInitialBalances(
+	nodesMap map[uint32][]*TestProcessorNode,
+	mintValue *big.Int,
+) map[uint32][]crypto.PrivateKey {
+
+	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
+	for shardId, nodes := range nodesMap {
+		if shardId == sharding.MetachainShardId {
+			continue
+		}
+
+		sendersPrivateKeys[shardId], _ = CreateSendersAndReceiversInShard(
+			nodes[0],
+			1,
+		)
+
+		fmt.Println("Minting sender addresses...")
+		CreateMintingForSenders(
+			nodes,
+			shardId,
+			sendersPrivateKeys[shardId],
+			mintValue,
+		)
+	}
+
+	return sendersPrivateKeys
 }
 
 type txArgs struct {

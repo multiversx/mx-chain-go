@@ -7,11 +7,46 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/stretchr/testify/assert"
 )
+
+// ScCallTxWithParams creates and sends a SC tx call or deploy with all major parameters provided
+func ScCallTxWithParams(
+	senderNode *TestProcessorNode,
+	sk crypto.PrivateKey,
+	nonce uint64,
+	data string,
+	value *big.Int,
+	gasLimit uint64,
+	gasPrice uint64,
+) {
+
+	fmt.Println("Deploying SC...")
+	pkBuff, _ := sk.GeneratePublic().ToByteArray()
+	txArgs := &txArgs{
+		nonce:    nonce,
+		value:    value,
+		rcvAddr:  make([]byte, 32),
+		sndAddr:  pkBuff,
+		data:     data,
+		gasLimit: gasLimit,
+		gasPrice: gasPrice,
+	}
+
+	txDeploy := generateTx(
+		sk,
+		senderNode.OwnAccount.SingleSigner,
+		txArgs,
+	)
+
+	_, _ = senderNode.SendTransaction(txDeploy)
+	fmt.Println("Delaying for disseminating the deploy tx...")
+	time.Sleep(stepDelay)
+}
 
 // DeployScTx creates and sends a SC tx
 func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
