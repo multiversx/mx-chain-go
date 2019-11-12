@@ -58,7 +58,7 @@ func NewTxsPoolsCleaner(
 	}, nil
 }
 
-// Clean removes the transactions with lower nonces than the senders accounts.
+// Clean removes the transactions with lower nonces than the sender's accounts.
 func (tpc *TxPoolsCleaner) Clean(duration time.Duration) (bool, error) {
 	if duration == 0 {
 		return false, process.ErrZeroMaxCleanTime
