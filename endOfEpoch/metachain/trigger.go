@@ -1,10 +1,10 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 )
