@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"math/big"
 	"sync"
 
@@ -42,6 +43,7 @@ type scProcessor struct {
 
 	scrForwarder process.IntermediateTransactionHandler
 	txFeeHandler process.TransactionFeeHandler
+	economicsFee process.FeeHandler
 }
 
 var log = logger.DefaultLogger()
@@ -58,36 +60,40 @@ func NewSmartContractProcessor(
 	coordinator sharding.Coordinator,
 	scrForwarder process.IntermediateTransactionHandler,
 	txFeeHandler process.TransactionFeeHandler,
+	economicsFee process.FeeHandler,
 ) (*scProcessor, error) {
-	if vmContainer == nil || vmContainer.IsInterfaceNil() {
+	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
 	}
-	if argsParser == nil || argsParser.IsInterfaceNil() {
+	if check.IfNil(argsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if accountsDB == nil || accountsDB.IsInterfaceNil() {
+	if check.IfNil(accountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if tempAccounts == nil || tempAccounts.IsInterfaceNil() {
+	if check.IfNil(tempAccounts) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if adrConv == nil || adrConv.IsInterfaceNil() {
+	if check.IfNil(adrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
+	if check.IfNil(scrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if txFeeHandler == nil {
+	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
+	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	return &scProcessor{
@@ -101,38 +107,9 @@ func NewSmartContractProcessor(
 		shardCoordinator: coordinator,
 		scrForwarder:     scrForwarder,
 		txFeeHandler:     txFeeHandler,
-		mapExecState:     make(map[uint64]scExecutionState)}, nil
-}
-
-// ComputeTransactionType calculates the type of the transaction
-func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
-	err := sc.checkTxValidity(tx)
-	if err != nil {
-		return 0, err
-	}
-
-	isEmptyAddress := sc.isDestAddressEmpty(tx)
-	if isEmptyAddress {
-		if len(tx.Data) > 0 {
-			return process.SCDeployment, nil
-		}
-		return 0, process.ErrWrongTransaction
-	}
-
-	acntDst, err := sc.getAccountFromAddress(tx.RcvAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	if acntDst == nil || acntDst.IsInterfaceNil() {
-		return process.MoveBalance, nil
-	}
-
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
-		return process.SCInvoking, nil
-	}
-
-	return process.MoveBalance, nil
+		mapExecState:     make(map[uint64]scExecutionState),
+		economicsFee:     economicsFee,
+	}, nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
@@ -367,7 +344,9 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	}
 	vmInput.CallValue = tx.Value
 	vmInput.GasPrice = big.NewInt(int64(tx.GasPrice))
-	vmInput.GasProvided = big.NewInt(int64(tx.GasLimit))
+
+	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
+	vmInput.GasProvided = big.NewInt(int64(tx.GasLimit - moveBalanceGasConsume))
 
 	//TODO: change this when we know for what they are used.
 	scCallHeader := &vmcommon.SCCallHeader{}
@@ -384,11 +363,16 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 // taking money from sender, as VM might not have access to him because of state sharding
 func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		// transaction was already done at sender shard
+		// transaction was already processed at sender shard
 		return nil
 	}
 
 	err := acntSnd.SetNonceWithJournal(acntSnd.GetNonce() + 1)
+	if err != nil {
+		return err
+	}
+
+	err = sc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}

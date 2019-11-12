@@ -103,6 +103,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(
@@ -160,6 +161,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(
