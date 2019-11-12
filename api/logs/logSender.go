@@ -72,6 +72,7 @@ func (ls *logSender) StartSendingBlocking() {
 		_ = ls.writer.Close()
 		_ = logger.RemoveLogObserver(ls.writer)
 		_ = logger.SetLogLevel(ls.lastLogPattern)
+		ls.log.Info("reverted log pattern", "pattern", string(ls.lastLogPattern))
 	}()
 
 	err := ls.waitForPatternMessage()
@@ -131,9 +132,9 @@ func (ls *logSender) sendMessage() (shouldStop bool) {
 	if err != nil {
 		isConnectionClosed := strings.Contains(err.Error(), "websocket: close sent")
 		if !isConnectionClosed {
-			ls.log.Error("test web socket error", "error", err.Error())
+			ls.log.Error("web socket error", "error", err.Error())
 		} else {
-			ls.log.Info("test web socket", "connection", "closed")
+			ls.log.Info("web socket", "connection", "closed")
 		}
 
 		return true

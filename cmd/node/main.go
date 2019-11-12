@@ -197,6 +197,12 @@ VERSION:
 		Value: defaultRestApiInerface,
 	}
 
+	// restApiDebug defines a flag for starting the rest API engine in debug mode
+	restApiDebug = cli.BoolFlag{
+		Name:  "rest-api-debug",
+		Usage: "Start the rest API engine in debug mode",
+	}
+
 	// networkID defines the version of the network. If set, will override the same parameter from config.toml
 	networkID = cli.StringFlag{
 		Name:  "network-id",
@@ -321,6 +327,7 @@ func main() {
 		networkID,
 		nodeDisplayName,
 		restApiInterface,
+		restApiDebug,
 		logLevel,
 		usePrometheus,
 		useLogView,
@@ -763,7 +770,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	restAPIServerDebugMode := !useTermui
+	restAPIServerDebugMode := ctx.GlobalBool(restApiDebug.Name)
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{

@@ -49,13 +49,10 @@ type MainApiHandler interface {
 // Start will boot up the api and appropriate routes, handlers and validators
 func Start(elrondFacade MainApiHandler) error {
 	var ws *gin.Engine
-	if elrondFacade.RestAPIServerDebugMode() {
-		ws = gin.Default()
-	} else {
-		ws = gin.New()
-		ws.Use(gin.Recovery())
+	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.SetMode(gin.ReleaseMode)
 	}
+	ws = gin.Default()
 	ws.Use(cors.Default())
 
 	err := registerValidators()
