@@ -130,6 +130,46 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
 }
 
+func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing.T) {
+	t.Parallel()
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	hash3 := []byte("hash3")
+	hash4 := []byte("hash4")
+	hash5 := []byte("hash5")
+
+	sortedTxCount := []uint32{1, 2, 3, 4, 5}
+	numMiniBlocks := 5
+	arguments := createMockArguments()
+	arguments.Storage = &mock.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			return nil
+		},
+	}
+	pmb, _ := NewPendingMiniBlocks(arguments)
+	header := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
+				{Hash: hash1, SenderShardId: 1, TxCount: sortedTxCount[2]},
+				{Hash: hash2, SenderShardId: 1, TxCount: sortedTxCount[4]},
+				{Hash: hash3, SenderShardId: 1, TxCount: sortedTxCount[1]},
+				{Hash: hash4, SenderShardId: 1, TxCount: sortedTxCount[0]},
+				{Hash: hash5, SenderShardId: 1, TxCount: sortedTxCount[3]},
+			}},
+		},
+	}
+
+	err := pmb.AddProcessedHeader(header)
+	assert.Nil(t, err)
+
+	//Check miniblocks headers are returned
+	shdMbHdrs := pmb.PendingMiniBlockHeaders()
+	for i := 0; i < numMiniBlocks; i++ {
+		assert.Equal(t, shdMbHdrs[i].TxCount, sortedTxCount[i])
+	}
+}
+
 func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *testing.T) {
 	t.Parallel()
 

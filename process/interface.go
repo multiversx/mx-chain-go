@@ -365,7 +365,7 @@ type VirtualMachinesContainerFactory interface {
 	IsInterfaceNil() bool
 }
 
-// EndOfEpochHandler defines that actions which are needed by processor for end of epoch
+// EndOfEpochTriggerHandler defines that actions which are needed by processor for end of epoch
 type EndOfEpochTriggerHandler interface {
 	IsEndOfEpoch() bool
 	Epoch() uint32

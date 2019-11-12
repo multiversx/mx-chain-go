@@ -1936,7 +1936,7 @@ func newMetaBlockProcessor(
 
 	argsPendingMiniBlocks := &metachainEndOfEpoch.ArgsPendingMiniBlocks{
 		Marshalizer: core.Marshalizer,
-		Storage:     nil,
+		Storage:     miniBlockHeaderStore,
 	}
 	pendingMiniBlocks, err := metachainEndOfEpoch.NewPendingMiniBlocks(argsPendingMiniBlocks)
 	if err != nil {

@@ -112,7 +112,7 @@ func (t *trigger) Epoch() uint32 {
 	return t.epoch
 }
 
-// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fullfilled
+// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 }
 

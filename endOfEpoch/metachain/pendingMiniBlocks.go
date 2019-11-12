@@ -47,20 +47,20 @@ func NewPendingMiniBlocks(args *ArgsPendingMiniBlocks) (*pendingMiniBlockHeaders
 
 //PendingMiniBlockHeaders will return a sorted list of ShardMiniBlockHeaders
 func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders() []block.ShardMiniBlockHeader {
-	shardMiniBlokcHeaders := make([]block.ShardMiniBlockHeader, 0)
+	shardMiniBlockHeaders := make([]block.ShardMiniBlockHeader, 0)
 
 	p.mutPending.Lock()
 	defer p.mutPending.Unlock()
 
 	for _, shMbHdr := range p.mapMiniBlockHeaders {
-		shardMiniBlokcHeaders = append(shardMiniBlokcHeaders, shMbHdr)
+		shardMiniBlockHeaders = append(shardMiniBlockHeaders, shMbHdr)
 	}
 
-	sort.Slice(shardMiniBlokcHeaders, func(i, j int) bool {
-		return shardMiniBlokcHeaders[i].TxCount < shardMiniBlokcHeaders[j].TxCount
+	sort.Slice(shardMiniBlockHeaders, func(i, j int) bool {
+		return shardMiniBlockHeaders[i].TxCount < shardMiniBlockHeaders[j].TxCount
 	})
 
-	return shardMiniBlokcHeaders
+	return shardMiniBlockHeaders
 }
 
 // AddProcessedHeader will add all miniblocks headers in a map
@@ -104,7 +104,7 @@ func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler)
 			//	continue
 			//}
 
-			if _, ok := p.mapMiniBlockHeaders[string(mbHeader.Hash)]; !ok {
+			if _, ok = p.mapMiniBlockHeaders[string(mbHeader.Hash)]; !ok {
 				p.mapMiniBlockHeaders[string(mbHeader.Hash)] = mbHeader
 				continue
 			}
@@ -162,7 +162,7 @@ func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error
 			//	continue
 			//}
 
-			if _, ok := p.mapMiniBlockHeaders[string(mbHeader.Hash)]; ok {
+			if _, ok = p.mapMiniBlockHeaders[string(mbHeader.Hash)]; ok {
 				delete(p.mapMiniBlockHeaders, string(mbHeader.Hash))
 				continue
 			}
