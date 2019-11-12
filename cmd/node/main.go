@@ -44,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -521,12 +522,14 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
+	rater := rating.NewBlockSigningRater(economicsData.RatingsData())
+
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,
 		pubKey,
 		coreComponents.Hasher,
-		economicsData.RatingsData())
+		rater)
 	if err != nil {
 		return err
 	}
@@ -956,7 +959,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	ratingsData *economics.RatingsData,
+	rater sharding.Rater,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -991,8 +994,6 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
-	ratingCoordinator := factory.NewBlockSigningRater(ratingsData)
-
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -1001,9 +1002,8 @@ func createNodesCoordinator(
 		NbShards:                nbShards,
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
-		Rater:                   ratingCoordinator,
 	}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(argumentsNodesCoordinator, rater)
 	if err != nil {
 		return nil, err
 	}

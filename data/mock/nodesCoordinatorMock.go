@@ -10,7 +10,6 @@ import (
 
 // NodesCoordinatorMock defines the behaviour of a struct able to do validator group selection
 type NodesCoordinatorMock struct {
-	mockRater
 	Validators                          map[uint32][]sharding.Validator
 	ShardConsensusSize                  uint32
 	MetaConsensusSize                   uint32

@@ -80,6 +80,7 @@ func CreateNodesWithNodesCoordinator(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
+
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,

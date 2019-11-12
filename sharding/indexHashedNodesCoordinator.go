@@ -11,7 +11,6 @@ import (
 )
 
 type indexHashedNodesCoordinator struct {
-	Rater
 	nbShards                uint32
 	shardId                 uint32
 	hasher                  hashing.Hasher
@@ -29,7 +28,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	ihgs := &indexHashedNodesCoordinator{
-		Rater:                   arguments.Rater,
 		nbShards:                arguments.NbShards,
 		shardId:                 arguments.ShardId,
 		hasher:                  arguments.Hasher,
@@ -62,9 +60,6 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	if arguments.SelfPublicKey == nil {
 		return ErrNilPubKey
-	}
-	if arguments.Rater == nil {
-		return ErrNilRater
 	}
 
 	return nil
