@@ -29,6 +29,9 @@ var ErrForceEndOfEpochCannotBeCalledOnNewRound = errors.New("invalid time to cal
 // ErrSavedRoundIsHigherThanInputRound signals that input round was wrong
 var ErrSavedRoundIsHigherThanInputRound = errors.New("saved round is higher than input round")
 
+// ErrSavedRoundIsHigherThanInput signals that input round was wrong
+var ErrSavedRoundIsHigherThanInput = errors.New("saved round is higher than input round")
+
 // ErrWrongTypeAssertion signals wrong type assertion
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
