@@ -526,7 +526,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log, workingDir)
+	err = initLogFileAndStatsMonitor(generalConfig, pubKey, log, workingDir, uniqueDBFolder)
 	if err != nil {
 		return err
 	}
@@ -1143,8 +1143,14 @@ func createNode(
 	return nd, nil
 }
 
-func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger,
-	workingDir string) error {
+func initLogFileAndStatsMonitor(
+	config *config.Config,
+	pubKey crypto.PublicKey,
+	log *logger.Logger,
+	workingDir string,
+	uniqueDBFolder string,
+) error {
+
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return err
@@ -1163,7 +1169,7 @@ func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, 
 	if err != nil {
 		return err
 	}
-	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
+	err = startStatisticsMonitor(statsFile, config, log, uniqueDBFolder)
 	if err != nil {
 		return err
 	}
@@ -1191,12 +1197,17 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 	return errors.New("could not init core service container")
 }
 
-func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log *logger.Logger) error {
-	if !config.Enabled {
+func startStatisticsMonitor(
+	file *os.File,
+	generalConfig *config.Config,
+	log *logger.Logger,
+	uniqueDBFolder string,
+) error {
+	if !generalConfig.ResourceStats.Enabled {
 		return nil
 	}
 
-	if config.RefreshIntervalInSec < 1 {
+	if generalConfig.ResourceStats.RefreshIntervalInSec < 1 {
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
@@ -1207,9 +1218,9 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 
 	go func() {
 		for {
-			err = rm.SaveStatistics()
+			err = rm.SaveStatistics(generalConfig, uniqueDBFolder)
 			log.LogIfError(err)
-			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
+			time.Sleep(time.Second * time.Duration(generalConfig.ResourceStats.RefreshIntervalInSec))
 		}
 	}()
 

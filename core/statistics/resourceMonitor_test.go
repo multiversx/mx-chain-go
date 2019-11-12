@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	stats "github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +33,7 @@ func TestResourceMonitor_GenerateStatisticsShouldPass(t *testing.T) {
 	resourceMonitor, err := stats.NewResourceMonitor(&os.File{})
 	assert.Nil(t, err)
 
-	statistics := resourceMonitor.GenerateStatistics()
+	statistics := resourceMonitor.GenerateStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, "")
 
 	assert.Nil(t, err)
 	assert.NotNil(t, statistics)
@@ -46,7 +47,7 @@ func TestResourceMonitor_SaveStatisticsShouldPass(t *testing.T) {
 
 	resourceMonitor, _ := stats.NewResourceMonitor(file)
 
-	err = resourceMonitor.SaveStatistics()
+	err = resourceMonitor.SaveStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, "")
 	if _, errF := os.Stat("test1"); errF == nil {
 		_ = os.Remove("test1")
 	}
@@ -66,7 +67,7 @@ func TestResourceMonitor_SaveStatisticsCloseFileBeforeSaveShouldErr(t *testing.T
 	err = resourceMonitor.Close()
 	assert.Nil(t, err)
 
-	err = resourceMonitor.SaveStatistics()
+	err = resourceMonitor.SaveStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, "")
 	if _, errF := os.Stat("test2"); errF == nil {
 		_ = os.Remove("test2")
 	}
