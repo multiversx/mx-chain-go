@@ -118,6 +118,9 @@ var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
 // ErrGenesisBlockNotInitialized signals that genesis block is not initialized
 var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
 
+// ErrNilBlackListHandler signals that a nil black list handler was provided
+var ErrNilBlackListHandler = errors.New("nil black list handler")
+
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
 

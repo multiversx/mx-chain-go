@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -49,6 +50,7 @@ type hdrForBlock struct {
 }
 
 type mapShardHeaders map[uint32][]data.HeaderHandler
+type mapShardHeader map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
 	shardCoordinator             sharding.Coordinator
@@ -63,11 +65,18 @@ type baseProcessor struct {
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler           process.BlockSizeThrottler
 	endOfEpochTrigger            process.EndOfEpochTriggerHandler
+	blockChainHook        process.BlockChainHookHandler
+	txCoordinator         process.TransactionCoordinator
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	rounder                      consensus.Rounder
 
 	hdrsForCurrBlock hdrForBlock
 
 	mutNotarizedHdrs sync.RWMutex
 	notarizedHdrs    mapShardHeaders
+
+	mutLastHdrs sync.RWMutex
+	lastHdrs    mapShardHeader
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
@@ -325,6 +334,29 @@ func (bp *baseProcessor) lastNotarizedHdrForShard(shardId uint32) data.HeaderHan
 	return nil
 }
 
+func (bp *baseProcessor) lastHdrForShard(shardId uint32) data.HeaderHandler {
+	bp.mutLastHdrs.RLock()
+	defer bp.mutLastHdrs.RUnlock()
+
+	return bp.lastHdrs[shardId]
+}
+
+func (bp *baseProcessor) setLastHdrForShard(shardId uint32, header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+
+	bp.mutLastHdrs.Lock()
+	defer bp.mutLastHdrs.Unlock()
+
+	lastHeader, ok := bp.lastHdrs[shardId]
+	if ok && lastHeader.GetRound() > header.GetRound() {
+		return
+	}
+
+	bp.lastHdrs[shardId] = header
+}
+
 func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	bp.mutNotarizedHdrs.Lock()
 	defer bp.mutNotarizedHdrs.Unlock()
@@ -573,6 +605,15 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EndOfEpochTrigger) {
 		return process.ErrNilEndOfEpochTrigger
 	}
+	if check.IfNil(arguments.Rounder) {
+		return process.ErrNilRounder
+	}
+	if arguments.BlockChainHook == nil || arguments.BlockChainHook.IsInterfaceNil() {
+		return process.ErrNilBlockChainHook
+	}
+	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
+		return process.ErrNilTransactionCoordinator
+	}
 
 	return nil
 }
@@ -584,6 +625,7 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
 	bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	bp.txCoordinator.CreateBlockStarted()
 }
 
 func (bp *baseProcessor) resetMissingHdrs() {
@@ -648,6 +690,83 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock
 }
 
+func (bp *baseProcessor) getMaxMiniBlocksSpaceRemained(
+	maxItemsInBlock uint32,
+	itemsAddedInBlock uint32,
+	miniBlocksAddedInBlock uint32,
+) int32 {
+	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
+	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
+	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
+
+	return maxMbSpaceRemained
+}
+
+func (bp *baseProcessor) createMiniBlockHeaders(body block.Body) (int, []block.MiniBlockHeader, error) {
+	totalTxCount := 0
+	miniBlockHeaders := make([]block.MiniBlockHeader, len(body))
+
+	for i := 0; i < len(body); i++ {
+		txCount := len(body[i].TxHashes)
+		totalTxCount += txCount
+
+		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body[i])
+		if err != nil {
+			return 0, nil, err
+		}
+
+		miniBlockHeaders[i] = block.MiniBlockHeader{
+			Hash:            miniBlockHash,
+			SenderShardID:   body[i].SenderShardID,
+			ReceiverShardID: body[i].ReceiverShardID,
+			TxCount:         uint32(txCount),
+			Type:            body[i].Type,
+		}
+	}
+
+	return totalTxCount, miniBlockHeaders, nil
+}
+
+// check if header has the same miniblocks as presented in body
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body block.Body) error {
+	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]
+	}
+
+	if len(miniBlockHeaders) != len(body) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
+
+		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if mbHdr.SenderShardID != miniBlock.SenderShardID {
+			return process.ErrHeaderBodyMismatch
+		}
+	}
+
+	return nil
+}
+
 func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher storage.Cacher) bool {
 	lastNotarizedHdr, err := bp.getLastNotarizedHdr(header.GetShardID())
 	if err != nil {
@@ -682,6 +801,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	shardId uint32,
 	finality uint32,
 	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
+	cacher storage.Cacher,
 ) uint32 {
 	requestedHeaders := uint32(0)
 	missingFinalityAttestingHeaders := uint32(0)
@@ -691,13 +811,11 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 		return missingFinalityAttestingHeaders
 	}
 
-	lastFinalityAttestingHeader := bp.hdrsForCurrBlock.highestHdrNonce[shardId] + uint64(finality)
+	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		header, headerHash, err := getHeaderFromPoolWithNonce(
-			i,
-			shardId)
+		headers, headersHashes := bp.getHeadersFromPools(getHeaderFromPoolWithNonce, cacher, shardId, i)
 
-		if err != nil {
+		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
 			wasHeaderRequested := bp.wasHeaderRequested(shardId, i)
 			if !wasHeaderRequested {
@@ -709,7 +827,9 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 			continue
 		}
 
-		bp.hdrsForCurrBlock.hdrHashAndInfo[string(headerHash)] = &hdrInfo{hdr: header, usedInBlock: false}
+		for index := range headers {
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[index])] = &hdrInfo{hdr: headers[index], usedInBlock: false}
+		}
 	}
 
 	if requestedHeaders > 0 {
@@ -719,4 +839,155 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	return missingFinalityAttestingHeaders
+}
+
+func (bp *baseProcessor) isShardStuck(shardId uint32) bool {
+	header := bp.lastHdrForShard(shardId)
+	if check.IfNil(header) {
+		return false
+	}
+
+	isShardStuck := bp.rounder.Index()-int64(header.GetRound()) > process.MaxRoundsWithoutCommittedBlock
+	return isShardStuck
+}
+
+func (bp *baseProcessor) cleanupPools(
+	headersNoncesPool dataRetriever.Uint64SyncMapCacher,
+	headersPool storage.Cacher,
+	notarizedHeadersPool storage.Cacher,
+) {
+	bp.removeHeadersBehindNonceFromPools(
+		headersPool,
+		headersNoncesPool,
+		bp.shardCoordinator.SelfId(),
+		bp.forkDetector.GetHighestFinalBlockNonce())
+
+	for shardId := range bp.notarizedHdrs {
+		lastNotarizedHdr := bp.lastNotarizedHdrForShard(shardId)
+		if check.IfNil(lastNotarizedHdr) {
+			continue
+		}
+
+		bp.removeHeadersBehindNonceFromPools(
+			notarizedHeadersPool,
+			headersNoncesPool,
+			shardId,
+			lastNotarizedHdr.GetNonce())
+	}
+
+	return
+}
+
+func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	shardId uint32,
+	nonce uint64,
+) {
+
+	if nonce <= 1 {
+		return
+	}
+
+	if check.IfNil(cacher) {
+		return
+	}
+
+	for _, key := range cacher.Keys() {
+		val, _ := cacher.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(data.HeaderHandler)
+		if !ok {
+			continue
+		}
+
+		if hdr.GetShardID() != shardId || hdr.GetNonce() >= nonce {
+			continue
+		}
+
+		cacher.Remove(key)
+
+		if check.IfNil(uint64SyncMapCacher) {
+			continue
+		}
+
+		uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
+	}
+}
+
+func (bp *baseProcessor) removeHeaderFromPools(
+	header data.HeaderHandler,
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+) {
+
+	if check.IfNil(header) {
+		return
+	}
+
+	headerHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, header)
+	if err != nil {
+		return
+	}
+
+	if !check.IfNil(cacher) {
+		cacher.Remove(headerHash)
+	}
+
+	if !check.IfNil(uint64SyncMapCacher) {
+		syncMap, ok := uint64SyncMapCacher.Get(header.GetNonce())
+		if !ok {
+			return
+		}
+
+		hash, ok := syncMap.Load(header.GetShardID())
+		if hash == nil || !ok {
+			return
+		}
+
+		if bytes.Equal(headerHash, hash) {
+			uint64SyncMapCacher.Remove(header.GetNonce(), header.GetShardID())
+		}
+	}
+}
+
+func (bp *baseProcessor) getHeadersFromPools(
+	getHeaderFromPoolWithNonce func(uint64, uint32) (data.HeaderHandler, []byte, error),
+	cacher storage.Cacher,
+	shardId uint32,
+	nonce uint64,
+) ([]data.HeaderHandler, [][]byte) {
+
+	headers := make([]data.HeaderHandler, 0)
+	headersHashes := make([][]byte, 0)
+
+	for _, headerHash := range cacher.Keys() {
+		val, _ := cacher.Peek(headerHash)
+		if val == nil {
+			continue
+		}
+
+		header, ok := val.(data.HeaderHandler)
+		if !ok {
+			continue
+		}
+
+		if header.GetShardID() == shardId && header.GetNonce() == nonce {
+			headers = append(headers, header)
+			headersHashes = append(headersHashes, headerHash)
+		}
+	}
+
+	header, headerHash, err := getHeaderFromPoolWithNonce(nonce, shardId)
+	if err != nil {
+		return headers, headersHashes
+	}
+
+	headers = append(headers, header)
+	headersHashes = append(headersHashes, headerHash)
+
+	return headers, headersHashes
 }
