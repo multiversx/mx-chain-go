@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -446,7 +447,7 @@ func runMultipleRoundsOfTheGame(
 
 		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
-		fmt.Println(rMonitor.GenerateStatistics())
+		fmt.Println(rMonitor.GenerateStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, ""))
 	}
 
 	integrationTests.CheckRewardsDistribution(t, nodes, players, topUpValue, totalWithdrawValue,
