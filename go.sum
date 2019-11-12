@@ -6,12 +6,16 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 h1:HD8gA2tkBy
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191112084642-31ac8901dcf0 h1:1Df/UPVIz0v9GkI3SRLTN7Zw3IvzZSKLl0vba7EDNZ0=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191112084642-31ac8901dcf0/go.mod h1:/RpdwN0cUoT48Kjxo09y+2kX3byzBwHYBU5J+zmPucw=
 github.com/ElrondNetwork/arwen-wasm-vm v0.2.3 h1:zbZ14b5E5WPhrG7bw/6Y5nkRyqhBOhe1w5ICXBuZzG4=
 github.com/ElrondNetwork/arwen-wasm-vm v0.2.3/go.mod h1:OXmY5a/DdrkSGC9ht4A0vxpTcfXpjlSRPrKIwlJyaiA=
 github.com/ElrondNetwork/arwen-wasm-vm v0.2.4 h1:r0fO58R0zt6/3CeFYJFKPWML8mFnoeIFBrDijNlUpr4=
 github.com/ElrondNetwork/arwen-wasm-vm v0.2.4/go.mod h1:OXmY5a/DdrkSGC9ht4A0vxpTcfXpjlSRPrKIwlJyaiA=
 github.com/ElrondNetwork/arwen-wasm-vm v0.2.5 h1:m0duB0T9IxTmtW85txse394IYVNX+zTgkT/qW0pUo28=
 github.com/ElrondNetwork/arwen-wasm-vm v0.2.5/go.mod h1:3zcgeLB5hKbjam2fsr8+JPYMfIuF0oodjr2gc9PCMOk=
+github.com/ElrondNetwork/arwen-wasm-vm v0.2.6 h1:k4rEFM1kHNI6rTANVRsXHFkMiSiRQDGiLt2y/KkHJTE=
+github.com/ElrondNetwork/arwen-wasm-vm v0.2.6/go.mod h1:/RpdwN0cUoT48Kjxo09y+2kX3byzBwHYBU5J+zmPucw=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
 github.com/ElrondNetwork/elrond-vm v0.0.19 h1:9E8spYj9K1DHdF0Osgj1dZUJfKhfBiLBx1xWWfE/HAM=
@@ -26,6 +30,7 @@ github.com/ElrondNetwork/elrond-vm-common v0.1.1 h1:QuTFNlwfhjxqTwKsByt6xPr/FFGt
 github.com/ElrondNetwork/elrond-vm-common v0.1.1/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-util v0.0.3/go.mod h1:/gz1QHx7ndQnjQDAEEhpiiaezbyl/woTI6apOsWrN10=
 github.com/ElrondNetwork/elrond-vm-util v0.0.6/go.mod h1:dpR1oCiP5isV9PPcVu2gEQ+GS7DF9BqtsG1juCATmvc=
+github.com/ElrondNetwork/elrond-vm-util v0.0.7/go.mod h1:EbijIwcul0wQ9ydTN4z1dU29DnYV2vudpeuAkUo1h20=
 github.com/ElrondNetwork/go-ext-wasm v0.0.5 h1:DjXOa9lAeQW8lgceKUg7NIA9L1iiIV29x3+MNM9BbRU=
 github.com/ElrondNetwork/go-ext-wasm v0.0.5/go.mod h1:wlns4D0OzJP+q/cLweFz1rGpoZOG8LbGYX2jD31HCgw=
 github.com/ElrondNetwork/go-ext-wasm v0.0.7 h1:GZJXG9xCeK1oQZDyLXvSf1i4QeYpG0lxrXqSQEnfd8Y=

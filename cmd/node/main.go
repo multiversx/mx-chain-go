@@ -133,7 +133,7 @@ VERSION:
 	}
 	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
 	gasScheduleConfigurationFile = cli.StringFlag{
-		Name:  "gascostsconfig",
+		Name:  "gasCostsConfig",
 		Usage: "The configuration file for gas costs used in SmartContract execution",
 		Value: "./config/gasSchedule.toml",
 	}

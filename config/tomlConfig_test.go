@@ -149,15 +149,15 @@ func TestTomlEconomicsParser(t *testing.T) {
 
 	testString := `
 [EconomicsAddresses]
-	CommunityAddress = "` + communityAddress + `"
-	BurnAddress = "` + burnAddress + `"
+    CommunityAddress = "` + communityAddress + `"
+    BurnAddress = "` + burnAddress + `"
 [RewardsSettings]
     RewardsValue = "` + rewardsValue + `"
     CommunityPercentage = ` + fmt.Sprintf("%.6f", communityPercentage) + `
     LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
-    BurnPercentage = 	` + fmt.Sprintf("%.6f", burnPercentage) + `
+    BurnPercentage =  ` + fmt.Sprintf("%.6f", burnPercentage) + `
 [FeeSettings]
-	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
+    MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"
     MinGasLimit = "` + minGasLimit + `"
 `

@@ -35,7 +35,6 @@ func LoadGasScheduleConfig(filepath string) (map[string]uint64, error) {
 	}
 
 	flattenedGasSchedule := make(map[string]uint64)
-
 	for _, costs := range gasScheduleConfig {
 		costsMap := costs.(map[string]interface{})
 		for operationName, cost := range costsMap {
