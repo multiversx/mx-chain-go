@@ -40,14 +40,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
@@ -285,14 +284,13 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 }
 
 // CreateIeleVMAndBlockchainHook creates a new instance of a iele VM
-func CreateIeleVMAndBlockchainHook(
+func CreateVMContainerAndBlockchainHook(
 	accnts state.AccountsAdapter,
-) (vmcommon.VMExecutionHandler, *hooks.VMAccountsDB) {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, TestAddressConverter)
-	cryptoHook := hooks.NewVMCryptoHook()
-	vm := endpoint.NewElrondIeleVM(procFactory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
+) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, TestAddressConverter)
+	vmContainer, _ := vmFactory.Create()
 
-	return vm, blockChainHook
+	return vmContainer, vmFactory.VMAccountsDB()
 }
 
 // CreateAddressFromAddrBytes creates an address container object from address bytes provided

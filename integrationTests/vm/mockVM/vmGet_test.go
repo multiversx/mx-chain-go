@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,13 +19,24 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	accnts, destinationAddressBytes, expectedValueForVar := deploySmartContract(t)
 
 	mockVM := vm.CreateOneSCExecutorMockVM(accnts)
-	scgd, _ := smartContract.NewSCDataGetter(mockVM)
+	vmContainer := &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
+		}}
+	service, _ := smartContract.NewSCQueryService(vmContainer)
 
 	functionName := "Get"
-	returnedVals, err := scgd.Get(destinationAddressBytes, functionName)
+	query := smartContract.SCQuery{
+		ScAddress: destinationAddressBytes,
+		FuncName:  functionName,
+		Arguments: []*big.Int{},
+	}
+
+	vmOutput, err := service.ExecuteQuery(&query)
+	returnData, _ := vmOutput.GetFirstReturnData(vmcommon.AsBigInt)
 
 	assert.Nil(t, err)
-	assert.Equal(t, expectedValueForVar.Bytes(), returnedVals)
+	assert.Equal(t, expectedValueForVar, returnData)
 }
 
 func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int) {

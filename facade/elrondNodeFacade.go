@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // DefaultRestPort is the default port the REST API will start on if not specified
@@ -223,9 +225,9 @@ func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return ef.apiResolver.StatusMetrics()
 }
 
-// GetVmValue retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
-	return ef.apiResolver.GetVmValue(address, funcName, argsBuff...)
+// ExecuteSCQuery retrieves data from existing SC trie
+func (ef *ElrondNodeFacade) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+	return ef.apiResolver.ExecuteSCQuery(query)
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application

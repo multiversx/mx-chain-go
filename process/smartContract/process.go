@@ -191,7 +191,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	// VM is formally verified and the output is correct
 	crossTxs, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
@@ -243,7 +242,7 @@ func (sc *scProcessor) getVMTypeFromArguments(arg *big.Int) ([]byte, error) {
 }
 
 func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
-	vmType := tx.RcvAddr[hooks.NumInitCharactersForScAddress-hooks.VMTypeLen : hooks.NumInitCharactersForScAddress]
+	vmType := hooks.VMTypeFromAddressBytes(tx.RcvAddr)
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err

@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -303,15 +305,15 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 	ef := NewElrondNodeFacade(
 		&mock.NodeMock{},
 		&mock.ApiResolverStub{
-			GetVmValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+			ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
 				wasCalled = true
-				return make([]byte, 0), nil
+				return &vmcommon.VMOutput{}, nil
 			},
 		},
 		false,
 	)
 
-	_, _ = ef.GetVmValue("", "")
+	_, _ = ef.ExecuteSCQuery(nil)
 	assert.True(t, wasCalled)
 }
 

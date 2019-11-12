@@ -46,7 +46,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
 
@@ -119,9 +118,9 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	VmProcessor            vmcommon.VMExecutionHandler
-	VmDataGetter           vmcommon.VMExecutionHandler
-	BlockchainHook         vmcommon.BlockchainHook
+	VmProcessors           process.VirtualMachinesContainer
+	VmDataGetter           process.VirtualMachinesContainer
+	BlockchainHook         *hooks.VMAccountsDB
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
@@ -137,8 +136,8 @@ type TestProcessorNode struct {
 	MultiSigner crypto.MultiSigner
 
 	//Node is used to call the functionality already implemented in it
-	Node         *node.Node
-	ScDataGetter external.ScDataGetter
+	Node           *node.Node
+	SCQueryService external.SCQueryService
 
 	CounterHdrRecv int32
 	CounterMbRecv  int32
@@ -234,7 +233,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VmDataGetter)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }
@@ -419,22 +418,17 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		rewardsInter,
 	)
 
-	tpn.VmProcessor, tpn.BlockchainHook = CreateIeleVMAndBlockchainHook(tpn.AccntState)
-	tpn.VmDataGetter, _ = CreateIeleVMAndBlockchainHook(tpn.AccntState)
-
-	vmContainer := &mock.VMContainerMock{
-		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-			return tpn.VmProcessor, nil
-		}}
+	tpn.VmProcessors, tpn.BlockchainHook = CreateVMContainerAndBlockchainHook(tpn.AccntState)
+	tpn.VmDataGetter, _ = CreateVMContainerAndBlockchainHook(tpn.AccntState)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
-		vmContainer,
+		tpn.VmProcessors,
 		tpn.ArgsParser,
 		TestHasher,
 		TestMarshalizer,
 		tpn.AccntState,
-		tpn.BlockchainHook.(*hooks.VMAccountsDB),
+		tpn.BlockchainHook,
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,

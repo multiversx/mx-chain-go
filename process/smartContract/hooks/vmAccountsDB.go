@@ -18,6 +18,50 @@ type VMAccountsDB struct {
 	tempAccounts    map[string]state.AccountHandler
 }
 
+func (vadb *VMAccountsDB) LastNonce() uint64 {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) LastRound() uint64 {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) LastTimeStamp() uint64 {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) LastRandomSeed() []byte {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) LastEpoch() uint32 {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) GetStateRootHash() []byte {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) CurrentNonce() uint64 {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) CurrentRound() uint64 {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) CurrentTimeStamp() uint64 {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) CurrentRandomSeed() []byte {
+	panic("implement me")
+}
+
+func (vadb *VMAccountsDB) CurrentEpoch() uint32 {
+	panic("implement me")
+}
+
 // NewVMAccountsDB creates a new VMAccountsDB instance
 func NewVMAccountsDB(
 	accounts state.AccountsAdapter,
@@ -160,11 +204,6 @@ func (vadb *VMAccountsDB) NewAddress(creatorAddress []byte, creatorNonce uint64,
 		return nil, ErrVMTypeLengthIsNotCorrect
 	}
 
-	_, err := vadb.getShardAccountFromAddressBytes(creatorAddress)
-	if err != nil {
-		return nil, err
-	}
-
 	base := hashFromAddressAndNonce(creatorAddress, creatorNonce)
 	prefixMask := createPrefixMask(vmType)
 	suffixMask := createSuffixMask(creatorAddress)
@@ -264,4 +303,9 @@ func (vadb *VMAccountsDB) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// VMTypeFromAddressBytes gets VM type from scAddress
+func VMTypeFromAddressBytes(scAddress []byte) []byte {
+	return scAddress[NumInitCharactersForScAddress-VMTypeLen : NumInitCharactersForScAddress]
 }

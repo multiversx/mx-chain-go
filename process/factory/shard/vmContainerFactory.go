@@ -1,12 +1,13 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 )
 
@@ -47,12 +48,22 @@ func NewVMContainerFactory(
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
-	vm, err := vmf.createIeleVM()
+	currVm, err := vmf.createIeleVM()
 	if err != nil {
 		return nil, err
 	}
 
-	err = container.Add(factory.IELEVirtualMachine, vm)
+	err = container.Add(factory.IELEVirtualMachine, currVm)
+	if err != nil {
+		return nil, err
+	}
+
+	currVm, err = vmf.createArwenVM()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.ArwenVirtualMachine, currVm)
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +74,11 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
 	return ieleVM, nil
+}
+
+func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
+	arwenVM, err := arwen.NewArwenVM(vmf.vmAccountsDB, vmf.cryptoHook, factory.ArwenVirtualMachine)
+	return arwenVM, err
 }
 
 // VMAccountsDB returns the created vmAccountsDB
