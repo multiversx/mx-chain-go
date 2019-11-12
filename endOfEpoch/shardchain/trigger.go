@@ -139,6 +139,11 @@ func (t *trigger) Epoch() uint32 {
 	return t.epoch
 }
 
+// EpochStartRound returns the start round of the current epoch
+func (t *trigger) EpochStartRound() uint64 {
+	return uint64(t.epochStartRound)
+}
+
 // ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
 func (t *trigger) ForceEndOfEpoch(round int64) error {
 	return nil
@@ -301,6 +306,11 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 
 // Update updates the end-of-epoch trigger
 func (t *trigger) Update(round int64) {
+}
+
+// Processed signals end of epoch processing is done
+func (t *trigger) SetIsEndOfEpoch(isEndOfEpoch bool) {
+	t.isEndOfEpoch = isEndOfEpoch
 }
 
 // Processed signals that end-of-epoch has been processed

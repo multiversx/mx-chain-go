@@ -367,6 +367,7 @@ type EndOfEpochTriggerHandler interface {
 	ReceivedHeader(header data.HeaderHandler)
 	IsEndOfEpoch() bool
 	Epoch() uint32
+	EpochStartRound() uint64
 	IsInterfaceNil() bool
 }
 

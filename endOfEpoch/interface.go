@@ -14,7 +14,8 @@ type TriggerHandler interface {
 	Epoch() uint32
 	ReceivedHeader(header data.HeaderHandler)
 	Update(round int64)
-	Processed()
+	SetIsEndOfEpoch(isEndOfEpoch bool)
+	EpochStartRound() uint64
 	IsInterfaceNil() bool
 }
 

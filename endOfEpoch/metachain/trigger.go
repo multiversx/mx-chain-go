@@ -63,6 +63,11 @@ func (t *trigger) IsEndOfEpoch() bool {
 	return t.isEndOfEpoch
 }
 
+// EpochStartRound returns the start round of the current epoch
+func (t *trigger) EpochStartRound() uint64 {
+	return uint64(t.epochStartRound)
+}
+
 // ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
 func (t *trigger) ForceEndOfEpoch(round int64) error {
 	if t.currentRound > round {
@@ -103,8 +108,8 @@ func (t *trigger) Update(round int64) {
 }
 
 // Processed signals end of epoch processing is done
-func (t *trigger) Processed() {
-	t.isEndOfEpoch = false
+func (t *trigger) SetIsEndOfEpoch(isEndOfEpoch bool) {
+	t.isEndOfEpoch = isEndOfEpoch
 }
 
 // Epoch return the current epoch
