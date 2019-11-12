@@ -52,13 +52,13 @@ import (
 )
 
 const (
-	defaultLogPath     = "logs"
-	defaultStatsPath   = "stats"
-	defaultDBPath      = "db"
-	defaultEpochString = "Epoch"
-	defaultShardString = "Shard"
-	metachainShardName = "metachain"
-	defaultRestApiPort = "off"
+	defaultLogPath         = "logs"
+	defaultStatsPath       = "stats"
+	defaultDBPath          = "db"
+	defaultEpochString     = "Epoch"
+	defaultShardString     = "Shard"
+	metachainShardName     = "metachain"
+	defaultRestApiInerface = "localhost:8080"
 )
 
 var (
@@ -189,11 +189,12 @@ VERSION:
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
 
-	// restApiPort defines a flag for port on which the rest API will start on
-	restApiPort = cli.StringFlag{
-		Name:  "rest-api-port",
-		Usage: "The port on which the rest API will start on",
-		Value: defaultRestApiPort,
+	// restApiInterface defines a flag for the interface on which the rest API will try to bind with
+	restApiInterface = cli.StringFlag{
+		Name: "rest-api-interface",
+		Usage: "The interface on which the rest API will try to bind with. Default is 'localhost:8080'. To use it" +
+			"on all available interfaces, for example, might try setting this flag to ':8080'",
+		Value: defaultRestApiInerface,
 	}
 
 	// networkID defines the version of the network. If set, will override the same parameter from config.toml
@@ -319,7 +320,7 @@ func main() {
 		serversConfigurationFile,
 		networkID,
 		nodeDisplayName,
-		restApiPort,
+		restApiInterface,
 		logLevel,
 		usePrometheus,
 		useLogView,
@@ -766,7 +767,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
-		RestApiPort:       ctx.GlobalString(restApiPort.Name),
+		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
 		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
 		Prometheus:        usePrometheusBool,
 		PrometheusJoinURL: prometheusJoinUrl,

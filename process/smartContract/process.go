@@ -3,7 +3,6 @@ package smartContract
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -634,7 +633,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 				return err
 			}
 
-			fmt.Printf("Created SC address %s \n", hex.EncodeToString(outAcc.Address))
+			log.Debug("created SC address", "address", hex.EncodeToString(outAcc.Address))
 		}
 
 		// change nonce only if there is a change

@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"reflect"
 
@@ -38,7 +37,7 @@ type prometheus struct {
 
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
-	RestApiPort() string
+	RestApiInterface() string
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
 	PrometheusMonitoring() bool
@@ -73,13 +72,13 @@ func Start(elrondFacade MainApiHandler) error {
 		}
 	}
 
-	return ws.Run(fmt.Sprintf(":%s", elrondFacade.RestApiPort()))
+	return ws.Run(elrondFacade.RestApiInterface())
 }
 
 func joinMonitoringSystem(elrondFacade MainApiHandler) error {
 	prometheusJoinUrl := elrondFacade.PrometheusJoinURL()
 	structToSend := prometheus{
-		NodePort:  elrondFacade.RestApiPort(),
+		NodePort:  elrondFacade.RestApiInterface(),
 		NetworkID: elrondFacade.PrometheusNetworkID(),
 	}
 

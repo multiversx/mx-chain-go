@@ -12,16 +12,17 @@ var logMut = &sync.RWMutex{}
 var loggers map[string]*logger
 var defaultLogOut LogOutputHandler
 var defaultLogLevel = LogInfo
+var logPattern = ""
 
 var mutDisplayByteSlice = &sync.RWMutex{}
 var displayByteSlice func(slice []byte) string
 
 func init() {
 	logMut.Lock()
+	logPattern = "*:INFO"
 	loggers = make(map[string]*logger)
 	defaultLogOut = &logOutputSubject{}
 	_ = defaultLogOut.AddObserver(os.Stdout, &ConsoleFormatter{})
-
 	logMut.Unlock()
 
 	mutDisplayByteSlice.Lock()
@@ -63,9 +64,19 @@ func SetLogLevel(logLevelAndPattern string) error {
 
 	logMut.Lock()
 	setLogLevelOnMap(loggers, &defaultLogLevel, logLevels, patterns)
+	logPattern = logLevelAndPattern
 	logMut.Unlock()
 
 	return nil
+}
+
+// GetLogLevelPattern returns the last set log level pattern.
+// The format returned is MATCHING_STRING1:LOG_LEVEL1,MATCHING_STRING2:LOG_LEVEL2".
+func GetLogLevelPattern() string {
+	logMut.RLock()
+	defer logMut.RUnlock()
+
+	return logPattern
 }
 
 // AddLogObserver adds a new observer (writer + formatter) to the already built-in log observers queue

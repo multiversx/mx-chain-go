@@ -10,12 +10,15 @@ import (
 )
 
 type logSender struct {
-	marshalizer marshal.Marshalizer
-	conn        wsConn
-	writer      *logWriter
-	log         logger.Logger
+	marshalizer    marshal.Marshalizer
+	conn           wsConn
+	writer         *logWriter
+	log            logger.Logger
+	lastLogPattern string
 }
 
+// NewLogSender returns a new component that is able to communicate with the log viewer application.
+// After the correct handshake it will send all logs that come through the logger subsystem
 func NewLogSender(marshalizer marshal.Marshalizer, conn wsConn, log logger.Logger) (*logSender, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
@@ -58,11 +61,17 @@ func (ls *logSender) registerLogWriter() error {
 	return nil
 }
 
+// StartSendingBlocking initialize the handshake by waiting the correct pattern and after that
+// will start sending logs information and in the same time monitor the current connection.
+// When the connection ends it will revert the previous log pattern.
 func (ls *logSender) StartSendingBlocking() {
+	ls.lastLogPattern = logger.GetLogLevelPattern()
+
 	defer func() {
 		_ = ls.conn.Close()
 		_ = ls.writer.Close()
 		_ = logger.RemoveLogObserver(ls.writer)
+		_ = logger.SetLogLevel(ls.lastLogPattern)
 	}()
 
 	err := ls.waitForPatternMessage()
