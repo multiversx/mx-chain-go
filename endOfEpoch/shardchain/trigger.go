@@ -16,8 +16,8 @@ import (
 	"sync"
 )
 
-// ArgsNewShardEndOfEpochTrigger defines the arguments needed for new end of epoch trigger
-type ArgsNewShardEndOfEpochTrigger struct {
+// ArgsShardEndOfEpochTrigger struct { defines the arguments needed for new end of epoch trigger
+type ArgsShardEndOfEpochTrigger struct {
 	Marshalizer marshal.Marshalizer
 	Hasher      hashing.Hasher
 
@@ -62,7 +62,7 @@ type trigger struct {
 }
 
 // NewEndOfEpochTrigger creates a trigger to signal end of epoch
-func NewEndOfEpochTrigger(args *ArgsNewShardEndOfEpochTrigger) (*trigger, error) {
+func NewEndOfEpochTrigger(args *ArgsShardEndOfEpochTrigger) (*trigger, error) {
 	if args == nil {
 		return nil, endOfEpoch.ErrNilArgsNewShardEndOfEpochTrigger
 	}
@@ -109,8 +109,8 @@ func NewEndOfEpochTrigger(args *ArgsNewShardEndOfEpochTrigger) (*trigger, error)
 		currentRoundIndex:   0,
 		epochStartRound:     0,
 		isEndOfEpoch:        false,
-		finality:            args.Validity,
-		validity:            args.Finality,
+		validity:            args.Validity,
+		finality:            args.Finality,
 		newEpochHdrReceived: false,
 		mutReceived:         sync.Mutex{},
 		mapHashHdr:          make(map[string]*block.MetaBlock),
@@ -129,7 +129,7 @@ func NewEndOfEpochTrigger(args *ArgsNewShardEndOfEpochTrigger) (*trigger, error)
 	return newTrigger, nil
 }
 
-// IsEndOfEpoch returns true if conditions are fullfilled for end of epoch
+// IsEndOfEpoch returns true if conditions are fulfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
 	return t.isEndOfEpoch
 }
@@ -149,7 +149,7 @@ func (t *trigger) ForceEndOfEpoch(round int64) error {
 	return nil
 }
 
-// ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fullfilled
+// ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fulfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	if t.isEndOfEpoch == true {
 		return
@@ -235,11 +235,13 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*block.MetaBlock, error) {
 	metaHdrHashesWithNonce := t.mapNonceHashes[nonce]
 	for _, hash := range metaHdrHashesWithNonce {
-		if bytes.Equal(neededHash, []byte(hash)) {
-			neededHdr := t.mapHashHdr[hash]
-			if neededHdr != nil {
-				return neededHdr, nil
-			}
+		if !bytes.Equal(neededHash, []byte(hash)) {
+			continue
+		}
+
+		neededHdr := t.mapHashHdr[hash]
+		if neededHdr != nil {
+			return neededHdr, nil
 		}
 	}
 
@@ -278,9 +280,9 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 
 	shIdMap, ok := t.metaHdrNonces.Get(nonce)
 	if ok {
-		hdrhash, ok := shIdMap.Load(sharding.MetachainShardId)
+		hdrHash, ok := shIdMap.Load(sharding.MetachainShardId)
 		if ok {
-			dataHdr, _ := t.metaHdrPool.Peek(hdrhash)
+			dataHdr, _ := t.metaHdrPool.Peek(hdrHash)
 			hdrWithNonce, ok := dataHdr.(*block.MetaBlock)
 			if ok && bytes.Equal(hdrWithNonce.PrevHash, prevHash) {
 				return hdrWithNonce, nil
