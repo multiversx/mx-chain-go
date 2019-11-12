@@ -51,7 +51,14 @@ func (los *logOutputSubject) convertLogLine(logLine *LogLine) LogLineHandler {
 	line.Timestamp = logLine.Timestamp.Unix()
 
 	for i, obj := range logLine.Args {
-		line.Args[i] = fmt.Sprintf("%v", obj)
+		switch obj.(type) {
+		case []byte:
+			mutDisplayByteSlice.RLock()
+			line.Args[i] = displayByteSlice(obj.([]byte))
+			mutDisplayByteSlice.RUnlock()
+		default:
+			line.Args[i] = fmt.Sprintf("%v", obj)
+		}
 	}
 
 	return line
@@ -93,6 +100,16 @@ func (los *logOutputSubject) RemoveObserver(w io.Writer) error {
 	}
 
 	return ErrWriterNotFound
+}
+
+// ClearObservers clears the observers lists
+func (los *logOutputSubject) ClearObservers() {
+	los.mutObservers.Lock()
+
+	los.writers = make([]io.Writer, 0)
+	los.formatters = make([]Formatter, 0)
+
+	los.mutObservers.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

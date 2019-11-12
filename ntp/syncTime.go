@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/beevik/ntp"
 )
 
 // totalRequests defines the number of requests made to determine an accurate clock offset
 const totalRequests = 10
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("ntp")
 
 // NTPOptions defines configuration options for an NTP query
 type NTPOptions struct {
@@ -53,7 +53,10 @@ func queryNTP(options NTPOptions) (*ntp.Response, error) {
 		Version:      options.Version,
 		LocalAddress: options.LocalAddress,
 		Port:         options.Port}
-	log.Debug(fmt.Sprintf("NTP Request to %s:%d", options.Host, options.Port))
+	log.Debug("ntp",
+		"request", options.Host,
+		"port", options.Port,
+	)
 	return ntp.QueryWithOptions(options.Host, queryOptions)
 }
 
@@ -104,11 +107,13 @@ func (s *syncTime) sync() {
 			r, err := s.query(s.ntpOptions)
 
 			if err != nil {
-				log.Error(fmt.Sprintf("NTP Error: %s", err))
+				log.Debug("ntp", "error", err.Error())
 				continue
 			}
 
-			log.Debug(fmt.Sprintf("NTP reading: %s", r.Time.Format("Mon Jan 2 15:04:05 MST 2006")))
+			log.Trace("ntp",
+				"reading", r.Time.Format("Mon Jan 2 15:04:05 MST 2006"),
+			)
 
 			succeededRequests++
 			clockOffsetSum += r.ClockOffset

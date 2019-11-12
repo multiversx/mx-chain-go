@@ -2,7 +2,6 @@ package logger_test
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -31,7 +30,7 @@ func TestLogger_ExampleMessagesWithArguments(t *testing.T) {
 	log.Info("message3", "a-slice", []int{1, 2, 3, 4, 5})
 	log.Info("message4", "nil", nil)
 	hash := generateHash()
-	log.Info("message5", "short-hash", logger.ConvertHash(hash), "long-hash", hex.EncodeToString(hash))
+	log.Info("message5", "hash", hash)
 }
 
 func generateHash() []byte {

@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -106,13 +105,15 @@ func (rtp *rewardTxPreprocessor) waitForRewardTxHashes(waitTime time.Duration) e
 // IsDataPrepared returns non error if all the requested reward transactions arrived and were saved into the pool
 func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime func() time.Duration) error {
 	if requestedRewardTxs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing reward txs\n", requestedRewardTxs))
+		log.Debug("requested missing reward txs",
+			"num reward txs", requestedRewardTxs)
 		err := rtp.waitForRewardTxHashes(haveTime())
 		rtp.rewardTxsForBlock.mutTxsForBlock.RLock()
 		missingRewardTxs := rtp.rewardTxsForBlock.missingTxs
 		rtp.rewardTxsForBlock.missingTxs = 0
 		rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
-		log.Info(fmt.Sprintf("received %d missing reward txs\n", requestedRewardTxs-missingRewardTxs))
+		log.Debug("received reward txs",
+			"num reward txs", requestedRewardTxs-missingRewardTxs)
 		if err != nil {
 			return err
 		}
@@ -234,13 +235,13 @@ func (rtp *rewardTxPreprocessor) AddComputedRewardMiniBlocks(computedRewardMinib
 		for _, txHash := range rewardMb.TxHashes {
 			tx, ok := rtp.rewardTxPool.SearchFirstData(txHash)
 			if !ok {
-				log.Error(process.ErrRewardTransactionNotFound.Error())
+				log.Debug("reward txs not found in pool", "error", process.ErrRewardTransactionNotFound.Error())
 				continue
 			}
 
 			rTx, ok := tx.(*rewardTx.RewardTx)
 			if !ok {
-				log.Error(process.ErrWrongTypeAssertion.Error())
+				log.Warn("not a reward tx in pool", "error", process.ErrWrongTypeAssertion.Error())
 			}
 
 			rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
@@ -476,13 +477,12 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 	for _, mb := range rewardMiniBlocksSlice {
 		err := rtp.ProcessMiniBlock(mb, haveTime, round)
-
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("reward txs ProcessMiniBlock", "error", err.Error())
 			errAccountState := rtp.accounts.RevertToSnapshot(snapshot)
 			if errAccountState != nil {
-				// TODO: evaluate if reloading the trie from disk will might solve the problem
-				log.Error(errAccountState.Error())
+				// TODO: evaluate if reloading the trie from disk will solve the problem
+				log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 			}
 			return nil, err
 		}

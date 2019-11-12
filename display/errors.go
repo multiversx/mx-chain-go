@@ -18,3 +18,6 @@ var ErrNilLineDataInSlice = errors.New("nil line data element found in slice")
 
 // ErrNilValuesOfLineDataInSlice signals that a line data element has nil values
 var ErrNilValuesOfLineDataInSlice = errors.New("nil line data values slice found")
+
+// ErrNilDisplayByteSliceHandler signals that a nil display byte slice handler has been provided
+var ErrNilDisplayByteSliceHandler = errors.New("nil display byte slice handler")

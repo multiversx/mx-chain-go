@@ -35,5 +35,6 @@ type LogOutputHandler interface {
 	Output(line *LogLine)
 	AddObserver(w io.Writer, format Formatter) error
 	RemoveObserver(w io.Writer) error
+	ClearObservers()
 	IsInterfaceNil() bool
 }
