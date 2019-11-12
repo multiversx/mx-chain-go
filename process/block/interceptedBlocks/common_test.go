@@ -316,7 +316,7 @@ func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	wrongShardId := uint32(2)
 	sd := block.ShardData{
-		ShardId:               wrongShardId,
+		ShardID:               wrongShardId,
 		HeaderHash:            nil,
 		ShardMiniBlockHeaders: nil,
 		TxCount:               0,
@@ -334,13 +334,13 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 	wrongShardId := uint32(2)
 	miniBlock := block.ShardMiniBlockHeader{
 		Hash:            make([]byte, 0),
-		ReceiverShardId: shardCoordinator.SelfId(),
-		SenderShardId:   wrongShardId,
+		ReceiverShardID: shardCoordinator.SelfId(),
+		SenderShardID:   wrongShardId,
 		TxCount:         0,
 	}
 
 	sd := block.ShardData{
-		ShardId:               shardCoordinator.SelfId(),
+		ShardID:               shardCoordinator.SelfId(),
 		HeaderHash:            nil,
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{miniBlock},
 		TxCount:               0,
@@ -358,13 +358,13 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 	wrongShardId := uint32(2)
 	miniBlock := block.ShardMiniBlockHeader{
 		Hash:            make([]byte, 0),
-		ReceiverShardId: wrongShardId,
-		SenderShardId:   shardCoordinator.SelfId(),
+		ReceiverShardID: wrongShardId,
+		SenderShardID:   shardCoordinator.SelfId(),
 		TxCount:         0,
 	}
 
 	sd := block.ShardData{
-		ShardId:               shardCoordinator.SelfId(),
+		ShardID:               shardCoordinator.SelfId(),
 		HeaderHash:            nil,
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{miniBlock},
 		TxCount:               0,
@@ -381,13 +381,13 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	miniBlock := block.ShardMiniBlockHeader{
 		Hash:            make([]byte, 0),
-		ReceiverShardId: shardCoordinator.SelfId(),
-		SenderShardId:   shardCoordinator.SelfId(),
+		ReceiverShardID: shardCoordinator.SelfId(),
+		SenderShardID:   shardCoordinator.SelfId(),
 		TxCount:         0,
 	}
 
 	sd := block.ShardData{
-		ShardId:               shardCoordinator.SelfId(),
+		ShardID:               shardCoordinator.SelfId(),
 		HeaderHash:            nil,
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{miniBlock},
 		TxCount:               0,

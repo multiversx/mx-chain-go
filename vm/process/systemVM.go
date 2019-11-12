@@ -65,6 +65,8 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 
 	returnCode := contract.Execute(deployInput)
 
+	s.systemEI.AddCode(input.CallerAddr, input.ContractCode)
+
 	vmOutput := s.systemEI.CreateVMOutput()
 	vmOutput.ReturnCode = returnCode
 
@@ -75,6 +77,7 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	s.systemEI.CleanCache()
 	s.systemEI.SetSCAddress(input.RecipientAddr)
+	s.systemEI.AddTxValueToSmartContract(input.CallValue, input.RecipientAddr)
 
 	contract, err := s.systemContracts.Get(input.RecipientAddr)
 	if err != nil {
