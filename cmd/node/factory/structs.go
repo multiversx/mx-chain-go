@@ -696,7 +696,7 @@ func newEndOfEpochTrigger(
 			return nil, err
 		}
 
-		argEndOfEpoch := &shardchain.ArgsNewShardEndOfEpochTrigger{
+		argEndOfEpoch := &shardchain.ArgsShardEndOfEpochTrigger{
 			Marshalizer:     args.core.Marshalizer,
 			Hasher:          args.core.Hasher,
 			HeaderValidator: headerValidator,

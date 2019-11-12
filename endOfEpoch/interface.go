@@ -16,6 +16,7 @@ type TriggerHandler interface {
 	Update(round int64)
 	SetIsEndOfEpoch(isEndOfEpoch bool)
 	EpochStartRound() uint64
+	Clean()
 	IsInterfaceNil() bool
 }
 

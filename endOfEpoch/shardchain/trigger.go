@@ -315,12 +315,10 @@ func (t *trigger) SetIsEndOfEpoch(isEndOfEpoch bool) {
 	t.isEndOfEpoch = isEndOfEpoch
 }
 
-// Processed signals that end-of-epoch has been processed
-func (t *trigger) Processed() {
+// Clean cleans the underlying data structure
+func (t *trigger) Clean() {
 	t.isEndOfEpoch = false
 	t.newEpochHdrReceived = false
-
-	//TODO: do a cleanup
 }
 
 // IsInterfaceNil returns true if underlying object is nil

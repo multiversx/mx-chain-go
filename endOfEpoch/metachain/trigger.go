@@ -112,6 +112,10 @@ func (t *trigger) SetIsEndOfEpoch(isEndOfEpoch bool) {
 	t.isEndOfEpoch = isEndOfEpoch
 }
 
+// Clean cleans the underlying data structure
+func (t *trigger) Clean() {
+}
+
 // Epoch return the current epoch
 func (t *trigger) Epoch() uint32 {
 	return t.epoch

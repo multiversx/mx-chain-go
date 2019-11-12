@@ -1293,7 +1293,10 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 
 	mp.setLastHdrForShard(shardHeader.GetShardID(), shardHeader)
 
-	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) {
+	isShardHeaderWithOldEpochAndBadRound := shardHeader.Epoch < mp.endOfEpochTrigger.Epoch() &&
+		shardHeader.Round > mp.endOfEpochTrigger.EpochStartRound()+uint64(mp.shardBlockFinality)
+
+	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) || isShardHeaderWithOldEpochAndBadRound {
 		shardHeaderPool.Remove(shardHeaderHash)
 
 		headersNoncesPool := mp.dataPool.HeadersNonces()
