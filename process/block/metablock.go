@@ -466,11 +466,6 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		hdrHashes[i] = metaBlock.ShardInfo[i].HeaderHash
 	}
 
-	_, err := mp.txCoordinator.RestoreBlockDataFromStorage(body)
-	if err != nil {
-		return err
-	}
-
 	for _, hdrHash := range hdrHashes {
 		shardHeader, errNotCritical := process.GetShardHeaderFromStorage(hdrHash, mp.marshalizer, mp.store)
 		if errNotCritical != nil {
@@ -490,6 +485,11 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		}
 
 		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.MiniBlockHeaders))
+	}
+
+	_, errNotCritical := mp.txCoordinator.RestoreBlockDataFromStorage(body)
+	if errNotCritical != nil {
+		log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 	}
 
 	mp.removeLastNotarized()
