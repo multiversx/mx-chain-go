@@ -146,7 +146,7 @@ func TestTrigger_ForceEndOfEpochRoundEqualWithSavedRoundShouldErr(t *testing.T) 
 	neoet, _ := NewEndOfEpochTrigger(arguments)
 
 	err := neoet.ForceEndOfEpoch(0)
-	assert.Equal(t, endOfEpoch.ErrForceEndOfEpochCannotBeCalledOnNewRound, err)
+	assert.Equal(t, endOfEpoch.ErrForceEndOfEpochCanBeCalledOnlyOnNewRound, err)
 }
 
 func TestTrigger_ForceEndOfEpochNotEnoughRoundsShouldErr(t *testing.T) {

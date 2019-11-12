@@ -69,7 +69,7 @@ func (t *trigger) ForceEndOfEpoch(round int64) error {
 		return endOfEpoch.ErrSavedRoundIsHigherThanInput
 	}
 	if t.currentRound == round {
-		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnNewRound
+		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnlyOnNewRound
 	}
 
 	t.currentRound = round

@@ -23,8 +23,8 @@ var ErrNilArgsNewShardEndOfEpochTrigger = errors.New("nil arguments for shard en
 // ErrNotEnoughRoundsBetweenEpochs signals that not enough rounds has passed since last epoch start
 var ErrNotEnoughRoundsBetweenEpochs = errors.New("tried to force end of epoch before passing of enough rounds")
 
-// ErrForceEndOfEpochCannotBeCalledOnNewRound signals that force end of epoch was called on wrong round
-var ErrForceEndOfEpochCannotBeCalledOnNewRound = errors.New("invalid time to call force end of epoch, possible only on new round")
+// ErrForceEndOfEpochCanBeCalledOnlyOnNewRound signals that force end of epoch was called on wrong round
+var ErrForceEndOfEpochCanBeCalledOnlyOnNewRound = errors.New("invalid time to call force end of epoch, possible only on new round")
 
 // ErrSavedRoundIsHigherThanInputRound signals that input round was wrong
 var ErrSavedRoundIsHigherThanInputRound = errors.New("saved round is higher than input round")
