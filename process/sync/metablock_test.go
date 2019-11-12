@@ -2654,6 +2654,7 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 func TestMetaBootstrap_GetMaxNotarizedHeadersNoncesInMetaBlock(t *testing.T) {
 	t.Parallel()
 
+	hash := []byte("hash")
 	pools := createMockMetaPools()
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
@@ -2661,11 +2662,7 @@ func TestMetaBootstrap_GetMaxNotarizedHeadersNoncesInMetaBlock(t *testing.T) {
 		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {},
 	}
 	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerStub{
-		UnmarshalCalled: func(obj interface{}, buff []byte) error {
-			return json.Unmarshal(buff, obj)
-		},
-	}
+	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -2675,8 +2672,6 @@ func TestMetaBootstrap_GetMaxNotarizedHeadersNoncesInMetaBlock(t *testing.T) {
 
 	store := createStore()
 	errKeyNotFound := errors.New("key not found")
-	hash := []byte("hash")
-	//buff := []byte("buff")
 	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
 		if unitType == dataRetriever.BlockHeaderUnit {
 			return &mock.StorerStub{
@@ -2700,7 +2695,7 @@ func TestMetaBootstrap_GetMaxNotarizedHeadersNoncesInMetaBlock(t *testing.T) {
 			if bytes.Equal(key, nonceToByteSlice) {
 				return nil, errKeyNotFound
 			}
-			return []byte("hash"), nil
+			return hash, nil
 		}
 
 		return nil, errKeyNotFound
@@ -2734,7 +2729,7 @@ func TestMetaBootstrap_GetMaxNotarizedHeadersNoncesInMetaBlock(t *testing.T) {
 	blockWithFinalNotarized[0] = 1
 	startNonce := uint64(0)
 
-	shardData := block.ShardData{TxCount: 10, HeaderHash: []byte("hash")}
+	shardData := block.ShardData{TxCount: 10, HeaderHash: hash}
 	metaBlock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{shardData},
 	}
@@ -2748,6 +2743,7 @@ func TestMetaBootstrap_GetMaxNotarizedHeadersNoncesInMetaBlock(t *testing.T) {
 func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
+	hash := []byte("hash")
 	pools := createMockMetaPools()
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
@@ -2769,8 +2765,6 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnFalse(t *testing
 
 	store := createStore()
 	errKeyNotFound := errors.New("key not found")
-	hash := []byte("hash")
-	//buff := []byte("buff")
 	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
 		if unitType == dataRetriever.BlockHeaderUnit {
 			return &mock.StorerStub{
@@ -2794,7 +2788,7 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnFalse(t *testing
 			if bytes.Equal(key, nonceToByteSlice) {
 				return nil, errKeyNotFound
 			}
-			return []byte("hash"), nil
+			return hash, nil
 		}
 
 		return nil, errKeyNotFound
@@ -2843,6 +2837,7 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnFalse(t *testing
 func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
+	hash := []byte("hash")
 	pools := createMockMetaPools()
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
@@ -2864,8 +2859,6 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnTrue(t *testing.
 
 	store := createStore()
 	errKeyNotFound := errors.New("key not found")
-	hash := []byte("hash")
-	//buff := []byte("buff")
 	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
 		if unitType == dataRetriever.BlockHeaderUnit {
 			return &mock.StorerStub{
@@ -2889,7 +2882,7 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnTrue(t *testing.
 			if bytes.Equal(key, nonceToByteSlice) {
 				return nil, errKeyNotFound
 			}
-			return []byte("hash"), nil
+			return hash, nil
 		}
 
 		return nil, errKeyNotFound
@@ -2918,7 +2911,6 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnTrue(t *testing.
 	blockWithFinalNotarized := make(map[uint32]uint64, 0)
 
 	lastNotarized[0] = 0
-
 	finalNotarized[0] = 1
 
 	blockWithLastNotarized[0] = 0

@@ -5120,7 +5120,8 @@ func TestShardBootstrap_RemoveBlockBody(t *testing.T) {
 	}
 	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
 		hnc := &mock.Uint64SyncMapCacherStub{}
-		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {
+		}
 
 		return hnc
 	}
