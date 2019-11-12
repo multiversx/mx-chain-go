@@ -568,5 +568,4 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 		bfd.headers[hdrNonce] = preservedHdrInfos
 	}
 	bfd.mutHeaders.Unlock()
-
 }
