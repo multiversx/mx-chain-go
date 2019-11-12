@@ -107,8 +107,8 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-				{Hash: hash1, SenderShardId: 1},
-				{Hash: hash2, SenderShardId: 1},
+				{Hash: hash1, SenderShardID: 1},
+				{Hash: hash2, SenderShardID: 1},
 			}},
 		},
 	}
@@ -151,11 +151,11 @@ func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-				{Hash: hash1, SenderShardId: 1, TxCount: sortedTxCount[2]},
-				{Hash: hash2, SenderShardId: 1, TxCount: sortedTxCount[4]},
-				{Hash: hash3, SenderShardId: 1, TxCount: sortedTxCount[1]},
-				{Hash: hash4, SenderShardId: 1, TxCount: sortedTxCount[0]},
-				{Hash: hash5, SenderShardId: 1, TxCount: sortedTxCount[3]},
+				{Hash: hash1, SenderShardID: 1, TxCount: sortedTxCount[2]},
+				{Hash: hash2, SenderShardID: 1, TxCount: sortedTxCount[4]},
+				{Hash: hash3, SenderShardID: 1, TxCount: sortedTxCount[1]},
+				{Hash: hash4, SenderShardID: 1, TxCount: sortedTxCount[0]},
+				{Hash: hash5, SenderShardID: 1, TxCount: sortedTxCount[3]},
 			}},
 		},
 	}
@@ -193,8 +193,8 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-				{Hash: hash1, SenderShardId: 1},
-				{Hash: hash2, SenderShardId: 1},
+				{Hash: hash1, SenderShardID: 1},
+				{Hash: hash2, SenderShardID: 1},
 			}},
 		},
 	}

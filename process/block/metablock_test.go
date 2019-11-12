@@ -47,7 +47,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		SCDataGetter:       &mock.ScDataGetterMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
-		PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
+		PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
 	}
 	return arguments
 }
@@ -2505,21 +2505,5 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		},
 	}
 	err = mp.ProcessBlock(blkc, headerHandler, bodyHandler, func() time.Duration { return time.Second })
-	assert.Nil(t, err)
-}
-
-func TestMetaProcessor_CreateBlockHeader(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockMetaArguments()
-	arguments.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{
-		IsEndOfEpochCalled: func() bool {
-			return true
-		},
-	}
-	mp, _ := blproc.NewMetaProcessor(arguments)
-
-	header, err := mp.CreateBlockHeader(nil, 10, func() bool { return true })
-	assert.NotNil(t, header)
 	assert.Nil(t, err)
 }

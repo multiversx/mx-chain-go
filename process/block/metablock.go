@@ -24,11 +24,11 @@ import (
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core         serviceContainer.Core
-	dataPool     dataRetriever.MetaPoolsHolder
-	scDataGetter external.ScDataGetter
-	scToProtocol process.SmartContractToProtocolHandler
-	peerChanges  process.PeerChangesHandler
+	core              serviceContainer.Core
+	dataPool          dataRetriever.MetaPoolsHolder
+	scDataGetter      external.ScDataGetter
+	scToProtocol      process.SmartContractToProtocolHandler
+	peerChanges       process.PeerChangesHandler
 	pendingMiniBlocks process.PendingMiniBlocksHandler
 
 	shardsHeadersNonce *sync.Map
@@ -95,13 +95,13 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	mp := metaProcessor{
-		core:           arguments.Core,
-		baseProcessor:  base,
-		dataPool:       arguments.DataPool,
-		headersCounter: NewHeaderCounter(),
-		scDataGetter:   arguments.SCDataGetter,
-		peerChanges:    arguments.PeerChangesHandler,
-		scToProtocol:   arguments.SCToProtocol,
+		core:              arguments.Core,
+		baseProcessor:     base,
+		dataPool:          arguments.DataPool,
+		headersCounter:    NewHeaderCounter(),
+		scDataGetter:      arguments.SCDataGetter,
+		peerChanges:       arguments.PeerChangesHandler,
+		scToProtocol:      arguments.SCToProtocol,
 		pendingMiniBlocks: arguments.PendingMiniBlocks,
 	}
 
@@ -477,7 +477,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		hdrHashes[i] = metaBlock.ShardInfo[i].HeaderHash
 	}
 
-	err := mp.pendingMiniBlocks.RevertHeader(header)
+	err := mp.pendingMiniBlocks.RevertHeader(metaBlock)
 	if err != nil {
 		return err
 	}
@@ -1483,16 +1483,16 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.RootHash = mp.getRootHash()
 	metaHdr.TxCount = getTxCount(shardInfo)
 
-	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
+	err = mp.pendingMiniBlocks.AddProcessedHeader(metaHdr)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	endOfEpoch, err := mp.createEndOfEpochForMetablock(header)
+	endOfEpoch, err := mp.createEndOfEpochForMetablock(metaHdr)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	header.EndOfEpoch = *endOfEpoch
+	metaHdr.EndOfEpoch = *endOfEpoch
 
 	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return nil
@@ -1520,10 +1520,10 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.ValidatorStatsRootHash = rootHash
 
 	mp.blockSizeThrottler.Add(
-		round,
-		core.MaxUint32(header.ItemsInBody(), header.ItemsInHeader()))
+		metaHdr.GetRound(),
+		core.MaxUint32(metaHdr.ItemsInBody(), metaHdr.ItemsInHeader()))
 
-	return header, nil
+	return nil
 }
 
 func (mp *metaProcessor) createEndOfEpochForMetablock(metaBlock *block.MetaBlock) (*block.EndOfEpoch, error) {
@@ -1559,31 +1559,6 @@ func (mp *metaProcessor) createEndOfEpochForMetablock(metaBlock *block.MetaBlock
 	}
 
 	return endOfEpoch, nil
-}
-
-func (mp *metaProcessor) ApplyValidatorStatistics(header data.HeaderHandler) error {
-	metaHdr, ok := header.(*block.MetaBlock)
-	if !ok {
-		err = process.ErrWrongTypeAssertion
-		return err
-	}
-
-	totalTxCount, miniBlockHeaders, err := mp.createMiniBlockHeaders(body)
-	if err != nil {
-		return err
-	}
-
-	metaHdr.MiniBlockHeaders = miniBlockHeaders
-	metaHdr.TxCount += uint32(totalTxCount)
-
-	rootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr)
-	if err != nil {
-		return err
-	}
-
-	metaHdr.ValidatorStatsRootHash = rootHash
-
-	return nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {

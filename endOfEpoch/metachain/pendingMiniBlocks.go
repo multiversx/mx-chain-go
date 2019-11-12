@@ -95,7 +95,7 @@ func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler)
 
 	for _, shardData := range metaHdr.ShardInfo {
 		for _, mbHeader := range shardData.ShardMiniBlockHeaders {
-			if mbHeader.SenderShardId == mbHeader.ReceiverShardId {
+			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
 				continue
 			}
 
@@ -153,7 +153,7 @@ func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error
 
 	for _, shardData := range metaHdr.ShardInfo {
 		for _, mbHeader := range shardData.ShardMiniBlockHeaders {
-			if mbHeader.SenderShardId == mbHeader.ReceiverShardId {
+			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
 				continue
 			}
 
