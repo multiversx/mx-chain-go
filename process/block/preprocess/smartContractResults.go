@@ -146,6 +146,11 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		scrBuff, err := scr.storage.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
+			log.Info(fmt.Sprintf("unsigned tx from mini block with sender shard %d and receiver shard %d, having %d txs, was not found in UnsignedTransactionUnit\n",
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID,
+				len(miniBlock.TxHashes)))
+
 			return scrRestored, err
 		}
 
@@ -157,11 +162,6 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 			}
 
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
-
-			err = scr.storage.GetStorer(dataRetriever.UnsignedTransactionUnit).Remove([]byte(txHash))
-			if err != nil {
-				return scrRestored, err
-			}
 		}
 
 		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
@@ -170,11 +170,6 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		}
 
 		miniBlockPool.Put(miniBlockHash, miniBlock)
-
-		err = scr.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
-		if err != nil {
-			return scrRestored, err
-		}
 
 		scrRestored += len(miniBlock.TxHashes)
 	}

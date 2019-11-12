@@ -104,7 +104,7 @@ func TestInterceptedMetaHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	badShardId := uint32(2)
 	hdr.ShardInfo = []dataBlock.ShardData{
 		{
-			ShardId:               badShardId,
+			ShardID:               badShardId,
 			HeaderHash:            nil,
 			ShardMiniBlockHeaders: nil,
 			TxCount:               0,

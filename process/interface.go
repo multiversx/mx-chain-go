@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 	"time"
 
@@ -12,8 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -212,21 +211,20 @@ type BlockProcessor interface {
 	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
 	RevertStateToBlock(header data.HeaderHandler) error
-	CreateBlockBody(round uint64, haveTime func() bool) (data.BodyHandler, error)
+	CreateNewHeader() data.HeaderHandler
+	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	CreateBlockHeader(body data.BodyHandler, round uint64, haveTime func() bool) (data.HeaderHandler, error)
+	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
-	ApplyValidatorStatistics(header data.HeaderHandler) error
 }
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
-	SaveInitialState(in []*sharding.InitialNode) error
 	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
 	RevertPeerStateToSnapshot(snapshot int) error
@@ -267,13 +265,6 @@ type HashAccesser interface {
 	Hash() []byte
 }
 
-// InterceptedBlockBody interface provides functionality over intercepted blocks
-type InterceptedBlockBody interface {
-	Checker
-	HashAccesser
-	GetUnderlyingObject() interface{}
-}
-
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
@@ -288,14 +279,14 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
+	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error
 	RemoveHeaders(nonce uint64, hash []byte)
-	CheckFork() (forkDetected bool, nonce uint64, hash []byte)
+	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	ProbableHighestNonce() uint64
-	ResetProbableHighestNonceIfNeeded()
 	ResetProbableHighestNonce()
 	ResetFork()
+	GetNotarizedHeaderHash(nonce uint64) []byte
 	IsInterfaceNil() bool
 }
 
@@ -367,11 +358,11 @@ type VirtualMachinesContainer interface {
 // VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
-	VMAccountsDB() *hooks.VMAccountsDB
+	BlockChainHookImpl() BlockChainHookHandler
 	IsInterfaceNil() bool
 }
 
-// EndOfEpochHandler defines that actions which are needed by processor for end of epoch
+// EndOfEpochTriggerHandler defines that actions which are needed by processor for end of epoch
 type EndOfEpochTriggerHandler interface {
 	ReceivedHeader(header data.HeaderHandler)
 	IsEndOfEpoch() bool
@@ -387,6 +378,12 @@ type PendingMiniBlocksHandler interface {
 	IsInterfaceNil() bool
 }
 
+// BlockChainHookHandler defines the actions which should be performed by implementation
+type BlockChainHookHandler interface {
+	TemporaryAccountsHandler
+	SetCurrentHeader(hdr data.HeaderHandler)
+}
+
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
@@ -394,30 +391,12 @@ type Interceptor interface {
 	IsInterfaceNil() bool
 }
 
-// MessageHandler defines the functionality needed by structs to send data to other peers
-type MessageHandler interface {
-	ConnectedPeersOnTopic(topic string) []p2p.PeerID
-	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
-	IsInterfaceNil() bool
-}
-
-type topicHandler interface {
+// TopicHandler defines the functionality needed by structs to manage topics and message processors
+type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
-}
-
-// TopicHandler defines the functionality needed by structs to manage topics and message processors
-type TopicHandler interface {
-	topicHandler
 	IsInterfaceNil() bool
-}
-
-// TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
-// to other peers
-type TopicMessageHandler interface {
-	MessageHandler
-	topicHandler
 }
 
 // DataPacker can split a large slice of byte slices in smaller packets
@@ -485,6 +464,13 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
+// ValidatorSettingsHandler
+type ValidatorSettingsHandler interface {
+	UnBoundPeriod() uint64
+	StakeValue() *big.Int
+	IsInterfaceNil() bool
+}
+
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
@@ -507,10 +493,30 @@ type EconomicsAddressesHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes
+type SmartContractToProtocolHandler interface {
+	UpdateProtocol(body block.Body, nonce uint64) error
+	IsInterfaceNil() bool
+}
+
+// PeerChangesHandler will create the peer changes data for current block and will verify them
+type PeerChangesHandler interface {
+	PeerChanges() []block.PeerData
+	VerifyPeerChanges(peerChanges []block.PeerData) error
+	IsInterfaceNil() bool
+}
+
 // MiniBlocksCompacter defines the functionality that is needed for mini blocks compaction and expansion
 type MiniBlocksCompacter interface {
 	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice
 	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
+	IsInterfaceNil() bool
+}
+
+// BlackListHandler can determine if a certain key is or not blacklisted
+type BlackListHandler interface {
+	Add(key string) error
+	Has(key string) bool
 	IsInterfaceNil() bool
 }
 

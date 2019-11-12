@@ -403,7 +403,7 @@ func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	}
 }
 
-// WithEndOfEpochTrigger sets up an end of trigger option for the node
+// WithEndOfEpochTrigger sets up an end of epoch trigger option for the node
 func WithEndOfEpochTrigger(endOfEpochTrigger endOfEpoch.TriggerHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(endOfEpochTrigger) {
@@ -430,6 +430,17 @@ func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 func WithIndexer(indexer indexer.Indexer) Option {
 	return func(n *Node) error {
 		n.indexer = indexer
+		return nil
+	}
+}
+
+// WithBlackListHandler sets up a black list handler for the Node
+func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(blackListHandler) {
+			return ErrNilBlackListHandler
+		}
+		n.blackListHandler = blackListHandler
 		return nil
 	}
 }

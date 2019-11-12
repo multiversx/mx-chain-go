@@ -16,7 +16,7 @@ func InitChronologyHandlerMock() consensus.ChronologyHandler {
 
 func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock := &BlockProcessorMock{}
-	blockProcessorMock.CreateBlockCalled = func(round uint64, haveTime func() bool) (data.BodyHandler, error) {
+	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 		emptyBlock := make(block.Body, 0)
 
 		return emptyBlock, nil
@@ -28,8 +28,9 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
-	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler, round uint64, haveTime func() bool) (header data.HeaderHandler, e error) {
-		return &block.Header{RootHash: []byte{}}, nil
+	blockProcessorMock.ApplyBodyToHeaderCalled = func(hdr data.HeaderHandler, body data.BodyHandler) error {
+		hdr.SetRootHash([]byte{})
+		return nil
 	}
 	blockProcessorMock.DecodeBlockBodyCalled = func(dta []byte) data.BodyHandler {
 		return block.Body{}
@@ -39,6 +40,9 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	}
 	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte, 0), make(map[string][][]byte, 0), nil
+	}
+	blockProcessorMock.CreateNewHeaderCalled = func() data.HeaderHandler {
+		return &block.Header{}
 	}
 
 	return blockProcessorMock

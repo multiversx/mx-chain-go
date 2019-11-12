@@ -26,7 +26,7 @@ import (
 )
 
 func haveTime() time.Duration {
-	return time.Duration(2000 * time.Millisecond)
+	return 2000 * time.Millisecond
 }
 
 func createTestBlockchain() *mock.BlockChainMock {
@@ -180,6 +180,9 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs.MaxSizeCalled = func() int {
 				return 1000
 			}
+			cs.KeysCalled = func() [][]byte {
+				return nil
+			}
 			return cs
 		},
 	}
@@ -285,15 +288,15 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 	metaBlock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{
-				ShardId:               senderShardId,
+				ShardID:               senderShardId,
 				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(miniBlockHashes)),
 			},
 		},
 	}
 
 	for idx, mbHash := range miniBlockHashes {
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardId = destShardId
-		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardId = senderShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardID = destShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardID = senderShardId
 		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].Hash = mbHash
 	}
 
@@ -371,12 +374,14 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			StartHeaders:                 createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
 			RequestHandler:               &mock.RequestHandlerMock{},
 			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
 			HeaderValidator:              headerValidator,
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        initDataPool([]byte("")),
-		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
@@ -390,7 +395,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	arguments.Hasher = &mock.HasherMock{}
 	bp, _ := blproc.NewShardProcessor(arguments)
 	blkc := createTestBlockchain()
-	body := &block.Body{}
+	body := block.Body{}
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.Round = 1
@@ -621,7 +626,7 @@ func createShardProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.Header{
 			Nonce:         i,
-			Round:         uint64(i),
+			Round:         i,
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,
@@ -652,7 +657,7 @@ func createMetaProcessHeadersToSaveLastNoterized(
 	for i := uint64(1); i <= highestNonce; i++ {
 		hdr := &block.MetaBlock{
 			Nonce:         i,
-			Round:         uint64(i),
+			Round:         i,
 			Signature:     rootHash,
 			RandSeed:      rootHash,
 			PrevRandSeed:  rootHash,
@@ -883,4 +888,79 @@ func TestBaseProcessor_RemoveLastNotarizedShouldNotDeleteTheLastRecord(t *testin
 		hdr := base.LastNotarizedHdrForShard(i)
 		assert.Equal(t, genesisBlcks[i], hdr)
 	}
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: 2,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: 1,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{
+		EpochCalled: func() uint32 {
+			return 2
+		},
+		IsEndOfEpochCalled: func() bool {
+			return true
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: 1,
+			}
+		},
+	}
+	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5}
+
+	blk := make(block.Body, 0)
+	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
+
+	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
 }

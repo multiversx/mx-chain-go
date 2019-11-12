@@ -93,6 +93,25 @@ func TestCheckIfNil_NilGasProvided(t *testing.T) {
 	assert.Equal(t, vm.ErrInputGasProvidedIsNil, err)
 }
 
+func TestCheckIfNil_NilHeader(t *testing.T) {
+	t.Parallel()
+
+	err := CheckIfNil(&vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  []byte("tralala"),
+			Arguments:   nil,
+			CallValue:   big.NewInt(0),
+			GasPrice:    big.NewInt(0),
+			GasProvided: big.NewInt(0),
+			Header:      nil,
+		},
+		RecipientAddr: []byte("tralala"),
+		Function:      "something",
+	})
+
+	assert.Equal(t, vm.ErrInputHeaderIsNil, err)
+}
+
 func TestCheckIfNil_NilRecipientAddr(t *testing.T) {
 	t.Parallel()
 
@@ -141,7 +160,7 @@ func TestCheckIfNil(t *testing.T) {
 			CallValue:   big.NewInt(0),
 			GasPrice:    big.NewInt(0),
 			GasProvided: big.NewInt(0),
-			Header:      nil,
+			Header:      &vmcommon.SCCallHeader{},
 		},
 		RecipientAddr: []byte("tralala"),
 		Function:      "something",

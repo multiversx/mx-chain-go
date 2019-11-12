@@ -1,10 +1,10 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 )
@@ -20,7 +20,7 @@ type ArgsNewMetaEndOfEpochTrigger struct {
 type trigger struct {
 	isEndOfEpoch                  bool
 	epoch                         uint32
-	currentRoundIndex             int64
+	currentRound                  int64
 	epochStartRound               int64
 	roundsPerEpoch                int64
 	roundsBetweenForcedEndOfEpoch int64
@@ -58,29 +58,29 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 	}, nil
 }
 
-// IsEndOfEpoch return true if conditions are fullfilled for end of epoch
+// IsEndOfEpoch return true if conditions are fulfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
 	return t.isEndOfEpoch
 }
 
 // ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
 func (t *trigger) ForceEndOfEpoch(round int64) error {
-	if t.currentRoundIndex > round {
-		return endOfEpoch.ErrSavedRoundIsHigherThanSaved
+	if t.currentRound > round {
+		return endOfEpoch.ErrSavedRoundIsHigherThanInput
 	}
-	if t.currentRoundIndex == round {
-		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnNewRound
+	if t.currentRound == round {
+		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnlyOnNewRound
 	}
 
-	t.currentRoundIndex = round
+	t.currentRound = round
 
-	if t.currentRoundIndex-t.epochStartRound < t.roundsBetweenForcedEndOfEpoch {
+	if t.currentRound-t.epochStartRound < t.roundsBetweenForcedEndOfEpoch {
 		return endOfEpoch.ErrNotEnoughRoundsBetweenEpochs
 	}
 
 	t.epochStartTime = t.rounder.TimeStamp()
 	t.epoch += 1
-	t.epochStartRound = t.currentRoundIndex
+	t.epochStartRound = t.currentRound
 	t.isEndOfEpoch = true
 
 	return nil
@@ -88,23 +88,17 @@ func (t *trigger) ForceEndOfEpoch(round int64) error {
 
 // Update processes changes in the trigger
 func (t *trigger) Update(round int64) {
-	if t.currentRoundIndex > round {
-		return
-	}
-	if t.currentRoundIndex == round {
-		return
-	}
-	if t.currentRoundIndex+1 != round {
+	if t.currentRound+1 != round {
 		return
 	}
 
-	t.currentRoundIndex = round
+	t.currentRound = round
 
-	if t.currentRoundIndex > t.roundsPerEpoch {
+	if t.currentRound > t.roundsPerEpoch {
 		t.epoch += 1
 		t.epochStartTime = t.rounder.TimeStamp()
 		t.isEndOfEpoch = true
-		t.epochStartRound = t.currentRoundIndex
+		t.epochStartRound = t.currentRound
 	}
 }
 
@@ -118,7 +112,7 @@ func (t *trigger) Epoch() uint32 {
 	return t.epoch
 }
 
-// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fullfilled
+// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 }
 
