@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch/shardchain"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -140,6 +143,8 @@ type TestProcessorNode struct {
 	BroadcastMessenger consensus.BroadcastMessenger
 	Bootstrapper       TestBootstrapper
 	Rounder            *mock.RounderMock
+
+	EndOfEpochTrigger endOfEpoch.TriggerHandler
 
 	MultiSigner crypto.MultiSigner
 
@@ -637,12 +642,24 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockChainHookImpl,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
-		EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
 		HeaderValidator:              headerValidator,
 		Rounder:                      &mock.RounderMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
+		rounder := &mock.RounderMock{}
+		argsEndOfEpoch := &metachain.ArgsNewMetaEndOfEpochTrigger{
+			Rounder:     rounder,
+			GenesisTime: rounder.TimeStamp(),
+			Settings: &config.EndOfEpochConfig{
+				MinRoundsBetweenEpochs: 1000,
+				RoundsPerEpoch:         10000,
+			},
+			Epoch: 0,
+		}
+		tpn.EndOfEpochTrigger, _ = metachain.NewEndOfEpochTrigger(argsEndOfEpoch)
+
+		argumentsBase.EndOfEpochTrigger = tpn.EndOfEpochTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
@@ -667,6 +684,21 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
+		argsShardEndOfEpoch := &shardchain.ArgsShardEndOfEpochTrigger{
+			Marshalizer:     TestMarshalizer,
+			Hasher:          TestHasher,
+			HeaderValidator: headerValidator,
+			Uint64Converter: TestUint64Converter,
+			DataPool:        tpn.ShardDataPool,
+			Storage:         tpn.Storage,
+			RequestHandler:  tpn.RequestHandler,
+			Epoch:           0,
+			Validity:        1,
+			Finality:        1,
+		}
+		tpn.EndOfEpochTrigger, _ = shardchain.NewEndOfEpochTrigger(argsShardEndOfEpoch)
+
+		argumentsBase.EndOfEpochTrigger = tpn.EndOfEpochTrigger
 		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{

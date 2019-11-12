@@ -121,7 +121,7 @@ func TestTrigger_Update(t *testing.T) {
 	epc := neoet.Epoch()
 	assert.Equal(t, epoch+1, epc)
 
-	neoet.SetIsEndOfEpoch(false)
+	neoet.Processed()
 	ret = neoet.IsEndOfEpoch()
 	assert.False(t, ret)
 }

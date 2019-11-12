@@ -107,13 +107,9 @@ func (t *trigger) Update(round int64) {
 	}
 }
 
-// Processed signals end of epoch processing is done
-func (t *trigger) SetIsEndOfEpoch(isEndOfEpoch bool) {
-	t.isEndOfEpoch = isEndOfEpoch
-}
-
-// Clean cleans the underlying data structure
-func (t *trigger) Clean() {
+// Processed sets end of epoch to false and cleans underlying structure
+func (t *trigger) Processed() {
+	t.isEndOfEpoch = false
 }
 
 // Epoch return the current epoch

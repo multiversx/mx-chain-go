@@ -222,6 +222,11 @@ func (mp *metaProcessor) ProcessBlock(
 		go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 	}()
 
+	err = mp.checkEpochCorrectness(header, chainHandler)
+	if err != nil {
+		return err
+	}
+
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
 		return err

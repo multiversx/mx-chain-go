@@ -219,6 +219,11 @@ func (sp *shardProcessor) ProcessBlock(
 		go sp.checkAndRequestIfMetaHeadersMissing(header.Round)
 	}()
 
+	err = sp.checkEpochCorrectness(header, chainHandler)
+	if err != nil {
+		return err
+	}
+
 	err = sp.checkMetaHeadersValidityAndFinality()
 	if err != nil {
 		return err

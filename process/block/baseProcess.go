@@ -195,6 +195,19 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
+	// TODO: add signature validation as well, with randomness source and all
+	return nil
+}
+
+func (bp *baseProcessor) checkEpochCorrectness(
+	headerHandler data.HeaderHandler,
+	chainHandler data.ChainHandler,
+) error {
+	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+	if currentBlockHeader == nil {
+		return nil
+	}
+
 	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		bp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
 	if isEpochIncorrect {
@@ -207,7 +220,6 @@ func (bp *baseProcessor) checkBlockValidity(
 		}
 	}
 
-	// TODO: add signature validation as well, with randomness source and all
 	return nil
 }
 

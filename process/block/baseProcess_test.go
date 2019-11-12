@@ -920,15 +920,17 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 		},
 	}
 
+	randSeed := []byte("randseed")
 	sp, _ := blproc.NewShardProcessor(arguments)
 	blockChain := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
-				Epoch: 1,
+				Epoch:    1,
+				RandSeed: randSeed,
 			}
 		},
 	}
-	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5}
+	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
 
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })
@@ -949,15 +951,17 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 		},
 	}
 
+	randSeed := []byte("randseed")
 	sp, _ := blproc.NewShardProcessor(arguments)
 	blockChain := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
-				Epoch: 1,
+				Epoch:    1,
+				RandSeed: randSeed,
 			}
 		},
 	}
-	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5}
+	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
 
 	blk := make(block.Body, 0)
 	err := sp.ProcessBlock(blockChain, header, blk, func() time.Duration { return time.Second })

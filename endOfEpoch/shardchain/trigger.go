@@ -131,6 +131,9 @@ func NewEndOfEpochTrigger(args *ArgsShardEndOfEpochTrigger) (*trigger, error) {
 
 // IsEndOfEpoch returns true if conditions are fulfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
+	t.mutReceived.Lock()
+	defer t.mutReceived.Unlock()
+
 	return t.isEndOfEpoch
 }
 
@@ -310,13 +313,8 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 func (t *trigger) Update(round int64) {
 }
 
-// Processed signals end of epoch processing is done
-func (t *trigger) SetIsEndOfEpoch(isEndOfEpoch bool) {
-	t.isEndOfEpoch = isEndOfEpoch
-}
-
-// Clean cleans the underlying data structure
-func (t *trigger) Clean() {
+// Processed sets end of epoch to false and cleans underlying structure
+func (t *trigger) Processed() {
 	t.isEndOfEpoch = false
 	t.newEpochHdrReceived = false
 }
