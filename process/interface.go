@@ -481,3 +481,18 @@ type NetworkConnectionWatcher interface {
 	IsConnectedToTheNetwork() bool
 	IsInterfaceNil() bool
 }
+
+// BlockTracker defines the functionality for node to track the blocks which are received from network
+type BlockTracker interface {
+	IsShardStuck(shardId uint32) bool
+	SetLastHeaderForShard(header data.HeaderHandler)
+	LastHeaderForShard(shardId uint32) data.HeaderHandler
+	IsInterfaceNil() bool
+}
+
+// HeaderPoolsCleaner defines the functionality that is needed for a header pools cleaner
+type HeaderPoolsCleaner interface {
+	Clean(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64)
+	NumRemovedHeaders() uint64
+	IsInterfaceNil() bool
+}

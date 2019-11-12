@@ -139,6 +139,9 @@ var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
+// ErrNilNotarizedHeadersDataPool signals that a nil notarized headers pool has been provided
+var ErrNilNotarizedHeadersDataPool = errors.New("nil notarized headers data pool")
+
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
