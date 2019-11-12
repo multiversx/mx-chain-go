@@ -77,6 +77,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/urfave/cli"
@@ -105,6 +106,9 @@ const MaxTxNonceDeltaAllowed = 15000
 // ErrCreateForkDetector signals that a fork detector could not be created
 //TODO: Extract all others error messages from this file in some defined errors
 var ErrCreateForkDetector = errors.New("could not create fork detector")
+
+// timeSpanForBadHeaders is the expiry time for an added block header hash
+var timeSpanForBadHeaders = time.Minute * 2
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
@@ -154,6 +158,7 @@ type Process struct {
 	Rounder               consensus.Rounder
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
+	BlackListHandler      process.BlackListHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -493,7 +498,7 @@ func NewProcessComponentsFactoryArgs(
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
-	interceptorContainerFactory, resolversContainerFactory, err := newInterceptorAndResolverContainerFactory(
+	interceptorContainerFactory, resolversContainerFactory, blackListHandler, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
 		args.data, args.core,
@@ -531,7 +536,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	forkDetector, err := newForkDetector(rounder, args.shardCoordinator)
+	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -559,6 +564,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		forkDetector,
 		genesisBlocks,
+		rounder,
 	)
 
 	if err != nil {
@@ -571,6 +577,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		Rounder:               rounder,
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
+		BlackListHandler:      blackListHandler,
 	}, nil
 }
 
@@ -1324,7 +1331,7 @@ func newInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
+) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorAndResolverContainerFactory(
@@ -1351,7 +1358,7 @@ func newInterceptorAndResolverContainerFactory(
 		)
 	}
 
-	return nil, nil, errors.New("could not create interceptor and resolver container factory")
+	return nil, nil, nil, errors.New("could not create interceptor and resolver container factory")
 }
 
 func newShardInterceptorAndResolverContainerFactory(
@@ -1363,8 +1370,9 @@ func newShardInterceptorAndResolverContainerFactory(
 	state *State,
 	network *Network,
 	economics *economics.EconomicsData,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
+) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
+	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		state.AccountsAdapter,
 		shardCoordinator,
@@ -1380,14 +1388,15 @@ func newShardInterceptorAndResolverContainerFactory(
 		state.AddressConverter,
 		MaxTxNonceDeltaAllowed,
 		economics,
+		headerBlackList,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	resolversContainerFactory, err := shardfactoryDataRetriever.NewResolversContainerFactory(
@@ -1400,10 +1409,10 @@ func newShardInterceptorAndResolverContainerFactory(
 		dataPacker,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return interceptorContainerFactory, resolversContainerFactory, nil
+	return interceptorContainerFactory, resolversContainerFactory, headerBlackList, nil
 }
 
 func newMetaInterceptorAndResolverContainerFactory(
@@ -1415,8 +1424,9 @@ func newMetaInterceptorAndResolverContainerFactory(
 	network *Network,
 	state *State,
 	economics *economics.EconomicsData,
-) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, error) {
+) (process.InterceptorsContainerFactory, dataRetriever.ResolversContainerFactory, process.BlackListHandler, error) {
 
+	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	interceptorContainerFactory, err := metachain.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		nodesCoordinator,
@@ -1432,14 +1442,15 @@ func newMetaInterceptorAndResolverContainerFactory(
 		crypto.TxSignKeyGen,
 		MaxTxNonceDeltaAllowed,
 		economics,
+		headerBlackList,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(core.Marshalizer)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	resolversContainerFactory, err := metafactoryDataRetriever.NewResolversContainerFactory(
@@ -1452,9 +1463,9 @@ func newMetaInterceptorAndResolverContainerFactory(
 		dataPacker,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return interceptorContainerFactory, resolversContainerFactory, nil
+	return interceptorContainerFactory, resolversContainerFactory, headerBlackList, nil
 }
 
 func generateGenesisHeadersAndApplyInitialBalances(
@@ -1658,12 +1669,13 @@ func createInMemoryShardCoordinatorAndAccount(
 func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
+	headerBlackList process.BlackListHandler,
 ) (process.ForkDetector, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return processSync.NewShardForkDetector(rounder)
+		return processSync.NewShardForkDetector(rounder, headerBlackList)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return processSync.NewMetaForkDetector(rounder)
+		return processSync.NewMetaForkDetector(rounder, headerBlackList)
 	}
 
 	return nil, ErrCreateForkDetector
@@ -1674,6 +1686,7 @@ func newBlockProcessor(
 	resolversFinder dataRetriever.ResolversFinder,
 	forkDetector process.ForkDetector,
 	genesisBlocks map[uint32]data.HeaderHandler,
+	rounder consensus.Rounder,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1719,6 +1732,7 @@ func newBlockProcessor(
 			genesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
+			rounder,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1740,6 +1754,7 @@ func newBlockProcessor(
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
+			rounder,
 		)
 	}
 
@@ -1758,6 +1773,7 @@ func newShardBlockProcessor(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
+	rounder consensus.Rounder,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1950,6 +1966,7 @@ func newShardBlockProcessor(
 		Core:                  coreServiceContainer,
 		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
+		Rounder:               rounder,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1983,6 +2000,7 @@ func newMetaBlockProcessor(
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	rounder consensus.Rounder,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2150,6 +2168,7 @@ func newMetaBlockProcessor(
 		BlockChainHook:               vmFactory.BlockChainHookImpl(),
 		TxCoordinator:                txCoordinator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+		Rounder:                      rounder,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,

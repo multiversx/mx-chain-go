@@ -126,7 +126,7 @@ func CreateMetaGenesisBlock(
 		return nil, process.ErrNilUint64Converter
 	}
 	if args.MetaDatapool == nil || args.MetaDatapool.IsInterfaceNil() {
-		return nil, process.ErrNilMetaBlockPool
+		return nil, process.ErrNilMetaBlocksPool
 	}
 
 	txProcessor, systemSmartContracts, err := createProcessorsForMetaGenesisBlock(args)

@@ -14,6 +14,7 @@ type HdrInterceptorProcessor struct {
 	headers       storage.Cacher
 	headersNonces dataRetriever.Uint64SyncMapCacher
 	hdrValidator  process.HeaderValidator
+	blackList     process.BlackListHandler
 }
 
 // NewHdrInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -30,11 +31,15 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.HdrValidator) {
 		return nil, process.ErrNilHdrValidator
 	}
+	if check.IfNil(argument.BlackList) {
+		return nil, process.ErrNilBlackListHandler
+	}
 
 	return &HdrInterceptorProcessor{
 		headers:       argument.Headers,
 		headersNonces: argument.HeadersNonces,
 		hdrValidator:  argument.HdrValidator,
+		blackList:     argument.BlackList,
 	}, nil
 }
 
@@ -43,6 +48,11 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData) error
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
+	if isBlackListed {
+		return process.ErrHeaderIsBlackListed
 	}
 
 	return hip.hdrValidator.HeaderValidForProcessing(interceptedHdr)
