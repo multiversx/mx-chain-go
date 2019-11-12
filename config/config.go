@@ -1,7 +1,5 @@
 package config
 
-import "time"
-
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
 	Size   uint32 `json:"size"`
@@ -50,10 +48,10 @@ type TypeConfig struct {
 
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
-	Host    string
-	Port    int
-	Timeout time.Duration
-	Version int
+	Hosts               []string
+	Port                int
+	TimeoutMilliseconds int
+	Version             int
 }
 
 // EndOfEpochConfig will hold the configuration of EndOfEpoch settings

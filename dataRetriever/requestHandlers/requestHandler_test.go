@@ -22,6 +22,7 @@ func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -38,6 +39,7 @@ func TestNewMetaResolverRequestShardHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -54,6 +56,7 @@ func TestNewMetaResolverRequestMetaHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -70,6 +73,7 @@ func TestNewMetaResolverRequestTxHandlerEmptyTopic(t *testing.T) {
 		"",
 		"scr topic",
 		"miniblock topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -86,6 +90,7 @@ func TestNewMetaResolverRequestScrHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"",
 		"miniblock topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -102,10 +107,28 @@ func TestNewMetaResolverRequestMiniBlockHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"",
+		100,
 	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyMiniBlockRequestTopic, err)
+}
+
+func TestNewMetaResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"meta topic",
+		"tx topic",
+		"scr topic",
+		"mb topic",
+		0,
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrInvalidMaxTxRequest, err)
 }
 
 func TestNewMetaResolverRequestHandler(t *testing.T) {
@@ -118,6 +141,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		100,
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rrh)
@@ -685,6 +709,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceMetaShouldRequest(t *testing
 		"topic",
 		"topic",
 		"topic",
+		100,
 	)
 
 	rrh.RequestHeaderByNonce(0, 0)
