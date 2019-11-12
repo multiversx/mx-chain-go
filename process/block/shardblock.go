@@ -336,7 +336,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		if metaHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 			err := sp.isHdrConstructionValid(metaHdr, lastVerifiedHdr)
 			if err != nil {
-				sp.removeHeaderFromPools(metaHdr, sp.dataPool.MetaBlocks(), sp.dataPool.HeadersNonces())
+				go sp.removeHeaderFromPools(metaHdr, sp.dataPool.MetaBlocks(), sp.dataPool.HeadersNonces())
 				log.Debug(err.Error())
 				continue
 			}
@@ -499,16 +499,6 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 
 	sp.removeLastNotarized()
 
-	//TODO: Remove this print
-	metaBlock := sp.lastNotarizedHdrForShard(sharding.MetachainShardId)
-	metaBlockHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, metaBlock)
-	if metaBlockHash != nil {
-		log.Info(fmt.Sprintf("restored last notarized metablock with round = %d, nonce = %d, hash = %s\n",
-			metaBlock.GetRound(),
-			metaBlock.GetNonce(),
-			core.ToB64(metaBlockHash)))
-	}
-
 	return nil
 }
 
@@ -554,8 +544,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 			log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 		}
 
-		//TODO: Change this print to debug
-		log.Info(fmt.Sprintf("meta block with round = %d, nonce = %d, hash = %s has been restored successfully\n",
+		log.Debug(fmt.Sprintf("meta block with round = %d, nonce = %d, hash = %s has been restored successfully\n",
 			metaBlock.Round,
 			metaBlock.Nonce,
 			core.ToB64(metaBlockHash)))
@@ -779,7 +768,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.dataPool.MiniBlocks().MaxSize(),
 	))
 
-	sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
+	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
 
 	return nil
 }
@@ -1069,8 +1058,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 		sp.dataPool.HeadersNonces().Remove(hdr.GetNonce(), sharding.MetachainShardId)
 		sp.removeAllProcessedMiniBlocks(headerHash)
 
-		//TODO: Change this print to debug
-		log.Info(fmt.Sprintf("metaBlock with round %d nonce %d and hash %s has been processed completely and removed from pool\n",
+		log.Debug(fmt.Sprintf("metaBlock with round %d nonce %d and hash %s has been processed completely and removed from pool\n",
 			hdr.GetRound(),
 			hdr.GetNonce(),
 			core.ToB64(headerHash)))
