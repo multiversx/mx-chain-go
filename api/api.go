@@ -46,10 +46,31 @@ type MainApiHandler interface {
 	IsInterfaceNil() bool
 }
 
+type ginWriter struct {
+}
+
+func (gv *ginWriter) Write(p []byte) (n int, err error) {
+	log.Debug("gin server", "message", string(p))
+
+	return len(p), nil
+}
+
+type ginErrorWriter struct {
+}
+
+func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
+	log.Debug("gin server", "error", string(p))
+
+	return len(p), nil
+}
+
 // Start will boot up the api and appropriate routes, handlers and validators
 func Start(elrondFacade MainApiHandler) error {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
+		gin.DefaultWriter = &ginWriter{}
+		gin.DefaultErrorWriter = &ginErrorWriter{}
+		gin.DisableConsoleColor()
 		gin.SetMode(gin.ReleaseMode)
 	}
 	ws = gin.Default()
