@@ -3,7 +3,7 @@ package shard
 import (
 	"testing"
 
-	arwenconfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -17,7 +17,7 @@ func TestNewVMContainerFactory_NilAccountsShouldErr(t *testing.T) {
 		nil,
 		&mock.AddressConverterMock{},
 		10000,
-		arwenconfig.MakeGasMap(1),
+		arwenConfig.MakeGasMap(1),
 	)
 
 	assert.Nil(t, vmf)
@@ -31,7 +31,7 @@ func TestNewVMContainerFactory_NilAddressConverterShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		nil,
 		10000,
-		arwenconfig.MakeGasMap(1),
+		arwenConfig.MakeGasMap(1),
 	)
 
 	assert.Nil(t, vmf)
@@ -59,7 +59,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		10000,
-		arwenconfig.MakeGasMap(1),
+		arwenConfig.MakeGasMap(1),
 	)
 
 	assert.NotNil(t, vmf)
@@ -73,7 +73,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.AddressConverterMock{},
 		10000,
-		arwenconfig.MakeGasMap(1),
+		arwenConfig.MakeGasMap(1),
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)

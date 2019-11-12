@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	arwenconfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -289,7 +289,7 @@ func CreateVMContainerAndBlockchainHook(
 	accnts state.AccountsAdapter,
 ) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	gasSchedule := arwenconfig.MakeGasMap(1)
+	gasSchedule := arwenConfig.MakeGasMap(1)
 	vmFactory, _ := shard.NewVMContainerFactory(accnts, TestAddressConverter, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
@@ -1323,17 +1323,4 @@ func StartP2pBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(p2pBootstrapStepDelay)
-}
-
-func MakeDummyGasSchedule() map[string]uint64 {
-	gasSchedule := make(map[string]uint64)
-
-	gasSchedule = arwenconfig.FillGasMap_BaseOperationCosts(gasSchedule, 1)
-	gasSchedule = arwenconfig.FillGasMap_ElrondAPICosts(gasSchedule, 1)
-	gasSchedule = arwenconfig.FillGasMap_EthereumAPICosts(gasSchedule, 1)
-	gasSchedule = arwenconfig.FillGasMap_BigIntAPICosts(gasSchedule, 1)
-	gasSchedule = arwenconfig.FillGasMap_CryptoAPICosts(gasSchedule, 1)
-	gasSchedule = arwenconfig.FillGasMap_WASMOpcodeValues(gasSchedule, 1)
-
-	return gasSchedule
 }

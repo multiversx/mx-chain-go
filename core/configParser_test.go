@@ -59,13 +59,13 @@ func TestLoadServersPConfig_ShouldPass(t *testing.T) {
 func TestLoadGasScheduleConfig(t *testing.T) {
 	testString := `
 [GasSchedule]
-		GetFunction = 84
-		StorageStore = 11
-		BigIntNew = 9
-		BigIntAdd = 44
-		Drop = 1
-		I64Load = 12
-		MemoryCopy = 14623
+    GetFunction = 84
+    StorageStore = 11
+    BigIntNew = 9
+    BigIntAdd = 44
+    Drop = 1
+    I64Load = 12
+    MemoryCopy = 14623
 `
 
 	file, err := os.Create("testGasSchedule.toml")
