@@ -27,17 +27,23 @@ var log = logger.DefaultLogger()
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
 
+// HdrInfo hold the data related to a header
+type HdrInfo struct {
+	Nonce uint64
+	Hash  []byte
+}
+
 type notarizedInfo struct {
-	lastNotarized           map[uint32]uint64
-	finalNotarized          map[uint32]uint64
+	lastNotarized           map[uint32]*HdrInfo
+	finalNotarized          map[uint32]*HdrInfo
 	blockWithLastNotarized  map[uint32]uint64
 	blockWithFinalNotarized map[uint32]uint64
 	startNonce              uint64
 }
 
 func (ni *notarizedInfo) reset() {
-	ni.lastNotarized = make(map[uint32]uint64, 0)
-	ni.finalNotarized = make(map[uint32]uint64, 0)
+	ni.lastNotarized = make(map[uint32]*HdrInfo, 0)
+	ni.finalNotarized = make(map[uint32]*HdrInfo, 0)
 	ni.blockWithLastNotarized = make(map[uint32]uint64, 0)
 	ni.blockWithFinalNotarized = make(map[uint32]uint64, 0)
 	ni.startNonce = uint64(0)
@@ -59,6 +65,7 @@ type baseBootstrap struct {
 	accounts            state.AccountsAdapter
 	storageBootstrapper storageBootstrapper
 	blockBootstrapper   blockBootstrapper
+	blackListHandler    process.BlackListHandler
 
 	mutHeader     sync.RWMutex
 	headerNonce   *uint64
@@ -78,9 +85,7 @@ type baseBootstrap struct {
 	hasLastBlock       bool
 	roundIndex         int64
 
-	isForkDetected bool
-	forkNonce      uint64
-	forkHash       []byte
+	forkInfo *process.ForkInfo
 
 	mutRcvHdrNonce        sync.RWMutex
 	mutRcvHdrHash         sync.RWMutex
@@ -113,8 +118,8 @@ func (boot *baseBootstrap) loadBlocks(
 
 	log.Info(fmt.Sprintf("the highest header nonce committed in storer is %d\n", highestNonceInStorer))
 
-	var finalNotarized map[uint32]uint64
-	var lastNotarized map[uint32]uint64
+	var finalNotarized map[uint32]*HdrInfo
+	var lastNotarized map[uint32]*HdrInfo
 
 	shardId := boot.shardCoordinator.SelfId()
 
@@ -156,8 +161,8 @@ func (boot *baseBootstrap) loadBlocks(
 
 	defer func() {
 		if err != nil {
-			lastNotarized = make(map[uint32]uint64, 0)
-			finalNotarized = make(map[uint32]uint64, 0)
+			lastNotarized = make(map[uint32]*HdrInfo, 0)
+			finalNotarized = make(map[uint32]*HdrInfo, 0)
 			validNonce = 0
 		}
 
@@ -179,7 +184,8 @@ func (boot *baseBootstrap) loadBlocks(
 	}
 
 	for i := validNonce - blockFinality; i <= validNonce; i++ {
-		boot.storageBootstrapper.addHeaderToForkDetector(shardId, i, lastNotarized[sharding.MetachainShardId])
+		withFinalHeaders := i == validNonce-blockFinality
+		boot.addHeaderToForkDetector(shardId, i, withFinalHeaders)
 	}
 
 	return nil
@@ -250,32 +256,6 @@ func (boot *baseBootstrap) removeBlockHeader(
 	blockUnit dataRetriever.UnitType,
 	hdrNonceHashDataUnit dataRetriever.UnitType,
 ) error {
-	headerStore := boot.store.GetStorer(blockUnit)
-	if headerStore == nil {
-		return process.ErrNilHeadersStorage
-	}
-
-	headerNonceHashStore := boot.store.GetStorer(hdrNonceHashDataUnit)
-	if headerNonceHashStore == nil {
-		return process.ErrNilHeadersNonceHashStorage
-	}
-
-	nonceToByteSlice := boot.uint64Converter.ToByteSlice(nonce)
-	headerHash, err := boot.store.Get(hdrNonceHashDataUnit, nonceToByteSlice)
-	if err != nil {
-		return err
-	}
-
-	err = headerStore.Remove(headerHash)
-	if err != nil {
-		return err
-	}
-
-	err = headerNonceHashStore.Remove(nonceToByteSlice)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -345,7 +325,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		core.ToB64(headerHash),
 		headerHandler.GetNonce()))
 
-	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
+	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil, false)
 	if err != nil {
 		log.Debug(err.Error())
 	}
@@ -476,7 +456,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		return false
 	}
 
-	boot.isForkDetected, boot.forkNonce, boot.forkHash = boot.forkDetector.CheckFork()
+	boot.forkInfo = boot.forkDetector.CheckFork()
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= 0
@@ -484,7 +464,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.blkc.GetCurrentBlockHeader().GetNonce()
 	}
 
-	isNodeSynchronized := !boot.isForkDetected && boot.hasLastBlock
+	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
 		boot.isNodeSynchronized = isNodeSynchronized
@@ -519,9 +499,6 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHandler) {
 	hash := boot.removeHeaderFromPools(header)
 	boot.forkDetector.RemoveHeaders(header.GetNonce(), hash)
-	//TODO: Refactor the deletion from the headerStore as that will be an exceptional case in which,
-	//in case of "bad" rollbacks and datapool accidental eviction, the shard will halt.
-	_ = boot.headerStore.Remove(hash)
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(header.GetNonce())
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 }
@@ -538,37 +515,41 @@ func checkBootstrapNilParameters(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
+	blackListHandler process.BlackListHandler,
 	watcher process.NetworkConnectionWatcher,
 ) error {
-	if blkc == nil || blkc.IsInterfaceNil() {
+	if check.IfNil(blkc) {
 		return process.ErrNilBlockChain
 	}
-	if rounder == nil || rounder.IsInterfaceNil() {
+	if check.IfNil(rounder) {
 		return process.ErrNilRounder
 	}
-	if blkExecutor == nil || blkExecutor.IsInterfaceNil() {
+	if check.IfNil(blkExecutor) {
 		return process.ErrNilBlockExecutor
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if forkDetector == nil || forkDetector.IsInterfaceNil() {
+	if check.IfNil(forkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if resolversFinder == nil || resolversFinder.IsInterfaceNil() {
+	if check.IfNil(resolversFinder) {
 		return process.ErrNilResolverContainer
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return process.ErrNilStore
+	}
+	if check.IfNil(blackListHandler) {
+		return process.ErrNilBlackListHandler
 	}
 	if check.IfNil(watcher) {
 		return process.ErrNilNetworkWatcher
@@ -620,11 +601,37 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	}
 
 	if nbRequestedHdrs > 0 {
-		log.Info(fmt.Sprintf("requested in advance %d headers from nonce %d to nonce %d and probable highest nonce is %d\n",
+		log.Info(fmt.Sprintf("requested in advance %d headers from nonce %d to nonce %d as probable highest nonce is %d\n",
 			nbRequestedHdrs,
 			nonce,
 			maxNonce,
 			boot.forkDetector.ProbableHighestNonce()))
+	}
+}
+
+// StopSync method will stop SyncBlocks
+func (boot *baseBootstrap) StopSync() {
+	boot.chStopSync <- true
+}
+
+// syncBlocks method calls repeatedly synchronization method SyncBlock
+func (boot *baseBootstrap) syncBlocks() {
+	for {
+		time.Sleep(sleepTime)
+
+		if !boot.networkWatcher.IsConnectedToTheNetwork() {
+			continue
+		}
+
+		select {
+		case <-boot.chStopSync:
+			return
+		default:
+			err := boot.syncStarter.SyncBlock()
+			if err != nil {
+				log.Info(err.Error())
+			}
+		}
 	}
 }
 
@@ -645,23 +652,29 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 			boot.forkDetector.RemoveHeaders(headerHandler.GetNonce(), hash)
 		}
 
-		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
-			boot.forkDetector.ResetProbableHighestNonce()
-		}
-
 		errNotCritical := boot.rollBack(false)
 		if errNotCritical != nil {
 			log.Info(errNotCritical.Error())
 		}
+
+		if allowedRequestsWithTimeOutHaveReached && isInProperRound {
+			boot.forkDetector.ResetProbableHighestNonce()
+		}
 	}
 }
 
+// syncBlock method actually does the synchronization. It requests the next block header from the pool
+// and if it is not found there it will be requested from the network. After the header is received,
+// it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
+// If either header and body are received the ProcessBlock and CommitBlock method will be called successively.
+// These methods will execute the block and its transactions. Finally if everything works, the block will be committed
+// in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlock() error {
 	if !boot.ShouldSync() {
 		return nil
 	}
 
-	if boot.isForkDetected {
+	if boot.forkInfo.IsDetected {
 		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
 
 		if boot.isForcedFork() {
@@ -671,12 +684,12 @@ func (boot *baseBootstrap) syncBlock() error {
 		}
 
 		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
-			boot.forkNonce,
-			core.ToB64(boot.forkHash)))
+			boot.forkInfo.Nonce,
+			core.ToB64(boot.forkInfo.Hash)))
 
 		err := boot.rollBack(true)
 		if err != nil {
-			log.Info(err.Error())
+			return err
 		}
 	}
 
@@ -691,7 +704,6 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	hdr, err = boot.getNextHeaderRequestingIfMissing()
 	if err != nil {
-		boot.forkDetector.ResetProbableHighestNonceIfNeeded()
 		return err
 	}
 
@@ -739,6 +751,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Info("starting roll back\n")
 	for {
+		currHeaderHash := boot.blkc.GetCurrentBlockHeaderHash()
 		currHeader, err := boot.blockBootstrapper.getCurrHeader()
 		if err != nil {
 			return err
@@ -765,6 +778,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			boot.forkDetector.GetHighestFinalBlockNonce()))
 
 		err = boot.rollBackOneBlock(
+			currHeaderHash,
 			currHeader,
 			currBlockBody,
 			prevHeader,
@@ -776,7 +790,13 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 		boot.statusHandler.Decrement(core.MetricCountConsensusAcceptedBlocks)
 
-		if revertUsingForkNonce && currHeader.GetNonce() > boot.forkNonce {
+		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
+		if shouldAddHeaderToBlackList {
+			process.AddHeaderToBlackList(boot.blackListHandler, currHeaderHash)
+		}
+
+		shouldContinueRollBack := revertUsingForkNonce && currHeader.GetNonce() > boot.forkInfo.Nonce
+		if shouldContinueRollBack {
 			continue
 		}
 
@@ -788,11 +808,20 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(
+	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
 	currBlockBody data.BodyHandler,
 	prevHeader data.HeaderHandler,
 	prevBlockBody data.BodyHandler,
 ) error {
+
+	var err error
+
+	defer func() {
+		if err != nil {
+			boot.restoreState(currHeaderHash, currHeader, currBlockBody)
+		}
+	}()
 
 	var prevHeaderHash []byte
 
@@ -800,7 +829,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		prevHeaderHash = currHeader.GetPrevHash()
 	}
 
-	err := boot.blkc.SetCurrentBlockHeader(prevHeader)
+	err = boot.blkc.SetCurrentBlockHeader(prevHeader)
 	if err != nil {
 		return err
 	}
@@ -817,11 +846,12 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		return err
 	}
 
-	boot.cleanCachesAndStorageOnRollback(currHeader)
-	errNotCritical := boot.blkExecutor.RestoreBlockIntoPools(currHeader, currBlockBody)
-	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+	err = boot.blkExecutor.RestoreBlockIntoPools(currHeader, currBlockBody)
+	if err != nil {
+		return err
 	}
+
+	boot.cleanCachesAndStorageOnRollback(currHeader)
 
 	return nil
 }
@@ -832,8 +862,13 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedHeaderNonce(nil)
 
-	if boot.isForkDetected {
-		return boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(boot.forkHash)
+	hash := boot.forkDetector.GetNotarizedHeaderHash(nonce)
+	if boot.forkInfo.IsDetected {
+		hash = boot.forkInfo.Hash
+	}
+
+	if hash != nil {
+		return boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(hash)
 	}
 
 	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)
@@ -845,7 +880,7 @@ func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
 		return err
 	}
 
-	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil)
+	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil, false)
 	if err != nil {
 		return err
 	}
@@ -854,7 +889,9 @@ func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
 }
 
 func (boot *baseBootstrap) isForcedFork() bool {
-	return boot.isForkDetected && boot.forkNonce == math.MaxUint64 && boot.forkHash == nil
+	return boot.forkInfo.IsDetected &&
+		boot.forkInfo.Nonce == math.MaxUint64 &&
+		boot.forkInfo.Hash == nil
 }
 
 func (boot *baseBootstrap) rollBackOnForcedFork() {
@@ -867,28 +904,57 @@ func (boot *baseBootstrap) rollBackOnForcedFork() {
 	boot.forkDetector.ResetFork()
 }
 
-// StopSync method will stop SyncBlocks
-func (boot *baseBootstrap) StopSync() {
-	boot.chStopSync <- true
+func (boot *baseBootstrap) addHeaderToForkDetector(
+	shardId uint32,
+	nonce uint64,
+	withFinalHeaders bool,
+) {
+
+	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+		return
+	}
+
+	var finalHeaders []data.HeaderHandler
+	var finalHeadersHashes [][]byte
+
+	if withFinalHeaders {
+		finalHeaders = append(finalHeaders, header)
+		finalHeadersHashes = append(finalHeadersHashes, headerHash)
+	}
+
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, false)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
+	return
 }
 
-// syncBlocks method calls repeatedly synchronization method SyncBlock
-func (boot *baseBootstrap) syncBlocks() {
-	for {
-		time.Sleep(sleepTime)
+func (boot *baseBootstrap) restoreState(
+	currHeaderHash []byte,
+	currHeader data.HeaderHandler,
+	currBlockBody data.BodyHandler,
+) {
+	log.Info(fmt.Sprintf("revert state to header with nonce %d and hash %s\n",
+		currHeader.GetNonce(),
+		core.ToB64(currHeaderHash)))
 
-		if !boot.networkWatcher.IsConnectedToTheNetwork() {
-			continue
-		}
+	err := boot.blkc.SetCurrentBlockHeader(currHeader)
+	if err != nil {
+		log.Info(err.Error())
+	}
 
-		select {
-		case <-boot.chStopSync:
-			return
-		default:
-			err := boot.syncStarter.SyncBlock()
-			if err != nil {
-				log.Info(err.Error())
-			}
-		}
+	err = boot.blkc.SetCurrentBlockBody(currBlockBody)
+	if err != nil {
+		log.Info(err.Error())
+	}
+
+	boot.blkc.SetCurrentBlockHeaderHash(currHeaderHash)
+
+	err = boot.blkExecutor.RevertStateToBlock(currHeader)
+	if err != nil {
+		log.Info(err.Error())
 	}
 }
