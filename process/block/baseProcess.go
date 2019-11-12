@@ -65,9 +65,8 @@ type baseProcessor struct {
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler           process.BlockSizeThrottler
 	endOfEpochTrigger            process.EndOfEpochTriggerHandler
-	blockChainHook        process.BlockChainHookHandler
-	txCoordinator         process.TransactionCoordinator
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	blockChainHook               process.BlockChainHookHandler
+	txCoordinator                process.TransactionCoordinator
 	rounder                      consensus.Rounder
 
 	hdrsForCurrBlock hdrForBlock

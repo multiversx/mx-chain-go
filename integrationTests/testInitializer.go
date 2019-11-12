@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -33,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
