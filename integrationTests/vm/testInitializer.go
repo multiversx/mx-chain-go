@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -137,7 +137,7 @@ func CreateVMsContainerAndBlockchainHook(accnts state.AccountsAdapter) (process.
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	gasSchedule := integrationTests.MakeDummyGasSchedule()
+	gasSchedule := arwenConfig.MakeGasMap(1)
 	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
@@ -149,7 +149,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 ) (process.TransactionProcessor, vmcommon.BlockchainHook) {
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	gasSchedule := integrationTests.MakeDummyGasSchedule()
+	gasSchedule := arwenConfig.MakeGasMap(1)
 	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
