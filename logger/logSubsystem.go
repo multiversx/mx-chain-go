@@ -8,21 +8,26 @@ import (
 	"sync"
 )
 
-const ellipsisCharacter = "\u2026"
-
 var logMut = &sync.RWMutex{}
 var loggers map[string]*logger
 var defaultLogOut LogOutputHandler
 var defaultLogLevel = LogInfo
 
+var mutDisplayByteSlice = &sync.RWMutex{}
+var displayByteSlice func(slice []byte) string
+
 func init() {
 	logMut.Lock()
-
 	loggers = make(map[string]*logger)
 	defaultLogOut = &logOutputSubject{}
 	_ = defaultLogOut.AddObserver(os.Stdout, ConsoleFormatter{})
-
 	logMut.Unlock()
+
+	mutDisplayByteSlice.Lock()
+	displayByteSlice = func(slice []byte) string {
+		return hex.EncodeToString(slice)
+	}
+	mutDisplayByteSlice.Unlock()
 }
 
 // GetOrCreate returns a log based on the name provided, generating a new log if there is no log with provided name
@@ -37,21 +42,6 @@ func GetOrCreate(name string) *logger {
 	}
 
 	return logger
-}
-
-// ConvertHash generates a short-hand of provided bytes slice showing only the first 3 and the last 3 bytes as hex
-// in total, the resulting string is maximum 13 characters long
-func ConvertHash(hash []byte) string {
-	if len(hash) == 0 {
-		return ""
-	}
-	if len(hash) < 6 {
-		return hex.EncodeToString(hash)
-	}
-
-	prefix := hex.EncodeToString(hash[:3])
-	suffix := hex.EncodeToString(hash[len(hash)-3:])
-	return prefix + ellipsisCharacter + suffix
 }
 
 // SetLogLevel changes the log level of the contained loggers. The expected format is
@@ -86,6 +76,11 @@ func AddLogObserver(w io.Writer, formatter Formatter) error {
 // RemoveLogObserver removes an exiting observer by providing the writer pointer.
 func RemoveLogObserver(w io.Writer) error {
 	return defaultLogOut.RemoveObserver(w)
+}
+
+// ClearLogObservers clears the observers lists
+func ClearLogObservers() {
+	defaultLogOut.ClearObservers()
 }
 
 func setLogLevelOnMap(loggers map[string]*logger, dest *LogLevel, logLevels []LogLevel, patterns []string) {
@@ -139,4 +134,18 @@ func parseLevelPattern(logLevelAndPattern string) (LogLevel, string, error) {
 	logLevel, err := GetLogLevel(input[1])
 
 	return logLevel, input[0], err
+}
+
+// SetDisplayByteSlice sets the converter function from byte slice to string
+// default, this will call hex.EncodeToString
+func SetDisplayByteSlice(f func(slice []byte) string) error {
+	if f == nil {
+		return ErrNilDisplayByteSliceHandler
+	}
+
+	mutDisplayByteSlice.Lock()
+	displayByteSlice = f
+	mutDisplayByteSlice.Unlock()
+
+	return nil
 }

@@ -1,17 +1,16 @@
 package facade
 
 import (
-	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -24,12 +23,13 @@ const DefaultRestPort = "8080"
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
+var log = logger.GetOrCreate("facade")
+
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
 	node                   NodeWrapper
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	log                    *logger.Logger
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 *config.FacadeConfig
 	restAPIServerDebugMode bool
@@ -49,11 +49,6 @@ func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver, restAPIServe
 		apiResolver:            apiResolver,
 		restAPIServerDebugMode: restAPIServerDebugMode,
 	}
-}
-
-// SetLogger sets the current logger
-func (ef *ElrondNodeFacade) SetLogger(log *logger.Logger) {
-	ef.log = log
 }
 
 // SetSyncer sets the current syncer
@@ -145,13 +140,15 @@ func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 
 	switch ef.RestApiPort() {
 	case DefaultRestPortOff:
-		ef.log.Info(fmt.Sprintf("Web server is off"))
+		log.Debug("web server is off")
 		break
 	default:
-		ef.log.Info("Starting web server...")
+		log.Debug("starting web server...")
 		err := api.Start(ef)
 		if err != nil {
-			ef.log.Error("Could not start webserver", err.Error())
+			log.Debug("could not start webserver",
+				"error", err.Error(),
+			)
 		}
 	}
 }

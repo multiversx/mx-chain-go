@@ -1,8 +1,6 @@
 package broadcast
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -143,7 +141,7 @@ func (scm *shardChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte
 	}
 
 	if mbs > 0 {
-		log.Info(fmt.Sprintf("sent %d miniblocks\n", mbs))
+		log.Debug("miniblocks sent", "number", mbs)
 	}
 
 	return nil
@@ -171,7 +169,7 @@ func (scm *shardChainMessenger) BroadcastTransactions(transactions map[string][]
 	}
 
 	if txs > 0 {
-		log.Info(fmt.Sprintf("sent %d transactions\n", txs))
+		log.Debug("transactions sent", "number", txs)
 	}
 
 	return nil

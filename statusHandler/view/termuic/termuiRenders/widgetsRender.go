@@ -34,10 +34,10 @@ type WidgetsRender struct {
 //NewWidgetsRender method will create new WidgetsRender that display termui console
 func NewWidgetsRender(presenter view.Presenter, grid *DrawableContainer) (*WidgetsRender, error) {
 	if presenter == nil || presenter.IsInterfaceNil() {
-		return nil, statusHandler.ErrorNilPresenterInterface
+		return nil, statusHandler.ErrNilPresenterInterface
 	}
 	if grid == nil {
-		return nil, statusHandler.ErrorNilGrid
+		return nil, statusHandler.ErrNilGrid
 	}
 
 	self := &WidgetsRender{

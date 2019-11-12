@@ -7,18 +7,20 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var log = logger.GetOrCreate("process/smartcontract")
 
 type scExecutionState struct {
 	allLogs       map[string][]*vmcommon.LogEntry
@@ -43,8 +45,6 @@ type scProcessor struct {
 	scrForwarder process.IntermediateTransactionHandler
 	txFeeHandler process.TransactionFeeHandler
 }
-
-var log = logger.DefaultLogger()
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
 func NewSmartContractProcessor(
@@ -445,10 +445,9 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		log.Info(fmt.Sprintf(
-			"error processing tx %s in VM: return code: %s",
-			hex.EncodeToString(txHash),
-			vmOutput.ReturnCode),
+		log.Debug("error processing tx VM",
+			"hash", txHash,
+			"return code", vmOutput.ReturnCode.String(),
 		)
 
 		stAcc, ok := acntSnd.(*state.Account)

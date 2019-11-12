@@ -2,21 +2,20 @@ package dataValidators
 
 import (
 	"encoding/hex"
-	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("process/dataValidators")
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
-	accounts         state.AccountsAdapter
-	shardCoordinator sharding.Coordinator
-	rejectedTxs      uint64
+	accounts             state.AccountsAdapter
+	shardCoordinator     sharding.Coordinator
+	rejectedTxs          uint64
 	maxNonceDeltaAllowed int
 }
 
@@ -25,7 +24,7 @@ func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	maxNonceDeltaAllowed int,
-	) (*txValidator, error) {
+) (*txValidator, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -35,9 +34,9 @@ func NewTxValidator(
 	}
 
 	return &txValidator{
-		accounts:         accounts,
-		shardCoordinator: shardCoordinator,
-		rejectedTxs:      uint64(0),
+		accounts:             accounts,
+		shardCoordinator:     shardCoordinator,
+		rejectedTxs:          uint64(0),
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 	}, nil
 }
@@ -54,7 +53,10 @@ func (tv *txValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	sndAddr := interceptedTx.SenderAddress()
 	accountHandler, err := tv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
-		log.Debug(fmt.Sprintf("Transaction's sender address %s does not exist in current shard %d", sndAddr, shardId))
+		log.Debug("transaction's sender address does not exist in current shard",
+			"sender", sndAddr,
+			"shard", shardId,
+		)
 		tv.rejectedTxs++
 		return false
 	}
@@ -72,7 +74,9 @@ func (tv *txValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	account, ok := accountHandler.(*state.Account)
 	if !ok {
 		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
-		log.Error(fmt.Sprintf("Cannot convert account handler in a state.Account %s", hexSenderAddr))
+		log.Debug("cannot convert account handler in a state.Account",
+			"sender", hexSenderAddr,
+		)
 		return false
 	}
 
