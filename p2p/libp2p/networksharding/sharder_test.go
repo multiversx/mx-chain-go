@@ -67,7 +67,7 @@ func TestSetterGetter(t *testing.T) {
 	err = Set(k2)
 	assert.Nil(t, err)
 	c, isKadSharder := Get().(*kadSharder)
-	assert.True(t, isNoSharder, "Current sharder should be *KadSharder")
+	assert.True(t, isKadSharder, "Current sharder should be *KadSharder")
 	assert.Equal(t, c, k2)
 
 	err = Set(k3)

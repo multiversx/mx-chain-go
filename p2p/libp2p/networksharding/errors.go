@@ -4,8 +4,11 @@ import (
 	"errors"
 )
 
-var (
-	ErrAlreadySet = errors.New("already set")
-	ErrBadParams  = errors.New("bad Pareams")
-	ErrNilSharder = errors.New("nil sharde")
-)
+// ErrAlreadySet a sharder is already set
+var ErrAlreadySet = errors.New("already set")
+
+//ErrBadParams bad parameters
+var ErrBadParams = errors.New("bad parameters")
+
+//ErrNilSharder the sharder is nil
+var ErrNilSharder = errors.New("nil sharder")

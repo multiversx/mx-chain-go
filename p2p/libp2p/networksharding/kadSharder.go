@@ -12,29 +12,30 @@ const (
 	fullMaskBits = 0xff
 )
 
-// KadGetShard peer to shard mapping interface
-type KadGetShard interface {
+// KadPeerShardResolver peer to shard mapping interface
+type KadPeerShardResolver interface {
 	ByID(p2p.PeerID) uint32 //ByID get the shard id of the given peer.ID
+	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
 }
 
 // kadSharder KAD based sharder
 //
 // Resets a number of MSb to decrease the distance between nodes from the same shard
 type kadSharder struct {
-	prioBits  uint32
-	kGetShard KadGetShard
+	prioBits uint32
+	resolver KadPeerShardResolver
 }
 
-// NewkadSharder kadSharder constructor
+// NewKadSharder kadSharder constructor
 // prioBits - Number of reseted bits.
 // f - Callback used to get the shard id for a given peer.ID
-func NewKadSharder(prioBits uint32, kgs KadGetShard) (Sharder, error) {
-	if prioBits == 0 || kgs == nil {
+func NewKadSharder(prioBits uint32, kgs KadPeerShardResolver) (Sharder, error) {
+	if prioBits == 0 || kgs == nil || kgs.IsInterfaceNil() {
 		return nil, ErrBadParams
 	}
 	k := &kadSharder{
-		prioBits:  8,
-		kGetShard: kgs,
+		prioBits: 8,
+		resolver: kgs,
 	}
 
 	if prioBits < maxMaskBits {
@@ -45,7 +46,7 @@ func NewKadSharder(prioBits uint32, kgs KadGetShard) (Sharder, error) {
 
 // GetShard get the shard id of the peer
 func (ks *kadSharder) GetShard(id peer.ID) uint32 {
-	return ks.kGetShard.ByID(p2p.PeerID(id))
+	return ks.resolver.ByID(p2p.PeerID(id))
 }
 
 // Resets distance bits

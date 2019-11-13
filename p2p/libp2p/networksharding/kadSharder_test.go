@@ -19,22 +19,26 @@ func fakeShard0(id p2p.PeerID) uint32 {
 	return 0
 }
 
-func fakeShard_bit0_byte2(id p2p.PeerID) uint32 {
+func fakeShardBit0Byte2(id p2p.PeerID) uint32 {
 	ret := sha256.Sum256([]byte(id))
 	return uint32(ret[2] & 1)
 }
 
-type testKadGetShard struct {
+type testKadResolver struct {
 	f func(p2p.PeerID) uint32
 }
 
-func (tkgs *testKadGetShard) ByID(peer p2p.PeerID) uint32 {
-	return tkgs.f(peer)
+func (tkr *testKadResolver) ByID(peer p2p.PeerID) uint32 {
+	return tkr.f(peer)
+}
+
+func (tkr *testKadResolver) IsInterfaceNil() bool {
+	return tkr == nil
 }
 
 var (
-	fs0   = &testKadGetShard{fakeShard0}
-	fs2_0 = &testKadGetShard{fakeShard_bit0_byte2}
+	fs0   = &testKadResolver{fakeShard0}
+	fs2_0 = &testKadResolver{fakeShardBit0Byte2}
 )
 
 func TestCutoOffBits(t *testing.T) {
@@ -102,14 +106,14 @@ func TestKadSharderOrdering2_list(t *testing.T) {
 	}
 	l1 := s.SortList(peerList, nodeA)
 
-	refShardID := fakeShard_bit0_byte2(p2p.PeerID(nodeA))
+	refShardID := fakeShardBit0Byte2(p2p.PeerID(nodeA))
 	sameShardScore := uint64(0)
 	sameShardCount := uint64(0)
 	otherShardScore := uint64(0)
 	retLen := uint64(len(l1))
 	t.Logf("[ref] %s , sha %x, shard %d\n", string(nodeA), sha256.Sum256([]byte(nodeA)), refShardID)
 	for i, id := range l1 {
-		shardID := fakeShard_bit0_byte2(p2p.PeerID(id))
+		shardID := fakeShardBit0Byte2(p2p.PeerID(id))
 
 		if shardID == refShardID {
 			sameShardScore += retLen - uint64(i)
