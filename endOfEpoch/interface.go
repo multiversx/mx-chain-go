@@ -20,8 +20,9 @@ type TriggerHandler interface {
 
 // PendingMiniBlocksHandler defines the actions which should be handled by pending miniblocks implementation
 type PendingMiniBlocksHandler interface {
-	PendingMiniBlocks() []block.MiniBlockHeader
-	AddMiniBlockHeader([]block.MiniBlockHeader)
+	PendingMiniBlockHeaders() []block.ShardMiniBlockHeader
+	AddProcessedHeader(handler data.HeaderHandler) error
+	RevertHeader(handler data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

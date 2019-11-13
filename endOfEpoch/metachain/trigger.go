@@ -58,7 +58,7 @@ func NewEndOfEpochTrigger(args *ArgsNewMetaEndOfEpochTrigger) (*trigger, error) 
 	}, nil
 }
 
-// IsEndOfEpoch return true if conditions are fullfilled for end of epoch
+// IsEndOfEpoch return true if conditions are fulfilled for end of epoch
 func (t *trigger) IsEndOfEpoch() bool {
 	return t.isEndOfEpoch
 }
@@ -69,7 +69,7 @@ func (t *trigger) ForceEndOfEpoch(round int64) error {
 		return endOfEpoch.ErrSavedRoundIsHigherThanInput
 	}
 	if t.currentRound == round {
-		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnNewRound
+		return endOfEpoch.ErrForceEndOfEpochCanBeCalledOnlyOnNewRound
 	}
 
 	t.currentRound = round
@@ -112,7 +112,7 @@ func (t *trigger) Epoch() uint32 {
 	return t.epoch
 }
 
-// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fullfilled
+// ReceivedHeader saved the header into pool to verify if end-of-epoch conditions are fulfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 }
 

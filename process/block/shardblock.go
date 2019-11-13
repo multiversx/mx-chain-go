@@ -66,6 +66,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		rounder:                       arguments.Rounder,
+		endOfEpochTrigger:             arguments.EndOfEpochTrigger,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -761,7 +762,7 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (mp *shardProcessor) CreateNewHeader() data.HeaderHandler {
+func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
 	return &block.Header{}
 }
 
@@ -1233,7 +1234,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header *block.Header) (ma
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
-			miniBlockMetaHashes[hash] = []byte(metaBlockHash)
+			miniBlockMetaHashes[hash] = metaBlockHash
 		}
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()

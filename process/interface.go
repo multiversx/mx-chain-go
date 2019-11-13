@@ -334,10 +334,18 @@ type VirtualMachinesContainerFactory interface {
 	IsInterfaceNil() bool
 }
 
-// EndOfEpochHandler defines that actions which are needed by processor for end of epoch
+// EndOfEpochTriggerHandler defines that actions which are needed by processor for end of epoch
 type EndOfEpochTriggerHandler interface {
 	IsEndOfEpoch() bool
 	Epoch() uint32
+	IsInterfaceNil() bool
+}
+
+// PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks
+type PendingMiniBlocksHandler interface {
+	PendingMiniBlockHeaders() []block.ShardMiniBlockHeader
+	AddProcessedHeader(handler data.HeaderHandler) error
+	RevertHeader(handler data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

@@ -268,6 +268,9 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
+// ErrHeaderShardDataMismatch signals that shard header does not match created shard info
+var ErrHeaderShardDataMismatch = errors.New("shard header does not match shard info")
+
 // ErrNoDataInMessage signals that no data was found after parsing received p2p message
 var ErrNoDataInMessage = errors.New("no data found in received message")
 
@@ -468,6 +471,9 @@ var ErrNilTxValidator = errors.New("nil transaction validator")
 
 // ErrNilHdrValidator signals that a nil header validator has been provided
 var ErrNilHdrValidator = errors.New("nil header validator")
+
+// ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
+var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
 
 // ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
 // processed on the current shard

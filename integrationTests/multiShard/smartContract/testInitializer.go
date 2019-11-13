@@ -879,6 +879,7 @@ func createMetaNetNode(
 		SCDataGetter:       &mock.ScDataGetterMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
+		PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
 

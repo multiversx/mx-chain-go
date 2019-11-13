@@ -127,6 +127,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			SCDataGetter:       &mock.ScDataGetterMock{},
 			SCToProtocol:       &mock.SCToProtocolStub{},
 			PeerChangesHandler: &mock.PeerChangesHandler{},
+			PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

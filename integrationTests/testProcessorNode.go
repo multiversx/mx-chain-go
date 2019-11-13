@@ -655,6 +655,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			SCDataGetter:       tpn.ScDataGetter,
 			SCToProtocol:       scToProtocol,
 			PeerChangesHandler: scToProtocol,
+			PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

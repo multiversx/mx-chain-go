@@ -200,6 +200,12 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
+	if bp.endOfEpochTrigger.IsEndOfEpoch() {
+		if headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
+			return process.ErrEpochDoesNotMatch
+		}
+	}
+
 	// TODO: add signature validation as well, with randomness source and all
 	return nil
 }
