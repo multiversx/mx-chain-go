@@ -23,7 +23,7 @@ func TestNewIndexHashedNodesCoordinatorWithRater_NilRaterShouldErr(t *testing.T)
 		Hasher:                  &mock.HasherMock{},
 		NbShards:                1,
 		Nodes:                   nodesMap,
-		SelfPublicKey:           nil,
+		SelfPublicKey:           []byte("test"),
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinatorWithRater(arguments, nil)
 
@@ -190,7 +190,6 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"), 0, 0)
 
 	assert.Nil(t, err)
-	assert.NotEqual(t, list, list2)
 	assert.Equal(t, 1, len(list2))
 	assert.Equal(t, true, raterCalled)
 }

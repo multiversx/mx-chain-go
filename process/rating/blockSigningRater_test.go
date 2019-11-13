@@ -58,7 +58,7 @@ func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T
 	bsr, _ := rating.NewBlockSigningRater(rd)
 
 	ratingPk := "test"
-	ratingValue := int64(7)
+	ratingValue := int64(5)
 
 	ratingsMap := make(map[string]int64)
 	ratingsMap[ratingPk] = ratingValue
@@ -70,7 +70,7 @@ func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testing.T) {
 	pk := "test"
-	initialRatingValue := int64(7)
+	initialRatingValue := int64(5)
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
@@ -79,15 +79,14 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testin
 
 	rt := bsr.GetRating(pk)
 
-	expectedValue := initialRatingValue + rd.RatingOptions()[proposerIncreaseRatingStepKey] + rd.
-		RatingOptions()[validatorIncreaseRatingStep]
+	expectedValue := initialRatingValue + rd.RatingOptions()[proposerIncreaseRatingStepKey]
 
 	assert.Equal(t, expectedValue, rt)
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidator(t *testing.T) {
 	pk := "test"
-	initialRatingValue := int64(7)
+	initialRatingValue := int64(5)
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
@@ -102,7 +101,7 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidator(t *testi
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidatorButNotAccepted(t *testing.T) {
 	pk := "test"
-	initialRatingValue := int64(7)
+	initialRatingValue := int64(5)
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
@@ -117,7 +116,7 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidatorButNotAcc
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposerButNotAccepted(t *testing.T) {
 	pk := "test"
-	initialRatingValue := int64(7)
+	initialRatingValue := int64(5)
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
@@ -125,7 +124,7 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposerButNotAcce
 	bsr.UpdateRatings(updatedPeers)
 	rt := bsr.GetRating(pk)
 
-	expectedValue := initialRatingValue + rd.RatingOptions()[proposerDecreaseRatingStepKey] + rd.RatingOptions()[validatorDecreaseRatingStep]
+	expectedValue := initialRatingValue + rd.RatingOptions()[proposerDecreaseRatingStepKey]
 
 	assert.Equal(t, expectedValue, rt)
 }
