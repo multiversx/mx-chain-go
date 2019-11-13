@@ -7,16 +7,16 @@ import (
 )
 
 // NoSharder default sharder, only uses Kademlia distance in sorting
-type noSharder struct {
+type NoSharder struct {
 }
 
 // GetShard always 0
-func (ns *noSharder) GetShard(id peer.ID) uint32 {
+func (ns *NoSharder) GetShard(id peer.ID) uint32 {
 	return 0
 }
 
 // GetDistance Kademlia XOR distance
-func (ns *noSharder) GetDistance(a, b sortingID) *big.Int {
+func (ns *NoSharder) GetDistance(a, b sortingID) *big.Int {
 	c := make([]byte, len(a.key))
 	for i := 0; i < len(a.key); i++ {
 		c[i] = a.key[i] ^ b.key[i]
@@ -27,6 +27,11 @@ func (ns *noSharder) GetDistance(a, b sortingID) *big.Int {
 }
 
 // SortList sort the list
-func (ns *noSharder) SortList(peers []peer.ID, ref peer.ID) []peer.ID {
+func (ns *NoSharder) SortList(peers []peer.ID, ref peer.ID) []peer.ID {
 	return sortList(ns, peers, ref)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ns *NoSharder) IsInterfaceNil() bool {
+	return ns == nil
 }

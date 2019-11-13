@@ -89,12 +89,13 @@ type Node struct {
 	multiSigner       crypto.MultiSigner
 	forkDetector      process.ForkDetector
 
-	blkc             data.ChainHandler
-	dataPool         dataRetriever.PoolsHolder
-	metaDataPool     dataRetriever.MetaPoolsHolder
-	store            dataRetriever.StorageService
-	shardCoordinator sharding.Coordinator
-	nodesCoordinator sharding.NodesCoordinator
+	blkc                   data.ChainHandler
+	dataPool               dataRetriever.PoolsHolder
+	metaDataPool           dataRetriever.MetaPoolsHolder
+	store                  dataRetriever.StorageService
+	shardCoordinator       sharding.Coordinator
+	nodesCoordinator       sharding.NodesCoordinator
+	networkShardingUpdater NetworkShardingUpdater
 
 	consensusTopic string
 	consensusType  string
@@ -276,6 +277,7 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.singleSigner,
 		n.syncTimer,
+		n.networkShardingUpdater,
 	)
 	if err != nil {
 		return err

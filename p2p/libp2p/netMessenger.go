@@ -6,9 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -37,6 +39,7 @@ const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
 
 const defaultThresholdMinConnectedPeers = 3
+const kadSharderPrioBits = 3
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
@@ -540,6 +543,21 @@ func (netMes *networkMessenger) SetThresholdMinConnectedPeers(minConnectedPeers 
 // ThresholdMinConnectedPeers returns the minimum connected peers before triggering a new reconnection
 func (netMes *networkMessenger) ThresholdMinConnectedPeers() int {
 	return netMes.connMonitor.thresholdMinConnectedPeers
+}
+
+// SetPeerShardResolver sets the peer shard resolver component that is able to resolve the link
+// between p2p.PeerID and shardId
+func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver) error {
+	if check.IfNil(peerShardResolver) {
+		return p2p.ErrNilPeerShardResolver
+	}
+
+	kadSharder, err := networksharding.NewKadSharder(kadSharderPrioBits, peerShardResolver)
+	if err != nil {
+		return err
+	}
+
+	return netMes.connMonitor.SetSharder(kadSharder)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

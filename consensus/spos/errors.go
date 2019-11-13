@@ -147,3 +147,6 @@ var ErrNilExecuteStoredMessages = errors.New("executeStoredMessages is nil")
 
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNilNetworkShardingUpdater defines the error for setting a nil network sharding updater
+var ErrNilNetworkShardingUpdater = errors.New("nil network sharding updater")

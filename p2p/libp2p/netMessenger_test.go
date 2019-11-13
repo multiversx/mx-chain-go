@@ -1571,3 +1571,27 @@ func TestNetworkMessenger_IsConnectedToTheNetworkWithZeroRetTrue(t *testing.T) {
 
 	assert.True(t, mes.IsConnectedToTheNetwork())
 }
+
+//------- SetPeerShardResolver
+
+func TestNetworkMessenger_SetPeerShardResolverNilShouldErr(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	err := mes.SetPeerShardResolver(nil)
+
+	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
+}
+
+func TestNetworkMessenger_SetPeerShardResolverValidShouldRetNil(t *testing.T) {
+	mes := createMockMessenger()
+	defer func() {
+		_ = mes.Close()
+	}()
+
+	err := mes.SetPeerShardResolver(&mock.PeerShardResolverStub{})
+
+	assert.Nil(t, err)
+}

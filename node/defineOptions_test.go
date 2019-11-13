@@ -850,3 +850,51 @@ func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
 	assert.True(t, node.feeHandler == txFeeHandler)
 	assert.Nil(t, err)
 }
+
+func TestWithBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBlackListHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilBlackListHandler, err)
+}
+
+func TestWithBlackListHandler_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	blackListHandler := &mock.BlackListHandlerStub{}
+	opt := WithBlackListHandler(blackListHandler)
+	err := opt(node)
+
+	assert.True(t, node.blackListHandler == blackListHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithNetworkShardingUpdater_NilNetworkShardingUpdaterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNetworkShardingUpdater(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilNetworkShardingUpdater, err)
+}
+
+func TestWithNetworkShardingUpdater_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	networkShardingUpdater := &mock.NetworkShardingUpdaterStub{}
+	opt := WithNetworkShardingUpdater(networkShardingUpdater)
+	err := opt(node)
+
+	assert.True(t, node.networkShardingUpdater == networkShardingUpdater)
+	assert.Nil(t, err)
+}

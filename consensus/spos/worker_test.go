@@ -13,11 +13,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
 
 const roundTimeDuration = 100 * time.Millisecond
+
+func createMockNetworkShardingUpdater() *mock.NetworkShardingUpdaterStub {
+	return &mock.NetworkShardingUpdaterStub{
+		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
+		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
+	}
+}
 
 func initWorker() *spos.Worker {
 	blockchainMock := &mock.BlockChainMock{}
@@ -64,7 +72,9 @@ func initWorker() *spos.Worker {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	return sposWorker
 }
@@ -110,7 +120,9 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilConsensusService, err)
@@ -145,7 +157,9 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBlockChain, err)
@@ -180,7 +194,9 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
@@ -215,7 +231,9 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBootstrapper, err)
@@ -250,7 +268,9 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBroadcastMessenger, err)
@@ -284,7 +304,9 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
@@ -318,7 +340,9 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilForkDetector, err)
@@ -352,7 +376,9 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilKeyGenerator, err)
@@ -386,7 +412,9 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
@@ -420,7 +448,9 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		nil,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilRounder, err)
@@ -454,7 +484,9 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		rounderMock,
 		nil,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
@@ -488,7 +520,9 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		nil,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSingleSigner, err)
@@ -522,10 +556,49 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		nil)
+		nil,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
+}
+
+func TestWorker_NewWorkerNilNetworkShardingUpdaterShouldFailShouldFail(t *testing.T) {
+	t.Parallel()
+	blockchainMock := &mock.BlockChainMock{}
+	blockProcessor := &mock.BlockProcessorMock{}
+	bootstrapperMock := &mock.BootstrapperMock{}
+	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	consensusState := initConsensusState()
+	forkDetectorMock := &mock.ForkDetectorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+	bnService, _ := bn.NewConsensusService()
+
+	wrk, err := spos.NewWorker(
+		bnService,
+		blockchainMock,
+		blockProcessor,
+		bootstrapperMock,
+		broadcastMessengerMock,
+		consensusState,
+		forkDetectorMock,
+		keyGeneratorMock,
+		marshalizerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+		syncTimerMock,
+		nil,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilNetworkShardingUpdater, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
@@ -557,7 +630,9 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		rounderMock,
 		shardCoordinatorMock,
 		singleSignerMock,
-		syncTimerMock)
+		syncTimerMock,
+		createMockNetworkShardingUpdater(),
+	)
 
 	assert.NotNil(t, wrk)
 	assert.Nil(t, err)
