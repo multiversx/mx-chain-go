@@ -169,6 +169,25 @@ func (m *MetaBlock) Load(r io.Reader) error {
 	return nil
 }
 
+// Save saves the serialized data of a ShardData into a stream through Capnp protocol
+func (e *EndOfEpoch) Save(w io.Writer) error {
+	seg := capn.NewBuffer(nil)
+	EndOfEpochGoToCapn(seg, *e)
+	_, err := seg.WriteTo(w)
+	return err
+}
+
+// Load loads the data from the stream into a EndOfEpoch object through Capnp protocol
+func (e *EndOfEpoch) Load(r io.Reader) error {
+	capMsg, err := capn.ReadFromStream(r, nil)
+	if err != nil {
+		return err
+	}
+	z := capnp.ReadRootEndOfEpochCapn(capMsg)
+	EndOfEpochCapnToGo(z, e)
+	return nil
+}
+
 // PeerDataGoToCapn is a helper function to copy fields from a Peer Data object to a PeerDataCapn object
 func PeerDataGoToCapn(seg *capn.Segment, src *PeerData) capnp.PeerDataCapn {
 	dest := capnp.AutoNewPeerDataCapn(seg)
@@ -274,6 +293,80 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 	return dest
 }
 
+// FinalizedHeaderGoToCapn is a helper function to copy fields from a FinalizedHeaderHeader object to a
+// FinalizedHeaderCapn object
+func FinalizedHeaderGoToCapn(seg *capn.Segment, src *FinalizedHeaders) capnp.FinalizedHeadersCapn {
+	dest := capnp.AutoNewFinalizedHeadersCapn(seg)
+
+	dest.SetRootHash(src.RootHash)
+	dest.SetHeaderHash(src.HeaderHash)
+	dest.SetShardId(src.ShardId)
+
+	return dest
+}
+
+// FinalizedHeaderCapnToGo is a helper function to copy fields from a FinalizedHeaderCapn object to a
+// FinalizedHeader object
+func FinalizedHeaderCapnToGo(src capnp.FinalizedHeadersCapn, dest *FinalizedHeaders) *FinalizedHeaders {
+	if dest == nil {
+		dest = &FinalizedHeaders{}
+	}
+
+	dest.RootHash = src.RootHash()
+	dest.HeaderHash = src.HeaderHash()
+	dest.ShardId = src.ShardId()
+
+	return dest
+}
+
+// EndOfEpochGoToCapn is a helper function to copy fields from a ShardData object to a ShardDataCapn object
+func EndOfEpochGoToCapn(seg *capn.Segment, src EndOfEpoch) capnp.EndOfEpochCapn {
+	dest := capnp.AutoNewEndOfEpochCapn(seg)
+
+	// create the list of shardMiniBlockHeaders
+	if len(src.PendingMiniBlockHeaders) > 0 {
+		typedList := capnp.NewShardMiniBlockHeaderCapnList(seg, len(src.PendingMiniBlockHeaders))
+		plist := capn.PointerList(typedList)
+
+		for i, elem := range src.PendingMiniBlockHeaders {
+			_ = plist.Set(i, capn.Object(ShardMiniBlockHeaderGoToCapn(seg, &elem)))
+		}
+		dest.SetPendingMiniBlockHeaders(typedList)
+	}
+
+	if len(src.LastFinalizedHeaders) > 0 {
+		typedList := capnp.NewFinalizedHeadersCapnList(seg, len(src.LastFinalizedHeaders))
+		pList := capn.PointerList(typedList)
+
+		for i, elem := range src.LastFinalizedHeaders {
+			_ = pList.Set(i, capn.Object(FinalizedHeaderGoToCapn(seg, &elem)))
+		}
+	}
+
+	return dest
+}
+
+// EndOfEpochCapnToGo is a helper function to copy fields from a ShardDataCapn object to a ShardData object
+func EndOfEpochCapnToGo(src capnp.EndOfEpochCapn, dest *EndOfEpoch) *EndOfEpoch {
+	if dest == nil {
+		dest = &EndOfEpoch{}
+	}
+
+	n := src.PendingMiniBlockHeaders().Len()
+	dest.PendingMiniBlockHeaders = make([]ShardMiniBlockHeader, n)
+	for i := 0; i < n; i++ {
+		dest.PendingMiniBlockHeaders[i] = *ShardMiniBlockHeaderCapnToGo(src.PendingMiniBlockHeaders().At(i), nil)
+	}
+
+	n = src.LastFinalizedHeaders().Len()
+	dest.LastFinalizedHeaders = make([]FinalizedHeaders, n)
+	for i := 0; i < n; i++ {
+		dest.LastFinalizedHeaders[i] = *FinalizedHeaderCapnToGo(src.LastFinalizedHeaders().At(i), nil)
+	}
+
+	return dest
+}
+
 // MetaBlockGoToCapn is a helper function to copy fields from a MetaBlock object to a MetaBlockCapn object
 func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest := capnp.AutoNewMetaBlockCapn(seg)
@@ -313,6 +406,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 		dest.SetMiniBlockHeaders(miniBlockList)
 	}
 
+	dest.SetEndOfEpoch(EndOfEpochGoToCapn(seg, src.EndOfEpoch))
 	dest.SetSignature(src.Signature)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 	dest.SetPrevHash(src.PrevHash)
@@ -352,6 +446,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
 	}
 
+	dest.EndOfEpoch = *EndOfEpochCapnToGo(src.EndOfEpoch(), nil)
 	dest.Signature = src.Signature()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
 	dest.PrevHash = src.PrevHash()

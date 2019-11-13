@@ -143,6 +143,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.Epoch = src.Epoch()
 	dest.BlockBodyType = Type(src.BlockBodyType())
 	dest.Signature = src.Signature()
+	dest.EndOfEpochMetaHash = src.EndOfEpochMetaHash()
 
 	mbLength := src.MiniBlockHeaders().Len()
 	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
@@ -186,6 +187,8 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetEpoch(src.Epoch)
 	dest.SetBlockBodyType(uint8(src.BlockBodyType))
 	dest.SetSignature(src.Signature)
+	dest.SetEndOfEpochMetaHash(src.EndOfEpochMetaHash)
+
 	if len(src.MiniBlockHeaders) > 0 {
 		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
 		pList := capn.PointerList(miniBlockList)
