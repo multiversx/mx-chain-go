@@ -2,17 +2,18 @@ package arwen
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"math"
 	"math/big"
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/stretchr/testify/assert"
 )
 
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
@@ -188,7 +189,9 @@ func deploy(t *testing.T) (vmcommon.VMExecutionHandler, []byte) {
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 	wasmVM, _ := vmContainer.Get(factory.ArwenVirtualMachine)
 
