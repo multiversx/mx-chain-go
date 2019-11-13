@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
 	"github.com/ElrondNetwork/elrond-go/endOfEpoch/shardchain"
 	"strconv"
@@ -144,7 +143,7 @@ type TestProcessorNode struct {
 	Bootstrapper       TestBootstrapper
 	Rounder            *mock.RounderMock
 
-	EndOfEpochTrigger endOfEpoch.TriggerHandler
+	EndOfEpochTrigger TestEndOfEpochTrigger
 
 	MultiSigner crypto.MultiSigner
 
@@ -657,7 +656,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			},
 			Epoch: 0,
 		}
-		tpn.EndOfEpochTrigger, _ = metachain.NewEndOfEpochTrigger(argsEndOfEpoch)
+		endOfEpochTrigger, _ := metachain.NewEndOfEpochTrigger(argsEndOfEpoch)
+		tpn.EndOfEpochTrigger = &metachain.TestTrigger{}
+		tpn.EndOfEpochTrigger.SetTrigger(endOfEpochTrigger)
 
 		argumentsBase.EndOfEpochTrigger = tpn.EndOfEpochTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -683,6 +684,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
+
 	} else {
 		argsShardEndOfEpoch := &shardchain.ArgsShardEndOfEpochTrigger{
 			Marshalizer:     TestMarshalizer,
@@ -696,7 +698,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			Validity:        1,
 			Finality:        1,
 		}
-		tpn.EndOfEpochTrigger, _ = shardchain.NewEndOfEpochTrigger(argsShardEndOfEpoch)
+		endOfEpochTrigger, _ := shardchain.NewEndOfEpochTrigger(argsShardEndOfEpoch)
+		tpn.EndOfEpochTrigger = &shardchain.TestTrigger{}
+		tpn.EndOfEpochTrigger.SetTrigger(endOfEpochTrigger)
 
 		argumentsBase.EndOfEpochTrigger = tpn.EndOfEpochTrigger
 		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl
@@ -844,6 +848,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader := tpn.BlockProcessor.CreateNewHeader()
 
+	blockHeader.SetEpoch(tpn.EndOfEpochTrigger.Epoch())
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})

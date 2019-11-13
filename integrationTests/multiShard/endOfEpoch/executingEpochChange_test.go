@@ -2,6 +2,7 @@ package endOfEpoch
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -30,6 +31,11 @@ func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 
+	roundsPerEpoch := int64(20)
+	for _, node := range nodes {
+		node.EndOfEpochTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+	}
+
 	idxProposers := make([]int, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
 		idxProposers[i] = i * nodesPerShard
@@ -54,7 +60,7 @@ func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	nrRoundsToPropagateMultiShard := 10
 	/////////----- wait for epoch end period
-	for i := uint64(0); i < nodes[0].EconomicsData.UnBoundPeriod(); i++ {
+	for i := uint64(0); i < uint64(roundsPerEpoch); i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -70,5 +76,22 @@ func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		nonce++
 	}
 
+	time.Sleep(time.Second)
+
+	epoch := uint32(1)
 	/////////------ verify if current blocks are with new epoch
+	for _, node := range nodes {
+		currentShId := node.ShardCoordinator.SelfId()
+		currentHeader := node.BlockChain.GetCurrentBlockHeader()
+		assert.Equal(t, epoch, currentHeader.GetEpoch())
+
+		for _, testNode := range nodes {
+			if testNode.ShardCoordinator.SelfId() == currentShId {
+				testHeader := testNode.BlockChain.GetCurrentBlockHeader()
+				assert.Equal(t, testHeader.GetNonce(), currentHeader.GetNonce())
+			}
+		}
+	}
+
+	//////////------ verify last added shardheaders in meta are with new epoch
 }

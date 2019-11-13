@@ -58,6 +58,9 @@ func (e *EndOfEpochTriggerStub) ReceivedHeader(header data.HeaderHandler) {
 	}
 }
 
+func (e *EndOfEpochTriggerStub) SetRoundsPerEpoch(roundsPerEpoch int64) {
+}
+
 func (e *EndOfEpochTriggerStub) IsInterfaceNil() bool {
 	return e == nil
 }
