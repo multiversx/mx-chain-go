@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // DefaultRestPort is the default port the REST API will start on if not specified
@@ -85,11 +87,6 @@ func (ef *ElrondNodeFacade) StartNode() error {
 
 	err = ef.node.StartConsensus()
 	return err
-}
-
-// StopNode stops the underlying node
-func (ef *ElrondNodeFacade) StopNode() error {
-	return ef.node.Stop()
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
@@ -169,7 +166,7 @@ func (ef *ElrondNodeFacade) GetBalance(address string) (*big.Int, error) {
 // CreateTransaction creates a transaction from all needed fields
 func (ef *ElrondNodeFacade) CreateTransaction(
 	nonce uint64,
-	value *big.Int,
+	value string,
 	receiverHex string,
 	senderHex string,
 	gasPrice uint64,
@@ -187,7 +184,7 @@ func (ef *ElrondNodeFacade) SendTransaction(
 	nonce uint64,
 	senderHex string,
 	receiverHex string,
-	value *big.Int,
+	value string,
 	gasPrice uint64,
 	gasLimit uint64,
 	transactionData string,
@@ -213,11 +210,6 @@ func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
 	return ef.node.GetAccount(address)
 }
 
-// GetCurrentPublicKey gets the current nodes public Key
-func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
-	return ef.node.GetCurrentPublicKey()
-}
-
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
 func (ef *ElrondNodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
 	hbStatus := ef.node.GetHeartbeats()
@@ -233,9 +225,9 @@ func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return ef.apiResolver.StatusMetrics()
 }
 
-// GetVmValue retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
-	return ef.apiResolver.GetVmValue(address, funcName, argsBuff...)
+// ExecuteSCQuery retrieves data from existing SC trie
+func (ef *ElrondNodeFacade) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+	return ef.apiResolver.ExecuteSCQuery(query)
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
@@ -33,6 +34,10 @@ const ttlPeersOnTopic = time.Second * 120
 
 const pubsubTimeCacheDuration = 10 * time.Minute
 
+const broadcastGoRoutines = 1000
+
+const defaultThresholdMinConnectedPeers = 3
+
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 //64kB
@@ -40,16 +45,18 @@ var maxSendBuffSize = (1 << 20) - messageHeader
 
 var log = logger.DefaultLogger()
 
+//TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
-	ctxProvider    *Libp2pContext
-	pb             *pubsub.PubSub
-	ds             p2p.DirectSender
-	connMonitor    *libp2pConnectionMonitor
-	peerDiscoverer p2p.PeerDiscoverer
-	mutTopics      sync.RWMutex
-	topics         map[string]p2p.MessageProcessor
-	outgoingPLB    p2p.ChannelLoadBalancer
-	poc            *peersOnChannel
+	ctxProvider         *Libp2pContext
+	pb                  *pubsub.PubSub
+	ds                  p2p.DirectSender
+	connMonitor         *libp2pConnectionMonitor
+	peerDiscoverer      p2p.PeerDiscoverer
+	mutTopics           sync.RWMutex
+	topics              map[string]p2p.MessageProcessor
+	outgoingPLB         p2p.ChannelLoadBalancer
+	poc                 *peersOnChannel
+	goRoutinesThrottler *throttler.NumGoRoutineThrottler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -62,6 +69,7 @@ func NewNetworkMessenger(
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
 	listenAddress string,
+	targetConnCount int,
 ) (*networkMessenger, error) {
 
 	if ctx == nil {
@@ -104,11 +112,19 @@ func NewNetworkMessenger(
 		return nil, err
 	}
 
-	p2pNode, err := createMessenger(lctx, true, outgoingPLB, peerDiscoverer)
+	p2pNode, err := createMessenger(lctx, true, outgoingPLB, peerDiscoverer, targetConnCount)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
 	}
+
+	goRoutinesThrottler, err := throttler.NewNumGoRoutineThrottler(broadcastGoRoutines)
+	if err != nil {
+		log.LogIfError(h.Close())
+		return nil, err
+	}
+
+	p2pNode.goRoutinesThrottler = goRoutinesThrottler
 
 	return p2pNode, nil
 }
@@ -118,6 +134,7 @@ func createMessenger(
 	withSigning bool,
 	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
+	targetConnCount int,
 ) (*networkMessenger, error) {
 
 	pb, err := createPubSub(lctx, withSigning)
@@ -138,7 +155,11 @@ func createMessenger(
 		topics:         make(map[string]p2p.MessageProcessor),
 		outgoingPLB:    outgoingPLB,
 		peerDiscoverer: peerDiscoverer,
-		connMonitor:    newLibp2pConnectionMonitor(reconnecter),
+	}
+	netMes.connMonitor, err = newLibp2pConnectionMonitor(reconnecter, defaultThresholdMinConnectedPeers, targetConnCount)
+	if err != nil {
+		return nil, err
+
 	}
 	lctx.connHost.Network().Notify(netMes.connMonitor)
 
@@ -376,22 +397,34 @@ func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBal
 
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
-func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
+func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
 	if len(buff) > maxSendBuffSize {
-		log.Error(fmt.Sprintf("Broadcast: message too large on topic '%s'", channel))
-		return
+		return p2p.ErrMessageTooLarge
 	}
+
+	if !netMes.goRoutinesThrottler.CanProcess() {
+		return p2p.ErrTooManyGoroutines
+	}
+
+	netMes.goRoutinesThrottler.StartProcessing()
 
 	sendable := &p2p.SendableData{
 		Buff:  buff,
 		Topic: topic,
 	}
 	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
+	netMes.goRoutinesThrottler.EndProcessing()
+	return nil
 }
 
 // BroadcastOnChannel tries to send a byte buffer onto a topic using provided channel
 func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
-	go netMes.BroadcastOnChannelBlocking(channel, topic, buff)
+	go func() {
+		err := netMes.BroadcastOnChannelBlocking(channel, topic, buff)
+		if err != nil {
+			log.Error(fmt.Sprintf("Broadcast: '%s'", err))
+		}
+	}()
 }
 
 // Broadcast tries to send a byte buffer onto a topic using the topic name as channel
@@ -485,10 +518,31 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	return nil
 }
 
+// IsConnectedToTheNetwork returns true if the current node is connected to the network
+func (netMes *networkMessenger) IsConnectedToTheNetwork() bool {
+	netw := netMes.ctxProvider.connHost.Network()
+	return netMes.connMonitor.isConnectedToTheNetwork(netw)
+}
+
+// SetThresholdMinConnectedPeers sets the minimum connected peers before triggering a new reconnection
+func (netMes *networkMessenger) SetThresholdMinConnectedPeers(minConnectedPeers int) error {
+	if minConnectedPeers < 0 {
+		return p2p.ErrInvalidValue
+	}
+
+	netw := netMes.ctxProvider.connHost.Network()
+	netMes.connMonitor.thresholdMinConnectedPeers = minConnectedPeers
+	netMes.connMonitor.doReconnectionIfNeeded(netw)
+
+	return nil
+}
+
+// ThresholdMinConnectedPeers returns the minimum connected peers before triggering a new reconnection
+func (netMes *networkMessenger) ThresholdMinConnectedPeers() int {
+	return netMes.connMonitor.thresholdMinConnectedPeers
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (netMes *networkMessenger) IsInterfaceNil() bool {
-	if netMes == nil {
-		return true
-	}
-	return false
+	return netMes == nil
 }

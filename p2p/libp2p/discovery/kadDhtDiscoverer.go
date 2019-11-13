@@ -8,6 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kbucket"
+)
+
+const (
+	initReconnectMul = 20
 )
 
 var peerDiscoveryTimeout = 10 * time.Second
@@ -27,6 +32,7 @@ type KadDhtDiscoverer struct {
 	refreshInterval  time.Duration
 	randezVous       string
 	initialPeersList []string
+	initConns        bool // Initiate new connections
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
@@ -47,6 +53,7 @@ func NewKadDhtPeerDiscoverer(
 		refreshInterval:  refreshInterval,
 		randezVous:       randezVous,
 		initialPeersList: initialPeersList,
+		initConns:        true,
 	}
 }
 
@@ -98,12 +105,30 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 		<-chanStartBootstrap
 
 		kdd.mutKadDht.Lock()
-		err := kdd.kadDHT.BootstrapWithConfig(ctx, cfg)
+		go func() {
+			i := 1
+			for {
+				if kdd.initConns {
+					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
+					if err == kbucket.ErrLookupFailure {
+						<-kdd.ReconnectToNetwork()
+					}
+					i = 1
+				} else {
+					i++
+					if (i % initReconnectMul) == 0 {
+						<-kdd.ReconnectToNetwork()
+						i = 1
+					}
+				}
+				select {
+				case <-time.After(cfg.Period):
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
 		kdd.mutKadDht.Unlock()
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
 	}()
 }
 
@@ -174,6 +199,27 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
 func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
 	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+}
+
+// Pause will suspend the discovery process
+func (kdd *KadDhtDiscoverer) Pause() {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+	kdd.initConns = false
+}
+
+// Resume will resume the discovery process
+func (kdd *KadDhtDiscoverer) Resume() {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+	kdd.initConns = true
+}
+
+// IsDiscoveryPaused will return true if the discoverer is initiating connections
+func (kdd *KadDhtDiscoverer) IsDiscoveryPaused() bool {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+	return !kdd.initConns
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

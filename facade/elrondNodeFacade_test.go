@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -108,48 +110,6 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 	ef := createElrondNodeFacadeWithMockResolver(node)
 
 	err := ef.StartNode()
-	assert.NotNil(t, err)
-
-	isRunning := ef.IsNodeRunning()
-	assert.False(t, isRunning)
-}
-
-func TestElrondFacade_StopNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
-	started := true
-	node := &mock.NodeMock{
-		StopHandler: func() error {
-			started = false
-			return nil
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-	}
-
-	ef := createElrondNodeFacadeWithMockResolver(node)
-
-	err := ef.StopNode()
-	assert.Nil(t, err)
-
-	isRunning := ef.IsNodeRunning()
-	assert.False(t, isRunning)
-}
-
-func TestElrondFacade_StopNodeWithNodeNullShouldReturnError(t *testing.T) {
-	started := true
-	node := &mock.NodeMock{
-		StopHandler: func() error {
-			started = false
-			return errors.New("failed to stop node")
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-	}
-
-	ef := createElrondNodeFacadeWithMockResolver(node)
-
-	err := ef.StopNode()
 	assert.NotNil(t, err)
 
 	isRunning := ef.IsNodeRunning()
@@ -274,12 +234,12 @@ func TestElrondNodeFacade_SetSyncer(t *testing.T) {
 func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 	called := 0
 	node := &mock.NodeMock{}
-	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount *big.Int, code string, signature []byte) (string, error) {
+	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount string, code string, signature []byte) (string, error) {
 		called++
 		return "", nil
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
-	_, _ = ef.SendTransaction(1, "test", "test", big.NewInt(0), 0, 0, "code", []byte{})
+	_, _ = ef.SendTransaction(1, "test", "test", "0", 0, 0, "code", []byte{})
 	assert.Equal(t, called, 1)
 }
 
@@ -292,18 +252,6 @@ func TestElrondNodeFacade_GetAccount(t *testing.T) {
 	}
 	ef := createElrondNodeFacadeWithMockResolver(node)
 	_, _ = ef.GetAccount("test")
-	assert.Equal(t, called, 1)
-}
-
-func TestElrondNodeFacade_GetCurrentPublicKey(t *testing.T) {
-	called := 0
-	node := &mock.NodeMock{}
-	node.GetCurrentPublicKeyHandler = func() string {
-		called++
-		return ""
-	}
-	ef := createElrondNodeFacadeWithMockResolver(node)
-	ef.GetCurrentPublicKey()
 	assert.Equal(t, called, 1)
 }
 
@@ -357,15 +305,15 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 	ef := NewElrondNodeFacade(
 		&mock.NodeMock{},
 		&mock.ApiResolverStub{
-			GetVmValueHandler: func(address string, funcName string, argsBuff ...[]byte) (bytes []byte, e error) {
+			ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
 				wasCalled = true
-				return make([]byte, 0), nil
+				return &vmcommon.VMOutput{}, nil
 			},
 		},
 		false,
 	)
 
-	_, _ = ef.GetVmValue("", "")
+	_, _ = ef.ExecuteSCQuery(nil)
 	assert.True(t, wasCalled)
 }
 

@@ -13,8 +13,8 @@ import (
 
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
-	CreateTransaction(nonce uint64, value *big.Int, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
-	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
+	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, challenge string) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value string, gasPrice uint64, gasLimit uint64, code string, signature []byte) (string, error)
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	IsInterfaceNil() bool
@@ -37,15 +37,15 @@ type MultipleTxRequest struct {
 
 // SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
 type SendTxRequest struct {
-	Sender    string   `form:"sender" json:"sender"`
-	Receiver  string   `form:"receiver" json:"receiver"`
-	Value     *big.Int `form:"value" json:"value"`
-	Data      string   `form:"data" json:"data"`
-	Nonce     uint64   `form:"nonce" json:"nonce"`
-	GasPrice  uint64   `form:"gasPrice" json:"gasPrice"`
-	GasLimit  uint64   `form:"gasLimit" json:"gasLimit"`
-	Signature string   `form:"signature" json:"signature"`
-	Challenge string   `form:"challenge" json:"challenge"`
+	Sender    string `form:"sender" json:"sender"`
+	Receiver  string `form:"receiver" json:"receiver"`
+	Value     string `form:"value" json:"value"`
+	Data      string `form:"data" json:"data"`
+	Nonce     uint64 `form:"nonce" json:"nonce"`
+	GasPrice  uint64 `form:"gasPrice" json:"gasPrice"`
+	GasLimit  uint64 `form:"gasLimit" json:"gasLimit"`
+	Signature string `form:"signature" json:"signature"`
+	Challenge string `form:"challenge" json:"challenge"`
 }
 
 //TxResponse represents the structure on which the response will be validated against
@@ -176,7 +176,7 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response.Data = tx.Data
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Challenge = string(tx.Challenge)
-	response.Value = tx.Value
+	response.Value = tx.Value.String()
 	response.GasLimit = tx.GasLimit
 	response.GasPrice = tx.GasPrice
 

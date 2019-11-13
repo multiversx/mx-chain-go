@@ -8,16 +8,18 @@ type EconomicsAddresses struct {
 
 // RewardsSettings will hold economics rewards settings
 type RewardsSettings struct {
-	RewardsValue        string
-	CommunityPercentage float64
-	LeaderPercentage    float64
-	BurnPercentage      float64
+	RewardsValue                   string
+	CommunityPercentage            float64
+	LeaderPercentage               float64
+	BurnPercentage                 float64
+	DenominationCoefficientForView string
 }
 
 // FeeSettings will hold economics fee settings
 type FeeSettings struct {
-	MinGasPrice string
-	MinGasLimit string
+	MaxGasLimitPerBlock string
+	MinGasPrice         string
+	MinGasLimit         string
 }
 
 // ConfigEconomics will hold economics config

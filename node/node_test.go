@@ -582,7 +582,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "-"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, node.ErrNilAddressConverter, err)
@@ -612,7 +612,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "-"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
@@ -643,7 +643,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	signature := "-"
 	challenge := "af4e5"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.Nil(t, tx)
 	assert.NotNil(t, err)
@@ -674,7 +674,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	signature := "617eff4f"
 	challenge := "aff64e"
 
-	tx, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
+	tx, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, challenge)
 
 	assert.NotNil(t, tx)
 	assert.Nil(t, err)
@@ -738,7 +738,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		nonce,
 		sender,
 		receiver,
-		value,
+		value.String(),
 		0,
 		0,
 		txData,
@@ -1702,10 +1702,14 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint32][]*transaction.Transaction)
-	signer := &mock.SinglesignMock{}
+	signer := &mock.SinglesignStub{
+		VerifyCalled: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		items := strings.Split(string(address.Bytes()), "senderShard")
+		items := strings.Split(string(address.Bytes()), "Shard")
 		sId, _ := strconv.ParseUint(items[1], 2, 32)
 		return uint32(sId)
 	}
@@ -1714,36 +1718,36 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     10,
 		Value:     new(big.Int).SetInt64(15),
-		RcvAddr:   []byte("receiver1"),
+		RcvAddr:   []byte("receiverShard1"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  5,
 		GasLimit:  11,
 		Data:      "",
-		Signature: nil,
+		Signature: []byte("sig0"),
 		Challenge: nil,
 	})
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     11,
 		Value:     new(big.Int).SetInt64(25),
-		RcvAddr:   []byte("receiver2"),
+		RcvAddr:   []byte("receiverShard1"),
 		SndAddr:   []byte("senderShard0"),
 		GasPrice:  6,
 		GasLimit:  12,
 		Data:      "",
-		Signature: nil,
+		Signature: []byte("sig1"),
 		Challenge: nil,
 	})
 
 	txsToSend = append(txsToSend, &transaction.Transaction{
 		Nonce:     12,
 		Value:     new(big.Int).SetInt64(35),
-		RcvAddr:   []byte("receiver3"),
+		RcvAddr:   []byte("receiverShard0"),
 		SndAddr:   []byte("senderShard1"),
 		GasPrice:  7,
 		GasLimit:  13,
 		Data:      "",
-		Signature: nil,
+		Signature: []byte("sig2"),
 		Challenge: nil,
 	})
 
@@ -1757,7 +1761,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	}()
 
 	mes := &mock.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) {
+		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
 			txsBuff := make([][]byte, 0)
 
 			err := marshalizer.Unmarshal(&txsBuff, buff)
@@ -1778,6 +1782,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 
 				wg.Done()
 			}
+			return nil
 		},
 	}
 
@@ -1790,9 +1795,24 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			}
 		},
 	}
-	accAdapter := getAccAdapter(big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(100))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	keyGen := &mock.KeyGenMock{}
+	keyGen := &mock.KeyGenMock{
+		PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
+			return nil, nil
+		},
+	}
+	feeHandler := &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return 100
+		},
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(100)
+		},
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
 	sk, pk := keyGen.GeneratePair()
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
@@ -1800,11 +1820,13 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSignPrivKey(sk),
+		node.WithKeyGenForAccounts(keyGen),
 		node.WithTxSignPubKey(pk),
 		node.WithTxSingleSigner(signer),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithMessenger(mes),
 		node.WithDataPool(dataPool),
+		node.WithTxFeeHandler(feeHandler),
 	)
 
 	numTxs, err := n.SendBulkTransactions(txsToSend)

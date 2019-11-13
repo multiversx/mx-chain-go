@@ -111,12 +111,12 @@ func proposeBlocks(
 	}
 }
 
-func forkChoiceOneBlock(nodes []*integrationTests.TestProcessorNode, shardId uint32) {
+func rollBackOneBlock(nodes []*integrationTests.TestProcessorNode, shardId uint32) {
 	for idx, n := range nodes {
 		if n.ShardCoordinator.SelfId() != shardId {
 			continue
 		}
-		err := n.Bootstrapper.ForkChoice(false)
+		err := n.Bootstrapper.RollBack(false)
 		if err != nil {
 			fmt.Println(err)
 		}

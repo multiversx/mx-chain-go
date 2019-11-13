@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -135,7 +136,9 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 func CreateVMsContainerAndBlockchainHook(accnts state.AccountsAdapter) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
 	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
 
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
 	return vmContainer, blockChainHook
@@ -145,7 +148,9 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
 ) (process.TransactionProcessor, vmcommon.BlockchainHook) {
 
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
 	argsParser, _ := smartContract.NewAtArgumentParser()
@@ -310,7 +315,7 @@ func TestAccount(
 	senderAddressBytes []byte,
 	expectedNonce uint64,
 	expectedBalance *big.Int,
-) {
+) *big.Int {
 
 	senderAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(senderAddressBytes)
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
@@ -318,6 +323,7 @@ func TestAccount(
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderRecovShardAccount.Balance)
+	return senderRecovShardAccount.Balance
 }
 
 func ComputeExpectedBalance(
@@ -343,18 +349,21 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 }
 
 func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	returnedVals := GetBytesValueFromSC(accnts, scAddressBytes, funcName, args...)
-
-	return big.NewInt(0).SetBytes(returnedVals)
-}
-
-func GetBytesValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) []byte {
 	vmContainer, _ := CreateVMsContainerAndBlockchainHook(accnts)
-	scDataGetter, _ := smartContract.NewSCDataGetter(vmContainer)
+	scQueryService, _ := smartContract.NewSCQueryService(vmContainer)
 
-	returnedVals, _ := scDataGetter.Get(scAddressBytes, funcName, args...)
+	arguments := make([]*big.Int, len(args))
+	for i, arg := range args {
+		arguments[i] = big.NewInt(0).SetBytes(arg)
+	}
 
-	return returnedVals
+	vmOutput, _ := scQueryService.ExecuteQuery(&smartContract.SCQuery{
+		ScAddress: scAddressBytes,
+		FuncName:  funcName,
+		Arguments: arguments,
+	})
+
+	return vmOutput.ReturnData[0]
 }
 
 func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {

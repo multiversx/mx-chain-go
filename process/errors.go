@@ -16,6 +16,9 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
 
+// ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
+var ErrNilGasSchedule = errors.New("nil GasSchedule")
+
 // ErrNilAddressContainer signals that an operation has been attempted to or with a nil AddressContainer implementation
 var ErrNilAddressContainer = errors.New("nil AddressContainer")
 
@@ -99,6 +102,9 @@ var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 
 // ErrRootStateDoesNotMatch signals that root state does not match
 var ErrRootStateDoesNotMatch = errors.New("root state does not match")
+
+// ErrValidatorStatsRootHashDoesNotMatch signals that the root hash for the validator statistics does not match
+var ErrValidatorStatsRootHashDoesNotMatch = errors.New("root hash for validator statistics does not match")
 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
@@ -265,9 +271,6 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrRollbackFromGenesis signals that a rollback from genesis is called
-var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
-
 // ErrNoDataInMessage signals that no data was found after parsing received p2p message
 var ErrNoDataInMessage = errors.New("no data found in received message")
 
@@ -344,7 +347,7 @@ var ErrNilValueFromRewardTransaction = errors.New("transferred value is nil in r
 var ErrNilTemporaryAccountsHandler = errors.New("temporary accounts handler is nil")
 
 // ErrNotEnoughValidBlocksInStorage signals that bootstrap from storage failed due to not enough valid blocks stored
-var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks in storage")
+var ErrNotEnoughValidBlocksInStorage = errors.New("not enough valid blocks to start from storage")
 
 // ErrNilSmartContractResult signals that the smart contract result is nil
 var ErrNilSmartContractResult = errors.New("smart contract result is nil")
@@ -445,6 +448,24 @@ var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 // ErrNilSpecialAddressHandler signals that special address handler is nil
 var ErrNilSpecialAddressHandler = errors.New("nil special address handler")
 
+// ErrNilPeerAccountsAdapter signals that a nil peer accounts database was provided
+var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts database")
+
+// ErrInvalidInitialNodesState signals that the initial nodes state is invalid
+var ErrInvalidInitialNodesState = errors.New("provided initial state is invalid")
+
+// ErrInvalidPeerAccount signals that a peer account is invalid
+var ErrInvalidPeerAccount = errors.New("invalid peer account")
+
+// ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
+var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
+
+// ErrNilShardHeaderStorage signals that nil storage was provided for shard headers
+var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
+
+// ErrNilMetaHeaderStorage signals that nil storage was provided for meta headers
+var ErrNilMetaHeaderStorage = errors.New("nil meta header storage")
+
 // ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
 var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
 
@@ -488,6 +509,18 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 
+// ErrHigherGasLimitRequiredInTx signals that a higher gas limit is required in tx
+var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
+
+// ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
+var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
+
+// ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
+var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
+
+// ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached signals that max gas limit per mini block in receiver shard has been reached
+var ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached = errors.New("max gas limit per mini block in receiver shard is reached")
+
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 
@@ -502,3 +535,6 @@ var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
 // ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
 var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
+
+// ErrNilNetworkWatcher signals that a nil network watcher has been provided
+var ErrNilNetworkWatcher = errors.New("nil network watcher")

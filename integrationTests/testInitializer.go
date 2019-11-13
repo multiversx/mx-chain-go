@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
@@ -287,7 +288,9 @@ func CreateGenesisMetaBlock() *dataBlock.MetaBlock {
 func CreateVMContainerAndBlockchainHook(
 	accnts state.AccountsAdapter,
 ) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, TestAddressConverter)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, TestAddressConverter, maxGasLimitPerBlock, gasSchedule)
 	vmContainer, _ := vmFactory.Create()
 
 	return vmContainer, vmFactory.VMAccountsDB()
@@ -326,7 +329,7 @@ func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int)
 // MakeDisplayTable will output a string containing counters for received transactions, headers, miniblocks and
 // meta headers for all provided test nodes
 func MakeDisplayTable(nodes []*TestProcessorNode) string {
-	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers"}
+	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers", "connections"}
 	dataLines := make([]*display.LineData, len(nodes))
 
 	for idx, n := range nodes {
@@ -339,6 +342,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMbRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterHdrRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.CounterMetaRcv)),
+				fmt.Sprintf("%d", len(n.Messenger.ConnectedPeers())),
 			},
 		)
 	}

@@ -2,6 +2,7 @@ package process_test
 
 import (
 	"bytes"
+	"math/big"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1885,7 +1886,10 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 
 func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 	hash := []byte("X")
-	txFromStorage := &transaction.Transaction{Nonce: 1}
+	txFromStorage := &transaction.Transaction{
+		Nonce: 1,
+		Value: big.NewInt(0),
+	}
 
 	marshalizer := &mock.MarshalizerMock{}
 	txMarsh, _ := marshalizer.Marshal(txFromStorage)
@@ -2090,7 +2094,10 @@ func TestGetTransactionHandlerFromStorageShouldErrWhenUnmarshalFail(t *testing.T
 
 func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
 	hash := []byte("X")
-	txFromPool := &transaction.Transaction{Nonce: 1}
+	txFromPool := &transaction.Transaction{
+		Nonce: 1,
+		Value: big.NewInt(0),
+	}
 
 	marshalizer := &mock.MarshalizerMock{}
 	txMarsh, _ := marshalizer.Marshal(txFromPool)

@@ -59,6 +59,8 @@ type PeerDiscoverer interface {
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
+	Pause()  // pause the peer discovery
+	Resume() // resume the peer discovery
 	IsInterfaceNil() bool
 }
 
@@ -140,7 +142,7 @@ type Messenger interface {
 	// BroadcastOnChannelBlocking asynchronously waits until it can send a
 	// message on the channel, but once it is able to, it synchronously sends the
 	// message, blocking until sending is completed.
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte)
+	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
 
 	// BroadcastOnChannel asynchronously sends a message on a given topic
 	// through a specified channel.
@@ -154,6 +156,10 @@ type Messenger interface {
 	// bypassing pubsub and topics. It opens a new connection with the given
 	// peer, but reuses a connection and a stream if possible.
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
+
+	IsConnectedToTheNetwork() bool
+	ThresholdMinConnectedPeers() int
+	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

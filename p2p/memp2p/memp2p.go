@@ -254,9 +254,8 @@ func (messenger *Messenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBalance
 // have their ReceiveMessage() function called synchronously. The call
 // to parametricBroadcast() is done synchronously as well. This function should
 // be called as a go-routine.
-func (messenger *Messenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) {
-	err := messenger.parametricBroadcast(topic, buff, false)
-	log.LogIfError(err)
+func (messenger *Messenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
+	return messenger.parametricBroadcast(topic, buff, false)
 }
 
 // BroadcastOnChannel sends the message to all peers in the network. It calls
@@ -359,6 +358,21 @@ func (messenger *Messenger) ReceiveMessage(topic string, message p2p.MessageP2P,
 	}
 
 	return validator.ProcessReceivedMessage(message, handler)
+}
+
+// IsConnectedToTheNetwork returns true as this implementation is always connected to its network
+func (messenger *Messenger) IsConnectedToTheNetwork() bool {
+	return true
+}
+
+// SetThresholdMinConnectedPeers does nothing as this implementation is always connected to its network
+func (messenger *Messenger) SetThresholdMinConnectedPeers(minConnectedPeers int) error {
+	return nil
+}
+
+// ThresholdMinConnectedPeers always return 0
+func (messenger *Messenger) ThresholdMinConnectedPeers() int {
+	return 0
 }
 
 // Close disconnects this Messenger from the network it was connected to.
