@@ -4,6 +4,8 @@ import (
 	"sync"
 )
 
+const msgQueueSize = 100
+
 type logWriter struct {
 	mutChanClosed sync.RWMutex
 	chanClosed    bool
@@ -13,7 +15,7 @@ type logWriter struct {
 // NewLogWriter creates a new chan-based
 func NewLogWriter() *logWriter {
 	return &logWriter{
-		dataChan: make(chan []byte, 1),
+		dataChan: make(chan []byte, msgQueueSize),
 	}
 }
 

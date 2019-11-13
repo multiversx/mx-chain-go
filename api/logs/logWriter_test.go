@@ -58,7 +58,9 @@ func TestLogWriter_SecondWriteNoReadShouldErr(t *testing.T) {
 	lw := logs.NewLogWriter()
 	data := []byte("data")
 
-	_, _ = lw.Write(data)
+	for i := 0; i < logs.MsgQueueSize; i++ {
+		_, _ = lw.Write(data)
+	}
 	n, err := lw.Write(data)
 
 	assert.Equal(t, logs.ErrWriterBusy, err)

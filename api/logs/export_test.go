@@ -1,5 +1,7 @@
 package logs
 
+const MsgQueueSize = msgQueueSize
+
 type LogSender struct {
 	*logSender
 }
