@@ -95,7 +95,7 @@ func (txc *transactionCounter) displayLogInfo(
 	}
 
 	txc.mutex.RLock()
-	message := fmt.Sprintf("header hash: %s\n%s", headerHash, tblString)
+	message := fmt.Sprintf("header hash: %s\n%s", display.DisplayByteSlice(headerHash), tblString)
 	arguments := []interface{}{
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
