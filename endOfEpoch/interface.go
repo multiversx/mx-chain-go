@@ -16,6 +16,7 @@ type TriggerHandler interface {
 	Update(round int64)
 	EpochStartRound() uint64
 	Processed()
+	Revert()
 	IsInterfaceNil() bool
 }
 

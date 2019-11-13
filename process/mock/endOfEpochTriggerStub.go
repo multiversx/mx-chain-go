@@ -12,6 +12,9 @@ type EndOfEpochTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
+func (e *EndOfEpochTriggerStub) Revert() {
+}
+
 func (e *EndOfEpochTriggerStub) EpochStartRound() uint64 {
 	if e.EpochStartRoundCalled != nil {
 		return e.EpochStartRoundCalled()

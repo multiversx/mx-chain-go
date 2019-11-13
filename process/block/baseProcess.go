@@ -199,30 +199,6 @@ func (bp *baseProcessor) checkBlockValidity(
 	return nil
 }
 
-func (bp *baseProcessor) checkEpochCorrectness(
-	headerHandler data.HeaderHandler,
-	chainHandler data.ChainHandler,
-) error {
-	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
-	if currentBlockHeader == nil {
-		return nil
-	}
-
-	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		bp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
-		return process.ErrEpochDoesNotMatch
-	}
-
-	if bp.endOfEpochTrigger.IsEndOfEpoch() {
-		if headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
-			return process.ErrEpochDoesNotMatch
-		}
-	}
-
-	return nil
-}
-
 // verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {

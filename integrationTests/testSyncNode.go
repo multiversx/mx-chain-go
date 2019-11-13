@@ -45,6 +45,8 @@ func NewTestSyncNode(
 	tpn.initDataPools()
 	tpn.initTestNodeWithSync()
 
+	tpn.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{}
+
 	return tpn
 }
 

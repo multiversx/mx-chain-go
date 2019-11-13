@@ -60,7 +60,7 @@ func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	nrRoundsToPropagateMultiShard := 10
 	/////////----- wait for epoch end period
-	for i := uint64(0); i < uint64(roundsPerEpoch); i++ {
+	for i := uint64(0); i <= uint64(roundsPerEpoch); i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)

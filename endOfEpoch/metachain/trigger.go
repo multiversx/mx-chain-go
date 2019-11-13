@@ -99,7 +99,7 @@ func (t *trigger) Update(round int64) {
 
 	t.currentRound = round
 
-	if t.currentRound > t.roundsPerEpoch {
+	if t.currentRound > t.epochStartRound+t.roundsPerEpoch {
 		t.epoch += 1
 		t.epochStartTime = t.rounder.TimeStamp()
 		t.isEndOfEpoch = true
@@ -110,6 +110,11 @@ func (t *trigger) Update(round int64) {
 // Processed sets end of epoch to false and cleans underlying structure
 func (t *trigger) Processed() {
 	t.isEndOfEpoch = false
+}
+
+// Revert sets the end of epoch back to true
+func (t *trigger) Revert() {
+	t.isEndOfEpoch = true
 }
 
 // Epoch return the current epoch

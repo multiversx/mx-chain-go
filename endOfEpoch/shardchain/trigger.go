@@ -36,7 +36,7 @@ type ArgsShardEndOfEpochTrigger struct {
 type trigger struct {
 	epoch             uint32
 	currentRoundIndex int64
-	epochStartRound   int64
+	epochStartRound   uint64
 	isEndOfEpoch      bool
 	finality          uint64
 	validity          uint64
@@ -183,7 +183,13 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	}
 
 	for hash, meta := range t.mapEndOfEpochHdrs {
-		t.isEndOfEpoch = t.checkIfTriggerCanBeActivated(hash, meta)
+		canActivateEndOfEpoch := t.checkIfTriggerCanBeActivated(hash, meta)
+		if canActivateEndOfEpoch {
+			t.epoch += 1
+			t.isEndOfEpoch = true
+			t.epochStartRound = meta.Round
+			break
+		}
 	}
 
 	t.mutReceived.Unlock()
@@ -317,6 +323,12 @@ func (t *trigger) Update(round int64) {
 func (t *trigger) Processed() {
 	t.isEndOfEpoch = false
 	t.newEpochHdrReceived = false
+}
+
+// Revert sets the end of epoch back to true
+func (t *trigger) Revert() {
+	t.isEndOfEpoch = true
+	t.newEpochHdrReceived = true
 }
 
 // IsInterfaceNil returns true if underlying object is nil

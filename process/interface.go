@@ -368,6 +368,8 @@ type EndOfEpochTriggerHandler interface {
 	IsEndOfEpoch() bool
 	Epoch() uint32
 	EpochStartRound() uint64
+	Processed()
+	Revert()
 	IsInterfaceNil() bool
 }
 

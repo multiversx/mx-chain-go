@@ -268,6 +268,30 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
+func (sp *shardProcessor) checkEpochCorrectness(
+	headerHandler data.HeaderHandler,
+	chainHandler data.ChainHandler,
+) error {
+	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+	if currentBlockHeader == nil {
+		return nil
+	}
+
+	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		sp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
+	if isEpochIncorrect {
+		return process.ErrEpochDoesNotMatch
+	}
+
+	if sp.endOfEpochTrigger.IsEndOfEpoch() &&
+		headerHandler.GetRound() > sp.endOfEpochTrigger.EpochStartRound()+process.MetaBlockFinality &&
+		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
+		return process.ErrEpochDoesNotMatch
+	}
+
+	return nil
+}
+
 func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.HeaderHandler) error {
 	sp.specialAddressHandler.ClearMetaConsensusData()
 
@@ -655,6 +679,11 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
+	if lastBlockHeader != nil && headerHandler.GetEpoch() == lastBlockHeader.GetEpoch()+1 {
+		sp.endOfEpochTrigger.Processed()
+	}
+
 	log.Info(fmt.Sprintf("shard block with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
 		core.ToB64(headerHash)))
@@ -683,8 +712,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	hdrsToAttestPreviousFinal := uint32(header.Nonce-highestFinalBlockNonce) + 1
 	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
-
-	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -1536,6 +1563,8 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	shardHeader.TxCount = uint32(totalTxCount)
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
+
+	shardHeader.Epoch = sp.endOfEpochTrigger.Epoch()
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))

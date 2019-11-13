@@ -291,6 +291,29 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
+func (mp *metaProcessor) checkEpochCorrectness(
+	headerHandler data.HeaderHandler,
+	chainHandler data.ChainHandler,
+) error {
+	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+	if currentBlockHeader == nil {
+		return nil
+	}
+
+	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		mp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
+	if isEpochIncorrect {
+		return process.ErrEpochDoesNotMatch
+	}
+
+	if mp.endOfEpochTrigger.IsEndOfEpoch() &&
+		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
+		return process.ErrEpochDoesNotMatch
+	}
+
+	return nil
+}
+
 func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
 	miniBlockShardsHashes, err := mp.getAllMiniBlockDstMeFromShards(header)
 	if err != nil {
@@ -481,6 +504,10 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	err := mp.pendingMiniBlocks.RevertHeader(metaBlock)
 	if err != nil {
 		return err
+	}
+
+	if len(metaBlock.EndOfEpoch.LastFinalizedHeaders) > 0 {
+		mp.endOfEpochTrigger.Revert()
 	}
 
 	for _, hdrHash := range hdrHashes {
@@ -880,6 +907,10 @@ func (mp *metaProcessor) CommitBlock(
 	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
 	if err != nil {
 		return err
+	}
+
+	if len(header.EndOfEpoch.LastFinalizedHeaders) > 0 {
+		mp.endOfEpochTrigger.Processed()
 	}
 
 	log.Info(fmt.Sprintf("meta block with nonce %d and hash %s has been committed successfully\n",
