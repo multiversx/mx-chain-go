@@ -242,7 +242,7 @@ func TestTrigger_ReceivedHeaderIsEndOfEpochTrue(t *testing.T) {
 	eoet, _ := NewEndOfEpochTrigger(args)
 
 	hash := []byte("hash")
-	header := &block.MetaBlock{Nonce: 100}
+	header := &block.MetaBlock{Nonce: 100, Epoch: 1}
 	header.EndOfEpoch.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	eoet.ReceivedHeader(header)
 	eoet.ReceivedHeader(header)

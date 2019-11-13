@@ -406,7 +406,8 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 		dest.SetMiniBlockHeaders(miniBlockList)
 	}
 
-	dest.SetEndOfEpoch(EndOfEpochGoToCapn(seg, src.EndOfEpoch))
+	//TODO repair
+	//dest.SetEndOfEpoch(EndOfEpochGoToCapn(seg, src.EndOfEpoch))
 	dest.SetSignature(src.Signature)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 	dest.SetPrevHash(src.PrevHash)
@@ -446,7 +447,8 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
 	}
 
-	dest.EndOfEpoch = *EndOfEpochCapnToGo(src.EndOfEpoch(), nil)
+	//TODO repair
+	//dest.EndOfEpoch = *EndOfEpochCapnToGo(src.EndOfEpoch(), nil)
 	dest.Signature = src.Signature()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
 	dest.PrevHash = src.PrevHash()

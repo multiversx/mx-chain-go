@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -285,7 +286,17 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	if sp.endOfEpochTrigger.IsEndOfEpoch() &&
 		headerHandler.GetRound() > sp.endOfEpochTrigger.EpochStartRound()+process.MetaBlockFinality &&
-		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
+		headerHandler.GetEpoch() != sp.endOfEpochTrigger.Epoch() {
+		return process.ErrEpochDoesNotMatch
+	}
+
+	shardHdr, ok := headerHandler.(*block.Header)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if len(shardHdr.EndOfEpochMetaHash) > 0 &&
+		!bytes.Equal(shardHdr.EndOfEpochMetaHash, sp.endOfEpochTrigger.EndOfEpochMetaHdrHash()) {
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -484,6 +495,10 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 	}
 
+	if len(header.EndOfEpochMetaHash) > 0 {
+		sp.endOfEpochTrigger.Revert()
+	}
+
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
 
 	sp.removeLastNotarized()
@@ -679,8 +694,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
-	if lastBlockHeader != nil && headerHandler.GetEpoch() == lastBlockHeader.GetEpoch()+1 {
+	if len(header.EndOfEpochMetaHash) > 0 {
 		sp.endOfEpochTrigger.Processed()
 	}
 
@@ -712,6 +726,8 @@ func (sp *shardProcessor) CommitBlock(
 
 	hdrsToAttestPreviousFinal := uint32(header.Nonce-highestFinalBlockNonce) + 1
 	sp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
+
+	lastBlockHeader := chainHandler.GetCurrentBlockHeader()
 
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
@@ -1565,6 +1581,9 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
 	shardHeader.Epoch = sp.endOfEpochTrigger.Epoch()
+	if sp.endOfEpochTrigger.IsEndOfEpoch() {
+		shardHeader.EndOfEpochMetaHash = sp.endOfEpochTrigger.EndOfEpochMetaHdrHash()
+	}
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))

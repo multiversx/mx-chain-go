@@ -15,6 +15,10 @@ type EndOfEpochTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
+func (e *EndOfEpochTriggerStub) EndOfEpochMetaHdrHash() []byte {
+	return nil
+}
+
 func (e *EndOfEpochTriggerStub) GetRoundsPerEpoch() int64 {
 	return 0
 }

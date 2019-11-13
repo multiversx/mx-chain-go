@@ -2276,9 +2276,16 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create pending miniblocks handler because of empty miniblock header store")
 	}
 
+	metaBlocksStore := data.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	if check.IfNil(metaBlocksStore) {
+		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
+	}
+
 	argsPendingMiniBlocks := &metachainEndOfEpoch.ArgsPendingMiniBlocks{
-		Marshalizer: core.Marshalizer,
-		Storage:     miniBlockHeaderStore,
+		Marshalizer:      core.Marshalizer,
+		Storage:          miniBlockHeaderStore,
+		MetaBlockPool:    data.MetaDatapool.MetaBlocks(),
+		MetaBlockStorage: metaBlocksStore,
 	}
 	pendingMiniBlocks, err := metachainEndOfEpoch.NewPendingMiniBlocks(argsPendingMiniBlocks)
 	if err != nil {

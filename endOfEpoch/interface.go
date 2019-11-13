@@ -15,6 +15,7 @@ type TriggerHandler interface {
 	ReceivedHeader(header data.HeaderHandler)
 	Update(round int64)
 	EpochStartRound() uint64
+	EndOfEpochMetaHdrHash() []byte
 	Processed()
 	Revert()
 	IsInterfaceNil() bool
@@ -22,7 +23,7 @@ type TriggerHandler interface {
 
 // PendingMiniBlocksHandler defines the actions which should be handled by pending miniblocks implementation
 type PendingMiniBlocksHandler interface {
-	PendingMiniBlockHeaders() []block.ShardMiniBlockHeader
+	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
 	IsInterfaceNil() bool

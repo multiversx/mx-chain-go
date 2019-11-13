@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -11,12 +12,19 @@ import (
 )
 
 func createMockArguments() *ArgsPendingMiniBlocks {
-	storer := &mock.StorerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-
 	return &ArgsPendingMiniBlocks{
-		Marshalizer: marshalizer,
-		Storage:     storer,
+		Marshalizer: &mock.MarshalizerMock{},
+		Storage:     &mock.StorerStub{},
+		MetaBlockStorage: &mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, e error) {
+				return nil, endOfEpoch.ErrMetaHdrNotFound
+			},
+		},
+		MetaBlockPool: &mock.CacherStub{
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+		},
 	}
 }
 
@@ -103,7 +111,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 			return nil
 		},
 	}
-	pmb, _ := NewPendingMiniBlocks(arguments)
+
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
@@ -112,12 +120,17 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 			}},
 		},
 	}
+	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
+		return header, true
+	}}
+	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
+	pmb, _ := NewPendingMiniBlocks(arguments)
 	err := pmb.AddProcessedHeader(header)
 	assert.Nil(t, err)
 
 	//Check miniblocks headers are returned
-	shdMbHdrs := pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, err := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.True(t, isMbInSlice(hash2, shdMbHdrs))
 
@@ -125,7 +138,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Check miniblocks headers are removed from pending list
-	shdMbHdrs = pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, err = pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.False(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
 }
@@ -147,7 +160,6 @@ func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing
 			return nil
 		},
 	}
-	pmb, _ := NewPendingMiniBlocks(arguments)
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
@@ -159,12 +171,17 @@ func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing
 			}},
 		},
 	}
+	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
+		return header, true
+	}}
+	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
+	pmb, _ := NewPendingMiniBlocks(arguments)
 	err := pmb.AddProcessedHeader(header)
 	assert.Nil(t, err)
 
 	//Check miniblocks headers are returned
-	shdMbHdrs := pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, _ := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	for i := 0; i < numMiniBlocks; i++ {
 		assert.Equal(t, shdMbHdrs[i].TxCount, sortedTxCount[i])
 	}
@@ -189,7 +206,6 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *
 		Fail: true,
 	}
 
-	pmb, _ := NewPendingMiniBlocks(arguments)
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
@@ -198,11 +214,16 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *
 			}},
 		},
 	}
+	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
+		return header, true
+	}}
+	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
+	pmb, _ := NewPendingMiniBlocks(arguments)
 	err := pmb.AddProcessedHeader(header)
 	assert.Nil(t, err)
 
-	shdMbHdrs := pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, _ := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.True(t, isMbInSlice(hash2, shdMbHdrs))
 
@@ -210,7 +231,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *
 	assert.NotNil(t, err)
 
 	//Check miniblocks headers are not removed from pending list
-	shdMbHdrs = pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, _ = pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
 }

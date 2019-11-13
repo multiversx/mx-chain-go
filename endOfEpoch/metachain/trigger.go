@@ -126,6 +126,11 @@ func (t *trigger) Epoch() uint32 {
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 }
 
+// EndOfEpochMetaHdrHash returns the announcing meta header hash which created the new epoch
+func (t *trigger) EndOfEpochMetaHdrHash() []byte {
+	return nil
+}
+
 // IsInterfaceNil return true if underlying object is nil
 func (t *trigger) IsInterfaceNil() bool {
 	return t == nil

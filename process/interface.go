@@ -370,12 +370,13 @@ type EndOfEpochTriggerHandler interface {
 	EpochStartRound() uint64
 	Processed()
 	Revert()
+	EndOfEpochMetaHdrHash() []byte
 	IsInterfaceNil() bool
 }
 
 // PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks
 type PendingMiniBlocksHandler interface {
-	PendingMiniBlockHeaders() []block.ShardMiniBlockHeader
+	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
 	IsInterfaceNil() bool

@@ -1571,11 +1571,10 @@ func (mp *metaProcessor) createEndOfEpochForMetablock(metaBlock *block.MetaBlock
 		return endOfEpoch, nil
 	}
 
-	pendingMiniBlocks := mp.pendingMiniBlocks.PendingMiniBlockHeaders()
-	endOfEpoch.PendingMiniBlockHeaders = pendingMiniBlocks
-
 	mp.mutNotarizedHdrs.RLock()
 	defer mp.mutNotarizedHdrs.RUnlock()
+
+	lastNotarizedHeaders := make([]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		lastNotarizedHdr := mp.lastNotarizedHdrForShard(i)
 
@@ -1591,7 +1590,15 @@ func (mp *metaProcessor) createEndOfEpochForMetablock(metaBlock *block.MetaBlock
 		}
 
 		endOfEpoch.LastFinalizedHeaders = append(endOfEpoch.LastFinalizedHeaders, finalHeader)
+		lastNotarizedHeaders[i] = lastNotarizedHdr
 	}
+
+	pendingMiniBlocks, err := mp.pendingMiniBlocks.PendingMiniBlockHeaders(lastNotarizedHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	endOfEpoch.PendingMiniBlockHeaders = pendingMiniBlocks
 
 	return endOfEpoch, nil
 }

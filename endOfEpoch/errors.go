@@ -65,6 +65,9 @@ var ErrNilStorageService = errors.New("nil storage service")
 // ErrNilRequestHandler signals that nil request handler has been provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
+// ErrNilMetaBlockStorage signals that nil metablocks storage has been provided
+var ErrNilMetaBlockStorage = errors.New("nil metablocks storage")
+
 // ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
 var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 

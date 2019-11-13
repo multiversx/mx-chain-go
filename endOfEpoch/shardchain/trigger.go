@@ -34,12 +34,13 @@ type ArgsShardEndOfEpochTrigger struct {
 }
 
 type trigger struct {
-	epoch             uint32
-	currentRoundIndex int64
-	epochStartRound   uint64
-	isEndOfEpoch      bool
-	finality          uint64
-	validity          uint64
+	epoch              uint32
+	currentRoundIndex  int64
+	epochStartRound    uint64
+	epochMetaBlockHash []byte
+	isEndOfEpoch       bool
+	finality           uint64
+	validity           uint64
 
 	newEpochHdrReceived bool
 
@@ -125,6 +126,7 @@ func NewEndOfEpochTrigger(args *ArgsShardEndOfEpochTrigger) (*trigger, error) {
 		hasher:              args.Hasher,
 		headerValidator:     args.HeaderValidator,
 		requestHandler:      args.RequestHandler,
+		epochMetaBlockHash:  []byte("genesis"),
 	}
 	return newTrigger, nil
 }
@@ -167,6 +169,10 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
+	if metaHdr.Epoch == t.epoch && len(metaHdr.EndOfEpoch.LastFinalizedHeaders) > 0 {
+		return
+	}
+
 	hdrHash, err := core.CalculateHash(t.marshalizer, t.hasher, metaHdr)
 	if err != nil {
 		return
@@ -184,10 +190,11 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 
 	for hash, meta := range t.mapEndOfEpochHdrs {
 		canActivateEndOfEpoch := t.checkIfTriggerCanBeActivated(hash, meta)
-		if canActivateEndOfEpoch {
-			t.epoch += 1
+		if canActivateEndOfEpoch && t.epoch != meta.Epoch {
+			t.epoch = meta.Epoch
 			t.isEndOfEpoch = true
 			t.epochStartRound = meta.Round
+			t.epochMetaBlockHash = []byte(hash)
 			break
 		}
 	}
@@ -321,14 +328,26 @@ func (t *trigger) Update(round int64) {
 
 // Processed sets end of epoch to false and cleans underlying structure
 func (t *trigger) Processed() {
+	t.mutReceived.Lock()
+	defer t.mutReceived.Unlock()
+
 	t.isEndOfEpoch = false
 	t.newEpochHdrReceived = false
+
+	t.mapHashHdr = make(map[string]*block.MetaBlock)
+	t.mapNonceHashes = make(map[uint64][]string)
+	t.mapEndOfEpochHdrs = make(map[string]*block.MetaBlock)
 }
 
 // Revert sets the end of epoch back to true
 func (t *trigger) Revert() {
 	t.isEndOfEpoch = true
 	t.newEpochHdrReceived = true
+}
+
+// EndOfEpochMetaHdrHash returns the announcing meta header hash which created the new epoch
+func (t *trigger) EndOfEpochMetaHdrHash() []byte {
+	return t.epochMetaBlockHash
 }
 
 // IsInterfaceNil returns true if underlying object is nil
