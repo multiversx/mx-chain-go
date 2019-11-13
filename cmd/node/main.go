@@ -522,7 +522,10 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	rater := rating.NewBlockSigningRater(economicsData.RatingsData())
+	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
+	if err != nil {
+		return err
+	}
 
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,

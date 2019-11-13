@@ -22,9 +22,15 @@
     StartRating = 50
     MaxRating = 100
 	MinRating = 0
-	IncreaseRatingStep = 1
-	DecreaseRatingStep = 2
-	#Proposer will be increased by a total of IncreaseRatingStep + ProposerExtraIncreaseRatingStep
-	ProposerExtraIncreaseRatingStep = 1
-	#Proposer will be decreased by a total of DecreaseRatingStep + ProposerExtraDecreaseRatingStep
-	ProposerExtraDecreaseRatingStep = 2
+		[[RatingSettings.RatingValue]]
+    	name = "ValidatorIncreaseRatingStep"
+    	value = 1
+    	[[RatingSettings.RatingValue]]
+    	name = "ValidatorDecreaseRatingStep"
+    	value = -2
+    	[[RatingSettings.RatingValue]]
+    	name = "ProposerIncreaseRatingStep"
+    	value = 2
+    	[[RatingSettings.RatingValue]]
+    	name = "ProposerDecreaseRatingStep"
+    	value = -4

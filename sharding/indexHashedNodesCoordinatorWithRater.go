@@ -64,7 +64,15 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeValidatorsGroup(
 }
 
 func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(shardId uint32) []Validator {
-	//TODO implement an expand eligible list variant
-	ihgs.Rater.UpdateRating()
-	return ihgs.nodesMap[shardId]
+	validatorList := make([]Validator, 0)
+
+	for _, validator := range ihgs.nodesMap[shardId] {
+		pk := validator.PubKey()
+		rating := ihgs.GetRating(string(pk))
+		for i := int64(0); i < rating; i++ {
+			validatorList = append(validatorList, validator)
+		}
+	}
+
+	return validatorList
 }

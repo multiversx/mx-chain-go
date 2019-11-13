@@ -29,13 +29,15 @@ type ValidatorSettings struct {
 
 // RatingSettings will hold rating settings
 type RatingSettings struct {
-	StartRating                     uint64
-	MaxRating                       uint64
-	MinRating                       uint64
-	IncreaseRatingStep              uint64
-	DecreaseRatingStep              uint64
-	ProposerExtraIncreaseRatingStep uint64
-	ProposerExtraDecreaseRatingStep uint64
+	StartRating int64
+	MaxRating   int64
+	MinRating   int64
+	RatingValue []RatingValue
+}
+
+type RatingValue struct {
+	Name  string
+	Value int64
 }
 
 // ConfigEconomics will hold economics config

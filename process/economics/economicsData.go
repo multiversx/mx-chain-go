@@ -44,6 +44,21 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
+	ratingValues := make(map[string]int64, 0)
+	for _, ratingValue := range economics.RatingSettings.RatingValue {
+		ratingValues[ratingValue.Name] = ratingValue.Value
+	}
+
+	rd, err := NewRatingsData(
+		economics.RatingSettings.StartRating,
+		economics.RatingSettings.MinRating,
+		economics.RatingSettings.MaxRating,
+		ratingValues)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &EconomicsData{
 		rewardsValue:        data.rewardsValue,
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
@@ -55,15 +70,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		burnAddress:         economics.EconomicsAddresses.BurnAddress,
 		stakeValue:          data.stakeValue,
 		unBoundPeriod:       data.unBoundPeriod,
-		ratingsData: &RatingsData{
-			startRating:                     economics.RatingSettings.StartRating,
-			maxRating:                       economics.RatingSettings.MaxRating,
-			minRating:                       economics.RatingSettings.MinRating,
-			increaseRatingStep:              economics.RatingSettings.IncreaseRatingStep,
-			decreaseRatingStep:              economics.RatingSettings.DecreaseRatingStep,
-			proposerExtraIncreaseRatingStep: economics.RatingSettings.ProposerExtraIncreaseRatingStep,
-			proposerExtraDecreaseRatingStep: economics.RatingSettings.ProposerExtraDecreaseRatingStep,
-		},
+		ratingsData:         rd,
 	}, nil
 }
 
@@ -120,11 +127,6 @@ func checkValues(economics *config.ConfigEconomics) error {
 	isEqualsToOne := math.Abs(sumPercentage-1.0) <= float64EqualityThreshold
 	if !isEqualsToOne {
 		return process.ErrInvalidRewardsPercentages
-	}
-
-	err := checkRatingsValues(economics.RatingSettings)
-	if err != nil {
-		return err
 	}
 
 	return nil

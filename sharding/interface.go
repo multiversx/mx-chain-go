@@ -48,5 +48,11 @@ type PublicKeysSelector interface {
 }
 
 type Rater interface {
-	UpdateRating() error
+	//UpdateRating updates all the ratings
+	//TODO: change method signature
+	UpdateRatings(updateValues map[string][]string)
+	//GetRating gets the rating for the public key
+	GetRating(string) int64
+	//GetRatings gets all the ratings as a map[pk] ratingValue
+	GetRatings() map[string]int64
 }

@@ -13,7 +13,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	validatorIncreaseRatingStep    = "validatorIncreaseRatingStep"
+	validatorDecreaseRatingStepKey = "validatorDecreaseRatingStep"
+	proposerIncreaseRatingStepKey  = "proposerIncreaseRatingStep"
+	proposerDecreaseRatingStepKey  = "proposerDecreaseRatingStep"
+)
+
 func createDummyEconomicsConfig() *config.ConfigEconomics {
+
+	ratingValues := make([]config.RatingValue, 0)
+	ratingValues = append(ratingValues, config.RatingValue{
+		Name:  validatorIncreaseRatingStep,
+		Value: 1,
+	})
+	ratingValues = append(ratingValues, config.RatingValue{
+		Name:  validatorDecreaseRatingStepKey,
+		Value: 2,
+	})
+	ratingValues = append(ratingValues, config.RatingValue{
+		Name:  proposerIncreaseRatingStepKey,
+		Value: 3,
+	})
+	ratingValues = append(ratingValues, config.RatingValue{
+		Name:  proposerDecreaseRatingStepKey,
+		Value: 4,
+	})
+
 	return &config.ConfigEconomics{
 		EconomicsAddresses: config.EconomicsAddresses{
 			CommunityAddress: "addr1",
@@ -34,13 +60,10 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			UnBoundPeriod: "100000",
 		},
 		RatingSettings: config.RatingSettings{
-			StartRating:                     50,
-			MaxRating:                       100,
-			MinRating:                       1,
-			IncreaseRatingStep:              1,
-			DecreaseRatingStep:              2,
-			ProposerExtraIncreaseRatingStep: 1,
-			ProposerExtraDecreaseRatingStep: 2,
+			StartRating: 50,
+			MaxRating:   100,
+			MinRating:   1,
+			RatingValue: ratingValues,
 		},
 	}
 }
@@ -413,22 +436,16 @@ func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
 func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	t.Parallel()
 
-	minRating := uint64(10)
-	maxRating := uint64(100)
-	startRating := uint64(50)
-	increaseRatingStep := uint64(1)
-	decreaseRatingStep := uint64(2)
-	proposerExtraIncreaseRatingStep := uint64(3)
-	proposerExtraDecreaseRatingStep := uint64(4)
+	minRating := int64(10)
+	maxRating := int64(100)
+	startRating := int64(50)
+	ratingValues := createDummyEconomicsConfig().RatingSettings.RatingValue
 
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.RatingSettings.MinRating = minRating
 	economicsConfig.RatingSettings.MaxRating = maxRating
 	economicsConfig.RatingSettings.StartRating = startRating
-	economicsConfig.RatingSettings.IncreaseRatingStep = increaseRatingStep
-	economicsConfig.RatingSettings.DecreaseRatingStep = decreaseRatingStep
-	economicsConfig.RatingSettings.ProposerExtraIncreaseRatingStep = proposerExtraIncreaseRatingStep
-	economicsConfig.RatingSettings.ProposerExtraDecreaseRatingStep = proposerExtraDecreaseRatingStep
+	economicsConfig.RatingSettings.RatingValue = ratingValues
 
 	economicsData, err := economics.NewEconomicsData(economicsConfig)
 
@@ -437,9 +454,9 @@ func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	assert.Equal(t, startRating, economicsData.RatingsData().StartRating())
 	assert.Equal(t, minRating, economicsData.RatingsData().MinRating())
 	assert.Equal(t, maxRating, economicsData.RatingsData().MaxRating())
-	assert.Equal(t, increaseRatingStep, economicsData.RatingsData().IncreaseRatingStep())
-	assert.Equal(t, decreaseRatingStep, economicsData.RatingsData().DecreaseRatingStep())
-	assert.Equal(t, proposerExtraIncreaseRatingStep, economicsData.RatingsData().ProposerExtraIncreaseRatingStep())
-	assert.Equal(t, proposerExtraDecreaseRatingStep, economicsData.RatingsData().ProposerExtraDecreaseRatingStep())
+	assert.Equal(t, ratingValues[0].Value, economicsData.RatingsData().RatingOptions()[validatorIncreaseRatingStep])
+	assert.Equal(t, ratingValues[1].Value, economicsData.RatingsData().RatingOptions()[validatorDecreaseRatingStepKey])
+	assert.Equal(t, ratingValues[2].Value, economicsData.RatingsData().RatingOptions()[proposerIncreaseRatingStepKey])
+	assert.Equal(t, ratingValues[3].Value, economicsData.RatingsData().RatingOptions()[proposerDecreaseRatingStepKey])
 
 }
