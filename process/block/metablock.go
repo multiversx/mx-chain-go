@@ -282,11 +282,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -540,6 +535,9 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (block.Body, error) {
 
 	miniBlocks := make(block.Body, 0)
+	if mp.endOfEpochTrigger.IsEndOfEpoch() {
+		return miniBlocks, nil
+	}
 
 	if mp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -851,12 +849,29 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.saveMetricCrossCheckBlockHeight()
 
+	err = mp.commitAll()
+	if err != nil {
+		return err
+	}
+
+	err = chainHandler.SetCurrentBlockBody(body)
+	if err != nil {
+		return err
+	}
+
+	err = chainHandler.SetCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	chainHandler.SetCurrentBlockHeaderHash(headerHash)
+
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
 		return err
 	}
 
-	err = mp.commitAll()
+	err = mp.pendingMiniBlocks.AddProcessedHeader(header)
 	if err != nil {
 		return err
 	}
@@ -888,18 +903,6 @@ func (mp *metaProcessor) CommitBlock(
 	mp.removeNotarizedHdrsBehindPreviousFinal(hdrsToAttestPreviousFinal)
 
 	lastMetaBlock := chainHandler.GetCurrentBlockHeader()
-
-	err = chainHandler.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
-
-	err = chainHandler.SetCurrentBlockHeader(header)
-	if err != nil {
-		return err
-	}
-
-	chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
 	if mp.core != nil && mp.core.TPSBenchmark() != nil {
 		mp.core.TPSBenchmark().Update(header)
@@ -1112,9 +1115,6 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	mapShardMiniBlockHeadersData := make(map[string]struct{})
-	mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
-
 	for _, shardData := range metaHdr.ShardInfo {
 		actualHdr := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)].hdr
 		shardHdr, ok := actualHdr.(*block.Header)
@@ -1126,18 +1126,15 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			return nil, process.ErrHeaderShardDataMismatch
 		}
 
+		mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
 		for _, shardMiniBlockHdr := range shardData.ShardMiniBlockHeaders {
 			mapMiniBlockHeadersInMetaBlock[string(shardMiniBlockHdr.Hash)] = struct{}{}
 		}
 
 		for _, actualMiniBlockHdr := range shardHdr.MiniBlockHeaders {
-			mapShardMiniBlockHeadersData[string(actualMiniBlockHdr.Hash)] = struct{}{}
-		}
-	}
-
-	for mbHdrHash := range mapMiniBlockHeadersInMetaBlock {
-		if _, ok := mapShardMiniBlockHeadersData[mbHdrHash]; !ok {
-			return nil, process.ErrHeaderShardDataMismatch
+			if _, ok := mapMiniBlockHeadersInMetaBlock[string(actualMiniBlockHdr.Hash)]; !ok {
+				return nil, process.ErrHeaderShardDataMismatch
+			}
 		}
 	}
 
@@ -1396,6 +1393,9 @@ func (mp *metaProcessor) createShardInfo(
 ) ([]block.ShardData, error) {
 
 	shardInfo := make([]block.ShardData, 0)
+	if mp.endOfEpochTrigger.IsEndOfEpoch() {
+		return shardInfo, nil
+	}
 
 	log.Info(fmt.Sprintf("creating shard info has been started \n"))
 
@@ -1483,17 +1483,6 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	metaHdr.RootHash = mp.getRootHash()
 	metaHdr.TxCount = getTxCount(shardInfo)
 
-	err = mp.pendingMiniBlocks.AddProcessedHeader(metaHdr)
-	if err != nil {
-		return err
-	}
-
-	endOfEpoch, err := mp.createEndOfEpochForMetablock(metaHdr)
-	if err != nil {
-		return err
-	}
-	metaHdr.EndOfEpoch = *endOfEpoch
-
 	if bodyHandler == nil || bodyHandler.IsInterfaceNil() {
 		return nil
 	}
@@ -1518,6 +1507,12 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	}
 
 	metaHdr.ValidatorStatsRootHash = rootHash
+
+	endOfEpoch, err := mp.createEndOfEpochForMetablock(metaHdr)
+	if err != nil {
+		return err
+	}
+	metaHdr.EndOfEpoch = *endOfEpoch
 
 	mp.blockSizeThrottler.Add(
 		metaHdr.GetRound(),
