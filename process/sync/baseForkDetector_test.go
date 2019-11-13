@@ -936,7 +936,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededStateNotProposedShouldNotAct
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock)
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
 
 	state := process.BHReceived
 	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
@@ -949,7 +949,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededNotSyncingShouldNotActivate(
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock)
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
 
 	state := process.BHProposed
 	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
@@ -962,14 +962,15 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededDifferencesNotEnoughShouldNo
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock)
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
 
 	_ = bfd.AddHeader(
 		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 3},
 		[]byte("hash1"),
 		process.BHProcessed,
 		nil,
-		nil)
+		nil,
+		false)
 
 	state := process.BHProposed
 	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
@@ -982,7 +983,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T)
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock)
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
 
 	bfd.SetFinalCheckpoint(0, 0)
 	_ = bfd.AddHeader(
@@ -990,7 +991,8 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T)
 		[]byte("hash1"),
 		process.BHProcessed,
 		nil,
-		nil)
+		nil,
+		false)
 
 	// last checkpoint will be (round = 0 , nonce = 0)
 	// round difference is higher than 20
@@ -1008,7 +1010,7 @@ func TestBaseForkDetector_ResetFork(t *testing.T) {
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewShardForkDetector(rounderMock)
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
 
 	bfd.SetShouldForceFork(true)
 	assert.True(t, bfd.ShouldForceFork())

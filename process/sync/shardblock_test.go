@@ -4880,6 +4880,7 @@ func TestShardBootstrap_RemoveBlockBody(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
@@ -5005,6 +5006,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
 	)
 

@@ -2823,16 +2823,17 @@ func TestMetaBootstrap_GetMaxNotarizedHeadersNoncesInMetaBlock(t *testing.T) {
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
+	lastNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	finalNotarized := make(map[uint32]*sync.HdrInfo, 0)
 	blockWithLastNotarized := make(map[uint32]uint64, 0)
 	blockWithFinalNotarized := make(map[uint32]uint64, 0)
 
-	lastNotarized[0] = 1
-	finalNotarized[0] = 1
+	lastNotarized[0] = &sync.HdrInfo{Nonce: 1}
+	finalNotarized[0] = &sync.HdrInfo{Nonce: 1}
 	blockWithLastNotarized[0] = 1
 	blockWithFinalNotarized[0] = 1
 	startNonce := uint64(0)
@@ -2916,27 +2917,28 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnFalse(t *testing
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
+	lastNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	finalNotarized := make(map[uint32]*sync.HdrInfo, 0)
 	blockWithLastNotarized := make(map[uint32]uint64, 0)
 	blockWithFinalNotarized := make(map[uint32]uint64, 0)
 
-	lastNotarized[0] = 1
-	lastNotarized[1] = 0
+	lastNotarized[0] = &sync.HdrInfo{Nonce: 1}
+	lastNotarized[1] = nil
 
-	finalNotarized[0] = 0
-	finalNotarized[1] = 0
+	finalNotarized[0] = nil
+	finalNotarized[1] = nil
 	blockWithLastNotarized[0] = 0
 	blockWithFinalNotarized[0] = 0
 	startNonce := uint64(0)
 
 	notarizedInfo := bs.GetNotarizedInfo(lastNotarized, finalNotarized, blockWithLastNotarized, blockWithFinalNotarized, startNonce)
 
-	notarizedNonces := make(map[uint32]uint64, 0)
-	notarizedNonces[0] = 0
+	notarizedNonces := make(map[uint32]*sync.HdrInfo, 0)
+	notarizedNonces[0] = nil
 	res := bs.AreNotarizedShardHeadersFound(notarizedInfo, notarizedNonces, 0)
 
 	assert.False(t, res)
@@ -3010,16 +3012,17 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnTrue(t *testing.
 		shardCoordinator,
 		account,
 		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
 	)
 
-	lastNotarized := make(map[uint32]uint64, 0)
-	finalNotarized := make(map[uint32]uint64, 0)
+	lastNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	finalNotarized := make(map[uint32]*sync.HdrInfo, 0)
 	blockWithLastNotarized := make(map[uint32]uint64, 0)
 	blockWithFinalNotarized := make(map[uint32]uint64, 0)
 
-	lastNotarized[0] = 0
-	finalNotarized[0] = 1
+	lastNotarized[0] = nil
+	finalNotarized[0] = &sync.HdrInfo{Nonce: 1}
 
 	blockWithLastNotarized[0] = 0
 	blockWithFinalNotarized[0] = 0
@@ -3027,8 +3030,8 @@ func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnTrue(t *testing.
 
 	notarizedInfo := bs.GetNotarizedInfo(lastNotarized, finalNotarized, blockWithLastNotarized, blockWithFinalNotarized, startNonce)
 
-	notarizedNonces := make(map[uint32]uint64, 0)
-	notarizedNonces[0] = 5
+	notarizedNonces := make(map[uint32]*sync.HdrInfo, 0)
+	notarizedNonces[0] = &sync.HdrInfo{Nonce: 5}
 
 	res := bs.AreNotarizedShardHeadersFound(notarizedInfo, notarizedNonces, 0)
 

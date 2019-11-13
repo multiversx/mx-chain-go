@@ -145,13 +145,13 @@ func (boot *MetaBootstrap) IsForkDetected() bool {
 func (boot *MetaBootstrap) GetMaxNotarizedHeadersNoncesInMetaBlock(
 	metaBlock *block.MetaBlock,
 	ni *notarizedInfo,
-) (map[uint32]uint64, error) {
+) (map[uint32]*HdrInfo, error) {
 	return boot.getMaxNotarizedHeadersNoncesInMetaBlock(metaBlock, ni)
 }
 
 func (boot *MetaBootstrap) GetNotarizedInfo(
-	lastNotarized map[uint32]uint64,
-	finalNotarized map[uint32]uint64,
+	lastNotarized map[uint32]*HdrInfo,
+	finalNotarized map[uint32]*HdrInfo,
 	blockWithLastNotarized map[uint32]uint64,
 	blockWithFinalNotarized map[uint32]uint64,
 	startNonce uint64,
@@ -167,7 +167,7 @@ func (boot *MetaBootstrap) GetNotarizedInfo(
 
 func (boot *MetaBootstrap) AreNotarizedShardHeadersFound(
 	ni *notarizedInfo,
-	notarizedNonce map[uint32]uint64,
+	notarizedNonce map[uint32]*HdrInfo,
 	nonce uint64,
 ) bool {
 	return boot.areNotarizedShardHeadersFound(ni, notarizedNonce, nonce)
