@@ -1251,17 +1251,6 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
 	tdp.MetaBlocks().Put(metaHash, meta)
 
-	meta = &block.MetaBlock{
-		Nonce:        2,
-		ShardInfo:    make([]block.ShardData, 0),
-		Round:        2,
-		PrevRandSeed: randSeed,
-	}
-	metaBytes, _ = marshalizer.Marshal(meta)
-	metaHash = hasher.Compute(string(metaBytes))
-
-	tdp.MetaBlocks().Put(metaHash, meta)
-
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
 	revertToSnapshot := func(snapshot int) error {
@@ -1288,6 +1277,17 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
+
+	meta = &block.MetaBlock{
+		Nonce:        2,
+		ShardInfo:    make([]block.ShardData, 0),
+		Round:        2,
+		PrevRandSeed: randSeed,
+	}
+	metaBytes, _ = marshalizer.Marshal(meta)
+	metaHash = hasher.Compute(string(metaBytes))
+
+	tdp.MetaBlocks().Put(metaHash, meta)
 
 	sp.CheckAndRequestIfMetaHeadersMissing(2)
 	time.Sleep(100 * time.Millisecond)
@@ -1364,6 +1364,16 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 	hdr.MetaBlockHashes = append(hdr.MetaBlockHashes, metaHash)
 	tdp.MetaBlocks().Put(metaHash, meta)
 
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
+
+	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
+	assert.Equal(t, process.ErrTimeIsOut, err)
+	res := sp.IsMetaHeaderFinal(&hdr, nil, 0)
+	assert.False(t, res)
+	res = sp.IsMetaHeaderFinal(nil, nil, 0)
+	assert.False(t, res)
+
 	meta = &block.MetaBlock{
 		Nonce:        2,
 		ShardInfo:    make([]block.ShardData, 0),
@@ -1374,16 +1384,6 @@ func TestShardProcessor_IsMetaHeaderFinalShouldPass(t *testing.T) {
 	metaBytes, _ = marshalizer.Marshal(meta)
 	metaHash = hasher.Compute(string(metaBytes))
 	tdp.MetaBlocks().Put(metaHash, meta)
-
-	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
-	sp, _ := blproc.NewShardProcessorEmptyWith3shards(tdp, genesisBlocks)
-
-	err := sp.ProcessBlock(blkc, &hdr, body, haveTime)
-	assert.Equal(t, process.ErrTimeIsOut, err)
-	res := sp.IsMetaHeaderFinal(&hdr, nil, 0)
-	assert.False(t, res)
-	res = sp.IsMetaHeaderFinal(nil, nil, 0)
-	assert.False(t, res)
 
 	meta = &block.MetaBlock{
 		Nonce:     1,
@@ -1620,7 +1620,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	arguments.Store = store
 	arguments.Accounts = accounts
 	arguments.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadereHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadereHashes [][]byte, isNotarizedShardStuck bool) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -1684,7 +1684,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	arguments.Store = store
 	arguments.Accounts = accounts
 	arguments.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -1802,7 +1802,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		},
 	}
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 			return nil
 		},
 	}
@@ -1906,7 +1906,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	forkDetectorAddCalled := false
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 			if header == hdr {
 				forkDetectorAddCalled = true
 				return nil
@@ -1999,7 +1999,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 		},
 	}
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -3087,13 +3087,6 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 			m[string(txHash)] = buffTx
 			return m, nil
 		},
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
-				RemoveCalled: func(key []byte) error {
-					return nil
-				},
-			}
-		},
 	}
 
 	factory, _ := shard.NewPreProcessorsContainerFactory(
@@ -3153,8 +3146,15 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		metablockHeader,
 	)
 
-	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-		return marshalizerMock.Marshal(metablockHeader)
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		return &mock.StorerStub{
+			RemoveCalled: func(key []byte) error {
+				return nil
+			},
+			GetCalled: func(key []byte) ([]byte, error) {
+				return marshalizerMock.Marshal(metablockHeader)
+			},
+		}
 	}
 
 	miniBlockHeader := block.MiniBlockHeader{
@@ -3857,13 +3857,13 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = poolFake
 	arguments.Store = &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-			return marshalizer.Marshal(&metaBlock)
-		},
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
+				},
+				GetCalled: func(key []byte) ([]byte, error) {
+					return marshalizer.Marshal(&metaBlock)
 				},
 			}
 		},
@@ -4187,6 +4187,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	arguments.Store = storer
 	arguments.ShardCoordinator = shardC
 	arguments.StartHeaders = createGenesisBlocks(shardC)
+	arguments.Rounder = &mock.RounderMock{}
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	miniblockHashes := make(map[string]uint32, 0)
@@ -4233,6 +4234,9 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 		return &mock.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
+			},
+			GetCalled: func(key []byte) ([]byte, error) {
+				return metaBytes, nil
 			},
 		}
 	}

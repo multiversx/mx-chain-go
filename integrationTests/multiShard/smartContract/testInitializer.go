@@ -59,6 +59,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -337,6 +338,7 @@ func createNetNode(
 		testAddressConverter,
 		maxTxNonceDeltaAllowed,
 		createMockTxFeeHandler(),
+		timecache.NewTimeCache(time.Second),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -461,7 +463,7 @@ func createNetNode(
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
-				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 					return nil
 				},
 				GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -488,6 +490,7 @@ func createNetNode(
 			BlockChainHook:               blockChainHook,
 			TxCoordinator:                tc,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        dPool,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -805,6 +808,7 @@ func createMetaNetNode(
 		params.keyGen,
 		maxTxNonceDeltaAllowed,
 		feeHandler,
+		timecache.NewTimeCache(time.Second),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -841,7 +845,7 @@ func createMetaNetNode(
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
-				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 					return nil
 				},
 				GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -867,6 +871,7 @@ func createMetaNetNode(
 			Core:            &mock.ServiceContainerMock{},
 			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:   &mock.TransactionCoordinatorMock{},
+			Rounder:         &mock.RounderMock{},
 		},
 		DataPool:           dPool,
 		SCDataGetter:       &mock.ScDataGetterMock{},
