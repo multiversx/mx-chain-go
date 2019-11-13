@@ -77,6 +77,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:         &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        tdp,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -237,7 +238,8 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	return sp.requestMissingFinalityAttestingHeaders(
 		sharding.MetachainShardId,
 		sp.metaBlockFinality,
-		sp.getMetaHeaderFromPoolWithNonce)
+		sp.getMetaHeaderFromPoolWithNonce,
+		sp.dataPool.MetaBlocks())
 }
 
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {

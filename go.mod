@@ -44,7 +44,7 @@ require (
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/common v0.4.1
 	github.com/satori/go.uuid v1.2.0
-	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
+	github.com/shirou/gopsutil v2.19.10+incompatible
 	github.com/sirupsen/logrus v1.4.0
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965

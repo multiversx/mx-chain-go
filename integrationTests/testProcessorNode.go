@@ -48,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/pkg/errors"
 )
 
@@ -78,6 +79,9 @@ var MinTxGasLimit = uint64(4)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
+
+// TimeSpanForBadHeaders is the expiry time for an added block header hash
+var TimeSpanForBadHeaders = time.Second * 30
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -113,6 +117,7 @@ type TestProcessorNode struct {
 
 	EconomicsData *economics.TestEconomicsData
 
+	BlackListHandler      process.BlackListHandler
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
@@ -312,6 +317,8 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 
 func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
+	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
+
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
@@ -328,6 +335,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.OwnAccount.KeygenTxSign,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
+			tpn.BlackListHandler,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -350,6 +358,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestAddressConverter,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
+			tpn.BlackListHandler,
 		)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
@@ -596,7 +605,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
 	tpn.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -622,6 +631,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockChainHookImpl,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		Rounder:                      &mock.RounderMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -700,6 +710,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithTxSingleSigner(tpn.OwnAccount.SingleSigner),
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
+		node.WithBlackListHandler(tpn.BlackListHandler),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
