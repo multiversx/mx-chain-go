@@ -22,15 +22,15 @@
     StartRating = 50
     MaxRating = 100
 	MinRating = 0
-		[[RatingSettings.RatingValue]]
-    	name = "ValidatorIncreaseRatingStep"
-    	value = 1
-    	[[RatingSettings.RatingValue]]
-    	name = "ValidatorDecreaseRatingStep"
-    	value = -2
-    	[[RatingSettings.RatingValue]]
-    	name = "ProposerIncreaseRatingStep"
-    	value = 2
-    	[[RatingSettings.RatingValue]]
-    	name = "ProposerDecreaseRatingStep"
-    	value = -4
+	[[RatingSettings.RatingValue]]
+    name = "ValidatorIncreaseRatingStep"
+    value = 1
+    [[RatingSettings.RatingValue]]
+    name = "ValidatorDecreaseRatingStep"
+    value = -2
+    [[RatingSettings.RatingValue]]
+    name = "ProposerIncreaseRatingStep"
+    value = 2
+    [[RatingSettings.RatingValue]]
+    name = "ProposerDecreaseRatingStep"
+    value = -4
