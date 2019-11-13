@@ -49,7 +49,6 @@ type PublicKeysSelector interface {
 
 type Rater interface {
 	//UpdateRating updates all the ratings
-	//TODO: change method signature
 	UpdateRatings(updateValues map[string][]string)
 	//GetRating gets the rating for the public key
 	GetRating(string) int64
