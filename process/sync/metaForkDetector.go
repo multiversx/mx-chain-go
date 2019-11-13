@@ -16,6 +16,7 @@ type metaForkDetector struct {
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	blockTracker process.BlockTracker,
 ) (*metaForkDetector, error) {
 
 	if check.IfNil(rounder) {
@@ -24,10 +25,14 @@ func NewMetaForkDetector(
 	if check.IfNil(blackListHandler) {
 		return nil, process.ErrNilBlackListHandler
 	}
+	if check.IfNil(blockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
+		blockTracker:     blockTracker,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -49,7 +54,6 @@ func (mfd *metaForkDetector) AddHeader(
 	state process.BlockHeaderState,
 	finalHeaders []data.HeaderHandler,
 	finalHeadersHashes [][]byte,
-	isNotarizedShardStuck bool,
 ) error {
 
 	if header == nil || header.IsInterfaceNil() {
@@ -64,7 +68,7 @@ func (mfd *metaForkDetector) AddHeader(
 		return err
 	}
 
-	mfd.activateForcedForkIfNeeded(header, state)
+	mfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 
 	err = mfd.shouldAddBlockInForkDetector(header, state, process.MetaBlockFinality)
 	if err != nil {
@@ -75,7 +79,6 @@ func (mfd *metaForkDetector) AddHeader(
 		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
 		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
 		mfd.removePastOrInvalidRecords()
-		mfd.setIsNotarizedShardStuck(isNotarizedShardStuck)
 	}
 
 	mfd.append(&headerInfo{
@@ -90,4 +93,7 @@ func (mfd *metaForkDetector) AddHeader(
 	mfd.setProbableHighestNonce(probableHighestNonce)
 
 	return nil
+}
+
+func (mfd *metaForkDetector) UpdateFinal() {
 }

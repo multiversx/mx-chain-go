@@ -6,7 +6,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
@@ -49,32 +48,29 @@ type hdrForBlock struct {
 	hdrHashAndInfo                 map[string]*hdrInfo
 }
 
-type mapShardHeaders map[uint32][]data.HeaderHandler
-type mapShardHeader map[uint32]data.HeaderHandler
+type mapHeaders map[uint32][]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	specialAddressHandler process.SpecialAddressHandler
-	accounts              state.AccountsAdapter
-	forkDetector          process.ForkDetector
-	hasher                hashing.Hasher
-	marshalizer           marshal.Marshalizer
-	store                 dataRetriever.StorageService
-	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler    process.BlockSizeThrottler
-	blockChainHook        process.BlockChainHookHandler
-	txCoordinator         process.TransactionCoordinator
+	shardCoordinator             sharding.Coordinator
+	nodesCoordinator             sharding.NodesCoordinator
+	specialAddressHandler        process.SpecialAddressHandler
+	accounts                     state.AccountsAdapter
+	forkDetector                 process.ForkDetector
+	hasher                       hashing.Hasher
+	marshalizer                  marshal.Marshalizer
+	store                        dataRetriever.StorageService
+	uint64Converter              typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler           process.BlockSizeThrottler
+	blockChainHook               process.BlockChainHookHandler
+	txCoordinator                process.TransactionCoordinator
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	rounder                      consensus.Rounder
+	blockTracker                 process.BlockTracker
+	headerPoolsCleaner           process.HeaderPoolsCleaner
 
 	hdrsForCurrBlock hdrForBlock
 
 	mutNotarizedHdrs sync.RWMutex
-	notarizedHdrs    mapShardHeaders
-
-	mutLastHdrs sync.RWMutex
-	lastHdrs    mapShardHeader
+	notarizedHdrs    mapHeaders
 
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
@@ -312,6 +308,21 @@ func (bp *baseProcessor) removeLastNotarized() {
 	bp.mutNotarizedHdrs.Unlock()
 }
 
+func (bp *baseProcessor) getLastNotarizedHdrsNonces() map[uint32]uint64 {
+	mapShardNonce := make(map[uint32]uint64)
+
+	bp.mutNotarizedHdrs.Lock()
+	for shardId := range bp.notarizedHdrs {
+		header := bp.lastNotarizedHdrForShard(shardId)
+		if header != nil {
+			mapShardNonce[shardId] = header.GetNonce()
+		}
+	}
+	bp.mutNotarizedHdrs.Unlock()
+
+	return mapShardNonce
+}
+
 func (bp *baseProcessor) lastNotarizedHdrForShard(shardId uint32) data.HeaderHandler {
 	notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
 	if notarizedHdrsCount > 0 {
@@ -319,29 +330,6 @@ func (bp *baseProcessor) lastNotarizedHdrForShard(shardId uint32) data.HeaderHan
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) lastHdrForShard(shardId uint32) data.HeaderHandler {
-	bp.mutLastHdrs.RLock()
-	defer bp.mutLastHdrs.RUnlock()
-
-	return bp.lastHdrs[shardId]
-}
-
-func (bp *baseProcessor) setLastHdrForShard(shardId uint32, header data.HeaderHandler) {
-	if check.IfNil(header) {
-		return
-	}
-
-	bp.mutLastHdrs.Lock()
-	defer bp.mutLastHdrs.Unlock()
-
-	lastHeader, ok := bp.lastHdrs[shardId]
-	if ok && lastHeader.GetRound() > header.GetRound() {
-		return
-	}
-
-	bp.lastHdrs[shardId] = header
 }
 
 func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
@@ -414,7 +402,7 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		return process.ErrNotarizedHdrsSliceIsNil
 	}
 
-	bp.notarizedHdrs = make(mapShardHeaders, bp.shardCoordinator.NumberOfShards())
+	bp.notarizedHdrs = make(mapHeaders, bp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
 		hdr, ok := startHeaders[i].(*block.Header)
 		if !ok {
@@ -589,14 +577,17 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
-	if check.IfNil(arguments.Rounder) {
-		return process.ErrNilRounder
-	}
-	if arguments.BlockChainHook == nil || arguments.BlockChainHook.IsInterfaceNil() {
+	if check.IfNil(arguments.BlockChainHook) {
 		return process.ErrNilBlockChainHook
 	}
-	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
+	if check.IfNil(arguments.TxCoordinator) {
 		return process.ErrNilTransactionCoordinator
+	}
+	if check.IfNil(arguments.BlockTracker) {
+		return process.ErrNilBlockTracker
+	}
+	if check.IfNil(arguments.HeaderPoolsCleaner) {
+		return process.ErrNilHeaderPoolsCleaner
 	}
 
 	return nil
@@ -823,83 +814,6 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	return missingFinalityAttestingHeaders
-}
-
-func (bp *baseProcessor) isShardStuck(shardId uint32) bool {
-	header := bp.lastHdrForShard(shardId)
-	if check.IfNil(header) {
-		return false
-	}
-
-	isShardStuck := bp.rounder.Index()-int64(header.GetRound()) > process.MaxRoundsWithoutCommittedBlock
-	return isShardStuck
-}
-
-func (bp *baseProcessor) cleanupPools(
-	headersNoncesPool dataRetriever.Uint64SyncMapCacher,
-	headersPool storage.Cacher,
-	notarizedHeadersPool storage.Cacher,
-) {
-	bp.removeHeadersBehindNonceFromPools(
-		headersPool,
-		headersNoncesPool,
-		bp.shardCoordinator.SelfId(),
-		bp.forkDetector.GetHighestFinalBlockNonce())
-
-	for shardId := range bp.notarizedHdrs {
-		lastNotarizedHdr := bp.lastNotarizedHdrForShard(shardId)
-		if check.IfNil(lastNotarizedHdr) {
-			continue
-		}
-
-		bp.removeHeadersBehindNonceFromPools(
-			notarizedHeadersPool,
-			headersNoncesPool,
-			shardId,
-			lastNotarizedHdr.GetNonce())
-	}
-
-	return
-}
-
-func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
-	cacher storage.Cacher,
-	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
-	shardId uint32,
-	nonce uint64,
-) {
-
-	if nonce <= 1 {
-		return
-	}
-
-	if check.IfNil(cacher) {
-		return
-	}
-
-	for _, key := range cacher.Keys() {
-		val, _ := cacher.Peek(key)
-		if val == nil {
-			continue
-		}
-
-		hdr, ok := val.(data.HeaderHandler)
-		if !ok {
-			continue
-		}
-
-		if hdr.GetShardID() != shardId || hdr.GetNonce() >= nonce {
-			continue
-		}
-
-		cacher.Remove(key)
-
-		if check.IfNil(uint64SyncMapCacher) {
-			continue
-		}
-
-		uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
-	}
 }
 
 func (bp *baseProcessor) removeHeaderFromPools(

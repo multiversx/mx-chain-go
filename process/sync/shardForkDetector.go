@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // shardForkDetector implements the shard fork detector mechanism
@@ -16,6 +17,7 @@ type shardForkDetector struct {
 func NewShardForkDetector(
 	rounder consensus.Rounder,
 	blackListHandler process.BlackListHandler,
+	blockTracker process.BlockTracker,
 ) (*shardForkDetector, error) {
 
 	if check.IfNil(rounder) {
@@ -24,10 +26,14 @@ func NewShardForkDetector(
 	if check.IfNil(blackListHandler) {
 		return nil, process.ErrNilBlackListHandler
 	}
+	if check.IfNil(blockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
+		blockTracker:     blockTracker,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -49,7 +55,6 @@ func (sfd *shardForkDetector) AddHeader(
 	state process.BlockHeaderState,
 	finalHeaders []data.HeaderHandler,
 	finalHeadersHashes [][]byte,
-	isNotarizedShardStuck bool,
 ) error {
 
 	if header == nil || header.IsInterfaceNil() {
@@ -64,7 +69,7 @@ func (sfd *shardForkDetector) AddHeader(
 		return err
 	}
 
-	sfd.activateForcedForkIfNeeded(header, state)
+	sfd.activateForcedForkIfNeeded(header, state, sharding.MetachainShardId)
 
 	err = sfd.shouldAddBlockInForkDetector(header, state, process.ShardBlockFinality)
 	if err != nil {
@@ -75,7 +80,6 @@ func (sfd *shardForkDetector) AddHeader(
 		sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
 		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
 		sfd.removePastOrInvalidRecords()
-		sfd.setIsNotarizedShardStuck(isNotarizedShardStuck)
 	}
 
 	sfd.append(&headerInfo{
@@ -90,6 +94,9 @@ func (sfd *shardForkDetector) AddHeader(
 	sfd.setProbableHighestNonce(probableHighestNonce)
 
 	return nil
+}
+
+func (sfd *shardForkDetector) UpdateFinal() {
 }
 
 func (sfd *shardForkDetector) addFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {

@@ -22,29 +22,22 @@ func NewBlockTrack(rounder consensus.Rounder) (*blockTrack, error) {
 		return nil, process.ErrNilRounder
 	}
 
-	bt := blockTrack{rounder: rounder}
+	bt := blockTrack{
+		rounder: rounder,
+	}
+
 	bt.lastHeaders = make(map[uint32]data.HeaderHandler)
 
 	return &bt, nil
 }
 
-// SetLastHeaderForShard sets the given header for the given shard as the last received if it has the highest round
-func (bt *blockTrack) SetLastHeaderForShard(header data.HeaderHandler) {
+// AddHeader adds the given header to the received headers list
+func (bt *blockTrack) AddHeader(header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
 
-	bt.mutLastHeaders.Lock()
-	defer bt.mutLastHeaders.Unlock()
-
-	shardID := header.GetShardID()
-
-	lastHeader, ok := bt.lastHeaders[shardID]
-	if ok && lastHeader.GetRound() > header.GetRound() {
-		return
-	}
-
-	bt.lastHeaders[shardID] = header
+	bt.setLastHeader(header)
 }
 
 // LastHeaderForShard return the last header received (highest round) for the given shard
@@ -69,4 +62,20 @@ func (bt *blockTrack) IsShardStuck(shardId uint32) bool {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bt *blockTrack) IsInterfaceNil() bool {
 	return bt == nil
+}
+
+// setLastHeader sets the given header as the last header for its shard if it has the highest round
+func (bt *blockTrack) setLastHeader(header data.HeaderHandler) {
+
+	bt.mutLastHeaders.Lock()
+	defer bt.mutLastHeaders.Unlock()
+
+	shardID := header.GetShardID()
+
+	lastHeader, ok := bt.lastHeaders[shardID]
+	if ok && lastHeader.GetRound() > header.GetRound() {
+		return
+	}
+
+	bt.lastHeaders[shardID] = header
 }

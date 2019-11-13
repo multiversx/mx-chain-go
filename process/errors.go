@@ -548,6 +548,12 @@ var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 // ErrNilBlackListHandler signals that a nil black list handler was provided
 var ErrNilBlackListHandler = errors.New("nil black list handler")
 
+// ErrNilBlockTracker signals that a nil block tracker was provided
+var ErrNilBlockTracker = errors.New("nil block tracker")
+
+// ErrNilHeaderPoolsCleaner signals that a nil header pools cleaner was provided
+var ErrNilHeaderPoolsCleaner = errors.New("nil header pools cleaner")
+
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
 

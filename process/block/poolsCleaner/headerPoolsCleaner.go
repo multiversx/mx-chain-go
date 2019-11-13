@@ -42,7 +42,13 @@ func NewHeaderPoolsCleaner(
 		return nil, process.ErrNilNotarizedHeadersDataPool
 	}
 
-	return &headerPoolsCleaner{numRemovedHeaders: 0}, nil
+	return &headerPoolsCleaner{
+		shardCoordinator:     shardCoordinator,
+		headersNoncesPool:    headersNoncesPool,
+		headersPool:          headersPool,
+		notarizedHeadersPool: notarizedHeadersPool,
+		numRemovedHeaders:    0,
+	}, nil
 }
 
 // Clean removes from pools headers which should be already final
@@ -78,10 +84,6 @@ func (hpc *headerPoolsCleaner) removeHeadersBehindNonceFromPools(
 		return
 	}
 
-	if check.IfNil(cacher) {
-		return
-	}
-
 	for _, key := range cacher.Keys() {
 		val, _ := cacher.Peek(key)
 		if val == nil {
@@ -100,11 +102,6 @@ func (hpc *headerPoolsCleaner) removeHeadersBehindNonceFromPools(
 		atomic.AddUint64(&hpc.numRemovedHeaders, 1)
 
 		cacher.Remove(key)
-
-		if check.IfNil(uint64SyncMapCacher) {
-			continue
-		}
-
 		uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
 	}
 }

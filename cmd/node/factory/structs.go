@@ -69,6 +69,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -536,7 +537,12 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler)
+	blockTracker, err := track.NewBlockTrack(rounder)
+	if err != nil {
+		return nil, err
+	}
+
+	forkDetector, err := newForkDetector(rounder, args.shardCoordinator, blackListHandler, blockTracker)
 	if err != nil {
 		return nil, err
 	}
@@ -1670,12 +1676,13 @@ func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	headerBlackList process.BlackListHandler,
+	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return processSync.NewShardForkDetector(rounder, headerBlackList)
+		return processSync.NewShardForkDetector(rounder, headerBlackList, blockTracker)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return processSync.NewMetaForkDetector(rounder, headerBlackList)
+		return processSync.NewMetaForkDetector(rounder, headerBlackList, blockTracker)
 	}
 
 	return nil, ErrCreateForkDetector
@@ -1773,7 +1780,7 @@ func newShardBlockProcessor(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
-	rounder consensus.Rounder,
+	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1951,6 +1958,16 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	headerPoolsCleaner, err := poolsCleaner.NewHeaderPoolsCleaner(
+		shardCoordinator,
+		data.Datapool.HeadersNonces(),
+		data.Datapool.Headers(),
+		data.Datapool.MetaBlocks(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:              state.AccountsAdapter,
 		ForkDetector:          forkDetector,
@@ -1966,7 +1983,8 @@ func newShardBlockProcessor(
 		Core:                  coreServiceContainer,
 		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
-		Rounder:               rounder,
+		BlockTracker:          blockTracker,
+		HeaderPoolsCleaner:    headerPoolsCleaner,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2000,7 +2018,7 @@ func newMetaBlockProcessor(
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-	rounder consensus.Rounder,
+	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2152,6 +2170,16 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	headerPoolsCleaner, err := poolsCleaner.NewHeaderPoolsCleaner(
+		shardCoordinator,
+		data.MetaDatapool.HeadersNonces(),
+		data.MetaDatapool.MetaBlocks(),
+		data.MetaDatapool.ShardHeaders(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:                     state.AccountsAdapter,
 		ForkDetector:                 forkDetector,
@@ -2168,7 +2196,8 @@ func newMetaBlockProcessor(
 		BlockChainHook:               vmFactory.BlockChainHookImpl(),
 		TxCoordinator:                txCoordinator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-		Rounder:                      rounder,
+		BlockTracker:                 blockTracker,
+		HeaderPoolsCleaner:           headerPoolsCleaner,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,

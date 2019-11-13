@@ -30,7 +30,6 @@ type forkInfo struct {
 	lastBlockRound         uint64
 	lastProposedBlockNonce uint64
 	shouldForceFork        bool
-	isNotarizedShardStuck  bool
 }
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
@@ -43,6 +42,7 @@ type baseForkDetector struct {
 	mutFork    sync.RWMutex
 
 	blackListHandler process.BlackListHandler
+	blockTracker     process.BlockTracker
 }
 
 func (bfd *baseForkDetector) removePastOrInvalidRecords() {
@@ -354,20 +354,6 @@ func (bfd *baseForkDetector) shouldForceFork() bool {
 	return shouldForceFork
 }
 
-func (bfd *baseForkDetector) setIsNotarizedShardStuck(isNotarizedShardStuck bool) {
-	bfd.mutFork.Lock()
-	bfd.fork.isNotarizedShardStuck = isNotarizedShardStuck
-	bfd.mutFork.Unlock()
-}
-
-func (bfd *baseForkDetector) isNotarizedShardStuck() bool {
-	bfd.mutFork.RLock()
-	isNotarizedShardStuck := bfd.fork.isNotarizedShardStuck
-	bfd.mutFork.RUnlock()
-
-	return isNotarizedShardStuck
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (bfd *baseForkDetector) IsInterfaceNil() bool {
 	if bfd == nil {
@@ -493,6 +479,15 @@ func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
 func (bfd *baseForkDetector) activateForcedForkIfNeeded(
 	header data.HeaderHandler,
 	state process.BlockHeaderState,
+	notarizedShard uint32,
+) {
+	bfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
+	bfd.activateForcedForkOnCrossNotarizedStuckIfNeeded(header, state, notarizedShard)
+}
+
+func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
+	header data.HeaderHandler,
+	state process.BlockHeaderState,
 ) {
 
 	if state != process.BHProposed || bfd.isSyncing() {
@@ -501,23 +496,43 @@ func (bfd *baseForkDetector) activateForcedForkIfNeeded(
 
 	lastCheckpointRound := bfd.lastCheckpoint().round
 	lastCheckpointNonce := bfd.lastCheckpoint().nonce
-	finalCheckpointNonce := bfd.finalCheckpoint().nonce
 
 	roundsDifference := int64(header.GetRound()) - int64(lastCheckpointRound)
 	noncesDifference := int64(header.GetNonce()) - int64(lastCheckpointNonce)
-	noncesWithoutCrossNotarizedDifference := int64(header.GetNonce()) - int64(finalCheckpointNonce)
 	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
 
 	isConsensusStuck := roundsDifference > process.MaxRoundsWithoutCommittedBlock &&
 		noncesDifference <= 1 &&
 		isInProperRound
 
+	if isConsensusStuck {
+		bfd.setShouldForceFork(true)
+	}
+}
+
+func (bfd *baseForkDetector) activateForcedForkOnCrossNotarizedStuckIfNeeded(
+	header data.HeaderHandler,
+	state process.BlockHeaderState,
+	notarizedShard uint32,
+) {
+
+	if state != process.BHProposed || bfd.isSyncing() {
+		return
+	}
+
+	lastCheckpointNonce := bfd.lastCheckpoint().nonce
+	finalCheckpointNonce := bfd.finalCheckpoint().nonce
+
+	noncesDifference := int64(header.GetNonce()) - int64(lastCheckpointNonce)
+	noncesWithoutCrossNotarizedDifference := int64(header.GetNonce()) - int64(finalCheckpointNonce)
+	isInProperRound := process.IsInProperRound(bfd.rounder.Index())
+
 	isCrossNotarizedStuck := noncesWithoutCrossNotarizedDifference > process.MaxNoncesWithoutCrossNotarized &&
 		noncesDifference <= 1 &&
 		isInProperRound &&
-		!bfd.isNotarizedShardStuck()
+		!bfd.blockTracker.IsShardStuck(notarizedShard)
 
-	if isConsensusStuck || isCrossNotarizedStuck {
+	if isCrossNotarizedStuck {
 		bfd.setShouldForceFork(true)
 	}
 }

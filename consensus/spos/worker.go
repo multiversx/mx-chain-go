@@ -268,7 +268,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		//(previous random seed, round, shard id and current random seed to verify if the block has been sent by the right proposer)
 		isHeaderValid := !check.IfNil(header) && headerHash != nil
 		if isHeaderValid {
-			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
+			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 			if errNotCritical != nil {
 				log.Debug(errNotCritical.Error())
 			}

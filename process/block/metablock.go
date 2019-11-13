@@ -81,7 +81,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
-		rounder:                       arguments.Rounder,
+		blockTracker:                  arguments.BlockTracker,
+		headerPoolsCleaner:            arguments.HeaderPoolsCleaner,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -111,8 +112,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.ShardBlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
-
-	mp.lastHdrs = make(mapShardHeader)
 
 	return &mp, nil
 }
@@ -859,7 +858,7 @@ func (mp *metaProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil, false)
+	errNotCritical = mp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, nil, nil)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -909,7 +908,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.dataPool.ShardHeaders().MaxSize(),
 	))
 
-	go mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
+	go mp.headerPoolsCleaner.Clean(mp.forkDetector.GetHighestFinalBlockNonce(), mp.getLastNotarizedHdrsNonces())
 
 	return nil
 }
@@ -1242,7 +1241,7 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	mp.setLastHdrForShard(shardHeader.GetShardID(), shardHeader)
+	mp.blockTracker.AddHeader(shardHeader)
 
 	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) {
 		shardHeaderPool.Remove(shardHeaderHash)

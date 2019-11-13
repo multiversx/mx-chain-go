@@ -325,7 +325,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		core.ToB64(headerHash),
 		headerHandler.GetNonce()))
 
-	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil, false)
+	err := boot.forkDetector.AddHeader(headerHandler, headerHash, process.BHReceived, nil, nil)
 	if err != nil {
 		log.Debug(err.Error())
 	}
@@ -880,7 +880,7 @@ func (boot *baseBootstrap) addReceivedHeaderToForkDetector(hash []byte) error {
 		return err
 	}
 
-	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil, false)
+	err = boot.forkDetector.AddHeader(header, hash, process.BHReceived, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -924,7 +924,7 @@ func (boot *baseBootstrap) addHeaderToForkDetector(
 		finalHeadersHashes = append(finalHeadersHashes, headerHash)
 	}
 
-	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, false)
+	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}

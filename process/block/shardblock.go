@@ -65,7 +65,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		appStatusHandler:              statusHandler.NewNilStatusHandler(),
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
-		rounder:                       arguments.Rounder,
+		blockTracker:                  arguments.BlockTracker,
+		headerPoolsCleaner:            arguments.HeaderPoolsCleaner,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -103,8 +104,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp.onRequestHeaderHandler = arguments.RequestHandler.RequestHeader
 
 	sp.metaBlockFinality = process.MetaBlockFinality
-
-	sp.lastHdrs = make(mapShardHeader)
 
 	return &sp, nil
 }
@@ -662,9 +661,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug(errNotCritical.Error())
 	}
 
-	isMetachainStuck := sp.isShardStuck(sharding.MetachainShardId)
-
-	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, isMetachainStuck)
+	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
 	if errNotCritical != nil {
 		log.Debug(errNotCritical.Error())
 	}
@@ -727,7 +724,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.dataPool.MiniBlocks().MaxSize(),
 	))
 
-	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
+	go sp.headerPoolsCleaner.Clean(sp.forkDetector.GetHighestFinalBlockNonce(), sp.getLastNotarizedHdrsNonces())
 
 	return nil
 }
@@ -1099,7 +1096,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	sp.setLastHdrForShard(metaBlock.GetShardID(), metaBlock)
+	sp.blockTracker.AddHeader(metaBlock)
 
 	if sp.isHeaderOutOfRange(metaBlock, metaBlocksPool) {
 		metaBlocksPool.Remove(metaBlockHash)

@@ -251,7 +251,7 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error
+	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
 	RemoveHeaders(nonce uint64, hash []byte)
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
@@ -259,6 +259,7 @@ type ForkDetector interface {
 	ResetProbableHighestNonce()
 	ResetFork()
 	GetNotarizedHeaderHash(nonce uint64) []byte
+	UpdateFinal()
 	IsInterfaceNil() bool
 }
 
@@ -485,7 +486,7 @@ type NetworkConnectionWatcher interface {
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	IsShardStuck(shardId uint32) bool
-	SetLastHeaderForShard(header data.HeaderHandler)
+	AddHeader(header data.HeaderHandler)
 	LastHeaderForShard(shardId uint32) data.HeaderHandler
 	IsInterfaceNil() bool
 }
