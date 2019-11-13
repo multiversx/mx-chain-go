@@ -23,6 +23,11 @@
     Int64StorageStore  = 10
     Int64StorageLoad   = 10
     Int64Finish        = 10
+    GetStateRootHash   = 10
+    GetBlockNonce      = 10
+    GetBlockEpoch      = 10
+    GetBlockRound      = 10
+    GetBlockRandomSeed = 10
 
 [EthAPICost]
     UseGas              = 10
