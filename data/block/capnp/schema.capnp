@@ -21,7 +21,8 @@ struct HeaderCapn {
   rootHash               @13:  Data;
   validatorStatsRootHash @14:  Data;
   metaHdrHashes          @15:  List(Data);
-  txCount                @16:  UInt32;
+  EndOfEpochMetaHash     @16:  Data;
+  txCount                @17:  UInt32;
 }
 
 struct MiniBlockHeaderCapn {

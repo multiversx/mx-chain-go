@@ -103,7 +103,8 @@ type Header struct {
 	RootHash               []byte            `capid:"13"`
 	ValidatorStatsRootHash []byte            `capid:"14"`
 	MetaBlockHashes        [][]byte          `capid:"15"`
-	TxCount                uint32            `capid:"16"`
+	EndOfEpochMetaHash     []byte            `capid:"16"`
+	TxCount                uint32            `capid:"17"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
