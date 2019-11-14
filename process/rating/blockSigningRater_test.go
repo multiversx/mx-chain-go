@@ -22,7 +22,7 @@ func createDefaultRatingsData() *economics.RatingsData {
 	ratingValues[proposerIncreaseRatingStepKey] = 3
 	ratingValues[proposerDecreaseRatingStepKey] = 4
 
-	ratingsData, _ := economics.NewRatingsData(int64(5), int64(1), int64(10), ratingValues)
+	ratingsData, _ := economics.NewRatingsData(int64(5), int64(1), int64(10), "mockRater", ratingValues)
 	return ratingsData
 }
 

@@ -53,6 +53,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		economics.RatingSettings.StartRating,
 		economics.RatingSettings.MinRating,
 		economics.RatingSettings.MaxRating,
+		economics.RatingSettings.RatingType,
 		ratingValues)
 
 	if err != nil {

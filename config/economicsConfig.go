@@ -32,6 +32,7 @@ type RatingSettings struct {
 	StartRating int64
 	MaxRating   int64
 	MinRating   int64
+	RatingType  string
 	RatingValue []RatingValue
 }
 

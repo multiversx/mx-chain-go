@@ -22,6 +22,7 @@
     StartRating = 50
     MaxRating = 100
 	MinRating = 0
+	RatingType = "BlockSigningRater"
 	[[RatingSettings.RatingValue]]
     name = "ValidatorIncreaseRatingStep"
     value = 1

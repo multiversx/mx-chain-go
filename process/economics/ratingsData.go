@@ -9,11 +9,16 @@ type RatingsData struct {
 	startRating   int64
 	maxRating     int64
 	minRating     int64
+	ratingType    string
 	ratingOptions map[string]int64
 }
 
-func NewRatingsData(startRating int64, minRating int64, maxRating int64, ratingValues map[string]int64) (*RatingsData,
-	error) {
+func NewRatingsData(
+	startRating int64,
+	minRating int64,
+	maxRating int64,
+	ratingType string,
+	ratingValues map[string]int64) (*RatingsData, error) {
 	if minRating > maxRating {
 		return nil, process.ErrMaxRatingIsSmallerThanMinRating
 	}
@@ -26,6 +31,7 @@ func NewRatingsData(startRating int64, minRating int64, maxRating int64, ratingV
 		maxRating:     maxRating,
 		minRating:     minRating,
 		ratingOptions: ratingValues,
+		ratingType:    ratingType,
 	}, nil
 }
 
@@ -47,4 +53,9 @@ func (rd *RatingsData) MinRating() int64 {
 // RatingOptions will return the options for rating
 func (rd *RatingsData) RatingOptions() map[string]int64 {
 	return rd.ratingOptions
+}
+
+// RatingType will return the type for rating
+func (rd *RatingsData) RatingType() string {
+	return rd.ratingType
 }
