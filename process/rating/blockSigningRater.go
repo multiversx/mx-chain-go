@@ -14,6 +14,7 @@ type BlockSigningRater struct {
 	ratingOptions map[string]int64
 }
 
+//NewBlockSigningRater creates a new Rater of Type BlockSigningRater
 func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRater, error) {
 	if ratingsData.MinRating() > ratingsData.MaxRating() {
 		return nil, process.ErrMaxRatingIsSmallerThanMinRating
@@ -30,6 +31,7 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 	}, nil
 }
 
+//UpdateRatings does an update on the ratings based on the new updatevalues
 func (bsr *BlockSigningRater) UpdateRatings(updateValues map[string][]string) {
 	for k, v := range updateValues {
 		for _, pk := range v {
@@ -54,6 +56,7 @@ func (bsr *BlockSigningRater) updateRating(ratingKey string, pk string) {
 	bsr.ratings[pk] = val
 }
 
+//GetRating returns the Rating for the specified public key
 func (bsr *BlockSigningRater) GetRating(pk string) int64 {
 	_, ok := bsr.ratings[pk]
 	if !ok {
@@ -62,6 +65,7 @@ func (bsr *BlockSigningRater) GetRating(pk string) int64 {
 	return bsr.ratings[pk]
 }
 
+//GetRatings gets all the ratings that the current rater has
 func (bsr *BlockSigningRater) GetRatings() map[string]int64 {
 	return bsr.ratings
 }
