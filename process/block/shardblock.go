@@ -66,6 +66,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		rounder:                       arguments.Rounder,
+		bootStorer:                    arguments.BootstrapStorer,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {

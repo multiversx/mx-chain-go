@@ -53,20 +53,21 @@ type mapShardHeaders map[uint32][]data.HeaderHandler
 type mapShardHeader map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	specialAddressHandler process.SpecialAddressHandler
-	accounts              state.AccountsAdapter
-	forkDetector          process.ForkDetector
-	hasher                hashing.Hasher
-	marshalizer           marshal.Marshalizer
-	store                 dataRetriever.StorageService
-	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler    process.BlockSizeThrottler
-	blockChainHook        process.BlockChainHookHandler
-	txCoordinator         process.TransactionCoordinator
+	shardCoordinator             sharding.Coordinator
+	nodesCoordinator             sharding.NodesCoordinator
+	specialAddressHandler        process.SpecialAddressHandler
+	accounts                     state.AccountsAdapter
+	forkDetector                 process.ForkDetector
+	hasher                       hashing.Hasher
+	marshalizer                  marshal.Marshalizer
+	store                        dataRetriever.StorageService
+	uint64Converter              typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler           process.BlockSizeThrottler
+	blockChainHook               process.BlockChainHookHandler
+	txCoordinator                process.TransactionCoordinator
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	rounder                      consensus.Rounder
+	bootStorer                   process.BootStorer
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -591,6 +592,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder
+	}
+	if check.IfNil(arguments.BootstrapStorer) {
+		return process.ErrNilStorage
 	}
 	if arguments.BlockChainHook == nil || arguments.BlockChainHook.IsInterfaceNil() {
 		return process.ErrNilBlockChainHook

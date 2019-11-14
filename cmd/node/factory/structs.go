@@ -69,6 +69,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/sync/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -805,6 +806,7 @@ func createShardDataStoreFromConfig(
 	var rewardTxUnit *storageUnit.Unit
 	var metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnit *storageUnit.Unit
+	var bootstrapUnit *storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -836,6 +838,9 @@ func createShardDataStoreFromConfig(
 			}
 			if shardHdrHashNonceUnit != nil {
 				_ = shardHdrHashNonceUnit.DestroyUnit()
+			}
+			if bootstrapUnit != nil {
+				_ = bootstrapUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -923,6 +928,14 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
+	bootstrapUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.BootstrapStorage.Cache),
+		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
+		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
@@ -935,6 +948,7 @@ func createShardDataStoreFromConfig(
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
+	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 
 	return store, err
 }
@@ -945,6 +959,7 @@ func createMetaChainDataStoreFromConfig(
 	uniqueID string,
 ) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
+	var bootstrapUnit *storageUnit.Unit
 	var txUnit, miniBlockUnit, unsignedTxUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
 	var err error
@@ -980,6 +995,9 @@ func createMetaChainDataStoreFromConfig(
 			}
 			if miniBlockUnit != nil {
 				_ = miniBlockUnit.DestroyUnit()
+			}
+			if bootstrapUnit != nil {
+				_ = bootstrapUnit.DestroyUnit()
 			}
 		}
 	}()
@@ -1070,6 +1088,14 @@ func createMetaChainDataStoreFromConfig(
 		return nil, err
 	}
 
+	bootstrapUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.BootstrapStorage.Cache),
+		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
+		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
@@ -1084,6 +1110,7 @@ func createMetaChainDataStoreFromConfig(
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
 	}
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
+	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 
 	return store, err
 }
@@ -1951,6 +1978,12 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	bootStr := data.Store.GetStorer(dataRetriever.BootstrapUnit)
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(core.Marshalizer, bootStr)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:              state.AccountsAdapter,
 		ForkDetector:          forkDetector,
@@ -1967,6 +2000,7 @@ func newShardBlockProcessor(
 		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
 		Rounder:               rounder,
+		BootstrapStorer:       bootStorer,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2152,6 +2186,12 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	bootStr := data.Store.GetStorer(dataRetriever.BootstrapUnit)
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(core.Marshalizer, bootStr)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:                     state.AccountsAdapter,
 		ForkDetector:                 forkDetector,
@@ -2169,6 +2209,7 @@ func newMetaBlockProcessor(
 		TxCoordinator:                txCoordinator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		Rounder:                      rounder,
+		BootstrapStorer:              bootStorer,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,

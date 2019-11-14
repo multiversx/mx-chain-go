@@ -82,6 +82,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		txCoordinator:                 arguments.TxCoordinator,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 		rounder:                       arguments.Rounder,
+		bootStorer:                    arguments.BootstrapStorer,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
