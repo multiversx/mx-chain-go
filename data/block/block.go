@@ -541,6 +541,11 @@ func (h *Header) IsInterfaceNil() bool {
 	return false
 }
 
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
+func (h *Header) IsStartOfEpochBlock() bool {
+	return len(h.EndOfEpochMetaHash) > 0
+}
+
 // ItemsInHeader gets the number of items(hashes) added in block header
 func (h *Header) ItemsInHeader() uint32 {
 	itemsInHeader := len(h.MiniBlockHeaders) + len(h.PeerChanges) + len(h.MetaBlockHashes)

@@ -295,7 +295,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		return process.ErrWrongTypeAssertion
 	}
 
-	if len(shardHdr.EndOfEpochMetaHash) > 0 &&
+	if shardHdr.IsStartOfEpochBlock() &&
 		!bytes.Equal(shardHdr.EndOfEpochMetaHash, sp.endOfEpochTrigger.EndOfEpochMetaHdrHash()) {
 		return process.ErrEpochDoesNotMatch
 	}
@@ -495,7 +495,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		log.Info(fmt.Sprintf("error not critical: %s\n", errNotCritical.Error()))
 	}
 
-	if len(header.EndOfEpochMetaHash) > 0 {
+	if header.IsStartOfEpochBlock() {
 		sp.endOfEpochTrigger.Revert()
 	}
 
@@ -694,7 +694,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	if len(header.EndOfEpochMetaHash) > 0 {
+	if header.IsStartOfEpochBlock() {
 		sp.endOfEpochTrigger.Processed()
 	}
 
