@@ -273,11 +273,15 @@ func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	et, _ := NewEndOfEpochTrigger(args)
 
 	hash := []byte("hash")
-	header := &block.MetaBlock{Nonce: 100, Round: 100}
+	epochStartRound := uint64(100)
+	header := &block.MetaBlock{Nonce: 100, Round: epochStartRound, Epoch: 1}
 	header.EndOfEpoch.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	et.ReceivedHeader(header)
+	header = &block.MetaBlock{Nonce: 101, Round: epochStartRound + 1, Epoch: 1}
+	et.ReceivedHeader(header)
+
 	assert.True(t, et.IsEndOfEpoch())
-	assert.Equal(t, header.Round, et.EpochStartRound())
+	assert.Equal(t, epochStartRound, et.EpochStartRound())
 
 	et.Processed()
 	assert.False(t, et.isEndOfEpoch)

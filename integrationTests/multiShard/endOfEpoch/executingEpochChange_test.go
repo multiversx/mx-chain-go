@@ -2,7 +2,7 @@ package endOfEpoch
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
+	"math/big"
 	"testing"
 	"time"
 
@@ -132,7 +132,6 @@ func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		}
 	}
 }
-
 
 func TestEndOfEpochChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
