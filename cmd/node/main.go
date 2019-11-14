@@ -30,22 +30,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
-	factoryVM "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -57,6 +60,8 @@ const (
 	defaultEpochString = "Epoch"
 	defaultShardString = "Shard"
 	metachainShardName = "metachain"
+	// DefaultRestApiPort specifies the default Rest API port which will be used in case that another one wasn't provided.
+	// If set to "off" then the endpoints won't be available
 	DefaultRestApiPort = "off"
 )
 
@@ -520,7 +525,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	stateArgs := factory.NewStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
+	stateArgs := factory.NewStateComponentsFactoryArgs(
+		generalConfig,
+		genesisConfig,
+		shardCoordinator,
+		coreComponents,
+		uniqueDBFolder,
+	)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
 		return err
@@ -695,6 +706,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		generalConfig,
 		preferencesConfig,
 		nodesConfig,
+		economicsData,
 		syncer,
 		keyGen,
 		privKey,
@@ -726,15 +738,17 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(
+	apiResolver, err := createApiResolver(
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
+		dataComponents.Store,
+		dataComponents.Blkc,
+		coreComponents.Marshalizer,
+		coreComponents.Uint64ByteSliceConverter,
+		shardCoordinator,
+		statusMetrics,
+		economicsData,
 	)
-	if err != nil {
-		return err
-	}
-
-	apiResolver, err := createApiResolver(vmAccountsDB, statusMetrics)
 	if err != nil {
 		return err
 	}
@@ -957,7 +971,7 @@ func createNodesCoordinator(
 	initNodesInfo := nodesConfig.InitialNodesInfo()
 	initValidators := make(map[uint32][]sharding.Validator)
 
-	for shardId, nodeInfoList := range initNodesInfo {
+	for shId, nodeInfoList := range initNodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
 			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
@@ -967,7 +981,7 @@ func createNodesCoordinator(
 
 			validators = append(validators, validator)
 		}
-		initValidators[shardId] = validators
+		initValidators[shId] = validators
 	}
 
 	pubKeyBytes, err := pubKey.ToByteArray()
@@ -1056,6 +1070,7 @@ func createNode(
 	config *config.Config,
 	preferencesConfig *config.ConfigPreferences,
 	nodesConfig *sharding.NodesSetup,
+	economicsData process.FeeHandler,
 	syncer ntp.SyncTimer,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -1081,6 +1096,7 @@ func createNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
 		node.WithMarshalizer(core.Marshalizer),
+		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
 		node.WithAccountsAdapter(state.AccountsAdapter),
@@ -1098,6 +1114,7 @@ func createNode(
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
+		node.WithKeyGenForAccounts(crypto.TxSignKeyGen),
 		node.WithTxSignPubKey(crypto.TxSignPubKey),
 		node.WithTxSignPrivKey(crypto.TxSignPrivKey),
 		node.WithPubKey(pubKey),
@@ -1111,6 +1128,7 @@ func createNode(
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
+		node.WithBlackListHandler(process.BlackListHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1200,14 +1218,14 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
-	rm, err := statistics.NewResourceMonitor(file)
+	resMon, err := statistics.NewResourceMonitor(file)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			err = rm.SaveStatistics()
+			err = resMon.SaveStatistics()
 			log.LogIfError(err)
 			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
 		}
@@ -1216,12 +1234,48 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	return nil
 }
 
-func createApiResolver(vmAccountsDB vmcommon.BlockchainHook, statusMetrics external.StatusMetricsHandler) (facade.ApiResolver, error) {
-	//TODO replace this with a vm factory
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(factoryVM.IELEVirtualMachine, endpoint.ElrondTestnet, vmAccountsDB, cryptoHook)
+func createApiResolver(
+	accnts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	storageService dataRetriever.StorageService,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	statusMetrics external.StatusMetricsHandler,
+	economics *economics.EconomicsData,
+) (facade.ApiResolver, error) {
+	var vmFactory process.VirtualMachinesContainerFactory
+	var err error
 
-	scDataGetter, err := smartContract.NewSCDataGetter(ieleVM)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   storageService,
+		BlockChain:       blockChain,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      marshalizer,
+		Uint64Converter:  uint64Converter,
+	}
+
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		vmFactory, err = shard.NewVMContainerFactory(argsHook)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	scDataGetter, err := smartContract.NewSCDataGetter(addrConv, vmContainer)
 	if err != nil {
 		return nil, err
 	}

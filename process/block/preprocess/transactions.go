@@ -171,6 +171,11 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
+			log.Info(fmt.Sprintf("tx from mini block with sender shard %d and receiver shard %d, having %d txs, was not found in TransactionUnit\n",
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID,
+				len(miniBlock.TxHashes)))
+
 			return txsRestored, err
 		}
 
@@ -182,11 +187,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
-
-			err = txs.storage.GetStorer(dataRetriever.TransactionUnit).Remove([]byte(txHash))
-			if err != nil {
-				return txsRestored, err
-			}
 		}
 
 		miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
@@ -195,11 +195,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		}
 
 		miniBlockPool.Put(miniBlockHash, miniBlock)
-
-		err = txs.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
-		if err != nil {
-			return txsRestored, err
-		}
 
 		txsRestored += len(miniBlock.TxHashes)
 	}
@@ -514,6 +509,18 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	newMBAdded := true
 	txSpaceRemained := int(maxTxSpaceRemained)
+
+	miniBlock, err := txs.CreateAndProcessMiniBlock(
+		txs.shardCoordinator.SelfId(),
+		sharding.MetachainShardId,
+		txSpaceRemained,
+		haveTime,
+		round)
+
+	if err == nil && len(miniBlock.TxHashes) > 0 {
+		txSpaceRemained -= len(miniBlock.TxHashes)
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
 
 	for newMBAdded {
 		newMBAdded = false

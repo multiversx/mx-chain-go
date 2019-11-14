@@ -120,7 +120,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	rows[1] = []string{fmt.Sprintf("App version: %s", appVersion)}
 
 	if needUpdate {
-		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorRed, ui.ColorWhite, ui.ModifierBold)
+		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorRed, ui.ColorClear, ui.ModifierBold)
 		rows[1][0] += fmt.Sprintf(" (version %s is available)", latestStableVersion)
 	} else {
 		wr.instanceInfo.RowStyles[1] = ui.NewStyle(ui.ColorGreen)
@@ -147,11 +147,29 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 
 	countLeader := wr.presenter.GetCountLeader()
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
-	rows[5] = []string{fmt.Sprintf("Consensus leader accepted / proposed blocks : %d / %d", countAcceptedBlocks, countLeader)}
+	rows[5] = []string{fmt.Sprintf("Blocks accepted / blocks proposed : %d / %d", countAcceptedBlocks, countLeader)}
 
-	//TODO: The rewards calculation for printing should be fixed
-	rows[6] = []string{""}
-	rows[7] = []string{""}
+	switch instanceType {
+	case string(core.NodeTypeValidator):
+		rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
+		rows[6] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
+
+		var rewardsInfo []string
+		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
+		zeroString := "0" + wr.presenter.GetZeros()
+		if diffRewards != zeroString {
+			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %s + %s ERD (without fees)", totalRewardsValue, diffRewards)}
+		} else {
+			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
+			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD (without fees)", totalRewardsValue)}
+		}
+		rows[7] = rewardsInfo
+
+	default:
+		rows[6] = []string{""}
+		rows[7] = []string{""}
+	}
 
 	wr.instanceInfo.Title = "Elrond instance info"
 	wr.instanceInfo.RowSeparator = false
@@ -250,12 +268,12 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	rows[3] = []string{fmt.Sprintf("Current block hash : %s", currentBlockHash)}
 
 	crossCheckBlockHeight := wr.presenter.GetCrossCheckBlockHeight()
-	rows[4] = []string{fmt.Sprintf("Cross check block height: %s", crossCheckBlockHeight)}
+	rows[4] = []string{fmt.Sprintf("Cross check: %s", crossCheckBlockHeight)}
 
 	shardId := wr.presenter.GetShardId()
 	if shardId != uint64(sharding.MetachainShardId) {
 		highestFinalBlockInShard := wr.presenter.GetHighestFinalBlockInShard()
-		rows[4][0] += fmt.Sprintf(", highest final block nonce in shard: %d", highestFinalBlockInShard)
+		rows[4][0] += fmt.Sprintf(" ,final nonce: %d", highestFinalBlockInShard)
 	}
 
 	consensusState := wr.presenter.GetConsensusState()
@@ -333,9 +351,6 @@ func (wr *WidgetsRender) prepareLoads() {
 	wr.networkSent.Percent = int(sentLoad)
 	wr.networkSent.Label = fmt.Sprintf("%d%% / rate: %s/s / peak rate: %s/s",
 		sentLoad, core.ConvertBytes(sentBps), core.ConvertBytes(sentBpsPeak))
-}
-
-func (wr *WidgetsRender) getNetworkRecvStats() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -68,10 +68,13 @@ const RoundModulusTrigger = 10
 // from the full pool capacity, for the received data which are not needed in the near future
 const MaxOccupancyPercentageAllowed = float64(0.9)
 
-// MaxRoundsWithoutReceivedBlock defines the maximum rounds to wait for a new block to be received, before a special
-// action to be applied
-const MaxRoundsWithoutReceivedBlock = 5
-
-// MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed, before a special
-// action to be applied
+// MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
+// before a special action to be applied
 const MaxRoundsWithoutCommittedBlock = 20
+
+// MaxNoncesWithoutCrossNotarized defines the maximum nonces to wait for a new block to be cross notarized,
+// before a special action to be applied
+const MaxNoncesWithoutCrossNotarized = 100
+
+// MinForkRound represents the minimum fork round set by a notarized header received
+const MinForkRound = uint64(0)

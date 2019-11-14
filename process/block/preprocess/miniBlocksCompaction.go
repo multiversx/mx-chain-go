@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"

@@ -11,10 +11,9 @@ type storageBootstrapper interface {
 	getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error)
 	getBlockBody(data.HeaderHandler) (data.BodyHandler, error)
 	removeBlockBody(nonce uint64, blockUnit dataRetriever.UnitType, hdrNonceHashDataUnit dataRetriever.UnitType) error
-	getNonceWithLastNotarized(currrentNonce uint64) (startNonce uint64, finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64)
-	applyNotarizedBlocks(finalNotarized map[uint32]uint64, lastNotarized map[uint32]uint64) error
-	cleanupNotarizedStorage(lastNotarized map[uint32]uint64)
-	addHeaderToForkDetector(shardId uint32, nonce uint64, lastNotarizedMeta uint64)
+	getNonceWithLastNotarized(currrentNonce uint64) (startNonce uint64, finalNotarized map[uint32]*HdrInfo, lastNotarized map[uint32]*HdrInfo)
+	applyNotarizedBlocks(finalNotarized map[uint32]*HdrInfo, lastNotarized map[uint32]*HdrInfo) error
+	cleanupNotarizedStorage(lastNotarized map[uint32]*HdrInfo)
 	IsInterfaceNil() bool
 }
 
@@ -27,4 +26,10 @@ type blockBootstrapper interface {
 	getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error)
 	haveHeaderInPoolWithNonce(nonce uint64) bool
 	getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+	isForkTriggeredByMeta() bool
+}
+
+// syncStarter defines the behavior of component that can start sync-ing blocks
+type syncStarter interface {
+	SyncBlock() error
 }
