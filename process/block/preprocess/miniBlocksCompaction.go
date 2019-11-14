@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -13,6 +14,7 @@ import (
 type miniBlocksCompaction struct {
 	economicsFee     process.FeeHandler
 	shardCoordinator sharding.Coordinator
+	gasHandler       process.GasHandler
 
 	mapHashToTx                            map[string]data.TransactionHandler
 	mapMinSenderNonce                      map[string]uint64
@@ -27,18 +29,23 @@ type miniBlocksCompaction struct {
 func NewMiniBlocksCompaction(
 	economicsFee process.FeeHandler,
 	shardCoordinator sharding.Coordinator,
+	gasHandler process.GasHandler,
 ) (*miniBlocksCompaction, error) {
 
-	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	mbc := miniBlocksCompaction{
 		economicsFee:     economicsFee,
 		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	mbc.mapHashToTx = make(map[string]data.TransactionHandler)
@@ -72,10 +79,9 @@ func (mbc *miniBlocksCompaction) Compact(
 	for index, miniBlock := range miniBlocks {
 		mbc.mapMiniBlockGasConsumedInSenderShard[index],
 			mbc.mapMiniBlockGasConsumedInReceiverShard[index],
-			err = process.ComputeGasConsumedByMiniBlock(
+			err = mbc.gasHandler.ComputeGasConsumedByMiniBlock(
 			miniBlock,
-			mapHashToTx,
-			mbc.economicsFee)
+			mapHashToTx)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -301,11 +307,10 @@ func (mbc *miniBlocksCompaction) computeMerge(
 			break
 		}
 
-		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := process.ComputeGasConsumedByTx(
+		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := mbc.gasHandler.ComputeGasConsumedByTx(
 			srcMiniBlock.SenderShardID,
 			srcMiniBlock.ReceiverShardID,
-			txHandler,
-			mbc.economicsFee)
+			txHandler)
 		if err != nil {
 			break
 		}

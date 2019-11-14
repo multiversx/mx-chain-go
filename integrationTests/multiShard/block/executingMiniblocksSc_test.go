@@ -23,92 +23,92 @@ var stepDelay = time.Second
 // Shard 0's proposer sends a topUp SC call tx and then there are another 6 blocks added to all blockchains.
 // After that there is a first check that the topUp was made. Shard 0's proposer sends a withdraw SC call tx and after
 // 12 more blocks the results are checked again
-//func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
-//	if testing.Short() {
-//		t.Skip("this is not a short test")
-//	}
-//
-//	scCode, err := ioutil.ReadFile(agarioFile)
-//	assert.Nil(t, err)
-//
-//	maxShards := uint32(2)
-//	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
-//	_ = advertiser.Bootstrap()
-//	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-//
-//	nodeShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-//	nodeShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
-//	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-//	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
-//	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
-//	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
-//
-//	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
-//
-//	idxNodeShard0 := 0
-//	idxNodeShard1 := 1
-//	idxNodeMeta := 2
-//	idxProposers := []int{idxNodeShard0, idxNodeShard1, idxNodeMeta}
-//
-//	defer func() {
-//		_ = advertiser.Close()
-//		for _, n := range nodes {
-//			_ = n.Messenger.Close()
-//		}
-//	}()
-//
-//	for _, n := range nodes {
-//		_ = n.Messenger.Bootstrap()
-//	}
-//
-//	fmt.Println("Delaying for nodes p2p bootstrap...")
-//	time.Sleep(stepDelay)
-//
-//	round := uint64(0)
-//	nonce := uint64(0)
-//	round = integrationTests.IncrementAndPrintRound(round)
-//	nonce++
-//
-//	initialVal := big.NewInt(10000000)
-//	topUpValue := big.NewInt(500)
-//	withdrawValue := big.NewInt(10)
-//	integrationTests.MintAllNodes(nodes, initialVal)
-//
-//	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode))
-//
-//	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-//	round = integrationTests.IncrementAndPrintRound(round)
-//	nonce++
-//
-//	integrationTests.NodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
-//
-//	roundsToWait := 6
-//	for i := 0; i < roundsToWait; i++ {
-//		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-//		round = integrationTests.IncrementAndPrintRound(round)
-//		nonce++
-//	}
-//
-//	nodeWithSc := nodes[idxNodeShard1]
-//	nodeWithCaller := nodes[idxNodeShard0]
-//
-//	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
-//	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, topUpValue, hardCodedScResultingAddress)
-//	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
-//
-//	integrationTests.NodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
-//
-//	roundsToWait = 12
-//	for i := 0; i < roundsToWait; i++ {
-//		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-//		round = integrationTests.IncrementAndPrintRound(round)
-//		nonce++
-//	}
-//
-//	expectedSC := integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxNodeShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
-//	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, expectedSC, hardCodedScResultingAddress)
-//	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
-//}
+func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	scCode, err := ioutil.ReadFile(agarioFile)
+	assert.Nil(t, err)
+
+	maxShards := uint32(2)
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+
+	nodeShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+	nodeShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
+	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
+	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
+
+	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
+
+	idxNodeShard0 := 0
+	idxNodeShard1 := 1
+	idxNodeMeta := 2
+	idxProposers := []int{idxNodeShard0, idxNodeShard1, idxNodeMeta}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(stepDelay)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	initialVal := big.NewInt(10000000)
+	topUpValue := big.NewInt(500)
+	withdrawValue := big.NewInt(10)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode))
+
+	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	integrationTests.NodeDoesTopUp(nodes, idxNodeShard0, topUpValue, hardCodedScResultingAddress)
+
+	roundsToWait := 6
+	for i := 0; i < roundsToWait; i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	nodeWithSc := nodes[idxNodeShard1]
+	nodeWithCaller := nodes[idxNodeShard0]
+
+	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
+	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, topUpValue, hardCodedScResultingAddress)
+	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
+
+	integrationTests.NodeDoesWithdraw(nodes, idxNodeShard0, withdrawValue, hardCodedScResultingAddress)
+
+	roundsToWait = 12
+	for i := 0; i < roundsToWait; i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	expectedSC := integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxNodeShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
+	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, expectedSC, hardCodedScResultingAddress)
+	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
+}
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardProposersAndValidators tests the following scenario:
 // There are 2 shards and 1 meta, each with one proposer and one validator.
@@ -116,143 +116,143 @@ var stepDelay = time.Second
 // Shard 0's proposer sends a joinGame SC call tx and then there are another 6 blocks added to all blockchains.
 // After that there is a first check that the joinGame was made. Shard 1's proposer sends a rewardAndSendFunds SC call
 // tx and after 6 more blocks the results are checked again
-//func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
-//	if testing.Short() {
-//		t.Skip("this is not a short test")
-//	}
-//
-//	scCode, err := ioutil.ReadFile(agarioFile)
-//	assert.Nil(t, err)
-//
-//	maxShards := uint32(2)
-//	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
-//	_ = advertiser.Bootstrap()
-//	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-//	nodeProposerShard0 := integrationTests.NewTestProcessorNode(
-//		maxShards,
-//		0,
-//		0,
-//		advertiserAddr,
-//	)
-//	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(
-//		maxShards,
-//		0,
-//		0,
-//		advertiserAddr,
-//	)
-//
-//	nodeProposerShard1 := integrationTests.NewTestProcessorNode(
-//		maxShards,
-//		1,
-//		1,
-//		advertiserAddr,
-//	)
-//	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-//	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
-//	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
-//	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(
-//		maxShards,
-//		1,
-//		1,
-//		advertiserAddr,
-//	)
-//
-//	nodeProposerMeta := integrationTests.NewTestProcessorNode(
-//		maxShards,
-//		sharding.MetachainShardId,
-//		0,
-//		advertiserAddr,
-//	)
-//	nodeValidatorMeta := integrationTests.NewTestProcessorNode(
-//		maxShards,
-//		sharding.MetachainShardId,
-//		0,
-//		advertiserAddr,
-//	)
-//
-//	nodes := []*integrationTests.TestProcessorNode{
-//		nodeProposerShard0,
-//		nodeProposerShard1,
-//		nodeProposerMeta,
-//		nodeValidatorShard0,
-//		nodeValidatorShard1,
-//		nodeValidatorMeta,
-//	}
-//
-//	idxProposerShard0 := 0
-//	idxProposerShard1 := 1
-//	idxProposerMeta := 2
-//	idxProposers := []int{idxProposerShard0, idxProposerShard1, idxProposerMeta}
-//	idxValidators := []int{3, 4, 5}
-//
-//	defer func() {
-//		_ = advertiser.Close()
-//		for _, n := range nodes {
-//			_ = n.Messenger.Close()
-//		}
-//	}()
-//
-//	for _, n := range nodes {
-//		_ = n.Messenger.Bootstrap()
-//	}
-//
-//	fmt.Println("Delaying for nodes p2p bootstrap...")
-//	time.Sleep(stepDelay)
-//
-//	round := uint64(0)
-//	nonce := uint64(0)
-//	round = integrationTests.IncrementAndPrintRound(round)
-//	nonce++
-//
-//	initialVal := big.NewInt(10000000)
-//	topUpValue := big.NewInt(500)
-//	withdrawValue := big.NewInt(10)
-//	integrationTests.MintAllNodes(nodes, initialVal)
-//
-//	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
-//
-//	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-//
-//	integrationTests.PlayerJoinsGame(
-//		nodes,
-//		nodes[idxProposerShard0].OwnAccount,
-//		topUpValue,
-//		"aaaa",
-//		hardCodedScResultingAddress,
-//	)
-//
-//	roundsToWait := 6
-//	for i := 0; i < roundsToWait; i++ {
-//		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-//		idxValidators, idxProposers = idxProposers, idxValidators
-//	}
-//
-//	nodeWithSc := nodes[idxProposerShard1]
-//	nodeWithCaller := nodes[idxProposerShard0]
-//
-//	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
-//	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
-//
-//	integrationTests.NodeCallsRewardAndSend(
-//		nodes,
-//		idxProposerShard1,
-//		nodes[idxProposerShard0].OwnAccount,
-//		withdrawValue,
-//		"aaaa",
-//		hardCodedScResultingAddress,
-//	)
-//
-//	//TODO investigate why do we need 7 rounds here
-//	roundsToWait = 7
-//	for i := 0; i < roundsToWait; i++ {
-//		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-//		idxValidators, idxProposers = idxProposers, idxValidators
-//	}
-//
-//	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
-//	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
-//	integrationTests.CheckRootHashes(t, nodes, idxProposers)
-//}
+func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	scCode, err := ioutil.ReadFile(agarioFile)
+	assert.Nil(t, err)
+
+	maxShards := uint32(2)
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
+	nodeProposerShard0 := integrationTests.NewTestProcessorNode(
+		maxShards,
+		0,
+		0,
+		advertiserAddr,
+	)
+	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(
+		maxShards,
+		0,
+		0,
+		advertiserAddr,
+	)
+
+	nodeProposerShard1 := integrationTests.NewTestProcessorNode(
+		maxShards,
+		1,
+		1,
+		advertiserAddr,
+	)
+	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
+	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
+	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(
+		maxShards,
+		1,
+		1,
+		advertiserAddr,
+	)
+
+	nodeProposerMeta := integrationTests.NewTestProcessorNode(
+		maxShards,
+		sharding.MetachainShardId,
+		0,
+		advertiserAddr,
+	)
+	nodeValidatorMeta := integrationTests.NewTestProcessorNode(
+		maxShards,
+		sharding.MetachainShardId,
+		0,
+		advertiserAddr,
+	)
+
+	nodes := []*integrationTests.TestProcessorNode{
+		nodeProposerShard0,
+		nodeProposerShard1,
+		nodeProposerMeta,
+		nodeValidatorShard0,
+		nodeValidatorShard1,
+		nodeValidatorMeta,
+	}
+
+	idxProposerShard0 := 0
+	idxProposerShard1 := 1
+	idxProposerMeta := 2
+	idxProposers := []int{idxProposerShard0, idxProposerShard1, idxProposerMeta}
+	idxValidators := []int{3, 4, 5}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.Messenger.Bootstrap()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(stepDelay)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	initialVal := big.NewInt(10000000)
+	topUpValue := big.NewInt(500)
+	withdrawValue := big.NewInt(10)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
+
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	integrationTests.PlayerJoinsGame(
+		nodes,
+		nodes[idxProposerShard0].OwnAccount,
+		topUpValue,
+		"aaaa",
+		hardCodedScResultingAddress,
+	)
+
+	roundsToWait := 6
+	for i := 0; i < roundsToWait; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		idxValidators, idxProposers = idxProposers, idxValidators
+	}
+
+	nodeWithSc := nodes[idxProposerShard1]
+	nodeWithCaller := nodes[idxProposerShard0]
+
+	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
+	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
+
+	integrationTests.NodeCallsRewardAndSend(
+		nodes,
+		idxProposerShard1,
+		nodes[idxProposerShard0].OwnAccount,
+		withdrawValue,
+		"aaaa",
+		hardCodedScResultingAddress,
+	)
+
+	//TODO investigate why do we need 7 rounds here
+	roundsToWait = 7
+	for i := 0; i < roundsToWait; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		idxValidators, idxProposers = idxProposers, idxValidators
+	}
+
+	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
+	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
+	integrationTests.CheckRootHashes(t, nodes, idxProposers)
+}
 
 // TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators tests the following scenario:
 // There are 2 shards and 1 meta, each with one proposer and one validator.

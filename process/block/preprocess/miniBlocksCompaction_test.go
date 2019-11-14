@@ -16,7 +16,11 @@ func TestNewMiniBlocksCompaction_NilEconomicsFeeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, err := NewMiniBlocksCompaction(nil, msc)
+	mbc, err := NewMiniBlocksCompaction(
+		nil,
+		msc,
+		&mock.GasHandlerMock{},
+	)
 
 	assert.Nil(t, mbc)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -25,7 +29,11 @@ func TestNewMiniBlocksCompaction_NilEconomicsFeeShouldErr(t *testing.T) {
 func TestNewMiniBlocksCompaction_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mbc, err := NewMiniBlocksCompaction(feeHandlerMock(), nil)
+	mbc, err := NewMiniBlocksCompaction(
+		feeHandlerMock(),
+		nil,
+		&mock.GasHandlerMock{},
+	)
 
 	assert.Nil(t, mbc)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -35,7 +43,11 @@ func TestNewMiniBlocksCompaction_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, err := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+	mbc, err := NewMiniBlocksCompaction(
+		feeHandlerMock(),
+		msc,
+		&mock.GasHandlerMock{},
+	)
 
 	assert.NotNil(t, mbc)
 	assert.Nil(t, err)
@@ -46,7 +58,11 @@ func TestMiniBlocksCompaction_CompactSingleMiniblockWontCompact(t *testing.T) {
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+	mbc, _ := NewMiniBlocksCompaction(
+		feeHandlerMock(),
+		msc,
+		&mock.GasHandlerMock{},
+	)
 
 	mbs := block.MiniBlockSlice{&block.MiniBlock{
 		ReceiverShardID: 1,
@@ -62,7 +78,15 @@ func TestMiniBlocksCompaction_CompactSingleDifferentReceiversWontCompact(t *test
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+	mbc, _ := NewMiniBlocksCompaction(
+		feeHandlerMock(),
+		msc,
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+		},
+	)
 
 	mbs := block.MiniBlockSlice{
 		&block.MiniBlock{
@@ -84,7 +108,15 @@ func TestMiniBlocksCompaction_CompactSingleDifferentSenderWontCompact(t *testing
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+	mbc, _ := NewMiniBlocksCompaction(
+		feeHandlerMock(),
+		msc,
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+		},
+	)
 
 	mbs := block.MiniBlockSlice{
 		&block.MiniBlock{
@@ -106,7 +138,15 @@ func TestMiniBlocksCompaction_CompactSingleDifferentMbTypesWontCompact(t *testin
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+	mbc, _ := NewMiniBlocksCompaction(
+		feeHandlerMock(),
+		msc,
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+		},
+	)
 
 	mbs := block.MiniBlockSlice{
 		&block.MiniBlock{
@@ -126,7 +166,15 @@ func TestMiniBlocksCompaction_CompactConditionsMetShouldCompact(t *testing.T) {
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, _ := NewMiniBlocksCompaction(feeHandlerMock(), msc)
+	mbc, _ := NewMiniBlocksCompaction(
+		feeHandlerMock(),
+		msc,
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+		},
+	)
 
 	mbs := block.MiniBlockSlice{
 		&block.MiniBlock{
@@ -151,14 +199,25 @@ func TestMiniBlocksCompaction_ExpandGasLimitExceededShouldNotCompact(t *testing.
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, _ := NewMiniBlocksCompaction(&mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return tx.GetGasLimit()
+	mbc, _ := NewMiniBlocksCompaction(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasLimit()
+			},
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
-			return MaxGasLimitPerBlock
+		msc,
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return MaxGasLimitPerBlock, MaxGasLimitPerBlock, nil
+			},
+			ComputeGasConsumedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return MaxGasLimitPerBlock / 2, MaxGasLimitPerBlock / 2, nil
+			},
 		},
-	}, msc)
+	)
 
 	mbs := block.MiniBlockSlice{
 		&block.MiniBlock{
@@ -199,12 +258,14 @@ func TestMiniBlocksCompaction_ExpandConditionsMetShouldExpand(t *testing.T) {
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, _ := NewMiniBlocksCompaction(&mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return tx.GetGasLimit()
+	mbc, _ := NewMiniBlocksCompaction(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasLimit()
+			},
 		},
-	},
 		msc,
+		&mock.GasHandlerMock{},
 	)
 
 	mbs := block.MiniBlockSlice{
@@ -254,12 +315,14 @@ func TestMiniBlocksCompaction_ExpandConditionsNotMetShouldNotExpand(t *testing.T
 	t.Parallel()
 
 	msc := mock.NewMultiShardsCoordinatorMock(3)
-	mbc, _ := NewMiniBlocksCompaction(&mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return tx.GetGasLimit()
+	mbc, _ := NewMiniBlocksCompaction(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasLimit()
+			},
 		},
-	},
 		msc,
+		&mock.GasHandlerMock{},
 	)
 
 	mbs := block.MiniBlockSlice{

@@ -414,6 +414,8 @@ func createNetNode(
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
 
+	feeHandlerMock := createMockTxFeeHandler()
+
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
 		testHasher,
@@ -423,11 +425,11 @@ func createNetNode(
 		scProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		createMockTxFeeHandler(),
+		feeHandlerMock,
 	)
 
-	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator)
-	gasHandler, _ := preprocess.NewGasComputation()
+	gasHandler, _ := preprocess.NewGasComputation(feeHandlerMock)
+	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator, gasHandler)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,

@@ -746,6 +746,15 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 			GetGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
+			ComputeGasConsumedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
+				return 0, nil
+			},
+			IsMaxGasLimitReachedCalled: func(gasConsumedByTxInSndSh uint64, gasConsumedByTxInRcvSh uint64, gasConsumedByTxInSlfSh uint64, currentGasConsumedByMiniBlockInSndSh uint64, currentGasConsumedByMiniBlockInRcvSh uint64, currentGasConsumedByBlockInSlfSh uint64) bool {
+				return false
+			},
 		},
 	)
 	assert.NotNil(t, txs)
@@ -799,6 +808,15 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 			GetGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
+			ComputeGasConsumedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
+				return 0, nil
+			},
+			IsMaxGasLimitReachedCalled: func(gasConsumedByTxInSndSh uint64, gasConsumedByTxInRcvSh uint64, gasConsumedByTxInSlfSh uint64, currentGasConsumedByMiniBlockInSndSh uint64, currentGasConsumedByMiniBlockInRcvSh uint64, currentGasConsumedByBlockInSlfSh uint64) bool {
+				return false
+			},
 		},
 	)
 	assert.NotNil(t, txs)
@@ -833,6 +851,9 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
+	numTxsToAdd := 5
+	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
+
 	totalGasConsumed := uint64(0)
 	txs, _ := NewTransactionPreprocessor(
 		txPool,
@@ -854,6 +875,15 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 			AddGasConsumedCalled: func(gasConsumed uint64) {
 				totalGasConsumed += gasConsumed
 			},
+			ComputeGasConsumedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return gasLimit, gasLimit, nil
+			},
+			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
+				return gasLimit, nil
+			},
+			IsMaxGasLimitReachedCalled: func(gasConsumedByTxInSndSh uint64, gasConsumedByTxInRcvSh uint64, gasConsumedByTxInSlfSh uint64, currentGasConsumedByMiniBlockInSndSh uint64, currentGasConsumedByMiniBlockInRcvSh uint64, currentGasConsumedByBlockInSlfSh uint64) bool {
+				return totalGasConsumed >= MaxGasLimitPerBlock
+			},
 		},
 	)
 	assert.NotNil(t, txs)
@@ -861,9 +891,6 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	sndShardId := uint32(0)
 	dstShardId := uint32(1)
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-
-	numTxsToAdd := 5
-	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	addedTxs := make([]*transaction.Transaction, 0)
@@ -1071,6 +1098,12 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 			},
 			AddGasConsumedCalled: func(gasConsumed uint64) {
 				totalGasConsumed += gasConsumed
+			},
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
+				return 0, nil
 			},
 		},
 	)

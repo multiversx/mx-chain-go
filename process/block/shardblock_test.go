@@ -480,7 +480,14 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 				return miniBlocks, nil
 			},
 		},
-		&mock.GasHandlerMock{},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
+				return 0, nil
+			},
+		},
 	)
 	container, _ := factory.Create()
 
@@ -691,7 +698,14 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 				return miniBlocks, nil
 			},
 		},
-		&mock.GasHandlerMock{},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
+				return 0, nil
+			},
+		},
 	)
 	container, _ := factory.Create()
 
@@ -2971,6 +2985,15 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			},
 			GetGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
+			},
+			ComputeGasConsumedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
+				return 0, nil
+			},
+			IsMaxGasLimitReachedCalled: func(gasConsumedByTxInSndSh uint64, gasConsumedByTxInRcvSh uint64, gasConsumedByTxInSlfSh uint64, currentGasConsumedByMiniBlockInSndSh uint64, currentGasConsumedByMiniBlockInRcvSh uint64, currentGasConsumedByBlockInSlfSh uint64) bool {
+				return false
 			},
 		},
 	)

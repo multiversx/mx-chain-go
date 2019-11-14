@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -16,6 +17,10 @@ type gasComputation struct {
 func NewGasComputation(
 	economicsFee process.FeeHandler,
 ) (*gasComputation, error) {
+
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	return &gasComputation{
 		economicsFee: economicsFee,
@@ -39,29 +44,29 @@ func (gc *gasComputation) GetGasConsumed() uint64 {
 	return gc.gasConsumed
 }
 
-func (gc *gasComputation) ComputeGasConsumedByMiniBlockInShard(
-	shardId uint32,
-	miniBlock *block.MiniBlock,
-	mapHashTx map[string]data.TransactionHandler,
-) (uint64, error) {
-
-	gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, err := gc.ComputeGasConsumedByMiniBlock(
-		miniBlock,
-		mapHashTx)
-
-	if err != nil {
-		return 0, err
-	}
-
-	gasConsumedByMiniBlock, err := gc.ComputeGasConsumedInShard(
-		shardId,
-		miniBlock.SenderShardID,
-		miniBlock.ReceiverShardID,
-		gasConsumedByMiniBlockInSenderShard,
-		gasConsumedByMiniBlockInReceiverShard)
-
-	return gasConsumedByMiniBlock, err
-}
+//func (gc *gasComputation) computeGasConsumedByMiniBlockInShard(
+//	shardId uint32,
+//	miniBlock *block.MiniBlock,
+//	mapHashTx map[string]data.TransactionHandler,
+//) (uint64, error) {
+//
+//	gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, err := gc.ComputeGasConsumedByMiniBlock(
+//		miniBlock,
+//		mapHashTx)
+//
+//	if err != nil {
+//		return 0, err
+//	}
+//
+//	gasConsumedByMiniBlock, err := gc.ComputeGasConsumedInShard(
+//		shardId,
+//		miniBlock.SenderShardID,
+//		miniBlock.ReceiverShardID,
+//		gasConsumedByMiniBlockInSenderShard,
+//		gasConsumedByMiniBlockInReceiverShard)
+//
+//	return gasConsumedByMiniBlock, err
+//}
 
 func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
 	miniBlock *block.MiniBlock,
@@ -92,30 +97,30 @@ func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
 	return gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, nil
 }
 
-func (gc *gasComputation) ComputeGasConsumedByTxInShard(
-	shardId uint32,
-	txSenderShardId uint32,
-	txReceiverShardId uint32,
-	txHandler data.TransactionHandler,
-) (uint64, error) {
-
-	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := gc.ComputeGasConsumedByTx(
-		txSenderShardId,
-		txReceiverShardId,
-		txHandler)
-	if err != nil {
-		return 0, err
-	}
-
-	gasConsumedByTx, err := gc.ComputeGasConsumedInShard(
-		shardId,
-		txSenderShardId,
-		txReceiverShardId,
-		gasConsumedByTxInSenderShard,
-		gasConsumedByTxInReceiverShard)
-
-	return gasConsumedByTx, nil
-}
+//func (gc *gasComputation) computeGasConsumedByTxInShard(
+//	shardId uint32,
+//	txSenderShardId uint32,
+//	txReceiverShardId uint32,
+//	txHandler data.TransactionHandler,
+//) (uint64, error) {
+//
+//	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := gc.ComputeGasConsumedByTx(
+//		txSenderShardId,
+//		txReceiverShardId,
+//		txHandler)
+//	if err != nil {
+//		return 0, err
+//	}
+//
+//	gasConsumedByTx, err := gc.ComputeGasConsumedInShard(
+//		shardId,
+//		txSenderShardId,
+//		txReceiverShardId,
+//		gasConsumedByTxInSenderShard,
+//		gasConsumedByTxInReceiverShard)
+//
+//	return gasConsumedByTx, nil
+//}
 
 func (gc *gasComputation) ComputeGasConsumedByTx(
 	txSenderShardId uint32,
@@ -169,13 +174,13 @@ func (gc *gasComputation) IsMaxGasLimitReached(
 	currentGasConsumedByMiniBlockInSenderShard uint64,
 	currentGasConsumedByMiniBlockInReceiverShard uint64,
 	currentGasConsumedByBlockInSelfShard uint64,
-	maxGasLimitPerBlock uint64,
 ) bool {
 
 	gasConsumedByMiniBlockInSenderShard := currentGasConsumedByMiniBlockInSenderShard + gasConsumedByTxInSenderShard
 	gasConsumedByMiniBlockInReceiverShard := currentGasConsumedByMiniBlockInReceiverShard + gasConsumedByTxInReceiverShard
 	gasConsumedByBlockInSelfShard := currentGasConsumedByBlockInSelfShard + gasConsumedByTxInSelfShard
 
+	maxGasLimitPerBlock := gc.economicsFee.MaxGasLimitPerBlock()
 	isGasLimitPerMiniBlockInSenderShardReached := gasConsumedByMiniBlockInSenderShard > maxGasLimitPerBlock
 	isGasLimitPerMiniBlockInReceiverShardReached := gasConsumedByMiniBlockInReceiverShard > maxGasLimitPerBlock
 	isGasLimitPerBlockInSelfShardReached := gasConsumedByBlockInSelfShard > maxGasLimitPerBlock
