@@ -931,3 +931,89 @@ func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *t
 	sfd.AddFinalHeaders(hdrs, hashes)
 	assert.Equal(t, hdr3.Nonce, sfd.FinalCheckpointNonce())
 }
+
+func TestBaseForkDetector_ActivateForcedForkIfNeededStateNotProposedShouldNotActivate(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+
+	state := process.BHReceived
+	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
+
+	bfd.ActivateForcedForkIfNeeded(hdr1, state)
+	assert.False(t, bfd.ShouldForceFork())
+}
+
+func TestBaseForkDetector_ActivateForcedForkIfNeededNotSyncingShouldNotActivate(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+
+	state := process.BHProposed
+	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
+
+	bfd.ActivateForcedForkIfNeeded(hdr1, state)
+	assert.False(t, bfd.ShouldForceFork())
+}
+
+func TestBaseForkDetector_ActivateForcedForkIfNeededDifferencesNotEnoughShouldNotActivate(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+
+	_ = bfd.AddHeader(
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 3},
+		[]byte("hash1"),
+		process.BHProcessed,
+		nil,
+		nil,
+		false)
+
+	state := process.BHProposed
+	hdr1 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
+	rounderMock.RoundIndex = 5
+	bfd.ActivateForcedForkIfNeeded(hdr1, state)
+	assert.False(t, bfd.ShouldForceFork())
+}
+
+func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+
+	bfd.SetFinalCheckpoint(0, 0)
+	_ = bfd.AddHeader(
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 0, Round: 28},
+		[]byte("hash1"),
+		process.BHProcessed,
+		nil,
+		nil,
+		false)
+
+	// last checkpoint will be (round = 0 , nonce = 0)
+	// round difference is higher than 20
+	// nonce difference is 1
+	// round index is divisible by 5
+	// => should activate force fork
+	state := process.BHProposed
+	hdr1 := &block.Header{Nonce: 1, Round: 29, PubKeysBitmap: []byte("X")}
+	rounderMock.RoundIndex = 30
+	bfd.ActivateForcedForkIfNeeded(hdr1, state)
+	assert.True(t, bfd.ShouldForceFork())
+}
+
+func TestBaseForkDetector_ResetFork(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+
+	bfd.SetShouldForceFork(true)
+	assert.True(t, bfd.ShouldForceFork())
+	bfd.ResetFork()
+	assert.False(t, bfd.ShouldForceFork())
+}

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	ns "github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -70,7 +70,7 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 		lcm.reconnecter.Pause()
 	}
 	if len(netw.Conns()) > lcm.thresholdConnTrim {
-		sorted := kbucket.SortClosestPeers(netw.Peers(), kbucket.ConvertPeerID(netw.LocalPeer()))
+		sorted := ns.Get().SortList(netw.Peers(), netw.LocalPeer())
 		for i := lcm.thresholdDiscoveryPause; i < len(sorted); i++ {
 			_ = netw.ClosePeer(sorted[i])
 		}
