@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func creteMockShardEndOfEpochTriggerArguments() *ArgsShardEndOfEpochTrigger {
+func createMockShardEndOfEpochTriggerArguments() *ArgsShardEndOfEpochTrigger {
 	return &ArgsShardEndOfEpochTrigger{
 		Marshalizer: &mock.MarshalizerMock{},
 		Hasher:      &mock.HasherMock{},
@@ -65,7 +65,7 @@ func TestNewEndOfEpochTrigger_NilArgumentsShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Hasher = nil
 	eoet, err := NewEndOfEpochTrigger(args)
 
@@ -76,7 +76,7 @@ func TestNewEndOfEpochTrigger_NilHasherShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Marshalizer = nil
 	eoet, err := NewEndOfEpochTrigger(args)
 
@@ -87,7 +87,7 @@ func TestNewEndOfEpochTrigger_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.HeaderValidator = nil
 	eoet, err := NewEndOfEpochTrigger(args)
 
@@ -98,7 +98,7 @@ func TestNewEndOfEpochTrigger_NilHeaderShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.DataPool = nil
 	eoet, err := NewEndOfEpochTrigger(args)
 
@@ -109,7 +109,7 @@ func TestNewEndOfEpochTrigger_NilDataPoolShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Storage = nil
 	eoet, err := NewEndOfEpochTrigger(args)
 
@@ -120,7 +120,7 @@ func TestNewEndOfEpochTrigger_NilStorageShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilRequestHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.RequestHandler = nil
 	eoet, err := NewEndOfEpochTrigger(args)
 
@@ -131,7 +131,7 @@ func TestNewEndOfEpochTrigger_NilRequestHandlerShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilMetaBlockPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.DataPool = &mock.PoolsHolderStub{
 		MetaBlocksCalled: func() storage.Cacher {
 			return nil
@@ -146,7 +146,7 @@ func TestNewEndOfEpochTrigger_NilMetaBlockPoolShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilHeadersNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.DataPool = &mock.PoolsHolderStub{
 		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
@@ -164,7 +164,7 @@ func TestNewEndOfEpochTrigger_NilHeadersNonceShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilUint64ConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Uint64Converter = nil
 	eoet, err := NewEndOfEpochTrigger(args)
 
@@ -175,7 +175,7 @@ func TestNewEndOfEpochTrigger_NilUint64ConverterShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return nil
@@ -190,7 +190,7 @@ func TestNewEndOfEpochTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
@@ -210,7 +210,7 @@ func TestNewEndOfEpochTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 func TestNewEndOfEpochTrigger_ShouldOk(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	eoet, err := NewEndOfEpochTrigger(args)
 
 	assert.NotNil(t, eoet)
@@ -220,7 +220,7 @@ func TestNewEndOfEpochTrigger_ShouldOk(t *testing.T) {
 func TestTrigger_ReceivedHeaderNotEndOfEpoch(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Validity = 2
 	args.Finality = 2
 	eoet, _ := NewEndOfEpochTrigger(args)
@@ -236,7 +236,7 @@ func TestTrigger_ReceivedHeaderNotEndOfEpoch(t *testing.T) {
 func TestTrigger_ReceivedHeaderIsEndOfEpochTrue(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Validity = 0
 	args.Finality = 2
 	eoet, _ := NewEndOfEpochTrigger(args)
@@ -256,7 +256,7 @@ func TestTrigger_Epoch(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(1)
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Epoch = epoch
 	eoet, _ := NewEndOfEpochTrigger(args)
 
@@ -267,7 +267,7 @@ func TestTrigger_Epoch(t *testing.T) {
 func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	t.Parallel()
 
-	args := creteMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEndOfEpochTriggerArguments()
 	args.Validity = 0
 	args.Finality = 0
 	et, _ := NewEndOfEpochTrigger(args)

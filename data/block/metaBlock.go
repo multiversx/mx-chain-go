@@ -534,6 +534,7 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 	return uint32(itemsInHeader)
 }
 
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (m *MetaBlock) IsStartOfEpochBlock() bool {
 	return len(m.EndOfEpoch.LastFinalizedHeaders) > 0
 }
