@@ -633,6 +633,10 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 	return uint32(itemsInHeader)
 }
 
+func (m *MetaBlock) IsStartOfEpochBlock() bool {
+	return len(m.EndOfEpoch.LastFinalizedHeaders) > 0
+}
+
 // ItemsInBody gets the number of items(hashes) added in block body
 func (m *MetaBlock) ItemsInBody() uint32 {
 	return m.TxCount

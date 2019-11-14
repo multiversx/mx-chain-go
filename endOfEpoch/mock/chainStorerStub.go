@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ChainStorerMock is a mock implementation of the ChianStorer interface
-type ChainStorerMock struct {
+// ChainStorerStub is a mock implementation of the ChianStorer interface
+type ChainStorerStub struct {
 	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
 	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
 	HasCalled       func(unitType dataRetriever.UnitType, key []byte) error
@@ -18,14 +18,14 @@ type ChainStorerMock struct {
 }
 
 // AddStorer will add a new storer to the chain map
-func (bc *ChainStorerMock) AddStorer(key dataRetriever.UnitType, s storage.Storer) {
+func (bc *ChainStorerStub) AddStorer(key dataRetriever.UnitType, s storage.Storer) {
 	if bc.AddStorerCalled != nil {
 		bc.AddStorerCalled(key, s)
 	}
 }
 
 // GetStorer returns the storer from the chain map or nil if the storer was not found
-func (bc *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
+func (bc *ChainStorerStub) GetStorer(unitType dataRetriever.UnitType) storage.Storer {
 	if bc.GetStorerCalled != nil {
 		return bc.GetStorerCalled(unitType)
 	}
@@ -35,7 +35,7 @@ func (bc *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 // Has returns true if the key is found in the selected Unit or false otherwise
 // It can return an error if the provided unit type is not supported or if the
 // underlying implementation of the storage unit reports an error.
-func (bc *ChainStorerMock) Has(unitType dataRetriever.UnitType, key []byte) error {
+func (bc *ChainStorerStub) Has(unitType dataRetriever.UnitType, key []byte) error {
 	if bc.HasCalled != nil {
 		return bc.HasCalled(unitType, key)
 	}
@@ -45,7 +45,7 @@ func (bc *ChainStorerMock) Has(unitType dataRetriever.UnitType, key []byte) erro
 // Get returns the value for the given key if found in the selected storage unit,
 // nil otherwise. It can return an error if the provided unit type is not supported
 // or if the storage unit underlying implementation reports an error
-func (bc *ChainStorerMock) Get(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+func (bc *ChainStorerStub) Get(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 	if bc.GetCalled != nil {
 		return bc.GetCalled(unitType, key)
 	}
@@ -55,7 +55,7 @@ func (bc *ChainStorerMock) Get(unitType dataRetriever.UnitType, key []byte) ([]b
 // Put stores the key, value pair in the selected storage unit
 // It can return an error if the provided unit type is not supported
 // or if the storage unit underlying implementation reports an error
-func (bc *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+func (bc *ChainStorerStub) Put(unitType dataRetriever.UnitType, key []byte, value []byte) error {
 	if bc.PutCalled != nil {
 		return bc.PutCalled(unitType, key, value)
 	}
@@ -65,7 +65,7 @@ func (bc *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, valu
 // GetAll gets all the elements with keys in the keys array, from the selected storage unit
 // It can report an error if the provided unit type is not supported, if there is a missing
 // key in the unit, or if the underlying implementation of the storage unit reports an error.
-func (bc *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+func (bc *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
 	if bc.GetAllCalled != nil {
 		return bc.GetAllCalled(unitType, keys)
 	}
@@ -73,7 +73,7 @@ func (bc *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 }
 
 // Destroy removes the underlying files/resources used by the storage service
-func (bc *ChainStorerMock) Destroy() error {
+func (bc *ChainStorerStub) Destroy() error {
 	if bc.DestroyCalled != nil {
 		return bc.DestroyCalled()
 	}
@@ -81,9 +81,6 @@ func (bc *ChainStorerMock) Destroy() error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (bc *ChainStorerMock) IsInterfaceNil() bool {
-	if bc == nil {
-		return true
-	}
-	return false
+func (bc *ChainStorerStub) IsInterfaceNil() bool {
+	return bc == nil
 }

@@ -33,14 +33,14 @@ func creteMockShardEndOfEpochTriggerArguments() *ArgsShardEndOfEpochTrigger {
 			HeadersNoncesCalled: func() dataRetriever.Uint64SyncMapCacher {
 				return &mock.Uint64SyncMapCacherStub{
 					GetCalled: func(nonce uint64) (hashMap dataRetriever.ShardIdHashMap, b bool) {
-						return &mock.ShardIdHasMapMock{LoadCalled: func(shardId uint32) (bytes []byte, b bool) {
+						return &mock.ShardIdHasMapStub{LoadCalled: func(shardId uint32) (bytes []byte, b bool) {
 							return []byte("hash"), true
 						}}, true
 					},
 				}
 			},
 		},
-		Storage: &mock.ChainStorerMock{
+		Storage: &mock.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return &mock.StorerStub{
 					GetCalled: func(key []byte) (bytes []byte, err error) {
@@ -49,7 +49,7 @@ func creteMockShardEndOfEpochTriggerArguments() *ArgsShardEndOfEpochTrigger {
 				}
 			},
 		},
-		RequestHandler: &mock.RequestHandlerMock{},
+		RequestHandler: &mock.RequestHandlerStub{},
 	}
 }
 
@@ -176,7 +176,7 @@ func TestNewEndOfEpochTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := creteMockShardEndOfEpochTriggerArguments()
-	args.Storage = &mock.ChainStorerMock{
+	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return nil
 		},
@@ -191,7 +191,7 @@ func TestNewEndOfEpochTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := creteMockShardEndOfEpochTriggerArguments()
-	args.Storage = &mock.ChainStorerMock{
+	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
 			case dataRetriever.MetaHdrNonceHashDataUnit:
@@ -245,6 +245,8 @@ func TestTrigger_ReceivedHeaderIsEndOfEpochTrue(t *testing.T) {
 	header := &block.MetaBlock{Nonce: 100, Epoch: 1}
 	header.EndOfEpoch.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	eoet.ReceivedHeader(header)
+
+	header = &block.MetaBlock{Nonce: 101, Epoch: 1}
 	eoet.ReceivedHeader(header)
 
 	assert.True(t, eoet.IsEndOfEpoch())
@@ -260,4 +262,28 @@ func TestTrigger_Epoch(t *testing.T) {
 
 	currentEpoch := eoet.Epoch()
 	assert.Equal(t, epoch, currentEpoch)
+}
+
+func TestTrigger_ProcessedAndRevert(t *testing.T) {
+	t.Parallel()
+
+	args := creteMockShardEndOfEpochTriggerArguments()
+	args.Validity = 0
+	args.Finality = 0
+	et, _ := NewEndOfEpochTrigger(args)
+
+	hash := []byte("hash")
+	header := &block.MetaBlock{Nonce: 100, Round: 100}
+	header.EndOfEpoch.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	et.ReceivedHeader(header)
+	assert.True(t, et.IsEndOfEpoch())
+	assert.Equal(t, header.Round, et.EpochStartRound())
+
+	et.Processed()
+	assert.False(t, et.isEndOfEpoch)
+	assert.False(t, et.newEpochHdrReceived)
+
+	et.Revert()
+	assert.True(t, et.isEndOfEpoch)
+	assert.True(t, et.newEpochHdrReceived)
 }

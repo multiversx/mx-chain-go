@@ -1,7 +1,6 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 	"time"
 
@@ -13,8 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -468,7 +468,7 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorSettingsHandler
+// ValidatorSettingsHandler defines the settings getter for validators
 type ValidatorSettingsHandler interface {
 	UnBoundPeriod() uint64
 	StakeValue() *big.Int

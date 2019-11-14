@@ -506,7 +506,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return err
 	}
 
-	if len(metaBlock.EndOfEpoch.LastFinalizedHeaders) > 0 {
+	if metaBlock.IsStartOfEpochBlock() {
 		mp.endOfEpochTrigger.Revert()
 	}
 
@@ -909,7 +909,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	if len(header.EndOfEpoch.LastFinalizedHeaders) > 0 {
+	if header.IsStartOfEpochBlock() {
 		mp.endOfEpochTrigger.Processed()
 	}
 
