@@ -49,6 +49,7 @@ func NewTestSyncNode(
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithSync() {
+	tpn.NetworkShardingUpdater = mock.NewNetworkShardingUpdaterMock()
 	tpn.initRounder()
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
