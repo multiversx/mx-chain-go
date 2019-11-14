@@ -529,3 +529,6 @@ var ErrMissingPrevShardData = errors.New("shard data is missing")
 
 // ErrInvalidMetaPoolHolder signals that a required shard data information is missing
 var ErrInvalidMetaPoolHolder = errors.New("invalid meta pool holder")
+
+// ErrNilMediator signals that a mediator implementation is needed, but it is nil
+var ErrNilMediator = errors.New("nil mediator")

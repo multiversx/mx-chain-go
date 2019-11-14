@@ -232,7 +232,7 @@ type ValidatorStatisticsProcessor interface {
 	RevertPeerStateToSnapshot(snapshot int) error
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
-    RootHash() ([]byte, error)
+	RootHash() ([]byte, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

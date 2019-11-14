@@ -259,12 +259,12 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	for _, metaHeader := range processedMetaHdrs {
-		validatorStatsRH, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
+		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
 		if err != nil {
 			return err
 		}
 
-		if !bytes.Equal(validatorStatsRH, metaHeader.GetValidatorStatsRootHash()) {
+		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
 			err = process.ErrValidatorStatsRootHashDoesNotMatch
 			return err
 		}

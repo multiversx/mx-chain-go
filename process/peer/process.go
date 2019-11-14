@@ -10,14 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
-// DataPool indicates the main funcitonality needed in order to fetch the required blocks from the pool
-type DataPool interface {
-	MetaBlocks() storage.Cacher
-	IsInterfaceNil() bool
-}
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
@@ -41,6 +34,7 @@ type validatorStatistics struct {
 	peerAdapter      state.AccountsAdapter
 	prevShardInfo    map[uint32]block.ShardData
 	mutPrevShardInfo sync.RWMutex
+	mediator shardMetaMediator
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -78,6 +72,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		marshalizer:      arguments.Marshalizer,
 		prevShardInfo:    make(map[uint32]block.ShardData, 0),
 	}
+	vs.mediator = vs.createMediator()
 
 	err := vs.SaveInitialState(arguments.InitialNodes)
 	if err != nil {
@@ -171,8 +166,12 @@ func (p *validatorStatistics) RootHash() ([]byte, error) {
 	return p.peerAdapter.RootHash()
 }
 
-func (p *validatorStatistics) checkForMissedBlocks(currentHeaderRound, previousHeaderRound uint64,
-	prevRandSeed []byte, shardId uint32) error {
+func (p *validatorStatistics) checkForMissedBlocks(
+	currentHeaderRound,
+	previousHeaderRound uint64,
+	prevRandSeed []byte,
+	shardId uint32,
+) error {
 	if currentHeaderRound-previousHeaderRound <= 1 {
 		return nil
 	}
@@ -219,21 +218,21 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 		return process.ErrInvalidMetaHeader
 	}
 
-	err := p.loadPreviousShardHeaders(metaHeader, prevMetaHeader)
+	err := p.mediator.loadPreviousShardHeaders(metaHeader, prevMetaHeader)
 	if err !=  nil {
 		return err
 	}
 
 	for _, h := range metaHeader.ShardInfo {
 
-		shardConsensus, err := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardId)
+		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardId)
 		if err != nil {
 			return err
 		}
 
-		err = p.updateValidatorInfo(shardConsensus, h.ShardId)
-		if err != nil {
-			return err
+		shardInfoErr = p.updateValidatorInfo(shardConsensus, h.ShardId)
+		if shardInfoErr != nil {
+			return shardInfoErr
 		}
 
 		if h.Nonce == 1 {
@@ -241,20 +240,20 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 		}
 
 		p.mutPrevShardInfo.RLock()
-		prevShardData, ok := p.prevShardInfo[h.ShardId]
+		prevShardData, prevDataOk := p.prevShardInfo[h.ShardId]
 		p.mutPrevShardInfo.RUnlock()
-		if !ok {
+		if !prevDataOk {
 			return process.ErrMissingPrevShardData
 		}
 
-		err = p.checkForMissedBlocks(
+		shardInfoErr = p.checkForMissedBlocks(
 			h.Round,
 			prevShardData.Round,
 			prevShardData.PrevRandSeed,
 			h.ShardId,
 		)
-		if err != nil {
-			return err
+		if shardInfoErr != nil {
+			return shardInfoErr
 		}
 	}
 
@@ -360,13 +359,9 @@ func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountH
 }
 
 // loadPreviousShardHeaders loads the previous shard headers for a given metablock. For the metachain it's easy
-//  since it has all the shard headers in it's storage, but for the shard it's a bit trickier and we need
-//  to iterate through past metachain headers until we find all the ShardData's we are interested in
+//  since it has all the shard headers in its storage, but for the shard it's a bit trickier and we need
+//  to iterate through past metachain headers until we find all the ShardData we are interested in
 func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHeader *block.MetaBlock) error {
-
-	if p.shardCoordinator.SelfId() > p.shardCoordinator.NumberOfShards() {
-		return p.loadPreviousShardHeadersMeta(currentHeader)
-	}
 
 	p.mutPrevShardInfo.Lock()
 	defer p.mutPrevShardInfo.Unlock()
@@ -441,6 +436,13 @@ func (p *validatorStatistics) getMatchingShardData(shardId uint32, shardInfo []b
 	}
 
 	return nil
+}
+
+func (p *validatorStatistics) createMediator() shardMetaMediator {
+	if p.shardCoordinator.SelfId() < sharding.MetachainShardId {
+		return &shardMediator{p}
+	}
+	return &metaMediator{p}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

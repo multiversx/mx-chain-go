@@ -108,7 +108,7 @@ func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.H
 	bp.mutNotarizedHdrs.Unlock()
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (bp *baseProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	err := bp.accounts.RecreateTrie(header.GetRootHash())
 	if err != nil {
