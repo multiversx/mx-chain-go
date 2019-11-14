@@ -414,9 +414,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetEpoch(src.Epoch)
 	dest.SetRound(src.Round)
 	dest.SetTimeStamp(src.TimeStamp)
-
-	//TODO repair
-	//dest.SetEndOfEpoch(EndOfEpochGoToCapn(seg, src.EndOfEpoch))
+	dest.SetEndOfEpoch(EndOfEpochGoToCapn(seg, src.EndOfEpoch))
 
 	return dest
 }
@@ -456,9 +454,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.Epoch = src.Epoch()
 	dest.Round = src.Round()
 	dest.TimeStamp = src.TimeStamp()
-
-	//TODO repair
-	//dest.EndOfEpoch = *EndOfEpochCapnToGo(src.EndOfEpoch(), nil)
+	dest.EndOfEpoch = *EndOfEpochCapnToGo(src.EndOfEpoch(), nil)
 
 	return dest
 }

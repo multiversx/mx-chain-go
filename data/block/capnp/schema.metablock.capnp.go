@@ -1268,9 +1268,9 @@ func (s EndOfEpochCapn_List) Set(i int, item EndOfEpochCapn) { C.PointerList(s).
 
 type MetaBlockCapn C.Struct
 
-func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(32, 10)) }
-func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(32, 10)) }
-func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(32, 10)) }
+func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(32, 11)) }
+func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(32, 11)) }
+func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(32, 11)) }
 func ReadRootMetaBlockCapn(s *C.Segment) MetaBlockCapn { return MetaBlockCapn(s.Root(0).ToStruct()) }
 func (s MetaBlockCapn) Nonce() uint64                  { return C.Struct(s).Get64(0) }
 func (s MetaBlockCapn) SetNonce(v uint64)              { C.Struct(s).Set64(0, v) }
@@ -1313,9 +1313,9 @@ func (s MetaBlockCapn) SetMiniBlockHeaders(v MiniBlockHeaderCapn_List) {
 	C.Struct(s).SetObject(9, C.Object(v))
 }
 func (s MetaBlockCapn) EndOfEpoch() EndOfEpochCapn {
-	return EndOfEpochCapn(C.Struct(s).GetObject(9).ToStruct())
+	return EndOfEpochCapn(C.Struct(s).GetObject(10).ToStruct())
 }
-func (s MetaBlockCapn) SetEndOfEpoch(v EndOfEpochCapn) { C.Struct(s).SetObject(9, C.Object(v)) }
+func (s MetaBlockCapn) SetEndOfEpoch(v EndOfEpochCapn) { C.Struct(s).SetObject(10, C.Object(v)) }
 func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -1619,21 +1619,6 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"endOfEpoch\":")
-	if err != nil {
-		return err
-	}
-	{
-		s := s.EndOfEpoch()
-		err = s.WriteJSON(b)
-		if err != nil {
-			return err
-		}
-	}
-	err = b.WriteByte(',')
-	if err != nil {
-		return err
-	}
 	_, err = b.WriteString("\"miniBlockHeaders\":")
 	if err != nil {
 		return err
@@ -1659,6 +1644,21 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 			}
 			err = b.WriteByte(']')
 		}
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"endOfEpoch\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.EndOfEpoch()
+		err = s.WriteJSON(b)
 		if err != nil {
 			return err
 		}
@@ -2038,7 +2038,7 @@ func (s MetaBlockCapn) MarshalCapLit() ([]byte, error) {
 type MetaBlockCapn_List C.PointerList
 
 func NewMetaBlockCapnList(s *C.Segment, sz int) MetaBlockCapn_List {
-	return MetaBlockCapn_List(s.NewCompositeList(32, 10, sz))
+	return MetaBlockCapn_List(s.NewCompositeList(32, 11, sz))
 }
 func (s MetaBlockCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s MetaBlockCapn_List) At(i int) MetaBlockCapn {

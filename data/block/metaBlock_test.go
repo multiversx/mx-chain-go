@@ -117,11 +117,11 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		TxCount:         uint32(10),
 	}
 
-	//lastFinalHdr := block.FinalizedHeaders{
-	//	ShardId:    0,
-	//	HeaderHash: []byte("headerhash"),
-	//	RootHash:   []byte("roothash"),
-	//}
+	lastFinalHdr := block.FinalizedHeaders{
+		ShardId:    0,
+		HeaderHash: []byte("headerhash"),
+		RootHash:   []byte("roothash"),
+	}
 
 	mb := block.MetaBlock{
 		Nonce:                  uint64(1),
@@ -139,10 +139,10 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		ValidatorStatsRootHash: []byte("validator root hash"),
 		TxCount:                uint32(1),
 		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
-		//EndOfEpoch: block.EndOfEpoch{
-		//	PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
-		//	LastFinalizedHeaders:    []block.FinalizedHeaders{lastFinalHdr},
-		//},
+		EndOfEpoch: block.EndOfEpoch{
+			PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+			LastFinalizedHeaders:    []block.FinalizedHeaders{lastFinalHdr},
+		},
 	}
 	var b bytes.Buffer
 	_ = mb.Save(&b)
