@@ -646,10 +646,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		rounder := &mock.RounderMock{}
+
 		argsEndOfEpoch := &metachain.ArgsNewMetaEndOfEpochTrigger{
-			Rounder:     rounder,
-			GenesisTime: rounder.TimeStamp(),
+			Rounder:     argumentsBase.Rounder,
+			GenesisTime: argumentsBase.Rounder.TimeStamp(),
 			Settings: &config.EndOfEpochConfig{
 				MinRoundsBetweenEpochs: 1000,
 				RoundsPerEpoch:         10000,

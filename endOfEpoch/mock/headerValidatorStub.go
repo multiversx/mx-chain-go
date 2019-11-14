@@ -7,7 +7,10 @@ type HeaderValidatorStub struct {
 }
 
 func (hvs *HeaderValidatorStub) IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	return hvs.IsHeaderConstructionValidCalled(currHdr, prevHdr)
+	if hvs.IsHeaderConstructionValidCalled != nil {
+		return hvs.IsHeaderConstructionValidCalled(currHdr, prevHdr)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns if underlying object is true
