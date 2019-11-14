@@ -341,6 +341,7 @@ func EndOfEpochGoToCapn(seg *capn.Segment, src EndOfEpoch) capnp.EndOfEpochCapn 
 		for i, elem := range src.LastFinalizedHeaders {
 			_ = pList.Set(i, capn.Object(FinalizedHeaderGoToCapn(seg, &elem)))
 		}
+		dest.SetLastFinalizedHeaders(typedList)
 	}
 
 	return dest
@@ -370,11 +371,6 @@ func EndOfEpochCapnToGo(src capnp.EndOfEpochCapn, dest *EndOfEpoch) *EndOfEpoch 
 // MetaBlockGoToCapn is a helper function to copy fields from a MetaBlock object to a MetaBlockCapn object
 func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest := capnp.AutoNewMetaBlockCapn(seg)
-
-	dest.SetNonce(src.Nonce)
-	dest.SetEpoch(src.Epoch)
-	dest.SetRound(src.Round)
-	dest.SetTimeStamp(src.TimeStamp)
 
 	if len(src.ShardInfo) > 0 {
 		typedList := capnp.NewShardDataCapnList(seg, len(src.ShardInfo))
@@ -406,8 +402,6 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 		dest.SetMiniBlockHeaders(miniBlockList)
 	}
 
-	//TODO repair
-	//dest.SetEndOfEpoch(EndOfEpochGoToCapn(seg, src.EndOfEpoch))
 	dest.SetSignature(src.Signature)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 	dest.SetPrevHash(src.PrevHash)
@@ -416,6 +410,13 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetRootHash(src.RootHash)
 	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
 	dest.SetTxCount(src.TxCount)
+	dest.SetNonce(src.Nonce)
+	dest.SetEpoch(src.Epoch)
+	dest.SetRound(src.Round)
+	dest.SetTimeStamp(src.TimeStamp)
+
+	//TODO repair
+	//dest.SetEndOfEpoch(EndOfEpochGoToCapn(seg, src.EndOfEpoch))
 
 	return dest
 }
@@ -425,10 +426,6 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	if dest == nil {
 		dest = &MetaBlock{}
 	}
-	dest.Nonce = src.Nonce()
-	dest.Epoch = src.Epoch()
-	dest.Round = src.Round()
-	dest.TimeStamp = src.TimeStamp()
 
 	n := src.ShardInfo().Len()
 	dest.ShardInfo = make([]ShardData, n)
@@ -447,8 +444,6 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
 	}
 
-	//TODO repair
-	//dest.EndOfEpoch = *EndOfEpochCapnToGo(src.EndOfEpoch(), nil)
 	dest.Signature = src.Signature()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
 	dest.PrevHash = src.PrevHash()
@@ -457,6 +452,13 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.RootHash = src.RootHash()
 	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 	dest.TxCount = src.TxCount()
+	dest.Nonce = src.Nonce()
+	dest.Epoch = src.Epoch()
+	dest.Round = src.Round()
+	dest.TimeStamp = src.TimeStamp()
+
+	//TODO repair
+	//dest.EndOfEpoch = *EndOfEpochCapnToGo(src.EndOfEpoch(), nil)
 
 	return dest
 }

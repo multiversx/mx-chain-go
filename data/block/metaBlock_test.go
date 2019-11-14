@@ -55,6 +55,35 @@ func TestShardData_SaveLoad(t *testing.T) {
 	assert.Equal(t, loadSd, sd)
 }
 
+func TestEndOfEpoch_SaveLoad(t *testing.T) {
+
+	mbh := block.ShardMiniBlockHeader{
+		Hash:            []byte("miniblock hash"),
+		SenderShardID:   uint32(0),
+		ReceiverShardID: uint32(1),
+		TxCount:         uint32(1),
+	}
+
+	lastFinalHdr := block.FinalizedHeaders{
+		ShardId:    0,
+		HeaderHash: []byte("headerhash"),
+		RootHash:   []byte("roothash"),
+	}
+
+	endOfEpoch := block.EndOfEpoch{
+		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+		LastFinalizedHeaders:    []block.FinalizedHeaders{lastFinalHdr},
+	}
+
+	var b bytes.Buffer
+	_ = endOfEpoch.Save(&b)
+
+	loadEpoch := block.EndOfEpoch{}
+	_ = loadEpoch.Load(&b)
+
+	assert.Equal(t, loadEpoch, endOfEpoch)
+}
+
 func TestMetaBlock_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
 		Address:     []byte("address"),
@@ -95,20 +124,21 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 	//}
 
 	mb := block.MetaBlock{
-		Nonce:            uint64(1),
-		Epoch:            uint32(1),
-		Round:            uint64(1),
-		TimeStamp:        uint64(100000),
-		ShardInfo:        []block.ShardData{sd},
-		PeerInfo:         []block.PeerData{pd},
-		Signature:        []byte("signature"),
-		PubKeysBitmap:    []byte("pub keys"),
-		PrevHash:         []byte("previous hash"),
-		PrevRandSeed:     []byte("previous random seed"),
-		RandSeed:         []byte("random seed"),
-		RootHash:         []byte("root hash"),
-		TxCount:          uint32(1),
-		MiniBlockHeaders: []block.MiniBlockHeader{mbHdr},
+		Nonce:                  uint64(1),
+		Epoch:                  uint32(1),
+		Round:                  uint64(1),
+		TimeStamp:              uint64(100000),
+		ShardInfo:              []block.ShardData{sd},
+		PeerInfo:               []block.PeerData{pd},
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte("pub keys"),
+		PrevHash:               []byte("previous hash"),
+		PrevRandSeed:           []byte("previous random seed"),
+		RandSeed:               []byte("random seed"),
+		RootHash:               []byte("root hash"),
+		ValidatorStatsRootHash: []byte("validator root hash"),
+		TxCount:                uint32(1),
+		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
 		//EndOfEpoch: block.EndOfEpoch{
 		//	PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 		//	LastFinalizedHeaders:    []block.FinalizedHeaders{lastFinalHdr},
