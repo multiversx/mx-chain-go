@@ -330,7 +330,7 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock(),
+		mock.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},

@@ -44,7 +44,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
-	if maxGasLimitPerBlock < minGasLimit {
+	if data.maxGasLimitPerBlock < data.minGasLimit {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
 
@@ -100,12 +100,12 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 	}
 
 	return &EconomicsData{
-		rewardsValue:  rewardsValue,
-		minGasPrice:   minGasPrice,
-		minGasLimit:   minGasLimit,
+		rewardsValue:        rewardsValue,
+		minGasPrice:         minGasPrice,
+		minGasLimit:         minGasLimit,
 		maxGasLimitPerBlock: maxGasLimitPerBlock,
-		stakeValue:    stakeValue,
-		unBoundPeriod: unBoundPeriod,
+		stakeValue:          stakeValue,
+		unBoundPeriod:       unBoundPeriod,
 	}, nil
 }
 
