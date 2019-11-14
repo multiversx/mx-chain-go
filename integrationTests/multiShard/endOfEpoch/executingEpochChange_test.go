@@ -2,12 +2,16 @@ package endOfEpoch
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
@@ -94,4 +98,36 @@ func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	}
 
 	//////////------ verify last added shardheaders in meta are with new epoch
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+			continue
+		}
+
+		currentMetaHdr, ok := node.BlockChain.GetCurrentBlockHeader().(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+
+		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
+		for _, shardInfo := range currentMetaHdr.ShardInfo {
+			value, ok := node.MetaDataPool.ShardHeaders().Peek(shardInfo.HeaderHash)
+			if ok {
+				header, ok := value.(data.HeaderHandler)
+				if !ok {
+					continue
+				}
+
+				assert.Equal(t, header.GetEpoch(), currentMetaHdr.GetEpoch())
+				continue
+			}
+
+			buff, err := shardHDrStorage.Get(shardInfo.HeaderHash)
+			assert.Nil(t, err)
+
+			shardHeader := block.Header{}
+			err = integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
+			assert.Nil(t, err)
+			assert.Equal(t, shardHeader.Epoch, currentMetaHdr.Epoch)
+		}
+	}
 }

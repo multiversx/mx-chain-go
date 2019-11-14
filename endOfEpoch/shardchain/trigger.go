@@ -2,6 +2,8 @@ package shardchain
 
 import (
 	"bytes"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -13,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"sync"
 )
 
 // ArgsShardEndOfEpochTrigger struct { defines the arguments needed for new end of epoch trigger
@@ -144,7 +145,7 @@ func (t *trigger) Epoch() uint32 {
 
 // EpochStartRound returns the start round of the current epoch
 func (t *trigger) EpochStartRound() uint64 {
-	return uint64(t.epochStartRound)
+	return t.epochStartRound
 }
 
 // ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
@@ -163,7 +164,7 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	if t.newEpochHdrReceived == false && len(metaHdr.EndOfEpoch.LastFinalizedHeaders) == 0 {
+	if t.newEpochHdrReceived == false && !metaHdr.IsStartOfEpochBlock() {
 		return
 	}
 
@@ -173,8 +174,16 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	}
 
 	t.mutReceived.Lock()
+	defer t.mutReceived.Unlock()
 
-	if len(metaHdr.EndOfEpoch.LastFinalizedHeaders) > 0 {
+	if _, ok := t.mapHashHdr[string(hdrHash)]; ok {
+		return
+	}
+	if _, ok := t.mapEndOfEpochHdrs[string(hdrHash)]; ok {
+		return
+	}
+
+	if metaHdr.IsStartOfEpochBlock() {
 		t.newEpochHdrReceived = true
 		t.mapEndOfEpochHdrs[string(hdrHash)] = metaHdr
 	} else {
@@ -191,8 +200,6 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 			break
 		}
 	}
-
-	t.mutReceived.Unlock()
 }
 
 func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaBlock) bool {
@@ -321,12 +328,18 @@ func (t *trigger) Update(round int64) {
 
 // Processed sets end of epoch to false and cleans underlying structure
 func (t *trigger) Processed() {
+	t.mutReceived.Lock()
+	defer t.mutReceived.Unlock()
+
 	t.isEndOfEpoch = false
 	t.newEpochHdrReceived = false
 }
 
 // Revert sets the end of epoch back to true
 func (t *trigger) Revert() {
+	t.mutReceived.Lock()
+	defer t.mutReceived.Unlock()
+
 	t.isEndOfEpoch = true
 	t.newEpochHdrReceived = true
 }

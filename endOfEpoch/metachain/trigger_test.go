@@ -12,7 +12,7 @@ import (
 
 func createMockEndOfEpochTriggerArguments() *ArgsNewMetaEndOfEpochTrigger {
 	return &ArgsNewMetaEndOfEpochTrigger{
-		Rounder:     &mock.RounderMock{},
+		Rounder:     &mock.RounderStub{},
 		GenesisTime: time.Time{},
 		Settings: &config.EndOfEpochConfig{
 			MinRoundsBetweenEpochs: 1,

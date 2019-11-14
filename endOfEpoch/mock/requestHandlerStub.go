@@ -1,6 +1,6 @@
 package mock
 
-type RequestHandlerMock struct {
+type RequestHandlerStub struct {
 	RequestTransactionHandlerCalled   func(destShardID uint32, txHashes [][]byte)
 	RequestScrHandlerCalled           func(destShardID uint32, txHashes [][]byte)
 	RequestRewardTxHandlerCalled      func(destShardID uint32, txHashes [][]byte)
@@ -9,42 +9,42 @@ type RequestHandlerMock struct {
 	RequestHeaderHandlerByNonceCalled func(destShardID uint32, nonce uint64)
 }
 
-func (rrh *RequestHandlerMock) RequestTransaction(destShardID uint32, txHashes [][]byte) {
+func (rrh *RequestHandlerStub) RequestTransaction(destShardID uint32, txHashes [][]byte) {
 	if rrh.RequestTransactionHandlerCalled == nil {
 		return
 	}
 	rrh.RequestTransactionHandlerCalled(destShardID, txHashes)
 }
 
-func (rrh *RequestHandlerMock) RequestUnsignedTransactions(destShardID uint32, txHashes [][]byte) {
+func (rrh *RequestHandlerStub) RequestUnsignedTransactions(destShardID uint32, txHashes [][]byte) {
 	if rrh.RequestScrHandlerCalled == nil {
 		return
 	}
 	rrh.RequestScrHandlerCalled(destShardID, txHashes)
 }
 
-func (rrh *RequestHandlerMock) RequestRewardTransactions(destShardID uint32, txHashes [][]byte) {
+func (rrh *RequestHandlerStub) RequestRewardTransactions(destShardID uint32, txHashes [][]byte) {
 	if rrh.RequestRewardTxHandlerCalled == nil {
 		return
 	}
 	rrh.RequestRewardTxHandlerCalled(destShardID, txHashes)
 }
 
-func (rrh *RequestHandlerMock) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
+func (rrh *RequestHandlerStub) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
 	if rrh.RequestMiniBlockHandlerCalled == nil {
 		return
 	}
 	rrh.RequestMiniBlockHandlerCalled(shardId, miniblockHash)
 }
 
-func (rrh *RequestHandlerMock) RequestHeader(shardId uint32, hash []byte) {
+func (rrh *RequestHandlerStub) RequestHeader(shardId uint32, hash []byte) {
 	if rrh.RequestHeaderHandlerCalled == nil {
 		return
 	}
 	rrh.RequestHeaderHandlerCalled(shardId, hash)
 }
 
-func (rrh *RequestHandlerMock) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
+func (rrh *RequestHandlerStub) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
 	if rrh.RequestHeaderHandlerByNonceCalled == nil {
 		return
 	}
@@ -52,9 +52,6 @@ func (rrh *RequestHandlerMock) RequestHeaderByNonce(destShardID uint32, nonce ui
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rrh *RequestHandlerMock) IsInterfaceNil() bool {
-	if rrh == nil {
-		return true
-	}
-	return false
+func (rrh *RequestHandlerStub) IsInterfaceNil() bool {
+	return rrh == nil
 }

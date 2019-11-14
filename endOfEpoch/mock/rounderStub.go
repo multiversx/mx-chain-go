@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type RounderMock struct {
+type RounderStub struct {
 	RoundIndex int64
 
 	IndexCalled         func() int64
@@ -14,7 +14,7 @@ type RounderMock struct {
 	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
 }
 
-func (rndm *RounderMock) Index() int64 {
+func (rndm *RounderStub) Index() int64 {
 	if rndm.IndexCalled != nil {
 		return rndm.IndexCalled()
 	}
@@ -22,7 +22,7 @@ func (rndm *RounderMock) Index() int64 {
 	return rndm.RoundIndex
 }
 
-func (rndm *RounderMock) TimeDuration() time.Duration {
+func (rndm *RounderStub) TimeDuration() time.Duration {
 	if rndm.TimeDurationCalled != nil {
 		return rndm.TimeDurationCalled()
 	}
@@ -30,7 +30,7 @@ func (rndm *RounderMock) TimeDuration() time.Duration {
 	return time.Duration(4000 * time.Millisecond)
 }
 
-func (rndm *RounderMock) TimeStamp() time.Time {
+func (rndm *RounderStub) TimeStamp() time.Time {
 	if rndm.TimeStampCalled != nil {
 		return rndm.TimeStampCalled()
 	}
@@ -38,7 +38,7 @@ func (rndm *RounderMock) TimeStamp() time.Time {
 	return time.Unix(0, 0)
 }
 
-func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
+func (rndm *RounderStub) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	if rndm.UpdateRoundCalled != nil {
 		rndm.UpdateRoundCalled(genesisRoundTimeStamp, timeStamp)
 		return
@@ -47,7 +47,7 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 	rndm.RoundIndex++
 }
 
-func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+func (rndm *RounderStub) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
 	if rndm.RemainingTimeCalled != nil {
 		return rndm.RemainingTimeCalled(startTime, maxTime)
 	}
@@ -56,7 +56,7 @@ func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duratio
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rndm *RounderMock) IsInterfaceNil() bool {
+func (rndm *RounderStub) IsInterfaceNil() bool {
 	if rndm == nil {
 		return true
 	}
