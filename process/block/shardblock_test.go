@@ -487,14 +487,13 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
-				return 0, nil
+			GasConsumedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)
 	container, _ := factory.Create()
 
-	totalGasConsumed := uint64(0)
 	tc, err := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
@@ -504,10 +503,6 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{
 			InitGasConsumedCalled: func() {
-				totalGasConsumed = 0
-			},
-			GetGasConsumedCalled: func() uint64 {
-				return totalGasConsumed
 			},
 		},
 	)
@@ -705,8 +700,8 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
-				return 0, nil
+			GasConsumedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)
@@ -724,7 +719,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			InitGasConsumedCalled: func() {
 				totalGasConsumed = 0
 			},
-			GetGasConsumedCalled: func() uint64 {
+			GasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 		},
@@ -2981,17 +2976,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			AddGasConsumedCalled: func(gasConsumed uint64) {
 				totalGasConsumed += gasConsumed
 			},
-			GetGasConsumedCalled: func() uint64 {
+			GasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
-			ComputeGasConsumedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
-			},
-			ComputeGasConsumedInShardCalled: func(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error) {
-				return 0, nil
-			},
-			IsMaxGasLimitReachedCalled: func(gasConsumedByTxInSndSh uint64, gasConsumedByTxInRcvSh uint64, gasConsumedByTxInSlfSh uint64, currentGasConsumedByMiniBlockInSndSh uint64, currentGasConsumedByMiniBlockInRcvSh uint64, currentGasConsumedByBlockInSlfSh uint64) bool {
-				return false
 			},
 		},
 	)

@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -47,25 +48,26 @@ func NewTransactionCoordinator(
 	interProcessors process.IntermediateProcessorContainer,
 	gasHandler process.GasHandler,
 ) (*transactionCoordinator, error) {
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
+	if check.IfNil(miniBlockPool) {
 		return nil, process.ErrNilMiniBlockPool
 	}
-	if requestHandler == nil || requestHandler.IsInterfaceNil() {
+	if check.IfNil(requestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
-	if interProcessors == nil || interProcessors.IsInterfaceNil() {
+	if check.IfNil(interProcessors) {
 		return nil, process.ErrNilIntermediateProcessorContainer
 	}
-	if preProcessors == nil || preProcessors.IsInterfaceNil() {
+	if check.IfNil(preProcessors) {
 		return nil, process.ErrNilPreProcessorsContainer
 	}
-	if gasHandler == nil || gasHandler.IsInterfaceNil() {
+	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
 
@@ -693,7 +695,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
-	currentGasConsumedByBlock := tc.gasHandler.GetGasConsumed()
+	currentGasConsumedByBlock := tc.gasHandler.GasConsumed()
 
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {

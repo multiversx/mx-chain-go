@@ -676,7 +676,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{
-			GetGasConsumedCalled: func() uint64 {
+			GasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			SetGasConsumedCalled: func(gasConsumed uint64) {
@@ -723,7 +723,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 			InitGasConsumedCalled: func() {
 				totalGasConsumed = 0
 			},
-			GetGasConsumedCalled: func() uint64 {
+			GasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 		},

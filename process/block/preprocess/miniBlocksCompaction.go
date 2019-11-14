@@ -77,9 +77,7 @@ func (mbc *miniBlocksCompaction) Compact(
 	mbc.mapMiniBlockGasConsumedInReceiverShard = make(map[int]uint64)
 
 	for index, miniBlock := range miniBlocks {
-		mbc.mapMiniBlockGasConsumedInSenderShard[index],
-			mbc.mapMiniBlockGasConsumedInReceiverShard[index],
-			err = mbc.gasHandler.ComputeGasConsumedByMiniBlock(
+		mbc.mapMiniBlockGasConsumedInSenderShard[index], mbc.mapMiniBlockGasConsumedInReceiverShard[index], err = mbc.gasHandler.ComputeGasConsumedByMiniBlock(
 			miniBlock,
 			mapHashToTx)
 

@@ -40,33 +40,9 @@ func (gc *gasComputation) SetGasConsumed(gasConsumed uint64) {
 	gc.gasConsumed = gasConsumed
 }
 
-func (gc *gasComputation) GetGasConsumed() uint64 {
+func (gc *gasComputation) GasConsumed() uint64 {
 	return gc.gasConsumed
 }
-
-//func (gc *gasComputation) computeGasConsumedByMiniBlockInShard(
-//	shardId uint32,
-//	miniBlock *block.MiniBlock,
-//	mapHashTx map[string]data.TransactionHandler,
-//) (uint64, error) {
-//
-//	gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, err := gc.ComputeGasConsumedByMiniBlock(
-//		miniBlock,
-//		mapHashTx)
-//
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	gasConsumedByMiniBlock, err := gc.ComputeGasConsumedInShard(
-//		shardId,
-//		miniBlock.SenderShardID,
-//		miniBlock.ReceiverShardID,
-//		gasConsumedByMiniBlockInSenderShard,
-//		gasConsumedByMiniBlockInReceiverShard)
-//
-//	return gasConsumedByMiniBlock, err
-//}
 
 func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
 	miniBlock *block.MiniBlock,
@@ -97,31 +73,6 @@ func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
 	return gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, nil
 }
 
-//func (gc *gasComputation) computeGasConsumedByTxInShard(
-//	shardId uint32,
-//	txSenderShardId uint32,
-//	txReceiverShardId uint32,
-//	txHandler data.TransactionHandler,
-//) (uint64, error) {
-//
-//	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := gc.ComputeGasConsumedByTx(
-//		txSenderShardId,
-//		txReceiverShardId,
-//		txHandler)
-//	if err != nil {
-//		return 0, err
-//	}
-//
-//	gasConsumedByTx, err := gc.ComputeGasConsumedInShard(
-//		shardId,
-//		txSenderShardId,
-//		txReceiverShardId,
-//		gasConsumedByTxInSenderShard,
-//		gasConsumedByTxInReceiverShard)
-//
-//	return gasConsumedByTx, nil
-//}
-
 func (gc *gasComputation) ComputeGasConsumedByTx(
 	txSenderShardId uint32,
 	txReceiverShardId uint32,
@@ -147,49 +98,6 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 
 	gasConsumedByTx := gc.economicsFee.ComputeGasLimit(tx)
 	return gasConsumedByTx, gasConsumedByTx, nil
-}
-
-func (gc *gasComputation) ComputeGasConsumedInShard(
-	shardId uint32,
-	senderShardId uint32,
-	receiverShardId uint32,
-	gasConsumedInSenderShard uint64,
-	gasConsumedInReceiverShard uint64,
-) (uint64, error) {
-
-	if shardId == senderShardId {
-		return gasConsumedInSenderShard, nil
-	}
-	if shardId == receiverShardId {
-		return gasConsumedInReceiverShard, nil
-	}
-
-	return 0, process.ErrInvalidShardId
-}
-
-func (gc *gasComputation) IsMaxGasLimitReached(
-	gasConsumedByTxInSenderShard uint64,
-	gasConsumedByTxInReceiverShard uint64,
-	gasConsumedByTxInSelfShard uint64,
-	currentGasConsumedByMiniBlockInSenderShard uint64,
-	currentGasConsumedByMiniBlockInReceiverShard uint64,
-	currentGasConsumedByBlockInSelfShard uint64,
-) bool {
-
-	gasConsumedByMiniBlockInSenderShard := currentGasConsumedByMiniBlockInSenderShard + gasConsumedByTxInSenderShard
-	gasConsumedByMiniBlockInReceiverShard := currentGasConsumedByMiniBlockInReceiverShard + gasConsumedByTxInReceiverShard
-	gasConsumedByBlockInSelfShard := currentGasConsumedByBlockInSelfShard + gasConsumedByTxInSelfShard
-
-	maxGasLimitPerBlock := gc.economicsFee.MaxGasLimitPerBlock()
-	isGasLimitPerMiniBlockInSenderShardReached := gasConsumedByMiniBlockInSenderShard > maxGasLimitPerBlock
-	isGasLimitPerMiniBlockInReceiverShardReached := gasConsumedByMiniBlockInReceiverShard > maxGasLimitPerBlock
-	isGasLimitPerBlockInSelfShardReached := gasConsumedByBlockInSelfShard > maxGasLimitPerBlock
-
-	isMaxGasLimitReached := isGasLimitPerMiniBlockInSenderShardReached ||
-		isGasLimitPerMiniBlockInReceiverShardReached ||
-		isGasLimitPerBlockInSelfShardReached
-
-	return isMaxGasLimitReached
 }
 
 func (gc *gasComputation) IsInterfaceNil() bool {

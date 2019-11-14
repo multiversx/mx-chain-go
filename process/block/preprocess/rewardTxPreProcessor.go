@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -43,34 +44,34 @@ func NewRewardTxPreprocessor(
 	gasHandler process.GasHandler,
 ) (*rewardTxPreprocessor, error) {
 
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if rewardTxDataPool == nil || rewardTxDataPool.IsInterfaceNil() {
+	if check.IfNil(rewardTxDataPool) {
 		return nil, process.ErrNilRewardTxDataPool
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
-	if rewardProcessor == nil || rewardProcessor.IsInterfaceNil() {
+	if check.IfNil(rewardProcessor) {
 		return nil, process.ErrNilRewardsTxProcessor
 	}
-	if rewardProducer == nil || rewardProcessor.IsInterfaceNil() {
+	if check.IfNil(rewardProducer) {
 		return nil, process.ErrNilInternalTransactionProducer
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestRewardTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
-	if gasHandler == nil || gasHandler.IsInterfaceNil() {
+	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
 
@@ -492,7 +493,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	}
 
 	snapshot := rtp.accounts.JournalLen()
-	currentGasConsumedByBlock := rtp.gasHandler.GetGasConsumed()
+	currentGasConsumedByBlock := rtp.gasHandler.GasConsumed()
 
 	for _, mb := range rewardMiniBlocksSlice {
 		err := rtp.ProcessMiniBlock(mb, haveTime, round)

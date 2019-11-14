@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -43,31 +44,31 @@ func NewSmartContractResultPreprocessor(
 	gasHandler process.GasHandler,
 ) (*smartContractResults, error) {
 
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if scrDataPool == nil || scrDataPool.IsInterfaceNil() {
+	if check.IfNil(scrDataPool) {
 		return nil, process.ErrNilUTxDataPool
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilUTxStorage
 	}
-	if scrProcessor == nil || scrProcessor.IsInterfaceNil() {
+	if check.IfNil(scrProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestSmartContractResult == nil {
 		return nil, process.ErrNilRequestHandler
 	}
-	if gasHandler == nil || gasHandler.IsInterfaceNil() {
+	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
 

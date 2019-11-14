@@ -3,40 +3,30 @@ package preprocess_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGasComputation_ComputeGasConsumedInShardShouldWork(t *testing.T) {
+func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
 
-	gc, _ := preprocess.NewGasComputation(&mock.FeeHandlerStub{})
+	gc, err := preprocess.NewGasComputation(
+		nil,
+	)
 
-	gasConsumedInShard, err := gc.ComputeGasConsumedInShard(
-		2,
-		0,
-		1,
-		100,
-		200)
+	assert.Nil(t, gc)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
 
-	assert.Equal(t, err, process.ErrInvalidShardId)
+func TestNewGasConsumption_ShouldWork(t *testing.T) {
+	t.Parallel()
 
-	gasConsumedInShard, _ = gc.ComputeGasConsumedInShard(
-		0,
-		0,
-		1,
-		100,
-		200)
+	gc, err := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{},
+	)
 
-	assert.Equal(t, gasConsumedInShard, uint64(100))
-
-	gasConsumedInShard, _ = gc.ComputeGasConsumedInShard(
-		0,
-		1,
-		0,
-		100,
-		200)
-
-	assert.Equal(t, gasConsumedInShard, uint64(200))
+	assert.NotNil(t, gc)
+	assert.Nil(t, err)
 }

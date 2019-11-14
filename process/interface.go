@@ -488,10 +488,8 @@ type GasHandler interface {
 	InitGasConsumed()
 	AddGasConsumed(gasConsumed uint64)
 	SetGasConsumed(gasConsumed uint64)
-	GetGasConsumed() uint64
+	GasConsumed() uint64
 	ComputeGasConsumedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
-	ComputeGasConsumedInShard(shId uint32, sndShId uint32, rcvShId uint32, gasConsumedInSndSh uint64, gasConsumedInRcvSh uint64) (uint64, error)
-	ComputeGasConsumedByTx(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
-	IsMaxGasLimitReached(gasConsumedByTxInSndSh uint64, gasConsumedByTxInRcvSh uint64, gasConsumedByTxInSlfSh uint64, currentGasConsumedByMiniBlockInSndSh uint64, currentGasConsumedByMiniBlockInRcvSh uint64, currentGasConsumedByBlockInSlfSh uint64) bool
+	ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool
 }
