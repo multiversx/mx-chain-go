@@ -143,7 +143,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
 }
 
-func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing.T) {
+func TestPendingMiniBlockHeaders_PendingMiniBlockHeaders(t *testing.T) {
 	t.Parallel()
 
 	hash1 := []byte("hash1")
@@ -152,8 +152,6 @@ func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing
 	hash4 := []byte("hash4")
 	hash5 := []byte("hash5")
 
-	sortedTxCount := []uint32{1, 2, 3, 4, 5}
-	numMiniBlocks := 5
 	arguments := createMockArguments()
 	arguments.Storage = &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
@@ -163,11 +161,11 @@ func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-				{Hash: hash1, SenderShardID: 1, TxCount: sortedTxCount[2]},
-				{Hash: hash2, SenderShardID: 1, TxCount: sortedTxCount[4]},
-				{Hash: hash3, SenderShardID: 1, TxCount: sortedTxCount[1]},
-				{Hash: hash4, SenderShardID: 1, TxCount: sortedTxCount[0]},
-				{Hash: hash5, SenderShardID: 1, TxCount: sortedTxCount[3]},
+				{Hash: hash1, SenderShardID: 1, TxCount: 5},
+				{Hash: hash2, SenderShardID: 1, TxCount: 5},
+				{Hash: hash3, SenderShardID: 1, TxCount: 5},
+				{Hash: hash4, SenderShardID: 1, TxCount: 5},
+				{Hash: hash5, SenderShardID: 1, TxCount: 5},
 			}},
 		},
 	}
@@ -182,9 +180,7 @@ func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing
 
 	//Check miniblocks headers are returned
 	shdMbHdrs, _ := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
-	for i := 0; i < numMiniBlocks; i++ {
-		assert.Equal(t, shdMbHdrs[i].TxCount, sortedTxCount[i])
-	}
+	assert.Equal(t, len(shdMbHdrs), len(header.ShardInfo[0].ShardMiniBlockHeaders))
 }
 
 func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *testing.T) {
