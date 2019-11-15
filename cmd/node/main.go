@@ -52,13 +52,12 @@ import (
 )
 
 const (
-	defaultLogPath         = "logs"
-	defaultStatsPath       = "stats"
-	defaultDBPath          = "db"
-	defaultEpochString     = "Epoch"
-	defaultShardString     = "Shard"
-	metachainShardName     = "metachain"
-	defaultRestApiInerface = "localhost:8080"
+	defaultLogPath     = "logs"
+	defaultStatsPath   = "stats"
+	defaultDBPath      = "db"
+	defaultEpochString = "Epoch"
+	defaultShardString = "Shard"
+	metachainShardName = "metachain"
 )
 
 var (
@@ -192,9 +191,9 @@ VERSION:
 	// restApiInterface defines a flag for the interface on which the rest API will try to bind with
 	restApiInterface = cli.StringFlag{
 		Name: "rest-api-interface",
-		Usage: "The interface on which the rest API will try to bind with. Default is 'localhost:8080'. To use it" +
-			"on all available interfaces, for example, might try setting this flag to ':8080'",
-		Value: defaultRestApiInerface,
+		Usage: "The interface address and port to which the REST API will attempt to bind. " +
+			"To bind to all available interfaces, set this flag to :8080",
+		Value: facade.DefaultRestInterface,
 	}
 
 	// restApiDebug defines a flag for starting the rest API engine in debug mode

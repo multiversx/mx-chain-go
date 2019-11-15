@@ -50,12 +50,14 @@ func (los *logOutputSubject) convertLogLine(logLine *LogLine) LogLineHandler {
 	line.Args = make([]string, len(logLine.Args))
 	line.Timestamp = logLine.Timestamp.Unix()
 
+	mutDisplayByteSlice.RLock()
+	displayHandler := displayByteSlice
+	mutDisplayByteSlice.RUnlock()
+
 	for i, obj := range logLine.Args {
 		switch obj.(type) {
 		case []byte:
-			mutDisplayByteSlice.RLock()
-			line.Args[i] = displayByteSlice(obj.([]byte))
-			mutDisplayByteSlice.RUnlock()
+			line.Args[i] = displayHandler(obj.([]byte))
 		default:
 			line.Args[i] = fmt.Sprintf("%v", obj)
 		}
