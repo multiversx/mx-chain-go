@@ -13,7 +13,7 @@ import (
 
 func updateTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark, txCount uint32) {
 	shardData := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
@@ -213,7 +213,7 @@ func TestTPSBenchmark_GettersAndSetters(t *testing.T) {
 	txCount := uint32(10)
 
 	shardData := block.ShardData{
-		ShardId:               shardId,
+		ShardID:               shardId,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
@@ -247,7 +247,7 @@ func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
 	txCount := uint32(10)
 
 	shardData := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
@@ -261,7 +261,7 @@ func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
 	tpsBenchmark.Update(metaBlock)
 
 	shardData2 := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
@@ -287,13 +287,13 @@ func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
 	txCount := uint32(10)
 
 	shardData := block.ShardData{
-		ShardId:               0,
+		ShardID:               0,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
 	}
 	shard2Data := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               0,
@@ -351,7 +351,7 @@ func TestTpsBenchmark_ZeroTxMetaBlockAndShardHeader(t *testing.T) {
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 4)
 
 	shardData := block.ShardData{
-		ShardId:               0,
+		ShardID:               0,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               0,

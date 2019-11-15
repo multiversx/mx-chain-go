@@ -9,12 +9,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"math/big"
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
 	InitialNodes     []*sharding.InitialNode
+	Economics        *economics.EconomicsData
 	Marshalizer      marshal.Marshalizer
 	NodesCoordinator sharding.NodesCoordinator
 	ShardCoordinator sharding.Coordinator
@@ -61,6 +64,12 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
+	if arguments.Economics == nil {
+		return nil, process.ErrNilEconomicsData
+	}
+	if arguments.Economics.StakeValue() == nil {
+		return nil, process.ErrNilEconomicsData
+	}
 
 	vs := &validatorStatistics{
 		peerAdapter:      arguments.PeerAdapter,
@@ -74,7 +83,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 	vs.mediator = vs.createMediator()
 
-	err := vs.SaveInitialState(arguments.InitialNodes)
+	err := vs.saveInitialState(arguments.InitialNodes, arguments.Economics.StakeValue())
 	if err != nil {
 		return nil, err
 	}
@@ -82,10 +91,10 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	return vs, nil
 }
 
-// SaveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
-func (p *validatorStatistics) SaveInitialState(in []*sharding.InitialNode) error {
+// saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
+func (p *validatorStatistics) saveInitialState(in []*sharding.InitialNode, stakeValue *big.Int) error {
 	for _, node := range in {
-		err := p.initializeNode(node)
+		err := p.initializeNode(node, stakeValue)
 		if err != nil {
 			return err
 		}
@@ -225,12 +234,12 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 
 	for _, h := range metaHeader.ShardInfo {
 
-		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardId)
+		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID)
 		if err != nil {
 			return err
 		}
 
-		shardInfoErr = p.updateValidatorInfo(shardConsensus, h.ShardId)
+		shardInfoErr = p.updateValidatorInfo(shardConsensus, h.ShardID)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -240,7 +249,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 		}
 
 		p.mutPrevShardInfo.RLock()
-		prevShardData, prevDataOk := p.prevShardInfo[h.ShardId]
+		prevShardData, prevDataOk := p.prevShardInfo[h.ShardID]
 		p.mutPrevShardInfo.RUnlock()
 		if !prevDataOk {
 			return process.ErrMissingPrevShardData
@@ -250,7 +259,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 			h.Round,
 			prevShardData.Round,
 			prevShardData.PrevRandSeed,
-			h.ShardId,
+			h.ShardID,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -260,7 +269,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 	return nil
 }
 
-func (p *validatorStatistics) initializeNode(node *sharding.InitialNode) error {
+func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeValue *big.Int) error {
 	if !p.IsNodeValid(node) {
 		return process.ErrInvalidInitialNodesState
 	}
@@ -270,7 +279,7 @@ func (p *validatorStatistics) initializeNode(node *sharding.InitialNode) error {
 		return err
 	}
 
-	err = p.savePeerAccountData(peerAccount, node)
+	err = p.savePeerAccountData(peerAccount, node, stakeValue)
 	if err != nil {
 		return err
 	}
@@ -297,7 +306,11 @@ func (p *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*
 	return peerAccount, nil
 }
 
-func (p *validatorStatistics) savePeerAccountData(peerAccount *state.PeerAccount, data *sharding.InitialNode) error {
+func (p *validatorStatistics) savePeerAccountData(
+	peerAccount *state.PeerAccount,
+	data *sharding.InitialNode,
+	stakeValue *big.Int,
+) error {
 	err := peerAccount.SetAddressWithJournal([]byte(data.Address))
 	if err != nil {
 		return err
@@ -309,6 +322,11 @@ func (p *validatorStatistics) savePeerAccountData(peerAccount *state.PeerAccount
 	}
 
 	err = peerAccount.SetBLSPublicKeyWithJournal([]byte(data.PubKey))
+	if err != nil {
+		return err
+	}
+
+	err = peerAccount.SetStakeWithJournal(stakeValue)
 	if err != nil {
 		return err
 	}
@@ -370,11 +388,11 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	missingShardIds := make([]uint32, 0)
 
 	for _, currentShardData := range currentHeader.ShardInfo {
-		prevShardData := p.getMatchingShardData(currentShardData.ShardId, previousHeader.ShardInfo)
+		prevShardData := p.getMatchingShardData(currentShardData.ShardID, previousHeader.ShardInfo)
 		if prevShardData != nil {
-			p.prevShardInfo[currentShardData.ShardId] = *prevShardData
+			p.prevShardInfo[currentShardData.ShardID] = *prevShardData
 		} else {
-			missingShardIds = append(missingShardIds, currentShardData.ShardId)
+			missingShardIds = append(missingShardIds, currentShardData.ShardID)
 		}
 	}
 
@@ -417,8 +435,8 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 			return err
 		}
 
-		p.prevShardInfo[shardData.ShardId] = block.ShardData{
-			ShardId: previousHeader.ShardId,
+		p.prevShardInfo[shardData.ShardID] = block.ShardData{
+			ShardID: previousHeader.ShardId,
 			Nonce: previousHeader.Nonce,
 			Round: previousHeader.Round,
 			PrevRandSeed: previousHeader.PrevRandSeed,
@@ -430,7 +448,7 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 
 func (p *validatorStatistics) getMatchingShardData(shardId uint32, shardInfo []block.ShardData) *block.ShardData {
 	for _, prevShardData := range shardInfo {
-		if shardId == prevShardData.ShardId {
+		if shardId == prevShardData.ShardID {
 			return &prevShardData
 		}
 	}

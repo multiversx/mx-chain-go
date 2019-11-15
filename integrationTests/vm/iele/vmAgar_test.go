@@ -4,14 +4,17 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"io/ioutil"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -389,7 +392,10 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 
 func getIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	ieleVM, _ := vm.CreateVMAndBlockchainHook(accnts)
-	scgd, _ := smartContract.NewSCDataGetter(ieleVM)
+	vmContainer := &mock.VMContainerMock{GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return ieleVM, nil
+	}}
+	scgd, _ := smartContract.NewSCDataGetter(integrationTests.TestAddressConverter, vmContainer)
 
 	returnedVals, _ := scgd.Get(scAddressBytes, funcName, args...)
 	return big.NewInt(0).SetBytes(returnedVals)

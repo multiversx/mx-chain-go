@@ -2,6 +2,7 @@ package sync
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -12,13 +13,21 @@ type metaForkDetector struct {
 }
 
 // NewMetaForkDetector method creates a new metaForkDetector object
-func NewMetaForkDetector(rounder consensus.Rounder) (*metaForkDetector, error) {
-	if rounder == nil || rounder.IsInterfaceNil() {
+func NewMetaForkDetector(
+	rounder consensus.Rounder,
+	blackListHandler process.BlackListHandler,
+) (*metaForkDetector, error) {
+
+	if check.IfNil(rounder) {
 		return nil, process.ErrNilRounder
+	}
+	if check.IfNil(blackListHandler) {
+		return nil, process.ErrNilBlackListHandler
 	}
 
 	bfd := &baseForkDetector{
-		rounder: rounder,
+		rounder:          rounder,
+		blackListHandler: blackListHandler,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -40,6 +49,7 @@ func (mfd *metaForkDetector) AddHeader(
 	state process.BlockHeaderState,
 	finalHeaders []data.HeaderHandler,
 	finalHeadersHashes [][]byte,
+	isNotarizedShardStuck bool,
 ) error {
 
 	if header == nil || header.IsInterfaceNil() {
@@ -49,7 +59,7 @@ func (mfd *metaForkDetector) AddHeader(
 		return ErrNilHash
 	}
 
-	err := mfd.checkBlockBasicValidity(header, state)
+	err := mfd.checkBlockBasicValidity(header, headerHash, state)
 	if err != nil {
 		return err
 	}
@@ -65,6 +75,7 @@ func (mfd *metaForkDetector) AddHeader(
 		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
 		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
 		mfd.removePastOrInvalidRecords()
+		mfd.setIsNotarizedShardStuck(isNotarizedShardStuck)
 	}
 
 	mfd.append(&headerInfo{

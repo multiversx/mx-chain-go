@@ -2,24 +2,15 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type ValidatorStatisticsProcessorMock struct {
-	SaveInitialStateCalled func(in []*sharding.InitialNode) error
-	UpdatePeerStateCalled  func(header data.HeaderHandler) ([]byte, error)
-	RevertPeerStateCalled  func(header data.HeaderHandler) error
-	IsInterfaceNilCalled   func() bool
+	UpdatePeerStateCalled           func(header data.HeaderHandler) ([]byte, error)
+	RevertPeerStateCalled           func(header data.HeaderHandler) error
+	IsInterfaceNilCalled            func() bool
 	RevertPeerStateToSnapshotCalled func(snapshot int) error
 	CommitCalled func() ([]byte, error)
 	RootHashCalled func() ([]byte, error)
-}
-
-func (vsp *ValidatorStatisticsProcessorMock) SaveInitialState(in []*sharding.InitialNode) error {
-	if vsp.SaveInitialStateCalled != nil {
-		return vsp.SaveInitialStateCalled(in)
-	}
-	return nil
 }
 
 func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
