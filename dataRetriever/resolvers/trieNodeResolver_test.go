@@ -5,10 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/p2p"
-
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 

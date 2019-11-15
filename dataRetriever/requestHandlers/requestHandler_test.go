@@ -941,7 +941,7 @@ func TestResolverRequestHandler_RequestTrieNodeErrorWhenGettingCrossShardResolve
 		1,
 	)
 
-	rrh.RequestTrieNode(0, make([]byte, 0))
+	rrh.RequestTrieNodes(0, make([]byte, 0))
 }
 
 func TestResolverRequestHandler_RequestTrieNodeErrorsOnRequestShouldNotPanic(t *testing.T) {
@@ -977,7 +977,7 @@ func TestResolverRequestHandler_RequestTrieNodeErrorsOnRequestShouldNotPanic(t *
 		1,
 	)
 
-	rrh.RequestTrieNode(0, []byte("mbHash"))
+	rrh.RequestTrieNodes(0, []byte("mbHash"))
 }
 
 func TestResolverRequestHandler_RequestTrieNodeShouldCallRequestOnResolver(t *testing.T) {
@@ -1007,7 +1007,7 @@ func TestResolverRequestHandler_RequestTrieNodeShouldCallRequestOnResolver(t *te
 		1,
 	)
 
-	rrh.RequestTrieNode(0, []byte("mbHash"))
+	rrh.RequestTrieNodes(0, []byte("mbHash"))
 
 	assert.True(t, wasCalled)
 }
