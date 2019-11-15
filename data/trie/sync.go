@@ -108,6 +108,14 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return trieNode(n)
 	}
 
+	//TODO change interceptors so that the trie will start syncing only after all of the
+	// requested nodes are added to the cacher, and remove this code.
+	time.Sleep(time.Millisecond)
+	n, ok = ts.interceptedNodes.Get(hash)
+	if ok {
+		return trieNode(n)
+	}
+
 	err := ts.requestNode(hash)
 	if err != nil {
 		return nil, err

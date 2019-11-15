@@ -92,6 +92,7 @@ type Config struct {
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	MetaBlockBodyDataPool       CacheConfig
+	TrieNodesDataPool           CacheConfig
 
 	MiniBlockHeaderHashesDataPool CacheConfig
 	ShardHeadersDataPool          CacheConfig

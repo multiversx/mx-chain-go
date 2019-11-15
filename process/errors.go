@@ -497,6 +497,9 @@ var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
 
+// ErrNilDatabase signals that the database is nil
+var ErrNilDatabase = errors.New("nil database")
+
 // ErrSystemBusy signals that the system is busy
 var ErrSystemBusy = errors.New("system busy")
 

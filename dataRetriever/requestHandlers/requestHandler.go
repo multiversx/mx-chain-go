@@ -11,15 +11,16 @@ import (
 )
 
 type resolverRequestHandler struct {
-	resolversFinder      dataRetriever.ResolversFinder
-	txRequestTopic       string
-	scrRequestTopic      string
-	rewardTxRequestTopic string
-	mbRequestTopic       string
-	shardHdrRequestTopic string
-	metaHdrRequestTopic  string
-	isMetaChain          bool
-	maxTxsToRequest      int
+	resolversFinder       dataRetriever.ResolversFinder
+	txRequestTopic        string
+	scrRequestTopic       string
+	rewardTxRequestTopic  string
+	mbRequestTopic        string
+	shardHdrRequestTopic  string
+	metaHdrRequestTopic   string
+	trieNodesRequestTopic string
+	isMetaChain           bool
+	maxTxsToRequest       int
 }
 
 var log = logger.DefaultLogger()
@@ -33,6 +34,7 @@ func NewShardResolverRequestHandler(
 	mbRequestTopic string,
 	shardHdrRequestTopic string,
 	metaHdrRequestTopic string,
+	trieNodesRequestTopic string,
 	maxTxsToRequest int,
 ) (*resolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
@@ -56,20 +58,24 @@ func NewShardResolverRequestHandler(
 	if len(metaHdrRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyMetaHeaderRequestTopic
 	}
+	if len(trieNodesRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyTrieNodesRequestTopic
+	}
 	if maxTxsToRequest < 1 {
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
 	}
 
 	rrh := &resolverRequestHandler{
-		resolversFinder:      finder,
-		txRequestTopic:       txRequestTopic,
-		mbRequestTopic:       mbRequestTopic,
-		shardHdrRequestTopic: shardHdrRequestTopic,
-		metaHdrRequestTopic:  metaHdrRequestTopic,
-		scrRequestTopic:      scrRequestTopic,
-		rewardTxRequestTopic: rewardTxRequestTopic,
-		isMetaChain:          false,
-		maxTxsToRequest:      maxTxsToRequest,
+		resolversFinder:       finder,
+		txRequestTopic:        txRequestTopic,
+		mbRequestTopic:        mbRequestTopic,
+		shardHdrRequestTopic:  shardHdrRequestTopic,
+		metaHdrRequestTopic:   metaHdrRequestTopic,
+		scrRequestTopic:       scrRequestTopic,
+		rewardTxRequestTopic:  rewardTxRequestTopic,
+		trieNodesRequestTopic: trieNodesRequestTopic,
+		isMetaChain:           false,
+		maxTxsToRequest:       maxTxsToRequest,
 	}
 
 	return rrh, nil
@@ -83,6 +89,7 @@ func NewMetaResolverRequestHandler(
 	txRequestTopic string,
 	scrRequestTopic string,
 	mbRequestTopic string,
+	trieNodesRequestTopic string,
 ) (*resolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
@@ -102,15 +109,19 @@ func NewMetaResolverRequestHandler(
 	if len(mbRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockRequestTopic
 	}
+	if len(trieNodesRequestTopic) == 0 {
+		return nil, dataRetriever.ErrEmptyTrieNodesRequestTopic
+	}
 
 	rrh := &resolverRequestHandler{
-		resolversFinder:      finder,
-		shardHdrRequestTopic: shardHdrRequestTopic,
-		metaHdrRequestTopic:  metaHdrRequestTopic,
-		txRequestTopic:       txRequestTopic,
-		mbRequestTopic:       mbRequestTopic,
-		scrRequestTopic:      scrRequestTopic,
-		isMetaChain:          true,
+		resolversFinder:       finder,
+		shardHdrRequestTopic:  shardHdrRequestTopic,
+		metaHdrRequestTopic:   metaHdrRequestTopic,
+		txRequestTopic:        txRequestTopic,
+		mbRequestTopic:        mbRequestTopic,
+		scrRequestTopic:       scrRequestTopic,
+		trieNodesRequestTopic: trieNodesRequestTopic,
+		isMetaChain:           true,
 	}
 
 	return rrh, nil
@@ -178,6 +189,11 @@ func (rrh *resolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
 	}
 
 	rrh.requestByHash(shardId, hash, topic)
+}
+
+// RequestTrieNodes method asks for trie nodes from the connected peers
+func (rrh *resolverRequestHandler) RequestTrieNodes(shardId uint32, hash []byte) {
+	rrh.requestByHash(shardId, hash, rrh.trieNodesRequestTopic)
 }
 
 func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {

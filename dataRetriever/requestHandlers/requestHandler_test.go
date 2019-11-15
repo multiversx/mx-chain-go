@@ -22,6 +22,7 @@ func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -38,6 +39,7 @@ func TestNewMetaResolverRequestShardHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -54,6 +56,7 @@ func TestNewMetaResolverRequestMetaHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -70,6 +73,7 @@ func TestNewMetaResolverRequestTxHandlerEmptyTopic(t *testing.T) {
 		"",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -86,6 +90,7 @@ func TestNewMetaResolverRequestScrHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"",
 		"miniblock topic",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
@@ -102,10 +107,28 @@ func TestNewMetaResolverRequestMiniBlockHandlerEmptyTopic(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"",
+		"trieNode topic",
 	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyMiniBlockRequestTopic, err)
+}
+
+func TestNewMetaResolverRequestTrieNodeHandlerEmptyTopic(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"meta topic",
+		"tx topic",
+		"scr topic",
+		"miniblock topic",
+		"",
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrEmptyTrieNodesRequestTopic, err)
 }
 
 func TestNewMetaResolverRequestHandler(t *testing.T) {
@@ -118,6 +141,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 		"tx topic",
 		"scr topic",
 		"miniblock topic",
+		"trieNode topic",
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rrh)
@@ -128,6 +152,7 @@ func TestNewShardResolverRequestHandlerNilFinder(t *testing.T) {
 
 	rrh, err := NewShardResolverRequestHandler(
 		nil,
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -152,6 +177,7 @@ func TestNewShardResolverRequestHandlerTxTopicEmpty(t *testing.T) {
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -166,6 +192,7 @@ func TestNewShardResolverRequestHandlerScrTopicEmpty(t *testing.T) {
 		&mock.ResolversFinderStub{},
 		"topic",
 		"",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -188,6 +215,7 @@ func TestNewShardResolverRequestHandlerMBTopicEmpty(t *testing.T) {
 		"",
 		"topic",
 		"topic",
+		"topic",
 		1)
 
 	assert.Nil(t, rrh)
@@ -197,7 +225,17 @@ func TestNewShardResolverRequestHandlerMBTopicEmpty(t *testing.T) {
 func TestNewShardResolverRequestHandlerShardHdrTopicEmpty(t *testing.T) {
 	t.Parallel()
 
-	rrh, err := NewShardResolverRequestHandler(&mock.ResolversFinderStub{}, "topic", "topic", "topic", "topic", "", "topic", 1)
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"",
+		"topic",
+		"topic",
+		1,
+	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyShardHeaderRequestTopic, err)
@@ -214,6 +252,7 @@ func TestNewShardResolverRequestHandlerMetaHdrTopicEmpty(t *testing.T) {
 		"topic",
 		"topic",
 		"",
+		"topic",
 		1,
 	)
 
@@ -221,11 +260,31 @@ func TestNewShardResolverRequestHandlerMetaHdrTopicEmpty(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrEmptyMetaHeaderRequestTopic, err)
 }
 
+func TestNewShardResolverRequestHandlerTrieNodesTopicEmpty(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"",
+		1,
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrEmptyTrieNodesRequestTopic, err)
+}
+
 func TestNewShardResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
 	t.Parallel()
 
 	rrh, err := NewShardResolverRequestHandler(
 		&mock.ResolversFinderStub{},
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -244,6 +303,7 @@ func TestNewShardResolverRequestHandler(t *testing.T) {
 
 	rrh, err := NewShardResolverRequestHandler(
 		&mock.ResolversFinderStub{},
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -282,6 +342,7 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -312,6 +373,7 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -336,6 +398,7 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -386,6 +449,7 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -420,6 +484,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -460,6 +525,7 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -484,6 +550,7 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -522,6 +589,7 @@ func TestResolverRequestHandler_RequestHeaderShouldCallRequestOnResolver(t *test
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -551,6 +619,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardFinderReturnsErrorShoul
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -591,6 +660,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardFinderReturnsAWrongReso
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -626,6 +696,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardResolverFailsShouldNotP
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -650,6 +721,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardShouldRequest(t *testin
 			},
 		},
 		"txTopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -680,6 +752,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceMetaShouldRequest(t *testing
 				return hdrResolver, nil
 			},
 		},
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -717,6 +790,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -747,6 +821,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -772,6 +847,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 		},
 		"txTopic",
 		"scrtopic",
+		"topic",
 		"topic",
 		"topic",
 		"topic",
@@ -821,6 +897,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 		"topic",
 		"topic",
 		"topic",
+		"topic",
 		1,
 	)
 
@@ -833,4 +910,104 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 	}
 
 	time.Sleep(time.Second)
+}
+
+//------- RequestTrieNode
+
+func TestResolverRequestHandler_RequestTrieNodeErrorWhenGettingCrossShardResolverShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	errExpected := errors.New("expected error")
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return nil, errExpected
+			},
+		},
+		"txTopic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
+
+	rrh.RequestTrieNodes(0, make([]byte, 0))
+}
+
+func TestResolverRequestHandler_RequestTrieNodeErrorsOnRequestShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not panic")
+		}
+	}()
+
+	errExpected := errors.New("expected error")
+	mbResolver := &mock.ResolverStub{
+		RequestDataFromHashCalled: func(hash []byte) error {
+			return errExpected
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return mbResolver, nil
+			},
+		},
+		"txTopic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
+
+	rrh.RequestTrieNodes(0, []byte("mbHash"))
+}
+
+func TestResolverRequestHandler_RequestTrieNodeShouldCallRequestOnResolver(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	mbResolver := &mock.ResolverStub{
+		RequestDataFromHashCalled: func(hash []byte) error {
+			wasCalled = true
+			return nil
+		},
+	}
+
+	rrh, _ := NewShardResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+				return mbResolver, nil
+			},
+		},
+		"txTopic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		"topic",
+		1,
+	)
+
+	rrh.RequestTrieNodes(0, []byte("mbHash"))
+
+	assert.True(t, wasCalled)
 }

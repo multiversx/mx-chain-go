@@ -1143,6 +1143,13 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = getCacherFromConfig(config.TrieNodesDataPool)
+	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		log.Info("error creating trieNodes")
+		return nil, err
+	}
+
 	return dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -1152,6 +1159,7 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
+		trieNodes,
 	)
 }
 
@@ -1180,6 +1188,13 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = getCacherFromConfig(config.TrieNodesDataPool)
+	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		log.Info("error creating trieNodes")
+		return nil, err
+	}
+
 	headersNoncesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	if err != nil {
 		log.Info("error creating shard headers nonces pool")
@@ -1203,7 +1218,15 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	return dataPool.NewMetaDataPool(metaBlockBody, txBlockBody, shardHeaders, headersNonces, txPool, uTxPool)
+	return dataPool.NewMetaDataPool(
+		metaBlockBody,
+		txBlockBody,
+		shardHeaders,
+		trieNodes,
+		headersNonces,
+		txPool,
+		uTxPool,
+	)
 }
 
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
@@ -1357,6 +1380,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		state.AddressConverter,
 		maxTxNonceDeltaAllowed,
 		economics,
+		core.Trie.Database(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1375,6 +1399,7 @@ func newShardInterceptorAndResolverContainerFactory(
 		data.Datapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		core.Trie,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1409,6 +1434,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		crypto.TxSignKeyGen,
 		maxTxNonceDeltaAllowed,
 		economics,
+		core.Trie.Database(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1427,6 +1453,7 @@ func newMetaInterceptorAndResolverContainerFactory(
 		data.MetaDatapool,
 		core.Uint64ByteSliceConverter,
 		dataPacker,
+		core.Trie,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1740,6 +1767,7 @@ func newShardBlockProcessor(
 		factory.MiniBlocksTopic,
 		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
+		factory.TrieNodesTopic,
 		MaxTxsToRequest,
 	)
 	if err != nil {
@@ -1884,6 +1912,7 @@ func newMetaBlockProcessor(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.TrieNodesTopic,
 	)
 	if err != nil {
 		return nil, err

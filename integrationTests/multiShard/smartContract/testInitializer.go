@@ -245,6 +245,9 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache}
 	metaBlocks, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
+	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		uTxPool,
@@ -254,12 +257,13 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlocks,
+		trieNodes,
 	)
 
 	return dPool
 }
 
-func createAccountsDB() *state.AccountsDB {
+func createAccountsDB() (*state.AccountsDB, data.Trie) {
 	hasher := sha256.Sha256{}
 	store := createMemUnit()
 	evictionWaitListSize := 100
@@ -270,7 +274,7 @@ func createAccountsDB() *state.AccountsDB {
 			return state.NewAccount(address, tracker)
 		},
 	})
-	return adb
+	return adb, tr
 }
 
 func createMockTxFeeHandler() process.FeeHandler {
@@ -299,6 +303,7 @@ func createNetNode(
 	initialAddr string,
 	params *cryptoParams,
 	keysIndex int,
+	trie data.Trie,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -335,6 +340,7 @@ func createNetNode(
 		testAddressConverter,
 		maxTxNonceDeltaAllowed,
 		createMockTxFeeHandler(),
+		trie.Database(),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -349,6 +355,7 @@ func createNetNode(
 		dPool,
 		uint64Converter,
 		dataPacker,
+		trie,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
@@ -360,6 +367,7 @@ func createNetNode(
 		factory.MiniBlocksTopic,
 		factory.HeadersTopic,
 		factory.MetachainBlocksTopic,
+		factory.TrieNodesTopic,
 		100,
 	)
 
@@ -601,7 +609,7 @@ func createNodes(
 			}
 			nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
-			accntAdapter := createAccountsDB()
+			accntAdapter, tr := createAccountsDB()
 			n, mes, resFinder, blkProcessor, txProcessor, transactionCoordinator, scrForwarder, blkc, store := createNetNode(
 				testNode.dPool,
 				accntAdapter,
@@ -611,6 +619,7 @@ func createNodes(
 				serviceID,
 				cp,
 				j,
+				tr,
 			)
 			_ = n.CreateShardedStores()
 
@@ -678,14 +687,16 @@ func createNodes(
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
+		accountsDb, tr := createAccountsDB()
 		metaNodes[i] = createMetaNetNode(
 			createTestMetaDataPool(),
-			createAccountsDB(),
+			accountsDb,
 			shardCoordinatorMeta,
 			nodesCoordinator,
 			serviceID,
 			cp,
 			i,
+			tr,
 		)
 	}
 
@@ -736,10 +747,14 @@ func createTestMetaDataPool() dataRetriever.MetaPoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache})
 
+	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
 	dPool, _ := dataPool.NewMetaDataPool(
 		metaBlocks,
 		miniblocks,
 		shardHeaders,
+		trieNodes,
 		headersNonces,
 		txPool,
 		uTxPool,
@@ -756,6 +771,7 @@ func createMetaNetNode(
 	initialAddr string,
 	params *cryptoParams,
 	keysIndex int,
+	trie data.Trie,
 ) *testNode {
 
 	tn := testNode{}
@@ -799,6 +815,7 @@ func createMetaNetNode(
 		params.keyGen,
 		maxTxNonceDeltaAllowed,
 		feeHandler,
+		trie.Database(),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -815,6 +832,7 @@ func createMetaNetNode(
 		dPool,
 		uint64Converter,
 		dataPacker,
+		trie,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
@@ -826,6 +844,7 @@ func createMetaNetNode(
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.MiniBlocksTopic,
+		factory.TrieNodesTopic,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)

@@ -18,6 +18,7 @@ func TestNewMetaDataPool_NilMetaBlockShouldErr(t *testing.T) {
 		nil,
 		&mock.CacherStub{},
 		&mock.CacherStub{},
+		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
@@ -33,6 +34,7 @@ func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewMetaDataPool(
 		&mock.CacherStub{},
 		nil,
+		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
@@ -50,6 +52,7 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		nil,
+		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
@@ -59,10 +62,28 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 	assert.Nil(t, tdp)
 }
 
+func TestNewMetaDataPool_NilTrieNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp, err := dataPool.NewMetaDataPool(
+		&mock.CacherStub{},
+		&mock.CacherStub{},
+		&mock.CacherStub{},
+		nil,
+		&mock.Uint64SyncMapCacherStub{},
+		&mock.ShardedDataStub{},
+		&mock.ShardedDataStub{},
+	)
+
+	assert.Equal(t, dataRetriever.ErrNilTrieNodesPool, err)
+	assert.Nil(t, tdp)
+}
+
 func TestNewMetaDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewMetaDataPool(
+		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -82,6 +103,7 @@ func TestNewMetaDataPool_NilTxPoolShouldErr(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
+		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
 		nil,
 		&mock.ShardedDataStub{},
@@ -95,6 +117,7 @@ func TestNewMetaDataPool_NilUnsingedPoolNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewMetaDataPool(
+		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
@@ -116,11 +139,13 @@ func TestNewMetaDataPool_ConfigOk(t *testing.T) {
 	hdrsNonces := &mock.Uint64SyncMapCacherStub{}
 	transactions := &mock.ShardedDataStub{}
 	unsigned := &mock.ShardedDataStub{}
+	trieNodes := &mock.CacherStub{}
 
 	tdp, err := dataPool.NewMetaDataPool(
 		metaBlocks,
 		miniBlocks,
 		shardHeaders,
+		trieNodes,
 		hdrsNonces,
 		transactions,
 		unsigned,

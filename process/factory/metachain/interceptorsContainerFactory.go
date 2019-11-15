@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -41,6 +42,7 @@ type interceptorsContainerFactory struct {
 	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
+	db                     data.DBWriteCacher
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -59,6 +61,7 @@ func NewInterceptorsContainerFactory(
 	keyGen crypto.KeyGenerator,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
+	db data.DBWriteCacher,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -100,6 +103,9 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(db) {
+		return nil, process.ErrNilDatabase
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
@@ -111,6 +117,7 @@ func NewInterceptorsContainerFactory(
 		Signer:           singleSigner,
 		AddrConv:         addrConverter,
 		FeeHandler:       txFeeHandler,
+		Db:               db,
 	}
 
 	icf := &interceptorsContainerFactory{
@@ -171,6 +178,16 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+	err = container.AddMultiple(keys, interceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, interceptorSlice, err = icf.generateTrieNodesInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -417,6 +434,43 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		txFactory,
 		txBlockBodyProcessor,
+		icf.globalThrottler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return icf.createTopicAndAssignHandler(topic, interceptor, true)
+}
+
+func (icf *interceptorsContainerFactory) generateTrieNodesInterceptors() ([]string, []process.Interceptor, error) {
+	shardC := icf.shardCoordinator
+
+	identifierTrieNodes := factory.TrieNodesTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
+
+	interceptor, err := icf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierTrieNodes}, []process.Interceptor{interceptor}, nil
+}
+
+func (icf *interceptorsContainerFactory) createOneTrieNodesInterceptor(topic string) (process.Interceptor, error) {
+	trieNodesProcessor, err := processor.NewTrieNodesInterceptorProcessor(icf.dataPool.TrieNodes())
+	if err != nil {
+		return nil, err
+	}
+
+	trieNodesFactory, err := interceptorFactory.NewInterceptedTrieNodeDataFactory(icf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewMultiDataInterceptor(
+		icf.marshalizer,
+		trieNodesFactory,
+		trieNodesProcessor,
 		icf.globalThrottler,
 	)
 	if err != nil {

@@ -210,6 +210,10 @@
     Type = "FIFOSharded"
     Shards = 16
 
+[TrieNodesDataPool]
+    Size = 50000
+    Type = "LRU"
+
 [UnsignedTransactionDataPool]
     Size = 100000
     Type = "LRU"

@@ -14,6 +14,7 @@ type shardedDataPool struct {
 	headersNonces        dataRetriever.Uint64SyncMapCacher
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
+	trieNodes            storage.Cacher
 }
 
 // NewShardedDataPool creates a data pools holder object
@@ -26,6 +27,7 @@ func NewShardedDataPool(
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
 	metaBlocks storage.Cacher,
+	trieNodes storage.Cacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil || transactions.IsInterfaceNil() {
@@ -52,6 +54,9 @@ func NewShardedDataPool(
 	if metaBlocks == nil || metaBlocks.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMetaBlockPool
 	}
+	if trieNodes == nil || trieNodes.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilTrieNodesPool
+	}
 
 	return &shardedDataPool{
 		transactions:         transactions,
@@ -62,6 +67,7 @@ func NewShardedDataPool(
 		miniBlocks:           miniBlocks,
 		peerChangesBlocks:    peerChangesBlocks,
 		metaBlocks:           metaBlocks,
+		trieNodes:            trieNodes,
 	}, nil
 }
 
@@ -104,6 +110,11 @@ func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
 // MetaBlocks returns the holder for meta blocks
 func (tdp *shardedDataPool) MetaBlocks() storage.Cacher {
 	return tdp.metaBlocks
+}
+
+// TrieNodes returns the holder for trie nodes
+func (tdp *shardedDataPool) TrieNodes() storage.Cacher {
+	return tdp.trieNodes
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -9,6 +9,7 @@ type MetaPoolsHolderStub struct {
 	MetaBlocksCalled           func() storage.Cacher
 	MiniBlocksCalled           func() storage.Cacher
 	ShardHeadersCalled         func() storage.Cacher
+	TrieNodesCalled            func() storage.Cacher
 	HeadersNoncesCalled        func() dataRetriever.Uint64SyncMapCacher
 	TransactionsCalled         func() dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
@@ -36,6 +37,10 @@ func (mphs *MetaPoolsHolderStub) ShardHeaders() storage.Cacher {
 
 func (mphs *MetaPoolsHolderStub) HeadersNonces() dataRetriever.Uint64SyncMapCacher {
 	return mphs.HeadersNoncesCalled()
+}
+
+func (mphs *MetaPoolsHolderStub) TrieNodes() storage.Cacher {
+	return mphs.TrieNodesCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
