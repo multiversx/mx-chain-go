@@ -875,23 +875,33 @@ func (s ShardDataCapn_List) Set(i int, item ShardDataCapn) { C.PointerList(s).Se
 type FinalizedHeadersCapn C.Struct
 
 func NewFinalizedHeadersCapn(s *C.Segment) FinalizedHeadersCapn {
-	return FinalizedHeadersCapn(s.NewStruct(8, 2))
+	return FinalizedHeadersCapn(s.NewStruct(8, 4))
 }
 func NewRootFinalizedHeadersCapn(s *C.Segment) FinalizedHeadersCapn {
-	return FinalizedHeadersCapn(s.NewRootStruct(8, 2))
+	return FinalizedHeadersCapn(s.NewRootStruct(8, 4))
 }
 func AutoNewFinalizedHeadersCapn(s *C.Segment) FinalizedHeadersCapn {
-	return FinalizedHeadersCapn(s.NewStructAR(8, 2))
+	return FinalizedHeadersCapn(s.NewStructAR(8, 4))
 }
 func ReadRootFinalizedHeadersCapn(s *C.Segment) FinalizedHeadersCapn {
 	return FinalizedHeadersCapn(s.Root(0).ToStruct())
 }
-func (s FinalizedHeadersCapn) ShardId() uint32        { return C.Struct(s).Get32(0) }
-func (s FinalizedHeadersCapn) SetShardId(v uint32)    { C.Struct(s).Set32(0, v) }
-func (s FinalizedHeadersCapn) HeaderHash() []byte     { return C.Struct(s).GetObject(0).ToData() }
-func (s FinalizedHeadersCapn) SetHeaderHash(v []byte) { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
-func (s FinalizedHeadersCapn) RootHash() []byte       { return C.Struct(s).GetObject(1).ToData() }
-func (s FinalizedHeadersCapn) SetRootHash(v []byte)   { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
+func (s FinalizedHeadersCapn) ShardId() uint32               { return C.Struct(s).Get32(0) }
+func (s FinalizedHeadersCapn) SetShardId(v uint32)           { C.Struct(s).Set32(0, v) }
+func (s FinalizedHeadersCapn) HeaderHash() []byte            { return C.Struct(s).GetObject(0).ToData() }
+func (s FinalizedHeadersCapn) SetHeaderHash(v []byte)        { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
+func (s FinalizedHeadersCapn) RootHash() []byte              { return C.Struct(s).GetObject(1).ToData() }
+func (s FinalizedHeadersCapn) SetRootHash(v []byte)          { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
+func (s FinalizedHeadersCapn) FirstPendingMetaBlock() []byte { return C.Struct(s).GetObject(2).ToData() }
+func (s FinalizedHeadersCapn) SetFirstPendingMetaBlock(v []byte) {
+	C.Struct(s).SetObject(2, s.Segment.NewData(v))
+}
+func (s FinalizedHeadersCapn) PendingMiniBlockHeaders() ShardMiniBlockHeaderCapn_List {
+	return ShardMiniBlockHeaderCapn_List(C.Struct(s).GetObject(3))
+}
+func (s FinalizedHeadersCapn) SetPendingMiniBlockHeaders(v ShardMiniBlockHeaderCapn_List) {
+	C.Struct(s).SetObject(3, C.Object(v))
+}
 func (s FinalizedHeadersCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -950,6 +960,58 @@ func (s FinalizedHeadersCapn) WriteJSON(w io.Writer) error {
 			return err
 		}
 		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"firstPendingMetaBlock\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.FirstPendingMetaBlock()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"pendingMiniBlockHeaders\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PendingMiniBlockHeaders()
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				err = s.WriteJSON(b)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
+		}
 		if err != nil {
 			return err
 		}
@@ -1028,6 +1090,58 @@ func (s FinalizedHeadersCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("firstPendingMetaBlock = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.FirstPendingMetaBlock()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("pendingMiniBlockHeaders = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PendingMiniBlockHeaders()
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				err = s.WriteCapLit(b)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
+		}
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -1044,7 +1158,7 @@ func (s FinalizedHeadersCapn) MarshalCapLit() ([]byte, error) {
 type FinalizedHeadersCapn_List C.PointerList
 
 func NewFinalizedHeadersCapnList(s *C.Segment, sz int) FinalizedHeadersCapn_List {
-	return FinalizedHeadersCapn_List(s.NewCompositeList(8, 2, sz))
+	return FinalizedHeadersCapn_List(s.NewCompositeList(8, 4, sz))
 }
 func (s FinalizedHeadersCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s FinalizedHeadersCapn_List) At(i int) FinalizedHeadersCapn {
@@ -1064,21 +1178,15 @@ func (s FinalizedHeadersCapn_List) Set(i int, item FinalizedHeadersCapn) {
 
 type EpochStartCapn C.Struct
 
-func NewEpochStartCapn(s *C.Segment) EpochStartCapn      { return EpochStartCapn(s.NewStruct(0, 2)) }
-func NewRootEpochStartCapn(s *C.Segment) EpochStartCapn  { return EpochStartCapn(s.NewRootStruct(0, 2)) }
-func AutoNewEpochStartCapn(s *C.Segment) EpochStartCapn  { return EpochStartCapn(s.NewStructAR(0, 2)) }
+func NewEpochStartCapn(s *C.Segment) EpochStartCapn      { return EpochStartCapn(s.NewStruct(0, 1)) }
+func NewRootEpochStartCapn(s *C.Segment) EpochStartCapn  { return EpochStartCapn(s.NewRootStruct(0, 1)) }
+func AutoNewEpochStartCapn(s *C.Segment) EpochStartCapn  { return EpochStartCapn(s.NewStructAR(0, 1)) }
 func ReadRootEpochStartCapn(s *C.Segment) EpochStartCapn { return EpochStartCapn(s.Root(0).ToStruct()) }
-func (s EpochStartCapn) PendingMiniBlockHeaders() ShardMiniBlockHeaderCapn_List {
-	return ShardMiniBlockHeaderCapn_List(C.Struct(s).GetObject(0))
-}
-func (s EpochStartCapn) SetPendingMiniBlockHeaders(v ShardMiniBlockHeaderCapn_List) {
-	C.Struct(s).SetObject(0, C.Object(v))
-}
 func (s EpochStartCapn) LastFinalizedHeaders() FinalizedHeadersCapn_List {
-	return FinalizedHeadersCapn_List(C.Struct(s).GetObject(1))
+	return FinalizedHeadersCapn_List(C.Struct(s).GetObject(0))
 }
 func (s EpochStartCapn) SetLastFinalizedHeaders(v FinalizedHeadersCapn_List) {
-	C.Struct(s).SetObject(1, C.Object(v))
+	C.Struct(s).SetObject(0, C.Object(v))
 }
 func (s EpochStartCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
@@ -1086,39 +1194,6 @@ func (s EpochStartCapn) WriteJSON(w io.Writer) error {
 	var buf []byte
 	_ = buf
 	err = b.WriteByte('{')
-	if err != nil {
-		return err
-	}
-	_, err = b.WriteString("\"pendingMiniBlockHeaders\":")
-	if err != nil {
-		return err
-	}
-	{
-		s := s.PendingMiniBlockHeaders()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				err = s.WriteJSON(b)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
-		}
-		if err != nil {
-			return err
-		}
-	}
-	err = b.WriteByte(',')
 	if err != nil {
 		return err
 	}
@@ -1172,39 +1247,6 @@ func (s EpochStartCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("pendingMiniBlockHeaders = ")
-	if err != nil {
-		return err
-	}
-	{
-		s := s.PendingMiniBlockHeaders()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				err = s.WriteCapLit(b)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
-		}
-		if err != nil {
-			return err
-		}
-	}
-	_, err = b.WriteString(", ")
-	if err != nil {
-		return err
-	}
 	_, err = b.WriteString("lastFinalizedHeaders = ")
 	if err != nil {
 		return err
@@ -1250,7 +1292,7 @@ func (s EpochStartCapn) MarshalCapLit() ([]byte, error) {
 type EpochStartCapn_List C.PointerList
 
 func NewEpochStartCapnList(s *C.Segment, sz int) EpochStartCapn_List {
-	return EpochStartCapn_List(s.NewCompositeList(0, 2, sz))
+	return EpochStartCapn_List(s.NewCompositeList(0, 1, sz))
 }
 func (s EpochStartCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s EpochStartCapn_List) At(i int) EpochStartCapn {

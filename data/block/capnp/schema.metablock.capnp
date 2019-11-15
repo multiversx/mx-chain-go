@@ -38,7 +38,7 @@ struct FinalizedHeadersCapn {
 }
 
 struct EpochStartCapn {
-	lastFinalizedHeaders    @1: List(FinalizedHeadersCapn);
+	lastFinalizedHeaders    @0: List(FinalizedHeadersCapn);
 }
 
 struct MetaBlockCapn {
