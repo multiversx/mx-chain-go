@@ -3,6 +3,7 @@ package interceptedBlocks
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -17,6 +18,12 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		Marshalizer:      &mock.MarshalizerMock{},
 		NodesCoordinator: mock.NewNodesCoordinatorMock(),
 		HdrBuff:          []byte("test buffer"),
+		KeyGen: &mock.SingleSignKeyGenMock{
+			PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+				return nil, nil
+			},
+		},
+		SingleSigVerifier: &mock.SignerMock{},
 	}
 
 	return arg
@@ -130,6 +137,28 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestCheckBlockHeaderArgument_NilKeyGenShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.KeyGen = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilKeyGen, err)
+}
+
+func TestCheckBlockHeaderArgument_NilSingleSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.SingleSigVerifier = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilSingleSigner, err)
 }
 
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
