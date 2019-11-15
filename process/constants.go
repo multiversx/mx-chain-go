@@ -6,6 +6,8 @@ type BlockHeaderState int
 const (
 	// BHReceived defines ID of a received block header
 	BHReceived BlockHeaderState = iota
+	// BHReceivedTooLate defines ID of a late received block header
+	BHReceivedTooLate
 	// BHProcessed defines ID of a processed block header
 	BHProcessed
 	// BHProposed defines ID of a proposed block header
