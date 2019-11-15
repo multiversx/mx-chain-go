@@ -65,6 +65,7 @@ type baseProcessor struct {
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler           process.BlockSizeThrottler
 	endOfEpochTrigger            process.EndOfEpochTriggerHandler
+	headerValidator              process.HeaderConstructionValidator
 	blockChainHook               process.BlockChainHookHandler
 	txCoordinator                process.TransactionCoordinator
 	rounder                      consensus.Rounder
@@ -194,18 +195,6 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		bp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
-		return process.ErrEpochDoesNotMatch
-	}
-
-	if bp.endOfEpochTrigger.IsEndOfEpoch() {
-		if headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
-			return process.ErrEpochDoesNotMatch
-		}
-	}
-
 	// TODO: add signature validation as well, with randomness source and all
 	return nil
 }
@@ -229,60 +218,6 @@ func (bp *baseProcessor) getRootHash() []byte {
 	}
 
 	return rootHash
-}
-
-func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	if prevHdr == nil || prevHdr.IsInterfaceNil() {
-		return process.ErrNilBlockHeader
-	}
-	if currHdr == nil || currHdr.IsInterfaceNil() {
-		return process.ErrNilBlockHeader
-	}
-
-	// special case with genesis nonce - 0
-	if currHdr.GetNonce() == 0 {
-		if prevHdr.GetNonce() != 0 {
-			return process.ErrWrongNonceInBlock
-		}
-		// block with nonce 0 was already saved
-		if prevHdr.GetRootHash() != nil {
-			return process.ErrRootStateDoesNotMatch
-		}
-		return nil
-	}
-
-	//TODO: add verification if rand seed was correctly computed add other verification
-	//TODO: check here if the 2 header blocks were correctly signed and the consensus group was correctly elected
-	if prevHdr.GetRound() >= currHdr.GetRound() {
-		log.Debug(fmt.Sprintf("round does not match in shard %d: local block round is %d and node received block with round %d\n",
-			currHdr.GetShardID(), prevHdr.GetRound(), currHdr.GetRound()))
-		return process.ErrLowerRoundInBlock
-	}
-
-	if currHdr.GetNonce() != prevHdr.GetNonce()+1 {
-		log.Debug(fmt.Sprintf("nonce does not match in shard %d: local block nonce is %d and node received block with nonce %d\n",
-			currHdr.GetShardID(), prevHdr.GetNonce(), currHdr.GetNonce()))
-		return process.ErrWrongNonceInBlock
-	}
-
-	prevHeaderHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, prevHdr)
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		log.Debug(fmt.Sprintf("block hash does not match in shard %d: local block hash is %s and node received block with previous hash %s\n",
-			currHdr.GetShardID(), core.ToB64(prevHeaderHash), core.ToB64(currHdr.GetPrevHash())))
-		return process.ErrBlockHashDoesNotMatch
-	}
-
-	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		log.Debug(fmt.Sprintf("random seed does not match in shard %d: local block random seed is %s and node received block with previous random seed %s\n",
-			currHdr.GetShardID(), core.ToB64(prevHdr.GetRandSeed()), core.ToB64(currHdr.GetPrevRandSeed())))
-		return process.ErrRandSeedDoesNotMatch
-	}
-
-	return nil
 }
 
 func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderHandler) error {
@@ -387,7 +322,7 @@ func (bp *baseProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs [
 			return err
 		}
 
-		err = bp.isHdrConstructionValid(processedHdrs[i], tmpLastNotarizedHdrForShard)
+		err = bp.headerValidator.IsHeaderConstructionValid(processedHdrs[i], tmpLastNotarizedHdrForShard)
 		if err != nil {
 			return err
 		}
@@ -618,6 +553,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if arguments.TxCoordinator == nil || arguments.TxCoordinator.IsInterfaceNil() {
 		return process.ErrNilTransactionCoordinator
+	}
+	if check.IfNil(arguments.HeaderValidator) {
+		return process.ErrNilHeaderValidator
 	}
 
 	return nil

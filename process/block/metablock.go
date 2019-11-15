@@ -86,6 +86,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		txCoordinator:                 arguments.TxCoordinator,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 		endOfEpochTrigger:             arguments.EndOfEpochTrigger,
+		headerValidator:               arguments.HeaderValidator,
 		rounder:                       arguments.Rounder,
 	}
 
@@ -221,6 +222,11 @@ func (mp *metaProcessor) ProcessBlock(
 		go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 	}()
 
+	err = mp.checkEpochCorrectness(header, chainHandler)
+	if err != nil {
+		return err
+	}
+
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
 		return err
@@ -280,6 +286,29 @@ func (mp *metaProcessor) ProcessBlock(
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
 		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) checkEpochCorrectness(
+	headerHandler data.HeaderHandler,
+	chainHandler data.ChainHandler,
+) error {
+	currentBlockHeader := chainHandler.GetCurrentBlockHeader()
+	if currentBlockHeader == nil {
+		return nil
+	}
+
+	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		mp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
+	if isEpochIncorrect {
+		return process.ErrEpochDoesNotMatch
+	}
+
+	if mp.endOfEpochTrigger.IsEndOfEpoch() &&
+		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
+		return process.ErrEpochDoesNotMatch
 	}
 
 	return nil
@@ -475,6 +504,10 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	err := mp.pendingMiniBlocks.RevertHeader(metaBlock)
 	if err != nil {
 		return err
+	}
+
+	if metaBlock.IsStartOfEpochBlock() {
+		mp.endOfEpochTrigger.Revert()
 	}
 
 	for _, hdrHash := range hdrHashes {
@@ -876,6 +909,10 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	if header.IsStartOfEpochBlock() {
+		mp.endOfEpochTrigger.Processed()
+	}
+
 	log.Info(fmt.Sprintf("meta block with nonce %d and hash %s has been committed successfully\n",
 		header.Nonce,
 		core.ToB64(headerHash)))
@@ -1102,7 +1139,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 
 	for shardId, hdrsForShard := range usedShardHdrs {
 		for _, shardHdr := range hdrsForShard {
-			err := mp.isHdrConstructionValid(shardHdr, tmpLastNotarized[shardId])
+			err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, tmpLastNotarized[shardId])
 			if err != nil {
 				return nil, err
 			}
@@ -1164,7 +1201,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 			// found a header with the next nonce
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-				err := mp.isHdrConstructionValid(shardHdr, lastVerifiedHdr)
+				err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
 					go mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
 					log.Debug(err.Error())
@@ -1196,7 +1233,7 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 		return false, nil
 	}
 
-	err := mp.isHdrConstructionValid(currHdr, lastHdr)
+	err := mp.headerValidator.IsHeaderConstructionValid(currHdr, lastHdr)
 	if err != nil {
 		return false, nil
 	}
@@ -1213,7 +1250,7 @@ func (mp *metaProcessor) isShardHeaderValidFinal(currHdr *block.Header, lastHdr 
 		// found a header with the next nonce
 		tmpHdr := sortedShardHdrs[i]
 		if tmpHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
-			err := mp.isHdrConstructionValid(tmpHdr, lastVerifiedHdr)
+			err := mp.headerValidator.IsHeaderConstructionValid(tmpHdr, lastVerifiedHdr)
 			if err != nil {
 				continue
 			}
@@ -1289,7 +1326,10 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 
 	mp.setLastHdrForShard(shardHeader.GetShardID(), shardHeader)
 
-	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) {
+	isShardHeaderWithOldEpochAndBadRound := shardHeader.Epoch < mp.endOfEpochTrigger.Epoch() &&
+		shardHeader.Round > mp.endOfEpochTrigger.EpochStartRound()+uint64(mp.shardBlockFinality)
+
+	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) || isShardHeaderWithOldEpochAndBadRound {
 		shardHeaderPool.Remove(shardHeaderHash)
 
 		headersNoncesPool := mp.dataPool.HeadersNonces()

@@ -9,6 +9,17 @@ type EndOfEpochTriggerStub struct {
 	ReceivedHeaderCalled  func(handler data.HeaderHandler)
 	UpdateCalled          func(round int64)
 	ProcessedCalled       func()
+	EpochStartRoundCalled func() uint64
+}
+
+func (e *EndOfEpochTriggerStub) Revert() {
+}
+
+func (e *EndOfEpochTriggerStub) EpochStartRound() uint64 {
+	if e.EpochStartRoundCalled != nil {
+		return e.EpochStartRoundCalled()
+	}
+	return 0
 }
 
 func (e *EndOfEpochTriggerStub) Update(round int64) {

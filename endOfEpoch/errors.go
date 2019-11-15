@@ -46,3 +46,36 @@ var ErrNilHeaderHandler = errors.New("nil header handler")
 
 // ErrNilArgsPendingMiniblocks signals that nil argument was passed
 var ErrNilArgsPendingMiniblocks = errors.New("nil arguments for pending miniblock object")
+
+// ErrMetaHdrNotFound signals that metaheader was not found
+var ErrMetaHdrNotFound = errors.New("meta header not found")
+
+// ErrNilHasher signals that nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher")
+
+// ErrNilHeaderValidator signals that nil header validator has been provided
+var ErrNilHeaderValidator = errors.New("nil header validator")
+
+// ErrNilDataPoolsHolder signals that nil data pools holder has been provided
+var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
+
+// ErrNilStorageService signals that nil storage service has been provided
+var ErrNilStorageService = errors.New("nil storage service")
+
+// ErrNilRequestHandler signals that nil request handler has been provided
+var ErrNilRequestHandler = errors.New("nil request handler")
+
+// ErrNilMetaBlocksPool signals that nil metablock pools holder has been provided
+var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
+
+// ErrNilHeaderNoncesPool signals that nil header nonces pool has been provided
+var ErrNilHeaderNoncesPool = errors.New("nil header nonces pool")
+
+// ErrNilUint64Converter signals that nil uint64 converter has been provided
+var ErrNilUint64Converter = errors.New("nil uint64 converter")
+
+// ErrNilMetaHdrStorage signals that nil meta header storage has been provided
+var ErrNilMetaHdrStorage = errors.New("nil meta header storage")
+
+// ErrNilMetaNonceHashStorage signals that nil meta header nonce hash storage has been provided
+var ErrNilMetaNonceHashStorage = errors.New("nil meta nonce hash storage")

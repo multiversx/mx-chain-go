@@ -60,24 +60,32 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		shardCoordinator,
 		nodesCoordinator,
 	)
+
+	argsHeaderValidator := ArgsHeaderValidator{
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := NewHeaderValidator(argsHeaderValidator)
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			Accounts:              &mock.AccountsStub{},
-			ForkDetector:          &mock.ForkDetectorMock{},
-			Hasher:                &mock.HasherMock{},
-			Marshalizer:           &mock.MarshalizerMock{},
-			Store:                 &mock.ChainStorerMock{},
-			ShardCoordinator:      shardCoordinator,
-			NodesCoordinator:      nodesCoordinator,
-			SpecialAddressHandler: specialAddressHandler,
-			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:          genesisBlocks,
-			RequestHandler:        &mock.RequestHandlerMock{},
-			Core:                  &mock.ServiceContainerMock{},
-			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:         &mock.TransactionCoordinatorMock{},
+			Accounts:                     &mock.AccountsStub{},
+			ForkDetector:                 &mock.ForkDetectorMock{},
+			Hasher:                       &mock.HasherMock{},
+			Marshalizer:                  &mock.MarshalizerMock{},
+			Store:                        &mock.ChainStorerMock{},
+			ShardCoordinator:             shardCoordinator,
+			NodesCoordinator:             nodesCoordinator,
+			SpecialAddressHandler:        specialAddressHandler,
+			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:                 genesisBlocks,
+			RequestHandler:               &mock.RequestHandlerMock{},
+			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        tdp,
@@ -166,6 +174,10 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 	bp.hasher = hasher
 }
 
+func (bp *baseProcessor) SetHeaderValidator(validator process.HeaderConstructionValidator) {
+	bp.headerValidator = validator
+}
+
 func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	mp.shardBlockFinality = val
@@ -185,7 +197,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 }
 
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	return bp.isHdrConstructionValid(currHdr, prevHdr)
+	return bp.headerValidator.IsHeaderConstructionValid(currHdr, prevHdr)
 }
 
 func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {

@@ -14,7 +14,9 @@ type TriggerHandler interface {
 	Epoch() uint32
 	ReceivedHeader(header data.HeaderHandler)
 	Update(round int64)
+	EpochStartRound() uint64
 	Processed()
+	Revert()
 	IsInterfaceNil() bool
 }
 
@@ -32,5 +34,18 @@ type Rounder interface {
 	Index() int64
 	// TimeStamp returns the time stamp of the round
 	TimeStamp() time.Time
+	IsInterfaceNil() bool
+}
+
+// HeaderValidator defines the actions needed to validate a header
+type HeaderValidator interface {
+	IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// RequestHandler defines the methods through which request to data can be made
+type RequestHandler interface {
+	RequestHeaderByNonce(shardId uint32, nonce uint64)
+	RequestHeader(shardId uint32, hash []byte)
 	IsInterfaceNil() bool
 }

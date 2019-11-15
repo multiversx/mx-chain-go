@@ -12,8 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -231,6 +232,33 @@ type ValidatorStatisticsProcessor interface {
 	Commit() ([]byte, error)
 }
 
+// Checker provides functionality to checks the integrity and validity of a data structure
+type Checker interface {
+	// IntegrityAndValidity does both validity and integrity checks on the data structure
+	IntegrityAndValidity(coordinator sharding.Coordinator) error
+	// Integrity checks only the integrity of the data
+	Integrity(coordinator sharding.Coordinator) error
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
+// HeaderConstructionValidator provides functionality to verify header construction
+type HeaderConstructionValidator interface {
+	IsHeaderConstructionValid(currHdr, prevHdr data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// SigVerifier provides functionality to verify a signature of a signed data structure that holds also the verifying parameters
+type SigVerifier interface {
+	VerifySig() error
+}
+
+// SignedDataValidator provides functionality to check the validity and signature of a data structure
+type SignedDataValidator interface {
+	SigVerifier
+	Checker
+}
+
 // HashAccesser interface provides functionality over hashable objects
 type HashAccesser interface {
 	SetHash([]byte)
@@ -336,8 +364,12 @@ type VirtualMachinesContainerFactory interface {
 
 // EndOfEpochTriggerHandler defines that actions which are needed by processor for end of epoch
 type EndOfEpochTriggerHandler interface {
+	ReceivedHeader(header data.HeaderHandler)
 	IsEndOfEpoch() bool
 	Epoch() uint32
+	EpochStartRound() uint64
+	Processed()
+	Revert()
 	IsInterfaceNil() bool
 }
 
@@ -435,7 +467,7 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorSettingsHandler
+// ValidatorSettingsHandler defines the settings getter for validators
 type ValidatorSettingsHandler interface {
 	UnBoundPeriod() uint64
 	StakeValue() *big.Int

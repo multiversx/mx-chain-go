@@ -459,6 +459,12 @@ func createNetNode(
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      testHasher,
+		Marshalizer: testMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
@@ -491,6 +497,7 @@ func createNetNode(
 			TxCoordinator:                tc,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        dPool,
@@ -842,6 +849,12 @@ func createMetaNetNode(
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      testHasher,
+		Marshalizer: testMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
@@ -866,20 +879,21 @@ func createMetaNetNode(
 				shardCoordinator,
 				nodesCoordinator,
 			),
-			Uint64Converter: uint64Converter,
-			StartHeaders:    genesisBlocks,
-			RequestHandler:  requestHandler,
-			Core:            &mock.ServiceContainerMock{},
-			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:   &mock.TransactionCoordinatorMock{},
-			Rounder:         &mock.RounderMock{},
+			Uint64Converter:   uint64Converter,
+			StartHeaders:      genesisBlocks,
+			RequestHandler:    requestHandler,
+			Core:              &mock.ServiceContainerMock{},
+			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:     &mock.TransactionCoordinatorMock{},
+			Rounder:           &mock.RounderMock{},
 			EndOfEpochTrigger: &mock.EndOfEpochTriggerStub{},
+			HeaderValidator:   headerValidator,
 		},
 		DataPool:           dPool,
 		SCDataGetter:       &mock.ScDataGetterMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
-		PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
+		PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
 

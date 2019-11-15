@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
+)
 
 type EndOfEpochTriggerStub struct {
 	ForceEndOfEpochCalled func(round int64) error
@@ -9,6 +12,24 @@ type EndOfEpochTriggerStub struct {
 	ReceivedHeaderCalled  func(handler data.HeaderHandler)
 	UpdateCalled          func(round int64)
 	ProcessedCalled       func()
+	EpochStartRoundCalled func() uint64
+}
+
+func (e *EndOfEpochTriggerStub) GetRoundsPerEpoch() int64 {
+	return 0
+}
+
+func (e *EndOfEpochTriggerStub) SetTrigger(triggerHandler endOfEpoch.TriggerHandler) {
+}
+
+func (e *EndOfEpochTriggerStub) Revert() {
+}
+
+func (e *EndOfEpochTriggerStub) EpochStartRound() uint64 {
+	if e.EpochStartRoundCalled != nil {
+		return e.EpochStartRoundCalled()
+	}
+	return 0
 }
 
 func (e *EndOfEpochTriggerStub) Update(round int64) {
@@ -48,6 +69,9 @@ func (e *EndOfEpochTriggerStub) ReceivedHeader(header data.HeaderHandler) {
 	if e.ReceivedHeaderCalled != nil {
 		e.ReceivedHeaderCalled(header)
 	}
+}
+
+func (e *EndOfEpochTriggerStub) SetRoundsPerEpoch(roundsPerEpoch int64) {
 }
 
 func (e *EndOfEpochTriggerStub) IsInterfaceNil() bool {

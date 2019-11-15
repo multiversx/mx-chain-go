@@ -553,3 +553,6 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
+
+// ErrNilHeaderValidator signals that nil header validator has been provided
+var ErrNilHeaderValidator = errors.New("nil header validator")

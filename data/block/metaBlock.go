@@ -90,22 +90,22 @@ type EndOfEpoch struct {
 
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
-	Nonce            uint64            `capid:"0"`
-	Epoch            uint32            `capid:"1"`
-	Round            uint64            `capid:"2"`
-	TimeStamp        uint64            `capid:"3"`
-	ShardInfo        []ShardData       `capid:"4"`
-	PeerInfo         []PeerData        `capid:"5"`
-	Signature        []byte            `capid:"6"`
-	PubKeysBitmap    []byte            `capid:"7"`
-	PrevHash         []byte            `capid:"8"`
-	PrevRandSeed     []byte            `capid:"9"`
-	RandSeed         []byte            `capid:"10"`
-	RootHash         []byte            `capid:"11"`
-	ValidatorStatsRootHash []byte      `capid:"12"`
-	TxCount                uint32      `capid:"13"`
-	MiniBlockHeaders []MiniBlockHeader `capid:"14"`
-	EndOfEpoch             EndOfEpoch  `capid:"15"`
+	Nonce                  uint64            `capid:"0"`
+	Epoch                  uint32            `capid:"1"`
+	Round                  uint64            `capid:"2"`
+	TimeStamp              uint64            `capid:"3"`
+	ShardInfo              []ShardData       `capid:"4"`
+	PeerInfo               []PeerData        `capid:"5"`
+	Signature              []byte            `capid:"6"`
+	PubKeysBitmap          []byte            `capid:"7"`
+	PrevHash               []byte            `capid:"8"`
+	PrevRandSeed           []byte            `capid:"9"`
+	RandSeed               []byte            `capid:"10"`
+	RootHash               []byte            `capid:"11"`
+	ValidatorStatsRootHash []byte            `capid:"12"`
+	TxCount                uint32            `capid:"13"`
+	MiniBlockHeaders       []MiniBlockHeader `capid:"14"`
+	EndOfEpoch             EndOfEpoch        `capid:"15"`
 }
 
 // MetaBlockBody hold the data for metablock body
@@ -532,6 +532,11 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 	itemsInHeader += len(m.MiniBlockHeaders)
 
 	return uint32(itemsInHeader)
+}
+
+// IsStartOfEpochBlock verifies if the block is of type start of epoch
+func (m *MetaBlock) IsStartOfEpochBlock() bool {
+	return len(m.EndOfEpoch.LastFinalizedHeaders) > 0
 }
 
 // ItemsInBody gets the number of items(hashes) added in block body

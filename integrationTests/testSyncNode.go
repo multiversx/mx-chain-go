@@ -3,11 +3,11 @@ package integrationTests
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
@@ -44,6 +44,8 @@ func NewTestSyncNode(
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initTestNodeWithSync()
+
+	tpn.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{}
 
 	return tpn
 }
@@ -97,6 +99,12 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      TestHasher,
+		Marshalizer: TestMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 nil,
@@ -113,6 +121,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+		HeaderValidator:              headerValidator,
 		Rounder:                      &mock.RounderMock{},
 	}
 
@@ -127,7 +136,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			SCDataGetter:       &mock.ScDataGetterMock{},
 			SCToProtocol:       &mock.SCToProtocolStub{},
 			PeerChangesHandler: &mock.PeerChangesHandler{},
-			PendingMiniBlocks: &mock.PendingMiniBlocksHandlerStub{},
+			PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
