@@ -54,7 +54,7 @@ func newTestBlockHeader() *block.Header {
 
 func newTestMetaBlock() *block.MetaBlock {
 	shardData := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               100,

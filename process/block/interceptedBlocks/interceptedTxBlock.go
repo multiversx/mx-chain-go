@@ -101,11 +101,13 @@ func (inTxBody *InterceptedTxBlockBody) integrity() error {
 			return process.ErrNilTxHashes
 		}
 
-		if miniBlock.ReceiverShardID >= inTxBody.shardCoordinator.NumberOfShards() {
+		if miniBlock.ReceiverShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
+			miniBlock.ReceiverShardID != sharding.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 
-		if miniBlock.SenderShardID >= inTxBody.shardCoordinator.NumberOfShards() {
+		if miniBlock.SenderShardID >= inTxBody.shardCoordinator.NumberOfShards() &&
+			miniBlock.SenderShardID != sharding.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 

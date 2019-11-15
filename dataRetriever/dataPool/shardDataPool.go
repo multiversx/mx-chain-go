@@ -14,6 +14,7 @@ type shardedDataPool struct {
 	headersNonces        dataRetriever.Uint64SyncMapCacher
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
+	currBlockTxs         dataRetriever.TransactionCacher
 }
 
 // NewShardedDataPool creates a data pools holder object
@@ -26,6 +27,7 @@ func NewShardedDataPool(
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
 	metaBlocks storage.Cacher,
+	currBlockTxs dataRetriever.TransactionCacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil || transactions.IsInterfaceNil() {
@@ -52,6 +54,9 @@ func NewShardedDataPool(
 	if metaBlocks == nil || metaBlocks.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilMetaBlockPool
 	}
+	if currBlockTxs == nil || currBlockTxs.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilCurrBlockTxs
+	}
 
 	return &shardedDataPool{
 		transactions:         transactions,
@@ -62,7 +67,13 @@ func NewShardedDataPool(
 		miniBlocks:           miniBlocks,
 		peerChangesBlocks:    peerChangesBlocks,
 		metaBlocks:           metaBlocks,
+		currBlockTxs:         currBlockTxs,
 	}, nil
+}
+
+// CurrentBlockTxs returns the holder for current block transactions
+func (tdp *shardedDataPool) CurrentBlockTxs() dataRetriever.TransactionCacher {
+	return tdp.currBlockTxs
 }
 
 // Transactions returns the holder for transactions
