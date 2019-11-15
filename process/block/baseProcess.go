@@ -117,6 +117,30 @@ func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.H
 	bp.mutNotarizedHdrs.Unlock()
 }
 
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (bp *baseProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+	err := bp.accounts.RecreateTrie(header.GetRootHash())
+	if err != nil {
+		log.Info(fmt.Sprintf("recreate trie with error for header with nonce %d and root hash %s\n",
+			header.GetNonce(),
+			core.ToB64(header.GetRootHash())))
+
+		return err
+	}
+
+	err = bp.validatorStatisticsProcessor.RevertPeerState(header)
+	if err != nil {
+		log.Info(fmt.Sprintf("revert peer state with error for header with nonce %d and validators stats root hash %s\n",
+			header.GetNonce(),
+			header.GetValidatorStatsRootHash()))
+
+
+		return err
+	}
+
+	return nil
+}
+
 // checkBlockValidity method checks if the given block is valid
 func (bp *baseProcessor) checkBlockValidity(
 	chainHandler data.ChainHandler,
@@ -974,4 +998,18 @@ func (bp *baseProcessor) getHeadersFromPools(
 	headersHashes = append(headersHashes, headerHash)
 
 	return headers, headersHashes
+}
+
+func (bp *baseProcessor) commitAll() error {
+	_, err := bp.accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	_, err = bp.validatorStatisticsProcessor.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

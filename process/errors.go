@@ -559,3 +559,12 @@ var ErrMaxRatingIsSmallerThanMinRating = errors.New("max rating is smaller than 
 
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
+
+// ErrMissingPrevShardData signals that a required shard data information is missing
+var ErrMissingPrevShardData = errors.New("shard data is missing")
+
+// ErrInvalidMetaPoolHolder signals that a required shard data information is missing
+var ErrInvalidMetaPoolHolder = errors.New("invalid meta pool holder")
+
+// ErrNilMediator signals that a mediator implementation is needed, but it is nil
+var ErrNilMediator = errors.New("nil mediator")

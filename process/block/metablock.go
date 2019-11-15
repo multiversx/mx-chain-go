@@ -914,29 +914,6 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := mp.accounts.RecreateTrie(header.GetRootHash())
-	if err != nil {
-		log.Info(fmt.Sprintf("recreate trie with error for header with nonce %d and root hash %s\n",
-			header.GetNonce(),
-			core.ToB64(header.GetRootHash())))
-
-		return err
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
-	if err != nil {
-		log.Info(fmt.Sprintf("revert peer state with error for header with nonce %d and validators stats root hash %s\n",
-			header.GetNonce(),
-			header.GetValidatorStatsRootHash()))
-
-		return err
-	}
-
-	return nil
-}
-
 // RevertAccountState reverts the account state for cleanup failed process
 func (mp *metaProcessor) RevertAccountState() {
 	err := mp.accounts.RevertToSnapshot(0)
@@ -982,20 +959,6 @@ func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
 	if valueStored < value {
 		mp.shardsHeadersNonce.Store(key, value)
 	}
-}
-
-func (mp *metaProcessor) commitAll() error {
-	_, err := mp.accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	_, err = mp.validatorStatisticsProcessor.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
@@ -1363,6 +1326,10 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.TxCount = shardHdr.TxCount
 		shardData.ShardID = shardHdr.ShardId
 		shardData.HeaderHash = []byte(hdrHash)
+		shardData.Round = shardHdr.Round
+		shardData.PrevHash = shardHdr.PrevHash
+		shardData.Nonce = shardHdr.Nonce
+		shardData.PrevRandSeed = shardHdr.PrevRandSeed
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}

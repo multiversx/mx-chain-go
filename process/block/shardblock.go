@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"sync"
@@ -66,6 +67,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		rounder:                       arguments.Rounder,
+		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
 	if err != nil {
@@ -255,6 +257,24 @@ func (sp *shardProcessor) ProcessBlock(
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	for _, metaHeader := range processedMetaHdrs {
+		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
+			err = process.ErrValidatorStatsRootHashDoesNotMatch
+			return err
+		}
+	}
+
+	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()
+	if !bytes.Equal(vRootHash, header.GetValidatorStatsRootHash()) {
+		err = process.ErrValidatorStatsRootHashDoesNotMatch
 		return err
 	}
 
@@ -643,7 +663,8 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
-	_, err = sp.accounts.Commit()
+
+	err = sp.commitAll()
 	if err != nil {
 		return err
 	}
@@ -726,22 +747,6 @@ func (sp *shardProcessor) CommitBlock(
 		sp.dataPool.MiniBlocks().Len(),
 		sp.dataPool.MiniBlocks().MaxSize(),
 	))
-
-	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
-
-	return nil
-}
-
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the providd header
-func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := sp.accounts.RecreateTrie(header.GetRootHash())
-	if err != nil {
-		log.Info(fmt.Sprintf("recreate trie with error for header with nonce %d and root hash %s\n",
-			header.GetNonce(),
-			core.ToB64(header.GetRootHash())))
-
-		return err
-	}
 
 	return nil
 }
@@ -1467,6 +1472,11 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, err
 	}
 
+	err = sp.updatePeerStateForFinalMetaHeaders(processedMetaHdrs)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Info(fmt.Sprintf("processed %d miniblocks and %d txs with destination in self shard\n", len(destMeMiniBlocks), nbTxs))
 
 	if len(destMeMiniBlocks) > 0 {
@@ -1530,6 +1540,13 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body)))
+
+	rootHash, err := sp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return err
+	}
+
+	shardHeader.ValidatorStatsRootHash = rootHash
 
 	sp.blockSizeThrottler.Add(
 		hdr.GetRound(),
@@ -1696,4 +1713,14 @@ func (sp *shardProcessor) getMetaHeaderFromPoolWithNonce(
 		sp.dataPool.HeadersNonces())
 
 	return metaHeader, metaHeaderHash, err
+}
+
+func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data.HeaderHandler) error {
+	for _, header := range finalHeaders {
+		_, err := sp.validatorStatisticsProcessor.UpdatePeerState(header)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

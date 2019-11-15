@@ -143,7 +143,7 @@ func (boot *baseBootstrap) loadBlocks(
 		}
 
 		if err == nil {
-			err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
+			err = boot.blkExecutor.RevertStateToBlock(boot.blkc.GetCurrentBlockHeader())
 			if err != nil {
 				log.Info(fmt.Sprintf("recreate trie for block with nonce %d in shard %d: %s\n",
 					boot.blkc.GetCurrentBlockHeader().GetNonce(),
