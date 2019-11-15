@@ -38,7 +38,6 @@ struct FinalizedHeadersCapn {
 }
 
 struct EpochStartCapn {
-	pendingMiniBlockHeaders @0: List(ShardMiniBlockHeaderCapn);
 	lastFinalizedHeaders    @1: List(FinalizedHeadersCapn);
 }
 
