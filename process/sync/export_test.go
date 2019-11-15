@@ -323,8 +323,8 @@ func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
 	return false
 }
 
-func (bfd *baseForkDetector) ShouldAddBlockInForkDetector(header data.HeaderHandler, state process.BlockHeaderState, finality int64) error {
-	return bfd.shouldAddBlockInForkDetector(header, state, finality)
+func (bfd *baseForkDetector) IsHeaderReceivedTooLate(header data.HeaderHandler, state process.BlockHeaderState, finality int64) bool {
+	return bfd.isHeaderReceivedTooLate(header, state, finality)
 }
 
 func (bfd *baseForkDetector) SetProbableHighestNonce(nonce uint64) {
