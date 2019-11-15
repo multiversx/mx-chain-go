@@ -2225,32 +2225,3 @@ func TestSortHeadersByNonceShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(2), headers[1].GetNonce())
 	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }
-
-func TestGasConsumedInShardShouldWork(t *testing.T) {
-	gasConsumedInShard, err := process.GasConsumedInShard(
-		2,
-		0,
-		1,
-		100,
-		200)
-
-	assert.Equal(t, err, process.ErrInvalidShardId)
-
-	gasConsumedInShard, _ = process.GasConsumedInShard(
-		0,
-		0,
-		1,
-		100,
-		200)
-
-	assert.Equal(t, gasConsumedInShard, uint64(100))
-
-	gasConsumedInShard, _ = process.GasConsumedInShard(
-		0,
-		1,
-		0,
-		100,
-		200)
-
-	assert.Equal(t, gasConsumedInShard, uint64(200))
-}

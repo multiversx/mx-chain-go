@@ -1,6 +1,8 @@
 package preprocess
 
 import (
+	"sync/atomic"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -29,19 +31,19 @@ func NewGasComputation(
 }
 
 func (gc *gasComputation) InitGasConsumed() {
-	gc.gasConsumed = 0
+	atomic.StoreUint64(&gc.gasConsumed, 0)
 }
 
 func (gc *gasComputation) AddGasConsumed(gasConsumed uint64) {
-	gc.gasConsumed += gasConsumed
+	atomic.AddUint64(&gc.gasConsumed, gasConsumed)
 }
 
 func (gc *gasComputation) SetGasConsumed(gasConsumed uint64) {
-	gc.gasConsumed = gasConsumed
+	atomic.StoreUint64(&gc.gasConsumed, gasConsumed)
 }
 
 func (gc *gasComputation) GasConsumed() uint64 {
-	return gc.gasConsumed
+	return atomic.LoadUint64(&gc.gasConsumed)
 }
 
 func (gc *gasComputation) ComputeGasConsumedByMiniBlock(

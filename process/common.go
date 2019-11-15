@@ -612,21 +612,3 @@ type ForkInfo struct {
 func NewForkInfo() *ForkInfo {
 	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
 }
-
-func GasConsumedInShard(
-	shardId uint32,
-	senderShardId uint32,
-	receiverShardId uint32,
-	gasConsumedInSenderShard uint64,
-	gasConsumedInReceiverShard uint64,
-) (uint64, error) {
-
-	if shardId == senderShardId {
-		return gasConsumedInSenderShard, nil
-	}
-	if shardId == receiverShardId {
-		return gasConsumedInReceiverShard, nil
-	}
-
-	return 0, ErrInvalidShardId
-}
