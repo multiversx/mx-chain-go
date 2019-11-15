@@ -56,8 +56,8 @@ func (s HeaderCapn) SetValidatorStatsRootHash(v []byte) {
 }
 func (s HeaderCapn) MetaHdrHashes() C.DataList      { return C.DataList(C.Struct(s).GetObject(9)) }
 func (s HeaderCapn) SetMetaHdrHashes(v C.DataList)  { C.Struct(s).SetObject(9, C.Object(v)) }
-func (s HeaderCapn) EndOfEpochMetaHash() []byte     { return C.Struct(s).GetObject(10).ToData() }
-func (s HeaderCapn) SetEndOfEpochMetaHash(v []byte) { C.Struct(s).SetObject(10, s.Segment.NewData(v)) }
+func (s HeaderCapn) EpochStartMetaHash() []byte     { return C.Struct(s).GetObject(10).ToData() }
+func (s HeaderCapn) SetEpochStartMetaHash(v []byte) { C.Struct(s).SetObject(10, s.Segment.NewData(v)) }
 func (s HeaderCapn) TxCount() uint32                { return C.Struct(s).Get32(36) }
 func (s HeaderCapn) SetTxCount(v uint32)            { C.Struct(s).Set32(36, v) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
@@ -419,12 +419,12 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"endOfEpochMetaHash\":")
+	_, err = b.WriteString("\"epochStartMetaHash\":")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.EndOfEpochMetaHash()
+		s := s.EpochStartMetaHash()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -824,12 +824,12 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("endOfEpochMetaHash = ")
+	_, err = b.WriteString("epochStartMetaHash = ")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.EndOfEpochMetaHash()
+		s := s.EpochStartMetaHash()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err

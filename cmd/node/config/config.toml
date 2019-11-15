@@ -267,6 +267,6 @@
    TimeoutMilliseconds = 100
    Version = 0  # Setting 0 means 'use default value'
 
-[EndOfEpochConfig]
+[EpochStartConfig]
    MinRoundsBetweenEpochs = 100
    RoundsPerEpoch         = 20000

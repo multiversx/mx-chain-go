@@ -1,15 +1,15 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -22,10 +22,9 @@ type ArgsPendingMiniBlocks struct {
 }
 
 type pendingMiniBlockHeaders struct {
-	marshalizer      marshal.Marshalizer
-	metaBlockStorage storage.Storer
-	metaBlockPool    storage.Cacher
-
+	marshalizer         marshal.Marshalizer
+	metaBlockStorage    storage.Storer
+	metaBlockPool       storage.Cacher
 	storage             storage.Storer
 	mutPending          sync.Mutex
 	mapMiniBlockHeaders map[string]block.ShardMiniBlockHeader
@@ -34,19 +33,19 @@ type pendingMiniBlockHeaders struct {
 // NewPendingMiniBlocks will create a new pendingMiniBlockHeaders object
 func NewPendingMiniBlocks(args *ArgsPendingMiniBlocks) (*pendingMiniBlockHeaders, error) {
 	if args == nil {
-		return nil, endOfEpoch.ErrNilArgsPendingMiniblocks
+		return nil, epochStart.ErrNilArgsPendingMiniblocks
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, endOfEpoch.ErrNilMarshalizer
+		return nil, epochStart.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Storage) {
-		return nil, endOfEpoch.ErrNilStorage
+		return nil, epochStart.ErrNilStorage
 	}
 	if check.IfNil(args.MetaBlockStorage) {
-		return nil, endOfEpoch.ErrNilMetaBlockStorage
+		return nil, epochStart.ErrNilMetaBlockStorage
 	}
 	if check.IfNil(args.MetaBlockPool) {
-		return nil, endOfEpoch.ErrNilMetaBlocksPool
+		return nil, epochStart.ErrNilMetaBlocksPool
 	}
 
 	return &pendingMiniBlockHeaders{
@@ -88,10 +87,6 @@ func (p *pendingMiniBlockHeaders) PendingMiniBlockHeaders(
 		}
 		shardMiniBlockHeaders = append(shardMiniBlockHeaders, shMbHdr)
 	}
-
-	sort.Slice(shardMiniBlockHeaders, func(i, j int) bool {
-		return shardMiniBlockHeaders[i].TxCount < shardMiniBlockHeaders[j].TxCount
-	})
 
 	return shardMiniBlockHeaders, nil
 }
@@ -136,7 +131,7 @@ func (p *pendingMiniBlockHeaders) getLastUsedMetaBlockFromShardHeaders(
 	for _, header := range lastNotarizedHeaders {
 		shardHdr, ok := header.(*block.Header)
 		if !ok {
-			return nil, endOfEpoch.ErrWrongTypeAssertion
+			return nil, epochStart.ErrWrongTypeAssertion
 		}
 
 		numMetas := len(shardHdr.MetaBlockHashes)
@@ -184,12 +179,12 @@ func (p *pendingMiniBlockHeaders) getMetaBlockByHash(metaHash []byte) (*block.Me
 // AddProcessedHeader will add all miniblocks headers in a map
 func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler) error {
 	if check.IfNil(handler) {
-		return endOfEpoch.ErrNilHeaderHandler
+		return epochStart.ErrNilHeaderHandler
 	}
 
 	metaHdr, ok := handler.(*block.MetaBlock)
 	if !ok {
-		return endOfEpoch.ErrWrongTypeAssertion
+		return epochStart.ErrWrongTypeAssertion
 	}
 
 	crossShard := p.getAllCrossShardMiniBlocks(metaHdr)
@@ -229,48 +224,24 @@ func (p *pendingMiniBlockHeaders) AddProcessedHeader(handler data.HeaderHandler)
 // RevertHeader will remove  all minibloks headers that are in metablock from pending
 func (p *pendingMiniBlockHeaders) RevertHeader(handler data.HeaderHandler) error {
 	if check.IfNil(handler) {
-		return endOfEpoch.ErrNilHeaderHandler
+		return epochStart.ErrNilHeaderHandler
 	}
 
 	metaHdr, ok := handler.(*block.MetaBlock)
 	if !ok {
-		return endOfEpoch.ErrWrongTypeAssertion
+		return epochStart.ErrWrongTypeAssertion
 	}
 
-	mapMetaMiniBlockHdrs := make(map[string]*block.MiniBlockHeader)
-	for _, miniBlockHeader := range metaHdr.MiniBlockHeaders {
-		if miniBlockHeader.ReceiverShardID != sharding.MetachainShardId {
+	crossShard := p.getAllCrossShardMiniBlocks(metaHdr)
+
+	for mbHash, mbHeader := range crossShard {
+		if _, ok = p.mapMiniBlockHeaders[mbHash]; ok {
+			delete(p.mapMiniBlockHeaders, mbHash)
 			continue
 		}
 
-		mapMetaMiniBlockHdrs[string(miniBlockHeader.Hash)] = &miniBlockHeader
-	}
-
-	p.mutPending.Lock()
-	defer p.mutPending.Unlock()
-
-	for _, shardData := range metaHdr.ShardInfo {
-		for _, mbHeader := range shardData.ShardMiniBlockHeaders {
-			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
-				continue
-			}
-
-			if _, ok := mapMetaMiniBlockHdrs[string(mbHeader.Hash)]; ok {
-				continue
-			}
-
-			if _, ok = p.mapMiniBlockHeaders[string(mbHeader.Hash)]; ok {
-				delete(p.mapMiniBlockHeaders, string(mbHeader.Hash))
-				continue
-			}
-
-			err := p.storage.Remove(mbHeader.Hash)
-			if err != nil {
-				return err
-			}
-
-			p.mapMiniBlockHeaders[string(mbHeader.Hash)] = mbHeader
-		}
+		_ = p.storage.Remove([]byte(mbHash))
+		p.mapMiniBlockHeaders[mbHash] = mbHeader
 	}
 
 	return nil

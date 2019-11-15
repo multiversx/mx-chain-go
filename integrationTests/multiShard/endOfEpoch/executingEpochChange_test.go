@@ -1,4 +1,4 @@
-package endOfEpoch
+package epochStart
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
+func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -38,7 +38,7 @@ func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	roundsPerEpoch := int64(20)
 	for _, node := range nodes {
-		node.EndOfEpochTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
 	idxProposers := make([]int, numOfShards+1)
@@ -84,56 +84,11 @@ func TestEndOfEpochChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	time.Sleep(time.Second)
 
 	epoch := uint32(1)
-	/////////------ verify if current blocks are with new epoch
-	for _, node := range nodes {
-		currentShId := node.ShardCoordinator.SelfId()
-		currentHeader := node.BlockChain.GetCurrentBlockHeader()
-		assert.Equal(t, epoch, currentHeader.GetEpoch())
-
-		for _, testNode := range nodes {
-			if testNode.ShardCoordinator.SelfId() == currentShId {
-				testHeader := testNode.BlockChain.GetCurrentBlockHeader()
-				assert.Equal(t, testHeader.GetNonce(), currentHeader.GetNonce())
-			}
-		}
-	}
-
-	//////////------ verify last added shardheaders in meta are with new epoch
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
-			continue
-		}
-
-		currentMetaHdr, ok := node.BlockChain.GetCurrentBlockHeader().(*block.MetaBlock)
-		if !ok {
-			continue
-		}
-
-		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
-		for _, shardInfo := range currentMetaHdr.ShardInfo {
-			value, ok := node.MetaDataPool.ShardHeaders().Peek(shardInfo.HeaderHash)
-			if ok {
-				header, ok := value.(data.HeaderHandler)
-				if !ok {
-					continue
-				}
-
-				assert.Equal(t, header.GetEpoch(), currentMetaHdr.GetEpoch())
-				continue
-			}
-
-			buff, err := shardHDrStorage.Get(shardInfo.HeaderHash)
-			assert.Nil(t, err)
-
-			shardHeader := block.Header{}
-			err = integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
-			assert.Nil(t, err)
-			assert.Equal(t, shardHeader.Epoch, currentMetaHdr.Epoch)
-		}
-	}
+	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
+	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }
 
-func TestEndOfEpochChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
+func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -156,7 +111,7 @@ func TestEndOfEpochChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	roundsPerEpoch := int64(20)
 	for _, node := range nodes {
-		node.EndOfEpochTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
 	idxProposers := make([]int, numOfShards+1)
@@ -219,7 +174,15 @@ func TestEndOfEpochChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	time.Sleep(time.Second)
 
 	epoch := uint32(1)
-	/////////------ verify if current blocks are with new epoch
+	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
+	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
+}
+
+func verifyIfNodesHasCorrectEpoch(
+	t *testing.T,
+	epoch uint32,
+	nodes []*integrationTests.TestProcessorNode,
+) {
 	for _, node := range nodes {
 		currentShId := node.ShardCoordinator.SelfId()
 		currentHeader := node.BlockChain.GetCurrentBlockHeader()
@@ -232,8 +195,12 @@ func TestEndOfEpochChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 			}
 		}
 	}
+}
 
-	//////////------ verify last added shardheaders in meta are with new epoch
+func verifyIfAddedShardHeadersAreWithNewEpoch(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+) {
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
 			continue
@@ -241,7 +208,7 @@ func TestEndOfEpochChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 		currentMetaHdr, ok := node.BlockChain.GetCurrentBlockHeader().(*block.MetaBlock)
 		if !ok {
-			continue
+			assert.Fail(t, "metablock should have been in current block header")
 		}
 
 		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
@@ -250,7 +217,7 @@ func TestEndOfEpochChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 			if ok {
 				header, ok := value.(data.HeaderHandler)
 				if !ok {
-					continue
+					assert.Fail(t, "wrong type in shard header pool")
 				}
 
 				assert.Equal(t, header.GetEpoch(), currentMetaHdr.GetEpoch())

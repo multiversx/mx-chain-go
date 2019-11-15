@@ -6,14 +6,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/mock"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockShardEndOfEpochTriggerArguments() *ArgsShardEndOfEpochTrigger {
-	return &ArgsShardEndOfEpochTrigger{
+func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
+	return &ArgsShardEpochStartTrigger{
 		Marshalizer: &mock.MarshalizerMock{},
 		Hasher:      &mock.HasherMock{},
 		HeaderValidator: &mock.HeaderValidatorStub{
@@ -53,100 +53,100 @@ func createMockShardEndOfEpochTriggerArguments() *ArgsShardEndOfEpochTrigger {
 	}
 }
 
-func TestNewEndOfEpochTrigger_NilArgumentsShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	eoet, err := NewEndOfEpochTrigger(nil)
+	eoet, err := NewEpochStartTrigger(nil)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilArgsNewShardEndOfEpochTrigger, err)
+	assert.Equal(t, epochStart.ErrNilArgsNewShardEpochStartTrigger, err)
 }
 
-func TestNewEndOfEpochTrigger_NilHasherShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Hasher = nil
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilHasher, err)
+	assert.Equal(t, epochStart.ErrNilHasher, err)
 }
 
-func TestNewEndOfEpochTrigger_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Marshalizer = nil
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilMarshalizer, err)
+	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
-func TestNewEndOfEpochTrigger_NilHeaderShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.HeaderValidator = nil
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilHeaderValidator, err)
+	assert.Equal(t, epochStart.ErrNilHeaderValidator, err)
 }
 
-func TestNewEndOfEpochTrigger_NilDataPoolShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.DataPool = nil
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilDataPoolsHolder, err)
+	assert.Equal(t, epochStart.ErrNilDataPoolsHolder, err)
 }
 
-func TestNewEndOfEpochTrigger_NilStorageShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Storage = nil
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilStorageService, err)
+	assert.Equal(t, epochStart.ErrNilStorageService, err)
 }
 
-func TestNewEndOfEpochTrigger_NilRequestHandlerShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilRequestHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.RequestHandler = nil
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilRequestHandler, err)
+	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
 }
 
-func TestNewEndOfEpochTrigger_NilMetaBlockPoolShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilMetaBlockPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.DataPool = &mock.PoolsHolderStub{
 		MetaBlocksCalled: func() storage.Cacher {
 			return nil
 		},
 	}
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilMetaBlocksPool, err)
+	assert.Equal(t, epochStart.ErrNilMetaBlocksPool, err)
 }
 
-func TestNewEndOfEpochTrigger_NilHeadersNonceShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilHeadersNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.DataPool = &mock.PoolsHolderStub{
 		MetaBlocksCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
@@ -155,42 +155,42 @@ func TestNewEndOfEpochTrigger_NilHeadersNonceShouldErr(t *testing.T) {
 			return nil
 		},
 	}
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilHeaderNoncesPool, err)
+	assert.Equal(t, epochStart.ErrNilHeaderNoncesPool, err)
 }
 
-func TestNewEndOfEpochTrigger_NilUint64ConverterShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilUint64ConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Uint64Converter = nil
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilUint64Converter, err)
+	assert.Equal(t, epochStart.ErrNilUint64Converter, err)
 }
 
-func TestNewEndOfEpochTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return nil
 		},
 	}
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilMetaHdrStorage, err)
+	assert.Equal(t, epochStart.ErrNilMetaHdrStorage, err)
 }
 
-func TestNewEndOfEpochTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
@@ -201,64 +201,64 @@ func TestNewEndOfEpochTrigger_NilMetaNonceHashStorageShouldErr(t *testing.T) {
 			}
 		},
 	}
-	eoet, err := NewEndOfEpochTrigger(args)
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, eoet)
-	assert.Equal(t, endOfEpoch.ErrNilMetaNonceHashStorage, err)
+	assert.Equal(t, epochStart.ErrNilMetaNonceHashStorage, err)
 }
 
-func TestNewEndOfEpochTrigger_ShouldOk(t *testing.T) {
+func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
-	eoet, err := NewEndOfEpochTrigger(args)
+	args := createMockShardEpochStartTriggerArguments()
+	eoet, err := NewEpochStartTrigger(args)
 
 	assert.NotNil(t, eoet)
 	assert.Nil(t, err)
 }
 
-func TestTrigger_ReceivedHeaderNotEndOfEpoch(t *testing.T) {
+func TestTrigger_ReceivedHeaderNotEpochStart(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 2
 	args.Finality = 2
-	eoet, _ := NewEndOfEpochTrigger(args)
+	eoet, _ := NewEpochStartTrigger(args)
 
 	hash := []byte("hash")
 	header := &block.MetaBlock{Nonce: 100}
-	header.EndOfEpoch.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	eoet.ReceivedHeader(header)
 
-	assert.False(t, eoet.IsEndOfEpoch())
+	assert.False(t, eoet.IsEpochStart())
 }
 
-func TestTrigger_ReceivedHeaderIsEndOfEpochTrue(t *testing.T) {
+func TestTrigger_ReceivedHeaderIsEpochStartTrue(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 0
 	args.Finality = 2
-	eoet, _ := NewEndOfEpochTrigger(args)
+	eoet, _ := NewEpochStartTrigger(args)
 
 	hash := []byte("hash")
 	header := &block.MetaBlock{Nonce: 100, Epoch: 1}
-	header.EndOfEpoch.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	eoet.ReceivedHeader(header)
 
 	header = &block.MetaBlock{Nonce: 101, Epoch: 1}
 	eoet.ReceivedHeader(header)
 
-	assert.True(t, eoet.IsEndOfEpoch())
+	assert.True(t, eoet.IsEpochStart())
 }
 
 func TestTrigger_Epoch(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(1)
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Epoch = epoch
-	eoet, _ := NewEndOfEpochTrigger(args)
+	eoet, _ := NewEpochStartTrigger(args)
 
 	currentEpoch := eoet.Epoch()
 	assert.Equal(t, epoch, currentEpoch)
@@ -267,27 +267,27 @@ func TestTrigger_Epoch(t *testing.T) {
 func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	t.Parallel()
 
-	args := createMockShardEndOfEpochTriggerArguments()
+	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 0
 	args.Finality = 0
-	et, _ := NewEndOfEpochTrigger(args)
+	et, _ := NewEpochStartTrigger(args)
 
 	hash := []byte("hash")
 	epochStartRound := uint64(100)
 	header := &block.MetaBlock{Nonce: 100, Round: epochStartRound, Epoch: 1}
-	header.EndOfEpoch.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	et.ReceivedHeader(header)
 	header = &block.MetaBlock{Nonce: 101, Round: epochStartRound + 1, Epoch: 1}
 	et.ReceivedHeader(header)
 
-	assert.True(t, et.IsEndOfEpoch())
+	assert.True(t, et.IsEpochStart())
 	assert.Equal(t, epochStartRound, et.EpochStartRound())
 
 	et.Processed()
-	assert.False(t, et.isEndOfEpoch)
+	assert.False(t, et.isEpochStart)
 	assert.False(t, et.newEpochHdrReceived)
 
 	et.Revert()
-	assert.True(t, et.isEndOfEpoch)
+	assert.True(t, et.isEpochStart)
 	assert.True(t, et.newEpochHdrReceived)
 }

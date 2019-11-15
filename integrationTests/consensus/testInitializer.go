@@ -28,7 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -369,16 +369,16 @@ func createConsensusOnlyNode(
 		time.Millisecond*time.Duration(roundTime),
 		syncer)
 
-	argsNewMetaEndOfEpoch := &metachain.ArgsNewMetaEndOfEpochTrigger{
+	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 		Rounder:     rounder,
 		GenesisTime: time.Unix(startTime, 0),
-		Settings: &config.EndOfEpochConfig{
+		Settings: &config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 1,
 			RoundsPerEpoch:         3,
 		},
 		Epoch: 0,
 	}
-	endOfEpochTrigger, _ := metachain.NewEndOfEpochTrigger(argsNewMetaEndOfEpoch)
+	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
 	forkDetector, _ := syncFork.NewShardForkDetector(rounder, timecache.NewTimeCache(time.Second))
 
@@ -436,7 +436,7 @@ func createConsensusOnlyNode(
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithEndOfEpochTrigger(endOfEpochTrigger),
+		node.WithEpochStartTrigger(epochStartTrigger),
 	)
 
 	if err != nil {

@@ -21,7 +21,7 @@ struct HeaderCapn {
   rootHash               @13:  Data;
   validatorStatsRootHash @14:  Data;
   metaHdrHashes          @15:  List(Data);
-  endOfEpochMetaHash     @16:  Data;
+  epochStartMetaHash     @16:  Data;
   txCount                @17:  UInt32;
 }
 

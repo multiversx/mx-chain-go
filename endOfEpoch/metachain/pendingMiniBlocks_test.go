@@ -2,12 +2,12 @@ package metachain
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/mock"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func createMockArguments() *ArgsPendingMiniBlocks {
 		Storage:     &mock.StorerStub{},
 		MetaBlockStorage: &mock.StorerStub{
 			GetCalled: func(key []byte) (i []byte, e error) {
-				return nil, endOfEpoch.ErrMetaHdrNotFound
+				return nil, epochStart.ErrMetaHdrNotFound
 			},
 		},
 		MetaBlockPool: &mock.CacherStub{
@@ -43,7 +43,7 @@ func TestNewPendingMiniBlocks_NilArgumentsShouldErr(t *testing.T) {
 	pmb, err := NewPendingMiniBlocks(nil)
 
 	assert.Nil(t, pmb)
-	assert.Equal(t, endOfEpoch.ErrNilArgsPendingMiniblocks, err)
+	assert.Equal(t, epochStart.ErrNilArgsPendingMiniblocks, err)
 }
 
 func TestNewPendingMiniBlocks_NilMarshalizerShouldErr(t *testing.T) {
@@ -54,7 +54,7 @@ func TestNewPendingMiniBlocks_NilMarshalizerShouldErr(t *testing.T) {
 
 	pmb, err := NewPendingMiniBlocks(arguments)
 	assert.Nil(t, pmb)
-	assert.Equal(t, endOfEpoch.ErrNilMarshalizer, err)
+	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
 func TestNewPendingMiniBlocks_NilStorageShouldErr(t *testing.T) {
@@ -65,7 +65,7 @@ func TestNewPendingMiniBlocks_NilStorageShouldErr(t *testing.T) {
 
 	pmb, err := NewPendingMiniBlocks(arguments)
 	assert.Nil(t, pmb)
-	assert.Equal(t, endOfEpoch.ErrNilStorage, err)
+	assert.Equal(t, epochStart.ErrNilStorage, err)
 }
 
 func TestNewPendingMiniBlocks_ShouldWork(t *testing.T) {
@@ -85,7 +85,7 @@ func TestPendingMiniBlockHeaders_AddCommittedHeaderNilHeaderShouldErr(t *testing
 	pmb, _ := NewPendingMiniBlocks(arguments)
 
 	err := pmb.AddProcessedHeader(nil)
-	assert.Equal(t, endOfEpoch.ErrNilHeaderHandler, err)
+	assert.Equal(t, epochStart.ErrNilHeaderHandler, err)
 }
 
 func TestPendingMiniBlockHeaders_AddProcessedHeaderWrongHeaderShouldErr(t *testing.T) {
@@ -96,7 +96,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderWrongHeaderShouldErr(t *testi
 	header := &block.Header{}
 
 	err := pmb.AddProcessedHeader(header)
-	assert.Equal(t, endOfEpoch.ErrWrongTypeAssertion, err)
+	assert.Equal(t, epochStart.ErrWrongTypeAssertion, err)
 }
 
 func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
@@ -243,7 +243,7 @@ func TestPendingMiniBlockHeaders_RevertHeaderNilHeaderShouldErr(t *testing.T) {
 	pmb, _ := NewPendingMiniBlocks(arguments)
 
 	err := pmb.RevertHeader(nil)
-	assert.Equal(t, endOfEpoch.ErrNilHeaderHandler, err)
+	assert.Equal(t, epochStart.ErrNilHeaderHandler, err)
 }
 
 func TestPendingMiniBlockHeaders_RevertHeaderWrongHeaderTypeShouldErr(t *testing.T) {
@@ -254,5 +254,5 @@ func TestPendingMiniBlockHeaders_RevertHeaderWrongHeaderTypeShouldErr(t *testing
 	header := &block.Header{}
 
 	err := pmb.RevertHeader(header)
-	assert.Equal(t, endOfEpoch.ErrWrongTypeAssertion, err)
+	assert.Equal(t, epochStart.ErrWrongTypeAssertion, err)
 }

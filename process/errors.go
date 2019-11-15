@@ -451,8 +451,8 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
 
-// ErrNilEndOfEpochTrigger signals that a nil end of epoch trigger was provided
-var ErrNilEndOfEpochTrigger = errors.New("nil end of epoch trigger")
+// ErrNilEpochStartTrigger signals that a nil end of epoch trigger was provided
+var ErrNilEpochStartTrigger = errors.New("nil end of epoch trigger")
 
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")

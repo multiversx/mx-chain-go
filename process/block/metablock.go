@@ -85,7 +85,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
-		endOfEpochTrigger:             arguments.EndOfEpochTrigger,
+		epochStartTrigger:             arguments.EpochStartTrigger,
 		headerValidator:               arguments.HeaderValidator,
 		rounder:                       arguments.Rounder,
 	}
@@ -301,12 +301,12 @@ func (mp *metaProcessor) checkEpochCorrectness(
 	}
 
 	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		mp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
+		mp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
 	if isEpochIncorrect {
 		return process.ErrEpochDoesNotMatch
 	}
 
-	if mp.endOfEpochTrigger.IsEndOfEpoch() &&
+	if mp.epochStartTrigger.IsEpochStart() &&
 		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
 		return process.ErrEpochDoesNotMatch
 	}
@@ -507,7 +507,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	}
 
 	if metaBlock.IsStartOfEpochBlock() {
-		mp.endOfEpochTrigger.Revert()
+		mp.epochStartTrigger.Revert()
 	}
 
 	for _, hdrHash := range hdrHashes {
@@ -568,7 +568,7 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (block.Body, error) {
 
 	miniBlocks := make(block.Body, 0)
-	if mp.endOfEpochTrigger.IsEndOfEpoch() {
+	if mp.epochStartTrigger.IsEpochStart() {
 		return miniBlocks, nil
 	}
 
@@ -910,7 +910,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		mp.endOfEpochTrigger.Processed()
+		mp.epochStartTrigger.Processed()
 	}
 
 	log.Info(fmt.Sprintf("meta block with nonce %d and hash %s has been committed successfully\n",
@@ -1326,8 +1326,8 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 
 	mp.setLastHdrForShard(shardHeader.GetShardID(), shardHeader)
 
-	isShardHeaderWithOldEpochAndBadRound := shardHeader.Epoch < mp.endOfEpochTrigger.Epoch() &&
-		shardHeader.Round > mp.endOfEpochTrigger.EpochStartRound()+uint64(mp.shardBlockFinality)
+	isShardHeaderWithOldEpochAndBadRound := shardHeader.Epoch < mp.epochStartTrigger.Epoch() &&
+		shardHeader.Round > mp.epochStartTrigger.EpochStartRound()+uint64(mp.shardBlockFinality)
 
 	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) || isShardHeaderWithOldEpochAndBadRound {
 		shardHeaderPool.Remove(shardHeaderHash)
@@ -1433,7 +1433,7 @@ func (mp *metaProcessor) createShardInfo(
 ) ([]block.ShardData, error) {
 
 	shardInfo := make([]block.ShardData, 0)
-	if mp.endOfEpochTrigger.IsEndOfEpoch() {
+	if mp.epochStartTrigger.IsEpochStart() {
 		return shardInfo, nil
 	}
 
@@ -1548,11 +1548,11 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 
 	metaHdr.ValidatorStatsRootHash = rootHash
 
-	endOfEpoch, err := mp.createEndOfEpochForMetablock(metaHdr)
+	epochStart, err := mp.createEpochStartForMetablock(metaHdr)
 	if err != nil {
 		return err
 	}
-	metaHdr.EndOfEpoch = *endOfEpoch
+	metaHdr.EpochStart = *epochStart
 
 	mp.blockSizeThrottler.Add(
 		metaHdr.GetRound(),
@@ -1561,14 +1561,14 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	return nil
 }
 
-func (mp *metaProcessor) createEndOfEpochForMetablock(metaBlock *block.MetaBlock) (*block.EndOfEpoch, error) {
-	endOfEpoch := &block.EndOfEpoch{
+func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock) (*block.EpochStart, error) {
+	epochStart := &block.EpochStart{
 		PendingMiniBlockHeaders: make([]block.ShardMiniBlockHeader, 0),
 		LastFinalizedHeaders:    make([]block.FinalizedHeaders, 0),
 	}
 
-	if !mp.endOfEpochTrigger.IsEndOfEpoch() {
-		return endOfEpoch, nil
+	if !mp.epochStartTrigger.IsEpochStart() {
+		return epochStart, nil
 	}
 
 	mp.mutNotarizedHdrs.RLock()
@@ -1589,7 +1589,7 @@ func (mp *metaProcessor) createEndOfEpochForMetablock(metaBlock *block.MetaBlock
 			RootHash:   lastNotarizedHdr.GetRootHash(),
 		}
 
-		endOfEpoch.LastFinalizedHeaders = append(endOfEpoch.LastFinalizedHeaders, finalHeader)
+		epochStart.LastFinalizedHeaders = append(epochStart.LastFinalizedHeaders, finalHeader)
 		lastNotarizedHeaders[i] = lastNotarizedHdr
 	}
 
@@ -1598,9 +1598,9 @@ func (mp *metaProcessor) createEndOfEpochForMetablock(metaBlock *block.MetaBlock
 		return nil, err
 	}
 
-	endOfEpoch.PendingMiniBlockHeaders = pendingMiniBlocks
+	epochStart.PendingMiniBlockHeaders = pendingMiniBlocks
 
-	return endOfEpoch, nil
+	return epochStart, nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {

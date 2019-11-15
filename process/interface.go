@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -362,15 +362,15 @@ type VirtualMachinesContainerFactory interface {
 	IsInterfaceNil() bool
 }
 
-// EndOfEpochTriggerHandler defines that actions which are needed by processor for end of epoch
-type EndOfEpochTriggerHandler interface {
+// EpochStartTriggerHandler defines that actions which are needed by processor for end of epoch
+type EpochStartTriggerHandler interface {
 	ReceivedHeader(header data.HeaderHandler)
-	IsEndOfEpoch() bool
+	IsEpochStart() bool
 	Epoch() uint32
 	EpochStartRound() uint64
 	Processed()
 	Revert()
-	EndOfEpochMetaHdrHash() []byte
+	EpochStartMetaHdrHash() []byte
 	IsInterfaceNil() bool
 }
 

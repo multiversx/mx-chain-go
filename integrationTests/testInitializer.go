@@ -32,7 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/genesis"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -625,7 +625,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 	fmt.Println("All shards propose blocks...")
 
 	for idx, n := range nodes {
-		n.EndOfEpochTrigger.Update(int64(round))
+		n.EpochStartTrigger.Update(int64(round))
 		// set the consensus reward addresses as rewards processor expects at least valid round
 		// otherwise the produced rewards will not be valid on verification
 		n.BlockProcessor.SetConsensusData([]byte("randomness"), round, 0, n.ShardCoordinator.SelfId())

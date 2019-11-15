@@ -377,7 +377,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
-			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
 		},
@@ -914,7 +914,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {
 			return 1
 		},
@@ -942,11 +942,11 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {
 			return 2
 		},
-		IsEndOfEpochCalled: func() bool {
+		IsEpochStartCalled: func() bool {
 			return true
 		},
 	}

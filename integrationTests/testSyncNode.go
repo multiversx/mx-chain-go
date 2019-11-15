@@ -45,7 +45,7 @@ func NewTestSyncNode(
 	tpn.initDataPools()
 	tpn.initTestNodeWithSync()
 
-	tpn.EndOfEpochTrigger = &mock.EndOfEpochTriggerStub{}
+	tpn.EpochStartTrigger = &mock.EpochStartTriggerStub{}
 
 	return tpn
 }
@@ -120,7 +120,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		Core:                         nil,
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
-		EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		HeaderValidator:              headerValidator,
 		Rounder:                      &mock.RounderMock{},
 	}

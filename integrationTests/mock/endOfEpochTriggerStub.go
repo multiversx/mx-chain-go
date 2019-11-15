@@ -2,12 +2,12 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
-type EndOfEpochTriggerStub struct {
-	ForceEndOfEpochCalled func(round int64) error
-	IsEndOfEpochCalled    func() bool
+type EpochStartTriggerStub struct {
+	ForceEpochStartCalled func(round int64) error
+	IsEpochStartCalled    func() bool
 	EpochCalled           func() uint32
 	ReceivedHeaderCalled  func(handler data.HeaderHandler)
 	UpdateCalled          func(round int64)
@@ -15,69 +15,69 @@ type EndOfEpochTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
-func (e *EndOfEpochTriggerStub) EndOfEpochMetaHdrHash() []byte {
+func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 	return nil
 }
 
-func (e *EndOfEpochTriggerStub) GetRoundsPerEpoch() int64 {
+func (e *EpochStartTriggerStub) GetRoundsPerEpoch() int64 {
 	return 0
 }
 
-func (e *EndOfEpochTriggerStub) SetTrigger(triggerHandler endOfEpoch.TriggerHandler) {
+func (e *EpochStartTriggerStub) SetTrigger(triggerHandler epochStart.TriggerHandler) {
 }
 
-func (e *EndOfEpochTriggerStub) Revert() {
+func (e *EpochStartTriggerStub) Revert() {
 }
 
-func (e *EndOfEpochTriggerStub) EpochStartRound() uint64 {
+func (e *EpochStartTriggerStub) EpochStartRound() uint64 {
 	if e.EpochStartRoundCalled != nil {
 		return e.EpochStartRoundCalled()
 	}
 	return 0
 }
 
-func (e *EndOfEpochTriggerStub) Update(round int64) {
+func (e *EpochStartTriggerStub) Update(round int64) {
 	if e.UpdateCalled != nil {
 		e.UpdateCalled(round)
 	}
 }
 
-func (e *EndOfEpochTriggerStub) Processed() {
+func (e *EpochStartTriggerStub) Processed() {
 	if e.ProcessedCalled != nil {
 		e.ProcessedCalled()
 	}
 }
 
-func (e *EndOfEpochTriggerStub) ForceEndOfEpoch(round int64) error {
-	if e.ForceEndOfEpochCalled != nil {
-		return e.ForceEndOfEpochCalled(round)
+func (e *EpochStartTriggerStub) ForceEpochStart(round int64) error {
+	if e.ForceEpochStartCalled != nil {
+		return e.ForceEpochStartCalled(round)
 	}
 	return nil
 }
 
-func (e *EndOfEpochTriggerStub) IsEndOfEpoch() bool {
-	if e.IsEndOfEpochCalled != nil {
-		return e.IsEndOfEpochCalled()
+func (e *EpochStartTriggerStub) IsEpochStart() bool {
+	if e.IsEpochStartCalled != nil {
+		return e.IsEpochStartCalled()
 	}
 	return false
 }
 
-func (e *EndOfEpochTriggerStub) Epoch() uint32 {
+func (e *EpochStartTriggerStub) Epoch() uint32 {
 	if e.EpochCalled != nil {
 		return e.EpochCalled()
 	}
 	return 0
 }
 
-func (e *EndOfEpochTriggerStub) ReceivedHeader(header data.HeaderHandler) {
+func (e *EpochStartTriggerStub) ReceivedHeader(header data.HeaderHandler) {
 	if e.ReceivedHeaderCalled != nil {
 		e.ReceivedHeaderCalled(header)
 	}
 }
 
-func (e *EndOfEpochTriggerStub) SetRoundsPerEpoch(roundsPerEpoch int64) {
+func (e *EpochStartTriggerStub) SetRoundsPerEpoch(roundsPerEpoch int64) {
 }
 
-func (e *EndOfEpochTriggerStub) IsInterfaceNil() bool {
+func (e *EpochStartTriggerStub) IsInterfaceNil() bool {
 	return e == nil
 }

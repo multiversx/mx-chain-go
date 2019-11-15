@@ -64,7 +64,7 @@ type baseProcessor struct {
 	store                        dataRetriever.StorageService
 	uint64Converter              typeConverters.Uint64ByteSliceConverter
 	blockSizeThrottler           process.BlockSizeThrottler
-	endOfEpochTrigger            process.EndOfEpochTriggerHandler
+	epochStartTrigger            process.EpochStartTriggerHandler
 	headerValidator              process.HeaderConstructionValidator
 	blockChainHook               process.BlockChainHookHandler
 	txCoordinator                process.TransactionCoordinator
@@ -542,8 +542,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
-	if check.IfNil(arguments.EndOfEpochTrigger) {
-		return process.ErrNilEndOfEpochTrigger
+	if check.IfNil(arguments.EpochStartTrigger) {
+		return process.ErrNilEpochStartTrigger
 	}
 	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder

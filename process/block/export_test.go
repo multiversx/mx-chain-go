@@ -84,7 +84,7 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
-			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
 		},

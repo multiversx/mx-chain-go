@@ -10,24 +10,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// ArgsShardEndOfEpochTrigger struct { defines the arguments needed for new end of epoch trigger
-type ArgsShardEndOfEpochTrigger struct {
+// ArgsShardEpochStartTrigger struct { defines the arguments needed for new end of epoch trigger
+type ArgsShardEpochStartTrigger struct {
 	Marshalizer marshal.Marshalizer
 	Hasher      hashing.Hasher
 
-	HeaderValidator endOfEpoch.HeaderValidator
+	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
 	DataPool       dataRetriever.PoolsHolder
 	Storage        dataRetriever.StorageService
-	RequestHandler endOfEpoch.RequestHandler
+	RequestHandler epochStart.RequestHandler
 
 	Epoch    uint32
 	Validity uint64
@@ -39,7 +39,7 @@ type trigger struct {
 	currentRoundIndex  int64
 	epochStartRound    uint64
 	epochMetaBlockHash []byte
-	isEndOfEpoch       bool
+	isEpochStart       bool
 	finality           uint64
 	validity           uint64
 
@@ -48,7 +48,7 @@ type trigger struct {
 	mutTrigger        sync.Mutex
 	mapHashHdr        map[string]*block.MetaBlock
 	mapNonceHashes    map[uint64][]string
-	mapEndOfEpochHdrs map[string]*block.MetaBlock
+	mapEpochStartHdrs map[string]*block.MetaBlock
 
 	metaHdrPool         storage.Cacher
 	metaHdrNonces       dataRetriever.Uint64SyncMapCacher
@@ -58,66 +58,66 @@ type trigger struct {
 
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
-	headerValidator endOfEpoch.HeaderValidator
+	headerValidator epochStart.HeaderValidator
 
-	requestHandler endOfEpoch.RequestHandler
+	requestHandler epochStart.RequestHandler
 }
 
-// NewEndOfEpochTrigger creates a trigger to signal end of epoch
-func NewEndOfEpochTrigger(args *ArgsShardEndOfEpochTrigger) (*trigger, error) {
+// NewEpochStartTrigger creates a trigger to signal end of epoch
+func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if args == nil {
-		return nil, endOfEpoch.ErrNilArgsNewShardEndOfEpochTrigger
+		return nil, epochStart.ErrNilArgsNewShardEpochStartTrigger
 	}
 	if check.IfNil(args.Hasher) {
-		return nil, endOfEpoch.ErrNilHasher
+		return nil, epochStart.ErrNilHasher
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, endOfEpoch.ErrNilMarshalizer
+		return nil, epochStart.ErrNilMarshalizer
 	}
 	if check.IfNil(args.HeaderValidator) {
-		return nil, endOfEpoch.ErrNilHeaderValidator
+		return nil, epochStart.ErrNilHeaderValidator
 	}
 	if check.IfNil(args.DataPool) {
-		return nil, endOfEpoch.ErrNilDataPoolsHolder
+		return nil, epochStart.ErrNilDataPoolsHolder
 	}
 	if check.IfNil(args.Storage) {
-		return nil, endOfEpoch.ErrNilStorageService
+		return nil, epochStart.ErrNilStorageService
 	}
 	if check.IfNil(args.RequestHandler) {
-		return nil, endOfEpoch.ErrNilRequestHandler
+		return nil, epochStart.ErrNilRequestHandler
 	}
 	if check.IfNil(args.DataPool.MetaBlocks()) {
-		return nil, endOfEpoch.ErrNilMetaBlocksPool
+		return nil, epochStart.ErrNilMetaBlocksPool
 	}
 	if check.IfNil(args.DataPool.HeadersNonces()) {
-		return nil, endOfEpoch.ErrNilHeaderNoncesPool
+		return nil, epochStart.ErrNilHeaderNoncesPool
 	}
 	if check.IfNil(args.Uint64Converter) {
-		return nil, endOfEpoch.ErrNilUint64Converter
+		return nil, epochStart.ErrNilUint64Converter
 	}
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
-		return nil, endOfEpoch.ErrNilMetaHdrStorage
+		return nil, epochStart.ErrNilMetaHdrStorage
 	}
 
 	metaHdrNoncesStorage := args.Storage.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if check.IfNil(metaHdrNoncesStorage) {
-		return nil, endOfEpoch.ErrNilMetaNonceHashStorage
+		return nil, epochStart.ErrNilMetaNonceHashStorage
 	}
 
 	newTrigger := &trigger{
 		epoch:               args.Epoch,
 		currentRoundIndex:   0,
 		epochStartRound:     0,
-		isEndOfEpoch:        false,
+		isEpochStart:        false,
 		validity:            args.Validity,
 		finality:            args.Finality,
 		newEpochHdrReceived: false,
 		mutTrigger:          sync.Mutex{},
 		mapHashHdr:          make(map[string]*block.MetaBlock),
 		mapNonceHashes:      make(map[uint64][]string),
-		mapEndOfEpochHdrs:   make(map[string]*block.MetaBlock),
+		mapEpochStartHdrs:   make(map[string]*block.MetaBlock),
 		metaHdrPool:         args.DataPool.MetaBlocks(),
 		metaHdrNonces:       args.DataPool.HeadersNonces(),
 		metaHdrStorage:      metaHdrStorage,
@@ -132,12 +132,12 @@ func NewEndOfEpochTrigger(args *ArgsShardEndOfEpochTrigger) (*trigger, error) {
 	return newTrigger, nil
 }
 
-// IsEndOfEpoch returns true if conditions are fulfilled for end of epoch
-func (t *trigger) IsEndOfEpoch() bool {
+// IsEpochStart returns true if conditions are fulfilled for end of epoch
+func (t *trigger) IsEpochStart() bool {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	return t.isEndOfEpoch
+	return t.isEpochStart
 }
 
 // Epoch returns the current epoch number
@@ -156,8 +156,8 @@ func (t *trigger) EpochStartRound() uint64 {
 	return t.epochStartRound
 }
 
-// ForceEndOfEpoch sets the conditions for end of epoch to true in case of edge cases
-func (t *trigger) ForceEndOfEpoch(round int64) error {
+// ForceEpochStart sets the conditions for end of epoch to true in case of edge cases
+func (t *trigger) ForceEpochStart(round int64) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -166,7 +166,7 @@ func (t *trigger) ForceEndOfEpoch(round int64) error {
 
 // ReceivedHeader saves the header into pool to verify if end-of-epoch conditions are fulfilled
 func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
-	if t.isEndOfEpoch == true {
+	if t.isEpochStart == true {
 		return
 	}
 
@@ -179,7 +179,8 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 		return
 	}
 
-	if metaHdr.Epoch == t.epoch && len(metaHdr.EndOfEpoch.LastFinalizedHeaders) > 0 {
+	isMetaStartOfEpochForCurrentEpoch := metaHdr.Epoch == t.epoch && metaHdr.IsStartOfEpochBlock()
+	if isMetaStartOfEpochForCurrentEpoch {
 		return
 	}
 
@@ -194,23 +195,23 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 	if _, ok := t.mapHashHdr[string(hdrHash)]; ok {
 		return
 	}
-	if _, ok := t.mapEndOfEpochHdrs[string(hdrHash)]; ok {
+	if _, ok := t.mapEpochStartHdrs[string(hdrHash)]; ok {
 		return
 	}
 
 	if metaHdr.IsStartOfEpochBlock() {
 		t.newEpochHdrReceived = true
-		t.mapEndOfEpochHdrs[string(hdrHash)] = metaHdr
+		t.mapEpochStartHdrs[string(hdrHash)] = metaHdr
 	} else {
 		t.mapHashHdr[string(hdrHash)] = metaHdr
 		t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(hdrHash))
 	}
 
-	for hash, meta := range t.mapEndOfEpochHdrs {
-		canActivateEndOfEpoch := t.checkIfTriggerCanBeActivated(hash, meta)
-		if canActivateEndOfEpoch && t.epoch != meta.Epoch {
+	for hash, meta := range t.mapEpochStartHdrs {
+		canActivateEpochStart := t.checkIfTriggerCanBeActivated(hash, meta)
+		if canActivateEpochStart && t.epoch != meta.Epoch {
 			t.epoch = meta.Epoch
-			t.isEndOfEpoch = true
+			t.isEpochStart = true
 			t.epochStartRound = meta.Round
 			t.epochMetaBlockHash = []byte(hash)
 			break
@@ -302,7 +303,7 @@ func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*b
 
 	go t.requestHandler.RequestHeader(sharding.MetachainShardId, neededHash)
 
-	return nil, endOfEpoch.ErrMetaHdrNotFound
+	return nil, epochStart.ErrMetaHdrNotFound
 }
 
 func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (*block.MetaBlock, error) {
@@ -351,12 +352,12 @@ func (t *trigger) Processed() {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	t.isEndOfEpoch = false
+	t.isEpochStart = false
 	t.newEpochHdrReceived = false
 
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)
-	t.mapEndOfEpochHdrs = make(map[string]*block.MetaBlock)
+	t.mapEpochStartHdrs = make(map[string]*block.MetaBlock)
 }
 
 // Revert sets the end of epoch back to true
@@ -364,12 +365,12 @@ func (t *trigger) Revert() {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	t.isEndOfEpoch = true
+	t.isEpochStart = true
 	t.newEpochHdrReceived = true
 }
 
-// EndOfEpochMetaHdrHash returns the announcing meta header hash which created the new epoch
-func (t *trigger) EndOfEpochMetaHdrHash() []byte {
+// EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch
+func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochMetaBlockHash
 }
 

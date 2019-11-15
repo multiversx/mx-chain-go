@@ -55,7 +55,7 @@ func TestShardData_SaveLoad(t *testing.T) {
 	assert.Equal(t, loadSd, sd)
 }
 
-func TestEndOfEpoch_SaveLoad(t *testing.T) {
+func TestEpochStart_SaveLoad(t *testing.T) {
 
 	mbh := block.ShardMiniBlockHeader{
 		Hash:            []byte("miniblock hash"),
@@ -70,18 +70,18 @@ func TestEndOfEpoch_SaveLoad(t *testing.T) {
 		RootHash:   []byte("roothash"),
 	}
 
-	endOfEpoch := block.EndOfEpoch{
+	epochStart := block.EpochStart{
 		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 		LastFinalizedHeaders:    []block.FinalizedHeaders{lastFinalHdr},
 	}
 
 	var b bytes.Buffer
-	_ = endOfEpoch.Save(&b)
+	_ = epochStart.Save(&b)
 
-	loadEpoch := block.EndOfEpoch{}
+	loadEpoch := block.EpochStart{}
 	_ = loadEpoch.Load(&b)
 
-	assert.Equal(t, loadEpoch, endOfEpoch)
+	assert.Equal(t, loadEpoch, epochStart)
 }
 
 func TestMetaBlock_SaveLoad(t *testing.T) {
@@ -139,7 +139,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		ValidatorStatsRootHash: []byte("validator root hash"),
 		TxCount:                uint32(1),
 		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
-		EndOfEpoch: block.EndOfEpoch{
+		EpochStart: block.EpochStart{
 			PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 			LastFinalizedHeaders:    []block.FinalizedHeaders{lastFinalHdr},
 		},

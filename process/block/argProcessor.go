@@ -32,7 +32,7 @@ type ArgBaseProcessor struct {
 	BlockChainHook               process.BlockChainHookHandler
 	TxCoordinator                process.TransactionCoordinator
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	EndOfEpochTrigger            process.EndOfEpochTriggerHandler
+	EpochStartTrigger            process.EpochStartTriggerHandler
 	HeaderValidator              process.HeaderConstructionValidator
 	Rounder                      consensus.Rounder
 }

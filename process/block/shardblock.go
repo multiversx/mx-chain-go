@@ -67,7 +67,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		rounder:                       arguments.Rounder,
-		endOfEpochTrigger:             arguments.EndOfEpochTrigger,
+		epochStartTrigger:             arguments.EpochStartTrigger,
 		headerValidator:               arguments.HeaderValidator,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -279,14 +279,15 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	}
 
 	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		sp.endOfEpochTrigger.Epoch() == currentBlockHeader.GetEpoch()
+		sp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
 	if isEpochIncorrect {
 		return process.ErrEpochDoesNotMatch
 	}
 
-	if sp.endOfEpochTrigger.IsEndOfEpoch() &&
-		headerHandler.GetRound() > sp.endOfEpochTrigger.EpochStartRound()+process.MetaBlockFinality &&
-		headerHandler.GetEpoch() != sp.endOfEpochTrigger.Epoch() {
+	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
+		headerHandler.GetRound() > sp.epochStartTrigger.EpochStartRound()+process.MetaBlockFinality &&
+		headerHandler.GetEpoch() != sp.epochStartTrigger.Epoch()
+	if isOldEpochAndShouldBeNew {
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -295,8 +296,9 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		return process.ErrWrongTypeAssertion
 	}
 
-	if shardHdr.IsStartOfEpochBlock() &&
-		!bytes.Equal(shardHdr.EndOfEpochMetaHash, sp.endOfEpochTrigger.EndOfEpochMetaHdrHash()) {
+	isEpochStartMetaHahhIncorrect := shardHdr.IsStartOfEpochBlock() &&
+		!bytes.Equal(shardHdr.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash())
+	if isEpochStartMetaHahhIncorrect {
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -496,7 +498,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	}
 
 	if header.IsStartOfEpochBlock() {
-		sp.endOfEpochTrigger.Revert()
+		sp.epochStartTrigger.Revert()
 	}
 
 	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
@@ -695,7 +697,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		sp.endOfEpochTrigger.Processed()
+		sp.epochStartTrigger.Processed()
 	}
 
 	log.Info(fmt.Sprintf("shard block with nonce %d and hash %s has been committed successfully\n",
@@ -1173,7 +1175,7 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
-	go sp.endOfEpochTrigger.ReceivedHeader(metaBlock)
+	go sp.epochStartTrigger.ReceivedHeader(metaBlock)
 
 	isMetaBlockOutOfRange := metaBlock.GetNonce() > lastNotarizedHdr.GetNonce()+process.MaxHeadersToRequestInAdvance
 	if isMetaBlockOutOfRange {
@@ -1580,9 +1582,9 @@ func (sp *shardProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler 
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	shardHeader.MetaBlockHashes = metaBlockHashes[sharding.MetachainShardId]
 
-	shardHeader.Epoch = sp.endOfEpochTrigger.Epoch()
-	if sp.endOfEpochTrigger.IsEndOfEpoch() {
-		shardHeader.EndOfEpochMetaHash = sp.endOfEpochTrigger.EndOfEpochMetaHdrHash()
+	shardHeader.Epoch = sp.epochStartTrigger.Epoch()
+	if sp.epochStartTrigger.IsEpochStart() {
+		shardHeader.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
 	}
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))

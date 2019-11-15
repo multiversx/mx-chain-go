@@ -45,10 +45,10 @@ import (
 	shardfactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/genesis"
-	metachainEndOfEpoch "github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/shardchain"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
+	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -160,7 +160,7 @@ type Process struct {
 	InterceptorsContainer process.InterceptorsContainer
 	ResolversFinder       dataRetriever.ResolversFinder
 	Rounder               consensus.Rounder
-	EndOfEpochTrigger     endOfEpoch.TriggerHandler
+	EpochStartTrigger     epochStart.TriggerHandler
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
 	BlackListHandler      process.BlackListHandler
@@ -466,7 +466,7 @@ type processComponentsFactoryArgs struct {
 	state                *State
 	network              *Network
 	coreServiceContainer serviceContainer.Core
-	endOfEpoch           *config.EndOfEpochConfig
+	epochStart           *config.EpochStartConfig
 	startEpochNum        uint32
 }
 
@@ -485,7 +485,7 @@ func NewProcessComponentsFactoryArgs(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
-	endOfEpoch *config.EndOfEpochConfig,
+	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
@@ -502,7 +502,7 @@ func NewProcessComponentsFactoryArgs(
 		state:                state,
 		network:              network,
 		coreServiceContainer: coreServiceContainer,
-		endOfEpoch:           endOfEpoch,
+		epochStart:           epochStart,
 		startEpochNum:        startEpochNum,
 	}
 }
@@ -552,7 +552,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	endOfEpochTrigger, err := newEndOfEpochTrigger(args, rounder, requestHandler)
+	epochStartTrigger, err := newEpochStartTrigger(args, rounder, requestHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -586,7 +586,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		forkDetector,
 		genesisBlocks,
 		rounder,
-		endOfEpochTrigger,
+		epochStartTrigger,
 	)
 
 	if err != nil {
@@ -599,7 +599,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		Rounder:               rounder,
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
-		EndOfEpochTrigger:     endOfEpochTrigger,
+		EpochStartTrigger:     epochStartTrigger,
 		BlackListHandler:      blackListHandler,
 	}, nil
 }
@@ -681,11 +681,11 @@ func newRequestHandler(
 	return nil, errors.New("could not create new request handler because of wrong shard id")
 }
 
-func newEndOfEpochTrigger(
+func newEpochStartTrigger(
 	args *processComponentsFactoryArgs,
-	rounder endOfEpoch.Rounder,
-	requestHandler endOfEpoch.RequestHandler,
-) (endOfEpoch.TriggerHandler, error) {
+	rounder epochStart.Rounder,
+	requestHandler epochStart.RequestHandler,
+) (epochStart.TriggerHandler, error) {
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
 			Hasher:      args.core.Hasher,
@@ -696,7 +696,7 @@ func newEndOfEpochTrigger(
 			return nil, err
 		}
 
-		argEndOfEpoch := &shardchain.ArgsShardEndOfEpochTrigger{
+		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
 			Marshalizer:     args.core.Marshalizer,
 			Hasher:          args.core.Hasher,
 			HeaderValidator: headerValidator,
@@ -708,27 +708,27 @@ func newEndOfEpochTrigger(
 			Validity:        0,
 			Finality:        0,
 		}
-		endOfEpochTrigger, err := shardchain.NewEndOfEpochTrigger(argEndOfEpoch)
+		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
 			return nil, errors.New("error creating new end of epoch trigger" + err.Error())
 		}
 
-		return endOfEpochTrigger, nil
+		return epochStartTrigger, nil
 	}
 
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
-		argEndOfEpoch := &metachainEndOfEpoch.ArgsNewMetaEndOfEpochTrigger{
+		argEpochStart := &metachainEpochStart.ArgsNewMetaEpochStartTrigger{
 			Rounder:     rounder,
 			GenesisTime: time.Unix(args.nodesConfig.StartTime, 0),
-			Settings:    args.endOfEpoch,
+			Settings:    args.epochStart,
 			Epoch:       args.startEpochNum,
 		}
-		endOfEpochTrigger, err := metachainEndOfEpoch.NewEndOfEpochTrigger(argEndOfEpoch)
+		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
 			return nil, errors.New("error creating new end of epoch trigger" + err.Error())
 		}
 
-		return endOfEpochTrigger, nil
+		return epochStartTrigger, nil
 	}
 
 	return nil, errors.New("error creating new end of epoch trigger because of invalid shard id")
@@ -1817,7 +1817,7 @@ func newBlockProcessor(
 	forkDetector process.ForkDetector,
 	genesisBlocks map[uint32]data.HeaderHandler,
 	rounder consensus.Rounder,
-	endOfEpochTrigger endOfEpoch.TriggerHandler,
+	epochStartTrigger epochStart.TriggerHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1864,7 +1864,7 @@ func newBlockProcessor(
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			rounder,
-			endOfEpochTrigger,
+			epochStartTrigger,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1887,7 +1887,7 @@ func newBlockProcessor(
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
 			rounder,
-			endOfEpochTrigger,
+			epochStartTrigger,
 		)
 	}
 
@@ -1907,7 +1907,7 @@ func newShardBlockProcessor(
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	rounder consensus.Rounder,
-	endOfEpochTrigger endOfEpoch.TriggerHandler,
+	epochStartTrigger epochStart.TriggerHandler,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -2096,7 +2096,7 @@ func newShardBlockProcessor(
 		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
 		Rounder:               rounder,
-		EndOfEpochTrigger:     endOfEpochTrigger,
+		EpochStartTrigger:     epochStartTrigger,
 		HeaderValidator:       headerValidator,
 	}
 	arguments := block.ArgShardProcessor{
@@ -2132,7 +2132,7 @@ func newMetaBlockProcessor(
 	economics *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
-	endOfEpochTrigger endOfEpoch.TriggerHandler,
+	epochStartTrigger epochStart.TriggerHandler,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2281,13 +2281,13 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create pending miniblocks handler because of empty metablock store")
 	}
 
-	argsPendingMiniBlocks := &metachainEndOfEpoch.ArgsPendingMiniBlocks{
+	argsPendingMiniBlocks := &metachainEpochStart.ArgsPendingMiniBlocks{
 		Marshalizer:      core.Marshalizer,
 		Storage:          miniBlockHeaderStore,
 		MetaBlockPool:    data.MetaDatapool.MetaBlocks(),
 		MetaBlockStorage: metaBlocksStore,
 	}
-	pendingMiniBlocks, err := metachainEndOfEpoch.NewPendingMiniBlocks(argsPendingMiniBlocks)
+	pendingMiniBlocks, err := metachainEpochStart.NewPendingMiniBlocks(argsPendingMiniBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -2317,7 +2317,7 @@ func newMetaBlockProcessor(
 		BlockChainHook:               vmFactory.BlockChainHookImpl(),
 		TxCoordinator:                txCoordinator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-		EndOfEpochTrigger:            endOfEpochTrigger,
+		EpochStartTrigger:            epochStartTrigger,
 		Rounder:                      rounder,
 		HeaderValidator:              headerValidator,
 	}

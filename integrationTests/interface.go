@@ -1,7 +1,7 @@
 package integrationTests
 
 import (
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -13,11 +13,11 @@ type TestBootstrapper interface {
 	SetProbableHighestNonce(nonce uint64)
 }
 
-// TestEndOfEpochTrigger extends the endOfEpoch trigger interface with some functions intended to by used only
+// TestEpochStartTrigger extends the epochStart trigger interface with some functions intended to by used only
 // in tests as it simplifies the reproduction of test scenarios
-type TestEndOfEpochTrigger interface {
-	endOfEpoch.TriggerHandler
+type TestEpochStartTrigger interface {
+	epochStart.TriggerHandler
 	GetRoundsPerEpoch() int64
-	SetTrigger(triggerHandler endOfEpoch.TriggerHandler)
+	SetTrigger(triggerHandler epochStart.TriggerHandler)
 	SetRoundsPerEpoch(roundsPerEpoch int64)
 }

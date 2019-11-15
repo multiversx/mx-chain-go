@@ -5,16 +5,16 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/mock"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockEndOfEpochTriggerArguments() *ArgsNewMetaEndOfEpochTrigger {
-	return &ArgsNewMetaEndOfEpochTrigger{
+func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
+	return &ArgsNewMetaEpochStartTrigger{
 		Rounder:     &mock.RounderStub{},
 		GenesisTime: time.Time{},
-		Settings: &config.EndOfEpochConfig{
+		Settings: &config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 1,
 			RoundsPerEpoch:         2,
 		},
@@ -22,78 +22,78 @@ func createMockEndOfEpochTriggerArguments() *ArgsNewMetaEndOfEpochTrigger {
 	}
 }
 
-func TestNewEndOfEpochTrigger_NilArgumentsShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	neoet, err := NewEndOfEpochTrigger(nil)
+	neoet, err := NewEpochStartTrigger(nil)
 
 	assert.Nil(t, neoet)
-	assert.Equal(t, endOfEpoch.ErrNilArgsNewMetaEndOfEpochTrigger, err)
+	assert.Equal(t, epochStart.ErrNilArgsNewMetaEpochStartTrigger, err)
 }
 
-func TestNewEndOfEpochTrigger_NilRounderShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilRounderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 	arguments.Rounder = nil
 
-	neoet, err := NewEndOfEpochTrigger(arguments)
+	neoet, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, neoet)
-	assert.Equal(t, endOfEpoch.ErrNilRounder, err)
+	assert.Equal(t, epochStart.ErrNilRounder, err)
 }
 
-func TestNewEndOfEpochTrigger_NilSettingsShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilSettingsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings = nil
 
-	neoet, err := NewEndOfEpochTrigger(arguments)
+	neoet, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, neoet)
-	assert.Equal(t, endOfEpoch.ErrNilEndOfEpochSettings, err)
+	assert.Equal(t, epochStart.ErrNilEpochStartSettings, err)
 }
 
-func TestNewEndOfEpochTrigger_InvalidSettingsShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_InvalidSettingsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.RoundsPerEpoch = 0
 
-	neoet, err := NewEndOfEpochTrigger(arguments)
+	neoet, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, neoet)
-	assert.Equal(t, endOfEpoch.ErrInvalidSettingsForEndOfEpochTrigger, err)
+	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
 }
 
-func TestNewEndOfEpochTrigger_InvalidSettingsShouldErr2(t *testing.T) {
+func TestNewEpochStartTrigger_InvalidSettingsShouldErr2(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.RoundsPerEpoch = 1
 	arguments.Settings.MinRoundsBetweenEpochs = 0
 
-	neoet, err := NewEndOfEpochTrigger(arguments)
+	neoet, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, neoet)
-	assert.Equal(t, endOfEpoch.ErrInvalidSettingsForEndOfEpochTrigger, err)
+	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
 }
 
-func TestNewEndOfEpochTrigger_InvalidSettingsShouldErr3(t *testing.T) {
+func TestNewEpochStartTrigger_InvalidSettingsShouldErr3(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.RoundsPerEpoch = 4
 	arguments.Settings.MinRoundsBetweenEpochs = 6
 
-	neoet, err := NewEndOfEpochTrigger(arguments)
+	neoet, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, neoet)
-	assert.Equal(t, endOfEpoch.ErrInvalidSettingsForEndOfEpochTrigger, err)
+	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
 }
 
-func TestNewEndOfEpochTrigger_ShouldOk(t *testing.T) {
+func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 
-	neoet, err := NewEndOfEpochTrigger(arguments)
+	neoet, err := NewEpochStartTrigger(arguments)
 	assert.NotNil(t, neoet)
 	assert.Nil(t, err)
 }
@@ -103,9 +103,9 @@ func TestTrigger_Update(t *testing.T) {
 
 	epoch := uint32(0)
 	round := int64(0)
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	neoet, _ := NewEndOfEpochTrigger(arguments)
+	neoet, _ := NewEpochStartTrigger(arguments)
 
 	neoet.Update(round)
 	round++
@@ -115,65 +115,65 @@ func TestTrigger_Update(t *testing.T) {
 	round++
 	neoet.Update(round)
 
-	ret := neoet.IsEndOfEpoch()
+	ret := neoet.IsEpochStart()
 	assert.True(t, ret)
 
 	epc := neoet.Epoch()
 	assert.Equal(t, epoch+1, epc)
 
 	neoet.Processed()
-	ret = neoet.IsEndOfEpoch()
+	ret = neoet.IsEpochStart()
 	assert.False(t, ret)
 }
 
-func TestTrigger_ForceEndOfEpochIncorrectRoundShouldErr(t *testing.T) {
+func TestTrigger_ForceEpochStartIncorrectRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	round := int64(1)
-	arguments := createMockEndOfEpochTriggerArguments()
-	neoet, _ := NewEndOfEpochTrigger(arguments)
+	arguments := createMockEpochStartTriggerArguments()
+	neoet, _ := NewEpochStartTrigger(arguments)
 
 	neoet.Update(round)
 
-	err := neoet.ForceEndOfEpoch(0)
-	assert.Equal(t, endOfEpoch.ErrSavedRoundIsHigherThanInputRound, err)
+	err := neoet.ForceEpochStart(0)
+	assert.Equal(t, epochStart.ErrSavedRoundIsHigherThanInputRound, err)
 }
 
-func TestTrigger_ForceEndOfEpochRoundEqualWithSavedRoundShouldErr(t *testing.T) {
+func TestTrigger_ForceEpochStartRoundEqualWithSavedRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockEndOfEpochTriggerArguments()
-	neoet, _ := NewEndOfEpochTrigger(arguments)
+	arguments := createMockEpochStartTriggerArguments()
+	neoet, _ := NewEpochStartTrigger(arguments)
 
-	err := neoet.ForceEndOfEpoch(0)
-	assert.Equal(t, endOfEpoch.ErrForceEndOfEpochCanBeCalledOnlyOnNewRound, err)
+	err := neoet.ForceEpochStart(0)
+	assert.Equal(t, epochStart.ErrForceEpochStartCanBeCalledOnlyOnNewRound, err)
 }
 
-func TestTrigger_ForceEndOfEpochNotEnoughRoundsShouldErr(t *testing.T) {
+func TestTrigger_ForceEpochStartNotEnoughRoundsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.MinRoundsBetweenEpochs = 2
-	neoet, _ := NewEndOfEpochTrigger(arguments)
+	neoet, _ := NewEpochStartTrigger(arguments)
 
-	err := neoet.ForceEndOfEpoch(1)
-	assert.Equal(t, endOfEpoch.ErrNotEnoughRoundsBetweenEpochs, err)
+	err := neoet.ForceEpochStart(1)
+	assert.Equal(t, epochStart.ErrNotEnoughRoundsBetweenEpochs, err)
 }
 
-func TestTrigger_ForceEndOfEpochShouldOk(t *testing.T) {
+func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(0)
-	arguments := createMockEndOfEpochTriggerArguments()
+	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	neoet, _ := NewEndOfEpochTrigger(arguments)
+	neoet, _ := NewEpochStartTrigger(arguments)
 
-	err := neoet.ForceEndOfEpoch(1)
+	err := neoet.ForceEpochStart(1)
 	assert.Nil(t, err)
 
 	newEpoch := neoet.Epoch()
 	assert.Equal(t, epoch+1, newEpoch)
 
-	isEndOfEpoch := neoet.IsEndOfEpoch()
-	assert.True(t, isEndOfEpoch)
+	isEpochStart := neoet.IsEpochStart()
+	assert.True(t, isEpochStart)
 }

@@ -54,8 +54,8 @@ type NTPConfig struct {
 	Version             int
 }
 
-// EndOfEpochConfig will hold the configuration of EndOfEpoch settings
-type EndOfEpochConfig struct {
+// EpochStartConfig will hold the configuration of EpochStart settings
+type EpochStartConfig struct {
 	MinRoundsBetweenEpochs int64
 	RoundsPerEpoch         int64
 }
@@ -107,7 +107,7 @@ type Config struct {
 
 	NTPConfig NTPConfig
 
-	EndOfEpoch EndOfEpochConfig
+	EpochStart EpochStartConfig
 }
 
 // NodeConfig will hold basic p2p settings

@@ -103,7 +103,7 @@ type Header struct {
 	RootHash               []byte            `capid:"13"`
 	ValidatorStatsRootHash []byte            `capid:"14"`
 	MetaBlockHashes        [][]byte          `capid:"15"`
-	EndOfEpochMetaHash     []byte            `capid:"16"`
+	EpochStartMetaHash     []byte            `capid:"16"`
 	TxCount                uint32            `capid:"17"`
 }
 
@@ -143,7 +143,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.Epoch = src.Epoch()
 	dest.BlockBodyType = Type(src.BlockBodyType())
 	dest.Signature = src.Signature()
-	dest.EndOfEpochMetaHash = src.EndOfEpochMetaHash()
+	dest.EpochStartMetaHash = src.EpochStartMetaHash()
 
 	mbLength := src.MiniBlockHeaders().Len()
 	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
@@ -187,7 +187,7 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetEpoch(src.Epoch)
 	dest.SetBlockBodyType(uint8(src.BlockBodyType))
 	dest.SetSignature(src.Signature)
-	dest.SetEndOfEpochMetaHash(src.EndOfEpochMetaHash)
+	dest.SetEpochStartMetaHash(src.EpochStartMetaHash)
 
 	if len(src.MiniBlockHeaders) > 0 {
 		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
@@ -501,7 +501,7 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
-// GetAllMiniBlockHashes as a map of hashes and sender IDs
+// MapMiniBlockHashesToShards as a map of hashes and sender IDs
 func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
 	hashDst := make(map[string]uint32, 0)
 	for _, val := range h.MiniBlockHeaders {
@@ -543,7 +543,7 @@ func (h *Header) IsInterfaceNil() bool {
 
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (h *Header) IsStartOfEpochBlock() bool {
-	return len(h.EndOfEpochMetaHash) > 0
+	return len(h.EpochStartMetaHash) > 0
 }
 
 // ItemsInHeader gets the number of items(hashes) added in block header

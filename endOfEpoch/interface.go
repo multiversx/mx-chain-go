@@ -1,4 +1,4 @@
-package endOfEpoch
+package epochStart
 
 import (
 	"time"
@@ -9,13 +9,13 @@ import (
 
 // TriggerHandler defines the functionalities for an end of epoch trigger
 type TriggerHandler interface {
-	ForceEndOfEpoch(round int64) error
-	IsEndOfEpoch() bool
+	ForceEpochStart(round int64) error
+	IsEpochStart() bool
 	Epoch() uint32
 	ReceivedHeader(header data.HeaderHandler)
 	Update(round int64)
 	EpochStartRound() uint64
-	EndOfEpochMetaHdrHash() []byte
+	EpochStartMetaHdrHash() []byte
 	Processed()
 	Revert()
 	IsInterfaceNil() bool

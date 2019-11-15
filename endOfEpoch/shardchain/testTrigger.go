@@ -1,6 +1,6 @@
 package shardchain
 
-import "github.com/ElrondNetwork/elrond-go/endOfEpoch"
+import "github.com/ElrondNetwork/elrond-go/epochStart"
 
 // TestTrigger extends end of epoch trigger and is used in integration tests as it exposes some functions
 // that are not supposed to be used in production code
@@ -10,7 +10,7 @@ type TestTrigger struct {
 }
 
 // SetTrigger sets the end of epoch trigger
-func (t *TestTrigger) SetTrigger(triggerHandler endOfEpoch.TriggerHandler) {
+func (t *TestTrigger) SetTrigger(triggerHandler epochStart.TriggerHandler) {
 	actualTrigger, ok := triggerHandler.(*trigger)
 	if !ok {
 		return

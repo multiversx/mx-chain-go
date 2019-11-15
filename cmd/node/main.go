@@ -689,7 +689,7 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		stateComponents,
 		networkComponents,
 		coreServiceContainer,
-		&generalConfig.EndOfEpoch,
+		&generalConfig.EpochStart,
 		0,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
@@ -1130,7 +1130,7 @@ func createNode(
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
-		node.WithEndOfEpochTrigger(process.EndOfEpochTrigger),
+		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithBlackListHandler(process.BlackListHandler),
 	)
 	if err != nil {
