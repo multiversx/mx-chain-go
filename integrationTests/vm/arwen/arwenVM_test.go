@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
+
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
@@ -341,4 +343,24 @@ func TestWASMMetering(t *testing.T) {
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
 	assert.Equal(t, 556, int(consumedGasValue))
+}
+
+func TestGasExhaustionError(t *testing.T) {
+	accnts := vm.CreateInMemoryShardAccountsDB()
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
+	vmContainer, _ := vmFactory.Create()
+	arwenVM, err := vmContainer.Get(factory.ArwenVirtualMachine)
+	assert.Nil(t, err)
+
+	fileSC := "./fib_arwen.wasm"
+	scCode, err := ioutil.ReadFile(fileSC)
+	assert.Nil(t, err)
+
+	gasLeft := int64(100000)
+
+	wasmer.SetImports(arwenVM.GetImports())
+	wasmer.SetOpcodeCosts(&arwenVM.GetOpcodeCosts())
+	wasmerInstance, err = wasmer.NewMeteredInstance(scCode, uint64(gasLeft))
 }
