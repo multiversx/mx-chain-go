@@ -968,6 +968,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	for tr.pruningBufferLength() != 0 {
 		time.Sleep(snapshotDelay)
 	}
+	time.Sleep(snapshotDelay)
 
 	for i := range rootHashes {
 		trie, err := tr.Recreate(rootHashes[i])

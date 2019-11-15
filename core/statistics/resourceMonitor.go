@@ -2,11 +2,14 @@ package statistics
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 )
@@ -31,7 +34,7 @@ func NewResourceMonitor(file *os.File) (*ResourceMonitor, error) {
 }
 
 // GenerateStatistics creates a new statistic string
-func (rm *ResourceMonitor) GenerateStatistics() string {
+func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, uniqueDBFolder string) string {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
@@ -51,11 +54,14 @@ func (rm *ResourceMonitor) GenerateStatistics() string {
 		}
 	}
 
+	accountsTrieDbFilePath := filepath.Join(uniqueDBFolder, generalConfig.AccountsTrieStorage.DB.FilePath)
+	evictionWaitingListDbFilePath := filepath.Join(accountsTrieDbFilePath, generalConfig.EvictionWaitingList.DB.FilePath)
+
 	return fmt.Sprintf("timestamp: %d, uptime: %v, num go: %d, alloc: %s, heap alloc: %s, heap idle: %s"+
 		", heap inuse: %s, heap sys: %s, heap released: %s, heap num objs: %d, sys mem: %s, "+
-		"total mem: %s, num GC: %d, FDs: %d, num opened files: %d, num conns: %d\n",
+		"total mem: %s, num GC: %d, FDs: %d, num opened files: %d, num conns: %d, accountsTrieDbMem: %s, evictionDbMem: %s\n",
 		time.Now().Unix(),
-		time.Duration(time.Now().UnixNano() - rm.startTime.UnixNano()).Round(time.Second),
+		time.Duration(time.Now().UnixNano()-rm.startTime.UnixNano()).Round(time.Second),
 		runtime.NumGoroutine(),
 		core.ConvertBytes(memStats.Alloc),
 		core.ConvertBytes(memStats.HeapAlloc),
@@ -70,18 +76,31 @@ func (rm *ResourceMonitor) GenerateStatistics() string {
 		fileDescriptors,
 		numOpenFiles,
 		numConns,
+		getDirMemSize(accountsTrieDbFilePath),
+		getDirMemSize(evictionWaitingListDbFilePath),
 	)
 }
 
+func getDirMemSize(dir string) string {
+	files, _ := ioutil.ReadDir(dir)
+
+	size := int64(0)
+	for _, f := range files {
+		size += f.Size()
+	}
+
+	return core.ConvertBytes(uint64(size))
+}
+
 // SaveStatistics generates and saves statistic data on the disk
-func (rm *ResourceMonitor) SaveStatistics() error {
+func (rm *ResourceMonitor) SaveStatistics(generalConfig *config.Config, uniqueDBFolder string) error {
 	rm.mutFile.RLock()
 	defer rm.mutFile.RUnlock()
 	if rm.file == nil {
 		return ErrNilFileToWriteStats
 	}
 
-	stats := rm.GenerateStatistics()
+	stats := rm.GenerateStatistics(generalConfig, uniqueDBFolder)
 	_, err := rm.file.WriteString(stats)
 	if err != nil {
 		return err
