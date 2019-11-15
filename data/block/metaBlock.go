@@ -75,7 +75,7 @@ type ShardData struct {
 	TxCount               uint32                 `capid:"6"`
 }
 
-// FinalizedHeaders hold the last finalized headers hash and state root hash
+// EpochStartShardData hold the last finalized headers hash and state root hash
 type EpochStartShardData struct {
 	ShardId                 uint32                 `capid:"0"`
 	HeaderHash              []byte                 `capid:"1"`
@@ -294,37 +294,16 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 	return dest
 }
 
-// FinalizedHeaderGoToCapn is a helper function to copy fields from a FinalizedHeaderHeader object to a
-// FinalizedHeaderCapn object
-func FinalizedHeaderGoToCapn(seg *capn.Segment, src *FinalizedHeaders) capnp.FinalizedHeadersCapn {
+// EpochStartShardDataGoToCapn is a helper function to copy fields from a FinalizedHeaderHeader object to a
+// EpochStartShardDataCapn object
+func EpochStartShardDataGoToCapn(seg *capn.Segment, src *EpochStartShardData) capnp.FinalizedHeadersCapn {
 	dest := capnp.AutoNewFinalizedHeadersCapn(seg)
 
 	dest.SetRootHash(src.RootHash)
 	dest.SetHeaderHash(src.HeaderHash)
 	dest.SetShardId(src.ShardId)
+	dest.SetFirstPendingMetaBlock(src.FirstPendingMetaBlock)
 
-	return dest
-}
-
-// FinalizedHeaderCapnToGo is a helper function to copy fields from a FinalizedHeaderCapn object to a
-// FinalizedHeader object
-func FinalizedHeaderCapnToGo(src capnp.FinalizedHeadersCapn, dest *FinalizedHeaders) *FinalizedHeaders {
-	if dest == nil {
-		dest = &FinalizedHeaders{}
-	}
-
-	dest.RootHash = src.RootHash()
-	dest.HeaderHash = src.HeaderHash()
-	dest.ShardId = src.ShardId()
-
-	return dest
-}
-
-// EpochStartGoToCapn is a helper function to copy fields from a ShardData object to a ShardDataCapn object
-func EpochStartGoToCapn(seg *capn.Segment, src EpochStart) capnp.EpochStartCapn {
-	dest := capnp.AutoNewEpochStartCapn(seg)
-
-	// create the list of shardMiniBlockHeaders
 	if len(src.PendingMiniBlockHeaders) > 0 {
 		typedList := capnp.NewShardMiniBlockHeaderCapnList(seg, len(src.PendingMiniBlockHeaders))
 		plist := capn.PointerList(typedList)
@@ -335,12 +314,40 @@ func EpochStartGoToCapn(seg *capn.Segment, src EpochStart) capnp.EpochStartCapn 
 		dest.SetPendingMiniBlockHeaders(typedList)
 	}
 
+	return dest
+}
+
+// EpochStartShardDataCapnToGo is a helper function to copy fields from a FinalizedHeaderCapn object to a
+// EpochStartShardData object
+func EpochStartShardDataCapnToGo(src capnp.FinalizedHeadersCapn, dest *EpochStartShardData) *EpochStartShardData {
+	if dest == nil {
+		dest = &EpochStartShardData{}
+	}
+
+	dest.RootHash = src.RootHash()
+	dest.HeaderHash = src.HeaderHash()
+	dest.ShardId = src.ShardId()
+	dest.FirstPendingMetaBlock = src.FirstPendingMetaBlock()
+
+	n := src.PendingMiniBlockHeaders().Len()
+	dest.PendingMiniBlockHeaders = make([]ShardMiniBlockHeader, n)
+	for i := 0; i < n; i++ {
+		dest.PendingMiniBlockHeaders[i] = *ShardMiniBlockHeaderCapnToGo(src.PendingMiniBlockHeaders().At(i), nil)
+	}
+
+	return dest
+}
+
+// EpochStartGoToCapn is a helper function to copy fields from a ShardData object to a ShardDataCapn object
+func EpochStartGoToCapn(seg *capn.Segment, src EpochStart) capnp.EpochStartCapn {
+	dest := capnp.AutoNewEpochStartCapn(seg)
+
 	if len(src.LastFinalizedHeaders) > 0 {
 		typedList := capnp.NewFinalizedHeadersCapnList(seg, len(src.LastFinalizedHeaders))
 		pList := capn.PointerList(typedList)
 
 		for i, elem := range src.LastFinalizedHeaders {
-			_ = pList.Set(i, capn.Object(FinalizedHeaderGoToCapn(seg, &elem)))
+			_ = pList.Set(i, capn.Object(EpochStartShardDataGoToCapn(seg, &elem)))
 		}
 		dest.SetLastFinalizedHeaders(typedList)
 	}
@@ -354,16 +361,10 @@ func EpochStartCapnToGo(src capnp.EpochStartCapn, dest *EpochStart) *EpochStart 
 		dest = &EpochStart{}
 	}
 
-	n := src.PendingMiniBlockHeaders().Len()
-	dest.PendingMiniBlockHeaders = make([]ShardMiniBlockHeader, n)
+	n := src.LastFinalizedHeaders().Len()
+	dest.LastFinalizedHeaders = make([]EpochStartShardData, n)
 	for i := 0; i < n; i++ {
-		dest.PendingMiniBlockHeaders[i] = *ShardMiniBlockHeaderCapnToGo(src.PendingMiniBlockHeaders().At(i), nil)
-	}
-
-	n = src.LastFinalizedHeaders().Len()
-	dest.LastFinalizedHeaders = make([]FinalizedHeaders, n)
-	for i := 0; i < n; i++ {
-		dest.LastFinalizedHeaders[i] = *FinalizedHeaderCapnToGo(src.LastFinalizedHeaders().At(i), nil)
+		dest.LastFinalizedHeaders[i] = *EpochStartShardDataCapnToGo(src.LastFinalizedHeaders().At(i), nil)
 	}
 
 	return dest

@@ -1563,8 +1563,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 
 func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock) (*block.EpochStart, error) {
 	epochStart := &block.EpochStart{
-		PendingMiniBlockHeaders: make([]block.ShardMiniBlockHeader, 0),
-		LastFinalizedHeaders:    make([]block.FinalizedHeaders, 0),
+		LastFinalizedHeaders: make([]block.EpochStartShardData, 0),
 	}
 
 	if !mp.epochStartTrigger.IsEpochStart() {
@@ -1577,16 +1576,27 @@ func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock
 	lastNotarizedHeaders := make([]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
 		lastNotarizedHdr := mp.lastNotarizedHdrForShard(i)
+		shardHdr, ok := lastNotarizedHdr.(*block.Header)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
 
 		hdrHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, lastNotarizedHdr)
 		if err != nil {
 			return nil, err
 		}
 
-		finalHeader := block.FinalizedHeaders{
-			ShardId:    lastNotarizedHdr.GetShardID(),
-			HeaderHash: hdrHash,
-			RootHash:   lastNotarizedHdr.GetRootHash(),
+		var lastMetaHash []byte
+		numAddedMetas := len(shardHdr.MetaBlockHashes)
+		if numAddedMetas > 0 {
+			lastMetaHash = shardHdr.MetaBlockHashes[numAddedMetas-1]
+		}
+
+		finalHeader := block.EpochStartShardData{
+			ShardId:               lastNotarizedHdr.GetShardID(),
+			HeaderHash:            hdrHash,
+			RootHash:              lastNotarizedHdr.GetRootHash(),
+			FirstPendingMetaBlock: lastMetaHash,
 		}
 
 		epochStart.LastFinalizedHeaders = append(epochStart.LastFinalizedHeaders, finalHeader)
@@ -1598,7 +1608,12 @@ func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock
 		return nil, err
 	}
 
-	epochStart.PendingMiniBlockHeaders = pendingMiniBlocks
+	for _, pendingMiniBlock := range pendingMiniBlocks {
+		recvShId := pendingMiniBlock.ReceiverShardID
+
+		currShardPendingMBs := epochStart.LastFinalizedHeaders[recvShId].PendingMiniBlockHeaders
+		currShardPendingMBs = append(currShardPendingMBs, pendingMiniBlock)
+	}
 
 	return epochStart, nil
 }

@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"

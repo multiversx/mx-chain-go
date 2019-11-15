@@ -64,15 +64,16 @@ func TestEpochStart_SaveLoad(t *testing.T) {
 		TxCount:         uint32(1),
 	}
 
-	lastFinalHdr := block.FinalizedHeaders{
-		ShardId:    0,
-		HeaderHash: []byte("headerhash"),
-		RootHash:   []byte("roothash"),
+	lastFinalHdr := block.EpochStartShardData{
+		ShardId:                 0,
+		HeaderHash:              []byte("headerhash"),
+		RootHash:                []byte("roothash"),
+		FirstPendingMetaBlock:   []byte("firstPending"),
+		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 	}
 
 	epochStart := block.EpochStart{
-		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
-		LastFinalizedHeaders:    []block.FinalizedHeaders{lastFinalHdr},
+		LastFinalizedHeaders: []block.EpochStartShardData{lastFinalHdr},
 	}
 
 	var b bytes.Buffer
@@ -117,10 +118,12 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		TxCount:         uint32(10),
 	}
 
-	lastFinalHdr := block.FinalizedHeaders{
-		ShardId:    0,
-		HeaderHash: []byte("headerhash"),
-		RootHash:   []byte("roothash"),
+	lastFinalHdr := block.EpochStartShardData{
+		ShardId:                 0,
+		HeaderHash:              []byte("headerhash"),
+		RootHash:                []byte("roothash"),
+		FirstPendingMetaBlock:   []byte("firstPending"),
+		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 	}
 
 	mb := block.MetaBlock{
@@ -140,8 +143,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		TxCount:                uint32(1),
 		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
 		EpochStart: block.EpochStart{
-			PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
-			LastFinalizedHeaders:    []block.FinalizedHeaders{lastFinalHdr},
+			LastFinalizedHeaders: []block.EpochStartShardData{lastFinalHdr},
 		},
 	}
 	var b bytes.Buffer

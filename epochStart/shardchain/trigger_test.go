@@ -227,7 +227,7 @@ func TestTrigger_ReceivedHeaderNotEpochStart(t *testing.T) {
 
 	hash := []byte("hash")
 	header := &block.MetaBlock{Nonce: 100}
-	header.EpochStart.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	eoet.ReceivedHeader(header)
 
 	assert.False(t, eoet.IsEpochStart())
@@ -243,7 +243,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrue(t *testing.T) {
 
 	hash := []byte("hash")
 	header := &block.MetaBlock{Nonce: 100, Epoch: 1}
-	header.EpochStart.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	eoet.ReceivedHeader(header)
 
 	header = &block.MetaBlock{Nonce: 101, Epoch: 1}
@@ -275,7 +275,7 @@ func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	hash := []byte("hash")
 	epochStartRound := uint64(100)
 	header := &block.MetaBlock{Nonce: 100, Round: epochStartRound, Epoch: 1}
-	header.EpochStart.LastFinalizedHeaders = []block.FinalizedHeaders{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	et.ReceivedHeader(header)
 	header = &block.MetaBlock{Nonce: 101, Round: epochStartRound + 1, Epoch: 1}
 	et.ReceivedHeader(header)
