@@ -47,8 +47,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/networkSharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -1092,6 +1095,16 @@ func createNode(
 		return nil, err
 	}
 
+	networkShardingUpdater, err := prepareNetworkShardingUpdater(
+		network,
+		config,
+		nodesCoordinator,
+		shardCoordinator,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
 		node.WithHasher(core.Hasher),
@@ -1129,6 +1142,7 @@ func createNode(
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithBlackListHandler(process.BlackListHandler),
+		node.WithNetworkShardingUpdater(networkShardingUpdater),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1159,6 +1173,59 @@ func createNode(
 		}
 	}
 	return nd, nil
+}
+
+func prepareNetworkShardingUpdater(
+	network *factory.Network,
+	config *config.Config,
+	nodesCoordinator sharding.NodesCoordinator,
+	coordinator sharding.Coordinator,
+) (*networkSharding.PeerShardMapper, error) {
+
+	networkShardingUpdater, err := createNetworkShardingUpdater(config, nodesCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	localId := network.NetMessenger.ID()
+	networkShardingUpdater.UpdatePeerIdShardId(localId, coordinator.SelfId())
+
+	err = network.NetMessenger.SetPeerShardResolver(networkShardingUpdater)
+	if err != nil {
+		return nil, err
+	}
+
+	return networkShardingUpdater, nil
+}
+
+func createNetworkShardingUpdater(
+	config *config.Config,
+	nodesCoordinator sharding.NodesCoordinator,
+) (*networkSharding.PeerShardMapper, error) {
+
+	cacheConfig := config.PublicKeyPeerId
+	cachePkPid, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheConfig = config.PublicKeyShardId
+	cachePkShardId, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheConfig = config.PeerIdShardId
+	cachePidShardId, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return networkSharding.NewPeerShardMapper(cachePkPid, cachePkShardId, cachePidShardId, nodesCoordinator)
+}
+
+func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
+	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards)
 }
 
 func initLogFileAndStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log *logger.Logger,

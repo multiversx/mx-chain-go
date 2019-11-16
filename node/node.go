@@ -812,7 +812,9 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
 		n.singleSigner,
 		n.keyGen,
-		n.marshalizer)
+		n.marshalizer,
+		n.networkShardingUpdater,
+	)
 	if err != nil {
 		return err
 	}

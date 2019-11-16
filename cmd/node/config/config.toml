@@ -214,6 +214,18 @@
     Size = 1000
     Type = "LRU"
 
+[PublicKeyShardId]
+    Size = 1000
+    Type = "LRU"
+
+[PublicKeyPeerId]
+    Size = 1000
+    Type = "LRU"
+
+[PeerIdShardId]
+    Size = 1000
+    Type = "LRU"
+
 [Logger]
     Path = "logs"
     StackTraceDepth = 2
