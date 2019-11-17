@@ -212,7 +212,13 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 	keyGen := signing.NewKeyGenerator(suite)
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	mp, _ := heartbeat.NewMessageProcessor(singlesigner, keyGen, marshalizer)
+	mp, _ := heartbeat.NewMessageProcessor(
+		singlesigner,
+		keyGen,
+		marshalizer,
+		&mock.NetworkShardingUpdaterStub{
+			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+		})
 
 	monitor, _ := heartbeat.NewMonitor(
 		integrationTests.TestMarshalizer,
