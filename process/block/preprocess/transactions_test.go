@@ -810,19 +810,6 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	assert.Equal(t, numTxsToAdd, len(mb.TxHashes))
 }
 
-func TestTransactions_isSmartContractAddress(t *testing.T) {
-	t.Parallel()
-
-	address, _ := hex.DecodeString("000000000001000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	assert.False(t, isSmartContractAddress(address))
-
-	scaddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	assert.True(t, isSmartContractAddress(scaddress))
-
-	emAddress, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
-	assert.True(t, isSmartContractAddress(emAddress))
-}
-
 //------- SortTxByNonce
 
 var r *rand.Rand

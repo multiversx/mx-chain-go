@@ -1,38 +1,42 @@
 package factory
 
 import (
-	"math/big"
-
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
-// TODO var initialStakeValue = big.NewInt(500000).Mul(core.Erd) and add to config.toml
-var initialStakeValue = "500000000000000000000000"
-
 type systemSCFactory struct {
-	systemEI vm.SystemEI
+	systemEI          vm.SystemEI
+	validatorSettings process.ValidatorSettingsHandler
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
-func NewSystemSCFactory(systemEI vm.SystemEI) (*systemSCFactory, error) {
+func NewSystemSCFactory(
+	systemEI vm.SystemEI,
+	validatorSettings process.ValidatorSettingsHandler,
+) (*systemSCFactory, error) {
 	if systemEI == nil || systemEI.IsInterfaceNil() {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
+	if validatorSettings == nil || validatorSettings.IsInterfaceNil() {
+		return nil, vm.ErrNilEconomicsData
+	}
 
-	return &systemSCFactory{systemEI: systemEI}, nil
+	return &systemSCFactory{
+		systemEI:          systemEI,
+		validatorSettings: validatorSettings}, nil
 }
 
 // Create instantiates all the system smart contracts and returns a container
 func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
 
-	initValue, ok := big.NewInt(0).SetString(initialStakeValue, 10)
-	if !ok {
-		return nil, vm.ErrInvalidStakeValue
-	}
-
-	sc, err := systemSmartContracts.NewStakingSmartContract(initValue, scf.systemEI)
+	sc, err := systemSmartContracts.NewStakingSmartContract(
+		scf.validatorSettings.StakeValue(),
+		scf.validatorSettings.UnBoundPeriod(),
+		scf.systemEI,
+	)
 	if err != nil {
 		return nil, err
 	}

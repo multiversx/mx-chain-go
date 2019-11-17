@@ -3,7 +3,6 @@ package sharding
 import (
 	"bytes"
 	"encoding/hex"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 

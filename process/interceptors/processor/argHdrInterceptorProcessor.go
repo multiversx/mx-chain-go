@@ -11,4 +11,5 @@ type ArgHdrInterceptorProcessor struct {
 	Headers       storage.Cacher
 	HeadersNonces dataRetriever.Uint64SyncMapCacher
 	HdrValidator  process.HeaderValidator
+	BlackList     process.BlackListHandler
 }

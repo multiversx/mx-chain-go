@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -33,6 +34,7 @@ type interceptorsContainerFactory struct {
 	dataPool               dataRetriever.PoolsHolder
 	addrConverter          state.AddressConverter
 	nodesCoordinator       sharding.NodesCoordinator
+	blackList              process.BlackListHandler
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalTxThrottler      process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
@@ -48,51 +50,63 @@ func NewInterceptorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	keyGen crypto.KeyGenerator,
+	blockSignKeyGen crypto.KeyGenerator,
 	singleSigner crypto.SingleSigner,
+	blockSingleSigner crypto.SingleSigner,
 	multiSigner crypto.MultiSigner,
 	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
+	blackList process.BlackListHandler,
 ) (*interceptorsContainerFactory, error) {
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if messenger == nil || messenger.IsInterfaceNil() {
+	if check.IfNil(messenger) {
 		return nil, process.ErrNilMessenger
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilBlockChain
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if keyGen == nil || keyGen.IsInterfaceNil() {
+	if check.IfNil(keyGen) {
 		return nil, process.ErrNilKeyGen
 	}
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if multiSigner == nil || multiSigner.IsInterfaceNil() {
+	if check.IfNil(multiSigner) {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-	if dataPool == nil || dataPool.IsInterfaceNil() {
+	if check.IfNil(dataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if addrConverter == nil || addrConverter.IsInterfaceNil() {
+	if check.IfNil(addrConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if nodesCoordinator == nil || nodesCoordinator.IsInterfaceNil() {
+	if check.IfNil(nodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
-	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(blackList) {
+		return nil, process.ErrNilBlackListHandler
+	}
+	if check.IfNil(blockSignKeyGen) {
+		return nil, process.ErrNilKeyGen
+	}
+	if check.IfNil(blockSingleSigner) {
+		return nil, process.ErrNilSingleSigner
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
@@ -102,7 +116,9 @@ func NewInterceptorsContainerFactory(
 		MultiSigVerifier: multiSigner,
 		NodesCoordinator: nodesCoordinator,
 		KeyGen:           keyGen,
+		BlockKeyGen:      blockSignKeyGen,
 		Signer:           singleSigner,
+		BlockSigner:      blockSingleSigner,
 		AddrConv:         addrConverter,
 		FeeHandler:       txFeeHandler,
 	}
@@ -121,6 +137,7 @@ func NewInterceptorsContainerFactory(
 		addrConverter:          addrConverter,
 		nodesCoordinator:       nodesCoordinator,
 		argInterceptorFactory:  argInterceptorFactory,
+		blackList:              blackList,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 	}
 
@@ -439,6 +456,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 		Headers:       icf.dataPool.Headers(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
+		BlackList:     icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -546,6 +564,7 @@ func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([
 		Headers:       icf.dataPool.MetaBlocks(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
+		BlackList:     icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
