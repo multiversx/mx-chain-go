@@ -11,7 +11,7 @@ import (
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
 	hdr              *block.MetaBlock
-	sigVerifier      *headerMultiSigVerifier
+	sigVerifier      *headerSigVerifier
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
 	hash             []byte
@@ -29,11 +29,13 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		return nil, err
 	}
 
-	sigVerifier := &headerMultiSigVerifier{
-		marshalizer:      arg.Marshalizer,
-		hasher:           arg.Hasher,
-		nodesCoordinator: arg.NodesCoordinator,
-		multiSigVerifier: arg.MultiSigVerifier,
+	sigVerifier := &headerSigVerifier{
+		marshalizer:       arg.Marshalizer,
+		hasher:            arg.Hasher,
+		nodesCoordinator:  arg.NodesCoordinator,
+		singleSigVerifier: arg.SingleSigVerifier,
+		multiSigVerifier:  arg.MultiSigVerifier,
+		keyGen:            arg.KeyGen,
 	}
 
 	inHdr := &InterceptedMetaHeader{
@@ -90,6 +92,11 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
 	err := imh.integrity()
+	if err != nil {
+		return err
+	}
+
+	err = imh.sigVerifier.verifyRandSeed(imh.hdr)
 	if err != nil {
 		return err
 	}

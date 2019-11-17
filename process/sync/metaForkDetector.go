@@ -52,7 +52,7 @@ func (mfd *metaForkDetector) AddHeader(
 	isNotarizedShardStuck bool,
 ) error {
 
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return ErrNilHeader
 	}
 	if headerHash == nil {
@@ -64,11 +64,11 @@ func (mfd *metaForkDetector) AddHeader(
 		return err
 	}
 
-	mfd.activateForcedForkIfNeeded(header, state)
+	mfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 
-	err = mfd.shouldAddBlockInForkDetector(header, state, process.MetaBlockFinality)
-	if err != nil {
-		return err
+	isHeaderReceivedTooLate := mfd.isHeaderReceivedTooLate(header, state, process.MetaBlockFinality)
+	if isHeaderReceivedTooLate {
+		state = process.BHReceivedTooLate
 	}
 
 	if state == process.BHProcessed {

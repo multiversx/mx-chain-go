@@ -155,7 +155,11 @@ func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return false
+		},
+	})
 	bfd.SetFinalCheckpoint(1, 1)
 	err := bfd.CheckBlockValidity(&block.Header{PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
 	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
@@ -177,7 +181,11 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 0}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return false
+		},
+	})
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
 	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
 }
@@ -185,7 +193,11 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
-	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return false
+		},
+	})
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
 	assert.Equal(t, sync.ErrHigherNonceInBlock, err)
 }
@@ -640,6 +652,9 @@ func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 	hash3 := []byte("hash3")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return false
+		},
 		AddCalled: func(key string) error {
 			return nil
 		},
@@ -827,21 +842,21 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) 
 	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{})
 
 	hdr := &block.Header{Nonce: 1, Round: 1}
-	err := sfd.ShouldAddBlockInForkDetector(hdr, process.BHProcessed, process.ShardBlockFinality)
-	assert.Nil(t, err)
+	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.ShardBlockFinality)
+	assert.False(t, receivedTooLate)
 
-	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.ShardBlockFinality)
+	assert.True(t, receivedTooLate)
 
-	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.ShardBlockFinality)
+	assert.True(t, receivedTooLate)
 
 	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality)
-	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
-	assert.Nil(t, err)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.ShardBlockFinality)
+	assert.False(t, receivedTooLate)
 
-	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
-	assert.Nil(t, err)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.ShardBlockFinality)
+	assert.False(t, receivedTooLate)
 }
 
 func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
@@ -851,13 +866,13 @@ func TestShardForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBloc
 	hdr := &block.Header{Nonce: 1, Round: 1}
 
 	hdr.Round = uint64(rounderMock.RoundIndex - process.ShardBlockFinality - 1)
-	err := sfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.ShardBlockFinality)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+	receivedTooLate := sfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.ShardBlockFinality)
+	assert.True(t, receivedTooLate)
 
 	sfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced)
 	sfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
-	err = sfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.ShardBlockFinality)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+	receivedTooLate = sfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.ShardBlockFinality)
+	assert.True(t, receivedTooLate)
 }
 
 func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
@@ -866,21 +881,21 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldWork(t *testing.T) {
 	mfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
 
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
-	err := mfd.ShouldAddBlockInForkDetector(hdr, process.BHProcessed, process.MetaBlockFinality)
-	assert.Nil(t, err)
+	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHProcessed, process.MetaBlockFinality)
+	assert.False(t, receivedTooLate)
 
-	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.MetaBlockFinality)
+	assert.True(t, receivedTooLate)
 
-	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.MetaBlockFinality)
+	assert.True(t, true)
 
 	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality)
-	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
-	assert.Nil(t, err)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.MetaBlockFinality)
+	assert.False(t, receivedTooLate)
 
-	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
-	assert.Nil(t, err)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.MetaBlockFinality)
+	assert.False(t, receivedTooLate)
 }
 
 func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock(t *testing.T) {
@@ -890,13 +905,13 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	hdr := &block.MetaBlock{Nonce: 1, Round: 1}
 
 	hdr.Round = uint64(rounderMock.RoundIndex - process.MetaBlockFinality - 1)
-	err := mfd.ShouldAddBlockInForkDetector(hdr, process.BHReceived, process.MetaBlockFinality)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+	receivedTooLate := mfd.IsHeaderReceivedTooLate(hdr, process.BHReceived, process.MetaBlockFinality)
+	assert.True(t, receivedTooLate)
 
 	mfd.AddCheckPoint(2, hdr.GetNonce()+process.NonceDifferenceWhenSynced)
 	mfd.SetProbableHighestNonce(hdr.GetNonce() + process.NonceDifferenceWhenSynced)
-	err = mfd.ShouldAddBlockInForkDetector(hdr, process.BHProposed, process.MetaBlockFinality)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
+	receivedTooLate = mfd.IsHeaderReceivedTooLate(hdr, process.BHProposed, process.MetaBlockFinality)
+	assert.True(t, receivedTooLate)
 }
 
 func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
@@ -962,7 +977,11 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededDifferencesNotEnoughShouldNo
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return false
+		},
+	})
 
 	_ = bfd.AddHeader(
 		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 3},
@@ -983,7 +1002,11 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T)
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return false
+		},
+	})
 
 	bfd.SetFinalCheckpoint(0, 0)
 	_ = bfd.AddHeader(
