@@ -176,26 +176,3 @@ func TestMetaForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) {
 	)
 	assert.Equal(t, sync.ErrHigherNonceInBlock, err)
 }
-
-func TestMetaForkDetector_AddHeaderRoundTooOldShouldErr(t *testing.T) {
-	t.Parallel()
-	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			return nil
-		},
-		HasCalled: func(key string) bool {
-			return false
-		},
-	})
-
-	err := bfd.AddHeader(
-		&block.MetaBlock{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")},
-		[]byte("hash1"),
-		process.BHReceived,
-		nil,
-		nil,
-		false,
-	)
-	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
-}
