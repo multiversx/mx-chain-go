@@ -47,3 +47,19 @@ func MinUint64(a uint64, b uint64) uint64 {
 	}
 	return b
 }
+
+// PopUint32 removes the specified index from the provided slice and returns the resulting slice
+func PopUint32(a []uint32, index int) []uint32 {
+	l := len(a)
+	if index < 0 {
+		index = l + index
+	}
+	if index > l {
+		return a
+	}
+	if index == l {
+		return a[:index]
+	}
+
+	return append(a[:index], a[index+1:]...)
+}

@@ -3,6 +3,7 @@ package peer
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -121,7 +122,7 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 	return true
 }
 
-// UpdatePeerState takes the in a header, updates the peer state for all of the
+// UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
@@ -235,8 +236,8 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 	for _, h := range metaHeader.ShardInfo {
 
 		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID)
-		if err != nil {
-			return err
+		if shardInfoErr != nil {
+			return shardInfoErr
 		}
 
 		shardInfoErr = p.updateValidatorInfo(shardConsensus, h.ShardID)
@@ -405,10 +406,12 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 		}
 		for i, shardId := range missingShardIds {
 			prevShardData := p.getMatchingShardData(shardId, recursiveHeader.ShardInfo)
-			if prevShardData != nil {
-				p.prevShardInfo[shardId] = *prevShardData
-				missingShardIds = append(missingShardIds[:i], missingShardIds[i+1:]...)
+			if prevShardData == nil {
+				continue
 			}
+
+			p.prevShardInfo[shardId] = *prevShardData
+			missingShardIds = core.PopUint32(missingShardIds, i)
 		}
 		*searchHeader = *recursiveHeader
 	}
@@ -429,8 +432,12 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 			continue
 		}
 
-		previousHeader, err := process.GetShardHeader(shardData.PrevHash, metaDataPool.ShardHeaders(), p.marshalizer,
-			p.storageService)
+		previousHeader, err := process.GetShardHeader(
+			shardData.PrevHash,
+			metaDataPool.ShardHeaders(),
+			p.marshalizer,
+			p.storageService,
+		)
 		if err != nil {
 			return err
 		}

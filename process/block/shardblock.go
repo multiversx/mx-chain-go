@@ -757,6 +757,11 @@ func (sp *shardProcessor) RevertAccountState() {
 	if err != nil {
 		log.Error(err.Error())
 	}
+
+	err = sp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 func (sp *shardProcessor) cleanTxsPools() {

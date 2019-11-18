@@ -22,6 +22,4 @@ type shardMetaMediator interface {
 type shardMetaMediated interface {
 	loadPreviousShardHeaders(header, previousHeader *block.MetaBlock) error
 	loadPreviousShardHeadersMeta(header *block.MetaBlock) error
-
-
 }

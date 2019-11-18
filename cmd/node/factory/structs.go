@@ -2202,11 +2202,9 @@ func newValidatorStatisticsProcessor(
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
-	var peerDataPool peer.DataPool
+	var peerDataPool peer.DataPool =  processComponents.data.MetaDatapool
 	if processComponents.shardCoordinator.SelfId() < processComponents.shardCoordinator.NumberOfShards() {
 		peerDataPool = processComponents.data.Datapool
-	} else {
-		peerDataPool = processComponents.data.MetaDatapool
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
