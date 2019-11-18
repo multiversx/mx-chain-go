@@ -80,21 +80,22 @@ type ShardData struct {
 
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
-	Nonce            uint64            `capid:"0"`
-	Epoch            uint32            `capid:"1"`
-	Round            uint64            `capid:"2"`
-	TimeStamp        uint64            `capid:"3"`
-	ShardInfo        []ShardData       `capid:"4"`
-	PeerInfo         []PeerData        `capid:"5"`
-	Signature        []byte            `capid:"6"`
-	PubKeysBitmap    []byte            `capid:"7"`
-	PrevHash         []byte            `capid:"8"`
-	PrevRandSeed     []byte            `capid:"9"`
-	RandSeed         []byte            `capid:"10"`
-	RootHash         []byte            `capid:"11"`
-	ValidatorStatsRootHash []byte      `capid:"12"`
-	TxCount          uint32            `capid:"13"`
-	MiniBlockHeaders []MiniBlockHeader `capid:"14"`
+	Nonce                  uint64            `capid:"0"`
+	Epoch                  uint32            `capid:"1"`
+	Round                  uint64            `capid:"2"`
+	TimeStamp              uint64            `capid:"3"`
+	ShardInfo              []ShardData       `capid:"4"`
+	PeerInfo               []PeerData        `capid:"5"`
+	Signature              []byte            `capid:"6"`
+	LeaderSignature        []byte            `capid:"7"`
+	PubKeysBitmap          []byte            `capid:"8"`
+	PrevHash               []byte            `capid:"9"`
+	PrevRandSeed           []byte            `capid:"10"`
+	RandSeed               []byte            `capid:"11"`
+	RootHash               []byte            `capid:"12"`
+	ValidatorStatsRootHash []byte            `capid:"13"`
+	TxCount                uint32            `capid:"14"`
+	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -306,6 +307,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetRootHash(src.RootHash)
 	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
 	dest.SetTxCount(src.TxCount)
+	dest.SetLeaderSignature(src.LeaderSignature)
 
 	return dest
 }
@@ -345,6 +347,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.RootHash = src.RootHash()
 	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 	dest.TxCount = src.TxCount()
+	dest.LeaderSignature = src.LeaderSignature()
 
 	return dest
 }
@@ -409,6 +412,11 @@ func (m *MetaBlock) GetSignature() []byte {
 	return m.Signature
 }
 
+// GetLeaderSignature returns the signature of the leader
+func (m *MetaBlock) GetLeaderSignature() []byte {
+	return m.LeaderSignature
+}
+
 // GetTxCount returns transaction count in the current meta block
 func (m *MetaBlock) GetTxCount() uint32 {
 	return m.TxCount
@@ -462,6 +470,11 @@ func (m *MetaBlock) SetPubKeysBitmap(pkbm []byte) {
 // SetSignature set header signature
 func (m *MetaBlock) SetSignature(sg []byte) {
 	m.Signature = sg
+}
+
+// SetLeaderSignature will set the leader's signature
+func (m *MetaBlock) SetLeaderSignature(sg []byte) {
+	m.LeaderSignature = sg
 }
 
 // SetTimeStamp sets header timestamp

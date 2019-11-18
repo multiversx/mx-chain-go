@@ -12,9 +12,9 @@ import (
 
 type HeaderCapn C.Struct
 
-func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(40, 10)) }
-func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(40, 10)) }
-func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(40, 10)) }
+func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(40, 11)) }
+func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(40, 11)) }
+func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(40, 11)) }
 func ReadRootHeaderCapn(s *C.Segment) HeaderCapn { return HeaderCapn(s.Root(0).ToStruct()) }
 func (s HeaderCapn) Nonce() uint64               { return C.Struct(s).Get64(0) }
 func (s HeaderCapn) SetNonce(v uint64)           { C.Struct(s).Set64(0, v) }
@@ -38,24 +38,26 @@ func (s HeaderCapn) BlockBodyType() uint8        { return C.Struct(s).Get8(32) }
 func (s HeaderCapn) SetBlockBodyType(v uint8)    { C.Struct(s).Set8(32, v) }
 func (s HeaderCapn) Signature() []byte           { return C.Struct(s).GetObject(4).ToData() }
 func (s HeaderCapn) SetSignature(v []byte)       { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
+func (s HeaderCapn) LeaderSignature() []byte     { return C.Struct(s).GetObject(5).ToData() }
+func (s HeaderCapn) SetLeaderSignature(v []byte) { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
 func (s HeaderCapn) MiniBlockHeaders() MiniBlockHeaderCapn_List {
-	return MiniBlockHeaderCapn_List(C.Struct(s).GetObject(5))
+	return MiniBlockHeaderCapn_List(C.Struct(s).GetObject(6))
 }
 func (s HeaderCapn) SetMiniBlockHeaders(v MiniBlockHeaderCapn_List) {
-	C.Struct(s).SetObject(5, C.Object(v))
+	C.Struct(s).SetObject(6, C.Object(v))
 }
 func (s HeaderCapn) PeerChanges() PeerChangeCapn_List {
-	return PeerChangeCapn_List(C.Struct(s).GetObject(6))
+	return PeerChangeCapn_List(C.Struct(s).GetObject(7))
 }
-func (s HeaderCapn) SetPeerChanges(v PeerChangeCapn_List) { C.Struct(s).SetObject(6, C.Object(v)) }
-func (s HeaderCapn) RootHash() []byte                     { return C.Struct(s).GetObject(7).ToData() }
-func (s HeaderCapn) SetRootHash(v []byte)                 { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
-func (s HeaderCapn) ValidatorStatsRootHash() []byte       { return C.Struct(s).GetObject(8).ToData() }
+func (s HeaderCapn) SetPeerChanges(v PeerChangeCapn_List) { C.Struct(s).SetObject(7, C.Object(v)) }
+func (s HeaderCapn) RootHash() []byte                     { return C.Struct(s).GetObject(8).ToData() }
+func (s HeaderCapn) SetRootHash(v []byte)                 { C.Struct(s).SetObject(8, s.Segment.NewData(v)) }
+func (s HeaderCapn) ValidatorStatsRootHash() []byte       { return C.Struct(s).GetObject(9).ToData() }
 func (s HeaderCapn) SetValidatorStatsRootHash(v []byte) {
-	C.Struct(s).SetObject(8, s.Segment.NewData(v))
+	C.Struct(s).SetObject(9, s.Segment.NewData(v))
 }
-func (s HeaderCapn) MetaHdrHashes() C.DataList     { return C.DataList(C.Struct(s).GetObject(9)) }
-func (s HeaderCapn) SetMetaHdrHashes(v C.DataList) { C.Struct(s).SetObject(9, C.Object(v)) }
+func (s HeaderCapn) MetaHdrHashes() C.DataList     { return C.DataList(C.Struct(s).GetObject(10)) }
+func (s HeaderCapn) SetMetaHdrHashes(v C.DataList) { C.Struct(s).SetObject(10, C.Object(v)) }
 func (s HeaderCapn) TxCount() uint32               { return C.Struct(s).Get32(36) }
 func (s HeaderCapn) SetTxCount(v uint32)           { C.Struct(s).Set32(36, v) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
@@ -263,6 +265,25 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Signature()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"leaderSignature\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.LeaderSignature()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -662,6 +683,25 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	_, err = b.WriteString("leaderSignature = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.LeaderSignature()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
 	_, err = b.WriteString("miniBlockHeaders = ")
 	if err != nil {
 		return err
@@ -834,7 +874,7 @@ func (s HeaderCapn) MarshalCapLit() ([]byte, error) {
 type HeaderCapn_List C.PointerList
 
 func NewHeaderCapnList(s *C.Segment, sz int) HeaderCapn_List {
-	return HeaderCapn_List(s.NewCompositeList(40, 10, sz))
+	return HeaderCapn_List(s.NewCompositeList(40, 11, sz))
 }
 func (s HeaderCapn_List) Len() int            { return C.PointerList(s).Len() }
 func (s HeaderCapn_List) At(i int) HeaderCapn { return HeaderCapn(C.PointerList(s).At(i).ToStruct()) }

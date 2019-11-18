@@ -57,7 +57,9 @@ func NewInterceptorsContainerFactory(
 	accounts state.AccountsAdapter,
 	addrConverter state.AddressConverter,
 	singleSigner crypto.SingleSigner,
+	blockSingleSigner crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
+	blockKeyGen crypto.KeyGenerator,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
 	blackList process.BlackListHandler,
@@ -105,6 +107,12 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(blackList) {
 		return nil, process.ErrNilBlackListHandler
 	}
+	if check.IfNil(blockKeyGen) {
+		return nil, process.ErrNilKeyGen
+	}
+	if check.IfNil(blockSingleSigner) {
+		return nil, process.ErrNilSingleSigner
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
@@ -113,7 +121,9 @@ func NewInterceptorsContainerFactory(
 		NodesCoordinator: nodesCoordinator,
 		MultiSigVerifier: multiSigner,
 		KeyGen:           keyGen,
+		BlockKeyGen:      blockKeyGen,
 		Signer:           singleSigner,
+		BlockSigner:      blockSingleSigner,
 		AddrConv:         addrConverter,
 		FeeHandler:       txFeeHandler,
 	}
