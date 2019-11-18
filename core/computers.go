@@ -49,6 +49,8 @@ func MinUint64(a uint64, b uint64) uint64 {
 }
 
 // PopUint32 removes the specified index from the provided slice and returns the resulting slice
+//  If index is a negative number it will start from the tail. If the index absolute value
+//  is out of the provided slice bouds it will return the full slice
 func PopUint32(a []uint32, index int) []uint32 {
 	l := len(a)
 	if index < 0 {
