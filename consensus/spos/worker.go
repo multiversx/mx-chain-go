@@ -451,14 +451,11 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 func (wrk *Worker) displaySignatureStatistic() {
 	wrk.mutHashConsensusMessage.RLock()
 	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
-		log.Info(fmt.Sprintf("proposed header for round %d with hash %s has received %d signatures\n",
-			consensusMessages[0].RoundIndex,
-			core.ToB64([]byte(hash)),
-			len(consensusMessages)))
-		JLS
 		log.Debug("proposed header with signatures",
 			"hash", []byte(hash),
-			"sigs num", len(consensusMessages))
+			"sigs num", len(consensusMessages),
+			"round", consensusMessages[0].RoundIndex,
+		)
 
 		for _, consensusMessage := range consensusMessages {
 			log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey))))

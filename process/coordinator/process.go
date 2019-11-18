@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -588,8 +587,6 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 			currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
-				log.Debug(err.Error())
-				JLS
 				log.Trace("CreateMarshalizedData", "error", err.Error())
 				continue
 			}
@@ -607,8 +604,6 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 			currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
-				log.Debug(err.Error())
-				JLS
 				log.Trace("CreateMarshalizedData", "error", err.Error())
 				continue
 			}

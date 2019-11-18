@@ -86,19 +86,19 @@ func (sr *SubroundBlock) doBlockJob() bool {
 
 	hdr, err := sr.createHeader()
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("createHeader", "error", err.Error())
 		return false
 	}
 
 	body, err := sr.createBody(hdr)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("createBody", "error", err.Error())
 		return false
 	}
 
 	err = sr.BlockProcessor().ApplyBodyToHeader(hdr, body)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("ApplyBodyToHeader", "error", err.Error())
 		return false
 	}
 

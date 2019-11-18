@@ -173,11 +173,18 @@ func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32,
 
 // RequestMiniBlock method asks for miniblocks from the connected peers
 func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
-	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", rrh.mbRequestTopic, destShardID, core.ToB64(miniblockHash)))
-JLS
+	log.Trace("requesting miniblock from network",
+		"hash", miniblockHash,
+		"shard", destShardID,
+		"topic", rrh.mbRequestTopic,
+	)
+
 	resolver, err := rrh.resolversFinder.CrossShardResolver(rrh.mbRequestTopic, destShardID)
 	if err != nil {
-		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.mbRequestTopic, destShardID))
+		log.Error("missing resolver",
+			"topic", rrh.mbRequestTopic,
+			"shard", destShardID,
+		)
 		return
 	}
 
@@ -197,8 +204,6 @@ func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte
 		baseTopic = rrh.shardHdrRequestTopic
 	}
 
-	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, core.ToB64(hash)))
-JLS
 	log.Trace("requesting by hash",
 		"topic", baseTopic,
 		"shard", destShardID,

@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"bytes"
 	"sort"
 	"sync"
 	"time"
@@ -168,10 +167,11 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			log.Info(fmt.Sprintf("tx from mini block with sender shard %d and receiver shard %d, having %d txs, was not found in TransactionUnit\n",
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-				len(miniBlock.TxHashes)))
+			log.Debug("tx from mini block was not found in TransactionUnit",
+				"sender shard ID", miniBlock.SenderShardID,
+				"receiver shard ID", miniBlock.ReceiverShardID,
+				"num txs", len(miniBlock.TxHashes),
+			)
 
 			return txsRestored, err
 		}

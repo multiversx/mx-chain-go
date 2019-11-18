@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -54,18 +53,18 @@ type mapShardHeaders map[uint32][]data.HeaderHandler
 type mapShardHeader map[uint32]data.HeaderHandler
 
 type baseProcessor struct {
-	shardCoordinator      sharding.Coordinator
-	nodesCoordinator      sharding.NodesCoordinator
-	specialAddressHandler process.SpecialAddressHandler
-	accounts              state.AccountsAdapter
-	forkDetector          process.ForkDetector
-	hasher                hashing.Hasher
-	marshalizer           marshal.Marshalizer
-	store                 dataRetriever.StorageService
-	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler    process.BlockSizeThrottler
-	blockChainHook        process.BlockChainHookHandler
-	txCoordinator         process.TransactionCoordinator
+	shardCoordinator             sharding.Coordinator
+	nodesCoordinator             sharding.NodesCoordinator
+	specialAddressHandler        process.SpecialAddressHandler
+	accounts                     state.AccountsAdapter
+	forkDetector                 process.ForkDetector
+	hasher                       hashing.Hasher
+	marshalizer                  marshal.Marshalizer
+	store                        dataRetriever.StorageService
+	uint64Converter              typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler           process.BlockSizeThrottler
+	blockChainHook               process.BlockChainHookHandler
+	txCoordinator                process.TransactionCoordinator
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	rounder                      consensus.Rounder
 

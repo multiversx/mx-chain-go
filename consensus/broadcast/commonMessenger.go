@@ -1,10 +1,8 @@
 package broadcast
 
 import (
-	"fmt"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -69,7 +67,9 @@ func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) err
 	}
 
 	if len(miniBlocks) > 0 {
-		log.Info(fmt.Sprintf("sent %d miniblocks\n", len(miniBlocks)))
+		log.Debug("sent miniblocks",
+			"num minblocks", len(miniBlocks),
+		)
 	}
 
 	return nil
@@ -97,7 +97,9 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	}
 
 	if txs > 0 {
-		log.Info(fmt.Sprintf("sent %d transactions\n", txs))
+		log.Debug("sent transactions",
+			"num txs", txs,
+		)
 	}
 
 	return nil

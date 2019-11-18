@@ -200,8 +200,6 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	err := json.Unmarshal(data, &registrationData)
 	if err != nil {
-		log.Error("unmarshal error in unBound function of staking smart contract " + err.Error())
-		JLS
 		log.Debug("unmarshal error on finalize unstake function",
 			"error", err.Error(),
 		)
@@ -209,15 +207,13 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	}
 
 	if registrationData.Staked == true || registrationData.UnStakedNonce <= registrationData.StartNonce {
-		log.Error("unBound is not possible for address with is staked")
-		JLS
-		log.Debug("validator did not unstaked yet")
+		log.Debug("unBound is not possible for address with is staked")
 		return vmcommon.UserError
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBoundPeriod {
-		log.Error("unBound is not possible for address because unbound period did not pass")
+		log.Debug("unBound is not possible for address because unbound period did not pass")
 		return vmcommon.UserError
 	}
 
@@ -226,8 +222,6 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	err = r.eei.Transfer(args.CallerAddr, ownerAddress, registrationData.StakeValue, nil)
 	if err != nil {
-		log.Error("transfer error on finalizeUnStake function " + err.Error())
-		JLS
 		log.Debug("transfer error on finalizeUnStake function",
 			"error", err.Error(),
 		)
@@ -264,9 +258,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	if !registrationData.Staked {
-		log.Error("cannot slash already unstaked or user not staked")
-		JLS
-		log.Debug("slash error: validator was not registered")
+		log.Debug("cannot slash already unstaked or user not staked")
 		return vmcommon.UserError
 	}
 
@@ -276,8 +268,9 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	data, err = json.Marshal(registrationData)
 	if err != nil {
-		log.Error("marshal error in slash function of staking smart contract" + err.Error())
-		JLS
+		log.Debug("marshal error in slash function of staking smart contract",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 

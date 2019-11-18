@@ -1585,7 +1585,9 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		return nil, err
 	}
 
-	log.Info("MetaGenesisBlock created with roothash " + hex.EncodeToString(genesisBlock.GetRootHash()))
+	log.Debug("MetaGenesisBlock created",
+		"roothash", genesisBlock.GetRootHash(),
+	)
 	genesisBlocks[sharding.MetachainShardId] = genesisBlock
 
 	return genesisBlocks, nil

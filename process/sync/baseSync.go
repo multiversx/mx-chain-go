@@ -621,12 +621,6 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	}
 
 	if nbRequestedHdrs > 0 {
-		log.Info(fmt.Sprintf("requested in advance %d headers from nonce %d to nonce %d as probable highest nonce is %d\n",
-			nbRequestedHdrs,
-			nonce,
-			maxNonce,
-			boot.forkDetector.ProbableHighestNonce()))
-		JLS
 		log.Debug("requested in advance headers",
 			"num headers", nbRequestedHdrs,
 			"from nonce", nonce,
@@ -658,7 +652,7 @@ func (boot *baseBootstrap) syncBlocks() {
 		default:
 			err := boot.syncStarter.SyncBlock()
 			if err != nil {
-				log.Info(err.Error())
+				log.Debug("SyncBlock", "error", err.Error())
 			}
 		}
 	}
@@ -712,13 +706,9 @@ func (boot *baseBootstrap) syncBlock() error {
 			return nil
 		}
 
-		log.Info(fmt.Sprintf("fork detected at nonce %d with hash %s\n",
-			boot.forkInfo.Nonce,
-			core.ToB64(boot.forkInfo.Hash)))
-		JLS
 		log.Debug("fork detected",
-			"nonce", boot.forkNonce,
-			"hash", boot.forkHash,
+			"nonce", boot.forkInfo.Nonce,
+			"hash", boot.forkInfo.Hash,
 		)
 		err := boot.rollBack(true)
 		if err != nil {
@@ -953,7 +943,7 @@ func (boot *baseBootstrap) addHeaderToForkDetector(
 
 	header, headerHash, errNotCritical := boot.storageBootstrapper.getHeader(shardId, nonce)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug("getHeader", "error", errNotCritical.Error())
 		return
 	}
 
@@ -967,7 +957,7 @@ func (boot *baseBootstrap) addHeaderToForkDetector(
 
 	errNotCritical = boot.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, false)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug(errNotCritical.Error())
 	}
 
 	return
@@ -978,26 +968,24 @@ func (boot *baseBootstrap) restoreState(
 	currHeader data.HeaderHandler,
 	currBlockBody data.BodyHandler,
 ) {
-	log.Info(fmt.Sprintf("revert state to header with nonce %d and hash %s\n",
-		currHeader.GetNonce(),
-		core.ToB64(currHeaderHash)))
-JLS
+	log.Debug("revert state to header",
+		"nonce", currHeader.GetNonce(),
+		"hash", currHeaderHash)
+
 	err := boot.blkc.SetCurrentBlockHeader(currHeader)
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug("SetCurrentBlockHeader", "error", err.Error())
 	}
 
 	err = boot.blkc.SetCurrentBlockBody(currBlockBody)
 	if err != nil {
-		log.Info(err.Error())
-		JLS
+		log.Debug("SetCurrentBlockBody", "error", err.Error())
 	}
 
 	boot.blkc.SetCurrentBlockHeaderHash(currHeaderHash)
 
 	err = boot.blkExecutor.RevertStateToBlock(currHeader)
 	if err != nil {
-		log.Info(err.Error())
-		JLS
+		log.Debug("RevertStateToBlock", "error", err.Error())
 	}
 }

@@ -156,7 +156,7 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body blo
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					core.ToB64(miniBlock.TxHashes[j])}))
+					display.DisplayByteSlice(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {

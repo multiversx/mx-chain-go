@@ -58,14 +58,13 @@ func queryNTP(options NTPOptions) (*ntp.Response, error) {
 		Version:      options.Version,
 		LocalAddress: options.LocalAddress,
 		Port:         options.Port}
-	log.Debug(fmt.Sprintf("NTP Request to %s:%d", options.Hosts[options.HostIndex], options.Port))
-	return ntp.QueryWithOptions(options.Hosts[options.HostIndex], queryOptions)
-	JLS
+
 	log.Debug("ntp",
-		"request", options.Host,
+		"request", options.Hosts[options.HostIndex],
 		"port", options.Port,
 	)
-	return ntp.QueryWithOptions(options.Host, queryOptions)
+
+	return ntp.QueryWithOptions(options.Hosts[options.HostIndex], queryOptions)
 }
 
 // syncTime defines an object for time synchronization
@@ -105,7 +104,9 @@ func checkNTPHost(ntpConfig config.NTPConfig, customQueryFunc func(options NTPOp
 		if err != nil {
 			continue
 		}
-		log.Info(fmt.Sprintf("using NTP server : %s", ntpConfig.Hosts[hostIndex]))
+		log.Debug("using NTP server",
+			"host", ntpConfig.Hosts[hostIndex],
+		)
 		return hostIndex
 	}
 
@@ -131,9 +132,8 @@ func (s *syncTime) sync() {
 		r, err := s.query(s.ntpOptions)
 
 		if err != nil {
-			log.Error(fmt.Sprintf("NTP Error: %s", err))
-			JLS
 			log.Debug("ntp", "error", err.Error())
+
 			//Change host if the current host returns an error
 			newHostIndex := checkNTPHost(config.NTPConfig{
 				Hosts: s.ntpOptions.Hosts,
@@ -147,8 +147,6 @@ func (s *syncTime) sync() {
 		log.Trace("ntp",
 			"reading", r.Time.Format("Mon Jan 2 15:04:05 MST 2006"),
 		)
-		JLS
-		log.Debug(fmt.Sprintf("NTP reading: %s", r.Time.Format("Mon Jan 2 15:04:05 MST 2006")))
 
 		succeededRequests++
 		clockOffsetSum += r.ClockOffset

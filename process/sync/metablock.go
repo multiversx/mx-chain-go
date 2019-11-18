@@ -1,12 +1,10 @@
 package sync
 
 import (
-	"fmt"
 	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -218,15 +216,12 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 			ni.finalNotarized[i] = ni.lastNotarized[i]
 		}
 
-		log.Info(fmt.Sprintf("last notarized block from shard %d is %d and final notarized shard block is %d\n",
-			i, ni.lastNotarized[i].Nonce, ni.finalNotarized[i].Nonce))
-		JLS
 		log.Debug("last notarized block",
 			"shard", i,
-			"nonce", ni.lastNotarized[i],
+			"nonce", ni.lastNotarized[i].Nonce,
 		)
 		log.Debug("final notarized block",
-			"nonce", ni.finalNotarized[i],
+			"nonce", ni.finalNotarized[i].Nonce,
 		)
 	}
 
@@ -247,8 +242,6 @@ func (boot *MetaBootstrap) isMetaBlockValid(nonce uint64) (*block.MetaBlock, boo
 	}
 
 	if metaBlock.Round > boot.bootstrapRoundIndex {
-		log.Debug(ErrHigherRoundInBlock.Error())
-		JLS
 		log.Debug("higher round in metablock",
 			"round", metaBlock.Round,
 			"bootstrapRoundIndex", boot.bootstrapRoundIndex,
@@ -362,10 +355,8 @@ func (boot *MetaBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]*Hdr
 		for nonce := lastNotarized[shardId].Nonce + 1; nonce <= highestNonceInStorer; nonce++ {
 			errNotCritical := boot.removeBlockHeader(nonce, dataRetriever.BlockHeaderUnit, hdrNonceHashDataUnit)
 			if errNotCritical != nil {
-				log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
-				JLS
 				log.Debug("remove notarized block header",
-					"nonce", i,
+					"nonce", nonce,
 					"error", errNotCritical.Error(),
 				)
 			}
@@ -412,9 +403,10 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
-	log.Info(fmt.Sprintf("requested header with nonce %d from network as probable highest nonce is %d\n",
-		nonce,
-		boot.forkDetector.ProbableHighestNonce()))
+	log.Debug("requested header from network",
+		"nonce", nonce,
+		"highest probable nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
 
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
