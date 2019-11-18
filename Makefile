@@ -46,6 +46,9 @@ test-miniblocks-v:
 test-agario-join-reward:
 	go test -count=1 -v --run=TestShouldProcessBlocksWithScTxsJoinAndReward ./integrationTests/singleShard/block/
 
+test-arwen:
+	go test -count=1 -v ./integrationTests/vm/arwen/
+
 test-miniblocks-sc-v:
 	go test -count=1 -v ./integrationTests/multiShard/block/executingMiniblocksSc_test.go
 

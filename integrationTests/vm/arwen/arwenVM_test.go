@@ -8,8 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,10 +20,10 @@ import (
 var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
+	round := uint64(444)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)
-	round := uint64(444)
 	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
@@ -73,51 +76,21 @@ func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
 }
 
 func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue uint64) {
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(0xfffffffffffffff)
-	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	round := uint64(444)
-	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
-	transferOnCalls := big.NewInt(1)
-
-	scCode, err := ioutil.ReadFile(fileSC)
-	assert.Nil(tb, err)
-
-	scCodeString := hex.EncodeToString(scCode)
-
-	tx := &transaction.Transaction{
-		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
-		SndAddr:   ownerAddressBytes,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
-		Signature: nil,
-		Challenge: nil,
-	}
-
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(tb, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	err = txProc.ProcessTransaction(tx, round)
-	assert.Nil(tb, err)
-
-	_, err = accnts.Commit()
-	assert.Nil(tb, err)
+	accnts, txProc, scAddress := deploySmartContract(tb, fileSC, round, big.NewInt(1))
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
 	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(10000000000))
 
-	tx = &transaction.Transaction{
+	gasLimit := uint64(0xffffffffffffffff)
+
+	tx := &transaction.Transaction{
 		Nonce:     aliceNonce,
 		Value:     big.NewInt(0).SetUint64(testingValue),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
-		GasPrice:  0,
+		GasPrice:  1,
 		GasLimit:  gasLimit,
 		Data:      "_main",
 		Signature: nil,
@@ -202,45 +175,13 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 }
 
 func TestWASMNamespacing(t *testing.T) {
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(0xfffffffffffffff)
-	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	round := uint64(444)
-	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
-	transferOnCalls := big.NewInt(1)
+	accnts, txProc, scAddress := deploySmartContract(t, "./fib_ewasmified.wasm", round, big.NewInt(1))
 
 	// This SmartContract had its imports modified after compilation, replacing
 	// the namespace 'env' to 'ethereum'. If WASM namespacing is done correctly
 	// by Arwen, then this SC should have no problem to call imported functions
 	// (as if it were run by Ethereuem).
-	fileSC := "./fib_ewasmified.wasm"
-	scCode, err := ioutil.ReadFile(fileSC)
-	assert.Nil(t, err)
-
-	scCodeString := hex.EncodeToString(scCode)
-
-	tx := &transaction.Transaction{
-		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
-		SndAddr:   ownerAddressBytes,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
-		Signature: nil,
-		Challenge: nil,
-	}
-
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	err = txProc.ProcessTransaction(tx, round)
-	assert.Nil(t, err)
-
-	_, err = accnts.Commit()
-	assert.Nil(t, err)
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
@@ -249,9 +190,10 @@ func TestWASMNamespacing(t *testing.T) {
 
 	testingValue := uint64(15)
 
-	gasLimit = uint64(2000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(2000)
 
-	tx = &transaction.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:     aliceNonce,
 		Value:     big.NewInt(0).SetUint64(testingValue),
 		RcvAddr:   scAddress,
@@ -263,46 +205,13 @@ func TestWASMNamespacing(t *testing.T) {
 		Challenge: nil,
 	}
 
-	err = txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 }
 
 func TestWASMMetering(t *testing.T) {
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(0xfffffffffffffff)
-	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	round := uint64(444)
-	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
-	transferOnCalls := big.NewInt(1)
-
-	fileSC := "./cpucalculate_arwen.wasm"
-	scCode, err := ioutil.ReadFile(fileSC)
-	assert.Nil(t, err)
-
-	scCodeString := hex.EncodeToString(scCode)
-
-	tx := &transaction.Transaction{
-		Nonce:     ownerNonce,
-		Value:     transferOnCalls,
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
-		SndAddr:   ownerAddressBytes,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
-		Signature: nil,
-		Challenge: nil,
-	}
-
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	err = txProc.ProcessTransaction(tx, round)
-	assert.Nil(t, err)
-
-	_, err = accnts.Commit()
-	assert.Nil(t, err)
+	accnts, txProc, scAddress := deploySmartContract(t, "./cpucalculate_arwen.wasm", round, big.NewInt(1))
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
@@ -311,9 +220,10 @@ func TestWASMMetering(t *testing.T) {
 
 	testingValue := uint64(15)
 
-	gasLimit = uint64(2000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(2000)
 
-	tx = &transaction.Transaction{
+	tx := &transaction.Transaction{
 		Nonce:     aliceNonce,
 		Value:     big.NewInt(0).SetUint64(testingValue),
 		RcvAddr:   scAddress,
@@ -325,7 +235,7 @@ func TestWASMMetering(t *testing.T) {
 		Challenge: nil,
 	}
 
-	err = txProc.ProcessTransaction(tx, round)
+	err := txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
 	expectedBalance := big.NewInt(2429)
@@ -346,21 +256,42 @@ func TestWASMMetering(t *testing.T) {
 }
 
 func TestGasExhaustionError(t *testing.T) {
-	accnts := vm.CreateInMemoryShardAccountsDB()
-	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	gasSchedule := arwenConfig.MakeGasMap(1)
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, addrConv, maxGasLimitPerBlock, gasSchedule)
-	vmContainer, _ := vmFactory.Create()
-	arwenVM, err := vmContainer.Get(factory.ArwenVirtualMachine)
-	assert.Nil(t, err)
+	// accnts, txProc, scAddress := deploySmartContract(t, "./fib_arwen.wasm")
+}
 
-	fileSC := "./fib_arwen.wasm"
-	scCode, err := ioutil.ReadFile(fileSC)
-	assert.Nil(t, err)
+func deploySmartContract(tb testing.TB, smartContractFile string, round uint64, deployTxValue *big.Int) (state.AccountsAdapter, process.TransactionProcessor, []byte) {
+	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(0xfffffffffffffff)
+	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
+	gasPrice := uint64(1)
+	gasLimit := uint64(0xffffffffffffffff)
 
-	gasLeft := int64(100000)
+	scCode, err := ioutil.ReadFile(smartContractFile)
+	assert.Nil(tb, err)
 
-	wasmer.SetImports(arwenVM.GetImports())
-	wasmer.SetOpcodeCosts(&arwenVM.GetOpcodeCosts())
-	wasmerInstance, err = wasmer.NewMeteredInstance(scCode, uint64(gasLeft))
+	scCodeString := hex.EncodeToString(scCode)
+
+	tx := &transaction.Transaction{
+		Nonce:     ownerNonce,
+		Value:     deployTxValue,
+		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		SndAddr:   ownerAddressBytes,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(tb, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(tb, err)
+
+	_, err = accnts.Commit()
+	assert.Nil(tb, err)
+
+	return accnts, txProc, scAddress
 }
