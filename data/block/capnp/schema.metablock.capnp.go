@@ -875,13 +875,13 @@ func (s ShardDataCapn_List) Set(i int, item ShardDataCapn) { C.PointerList(s).Se
 type FinalizedHeadersCapn C.Struct
 
 func NewFinalizedHeadersCapn(s *C.Segment) FinalizedHeadersCapn {
-	return FinalizedHeadersCapn(s.NewStruct(8, 4))
+	return FinalizedHeadersCapn(s.NewStruct(8, 5))
 }
 func NewRootFinalizedHeadersCapn(s *C.Segment) FinalizedHeadersCapn {
-	return FinalizedHeadersCapn(s.NewRootStruct(8, 4))
+	return FinalizedHeadersCapn(s.NewRootStruct(8, 5))
 }
 func AutoNewFinalizedHeadersCapn(s *C.Segment) FinalizedHeadersCapn {
-	return FinalizedHeadersCapn(s.NewStructAR(8, 4))
+	return FinalizedHeadersCapn(s.NewStructAR(8, 5))
 }
 func ReadRootFinalizedHeadersCapn(s *C.Segment) FinalizedHeadersCapn {
 	return FinalizedHeadersCapn(s.Root(0).ToStruct())
@@ -896,11 +896,15 @@ func (s FinalizedHeadersCapn) FirstPendingMetaBlock() []byte { return C.Struct(s
 func (s FinalizedHeadersCapn) SetFirstPendingMetaBlock(v []byte) {
 	C.Struct(s).SetObject(2, s.Segment.NewData(v))
 }
+func (s FinalizedHeadersCapn) LastFinishedMetaBlock() []byte { return C.Struct(s).GetObject(3).ToData() }
+func (s FinalizedHeadersCapn) SetLastFinishedMetaBlock(v []byte) {
+	C.Struct(s).SetObject(3, s.Segment.NewData(v))
+}
 func (s FinalizedHeadersCapn) PendingMiniBlockHeaders() ShardMiniBlockHeaderCapn_List {
-	return ShardMiniBlockHeaderCapn_List(C.Struct(s).GetObject(3))
+	return ShardMiniBlockHeaderCapn_List(C.Struct(s).GetObject(4))
 }
 func (s FinalizedHeadersCapn) SetPendingMiniBlockHeaders(v ShardMiniBlockHeaderCapn_List) {
-	C.Struct(s).SetObject(3, C.Object(v))
+	C.Struct(s).SetObject(4, C.Object(v))
 }
 func (s FinalizedHeadersCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
@@ -974,6 +978,25 @@ func (s FinalizedHeadersCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.FirstPendingMetaBlock()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"lastFinishedMetaBlock\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.LastFinishedMetaBlock()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -1113,6 +1136,25 @@ func (s FinalizedHeadersCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	_, err = b.WriteString("lastFinishedMetaBlock = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.LastFinishedMetaBlock()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
 	_, err = b.WriteString("pendingMiniBlockHeaders = ")
 	if err != nil {
 		return err
@@ -1158,7 +1200,7 @@ func (s FinalizedHeadersCapn) MarshalCapLit() ([]byte, error) {
 type FinalizedHeadersCapn_List C.PointerList
 
 func NewFinalizedHeadersCapnList(s *C.Segment, sz int) FinalizedHeadersCapn_List {
-	return FinalizedHeadersCapn_List(s.NewCompositeList(8, 4, sz))
+	return FinalizedHeadersCapn_List(s.NewCompositeList(8, 5, sz))
 }
 func (s FinalizedHeadersCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s FinalizedHeadersCapn_List) At(i int) FinalizedHeadersCapn {
