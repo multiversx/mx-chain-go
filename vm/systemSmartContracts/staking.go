@@ -206,8 +206,8 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked == true || registrationData.UnStakedNonce <= registrationData.StartNonce {
-		log.Debug("unBound is not possible for address with is staked")
+	if registrationData.Staked || registrationData.UnStakedNonce <= registrationData.StartNonce {
+		log.Debug("unBound is not possible for address which is staked or is not in unbound period")
 		return vmcommon.UserError
 	}
 
