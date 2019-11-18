@@ -10,18 +10,16 @@ import (
 	"github.com/beevik/ntp"
 )
 
-// totalRequests defines the number of requests made to determine an accurate clock offset
-const totalRequests = 10
-
 var log = logger.GetOrCreate("ntp")
 
 // NTPOptions defines configuration options for an NTP query
 type NTPOptions struct {
-	Host         string
+	Hosts        []string
 	Version      int
 	LocalAddress string
 	Timeout      time.Duration
 	Port         int
+	HostIndex    int
 }
 
 // NewNTPGoogleConfig creates an NTPConfig object that configures NTP to use
@@ -29,20 +27,27 @@ type NTPOptions struct {
 // loading a configuration file just to have an NTPConfig.
 func NewNTPGoogleConfig() config.NTPConfig {
 	return config.NTPConfig{
-		Host:    "time.google.com",
-		Port:    123,
-		Version: 0,
-		Timeout: 0}
+		Hosts:               []string{"time.google.com"},
+		Port:                123,
+		Version:             0,
+		TimeoutMilliseconds: 100}
 }
 
 // NewNTPOptions creates a new NTPOptions object.
-func NewNTPOptions(ntpConfig config.NTPConfig) NTPOptions {
+func NewNTPOptions(ntpConfig config.NTPConfig, hostIndex int) NTPOptions {
+	if ntpConfig.TimeoutMilliseconds <= 0 {
+		ntpConfig.TimeoutMilliseconds = 100
+	}
+	timeout := time.Duration(ntpConfig.TimeoutMilliseconds) * time.Millisecond
+
 	return NTPOptions{
-		Host:         ntpConfig.Host,
+		Hosts:        ntpConfig.Hosts,
 		Port:         ntpConfig.Port,
 		Version:      ntpConfig.Version,
 		LocalAddress: "",
-		Timeout:      ntpConfig.Timeout}
+		Timeout:      timeout,
+		HostIndex:    hostIndex,
+	}
 }
 
 // queryNTP wraps beevikntp.QueryWithOptions, in order to use NTPOptions, which
@@ -53,11 +58,13 @@ func queryNTP(options NTPOptions) (*ntp.Response, error) {
 		Version:      options.Version,
 		LocalAddress: options.LocalAddress,
 		Port:         options.Port}
+
 	log.Debug("ntp",
-		"request", options.Host,
+		"request", options.Hosts[options.HostIndex],
 		"port", options.Port,
 	)
-	return ntp.QueryWithOptions(options.Host, queryOptions)
+
+	return ntp.QueryWithOptions(options.Hosts[options.HostIndex], queryOptions)
 }
 
 // syncTime defines an object for time synchronization
@@ -79,12 +86,31 @@ func NewSyncTime(ntpConfig config.NTPConfig, syncPeriod time.Duration, customQue
 	} else {
 		queryFunc = customQueryFunc
 	}
+
+	hostIndex := checkNTPHost(ntpConfig, queryFunc)
+
 	s := syncTime{
 		clockOffset: 0,
 		syncPeriod:  syncPeriod,
 		query:       queryFunc,
-		ntpOptions:  NewNTPOptions(ntpConfig)}
+		ntpOptions:  NewNTPOptions(ntpConfig, hostIndex)}
+
 	return &s
+}
+
+func checkNTPHost(ntpConfig config.NTPConfig, customQueryFunc func(options NTPOptions) (*ntp.Response, error)) int {
+	for hostIndex := range ntpConfig.Hosts {
+		_, err := customQueryFunc(NewNTPOptions(ntpConfig, hostIndex))
+		if err != nil {
+			continue
+		}
+		log.Debug("using NTP server",
+			"host", ntpConfig.Hosts[hostIndex],
+		)
+		return hostIndex
+	}
+
+	return 0
 }
 
 // StartSync method does the time synchronization at every syncPeriod time elapsed. This should be started
@@ -99,30 +125,36 @@ func (s *syncTime) StartSync() {
 // sync method does the time synchronization and sets the current offset difference between local time
 // and server time with which it has done the synchronization
 func (s *syncTime) sync() {
-	if s.query != nil {
-		clockOffsetSum := time.Duration(0)
-		succeededRequests := 0
+	clockOffsetSum := time.Duration(0)
+	succeededRequests := 0
 
-		for i := 0; i < totalRequests; i++ {
-			r, err := s.query(s.ntpOptions)
+	for i := 0; i < len(s.ntpOptions.Hosts); i++ {
+		r, err := s.query(s.ntpOptions)
 
-			if err != nil {
-				log.Debug("ntp", "error", err.Error())
-				continue
-			}
+		if err != nil {
+			log.Debug("ntp", "error", err.Error())
 
-			log.Trace("ntp",
-				"reading", r.Time.Format("Mon Jan 2 15:04:05 MST 2006"),
-			)
+			//Change host if the current host returns an error
+			newHostIndex := checkNTPHost(config.NTPConfig{
+				Hosts: s.ntpOptions.Hosts,
+				Port:  s.ntpOptions.Port,
+			}, s.query)
+			s.ntpOptions.HostIndex = newHostIndex
 
-			succeededRequests++
-			clockOffsetSum += r.ClockOffset
+			continue
 		}
 
-		if succeededRequests > 0 {
-			averageClockOffset := time.Duration(int64(clockOffsetSum) / int64(succeededRequests))
-			s.setClockOffset(averageClockOffset)
-		}
+		log.Trace("ntp",
+			"reading", r.Time.Format("Mon Jan 2 15:04:05 MST 2006"),
+		)
+
+		succeededRequests++
+		clockOffsetSum += r.ClockOffset
+	}
+
+	if succeededRequests > 0 {
+		averageClockOffset := time.Duration(int64(clockOffsetSum) / int64(succeededRequests))
+		s.setClockOffset(averageClockOffset)
 	}
 }
 

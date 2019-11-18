@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"bytes"
 	"sort"
 	"sync"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -169,6 +167,12 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		txsBuff, err := txs.storage.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
+			log.Debug("tx from mini block was not found in TransactionUnit",
+				"sender shard ID", miniBlock.SenderShardID,
+				"receiver shard ID", miniBlock.ReceiverShardID,
+				"num txs", len(miniBlock.TxHashes),
+			)
+
 			return txsRestored, err
 		}
 
@@ -180,11 +184,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			}
 
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
-
-			err = txs.storage.GetStorer(dataRetriever.TransactionUnit).Remove([]byte(txHash))
-			if err != nil {
-				return txsRestored, err
-			}
 		}
 
 		miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
@@ -193,11 +192,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 		}
 
 		miniBlockPool.Put(miniBlockHash, miniBlock)
-
-		err = txs.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
-		if err != nil {
-			return txsRestored, err
-		}
 
 		txsRestored += len(miniBlock.TxHashes)
 	}
@@ -439,22 +433,6 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 	return transactions, txHashes, nil
 }
 
-//TODO move this to smart contract address calculation component
-func isSmartContractAddress(rcvAddress []byte) bool {
-	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
-	if isEmptyAddress {
-		return true
-	}
-
-	isSCAddress := bytes.Equal(rcvAddress[:(hooks.NumInitCharactersForScAddress-hooks.VMTypeLen)],
-		make([]byte, hooks.NumInitCharactersForScAddress-hooks.VMTypeLen))
-	if isSCAddress {
-		return true
-	}
-
-	return false
-}
-
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the transactions added into the miniblocks
 // as long as it has time
 func (txs *transactions) CreateAndProcessMiniBlocks(
@@ -467,6 +445,18 @@ func (txs *transactions) CreateAndProcessMiniBlocks(
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	newMBAdded := true
 	txSpaceRemained := int(maxTxSpaceRemained)
+
+	miniBlock, err := txs.CreateAndProcessMiniBlock(
+		txs.shardCoordinator.SelfId(),
+		sharding.MetachainShardId,
+		txSpaceRemained,
+		haveTime,
+		round)
+
+	if err == nil && len(miniBlock.TxHashes) > 0 {
+		txSpaceRemained -= len(miniBlock.TxHashes)
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
 
 	for newMBAdded {
 		newMBAdded = false
@@ -556,7 +546,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 
 		currTxGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
-		if isSmartContractAddress(orderedTxs[index].RcvAddr) {
+		if core.IsSmartContractAddress(orderedTxs[index].RcvAddr) {
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}
 

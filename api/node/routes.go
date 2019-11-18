@@ -16,7 +16,6 @@ import (
 type FacadeHandler interface {
 	IsNodeRunning() bool
 	StartNode() error
-	StopNode() error
 	GetCurrentPublicKey() string
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark

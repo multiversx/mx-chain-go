@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -48,6 +49,17 @@ func WithHasher(hasher hashing.Hasher) Option {
 			return ErrNilHasher
 		}
 		n.hasher = hasher
+		return nil
+	}
+}
+
+// WithTxFeeHandler sets up the tx fee handler for the Node
+func WithTxFeeHandler(feeHandler process.FeeHandler) Option {
+	return func(n *Node) error {
+		if feeHandler == nil || feeHandler.IsInterfaceNil() {
+			return ErrNilTxFeeHandler
+		}
+		n.feeHandler = feeHandler
 		return nil
 	}
 }
@@ -136,6 +148,17 @@ func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 			return ErrNilSingleSignKeyGen
 		}
 		n.keyGen = keyGen
+		return nil
+	}
+}
+
+// WithKeyGenForAccounts sets up the balances key generator option for the Node
+func WithKeyGenForAccounts(keyGenForAccounts crypto.KeyGenerator) Option {
+	return func(n *Node) error {
+		if keyGenForAccounts == nil || keyGenForAccounts.IsInterfaceNil() {
+			return ErrNilKeyGenForBalances
+		}
+		n.keyGenForAccounts = keyGenForAccounts
 		return nil
 	}
 }
@@ -395,6 +418,17 @@ func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 func WithIndexer(indexer indexer.Indexer) Option {
 	return func(n *Node) error {
 		n.indexer = indexer
+		return nil
+	}
+}
+
+// WithBlackListHandler sets up a black list handler for the Node
+func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(blackListHandler) {
+			return ErrNilBlackListHandler
+		}
+		n.blackListHandler = blackListHandler
 		return nil
 	}
 }

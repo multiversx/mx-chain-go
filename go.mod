@@ -6,7 +6,7 @@ require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.19
-	github.com/ElrondNetwork/elrond-vm-common v0.0.8
+	github.com/ElrondNetwork/elrond-vm-common v0.0.9
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
@@ -35,7 +35,9 @@ require (
 	github.com/libp2p/go-libp2p-core v0.2.2
 	github.com/libp2p/go-libp2p-discovery v0.1.0
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
+	github.com/libp2p/go-libp2p-kbucket v0.2.1
 	github.com/libp2p/go-libp2p-pubsub v0.1.1
+	github.com/minio/sha256-simd v0.1.0
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/pelletier/go-toml v1.2.0

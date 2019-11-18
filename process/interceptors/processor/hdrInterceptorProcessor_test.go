@@ -18,6 +18,7 @@ func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
 		Headers:       &mock.CacherStub{},
 		HeadersNonces: &mock.Uint64SyncMapCacherStub{},
 		HdrValidator:  &mock.HeaderValidatorStub{},
+		BlackList:     &mock.BlackListHandlerStub{},
 	}
 
 	return arg
@@ -67,6 +68,17 @@ func TestNewHdrInterceptorProcessor_NilValidatorShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHdrValidator, err)
 }
 
+func TestNewHdrInterceptorProcessor_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHdrArgument()
+	arg.BlackList = nil
+	hip, err := processor.NewHdrInterceptorProcessor(arg)
+
+	assert.Nil(t, hip)
+	assert.Equal(t, process.ErrNilBlackListHandler, err)
+}
+
 func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -89,6 +101,37 @@ func TestHdrInterceptorProcessor_ValidateNilHdrShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
+func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHdrArgument()
+	arg.HdrValidator = &mock.HeaderValidatorStub{
+		HeaderValidForProcessingCalled: func(hdrValidatorHandler process.HdrValidatorHandler) error {
+			return nil
+		},
+	}
+	arg.BlackList = &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return true
+		},
+	}
+	hip, _ := processor.NewHdrInterceptorProcessor(arg)
+
+	hdrInterceptedData := &struct {
+		mock.InterceptedDataStub
+		mock.GetHdrHandlerStub
+	}{
+		InterceptedDataStub: mock.InterceptedDataStub{
+			HashCalled: func() []byte {
+				return make([]byte, 0)
+			},
+		},
+	}
+	err := hip.Validate(hdrInterceptedData)
+
+	assert.Equal(t, process.ErrHeaderIsBlackListed, err)
+}
+
 func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 	t.Parallel()
 
@@ -99,12 +142,23 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 			return expectedErr
 		},
 	}
+	arg.BlackList = &mock.BlackListHandlerStub{
+		HasCalled: func(key string) bool {
+			return false
+		},
+	}
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {
 		mock.InterceptedDataStub
 		mock.GetHdrHandlerStub
-	}{}
+	}{
+		InterceptedDataStub: mock.InterceptedDataStub{
+			HashCalled: func() []byte {
+				return make([]byte, 0)
+			},
+		},
+	}
 	err := hip.Validate(hdrInterceptedData)
 
 	assert.Equal(t, expectedErr, err)

@@ -269,7 +269,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToS
 		//(previous random seed, round, shard id and current random seed to verify if the block has been sent by the right proposer)
 		isHeaderValid := !check.IfNil(header) && headerHash != nil
 		if isHeaderValid {
-			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
+			errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil, false)
 			if errNotCritical != nil {
 				log.Debug("add header in forkdetector", "error", errNotCritical.Error())
 			}
@@ -410,6 +410,12 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Debug("extend function is called",
 		"subround", wrk.consensusService.GetSubroundName(subroundId))
 
+	wrk.displaySignatureStatistic()
+
+	wrk.mutHashConsensusMessage.Lock()
+	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
+	wrk.mutHashConsensusMessage.Unlock()
+
 	if wrk.bootstrapper.ShouldSync() {
 		return
 	}
@@ -427,12 +433,6 @@ func (wrk *Worker) Extend(subroundId int) {
 	if shouldBroadcastLastCommittedHeader {
 		wrk.broadcastLastCommittedHeader()
 	}
-
-	wrk.dysplaySignatureStatistic()
-
-	wrk.mutHashConsensusMessage.Lock()
-	wrk.mapHashConsensusMessage = make(map[string][]*consensus.Message)
-	wrk.mutHashConsensusMessage.Unlock()
 }
 
 func (wrk *Worker) broadcastLastCommittedHeader() {
@@ -448,12 +448,14 @@ func (wrk *Worker) broadcastLastCommittedHeader() {
 	}
 }
 
-func (wrk *Worker) dysplaySignatureStatistic() {
+func (wrk *Worker) displaySignatureStatistic() {
 	wrk.mutHashConsensusMessage.RLock()
 	for hash, consensusMessages := range wrk.mapHashConsensusMessage {
 		log.Debug("proposed header with signatures",
 			"hash", []byte(hash),
-			"sigs num", len(consensusMessages))
+			"sigs num", len(consensusMessages),
+			"round", consensusMessages[0].RoundIndex,
+		)
 
 		for _, consensusMessage := range consensusMessages {
 			log.Trace(fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey))))

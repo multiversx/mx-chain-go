@@ -3,6 +3,7 @@ package preprocess
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -140,7 +141,7 @@ func (mbc *miniBlocksCompaction) computeGasConsumedByTx(txHash []byte) (uint64, 
 	}
 
 	txGasLimit := mbc.economicsFee.ComputeGasLimit(tx)
-	if isSmartContractAddress(tx.GetRecvAddress()) {
+	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
 		txGasLimit = tx.GetGasLimit()
 	}
 

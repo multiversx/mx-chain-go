@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -41,7 +40,7 @@ type transactionCoordinator struct {
 func NewTransactionCoordinator(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	dataPool dataRetriever.PoolsHolder,
+	miniBlockPool storage.Cacher,
 	requestHandler process.RequestHandler,
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
@@ -52,8 +51,8 @@ func NewTransactionCoordinator(
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if dataPool == nil || dataPool.IsInterfaceNil() {
-		return nil, process.ErrNilDataPoolHolder
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
+		return nil, process.ErrNilMiniBlockPool
 	}
 	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
@@ -70,11 +69,7 @@ func NewTransactionCoordinator(
 		accounts:         accounts,
 	}
 
-	tc.miniBlockPool = dataPool.MiniBlocks()
-	if tc.miniBlockPool == nil || tc.miniBlockPool.IsInterfaceNil() {
-		return nil, process.ErrNilMiniBlockPool
-	}
-
+	tc.miniBlockPool = miniBlockPool
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
@@ -452,7 +447,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.keysTxPreProcs {
-
 		txPreProc := tc.getPreProcessor(blockType)
 		if txPreProc == nil || txPreProc.IsInterfaceNil() {
 			return nil
@@ -585,36 +579,38 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 			continue
 		}
 
+		appended := false
 		preproc := tc.getPreProcessor(miniblock.Type)
-		if preproc == nil || preproc.IsInterfaceNil() {
-			continue
-		}
+		if preproc != nil && !preproc.IsInterfaceNil() {
+			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			appended = true
 
-		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
+			if err != nil {
+				log.Trace("CreateMarshalizedData", "error", err.Error())
+				continue
+			}
 
-		currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
-		if err != nil {
-			log.Trace("CreateMarshalizedData", "error", err.Error())
-			continue
-		}
-
-		if len(currMrsTxs) > 0 {
-			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+			if len(currMrsTxs) > 0 {
+				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+			}
 		}
 
 		interimProc := tc.getInterimProcessor(miniblock.Type)
-		if interimProc == nil || interimProc.IsInterfaceNil() {
-			continue
-		}
+		if interimProc != nil && !interimProc.IsInterfaceNil() {
+			if !appended {
+				bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			}
 
-		currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
-		if err != nil {
-			log.Trace("CreateMarshalizedData", "error", err.Error())
-			continue
-		}
+			currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
+			if err != nil {
+				log.Trace("CreateMarshalizedData", "error", err.Error())
+				continue
+			}
 
-		if len(currMrsInterTxs) > 0 {
-			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
+			if len(currMrsInterTxs) > 0 {
+				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
+			}
 		}
 	}
 
