@@ -262,6 +262,8 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 
 	peerAccountsTrie, err := getTrie(
 		args.config.PeerAccountsTrieStorage,
+		args.config.EvictionWaitingList,
+		args.config.TrieSnapshotDB,
 		args.core.Marshalizer,
 		args.core.Hasher,
 		args.uniqueID,
@@ -2274,33 +2276,6 @@ func newValidatorStatisticsProcessor(
 	return validatorStatisticsProcessor, nil
 }
 
-func getPeerAdapter(processComponents *processComponentsFactoryArgs) (*state.PeerAccountsDB, error) {
-	coreComponents := processComponents.coreComponents
-	peerAccountsTrie, err := getTrie(
-		coreComponents.config.PeerAccountsTrieStorage,
-		coreComponents.config.EvictionWaitingList,
-		coreComponents.config.TrieSnapshotDB,
-		processComponents.core.Marshalizer,
-		processComponents.core.Hasher,
-		coreComponents.uniqueID,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	accountFactory, err := factoryState.NewAccountFactoryCreator(factoryState.ValidatorAccount)
-	if err != nil {
-		return nil, errors.New("could not create peer account factory: " + err.Error())
-	}
-
-	peerAdapter, err := state.NewPeerAccountsDB(peerAccountsTrie, processComponents.core.Hasher, processComponents.core.Marshalizer, accountFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return peerAdapter, nil
-}
-
 func getCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 	return storageUnit.CacheConfig{
 		Size:   cfg.Size,
@@ -2408,6 +2383,11 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		return nil, err
 	}
 
+	trieNodesCacher, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	if err != nil {
+		return nil, err
+	}
+
 	currTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
 		return nil, err
@@ -2417,6 +2397,7 @@ func createMemMetaDataPool() (dataRetriever.MetaPoolsHolder, error) {
 		metaBlocks,
 		txBlockBody,
 		shardHeaders,
+		trieNodesCacher,
 		shardHeadersNonces,
 		txPool,
 		uTxPool,

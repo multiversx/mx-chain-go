@@ -162,8 +162,8 @@ func TestNewShardedDataPool_NilMetaBlocksShouldErr(t *testing.T) {
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
-		&mock.CacherStub{},
 		nil,
+		&mock.CacherStub{},
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -180,6 +180,7 @@ func TestNewShardedDataPool_NilTrieNodesShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.CacherStub{},
 		&mock.Uint64SyncMapCacherStub{},
+		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 		nil,

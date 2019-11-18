@@ -76,6 +76,7 @@ func TestNewMetaDataPool_NilTrieNodesShouldErr(t *testing.T) {
 		&mock.Uint64SyncMapCacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
+		&mock.TxForCurrentBlockStub{},
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilTrieNodesPool, err)

@@ -126,7 +126,7 @@ func NewMetaResolverRequestHandler(
 		scrRequestTopic:       scrRequestTopic,
 		trieNodesRequestTopic: trieNodesRequestTopic,
 		isMetaChain:           true,
-		maxTxsToRequest:      maxTxsToRequest,
+		maxTxsToRequest:       maxTxsToRequest,
 	}
 
 	return rrh, nil
