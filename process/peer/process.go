@@ -400,6 +400,10 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	searchHeader := &block.MetaBlock{}
 	*searchHeader = *previousHeader
 	for len(missingShardIds) > 0 {
+		if searchHeader.GetNonce() == 0 {
+			break
+		}
+
 		recursiveHeader, err := process.GetMetaHeader(searchHeader.GetPrevHash(), p.dataPool.MetaBlocks(), p.marshalizer, p.storageService)
 		if err != nil {
 			return err
@@ -415,6 +419,11 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 		}
 		*searchHeader = *recursiveHeader
 	}
+
+	if len(missingShardIds) > 0 {
+		return process.ErrMissingShardDataInStorage
+	}
+
 	return nil
 }
 
