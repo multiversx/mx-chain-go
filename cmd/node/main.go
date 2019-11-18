@@ -58,7 +58,6 @@ const (
 	defaultEpochString = "Epoch"
 	defaultShardString = "Shard"
 	metachainShardName = "metachain"
-	defaultRestApiPort = "off"
 )
 
 var (
@@ -189,11 +188,18 @@ VERSION:
 		Usage: "If set the node will start from scratch, otherwise it starts from the last state stored on disk",
 	}
 
-	// restApiPort defines a flag for port on which the rest API will start on
-	restApiPort = cli.StringFlag{
-		Name:  "rest-api-port",
-		Usage: "The port on which the rest API will start on",
-		Value: defaultRestApiPort,
+	// restApiInterface defines a flag for the interface on which the rest API will try to bind with
+	restApiInterface = cli.StringFlag{
+		Name: "rest-api-interface",
+		Usage: "The interface address and port to which the REST API will attempt to bind. " +
+			"To bind to all available interfaces, set this flag to :8080",
+		Value: facade.DefaultRestInterface,
+	}
+
+	// restApiDebug defines a flag for starting the rest API engine in debug mode
+	restApiDebug = cli.BoolFlag{
+		Name:  "rest-api-debug",
+		Usage: "Start the rest API engine in debug mode",
 	}
 
 	// networkID defines the version of the network. If set, will override the same parameter from config.toml
@@ -319,7 +325,8 @@ func main() {
 		serversConfigurationFile,
 		networkID,
 		nodeDisplayName,
-		restApiPort,
+		restApiInterface,
+		restApiDebug,
 		logLevel,
 		usePrometheus,
 		useLogView,
@@ -762,11 +769,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	restAPIServerDebugMode := !useTermui
+	restAPIServerDebugMode := ctx.GlobalBool(restApiDebug.Name)
 	ef := facade.NewElrondNodeFacade(currentNode, apiResolver, restAPIServerDebugMode)
 
 	efConfig := &config.FacadeConfig{
-		RestApiPort:       ctx.GlobalString(restApiPort.Name),
+		RestApiInterface:  ctx.GlobalString(restApiInterface.Name),
 		PprofEnabled:      ctx.GlobalBool(profileMode.Name),
 		Prometheus:        usePrometheusBool,
 		PrometheusJoinURL: prometheusJoinUrl,

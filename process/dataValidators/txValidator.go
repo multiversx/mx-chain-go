@@ -53,8 +53,9 @@ func (tv *txValidator) IsTxValidForProcessing(interceptedTx process.TxValidatorH
 	sndAddr := interceptedTx.SenderAddress()
 	accountHandler, err := tv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
-		log.Debug("transaction's sender address does not exist in current shard",
-			"sender", sndAddr,
+		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
+		log.Trace("transaction's sender address does not exist in current shard",
+			"sender", hexSenderAddr,
 			"shard", shardId,
 		)
 		tv.rejectedTxs++

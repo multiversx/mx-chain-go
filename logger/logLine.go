@@ -80,3 +80,8 @@ func logLineWrapperCapnToGo(src capnp.LogLineMessageCapn, dest *LogLineWrapper) 
 
 	return
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (llw *LogLineWrapper) IsInterfaceNil() bool {
+	return llw == nil
+}

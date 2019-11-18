@@ -89,3 +89,8 @@ func (l *logger) SetLevel(logLevel LogLevel) {
 	l.logLevel = logLevel
 	l.mutLevel.Unlock()
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (l *logger) IsInterfaceNil() bool {
+	return l == nil
+}

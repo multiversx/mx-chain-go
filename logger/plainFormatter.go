@@ -39,3 +39,8 @@ func formatArgsNoAnsi(args ...string) string {
 
 	return argString
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pf *PlainFormatter) IsInterfaceNil() bool {
+	return pf == nil
+}

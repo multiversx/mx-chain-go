@@ -309,33 +309,24 @@ func TestElrondNodeFacade_RestApiPortNilConfig(t *testing.T) {
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 	ef.SetConfig(nil)
 
-	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+	assert.Equal(t, DefaultRestInterface, ef.RestApiInterface())
 }
 
 func TestElrondNodeFacade_RestApiPortEmptyPortSpecified(t *testing.T) {
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 	ef.SetConfig(&config.FacadeConfig{
-		RestApiPort: "",
+		RestApiInterface: "",
 	})
 
-	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
-}
-
-func TestElrondNodeFacade_RestApiPortInvalidPortSpecified(t *testing.T) {
-	ef := createElrondNodeFacadeWithMockNodeAndResolver()
-	ef.SetConfig(&config.FacadeConfig{
-		RestApiPort: "abc123",
-	})
-
-	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+	assert.Equal(t, DefaultRestInterface, ef.RestApiInterface())
 }
 
 func TestElrondNodeFacade_RestApiPortCorrectPortSpecified(t *testing.T) {
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
-	port := "1111"
+	intf := "localhost:1111"
 	ef.SetConfig(&config.FacadeConfig{
-		RestApiPort: port,
+		RestApiInterface: intf,
 	})
 
-	assert.Equal(t, port, ef.RestApiPort())
+	assert.Equal(t, intf, ef.RestApiInterface())
 }

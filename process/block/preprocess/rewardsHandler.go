@@ -253,7 +253,7 @@ func (rtxh *rewardsHandler) CreateMarshalizedData(txHashes [][]byte) ([][]byte, 
 // ProcessTransactionFee adds the tx cost to the accumulated amount
 func (rtxh *rewardsHandler) ProcessTransactionFee(cost *big.Int) {
 	if cost == nil {
-		log.Debug("nil cost in ProcessTransactionFee", "err", process.ErrNilValue.Error())
+		log.Debug("nil cost in ProcessTransactionFee", "error", process.ErrNilValue.Error())
 		return
 	}
 

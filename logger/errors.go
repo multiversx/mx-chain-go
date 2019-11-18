@@ -14,5 +14,8 @@ var ErrInvalidLogLevelPattern = errors.New("un-parsable log level and pattern pr
 // ErrWriterNotFound signals that the provided writer was not found while searching container list
 var ErrWriterNotFound = errors.New("writer not found while searching container")
 
+// ErrNilMarshalizer signals that a nil marshalizer has been provided
+var ErrNilMarshalizer = errors.New("nil marshalizer")
+
 // ErrNilDisplayByteSliceHandler signals that a nil display byte slice handler has been provided
 var ErrNilDisplayByteSliceHandler = errors.New("nil display byte slice handler")
