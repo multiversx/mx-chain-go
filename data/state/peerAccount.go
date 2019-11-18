@@ -37,6 +37,7 @@ type PeerAccount struct {
 	CurrentShardId    uint32
 	NextShardId       uint32
 	NodeInWaitingList bool
+	UnStakedNonce     uint64
 
 	ValidatorSuccessRate SignRate
 	LeaderSuccessRate    SignRate
@@ -66,6 +67,7 @@ func NewPeerAccount(
 	}
 
 	return &PeerAccount{
+		Stake:            big.NewInt(0),
 		addressContainer: addressContainer,
 		accountTracker:   tracker,
 		dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
@@ -256,6 +258,19 @@ func (a *PeerAccount) SetJailTimeWithJournal(jailTime TimePeriod) error {
 
 	a.accountTracker.Journalize(entry)
 	a.JailTime = jailTime
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// SetUnStakedNonceWithJournal sets the account's shard id, saving the old state before changing
+func (a *PeerAccount) SetUnStakedNonceWithJournal(nonce uint64) error {
+	entry, err := NewPeerJournalEntryUnStakedNonce(a, a.UnStakedNonce)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.UnStakedNonce = nonce
 
 	return a.accountTracker.SaveAccount(a)
 }

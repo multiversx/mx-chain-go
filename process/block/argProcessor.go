@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -15,19 +17,22 @@ import (
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	Accounts                     state.AccountsAdapter
-	ForkDetector                 process.ForkDetector
-	Hasher                       hashing.Hasher
-	Marshalizer                  marshal.Marshalizer
-	Store                        dataRetriever.StorageService
-	ShardCoordinator             sharding.Coordinator
-	NodesCoordinator             sharding.NodesCoordinator
-	SpecialAddressHandler        process.SpecialAddressHandler
-	Uint64Converter              typeConverters.Uint64ByteSliceConverter
-	StartHeaders                 map[uint32]data.HeaderHandler
-	RequestHandler               process.RequestHandler
-	Core                         serviceContainer.Core
+	Accounts              state.AccountsAdapter
+	ForkDetector          process.ForkDetector
+	Hasher                hashing.Hasher
+	Marshalizer           marshal.Marshalizer
+	Store                 dataRetriever.StorageService
+	ShardCoordinator      sharding.Coordinator
+	NodesCoordinator      sharding.NodesCoordinator
+	SpecialAddressHandler process.SpecialAddressHandler
+	Uint64Converter       typeConverters.Uint64ByteSliceConverter
+	StartHeaders          map[uint32]data.HeaderHandler
+	RequestHandler        process.RequestHandler
+	Core                  serviceContainer.Core
+	BlockChainHook        process.BlockChainHookHandler
+	TxCoordinator         process.TransactionCoordinator
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	Rounder                      consensus.Rounder
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -35,7 +40,6 @@ type ArgBaseProcessor struct {
 type ArgShardProcessor struct {
 	ArgBaseProcessor
 	DataPool        dataRetriever.PoolsHolder
-	TxCoordinator   process.TransactionCoordinator
 	TxsPoolsCleaner process.PoolsCleaner
 }
 
@@ -43,5 +47,8 @@ type ArgShardProcessor struct {
 // new instances of meta processor
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
-	DataPool dataRetriever.MetaPoolsHolder
+	DataPool           dataRetriever.MetaPoolsHolder
+	SCDataGetter       external.ScDataGetter
+	PeerChangesHandler process.PeerChangesHandler
+	SCToProtocol       process.SmartContractToProtocolHandler
 }

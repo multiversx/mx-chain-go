@@ -15,6 +15,7 @@ type shardedDataPool struct {
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
 	trieNodes            storage.Cacher
+	currBlockTxs         dataRetriever.TransactionCacher
 }
 
 // NewShardedDataPool creates a data pools holder object
@@ -28,6 +29,7 @@ func NewShardedDataPool(
 	peerChangesBlocks storage.Cacher,
 	metaBlocks storage.Cacher,
 	trieNodes storage.Cacher,
+	currBlockTxs dataRetriever.TransactionCacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil || transactions.IsInterfaceNil() {
@@ -57,6 +59,9 @@ func NewShardedDataPool(
 	if trieNodes == nil || trieNodes.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTrieNodesPool
 	}
+	if currBlockTxs == nil || currBlockTxs.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilCurrBlockTxs
+	}
 
 	return &shardedDataPool{
 		transactions:         transactions,
@@ -68,7 +73,13 @@ func NewShardedDataPool(
 		peerChangesBlocks:    peerChangesBlocks,
 		metaBlocks:           metaBlocks,
 		trieNodes:            trieNodes,
+		currBlockTxs:         currBlockTxs,
 	}, nil
+}
+
+// CurrentBlockTxs returns the holder for current block transactions
+func (tdp *shardedDataPool) CurrentBlockTxs() dataRetriever.TransactionCacher {
+	return tdp.currBlockTxs
 }
 
 // Transactions returns the holder for transactions

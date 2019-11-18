@@ -19,7 +19,9 @@ type ArgInterceptedDataFactory struct {
 	MultiSigVerifier crypto.MultiSigVerifier
 	NodesCoordinator sharding.NodesCoordinator
 	KeyGen           crypto.KeyGenerator
+	BlockKeyGen      crypto.KeyGenerator
 	Signer           crypto.SingleSigner
+	BlockSigner      crypto.SingleSigner
 	AddrConv         state.AddressConverter
 	FeeHandler       process.FeeHandler
 	Db               data.DBWriteCacher

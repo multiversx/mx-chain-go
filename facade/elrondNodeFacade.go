@@ -87,6 +87,12 @@ func (ef *ElrondNodeFacade) StartNode() error {
 	return err
 }
 
+// GetCurrentPublicKey is just a mock method to satisfies FacadeHandler
+//TODO: Remove this method when it will not be used in elrond facade
+func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
+	return ""
+}
+
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
 func (ef *ElrondNodeFacade) StartBackgroundServices(wg *sync.WaitGroup) {
 	wg.Add(1)
