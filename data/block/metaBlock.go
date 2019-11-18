@@ -304,6 +304,7 @@ func EpochStartShardDataGoToCapn(seg *capn.Segment, src *EpochStartShardData) ca
 	dest.SetHeaderHash(src.HeaderHash)
 	dest.SetShardId(src.ShardId)
 	dest.SetFirstPendingMetaBlock(src.FirstPendingMetaBlock)
+	dest.SetLastFinishedMetaBlock(src.LastFinishedMetaBlock)
 
 	if len(src.PendingMiniBlockHeaders) > 0 {
 		typedList := capnp.NewShardMiniBlockHeaderCapnList(seg, len(src.PendingMiniBlockHeaders))
@@ -329,6 +330,7 @@ func EpochStartShardDataCapnToGo(src capnp.FinalizedHeadersCapn, dest *EpochStar
 	dest.HeaderHash = src.HeaderHash()
 	dest.ShardId = src.ShardId()
 	dest.FirstPendingMetaBlock = src.FirstPendingMetaBlock()
+	dest.LastFinishedMetaBlock = src.LastFinishedMetaBlock()
 
 	n := src.PendingMiniBlockHeaders().Len()
 	dest.PendingMiniBlockHeaders = make([]ShardMiniBlockHeader, n)

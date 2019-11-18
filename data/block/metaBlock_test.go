@@ -69,6 +69,7 @@ func TestEpochStart_SaveLoad(t *testing.T) {
 		HeaderHash:              []byte("headerhash"),
 		RootHash:                []byte("roothash"),
 		FirstPendingMetaBlock:   []byte("firstPending"),
+		LastFinishedMetaBlock:   []byte("lastfinished"),
 		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 	}
 
@@ -123,6 +124,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		HeaderHash:              []byte("headerhash"),
 		RootHash:                []byte("roothash"),
 		FirstPendingMetaBlock:   []byte("firstPending"),
+		LastFinishedMetaBlock:   []byte("lastfinished"),
 		PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 	}
 
