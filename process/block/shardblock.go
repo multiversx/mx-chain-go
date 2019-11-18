@@ -212,6 +212,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if sp.accounts.JournalLen() != 0 {
+		log.Info(fmt.Sprintf("Length of accouts journal: %d", sp.accounts.JournalLen()))
 		return process.ErrAccountStateDirty
 	}
 
