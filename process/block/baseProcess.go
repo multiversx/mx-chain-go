@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -978,4 +979,61 @@ func (bp *baseProcessor) getHeadersFromPools(
 	headersHashes = append(headersHashes, headerHash)
 
 	return headers, headersHashes
+}
+
+func (bp *baseProcessor) prepareDataForBootStorer(
+	headerInfo bootstrapStorage.BootstrapHeaderInfo,
+	round uint64,
+	lastFinalHdrs []data.HeaderHandler,
+	lastFinalHashes [][]byte,
+) {
+	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+
+	bp.mutNotarizedHdrs.RLock()
+	for shardId := range bp.notarizedHdrs {
+		hdr := bp.lastNotarizedHdrForShard(shardId)
+
+		hdrNonce := hdr.GetNonce()
+		if hdrNonce == 0 {
+			continue
+		}
+
+		hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
+		if err != nil {
+			continue
+		}
+
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: hdr.GetShardID(),
+			Nonce:   hdrNonce,
+			Hash:    hash,
+		}
+		lastNotarizedHdrs = append(lastNotarizedHdrs, headerInfo)
+	}
+	bp.mutNotarizedHdrs.RUnlock()
+
+	highestFinalNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+
+	for i := range lastFinalHdrs {
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: lastFinalHdrs[i].GetShardID(),
+			Nonce:   lastFinalHdrs[i].GetNonce(),
+			Hash:    lastFinalHashes[i],
+		}
+
+		lastFinals = append(lastFinals, headerInfo)
+	}
+
+	bootData := bootstrapStorage.BootstrapData{
+		HeaderInfo:           headerInfo,
+		LastNotarizedHeaders: lastNotarizedHdrs,
+		LastFinals:           lastFinals,
+		HighestFinalNonce:    highestFinalNonce,
+	}
+
+	go func() {
+		err := bp.bootStorer.Put(int64(round), bootData)
+		log.Info("cannot save boot data in storage", err)
+	}()
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -62,22 +63,27 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 	)
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			Accounts:              &mock.AccountsStub{},
-			ForkDetector:          &mock.ForkDetectorMock{},
-			Hasher:                &mock.HasherMock{},
-			Marshalizer:           &mock.MarshalizerMock{},
-			Store:                 &mock.ChainStorerMock{},
-			ShardCoordinator:      shardCoordinator,
-			NodesCoordinator:      nodesCoordinator,
-			SpecialAddressHandler: specialAddressHandler,
-			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:          genesisBlocks,
-			RequestHandler:        &mock.RequestHandlerMock{},
-			Core:                  &mock.ServiceContainerMock{},
-			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:         &mock.TransactionCoordinatorMock{},
+			Accounts:                     &mock.AccountsStub{},
+			ForkDetector:                 &mock.ForkDetectorMock{},
+			Hasher:                       &mock.HasherMock{},
+			Marshalizer:                  &mock.MarshalizerMock{},
+			Store:                        &mock.ChainStorerMock{},
+			ShardCoordinator:             shardCoordinator,
+			NodesCoordinator:             nodesCoordinator,
+			SpecialAddressHandler:        specialAddressHandler,
+			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:                 genesisBlocks,
+			RequestHandler:               &mock.RequestHandlerMock{},
+			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			Rounder:                      &mock.RounderMock{},
+			BootstrapStorer: &mock.BoostrapStorerMock{
+				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+					return nil
+				},
+			},
 		},
 		DataPool:        tdp,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

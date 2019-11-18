@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -69,7 +70,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/process/sync/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -959,9 +959,9 @@ func createMetaChainDataStoreFromConfig(
 	uniqueID string,
 ) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
-	var bootstrapUnit *storageUnit.Unit
 	var txUnit, miniBlockUnit, unsignedTxUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
+	var bootstrapUnit *storageUnit.Unit
 	var err error
 
 	defer func() {

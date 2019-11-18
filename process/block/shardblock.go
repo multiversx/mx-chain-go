@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -705,6 +706,13 @@ func (sp *shardProcessor) CommitBlock(
 		headerMeta.GetNonce(),
 	)
 
+	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: header.ShardId,
+		Nonce:   header.Nonce,
+		Hash:    headerHash,
+	}
+	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes)
+
 	go sp.cleanTxsPools()
 
 	// write data to log
@@ -762,7 +770,7 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (mp *shardProcessor) CreateNewHeader() data.HeaderHandler {
+func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
 	return &block.Header{}
 }
 

@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -491,6 +492,11 @@ func createNetNode(
 			TxCoordinator:                tc,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			Rounder:                      &mock.RounderMock{},
+			BootstrapStorer: &mock.BoostrapStorerMock{
+				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+					return nil
+				},
+			},
 		},
 		DataPool:        dPool,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -872,6 +878,11 @@ func createMetaNetNode(
 			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:   &mock.TransactionCoordinatorMock{},
 			Rounder:         &mock.RounderMock{},
+			BootstrapStorer: &mock.BoostrapStorerMock{
+				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+					return nil
+				},
+			},
 		},
 		DataPool:           dPool,
 		SCDataGetter:       &mock.ScDataGetterMock{},

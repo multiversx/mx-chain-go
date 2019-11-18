@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -900,6 +901,14 @@ func (mp *metaProcessor) CommitBlock(
 		headerHash,
 		mp.dataPool.ShardHeaders().Len(),
 	)
+
+	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: sharding.MetachainShardId,
+		Nonce:   header.Nonce,
+		Hash:    headerHash,
+	}
+
+	mp.prepareDataForBootStorer(headerInfo, header.Round, []data.HeaderHandler{}, [][]byte{})
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 

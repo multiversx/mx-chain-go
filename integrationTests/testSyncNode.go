@@ -3,12 +3,13 @@ package integrationTests
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -31,6 +32,11 @@ func NewTestSyncNode(
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
 		NodesCoordinator: nodesCoordinator,
+		BootstrapStorer: &mock.BoostrapStorerMock{
+			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+				return nil
+			},
+		},
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -77,6 +83,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
+
 }
 
 func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
@@ -113,6 +120,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		Rounder:                      &mock.RounderMock{},
+		BootstrapStorer: &mock.BoostrapStorerMock{
+			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+				return nil
+			},
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

@@ -1,16 +1,22 @@
 package bootstrapStorage
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // HighestRoundFromBootStorage is the key for the highest round that is saved in storage
 const highestRoundFromBootStorage = "highestRoundFromBootStorage"
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil Marshalizer")
+
+// ErrNilBootStorer signals that an operation has been attempted to or with a nil storer implementation
+var ErrNilBootStorer = errors.New("nil Marshalizer")
 
 //BootstrapHeaderInfo is struct used to store information about a header
 type BootstrapHeaderInfo struct {
@@ -21,10 +27,10 @@ type BootstrapHeaderInfo struct {
 
 // BootstrapData is struct used to store information that are needed for bootstrap
 type BootstrapData struct {
-	Round                int64
 	HeaderInfo           BootstrapHeaderInfo
 	LastNotarizedHeaders []BootstrapHeaderInfo
-	LastFinal            []BootstrapHeaderInfo
+	LastFinals           []BootstrapHeaderInfo
+	HighestFinalNonce    uint64
 	LastRound            int64
 }
 
@@ -40,20 +46,23 @@ func NewBootstrapStorer(
 	store storage.Storer,
 ) (*bootstrapStorer, error) {
 	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, ErrNilMarshalizer
 	}
 	if check.IfNil(store) {
-		return nil, process.ErrNilStorage
+		return nil, ErrNilBootStorer
 	}
 
-	return &bootstrapStorer{
+	bootStorer := &bootstrapStorer{
 		store:       store,
 		marshalizer: marshalizer,
-	}, nil
+	}
+	bootStorer.lastRound = bootStorer.GetHighestRound()
+
+	return bootStorer, nil
 }
 
 // Put will save bootData in storage
-func (bs *bootstrapStorer) Put(bootData BootstrapData) error {
+func (bs *bootstrapStorer) Put(round int64, bootData BootstrapData) error {
 	bootData.LastRound = bs.lastRound
 
 	// save bootstrap round information
@@ -62,14 +71,14 @@ func (bs *bootstrapStorer) Put(bootData BootstrapData) error {
 		return err
 	}
 
-	key := []byte(strconv.FormatInt(bootData.Round, 10))
+	key := []byte(strconv.FormatInt(round, 10))
 	err = bs.store.Put(key, bootDataBytes)
 	if err != nil {
 		return err
 	}
 
 	// save round with a static key
-	roundBytes, err := bs.marshalizer.Marshal(&bootData.Round)
+	roundBytes, err := bs.marshalizer.Marshal(&round)
 	if err != nil {
 		return err
 	}
@@ -79,7 +88,7 @@ func (bs *bootstrapStorer) Put(bootData BootstrapData) error {
 		return err
 	}
 
-	bs.lastRound = bootData.Round
+	bs.lastRound = round
 
 	return nil
 }

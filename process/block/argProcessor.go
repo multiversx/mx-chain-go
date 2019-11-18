@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -34,7 +33,7 @@ type ArgBaseProcessor struct {
 	TxCoordinator                process.TransactionCoordinator
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rounder                      consensus.Rounder
-	BootstrapStorer              sync.BootStorer
+	BootstrapStorer              process.BootStorer
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
