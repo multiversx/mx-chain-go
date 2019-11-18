@@ -1586,10 +1586,9 @@ func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock
 			return nil, err
 		}
 
-		var lastMetaHash []byte
-		numAddedMetas := len(shardHdr.MetaBlockHashes)
-		if numAddedMetas > 0 {
-			lastMetaHash = shardHdr.MetaBlockHashes[numAddedMetas-1]
+		lastMetaHash, lastFinalizedMetaHash, err := mp.getLastFinalizedMetaHashForShard(shardHdr)
+		if err != nil {
+			return nil, err
 		}
 
 		finalHeader := block.EpochStartShardData{
@@ -1597,6 +1596,7 @@ func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock
 			HeaderHash:            hdrHash,
 			RootHash:              lastNotarizedHdr.GetRootHash(),
 			FirstPendingMetaBlock: lastMetaHash,
+			LastFinishedMetaBlock: lastFinalizedMetaHash,
 		}
 
 		epochStart.LastFinalizedHeaders = append(epochStart.LastFinalizedHeaders, finalHeader)
@@ -1616,6 +1616,42 @@ func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock
 	}
 
 	return epochStart, nil
+}
+
+func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, error) {
+	var lastMetaHash []byte
+	var lastFinalizedMetaHash []byte
+
+	numAddedMetas := len(shardHdr.MetaBlockHashes)
+	if numAddedMetas > 0 {
+		lastMetaHash = shardHdr.MetaBlockHashes[numAddedMetas-1]
+	}
+
+	if numAddedMetas > 1 {
+		lastFinalizedMetaHash = shardHdr.MetaBlockHashes[numAddedMetas-1]
+		return lastMetaHash, lastFinalizedMetaHash, nil
+	}
+
+	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
+		oldShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), mp.dataPool.ShardHeaders(), mp.marshalizer, mp.store)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if len(oldShardHdr.MetaBlockHashes) == 0 {
+			currentHdr = oldShardHdr
+			continue
+		}
+
+		lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[len(oldShardHdr.MetaBlockHashes)-1]
+		if len(lastMetaHash) == 0 {
+			lastMetaHash = lastFinalizedMetaHash
+		}
+
+		return lastMetaHash, lastFinalizedMetaHash, nil
+	}
+
+	return nil, nil, process.ErrLastFinalizedMetaHashForShardNotFound
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {

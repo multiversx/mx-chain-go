@@ -34,7 +34,8 @@ struct FinalizedHeadersCapn {
 	headerHash              @1: Data;
 	rootHash                @2: Data;
 	firstPendingMetaBlock   @3: Data;
-	pendingMiniBlockHeaders @4: List(ShardMiniBlockHeaderCapn);
+	lastFinishedMetaBlock   @4: Data;
+	pendingMiniBlockHeaders @5: List(ShardMiniBlockHeaderCapn);
 }
 
 struct EpochStartCapn {

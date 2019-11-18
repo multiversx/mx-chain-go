@@ -211,9 +211,6 @@ var ErrNilHeadersStorage = errors.New("nil headers storage")
 // ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
 var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
-// ErrNilBlockBodyStorage signals that a nil block body storage has been provided
-var ErrNilBlockBodyStorage = errors.New("nil block body storage")
-
 // ErrNilTransactionPool signals that a nil transaction pool was used
 var ErrNilTransactionPool = errors.New("nil transaction pool")
 
@@ -556,3 +553,6 @@ var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
+
+// ErrLastFinalizedMetaHashForShardNotFound signals that last finalized metahash for shard could not been found
+var ErrLastFinalizedMetaHashForShardNotFound = errors.New("could not find last finalized metahash for shard")

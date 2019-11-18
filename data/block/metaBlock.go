@@ -81,7 +81,8 @@ type EpochStartShardData struct {
 	HeaderHash              []byte                 `capid:"1"`
 	RootHash                []byte                 `capid:"2"`
 	FirstPendingMetaBlock   []byte                 `capid:"3"`
-	PendingMiniBlockHeaders []ShardMiniBlockHeader `capid:"4"`
+	LastFinishedMetaBlock   []byte                 `capid:"4"`
+	PendingMiniBlockHeaders []ShardMiniBlockHeader `capid:"5"`
 }
 
 // EpochStart holds the block information for end-of-epoch
