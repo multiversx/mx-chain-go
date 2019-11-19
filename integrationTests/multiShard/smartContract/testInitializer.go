@@ -888,7 +888,7 @@ func createMetaNetNode(
 			Rounder:         &mock.RounderMock{},
 		},
 		DataPool:           dPool,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}

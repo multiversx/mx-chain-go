@@ -2,16 +2,16 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type ApiResolverStub struct {
-	ExecuteSCQueryHandler func(query *smartContract.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQueryHandler func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler  func() external.StatusMetricsHandler
 }
 
-func (ars *ApiResolverStub) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return ars.ExecuteSCQueryHandler(query)
 }
 

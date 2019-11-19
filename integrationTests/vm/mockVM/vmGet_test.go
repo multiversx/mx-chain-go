@@ -3,13 +3,13 @@ package mockVM
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -27,7 +27,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	service, _ := smartContract.NewSCQueryService(vmContainer)
 
 	functionName := "Get"
-	query := smartContract.SCQuery{
+	query := process.SCQuery{
 		ScAddress: destinationAddressBytes,
 		FuncName:  functionName,
 		Arguments: []*big.Int{},

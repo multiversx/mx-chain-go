@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/core/genesis"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -46,8 +45,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -392,18 +389,6 @@ func CreateGenesisMetaBlock(
 	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
 
 	return metaHdr
-}
-
-// CreateVMContainerAndBlockchainHook creates a new instance of a iele VM
-func CreateVMContainerAndBlockchainHook(
-	accnts state.AccountsAdapter,
-) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
-	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	gasSchedule := arwenConfig.MakeGasMap(1)
-	vmFactory, _ := shard.NewVMContainerFactory(accnts, TestAddressConverter, maxGasLimitPerBlock, gasSchedule)
-	vmContainer, _ := vmFactory.Create()
-
-	return vmContainer, vmFactory.VMAccountsDB()
 }
 
 // CreateAddressFromAddrBytes creates an address container object from address bytes provided

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -33,10 +33,9 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
 		10000,
 		nil,
+		createMockVMAccountsArguments(),
 	)
 
 	assert.Nil(t, vmf)
@@ -47,11 +46,9 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
-		createMockVMAccountsArguments(),
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
 		10000,
 		arwenConfig.MakeGasMap(1),
+		createMockVMAccountsArguments(),
 	)
 
 	assert.NotNil(t, vmf)
@@ -62,11 +59,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	vmf, err := NewVMContainerFactory(
-		createMockVMAccountsArguments(),
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
 		10000,
 		arwenConfig.MakeGasMap(1),
+		createMockVMAccountsArguments(),
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/process"
-
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -81,7 +79,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VmDataGetter)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }
@@ -130,7 +128,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:   argumentsBase,
 			DataPool:           tpn.MetaDataPool,
-			SCDataGetter:       &mock.ScDataGetterMock{},
+			SCDataGetter:       &mock.ScQueryMock{},
 			SCToProtocol:       &mock.SCToProtocolStub{},
 			PeerChangesHandler: &mock.PeerChangesHandler{},
 		}
@@ -140,7 +138,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	} else {
 		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlackListHandler)
 		argumentsBase.ForkDetector = tpn.ForkDetector
-		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl.(process.BlockChainHookHandler)
+		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,

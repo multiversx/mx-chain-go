@@ -1,7 +1,7 @@
 package external
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -27,7 +27,7 @@ func NewNodeApiResolver(scQueryService SCQueryService, statusMetricsHandler Stat
 }
 
 // ExecuteSCQuery retrieves data stored in a SC account through a VM
-func (nar *NodeApiResolver) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+func (nar *NodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return nar.scQueryService.ExecuteQuery(query)
 }
 

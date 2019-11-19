@@ -38,7 +38,7 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 
 	target, _ := NewSCQueryService(&mock.VMContainerMock{})
 
-	query := SCQuery{
+	query := process.SCQuery{
 		ScAddress: nil,
 		FuncName:  "function",
 		Arguments: []*big.Int{},
@@ -55,7 +55,7 @@ func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 
 	target, _ := NewSCQueryService(&mock.VMContainerMock{})
 
-	query := SCQuery{
+	query := process.SCQuery{
 		ScAddress: []byte{0},
 		FuncName:  "",
 		Arguments: []*big.Int{},
@@ -97,7 +97,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		},
 	)
 
-	query := SCQuery{
+	query := process.SCQuery{
 		ScAddress: scAddress,
 		FuncName:  funcName,
 		Arguments: args,
@@ -129,7 +129,7 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 		},
 	)
 
-	query := SCQuery{
+	query := process.SCQuery{
 		ScAddress: []byte(DummyScAddress),
 		FuncName:  "function",
 		Arguments: []*big.Int{},
@@ -160,7 +160,7 @@ func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 		},
 	)
 
-	query := SCQuery{
+	query := process.SCQuery{
 		ScAddress: []byte(DummyScAddress),
 		FuncName:  "function",
 		Arguments: []*big.Int{},
@@ -207,7 +207,7 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 	wg.Add(noOfGoRoutines)
 	for i := 0; i < noOfGoRoutines; i++ {
 		go func() {
-			query := SCQuery{
+			query := process.SCQuery{
 				ScAddress: []byte(DummyScAddress),
 				FuncName:  "function",
 				Arguments: []*big.Int{},

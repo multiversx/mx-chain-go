@@ -481,3 +481,10 @@ type NetworkConnectionWatcher interface {
 	IsConnectedToTheNetwork() bool
 	IsInterfaceNil() bool
 }
+
+// SCQuery represents a prepared query for executing a function of the smart contract
+type SCQuery struct {
+	ScAddress []byte
+	FuncName  string
+	Arguments []*big.Int
+}

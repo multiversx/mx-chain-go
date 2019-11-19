@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 )
@@ -35,7 +35,7 @@ func NewSCQueryService(
 }
 
 func (service *SCQueryService) getVMFromAddress(scAddress []byte) (vmcommon.VMExecutionHandler, error) {
-	vmType := hooks.VMTypeFromAddressBytes(scAddress)
+	vmType := core.GetVMType(scAddress)
 	vm, err := service.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (service *SCQueryService) getVMFromAddress(scAddress []byte) (vmcommon.VMEx
 }
 
 // ExecuteQuery returns the VMOutput resulted upon running the function on the smart contract
-func (service *SCQueryService) ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error) {
+func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	if query.ScAddress == nil {
 		return nil, process.ErrNilScAddress
 	}
@@ -75,7 +75,7 @@ func (service *SCQueryService) ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput,
 	return vmOutput, nil
 }
 
-func (service *SCQueryService) createVMCallInput(query *SCQuery) *vmcommon.ContractCallInput {
+func (service *SCQueryService) createVMCallInput(query *process.SCQuery) *vmcommon.ContractCallInput {
 	maxGasLimit := math.MaxInt64
 	header := &vmcommon.SCCallHeader{
 		GasLimit:    big.NewInt(int64(maxGasLimit)),
@@ -116,11 +116,4 @@ func (service *SCQueryService) IsInterfaceNil() bool {
 		return true
 	}
 	return false
-}
-
-// SCQuery represents a prepared query for executing a function of the smart contract
-type SCQuery struct {
-	ScAddress []byte
-	FuncName  string
-	Arguments []*big.Int
 }

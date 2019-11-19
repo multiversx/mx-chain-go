@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
@@ -759,8 +760,8 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusMetrics,
-		economicsData,
 		gasSchedule,
+		economicsData,
 	)
 	if err != nil {
 		return err
@@ -1256,6 +1257,7 @@ func createApiResolver(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
+	gasSchedule map[string]uint64,
 	economics *economics.EconomicsData,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
@@ -1277,7 +1279,7 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
-		vmFactory, err = shard.NewVMContainerFactory(argsHook)
+		vmFactory, err = shard.NewVMContainerFactory(economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 		if err != nil {
 			return nil, err
 		}

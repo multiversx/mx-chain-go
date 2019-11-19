@@ -49,7 +49,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
 		leaderPercentage:    economics.RewardsSettings.LeaderPercentage,
 		burnPercentage:      economics.RewardsSettings.BurnPercentage,
-		maxGasLimitPerBlock: maxGasLimitPerBlock,
+		maxGasLimitPerBlock: data.maxGasLimitPerBlock,
 		minGasPrice:         data.minGasPrice,
 		minGasLimit:         data.minGasLimit,
 		communityAddress:    economics.EconomicsAddresses.CommunityAddress,
@@ -92,15 +92,15 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 
 	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
 	if err != nil {
-		return nil, 0, 0, 0, process.ErrInvalidMaxGasLimitPerBlock
+		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
 
 	return &EconomicsData{
-		rewardsValue:  rewardsValue,
-		minGasPrice:   minGasPrice,
-		minGasLimit:   minGasLimit,
-		stakeValue:    stakeValue,
-		unBoundPeriod: unBoundPeriod,
+		rewardsValue:        rewardsValue,
+		minGasPrice:         minGasPrice,
+		minGasLimit:         minGasLimit,
+		stakeValue:          stakeValue,
+		unBoundPeriod:       unBoundPeriod,
 		maxGasLimitPerBlock: maxGasLimitPerBlock,
 	}, nil
 }

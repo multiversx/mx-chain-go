@@ -1800,7 +1800,7 @@ func newShardBlockProcessor(
 		Marshalizer:      core.Marshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := shard.NewVMContainerFactory(argsHook)
+	vmFactory, err := shard.NewVMContainerFactory(economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -2143,20 +2143,20 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCDataGetter(state.AddressConverter, vmContainer)
+	scDataGetter, err := smartContract.NewSCQueryService(vmContainer)
 	if err != nil {
 		return nil, err
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		AdrConv:      state.AddressConverter,
-		Hasher:       core.Hasher,
-		Marshalizer:  core.Marshalizer,
-		PeerState:    state.PeerAccounts,
-		BaseState:    state.AccountsAdapter,
-		ArgParser:    argsParser,
-		CurrTxs:      data.MetaDatapool.CurrentBlockTxs(),
-		ScDataGetter: scDataGetter,
+		AdrConv:     state.AddressConverter,
+		Hasher:      core.Hasher,
+		Marshalizer: core.Marshalizer,
+		PeerState:   state.PeerAccounts,
+		BaseState:   state.AccountsAdapter,
+		ArgParser:   argsParser,
+		CurrTxs:     data.MetaDatapool.CurrentBlockTxs(),
+		ScQuery:     scDataGetter,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {

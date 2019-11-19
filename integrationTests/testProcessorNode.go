@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -131,16 +132,13 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	VmProcessors           process.VirtualMachinesContainer
-	VmDataGetter           process.VirtualMachinesContainer
-	BlockchainHook         *hooks.VMAccountsDB
+	BlockchainHook         *hooks.BlockChainHookImpl
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
 	ScProcessor            process.SmartContractProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	MiniBlocksCompacter    process.MiniBlocksCompacter
-	BlockChainHookImpl     process.BlockChainHookHandler
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -246,7 +244,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initInterceptors()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer)
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressConverter,
@@ -270,7 +268,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VmDataGetter)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }
@@ -480,11 +478,12 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
 	}
-
-	vmFactory, _ := shard.NewVMContainerFactory(argsHook)
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, gasSchedule, argsHook)
 
 	tpn.VMContainer, _ = vmFactory.Create()
-	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
+	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
@@ -571,7 +570,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData)
 
 	tpn.VMContainer, _ = vmFactory.Create()
-	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
+	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
@@ -651,7 +650,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		StartHeaders:                 tpn.GenesisBlocks,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
-		BlockChainHook:               tpn.BlockChainHookImpl,
+		BlockChainHook:               tpn.BlockchainHook,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		Rounder:                      &mock.RounderMock{},
 	}
@@ -660,27 +659,27 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
-			AdrConv:      TestAddressConverter,
-			Hasher:       TestHasher,
-			Marshalizer:  TestMarshalizer,
-			PeerState:    tpn.PeerState,
-			BaseState:    tpn.AccntState,
-			ArgParser:    tpn.ArgsParser,
-			CurrTxs:      tpn.MetaDataPool.CurrentBlockTxs(),
-			ScDataGetter: tpn.ScDataGetter,
+			AdrConv:     TestAddressConverter,
+			Hasher:      TestHasher,
+			Marshalizer: TestMarshalizer,
+			PeerState:   tpn.PeerState,
+			BaseState:   tpn.AccntState,
+			ArgParser:   tpn.ArgsParser,
+			CurrTxs:     tpn.MetaDataPool.CurrentBlockTxs(),
+			ScQuery:     tpn.SCQueryService,
 		}
 		scToProtocol, _ := scToProtocol2.NewStakingToPeer(argsStakingToPeer)
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:   argumentsBase,
 			DataPool:           tpn.MetaDataPool,
-			SCDataGetter:       tpn.ScDataGetter,
+			SCDataGetter:       tpn.SCQueryService,
 			SCToProtocol:       scToProtocol,
 			PeerChangesHandler: scToProtocol,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl
+		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
