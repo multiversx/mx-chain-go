@@ -788,7 +788,7 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (mp *shardProcessor) CreateNewHeader() data.HeaderHandler {
+func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
 	return &block.Header{}
 }
 
@@ -813,10 +813,6 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 		}
 
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
-	}
-
-	if len(ownShIdHdrs) == 0 {
-		ownShIdHdrs = append(ownShIdHdrs, &block.Header{})
 	}
 
 	process.SortHeadersByNonce(ownShIdHdrs)
