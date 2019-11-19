@@ -3,6 +3,7 @@ package interceptedBlocks
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -17,6 +18,12 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		Marshalizer:      &mock.MarshalizerMock{},
 		NodesCoordinator: mock.NewNodesCoordinatorMock(),
 		HdrBuff:          []byte("test buffer"),
+		KeyGen: &mock.SingleSignKeyGenMock{
+			PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+				return nil, nil
+			},
+		},
+		SingleSigVerifier: &mock.SignerMock{},
 	}
 
 	return arg
@@ -130,6 +137,28 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestCheckBlockHeaderArgument_NilKeyGenShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.KeyGen = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilKeyGen, err)
+}
+
+func TestCheckBlockHeaderArgument_NilSingleSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.SingleSigVerifier = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilSingleSigner, err)
 }
 
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
@@ -316,7 +345,7 @@ func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	wrongShardId := uint32(2)
 	sd := block.ShardData{
-		ShardId:               wrongShardId,
+		ShardID:               wrongShardId,
 		HeaderHash:            nil,
 		ShardMiniBlockHeaders: nil,
 		TxCount:               0,
@@ -334,13 +363,13 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 	wrongShardId := uint32(2)
 	miniBlock := block.ShardMiniBlockHeader{
 		Hash:            make([]byte, 0),
-		ReceiverShardId: shardCoordinator.SelfId(),
-		SenderShardId:   wrongShardId,
+		ReceiverShardID: shardCoordinator.SelfId(),
+		SenderShardID:   wrongShardId,
 		TxCount:         0,
 	}
 
 	sd := block.ShardData{
-		ShardId:               shardCoordinator.SelfId(),
+		ShardID:               shardCoordinator.SelfId(),
 		HeaderHash:            nil,
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{miniBlock},
 		TxCount:               0,
@@ -358,13 +387,13 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 	wrongShardId := uint32(2)
 	miniBlock := block.ShardMiniBlockHeader{
 		Hash:            make([]byte, 0),
-		ReceiverShardId: wrongShardId,
-		SenderShardId:   shardCoordinator.SelfId(),
+		ReceiverShardID: wrongShardId,
+		SenderShardID:   shardCoordinator.SelfId(),
 		TxCount:         0,
 	}
 
 	sd := block.ShardData{
-		ShardId:               shardCoordinator.SelfId(),
+		ShardID:               shardCoordinator.SelfId(),
 		HeaderHash:            nil,
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{miniBlock},
 		TxCount:               0,
@@ -381,13 +410,13 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	miniBlock := block.ShardMiniBlockHeader{
 		Hash:            make([]byte, 0),
-		ReceiverShardId: shardCoordinator.SelfId(),
-		SenderShardId:   shardCoordinator.SelfId(),
+		ReceiverShardID: shardCoordinator.SelfId(),
+		SenderShardID:   shardCoordinator.SelfId(),
 		TxCount:         0,
 	}
 
 	sd := block.ShardData{
-		ShardId:               shardCoordinator.SelfId(),
+		ShardID:               shardCoordinator.SelfId(),
 		HeaderHash:            nil,
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{miniBlock},
 		TxCount:               0,

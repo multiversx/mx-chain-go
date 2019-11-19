@@ -16,12 +16,14 @@ struct HeaderCapn {
   epoch                  @8:   UInt32;
   blockBodyType          @9:   UInt8;
   signature              @10:  Data;
-  miniBlockHeaders       @11:  List(MiniBlockHeaderCapn);
-  peerChanges            @12:  List(PeerChangeCapn);
-  rootHash               @13:  Data;
-  validatorStatsRootHash @14:  Data;
-  metaHdrHashes          @15:  List(Data);
-  txCount                @16:  UInt32;
+  leaderSignature        @11:  Data;
+  miniBlockHeaders       @12:  List(MiniBlockHeaderCapn);
+  peerChanges            @13:  List(PeerChangeCapn);
+  rootHash               @14:  Data;
+  validatorStatsRootHash @15:  Data;
+  metaHdrHashes          @16:  List(Data);
+  txCount                @17:  UInt32;
+
 }
 
 struct MiniBlockHeaderCapn {

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -334,7 +334,7 @@ func CheckScBalanceOf(
 ) {
 	fmt.Println("Checking SC.balanceOf...")
 
-	query := smartContract.SCQuery{
+	query := process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  "balanceOf",
 		Arguments: []*big.Int{big.NewInt(0).SetBytes(nodeWithCaller.OwnAccount.PkTxSignBytes)},

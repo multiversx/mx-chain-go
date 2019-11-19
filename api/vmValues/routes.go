@@ -6,14 +6,14 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-gonic/gin"
 )
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	ExecuteSCQuery(*smartContract.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 
@@ -100,7 +100,7 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 	return vmOutput, nil
 }
 
-func createSCQuery(request *VMValueRequest) (*smartContract.SCQuery, error) {
+func createSCQuery(request *VMValueRequest) (*process.SCQuery, error) {
 	decodedAddress, err := hex.DecodeString(request.ScAddress)
 	if err != nil {
 		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
@@ -116,7 +116,7 @@ func createSCQuery(request *VMValueRequest) (*smartContract.SCQuery, error) {
 		arguments[i] = append(arguments[i], argBytes...)
 	}
 
-	return &smartContract.SCQuery{
+	return &process.SCQuery{
 		ScAddress: decodedAddress,
 		FuncName:  request.FuncName,
 		Arguments: arguments,

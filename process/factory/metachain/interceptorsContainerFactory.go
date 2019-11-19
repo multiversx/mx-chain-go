@@ -38,6 +38,7 @@ type interceptorsContainerFactory struct {
 	messenger              process.TopicHandler
 	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
+	blackList              process.BlackListHandler
 	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
@@ -56,9 +57,12 @@ func NewInterceptorsContainerFactory(
 	accounts state.AccountsAdapter,
 	addrConverter state.AddressConverter,
 	singleSigner crypto.SingleSigner,
+	blockSingleSigner crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
+	blockKeyGen crypto.KeyGenerator,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
+	blackList process.BlackListHandler,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -100,6 +104,15 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(blackList) {
+		return nil, process.ErrNilBlackListHandler
+	}
+	if check.IfNil(blockKeyGen) {
+		return nil, process.ErrNilKeyGen
+	}
+	if check.IfNil(blockSingleSigner) {
+		return nil, process.ErrNilSingleSigner
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
@@ -108,7 +121,9 @@ func NewInterceptorsContainerFactory(
 		NodesCoordinator: nodesCoordinator,
 		MultiSigVerifier: multiSigner,
 		KeyGen:           keyGen,
+		BlockKeyGen:      blockKeyGen,
 		Signer:           singleSigner,
+		BlockSigner:      blockSingleSigner,
 		AddrConv:         addrConverter,
 		FeeHandler:       txFeeHandler,
 	}
@@ -122,6 +137,7 @@ func NewInterceptorsContainerFactory(
 		multiSigner:            multiSigner,
 		dataPool:               dataPool,
 		nodesCoordinator:       nodesCoordinator,
+		blackList:              blackList,
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 		accounts:               accounts,
@@ -214,6 +230,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		Headers:       icf.dataPool.MetaBlocks(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
+		BlackList:     icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -278,6 +295,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 		Headers:       icf.dataPool.ShardHeaders(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
+		BlackList:     icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

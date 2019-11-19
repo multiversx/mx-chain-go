@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -86,7 +86,7 @@ func NewSmartContractProcessor(
 	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if txFeeHandler == nil {
+	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
 
@@ -191,12 +191,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	crossTxs, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(crossTxs)
+	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
 		return err
 	}
@@ -232,16 +232,16 @@ func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
 	// first parsed argument after the code in case of vmDeploy is the actual vmType
 	vmAppendedType := make([]byte, hooks.VMTypeLen)
 	vmArgLen := len(vmType)
-	if vmArgLen > hooks.VMTypeLen {
+	if vmArgLen > core.VMTypeLen {
 		return nil, process.ErrVMTypeLengthInvalid
 	}
 
-	copy(vmAppendedType[hooks.VMTypeLen-vmArgLen:], vmType)
+	copy(vmAppendedType[core.VMTypeLen-vmArgLen:], vmType)
 	return vmAppendedType, nil
 }
 
 func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
-	vmType := hooks.VMTypeFromAddressBytes(tx.RcvAddr)
+	vmType := core.GetVMType(tx.RcvAddr)
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
@@ -287,12 +287,12 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
-	crossTxs, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(crossTxs)
+	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
 		return err
 	}
@@ -514,32 +514,32 @@ func (sc *scProcessor) createSmartContractResult(
 	scAddress []byte,
 	txHash []byte,
 ) *smartContractResult.SmartContractResult {
-	crossSc := &smartContractResult.SmartContractResult{}
+	result := &smartContractResult.SmartContractResult{}
 
-	crossSc.Value = outAcc.BalanceDelta
-	crossSc.Nonce = outAcc.Nonce
-	crossSc.RcvAddr = outAcc.Address
-	crossSc.SndAddr = scAddress
-	crossSc.Code = outAcc.Code
-	crossSc.Data = sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
-	crossSc.TxHash = txHash
+	result.Value = outAcc.BalanceDelta
+	result.Nonce = outAcc.Nonce
+	result.RcvAddr = outAcc.Address
+	result.SndAddr = scAddress
+	result.Code = outAcc.Code
+	result.Data = sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
+	result.TxHash = txHash
 
-	return crossSc
+	return result
 }
 
 func (sc *scProcessor) createSCRTransactions(
-	crossOutAccs []*vmcommon.OutputAccount,
+	outAccs []*vmcommon.OutputAccount,
 	tx *transaction.Transaction,
 	txHash []byte,
 ) ([]data.TransactionHandler, error) {
-	crossSCTxs := make([]data.TransactionHandler, 0)
+	scResults := make([]data.TransactionHandler, 0)
 
-	for i := 0; i < len(crossOutAccs); i++ {
-		scTx := sc.createSmartContractResult(crossOutAccs[i], tx.RcvAddr, txHash)
-		crossSCTxs = append(crossSCTxs, scTx)
+	for i := 0; i < len(outAccs); i++ {
+		scTx := sc.createSmartContractResult(outAccs[i], tx.RcvAddr, txHash)
+		scResults = append(scResults, scTx)
 	}
 
-	return crossSCTxs, nil
+	return scResults, nil
 }
 
 // give back the user the unused gas money
