@@ -267,7 +267,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 			return process.ErrMissingPrevShardData
 		}
 
-		log.Info("CALCULATE MISSING BLOCKS SHR: %d, PSHR: %d, PSHRS: %s, PSHID: %d", h.Round, prevShardData.Round, core.ToB64(prevShardData.PrevRandSeed), h.ShardID)
+		log.Info(fmt.Sprintf("CALCULATE MISSING BLOCKS SHR: %d, PSHR: %d, PSHRS: %s, PSHID: %d", h.Round, prevShardData.Round, core.ToB64(prevShardData.PrevRandSeed), h.ShardID))
 		shardInfoErr = p.checkForMissedBlocks(
 			h.Round,
 			prevShardData.Round,
