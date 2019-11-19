@@ -11,11 +11,13 @@ import (
 )
 
 type interceptedMetaHeaderDataFactory struct {
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
-	multiSigVerifier crypto.MultiSigVerifier
-	nodesCoordinator sharding.NodesCoordinator
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	shardCoordinator  sharding.Coordinator
+	singleSigVerifier crypto.SingleSigner
+	multiSigVerifier  crypto.MultiSigVerifier
+	nodesCoordinator  sharding.NodesCoordinator
+	keyGen            crypto.KeyGenerator
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -38,25 +40,35 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
+	if check.IfNil(argument.BlockKeyGen) {
+		return nil, process.ErrNilKeyGen
+	}
+	if check.IfNil(argument.BlockSigner) {
+		return nil, process.ErrNilSingleSigner
+	}
 
 	return &interceptedMetaHeaderDataFactory{
-		marshalizer:      argument.Marshalizer,
-		hasher:           argument.Hasher,
-		shardCoordinator: argument.ShardCoordinator,
-		multiSigVerifier: argument.MultiSigVerifier,
-		nodesCoordinator: argument.NodesCoordinator,
+		marshalizer:       argument.Marshalizer,
+		hasher:            argument.Hasher,
+		shardCoordinator:  argument.ShardCoordinator,
+		multiSigVerifier:  argument.MultiSigVerifier,
+		nodesCoordinator:  argument.NodesCoordinator,
+		keyGen:            argument.BlockKeyGen,
+		singleSigVerifier: argument.BlockSigner,
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:          buff,
-		Marshalizer:      imhdf.marshalizer,
-		Hasher:           imhdf.hasher,
-		MultiSigVerifier: imhdf.multiSigVerifier,
-		NodesCoordinator: imhdf.nodesCoordinator,
-		ShardCoordinator: imhdf.shardCoordinator,
+		HdrBuff:           buff,
+		Marshalizer:       imhdf.marshalizer,
+		Hasher:            imhdf.hasher,
+		SingleSigVerifier: imhdf.singleSigVerifier,
+		MultiSigVerifier:  imhdf.multiSigVerifier,
+		NodesCoordinator:  imhdf.nodesCoordinator,
+		ShardCoordinator:  imhdf.shardCoordinator,
+		KeyGen:            imhdf.keyGen,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

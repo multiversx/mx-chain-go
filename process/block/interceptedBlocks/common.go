@@ -13,21 +13,20 @@ import (
 )
 
 // headerMultiSigVerifier is an "abstract" struct that is able to verify the signature of a header handler
-type headerMultiSigVerifier struct {
+type headerSigVerifier struct {
 	marshalizer          marshal.Marshalizer
 	hasher               hashing.Hasher
 	nodesCoordinator     sharding.NodesCoordinator
 	multiSigVerifier     crypto.MultiSigVerifier
+	singleSigVerifier    crypto.SingleSigner
+	keyGen               crypto.KeyGenerator
 	copyHeaderWithoutSig func(src data.HeaderHandler) data.HeaderHandler
 }
 
-func (hmsv *headerMultiSigVerifier) verifySig(header data.HeaderHandler) error {
+func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
 
 	randSeed := header.GetPrevRandSeed()
 	bitmap := header.GetPubKeysBitmap()
-
-	//TODO: check randSeed = Sig_proposer(prevRandSeed)
-
 	if len(bitmap) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
@@ -35,7 +34,7 @@ func (hmsv *headerMultiSigVerifier) verifySig(header data.HeaderHandler) error {
 		return process.ErrBlockProposerSignatureMissing
 	}
 
-	consensusPubKeys, err := hmsv.nodesCoordinator.GetValidatorsPublicKeys(
+	consensusPubKeys, err := hsv.nodesCoordinator.GetValidatorsPublicKeys(
 		randSeed,
 		header.GetRound(),
 		header.GetShardID(),
@@ -44,7 +43,7 @@ func (hmsv *headerMultiSigVerifier) verifySig(header data.HeaderHandler) error {
 		return err
 	}
 
-	verifier, err := hmsv.multiSigVerifier.Create(consensusPubKeys, 0)
+	verifier, err := hsv.multiSigVerifier.Create(consensusPubKeys, 0)
 	if err != nil {
 		return err
 	}
@@ -56,14 +55,36 @@ func (hmsv *headerMultiSigVerifier) verifySig(header data.HeaderHandler) error {
 
 	// get marshalled block header without signature and bitmap
 	// as this is the message that was signed
-	headerCopy := hmsv.copyHeaderWithoutSig(header)
+	headerCopy := hsv.copyHeaderWithoutSig(header)
 
-	hash, err := core.CalculateHash(hmsv.marshalizer, hmsv.hasher, headerCopy)
+	hash, err := core.CalculateHash(hsv.marshalizer, hsv.hasher, headerCopy)
 	if err != nil {
 		return err
 	}
 
 	return verifier.Verify(hash, bitmap)
+}
+
+func (hsv *headerSigVerifier) verifyRandSeed(header data.HeaderHandler) error {
+	prevRandSeed := header.GetPrevRandSeed()
+	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
+	if err != nil {
+		return err
+	}
+
+	randSeed := header.GetRandSeed()
+	leaderPubKeyValidator := headerConsensusGroup[0]
+	leaderPubKey, err := hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
+	if err != nil {
+		return err
+	}
+
+	err = hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
@@ -87,6 +108,12 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	}
 	if check.IfNil(arg.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(arg.KeyGen) {
+		return process.ErrNilKeyGen
+	}
+	if check.IfNil(arg.SingleSigVerifier) {
+		return process.ErrNilSingleSigner
 	}
 
 	return nil
