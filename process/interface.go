@@ -417,7 +417,7 @@ type RequestHandler interface {
 
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetArguments() ([]*big.Int, error)
+	GetArguments() ([][]byte, error)
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
 	ParseData(data string) error

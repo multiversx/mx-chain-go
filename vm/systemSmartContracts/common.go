@@ -22,10 +22,10 @@ func CheckIfNil(args *vmcommon.ContractCallInput) error {
 	if args.RecipientAddr == nil {
 		return vm.ErrInputRecipientAddrIsNil
 	}
-	if args.GasProvided == nil {
+	if args.GasProvided < 0 {
 		return vm.ErrInputGasProvidedIsNil
 	}
-	if args.GasPrice == nil {
+	if args.GasPrice < 0 {
 		return vm.ErrInputGasPriceIsNil
 	}
 	return nil

@@ -3,7 +3,6 @@ package vmValues
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
@@ -107,20 +106,20 @@ func createSCQuery(request *VMValueRequest) (*smartContract.SCQuery, error) {
 		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
 	}
 
-	argumentsAsInt := make([]*big.Int, 0)
-	for _, arg := range request.Args {
+	arguments := make([][]byte, len(request.Args))
+	for i, arg := range request.Args {
 		argBytes, err := hex.DecodeString(arg)
 		if err != nil {
 			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
 		}
 
-		argumentsAsInt = append(argumentsAsInt, big.NewInt(0).SetBytes(argBytes))
+		arguments[i] = append(arguments[i], argBytes...)
 	}
 
 	return &smartContract.SCQuery{
 		ScAddress: decodedAddress,
 		FuncName:  request.FuncName,
-		Arguments: argumentsAsInt,
+		Arguments: arguments,
 	}, nil
 }
 

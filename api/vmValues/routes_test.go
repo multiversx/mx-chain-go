@@ -44,9 +44,8 @@ func TestGetDataValueAsHexBytes(t *testing.T) {
 
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			returnData := big.NewInt(0).SetBytes([]byte(valueBuff))
 			return &vmcommon.VMOutput{
-				ReturnData: []*big.Int{returnData},
+				ReturnData: [][]byte{valueBuff},
 			}, nil
 		},
 	}
@@ -72,9 +71,8 @@ func TestGetDataValueAsString(t *testing.T) {
 
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			returnData := big.NewInt(0).SetBytes([]byte(valueBuff))
 			return &vmcommon.VMOutput{
-				ReturnData: []*big.Int{returnData},
+				ReturnData: [][]byte{[]byte(valueBuff)},
 			}, nil
 		},
 	}
@@ -103,7 +101,7 @@ func TestGetDataValueAsInt(t *testing.T) {
 			returnData := big.NewInt(0)
 			returnData.SetString(value, 10)
 			return &vmcommon.VMOutput{
-				ReturnData: []*big.Int{returnData},
+				ReturnData: [][]byte{returnData.Bytes()},
 			}, nil
 		},
 	}
@@ -129,7 +127,7 @@ func TestExecuteQuery(t *testing.T) {
 		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 
 			return &vmcommon.VMOutput{
-				ReturnData: []*big.Int{big.NewInt(42)},
+				ReturnData: [][]byte{big.NewInt(42).Bytes()},
 			}, nil
 		},
 	}
@@ -145,7 +143,7 @@ func TestExecuteQuery(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, statusCode)
 	assert.Equal(t, "", response.Error)
-	assert.Equal(t, int64(42), response.Data.ReturnData[0].Int64())
+	assert.Equal(t, int64(42), big.NewInt(0).SetBytes(response.Data.ReturnData[0]).Int64())
 }
 
 func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {

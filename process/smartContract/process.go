@@ -228,10 +228,9 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 	return nil
 }
 
-func (sc *scProcessor) getVMTypeFromArguments(arg *big.Int) ([]byte, error) {
+func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
 	// first parsed argument after the code in case of vmDeploy is the actual vmType
 	vmAppendedType := make([]byte, hooks.VMTypeLen)
-	vmType := arg.Bytes()
 	vmArgLen := len(vmType)
 	if vmArgLen > hooks.VMTypeLen {
 		return nil, process.ErrVMTypeLengthInvalid
@@ -366,17 +365,8 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 		return nil, err
 	}
 	vmInput.CallValue = tx.Value
-	vmInput.GasPrice = big.NewInt(int64(tx.GasPrice))
-	vmInput.GasProvided = big.NewInt(int64(tx.GasLimit))
-
-	//TODO: change this when we know for what they are used.
-	scCallHeader := &vmcommon.SCCallHeader{}
-	scCallHeader.GasLimit = big.NewInt(0)
-	scCallHeader.Number = big.NewInt(0)
-	scCallHeader.Timestamp = big.NewInt(0)
-	scCallHeader.Beneficiary = big.NewInt(0)
-
-	vmInput.Header = scCallHeader
+	vmInput.GasPrice = tx.GasPrice
+	vmInput.GasProvided = tx.GasLimit
 
 	return vmInput, nil
 }
@@ -735,17 +725,18 @@ func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, rou
 	sc.mutSCState.Lock()
 	defer sc.mutSCState.Unlock()
 
-	if _, ok := sc.mapExecState[round]; !ok {
-		sc.mapExecState[round] = scExecutionState{
-			allLogs:       make(map[string][]*vmcommon.LogEntry),
-			allReturnData: make(map[string][]*big.Int),
-			returnCodes:   make(map[string]vmcommon.ReturnCode)}
-	}
+	/*
+		if _, ok := sc.mapExecState[round]; !ok {
+			sc.mapExecState[round] = scExecutionState{
+				allLogs:       make(map[string][]*vmcommon.LogEntry),
+				allReturnData: make(map[string][]*big.Int),
+				returnCodes:   make(map[string]vmcommon.ReturnCode)}
+		}*/
 
-	tmpCurrScState := sc.mapExecState[round]
+	//tmpCurrScState := sc.mapExecState[round]
 	defer func() {
 		if err != nil {
-			sc.mapExecState[round] = tmpCurrScState
+			//sc.mapExecState[round] = tmpCurrScState
 		}
 	}()
 
@@ -768,20 +759,20 @@ func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, rou
 }
 
 // saves return data into account state
-func (sc *scProcessor) saveReturnData(returnData []*big.Int, round uint64, txHash []byte) error {
-	sc.mapExecState[round].allReturnData[string(txHash)] = returnData
+func (sc *scProcessor) saveReturnData(returnData [][]byte, round uint64, txHash []byte) error {
+	//sc.mapExecState[round].allReturnData[string(txHash)] = returnData
 	return nil
 }
 
 // saves smart contract return code into account state
 func (sc *scProcessor) saveReturnCode(returnCode vmcommon.ReturnCode, round uint64, txHash []byte) error {
-	sc.mapExecState[round].returnCodes[string(txHash)] = returnCode
+	//sc.mapExecState[round].returnCodes[string(txHash)] = returnCode
 	return nil
 }
 
 // save vm output logs into accounts
 func (sc *scProcessor) saveLogsIntoState(logs []*vmcommon.LogEntry, round uint64, txHash []byte) error {
-	sc.mapExecState[round].allLogs[string(txHash)] = logs
+	//sc.mapExecState[round].allLogs[string(txHash)] = logs
 	return nil
 }
 

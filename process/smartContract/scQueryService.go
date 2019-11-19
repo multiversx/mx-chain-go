@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var maxGasValue = big.NewInt(math.MaxInt64)
+var maxGasValue = math.MaxInt64
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
@@ -76,21 +76,12 @@ func (service *SCQueryService) ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput,
 }
 
 func (service *SCQueryService) createVMCallInput(query *SCQuery) *vmcommon.ContractCallInput {
-	maxGasLimit := math.MaxInt64
-	header := &vmcommon.SCCallHeader{
-		GasLimit:    big.NewInt(int64(maxGasLimit)),
-		Timestamp:   big.NewInt(0),
-		Beneficiary: big.NewInt(0),
-		Number:      big.NewInt(0),
-	}
-
 	vmInput := vmcommon.VMInput{
 		CallerAddr:  query.ScAddress,
 		CallValue:   big.NewInt(0),
-		GasPrice:    big.NewInt(0),
-		GasProvided: maxGasValue,
+		GasPrice:    0,
+		GasProvided: uint64(maxGasValue),
 		Arguments:   query.Arguments,
-		Header:      header,
 	}
 
 	vmContractCallInput := &vmcommon.ContractCallInput{
@@ -122,5 +113,5 @@ func (service *SCQueryService) IsInterfaceNil() bool {
 type SCQuery struct {
 	ScAddress []byte
 	FuncName  string
-	Arguments []*big.Int
+	Arguments [][]byte
 }
