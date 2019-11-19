@@ -192,24 +192,32 @@ func getValidatorsInMap(valMap map[uint32][]Validator) []Validator {
 }
 
 func Test_xorBytes_SameLen(t *testing.T) {
+	t.Parallel()
+
 	rez := xorBytes(firstArray, secondArray)
 
 	assert.Equal(t, expectedArray, rez)
 }
 
 func Test_xorBytes_FirstLowerLen(t *testing.T) {
+	t.Parallel()
+
 	rez := xorBytes(firstArray[:len(firstArray)-1], secondArray)
 
 	assert.Equal(t, expectedArray[:len(expectedArray)-1], rez)
 }
 
 func Test_xorBytes_SecondLowerLen(t *testing.T) {
+	t.Parallel()
+
 	rez := xorBytes(firstArray, secondArray[:len(secondArray)-1])
 
 	assert.Equal(t, expectedArray[:len(expectedArray)-1], rez)
 }
 
 func Test_xorBytes_FirstEmpty(t *testing.T) {
+	t.Parallel()
+
 	rez := xorBytes([]byte{}, secondArray)
 
 	assert.Equal(t, []byte{}, rez)
@@ -222,18 +230,24 @@ func Test_xorBytes_SecondEmpty(t *testing.T) {
 }
 
 func Test_xorBytes_FirstNil(t *testing.T) {
+	t.Parallel()
+
 	rez := xorBytes(nil, secondArray)
 
 	assert.Equal(t, []byte{}, rez)
 }
 
 func Test_xorBytes_SecondNil(t *testing.T) {
+	t.Parallel()
+
 	rez := xorBytes(firstArray, nil)
 
 	assert.Equal(t, []byte{}, rez)
 }
 
 func Test_copyValidatorMap(t *testing.T) {
+	t.Parallel()
+
 	valMap := generateValidatorMap(30, 2)
 	v2 := copyValidatorMap(valMap)
 	assert.Equal(t, valMap, v2)
@@ -243,6 +257,8 @@ func Test_copyValidatorMap(t *testing.T) {
 }
 
 func Test_promoteWaitingToEligibleEmptyList(t *testing.T) {
+	t.Parallel()
+
 	eligibleMap := generateValidatorMap(30, 2)
 	waitingMap := generateValidatorMap(0, 2)
 	eligibleMapCopy := copyValidatorMap(eligibleMap)
@@ -254,6 +270,8 @@ func Test_promoteWaitingToEligibleEmptyList(t *testing.T) {
 }
 
 func Test_promoteWaitingToEligible(t *testing.T) {
+	t.Parallel()
+
 	eligibleMap := generateValidatorMap(30, 2)
 	waitingMap := generateValidatorMap(22, 2)
 
@@ -269,6 +287,8 @@ func Test_promoteWaitingToEligible(t *testing.T) {
 }
 
 func Test_removeValidatorFromListFirst(t *testing.T) {
+	t.Parallel()
+
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
 	_ = copy(validatorsCopy, validators)
@@ -284,6 +304,8 @@ func Test_removeValidatorFromListFirst(t *testing.T) {
 }
 
 func Test_removeValidatorFromListLast(t *testing.T) {
+	t.Parallel()
+
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
 	_ = copy(validatorsCopy, validators)
@@ -294,6 +316,8 @@ func Test_removeValidatorFromListLast(t *testing.T) {
 }
 
 func Test_removeValidatorFromListMiddle(t *testing.T) {
+	t.Parallel()
+
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
 	_ = copy(validatorsCopy, validators)
@@ -304,6 +328,8 @@ func Test_removeValidatorFromListMiddle(t *testing.T) {
 }
 
 func Test_removeValidatorFromListIndexNegativeNoAction(t *testing.T) {
+	t.Parallel()
+
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
 	_ = copy(validatorsCopy, validators)
@@ -314,6 +340,8 @@ func Test_removeValidatorFromListIndexNegativeNoAction(t *testing.T) {
 }
 
 func Test_removeValidatorFromListIndexTooBigNoAction(t *testing.T) {
+	t.Parallel()
+
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
 	_ = copy(validatorsCopy, validators)
@@ -324,6 +352,8 @@ func Test_removeValidatorFromListIndexTooBigNoAction(t *testing.T) {
 }
 
 func Test_removeValidatorsFromListRemoveFromStart(t *testing.T) {
+	t.Parallel()
+
 	validatorsToRemoveFromStart := 3
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
@@ -337,6 +367,8 @@ func Test_removeValidatorsFromListRemoveFromStart(t *testing.T) {
 }
 
 func Test_removeValidatorsFromListRemoveFromLast(t *testing.T) {
+	t.Parallel()
+
 	validatorsToRemoveFromEnd := 3
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
@@ -350,6 +382,8 @@ func Test_removeValidatorsFromListRemoveFromLast(t *testing.T) {
 }
 
 func Test_removeValidatorsFromListRemoveFromFirstMaxSmaller(t *testing.T) {
+	t.Parallel()
+
 	validatorsToRemoveFromStart := 3
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
@@ -364,6 +398,8 @@ func Test_removeValidatorsFromListRemoveFromFirstMaxSmaller(t *testing.T) {
 }
 
 func Test_removeValidatorsFromListRemoveFromFirstMaxGreater(t *testing.T) {
+	t.Parallel()
+
 	validatorsToRemoveFromStart := 3
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
@@ -378,6 +414,8 @@ func Test_removeValidatorsFromListRemoveFromFirstMaxGreater(t *testing.T) {
 }
 
 func Test_removeValidatorsFromListRemoveFromLastMaxSmaller(t *testing.T) {
+	t.Parallel()
+
 	validatorsToRemoveFromEnd := 3
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
@@ -393,6 +431,8 @@ func Test_removeValidatorsFromListRemoveFromLastMaxSmaller(t *testing.T) {
 }
 
 func Test_removeValidatorsFromListRemoveFromLastMaxGreater(t *testing.T) {
+	t.Parallel()
+
 	validatorsToRemoveFromEnd := 3
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
@@ -408,6 +448,8 @@ func Test_removeValidatorsFromListRemoveFromLastMaxGreater(t *testing.T) {
 }
 
 func Test_removeValidatorsFromListRandomValidatorsMaxSmaller(t *testing.T) {
+	t.Parallel()
+
 	nbValidatotrsToRemove := 10
 	maxToRemove := nbValidatotrsToRemove - 3
 	validators := generateValidatorList(30)
@@ -427,6 +469,8 @@ func Test_removeValidatorsFromListRandomValidatorsMaxSmaller(t *testing.T) {
 }
 
 func Test_removeValidatorsFromListRandomValidatorsMaxGreater(t *testing.T) {
+	t.Parallel()
+
 	nbValidatotrsToRemove := 10
 	maxToRemove := nbValidatotrsToRemove + 3
 	validators := generateValidatorList(30)
@@ -446,6 +490,8 @@ func Test_removeValidatorsFromListRandomValidatorsMaxGreater(t *testing.T) {
 }
 
 func Test_shuffleList(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, 0)
@@ -458,6 +504,8 @@ func Test_shuffleList(t *testing.T) {
 }
 
 func Test_shuffleListParameterNotChanged(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, 0)
@@ -468,6 +516,8 @@ func Test_shuffleListParameterNotChanged(t *testing.T) {
 }
 
 func Test_shuffleListConsistentShuffling(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, 0)
@@ -482,6 +532,8 @@ func Test_shuffleListConsistentShuffling(t *testing.T) {
 }
 
 func Test_distributeValidatorsEqualNumber(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	nodesPerShard := 30
 	newNodesPerShard := 10
@@ -495,6 +547,8 @@ func Test_distributeValidatorsEqualNumber(t *testing.T) {
 }
 
 func Test_distributeValidatorsEqualNumberConsistent(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	nodesPerShard := 30
 	newNodesPerShard := 10
@@ -513,6 +567,8 @@ func Test_distributeValidatorsEqualNumberConsistent(t *testing.T) {
 }
 
 func Test_distributeValidatorsUnequalNumber(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	nodesPerShard := 30
 	nbShards := uint32(2)
@@ -528,6 +584,8 @@ func Test_distributeValidatorsUnequalNumber(t *testing.T) {
 }
 
 func Test_distributeValidatorsUnequalNumberConsistent(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	nodesPerShard := 30
 	nbShards := uint32(2)
@@ -548,6 +606,8 @@ func Test_distributeValidatorsUnequalNumberConsistent(t *testing.T) {
 }
 
 func Test_shuffleOutNodesNoLeaving(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	eligibleNodesPerShard := 100
 	waitingNodesPerShard := 40
@@ -562,6 +622,8 @@ func Test_shuffleOutNodesNoLeaving(t *testing.T) {
 }
 
 func Test_shuffleOutNodesWithLeaving(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	eligibleNodesPerShard := 100
 	waitingNodesPerShard := 40
@@ -579,6 +641,8 @@ func Test_shuffleOutNodesWithLeaving(t *testing.T) {
 }
 
 func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
+	t.Parallel()
+
 	randomness := generateRandomByteArray(32)
 	eligibleNodesPerShard := 100
 	waitingNodesPerShard := 40
@@ -596,6 +660,8 @@ func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
 }
 
 func TestNewXorValidatorsShuffler(t *testing.T) {
+	t.Parallel()
+
 	shuffler := NewXorValidatorsShuffler(
 		100,
 		100,
@@ -607,6 +673,8 @@ func TestNewXorValidatorsShuffler(t *testing.T) {
 }
 
 func TestRandXORShuffler_computeNewShardsNotChanging(t *testing.T) {
+	t.Parallel()
+
 	currentNbShards := uint32(3)
 	shuffler := createDefaultXorShuffler()
 	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
@@ -622,6 +690,8 @@ func TestRandXORShuffler_computeNewShardsNotChanging(t *testing.T) {
 }
 
 func TestRandXORShuffler_computeNewShardsWithSplit(t *testing.T) {
+	t.Parallel()
+
 	currentNbShards := uint32(3)
 	shuffler := createDefaultXorShuffler()
 	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
@@ -637,6 +707,8 @@ func TestRandXORShuffler_computeNewShardsWithSplit(t *testing.T) {
 }
 
 func TestRandXORShuffler_computeNewShardsWithMerge(t *testing.T) {
+	t.Parallel()
+
 	currentNbShards := uint32(3)
 	shuffler := createDefaultXorShuffler()
 	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
@@ -650,6 +722,8 @@ func TestRandXORShuffler_computeNewShardsWithMerge(t *testing.T) {
 }
 
 func TestRandXORShuffler_UpdateParams(t *testing.T) {
+	t.Parallel()
+
 	shuffler := createDefaultXorShuffler()
 	shuffler2 := &randXORShuffler{
 		nodesShard:      200,
@@ -670,6 +744,8 @@ func TestRandXORShuffler_UpdateParams(t *testing.T) {
 }
 
 func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
+	t.Parallel()
+
 	shuffler := createDefaultXorShuffler()
 
 	eligiblePerShard := int(shuffler.nodesShard)
@@ -686,7 +762,7 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	args := UpdateNodesArgs{
 		eligible: eligibleMap,
 		waiting:  waitingMap,
-		new:      newNodes,
+		newNodes: newNodes,
 		leaving:  leavingNodes,
 		rand:     randomness,
 	}

@@ -12,7 +12,7 @@ type randXORShuffler struct {
 	shardHysteresis   uint32
 	metaHysteresis    uint32
 	adaptivity        bool
-	mutShufflerParams sync.Mutex
+	mutShufflerParams sync.RWMutex
 }
 
 // NewXorValidatorsShuffler creates a validator shuffler that uses a XOR between validator key and a given
@@ -72,14 +72,16 @@ func (rxs *randXORShuffler) UpdateNodeLists(args UpdateNodesArgs) (map[uint32][]
 	var newEligible map[uint32][]Validator
 	var newWaiting map[uint32][]Validator
 
-	newNbShards := rxs.computeNewShards(args.eligible, args.waiting, args.new, args.leaving, args.nbShards)
+	newNbShards := rxs.computeNewShards(args.eligible, args.waiting, args.newNodes, args.leaving, args.nbShards)
+
+	rxs.mutShufflerParams.RLock()
 	canSplit := rxs.adaptivity && newNbShards > args.nbShards
+	canMerge := rxs.adaptivity && newNbShards < args.nbShards
+	rxs.mutShufflerParams.RUnlock()
 
 	if canSplit {
 		newEligible, newWaiting = rxs.splitShards(args.eligible, args.waiting, newNbShards)
 	}
-
-	canMerge := rxs.adaptivity && newNbShards < args.nbShards
 	if canMerge {
 		newEligible, newWaiting = rxs.mergeShards(args.eligible, args.waiting, newNbShards)
 	}
@@ -96,7 +98,7 @@ func (rxs *randXORShuffler) UpdateNodeLists(args UpdateNodesArgs) (map[uint32][]
 
 	shuffledOutNodes, newEligible, args.leaving = shuffleOutNodes(args.eligible, args.waiting, args.leaving, args.rand)
 	promoteWaitingToEligible(newEligible, args.waiting)
-	distributeValidators(args.new, newWaiting, args.rand, newNbShards+1)
+	distributeValidators(args.newNodes, newWaiting, args.rand, newNbShards+1)
 	distributeValidators(shuffledOutNodes, newWaiting, args.rand, newNbShards+1)
 
 	return newEligible, newWaiting
@@ -119,13 +121,15 @@ func (rxs *randXORShuffler) computeNewShards(
 	}
 
 	nodesNewEpoch := uint32(nbEligible + nbWaiting + len(newNodes) - len(leavingNodes))
+
+	rxs.mutShufflerParams.RLock()
 	maxNodesMeta := rxs.nodesMeta + rxs.metaHysteresis
 	maxNodesShard := rxs.nodesShard + rxs.shardHysteresis
-
 	nodesForSplit := (nbShards+1)*maxNodesShard + maxNodesMeta
 	nodesForMerge := nbShards*rxs.nodesShard + rxs.nodesMeta
-	nbShardsNew := nbShards
+	rxs.mutShufflerParams.RUnlock()
 
+	nbShardsNew := nbShards
 	if nodesNewEpoch > nodesForSplit {
 		nbNodesWithoutMaxMeta := nodesNewEpoch - maxNodesMeta
 		nbShardsNew = nbNodesWithoutMaxMeta / maxNodesShard
@@ -302,7 +306,7 @@ func promoteWaitingToEligible(eligible map[uint32][]Validator, waiting map[uint3
 	}
 }
 
-// distributeNewNodes distributes the newly registered nodes to the existing shards waiting lists
+// distributeNewNodes distributes a list of validators to the given validators map
 func distributeValidators(
 	validators []Validator,
 	destLists map[uint32][]Validator,

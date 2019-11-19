@@ -51,7 +51,7 @@ type PublicKeysSelector interface {
 type UpdateNodesArgs struct {
 	eligible map[uint32][]Validator
 	waiting  map[uint32][]Validator
-	new      []Validator
+	newNodes []Validator
 	leaving  []Validator
 	rand     []byte
 	nbShards uint32
