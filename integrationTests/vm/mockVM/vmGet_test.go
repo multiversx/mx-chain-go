@@ -3,6 +3,7 @@ package mockVM
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"math/big"
 	"testing"
 

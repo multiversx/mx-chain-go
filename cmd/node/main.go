@@ -30,7 +30,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -39,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -527,7 +531,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 		return err
 	}
 
-	stateArgs := factory.NewStateComponentsFactoryArgs(generalConfig, genesisConfig, shardCoordinator, coreComponents)
+	stateArgs := factory.NewStateComponentsFactoryArgs(
+		generalConfig,
+		genesisConfig,
+		shardCoordinator,
+		coreComponents,
+		uniqueDBFolder,
+	)
 	stateComponents, err := factory.StateComponentsFactory(stateArgs)
 	if err != nil {
 		return err
@@ -743,8 +753,13 @@ func startNode(ctx *cli.Context, log *logger.Logger, version string) error {
 	apiResolver, err := createApiResolver(
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
+		dataComponents.Store,
+		dataComponents.Blkc,
+		coreComponents.Marshalizer,
+		coreComponents.Uint64ByteSliceConverter,
+		shardCoordinator,
 		statusMetrics,
-		economicsData.MaxGasLimitPerBlock(),
+		economicsData,
 		gasSchedule,
 	)
 	if err != nil {
@@ -1126,6 +1141,7 @@ func createNode(
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
+		node.WithBlackListHandler(process.BlackListHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1232,15 +1248,39 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 }
 
 func createApiResolver(
-	accounts state.AccountsAdapter,
-	converter state.AddressConverter,
+	accnts state.AccountsAdapter,
+	addrConv state.AddressConverter,
+	storageService dataRetriever.StorageService,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
-	maxGasLimitPerBlock uint64,
-	gasSchedule map[string]uint64,
+	economics *economics.EconomicsData,
 ) (facade.ApiResolver, error) {
-	vmFactory, err := shard.NewVMContainerFactory(accounts, converter, maxGasLimitPerBlock, gasSchedule)
-	if err != nil {
-		return nil, err
+	var vmFactory process.VirtualMachinesContainerFactory
+	var err error
+
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   storageService,
+		BlockChain:       blockChain,
+		ShardCoordinator: shardCoordinator,
+		Marshalizer:      marshalizer,
+		Uint64Converter:  uint64Converter,
+	}
+
+	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		vmFactory, err = shard.NewVMContainerFactory(argsHook)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	vmContainer, err := vmFactory.Create()

@@ -11,11 +11,13 @@ import (
 )
 
 type interceptedShardHeaderDataFactory struct {
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
-	multiSigVerifier crypto.MultiSigVerifier
-	nodesCoordinator sharding.NodesCoordinator
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	shardCoordinator  sharding.Coordinator
+	singleSigVerifier crypto.SingleSigner
+	multiSigVerifier  crypto.MultiSigVerifier
+	nodesCoordinator  sharding.NodesCoordinator
+	keyGen            crypto.KeyGenerator
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -38,25 +40,35 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
+	if check.IfNil(argument.BlockSigner) {
+		return nil, process.ErrNilSingleSigner
+	}
+	if check.IfNil(argument.BlockKeyGen) {
+		return nil, process.ErrNilKeyGen
+	}
 
 	return &interceptedShardHeaderDataFactory{
-		marshalizer:      argument.Marshalizer,
-		hasher:           argument.Hasher,
-		shardCoordinator: argument.ShardCoordinator,
-		multiSigVerifier: argument.MultiSigVerifier,
-		nodesCoordinator: argument.NodesCoordinator,
+		marshalizer:       argument.Marshalizer,
+		hasher:            argument.Hasher,
+		shardCoordinator:  argument.ShardCoordinator,
+		multiSigVerifier:  argument.MultiSigVerifier,
+		nodesCoordinator:  argument.NodesCoordinator,
+		singleSigVerifier: argument.BlockSigner,
+		keyGen:            argument.BlockKeyGen,
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:          buff,
-		Marshalizer:      ishdf.marshalizer,
-		Hasher:           ishdf.hasher,
-		MultiSigVerifier: ishdf.multiSigVerifier,
-		NodesCoordinator: ishdf.nodesCoordinator,
-		ShardCoordinator: ishdf.shardCoordinator,
+		HdrBuff:           buff,
+		Marshalizer:       ishdf.marshalizer,
+		Hasher:            ishdf.hasher,
+		SingleSigVerifier: ishdf.singleSigVerifier,
+		MultiSigVerifier:  ishdf.multiSigVerifier,
+		NodesCoordinator:  ishdf.nodesCoordinator,
+		ShardCoordinator:  ishdf.shardCoordinator,
+		KeyGen:            ishdf.keyGen,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

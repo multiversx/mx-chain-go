@@ -14,3 +14,7 @@
     MaxGasLimitPerBlock = "100000"
     MinGasPrice = "0"
     MinGasLimit = "5"
+
+[ValidatorSettings]
+    StakeValue = "500000000000000000000000"
+    UnBoundPeriod = "100000"

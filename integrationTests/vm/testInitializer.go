@@ -83,7 +83,17 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 }
 
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+	args := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   &mock.ChainStorerMock{},
+		BlockChain:       &mock.BlockChainMock{},
+		ShardCoordinator: oneShardCoordinator,
+		Marshalizer:      testMarshalizer,
+		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+	}
+
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 	vm.GasForOperation = opGas
 
@@ -127,14 +137,36 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 }
 
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+	args := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   &mock.ChainStorerMock{},
+		BlockChain:       &mock.BlockChainMock{},
+		ShardCoordinator: oneShardCoordinator,
+		Marshalizer:      testMarshalizer,
+		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+	}
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 
 	return vm
 }
 
-func CreateVMsContainerAndBlockchainHook(accnts state.AccountsAdapter) (process.VirtualMachinesContainer, *hooks.VMAccountsDB) {
-	blockChainHook, _ := hooks.NewVMAccountsDB(accnts, addrConv)
+func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (vmcommon.VMExecutionHandler, *hooks.BlockChainHookImpl) {
+	args := hooks.ArgBlockChainHook{
+		Accounts:         accnts,
+		AddrConv:         addrConv,
+		StorageService:   &mock.ChainStorerMock{},
+		BlockChain:       &mock.BlockChainMock{},
+		ShardCoordinator: oneShardCoordinator,
+		Marshalizer:      testMarshalizer,
+		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+	}
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
+	cryptoHook := hooks.NewVMCryptoHook()
+	vm := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
+	//Uncomment this to enable trace printing of the vm
+	//vm.SetTracePretty()
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	gasSchedule := arwenConfig.MakeGasMap(1)

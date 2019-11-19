@@ -14,10 +14,8 @@ import (
 type vmContainerFactory struct {
 	accounts         state.AccountsAdapter
 	addressConverter state.AddressConverter
-	vmAccountsDB     *hooks.VMAccountsDB
+	blockChainHookImpl *hooks.BlockChainHookImpl
 	cryptoHook       vmcommon.CryptoHook
-	blockGasLimit    uint64
-	gasSchedule      map[string]uint64
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -26,6 +24,7 @@ func NewVMContainerFactory(
 	addressConverter state.AddressConverter,
 	blockGasLimit uint64,
 	gasSchedule map[string]uint64,
+	argBlockChainHook hooks.ArgBlockChainHook,
 ) (*vmContainerFactory, error) {
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
@@ -37,7 +36,7 @@ func NewVMContainerFactory(
 		return nil, process.ErrNilGasSchedule
 	}
 
-	vmAccountsDB, err := hooks.NewVMAccountsDB(accounts, addressConverter)
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +45,7 @@ func NewVMContainerFactory(
 	return &vmContainerFactory{
 		accounts:         accounts,
 		addressConverter: addressConverter,
-		vmAccountsDB:     vmAccountsDB,
+		blockChainHookImpl *hooks.BlockChainHookImpl,
 		cryptoHook:       cryptoHook,
 		blockGasLimit:    blockGasLimit,
 		gasSchedule:      gasSchedule,
@@ -81,7 +80,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
-	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.vmAccountsDB, vmf.cryptoHook)
+	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.blockChainHookImpl, vmf.cryptoHook)
 	return ieleVM, nil
 }
 
@@ -90,9 +89,9 @@ func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, err
 	return arwenVM, err
 }
 
-// VMAccountsDB returns the created vmAccountsDB
-func (vmf *vmContainerFactory) VMAccountsDB() *hooks.VMAccountsDB {
-	return vmf.vmAccountsDB
+// BlockChainHookImpl returns the created blockChainHookImpl
+func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
+	return vmf.blockChainHookImpl
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
