@@ -490,6 +490,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			GasConsumedCalled: func() uint64 {
 				return 0
 			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
 		},
 	)
 	container, _ := factory.Create()
@@ -502,7 +503,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{
-			InitGasConsumedCalled: func() {
+			InitCalled: func() {
 			},
 		},
 	)
@@ -703,6 +704,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			GasConsumedCalled: func() uint64 {
 				return 0
 			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
 		},
 	)
 	container, _ := factory.Create()
@@ -716,7 +718,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{
-			InitGasConsumedCalled: func() {
+			InitCalled: func() {
 				totalGasConsumed = 0
 			},
 			GasConsumedCalled: func() uint64 {
@@ -2981,6 +2983,10 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)

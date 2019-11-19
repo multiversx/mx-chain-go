@@ -511,7 +511,7 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process
 func (tc *transactionCoordinator) CreateBlockStarted() {
-	tc.gasHandler.InitGasConsumed()
+	tc.gasHandler.Init()
 
 	tc.mutPreProcessor.RLock()
 	for _, value := range tc.txPreProcessors {
@@ -700,6 +700,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
 		log.Error(err.Error())
+
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem

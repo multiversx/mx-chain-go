@@ -14,6 +14,7 @@ import (
 type gasComputation struct {
 	economicsFee process.FeeHandler
 	gasConsumed  uint64
+	gasRefunded  uint64
 }
 
 func NewGasComputation(
@@ -27,23 +28,37 @@ func NewGasComputation(
 	return &gasComputation{
 		economicsFee: economicsFee,
 		gasConsumed:  0,
+		gasRefunded:  0,
 	}, nil
 }
 
-func (gc *gasComputation) InitGasConsumed() {
+func (gc *gasComputation) Init() {
 	atomic.StoreUint64(&gc.gasConsumed, 0)
+	atomic.StoreUint64(&gc.gasRefunded, 0)
 }
 
 func (gc *gasComputation) AddGasConsumed(gasConsumed uint64) {
 	atomic.AddUint64(&gc.gasConsumed, gasConsumed)
 }
 
+func (gc *gasComputation) AddGasRefunded(gasRefunded uint64) {
+	atomic.AddUint64(&gc.gasRefunded, gasRefunded)
+}
+
 func (gc *gasComputation) SetGasConsumed(gasConsumed uint64) {
 	atomic.StoreUint64(&gc.gasConsumed, gasConsumed)
 }
 
+func (gc *gasComputation) SetGasRefunded(gasRefunded uint64) {
+	atomic.StoreUint64(&gc.gasRefunded, gasRefunded)
+}
+
 func (gc *gasComputation) GasConsumed() uint64 {
 	return atomic.LoadUint64(&gc.gasConsumed)
+}
+
+func (gc *gasComputation) GasRefunded() uint64 {
+	return atomic.LoadUint64(&gc.gasRefunded)
 }
 
 func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
@@ -86,20 +101,23 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return 0, 0, process.ErrWrongTypeAssertion
 	}
 
-	if core.IsSmartContractAddress(tx.RcvAddr) {
-		gasConsumedByTxInSenderShard := gc.economicsFee.ComputeGasLimit(tx)
-		gasConsumedByTxInReceiverShard := tx.GasLimit
+	txGasLimitConsumption := gc.economicsFee.ComputeGasLimit(tx)
+	if tx.GasLimit < txGasLimitConsumption {
+		return 0, 0, process.ErrInsufficientGasLimitInTx
+	}
 
+	if core.IsSmartContractAddress(tx.RcvAddr) {
 		if txSenderShardId != txReceiverShardId {
+			gasConsumedByTxInSenderShard := txGasLimitConsumption
+			gasConsumedByTxInReceiverShard := tx.GasLimit - txGasLimitConsumption
+
 			return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
 		}
 
-		gasConsumedByTx := gasConsumedByTxInSenderShard + gasConsumedByTxInReceiverShard
-		return gasConsumedByTx, gasConsumedByTx, nil
+		return tx.GasLimit, tx.GasLimit, nil
 	}
 
-	gasConsumedByTx := gc.economicsFee.ComputeGasLimit(tx)
-	return gasConsumedByTx, gasConsumedByTx, nil
+	return txGasLimitConsumption, txGasLimitConsumption, nil
 }
 
 func (gc *gasComputation) IsInterfaceNil() bool {

@@ -471,6 +471,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
@@ -482,6 +483,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
 		rewardsHandler,
+		tpn.GasHandler,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
@@ -498,7 +500,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 	)
 
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
@@ -561,6 +562,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.BlockChainHookImpl = vmFactory.BlockChainHookImpl()
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
@@ -572,6 +574,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
 		&metaProcess.TransactionFeeHandler{},
+		tpn.GasHandler,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
@@ -584,7 +587,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		txTypeHandler,
 	)
 
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(

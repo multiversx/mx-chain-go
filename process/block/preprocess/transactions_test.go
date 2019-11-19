@@ -749,6 +749,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
+				return 0
+			},
 		},
 	)
 	assert.NotNil(t, txs)
@@ -804,6 +808,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)
@@ -865,6 +873,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 			},
 			GasConsumedCalled: func() uint64 {
 				return totalGasConsumed
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)
@@ -1062,17 +1074,21 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
-			InitGasConsumedCalled: func() {
+			InitCalled: func() {
 				totalGasConsumed = 0
 			},
 			AddGasConsumedCalled: func(gasConsumed uint64) {
 				totalGasConsumed += gasConsumed
 			},
-			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
 			GasConsumedCalled: func() uint64 {
 				return totalGasConsumed
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)
@@ -1144,13 +1160,13 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 		Type:            0,
 	}
 
-	txs.gasHandler.InitGasConsumed()
+	txs.gasHandler.Init()
 	_ = txs.ProcessMiniBlock(&mb1, haveTimeTrue, 0)
-	txs.gasHandler.InitGasConsumed()
+	txs.gasHandler.Init()
 	_ = txs.ProcessMiniBlock(&mb2, haveTimeTrue, 0)
-	txs.gasHandler.InitGasConsumed()
+	txs.gasHandler.Init()
 	_ = txs.ProcessMiniBlock(&mb3, haveTimeTrue, 0)
-	txs.gasHandler.InitGasConsumed()
+	txs.gasHandler.Init()
 	_ = txs.ProcessMiniBlock(&mb4, haveTimeTrue, 0)
 
 	mbsOrig := block.MiniBlockSlice{}

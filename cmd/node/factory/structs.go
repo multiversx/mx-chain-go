@@ -1838,6 +1838,11 @@ func newShardBlockProcessor(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	gasHandler, err := preprocess.NewGasComputation(economics)
+	if err != nil {
+		return nil, err
+	}
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -1849,6 +1854,7 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		scForwarder,
 		rewardsTxHandler,
+		gasHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1896,11 +1902,6 @@ func newShardBlockProcessor(
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
-	}
-
-	gasHandler, err := preprocess.NewGasComputation(economics)
-	if err != nil {
-		return nil, err
 	}
 
 	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator, gasHandler)
@@ -2056,6 +2057,11 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	gasHandler, err := preprocess.NewGasComputation(economics)
+	if err != nil {
+		return nil, err
+	}
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -2067,6 +2073,7 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scForwarder,
 		&metachain.TransactionFeeHandler{},
+		gasHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2099,11 +2106,6 @@ func newMetaBlockProcessor(
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
-	}
-
-	gasHandler, err := preprocess.NewGasComputation(economics)
-	if err != nil {
-		return nil, err
 	}
 
 	miniBlocksCompacter, err := preprocess.NewMiniBlocksCompaction(economics, shardCoordinator, gasHandler)

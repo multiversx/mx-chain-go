@@ -500,11 +500,13 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 		if err != nil {
 			log.Error(err.Error())
+
 			errAccountState := rtp.accounts.RevertToSnapshot(snapshot)
 			if errAccountState != nil {
 				// TODO: evaluate if reloading the trie from disk will might solve the problem
 				log.Error(errAccountState.Error())
 			}
+
 			rtp.gasHandler.SetGasConsumed(currentGasConsumedByBlock)
 			return nil, err
 		}

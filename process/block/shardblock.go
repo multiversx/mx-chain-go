@@ -643,6 +643,7 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
 	_, err = sp.accounts.Commit()
 	if err != nil {
 		return err

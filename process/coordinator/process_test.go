@@ -491,23 +491,30 @@ func createPreProcessorContainerWithDataPool(
 					return 0, 0, process.ErrWrongTypeAssertion
 				}
 
-				if core.IsSmartContractAddress(tx.RcvAddr) {
-					gasConsumedByTxInSenderShard := feeHandler.ComputeGasLimit(tx)
-					gasConsumedByTxInReceiverShard := tx.GasLimit
+				txGasLimitConsumption := feeHandler.ComputeGasLimit(tx)
+				if tx.GasLimit < txGasLimitConsumption {
+					return 0, 0, process.ErrInsufficientGasLimitInTx
+				}
 
+				if core.IsSmartContractAddress(tx.RcvAddr) {
 					if txSenderShardId != txReceiverShardId {
+						gasConsumedByTxInSenderShard := txGasLimitConsumption
+						gasConsumedByTxInReceiverShard := tx.GasLimit - txGasLimitConsumption
+
 						return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
 					}
 
-					gasConsumedByTx := gasConsumedByTxInSenderShard + gasConsumedByTxInReceiverShard
-					return gasConsumedByTx, gasConsumedByTx, nil
+					return tx.GasLimit, tx.GasLimit, nil
 				}
 
-				gasConsumedByTx := feeHandler.ComputeGasLimit(tx)
-				return gasConsumedByTx, gasConsumedByTx, nil
+				return txGasLimitConsumption, txGasLimitConsumption, nil
 			},
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)
@@ -528,7 +535,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{
-			InitGasConsumedCalled: func() {
+			InitCalled: func() {
 				totalGasConsumed = uint64(0)
 			},
 			GasConsumedCalled: func() uint64 {
@@ -803,11 +810,15 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			AddGasConsumedCalled: func(gasConsumed uint64) {
 				totalGasConsumed += gasConsumed
 			},
-			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
 			GasConsumedCalled: func() uint64 {
 				return totalGasConsumed
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)
@@ -1147,7 +1158,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	addedTxs := make([]*transaction.Transaction, 0)
 
 	for i := 0; i < allTxs; i++ {
-		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
+		newTx := &transaction.Transaction{GasLimit: gasLimit + gasLimit/uint64(numMiniBlocks), GasPrice: uint64(i), RcvAddr: scAddress}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(txHash, newTx, strCache)
@@ -1601,6 +1612,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			GasConsumedCalled: func() uint64 {
 				return 0
 			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
 		},
 	)
 	container, _ := preFactory.Create()
@@ -1852,10 +1864,14 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			AddGasConsumedCalled: func(gasConsumed uint64) {
 				totalGasConsumed += gasConsumed
 			},
-			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
 			GasConsumedCalled: func() uint64 {
+				return 0
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
 				return 0
 			},
 		},
@@ -1973,12 +1989,17 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
-			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
 			GasConsumedCalled: func() uint64 {
 				return 0
 			},
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			GasRefundedCalled: func() uint64 {
+				return 0
+			},
+			AddGasConsumedCalled: func(gasConsumed uint64) {},
 		},
 	)
 	container, _ := preFactory.Create()

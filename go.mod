@@ -43,7 +43,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.3.0
 	github.com/prometheus/client_golang v1.0.0
-	github.com/prometheus/common v0.4.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/shirou/gopsutil v2.19.10+incompatible
 	github.com/sirupsen/logrus v1.4.0

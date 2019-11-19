@@ -415,6 +415,9 @@ func createNetNode(
 		shardCoordinator,
 		scForwarder,
 		rewardsHandler,
+		&mock.GasHandlerMock{
+			SetGasRefundedCalled: func(gasRefunded uint64) {},
+		},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
