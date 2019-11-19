@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -12,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"math/big"
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
@@ -139,6 +139,10 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
+	// TODO: Currently there is a bug that shards build a different meta genesis block.
+	//  Instead of returning the root hash, when this bug is fixed we should go on
+	//  with calculating missed blocks starting from genesis until
+	//  the first block was actually proposed.
 	if header.GetNonce() == 1 {
 		return p.peerAdapter.RootHash()
 	}
@@ -209,8 +213,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 // RevertPeerState takes the current and previous headers and undos the peer state
 //  for all of the consensus members
 func (p *validatorStatistics) RevertPeerState(header data.HeaderHandler) error {
-	_ = p.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
-	return nil
+	return p.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 }
 
 // RevertPeerStateToSnapshot reverts the applied changes to the peerAdapter
@@ -223,7 +226,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 	if !ok {
 		return process.ErrInvalidMetaHeader
 	}
-	prevMetaHeader, ok := header.(*block.MetaBlock)
+	prevMetaHeader, ok := previousHeader.(*block.MetaBlock)
 	if !ok {
 		return process.ErrInvalidMetaHeader
 	}
@@ -389,6 +392,11 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	missingShardIds := make([]uint32, 0)
 
 	for _, currentShardData := range currentHeader.ShardInfo {
+
+		if currentShardData.Nonce == 1 {
+			continue
+		}
+
 		prevShardData := p.getMatchingShardData(currentShardData.ShardID, previousHeader.ShardInfo)
 		if prevShardData != nil {
 			p.prevShardInfo[currentShardData.ShardID] = *prevShardData
@@ -400,7 +408,7 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	searchHeader := &block.MetaBlock{}
 	*searchHeader = *previousHeader
 	for len(missingShardIds) > 0 {
-		if searchHeader.GetNonce() == 0 {
+		if searchHeader.GetNonce() <= 1 {
 			break
 		}
 
