@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -558,6 +559,33 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	}
 
 	return netMes.connMonitor.SetSharder(kadSharder)
+}
+
+// GetPeerStats gets the current connected peer counts
+func (netMes *networkMessenger) GetPeerStats() *p2p.PeerStats {
+	peers := netMes.ctxProvider.connHost.Network().Peers()
+	intra := 0
+	cross := 0
+	unknown := 0
+	crt := netMes.connMonitor.sharder.GetShard(netMes.ctxProvider.connHost.ID())
+
+	for _, p := range peers {
+		shard := netMes.connMonitor.sharder.GetShard(p)
+		switch shard {
+		case sharding.UnknownShardId:
+			unknown++
+		case crt:
+			intra++
+		default:
+			cross++
+		}
+	}
+
+	return &p2p.PeerStats{
+		UnknownPeers:    unknown,
+		IntraShardPeers: intra,
+		CrossShardPeers: cross,
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

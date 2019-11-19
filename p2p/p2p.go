@@ -161,6 +161,7 @@ type Messenger interface {
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
+	GetPeerStats() *PeerStats
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -204,4 +205,11 @@ type PeerDiscoveryFactory interface {
 type PeerShardResolver interface {
 	ByID(pid PeerID) uint32 //ByID get the shard id of the given peer.ID
 	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
+}
+
+// PeerStats represents the DTO structure used to output the metrics for connected peers
+type PeerStats struct {
+	UnknownPeers    int
+	IntraShardPeers int
+	CrossShardPeers int
 }
