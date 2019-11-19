@@ -22,6 +22,7 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
+	HeaderCopyCalled                 func(hdr data.HeaderHandler) data.HeaderHandler
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
@@ -78,11 +79,15 @@ func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64,
 }
 
 // RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
-	if blProcMock.RevertStateToBlockCalled != nil {
-		return blProcMock.RevertStateToBlock(header)
+func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if bpm.RevertStateToBlockCalled != nil {
+		return bpm.RevertStateToBlock(header)
 	}
 	return nil
+}
+
+func (bpm *BlockProcessorMock) HeaderCopy(hdr data.HeaderHandler) data.HeaderHandler {
+	return bpm.HeaderCopyCalled(hdr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

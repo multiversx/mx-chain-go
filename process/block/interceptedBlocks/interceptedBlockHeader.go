@@ -48,6 +48,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 	//wire-up the "virtual" function
 	inHdr.sigVerifier.copyHeaderWithoutSig = inHdr.copyHeaderWithoutSig
+	inHdr.sigVerifier.copyHeaderWithoutLeaderSig = inHdr.copyHeaderWithoutLeaderSig
 	inHdr.processFields(arg.HdrBuff)
 
 	return inHdr, nil
@@ -73,6 +74,17 @@ func (inHdr *InterceptedHeader) copyHeaderWithoutSig(header data.HeaderHandler) 
 	headerCopy := *hdr
 	headerCopy.Signature = nil
 	headerCopy.PubKeysBitmap = nil
+	headerCopy.LeaderSignature = nil
+
+	return &headerCopy
+}
+
+func (inHdr *InterceptedHeader) copyHeaderWithoutLeaderSig(header data.HeaderHandler) data.HeaderHandler {
+	//it is virtually impossible here to have a wrong type assertion case
+	hdr := header.(*block.Header)
+
+	headerCopy := *hdr
+	headerCopy.LeaderSignature = nil
 
 	return &headerCopy
 }
@@ -93,6 +105,11 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 	}
 
 	err = inHdr.sigVerifier.verifyRandSeed(inHdr.hdr)
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.sigVerifier.verifyLeaderSignature(inHdr.hdr)
 	if err != nil {
 		return err
 	}

@@ -14,13 +14,14 @@ import (
 
 // headerMultiSigVerifier is an "abstract" struct that is able to verify the signature of a header handler
 type headerSigVerifier struct {
-	marshalizer          marshal.Marshalizer
-	hasher               hashing.Hasher
-	nodesCoordinator     sharding.NodesCoordinator
-	multiSigVerifier     crypto.MultiSigVerifier
-	singleSigVerifier    crypto.SingleSigner
-	keyGen               crypto.KeyGenerator
-	copyHeaderWithoutSig func(src data.HeaderHandler) data.HeaderHandler
+	marshalizer                marshal.Marshalizer
+	hasher                     hashing.Hasher
+	nodesCoordinator           sharding.NodesCoordinator
+	multiSigVerifier           crypto.MultiSigVerifier
+	singleSigVerifier          crypto.SingleSigner
+	keyGen                     crypto.KeyGenerator
+	copyHeaderWithoutSig       func(src data.HeaderHandler) data.HeaderHandler
+	copyHeaderWithoutLeaderSig func(src data.HeaderHandler) data.HeaderHandler
 }
 
 func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
@@ -80,6 +81,33 @@ func (hsv *headerSigVerifier) verifyRandSeed(header data.HeaderHandler) error {
 	}
 
 	err = hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (hsv *headerSigVerifier) verifyLeaderSignature(header data.HeaderHandler) error {
+	prevRandSeed := header.GetPrevRandSeed()
+	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
+	if err != nil {
+		return err
+	}
+
+	leaderPubKeyValidator := headerConsensusGroup[0]
+	leaderPubKey, err := hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
+	if err != nil {
+		return err
+	}
+
+	headerCopy := hsv.copyHeaderWithoutLeaderSig(header)
+	headerBytes, err := hsv.marshalizer.Marshal(&headerCopy)
+	if err != nil {
+		return err
+	}
+
+	err = hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
 	if err != nil {
 		return err
 	}

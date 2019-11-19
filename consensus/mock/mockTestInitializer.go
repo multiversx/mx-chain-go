@@ -44,6 +44,9 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock.CreateNewHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{}
 	}
+	blockProcessorMock.HeaderCopyCalled = func(hdr data.HeaderHandler) data.HeaderHandler {
+		return &block.Header{Nonce: uint64(100)}
+	}
 
 	return blockProcessorMock
 }

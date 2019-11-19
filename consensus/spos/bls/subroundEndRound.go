@@ -86,6 +86,14 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.Header.SetPubKeysBitmap(bitmap)
 	sr.Header.SetSignature(sig)
 
+	// Header is complete so the leader can sign it
+	leaderSignature, err := sr.signBlockHeader()
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+	sr.Header.SetLeaderSignature(leaderSignature)
+
 	timeBefore := time.Now()
 	// Commit the block (commits also the account state)
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
@@ -126,6 +134,18 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.updateMetricsForLeader()
 
 	return true
+}
+
+func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
+	headerCopy := sr.BlockProcessor().HeaderCopy(sr.Header)
+	headerCopy.SetLeaderSignature(nil)
+
+	marshalizedHdr, err := sr.Marshalizer().Marshal(headerCopy)
+	if err != nil {
+		return nil, err
+	}
+
+	return sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), marshalizedHdr)
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {

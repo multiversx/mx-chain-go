@@ -13,6 +13,13 @@ type PrivateKeyMock struct {
 type KeyGenMock struct {
 }
 
+type KeyGenStub struct {
+	GeneratePairCalled            func() (crypto.PrivateKey, crypto.PublicKey)
+	PrivateKeyFromByteArrayCalled func(b []byte) (crypto.PrivateKey, error)
+	PublicKeyFromByteArrayCalled  func(b []byte) (crypto.PublicKey, error)
+	SuiteCalled                   func() crypto.Suite
+}
+
 //------- PublicKeyMock
 
 func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
@@ -85,4 +92,25 @@ func (keyGen *KeyGenMock) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (kgs *KeyGenStub) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
+	return kgs.GeneratePairCalled()
+}
+
+func (kgs *KeyGenStub) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
+	return kgs.PrivateKeyFromByteArrayCalled(b)
+}
+
+func (kgs *KeyGenStub) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
+	return kgs.PublicKeyFromByteArrayCalled(b)
+}
+
+func (kgs *KeyGenStub) Suite() crypto.Suite {
+	return kgs.SuiteCalled()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (kgs *KeyGenStub) IsInterfaceNil() bool {
+	return kgs == nil
 }

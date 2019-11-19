@@ -1643,6 +1643,15 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return &header
 }
 
+// HeaderCopy will return a copy of the header
+func (mp *metaProcessor) HeaderCopy(hdr data.HeaderHandler) data.HeaderHandler {
+	//it is virtually impossible here to have a wrong type assertion case
+	header := hdr.(*block.MetaBlock)
+	headerCopy := *header
+
+	return &headerCopy
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mp *metaProcessor) IsInterfaceNil() bool {
 	if mp == nil {
