@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -30,7 +30,7 @@ type Facade struct {
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	ExecuteSCQueryHandler                          func(query *smartContract.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQueryHandler                          func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler                           func() external.StatusMetricsHandler
 }
 
@@ -131,7 +131,7 @@ func (f *Facade) GenerateAndSendBulkTransactionsOneByOne(destination string, val
 }
 
 // ExecuteSCQuery is a mock implementation.
-func (f *Facade) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return f.ExecuteSCQueryHandler(query)
 }
 

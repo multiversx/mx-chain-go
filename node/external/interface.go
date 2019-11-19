@@ -1,13 +1,13 @@
 package external
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
-	ExecuteQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 

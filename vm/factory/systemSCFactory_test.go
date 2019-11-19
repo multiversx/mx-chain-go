@@ -11,16 +11,25 @@ import (
 func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 	t.Parallel()
 
-	scFactory, err := NewSystemSCFactory(nil)
+	scFactory, err := NewSystemSCFactory(nil, &mock.ValidatorSettingsStub{})
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
 }
 
+func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
+	t.Parallel()
+
+	scFactory, err := NewSystemSCFactory(&mock.SystemEIStub{}, nil)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilEconomicsData, err)
+}
+
 func TestNewSystemSCFactory_Ok(t *testing.T) {
 	t.Parallel()
 
-	scFactory, err := NewSystemSCFactory(&mock.SystemEIStub{})
+	scFactory, err := NewSystemSCFactory(&mock.SystemEIStub{}, &mock.ValidatorSettingsStub{})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, scFactory)
@@ -29,7 +38,7 @@ func TestNewSystemSCFactory_Ok(t *testing.T) {
 func TestSystemSCFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{})
+	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{}, &mock.ValidatorSettingsStub{})
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
@@ -39,7 +48,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{})
+	scFactory, _ := NewSystemSCFactory(&mock.SystemEIStub{}, &mock.ValidatorSettingsStub{})
 	assert.False(t, scFactory.IsInterfaceNil())
 
 	scFactory = nil

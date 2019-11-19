@@ -13,7 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -43,7 +43,7 @@ func TestGetDataValueAsHexBytes(t *testing.T) {
 	valueBuff, _ := hex.DecodeString("DEADBEEF")
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			returnData := big.NewInt(0).SetBytes([]byte(valueBuff))
 			return &vmcommon.VMOutput{
 				ReturnData: []*big.Int{returnData},
@@ -71,7 +71,7 @@ func TestGetDataValueAsString(t *testing.T) {
 	valueBuff := "DEADBEEF"
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			returnData := big.NewInt(0).SetBytes([]byte(valueBuff))
 			return &vmcommon.VMOutput{
 				ReturnData: []*big.Int{returnData},
@@ -99,7 +99,7 @@ func TestGetDataValueAsInt(t *testing.T) {
 	value := "1234567"
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			returnData := big.NewInt(0)
 			returnData.SetString(value, 10)
 			return &vmcommon.VMOutput{
@@ -126,7 +126,7 @@ func TestExecuteQuery(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 
 			return &vmcommon.VMOutput{
 				ReturnData: []*big.Int{big.NewInt(42)},
@@ -165,7 +165,7 @@ func TestGetDataValue_FacadeErrorsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected error")
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			return nil, errExpected
 		},
 	}

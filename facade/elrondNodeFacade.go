@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -87,6 +87,12 @@ func (ef *ElrondNodeFacade) StartNode() error {
 
 	err = ef.node.StartConsensus()
 	return err
+}
+
+// GetCurrentPublicKey is just a mock method to satisfies FacadeHandler
+//TODO: Remove this method when it will not be used in elrond facade
+func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
+	return ""
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
@@ -226,7 +232,7 @@ func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+func (ef *ElrondNodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return ef.apiResolver.ExecuteSCQuery(query)
 }
 
