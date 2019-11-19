@@ -1,10 +1,12 @@
 package peer
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -14,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.DefaultLogger()
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
@@ -125,6 +129,7 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 // UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
+	currRh, _ := p.peerAdapter.RootHash()
 	if header.GetNonce() == 0 {
 		return p.peerAdapter.RootHash()
 	}
@@ -166,6 +171,9 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 	if err != nil {
 		return nil, err
 	}
+
+	rh, _ := p.peerAdapter.RootHash()
+	log.Info(fmt.Sprintf("UPDATE PEER STATE FOR HEADER %d From %s TO %s", header.GetNonce(), core.ToB64(currRh), core.ToB64(rh)))
 
 	return p.peerAdapter.RootHash()
 }
@@ -259,6 +267,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 			return process.ErrMissingPrevShardData
 		}
 
+		log.Info("CALCULATE MISSING BLOCKS SHR: %d, PSHR: %d, PSHRS: %s, PSHID: %d", h.Round, prevShardData.Round, core.ToB64(prevShardData.PrevRandSeed), h.ShardID)
 		shardInfoErr = p.checkForMissedBlocks(
 			h.Round,
 			prevShardData.Round,
