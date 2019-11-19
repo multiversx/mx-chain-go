@@ -32,6 +32,10 @@ func (tkr *testKadResolver) ByID(peer p2p.PeerID) uint32 {
 	return tkr.f(peer)
 }
 
+func (tkr *testKadResolver) IsBalanced() bool {
+	return true
+}
+
 func (tkr *testKadResolver) IsInterfaceNil() bool {
 	return tkr == nil
 }
@@ -104,7 +108,7 @@ func TestKadSharderOrdering2_list(t *testing.T) {
 	for i := 0; i < testNodesCount; i++ {
 		peerList[i] = peer.ID(fmt.Sprintf("NODE %d", i))
 	}
-	l1 := s.SortList(peerList, nodeA)
+	l1, _ := s.SortList(peerList, nodeA)
 
 	refShardID := fakeShardBit0Byte2(p2p.PeerID(nodeA))
 	sameShardScore := uint64(0)

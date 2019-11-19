@@ -12,13 +12,12 @@ import (
 )
 
 const (
-	initReconnectMul = 20
+	initReconnectMul     = 20
+	peerDiscoveryTimeout = 5 * time.Second
+	noOfQueries          = 3
+
+	kadDhtName = "kad-dht discovery"
 )
-
-var peerDiscoveryTimeout = 10 * time.Second
-var noOfQueries = 1
-
-const kadDhtName = "kad-dht discovery"
 
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
