@@ -337,7 +337,7 @@ func CheckScBalanceOf(
 	query := process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  "balanceOf",
-		Arguments: []*big.Int{big.NewInt(0).SetBytes(nodeWithCaller.OwnAccount.PkTxSignBytes)},
+		Arguments: [][]byte{nodeWithCaller.OwnAccount.PkTxSignBytes},
 	}
 
 	vmOutput, _ := nodeWithSc.SCQueryService.ExecuteQuery(&query)

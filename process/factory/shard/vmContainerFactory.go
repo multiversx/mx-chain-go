@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 )
 
 type vmContainerFactory struct {
@@ -45,7 +44,7 @@ func NewVMContainerFactory(
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
-	currVm, err := vmf.createIeleVM()
+	/*currVm, err := vmf.createIeleVM()
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +52,9 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	err = container.Add(factory.IELEVirtualMachine, currVm)
 	if err != nil {
 		return nil, err
-	}
+	}*/
 
-	currVm, err = vmf.createArwenVM()
+	currVm, err := vmf.createArwenVM()
 	if err != nil {
 		return nil, err
 	}
@@ -68,10 +67,10 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	return container, nil
 }
 
-func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
+/*func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.blockChainHookImpl, vmf.cryptoHook)
 	return ieleVM, nil
-}
+}*/
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
 	arwenVM, err := arwen.NewArwenVM(vmf.blockChainHookImpl, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)

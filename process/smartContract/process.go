@@ -230,7 +230,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 
 func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
 	// first parsed argument after the code in case of vmDeploy is the actual vmType
-	vmAppendedType := make([]byte, hooks.VMTypeLen)
+	vmAppendedType := make([]byte, core.VMTypeLen)
 	vmArgLen := len(vmType)
 	if vmArgLen > core.VMTypeLen {
 		return nil, process.ErrVMTypeLengthInvalid

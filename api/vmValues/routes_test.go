@@ -44,7 +44,6 @@ func TestGetDataValueAsHexBytes(t *testing.T) {
 
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			returnData := big.NewInt(0).SetBytes([]byte(valueBuff))
 			return &vmcommon.VMOutput{
 				ReturnData: [][]byte{valueBuff},
 			}, nil
@@ -72,7 +71,6 @@ func TestGetDataValueAsString(t *testing.T) {
 
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			returnData := big.NewInt(0).SetBytes([]byte(valueBuff))
 			return &vmcommon.VMOutput{
 				ReturnData: [][]byte{[]byte(valueBuff)},
 			}, nil

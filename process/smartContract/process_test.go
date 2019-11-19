@@ -506,10 +506,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	}
 
 	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
-		args := make([]*big.Int, 0)
-		args = append(args, big.NewInt(0).SetBytes(vmArg))
-		return args, nil
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{vmArg}, nil
 	}
 
 	err = sc.DeploySmartContract(tx, acntSrc, 10)
@@ -583,10 +581,8 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	}
 
 	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
-		args := make([]*big.Int, 0)
-		args = append(args, big.NewInt(0).SetBytes(vmArg))
-		return args, nil
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{vmArg}, nil
 	}
 
 	err = sc.DeploySmartContract(tx, acntSrc, 10)
@@ -882,10 +878,8 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 		return nil, tmpError
 	}
 	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
-		args := make([]*big.Int, 0)
-		args = append(args, big.NewInt(0).SetBytes(vmArg))
-		return args, nil
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{vmArg}, nil
 	}
 
 	vmInput, vmType, err := sc.CreateVMDeployInput(tx)
@@ -922,10 +916,8 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
-		args := make([]*big.Int, 0)
-		args = append(args, big.NewInt(0).SetBytes(vmArg))
-		return args, nil
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{vmArg}, nil
 	}
 
 	vmInput, vmType, err := sc.CreateVMDeployInput(tx)
@@ -995,7 +987,7 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
-	argParser.GetArgumentsCalled = func() (ints []*big.Int, e error) {
+	argParser.GetArgumentsCalled = func() (ints [][]byte, e error) {
 		return nil, tmpError
 	}
 	vmInput, err := sc.CreateVMInput(tx)

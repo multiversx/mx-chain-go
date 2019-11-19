@@ -486,5 +486,5 @@ type NetworkConnectionWatcher interface {
 type SCQuery struct {
 	ScAddress []byte
 	FuncName  string
-	Arguments []*big.Int
+	Arguments [][]byte
 }

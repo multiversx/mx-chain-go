@@ -378,18 +378,13 @@ func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, func
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts)
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer)
 
-	arguments := make([]*big.Int, len(args))
-	for i, arg := range args {
-		arguments[i] = big.NewInt(0).SetBytes(arg)
-	}
-
 	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  funcName,
-		Arguments: arguments,
+		Arguments: args,
 	})
 
-	return vmOutput.ReturnData[0]
+	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 }
 
 func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress []byte) *dataTransaction.Transaction {
@@ -400,7 +395,7 @@ func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress [
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000,
-		Data:     "topUp@0",
+		Data:     "topUp@00",
 	}
 }
 
@@ -418,6 +413,6 @@ func CreateTransferTx(
 		SndAddr:  sndAddress,
 		GasPrice: 0,
 		GasLimit: 5000,
-		Data:     "transfer@" + hex.EncodeToString(rcvAddress) + "@" + value.String(),
+		Data:     "transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
 	}
 }

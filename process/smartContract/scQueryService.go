@@ -76,14 +76,6 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) createVMCallInput(query *process.SCQuery) *vmcommon.ContractCallInput {
-	maxGasLimit := math.MaxInt64
-	header := &vmcommon.SCCallHeader{
-		GasLimit:    big.NewInt(int64(maxGasLimit)),
-		Timestamp:   big.NewInt(0),
-		Beneficiary: big.NewInt(0),
-		Number:      big.NewInt(0),
-	}
-
 	vmInput := vmcommon.VMInput{
 		CallerAddr:  query.ScAddress,
 		CallValue:   big.NewInt(0),

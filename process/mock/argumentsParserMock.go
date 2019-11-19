@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 

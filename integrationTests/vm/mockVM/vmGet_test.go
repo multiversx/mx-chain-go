@@ -30,7 +30,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 	query := process.SCQuery{
 		ScAddress: destinationAddressBytes,
 		FuncName:  functionName,
-		Arguments: []*big.Int{},
+		Arguments: [][]byte{},
 	}
 
 	vmOutput, err := service.ExecuteQuery(&query)

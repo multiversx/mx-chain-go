@@ -78,7 +78,7 @@ func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	value := r.eei.GetStorage(args.Arguments[0].Bytes())
+	value := r.eei.GetStorage(args.Arguments[0])
 	r.eei.Finish(value)
 
 	return vmcommon.Ok
@@ -135,7 +135,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	registrationData.StartNonce = r.eei.BlockChainHook().CurrentNonce()
-	registrationData.BlsPubKey = args.Arguments[0].Bytes()
+	registrationData.BlsPubKey = args.Arguments[0]
 	//TODO: verify if blsPubKey is valid
 
 	data, err := json.Marshal(registrationData)
@@ -232,7 +232,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	var registrationData StakingData
-	stakerAddress := args.Arguments[0].Bytes()
+	stakerAddress := args.Arguments[0]
 	data := r.eei.GetStorage(stakerAddress)
 	if data == nil {
 		return vmcommon.UserError
@@ -249,7 +249,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	stakedValue := big.NewInt(0).Set(registrationData.StakeValue)
-	slashValue := args.Arguments[1]
+	slashValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	registrationData.StakeValue = registrationData.StakeValue.Sub(stakedValue, slashValue)
 
 	data, err = json.Marshal(registrationData)

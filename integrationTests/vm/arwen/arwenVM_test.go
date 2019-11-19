@@ -182,6 +182,9 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 		tx = vm.CreateTransferTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
 
 		err = txProc.ProcessTransaction(tx, round)
+		if err != nil {
+			assert.Nil(t, err)
+		}
 		assert.Nil(t, err)
 
 		aliceNonce++

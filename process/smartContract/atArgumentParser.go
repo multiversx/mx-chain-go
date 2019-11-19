@@ -34,7 +34,7 @@ func (at *atArgumentParser) ParseData(data string) error {
 	code := []byte(splitString[0])
 	arguments := make([][]byte, len(splitString)-1)
 	for i := 1; i < len(splitString); i++ {
-		arguments[i], err = hex.DecodeString(splitString[i])
+		arguments[i-1], err = hex.DecodeString(splitString[i])
 		if err != nil {
 			return err
 		}
