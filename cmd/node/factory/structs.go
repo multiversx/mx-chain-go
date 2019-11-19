@@ -2320,7 +2320,7 @@ func generateInMemoryAccountsAdapter(
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, accountFactory)
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
 	if err != nil {
 		return nil, err
 	}
