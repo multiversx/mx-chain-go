@@ -137,7 +137,13 @@ func TestNewLibp2pConnectionMonitor_Triming(t *testing.T) {
 	assert.Equal(t, 0, pauseCallCount)
 	assert.Equal(t, 0, resumeCallCount)
 
-	cm.Connected(netFact(11), nil)
+	// this is triggering a trim and pause
+	cm.Connected(netFact(13), nil)
+	assert.Equal(t, 1, pauseCallCount)
+	assert.Equal(t, 0, resumeCallCount)
+
+	// this should not resume
+	cm.Connected(netFact(9), nil)
 	assert.Equal(t, 1, pauseCallCount)
 	assert.Equal(t, 0, resumeCallCount)
 

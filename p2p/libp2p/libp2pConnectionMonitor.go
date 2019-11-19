@@ -71,17 +71,17 @@ func (lcm *libp2pConnectionMonitor) doReconn() {
 
 // Connected is called when a connection opened
 func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network.Conn) {
-	if len(netw.Conns()) > lcm.thresholdDiscoveryPause {
-		lcm.reconnecter.Pause()
-	}
 	if len(netw.Conns()) > lcm.thresholdConnTrim {
 		lcm.mutSharder.RLock()
-		sorted := lcm.sharder.SortList(netw.Peers(), netw.LocalPeer())
+		sorted, isBalanced := ns.Get().SortList(netw.Peers(), netw.LocalPeer())
 		lcm.mutSharder.RUnlock()
 		for i := lcm.thresholdDiscoveryPause; i < len(sorted); i++ {
 			_ = netw.ClosePeer(sorted[i])
 		}
 		lcm.doReconn()
+		if isBalanced && lcm.reconnecter != nil {
+			lcm.reconnecter.Pause()
+		}
 	}
 }
 

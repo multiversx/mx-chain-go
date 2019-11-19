@@ -27,8 +27,8 @@ func (ns *NoSharder) GetDistance(a, b sortingID) *big.Int {
 }
 
 // SortList sort the list
-func (ns *NoSharder) SortList(peers []peer.ID, ref peer.ID) []peer.ID {
-	return sortList(ns, peers, ref)
+func (ns *NoSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
+	return sortList(ns, peers, ref), true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
