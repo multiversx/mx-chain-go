@@ -165,7 +165,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	}
 }
 
-func TestInterceptedShardBlockHeaderWithCorrectLeaderSignatureAndRandSeed(t *testing.T) {
+func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -181,7 +181,7 @@ func TestInterceptedShardBlockHeaderWithCorrectLeaderSignatureAndRandSeed(t *tes
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
 	singleSigner := getBlockSingleSignerStub()
-	keyGen := getBlockKeyGen()
+	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		nodesPerShard,
@@ -283,25 +283,6 @@ func getBlockSingleSignerStub() crypto.SingleSigner {
 				return err
 			}
 			return singleSigner.Verify(public, msg, sig)
-		},
-	}
-}
-
-func getBlockKeyGen() crypto.KeyGenerator {
-	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
-	//keyGenMock := mock.KeyGenMock{}
-	return &mock.KeyGenStub{
-		GeneratePairCalled: func() (key crypto.PrivateKey, key2 crypto.PublicKey) {
-			return keyGen.GeneratePair()
-		},
-		PrivateKeyFromByteArrayCalled: func(b []byte) (crypto.PrivateKey, error) {
-			return keyGen.PrivateKeyFromByteArray(b)
-		},
-		PublicKeyFromByteArrayCalled: func(b []byte) (crypto.PublicKey, error) {
-			return keyGen.PublicKeyFromByteArray(b)
-		},
-		SuiteCalled: func() crypto.Suite {
-			return keyGen.Suite()
 		},
 	}
 }
