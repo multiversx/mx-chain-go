@@ -205,3 +205,6 @@ var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
 // ErrEmptyTrieNodesRequestTopic signals that an empty trie nodes topic has been provided
 var ErrEmptyTrieNodesRequestTopic = errors.New("empty trie nodes request topic")
+
+// ErrNilCurrBlockTxs signals that nil current blocks txs holder was provided
+var ErrNilCurrBlockTxs = errors.New("nil current block txs holder")

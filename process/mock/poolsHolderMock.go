@@ -20,6 +20,7 @@ type PoolsHolderMock struct {
 	peerChangesBlocks    storage.Cacher
 	trieNodes            storage.Cacher
 	metaHdrNonces        dataRetriever.Uint64SyncMapCacher
+	currBlockTxs         dataRetriever.TransactionCacher
 }
 
 func NewPoolsHolderMock() *PoolsHolderMock {
@@ -42,7 +43,13 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	)
 	phf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
 	phf.peerChangesBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1)
+	phf.currBlockTxs, _ = dataPool.NewCurrentBlockPool()
+
 	return phf
+}
+
+func (phm *PoolsHolderMock) CurrentBlockTxs() dataRetriever.TransactionCacher {
+	return phm.currBlockTxs
 }
 
 func (phm *PoolsHolderMock) Transactions() dataRetriever.ShardedDataCacherNotifier {

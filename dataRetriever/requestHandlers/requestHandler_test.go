@@ -23,6 +23,7 @@ func TestNewMetaResolverRequestHandlerNilFinder(t *testing.T) {
 		"scr topic",
 		"miniblock topic",
 		"trieNode topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -40,6 +41,7 @@ func TestNewMetaResolverRequestShardHandlerEmptyTopic(t *testing.T) {
 		"scr topic",
 		"miniblock topic",
 		"trieNode topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -57,6 +59,7 @@ func TestNewMetaResolverRequestMetaHandlerEmptyTopic(t *testing.T) {
 		"scr topic",
 		"miniblock topic",
 		"trieNode topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -74,6 +77,7 @@ func TestNewMetaResolverRequestTxHandlerEmptyTopic(t *testing.T) {
 		"scr topic",
 		"miniblock topic",
 		"trieNode topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -91,6 +95,7 @@ func TestNewMetaResolverRequestScrHandlerEmptyTopic(t *testing.T) {
 		"",
 		"miniblock topic",
 		"trieNode topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -108,6 +113,7 @@ func TestNewMetaResolverRequestMiniBlockHandlerEmptyTopic(t *testing.T) {
 		"scr topic",
 		"",
 		"trieNode topic",
+		100,
 	)
 
 	assert.Nil(t, rrh)
@@ -125,10 +131,29 @@ func TestNewMetaResolverRequestTrieNodeHandlerEmptyTopic(t *testing.T) {
 		"scr topic",
 		"miniblock topic",
 		"",
+		100,
 	)
 
 	assert.Nil(t, rrh)
 	assert.Equal(t, dataRetriever.ErrEmptyTrieNodesRequestTopic, err)
+}
+
+func TestNewMetaResolverRequestHandlerMaxTxRequestTooSmall(t *testing.T) {
+	t.Parallel()
+
+	rrh, err := NewMetaResolverRequestHandler(
+		&mock.ResolversFinderStub{},
+		"shard topic",
+		"meta topic",
+		"tx topic",
+		"scr topic",
+		"mb topic",
+		"trieNode topic",
+		0,
+	)
+
+	assert.Nil(t, rrh)
+	assert.Equal(t, dataRetriever.ErrInvalidMaxTxRequest, err)
 }
 
 func TestNewMetaResolverRequestHandler(t *testing.T) {
@@ -142,6 +167,7 @@ func TestNewMetaResolverRequestHandler(t *testing.T) {
 		"scr topic",
 		"miniblock topic",
 		"trieNode topic",
+		100,
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rrh)
@@ -758,6 +784,7 @@ func TestResolverRequestHandler_RequestHeaderByNonceMetaShouldRequest(t *testing
 		"topic",
 		"topic",
 		"topic",
+		100,
 	)
 
 	rrh.RequestHeaderByNonce(0, 0)

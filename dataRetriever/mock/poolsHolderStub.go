@@ -15,6 +15,11 @@ type PoolsHolderStub struct {
 	MiniBlocksCalled           func() storage.Cacher
 	MetaBlocksCalled           func() storage.Cacher
 	TrieNodesCalled            func() storage.Cacher
+	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
+}
+
+func (phs *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
+	return phs.CurrBlockTxsCalled()
 }
 
 func (phs *PoolsHolderStub) Headers() storage.Cacher {

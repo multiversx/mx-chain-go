@@ -5,12 +5,12 @@ import (
 )
 
 type TxValidatorStub struct {
-	IsTxValidForProcessingCalled func(txValidatorHandler process.TxValidatorHandler) bool
-	RejectedTxsCalled            func() uint64
+	CheckTxValidityCalled func(txValidatorHandler process.TxValidatorHandler) error
+	RejectedTxsCalled     func() uint64
 }
 
-func (t *TxValidatorStub) IsTxValidForProcessing(txValidatorHandler process.TxValidatorHandler) bool {
-	return t.IsTxValidForProcessingCalled(txValidatorHandler)
+func (t *TxValidatorStub) CheckTxValidity(txValidatorHandler process.TxValidatorHandler) error {
+	return t.CheckTxValidityCalled(txValidatorHandler)
 }
 
 func (t *TxValidatorStub) NumRejectedTxs() uint64 {

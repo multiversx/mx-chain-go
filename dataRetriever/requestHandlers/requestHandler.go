@@ -90,6 +90,7 @@ func NewMetaResolverRequestHandler(
 	scrRequestTopic string,
 	mbRequestTopic string,
 	trieNodesRequestTopic string,
+	maxTxsToRequest int,
 ) (*resolverRequestHandler, error) {
 	if finder == nil || finder.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilResolverFinder
@@ -112,6 +113,9 @@ func NewMetaResolverRequestHandler(
 	if len(trieNodesRequestTopic) == 0 {
 		return nil, dataRetriever.ErrEmptyTrieNodesRequestTopic
 	}
+	if maxTxsToRequest < 1 {
+		return nil, dataRetriever.ErrInvalidMaxTxRequest
+	}
 
 	rrh := &resolverRequestHandler{
 		resolversFinder:       finder,
@@ -122,6 +126,7 @@ func NewMetaResolverRequestHandler(
 		scrRequestTopic:       scrRequestTopic,
 		trieNodesRequestTopic: trieNodesRequestTopic,
 		isMetaChain:           true,
+		maxTxsToRequest:       maxTxsToRequest,
 	}
 
 	return rrh, nil
@@ -174,21 +179,51 @@ func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32,
 }
 
 // RequestMiniBlock method asks for miniblocks from the connected peers
-func (rrh *resolverRequestHandler) RequestMiniBlock(shardId uint32, miniblockHash []byte) {
-	rrh.requestByHash(shardId, miniblockHash, rrh.mbRequestTopic)
+func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
+	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", rrh.mbRequestTopic, destShardID, core.ToB64(miniblockHash)))
+
+	resolver, err := rrh.resolversFinder.CrossShardResolver(rrh.mbRequestTopic, destShardID)
+	if err != nil {
+		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", rrh.mbRequestTopic, destShardID))
+		return
+	}
+
+	err = resolver.RequestDataFromHash(miniblockHash)
+	if err != nil {
+		log.Debug(err.Error())
+	}
 }
 
 // RequestHeader method asks for header from the connected peers
-func (rrh *resolverRequestHandler) RequestHeader(shardId uint32, hash []byte) {
+func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte) {
 	//TODO: Refactor this class and create specific methods for requesting shard or meta data
-	var topic string
-	if shardId == sharding.MetachainShardId {
-		topic = rrh.metaHdrRequestTopic
+	var baseTopic string
+	if destShardID == sharding.MetachainShardId {
+		baseTopic = rrh.metaHdrRequestTopic
 	} else {
-		topic = rrh.shardHdrRequestTopic
+		baseTopic = rrh.shardHdrRequestTopic
 	}
 
-	rrh.requestByHash(shardId, hash, topic)
+	log.Debug(fmt.Sprintf("Requesting %s from shard %d with hash %s from network\n", baseTopic, destShardID, core.ToB64(hash)))
+
+	var resolver dataRetriever.Resolver
+	var err error
+
+	if destShardID == sharding.MetachainShardId {
+		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
+	} else {
+		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
+	}
+
+	if err != nil {
+		log.Error(fmt.Sprintf("missing resolver to %s topic to shard %d", baseTopic, destShardID))
+		return
+	}
+
+	err = resolver.RequestDataFromHash(hash)
+	if err != nil {
+		log.Debug(err.Error())
+	}
 }
 
 // RequestTrieNodes method asks for trie nodes from the connected peers

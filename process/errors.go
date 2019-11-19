@@ -220,8 +220,8 @@ var ErrNilTransactionPool = errors.New("nil transaction pool")
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 
-// ErrNilMetaBlockPool signals that a nil meta blocks pool was used
-var ErrNilMetaBlockPool = errors.New("nil meta block pool")
+// ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
+var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
 // ErrNilShardBlockPool signals that a nil shard blocks pool was used
 var ErrNilShardBlockPool = errors.New("nil shard block pool")
@@ -457,12 +457,6 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
 
-// ErrNilShardHeaderStorage signals that nil storage was provided for shard headers
-var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
-
-// ErrNilMetaHeaderStorage signals that nil storage was provided for meta headers
-var ErrNilMetaHeaderStorage = errors.New("nil meta header storage")
-
 // ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
 var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
 
@@ -518,11 +512,47 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 // ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
 var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
+// ErrInvalidUnboundPeriod signals that an invalid unbound period has been read from config file
+var ErrInvalidUnboundPeriod = errors.New("invalid unbound period")
+
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
+// ErrInvalidNonceRequest signals that invalid nonce was requested
+var ErrInvalidNonceRequest = errors.New("invalid nonce request")
+
+// ErrNilBlockChainHook signals that nil blockchain hook has been provided
+var ErrNilBlockChainHook = errors.New("nil blockchain hook")
+
+// ErrNilSCDataGetter signals that a nil sc data getter has been provided
+var ErrNilSCDataGetter = errors.New("nil sc data getter")
+
+// ErrPeerChangesHashDoesNotMatch signals that peer changes from header does not match the created ones
+var ErrPeerChangesHashDoesNotMatch = errors.New("peer changes hash does not match")
+
+// ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
+var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
+
+// ErrNilSCToProtocol signals that nil smart contract to protocol handler has been provided
+var ErrNilSCToProtocol = errors.New("nil sc to protocol")
+
+// ErrNilPeerChangesHandler signals that nil peer changes handler has been provided
+var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
+
+// ErrNilNodesSetup signals that nil nodes setup has been provided
+var ErrNilNodesSetup = errors.New("nil nodes setup")
+
 // ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
 var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
+
+// ErrNilBlackListHandler signals that a nil black list handler was provided
+var ErrNilBlackListHandler = errors.New("nil black list handler")
+
+// ErrHeaderIsBlackListed signals that the header provided is black listed
+var ErrHeaderIsBlackListed = errors.New("header is black listed")
+
+// ErrNilEconomicsData signals that nil economics data has been provided
+var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")

@@ -13,6 +13,7 @@ type metaDataPool struct {
 	headersNonces        dataRetriever.Uint64SyncMapCacher
 	transactions         dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier
+	currBlockTxs         dataRetriever.TransactionCacher
 }
 
 // NewMetaDataPool creates a data pools holder object
@@ -24,6 +25,7 @@ func NewMetaDataPool(
 	headersNonces dataRetriever.Uint64SyncMapCacher,
 	transactions dataRetriever.ShardedDataCacherNotifier,
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier,
+	currBlockTxs dataRetriever.TransactionCacher,
 ) (*metaDataPool, error) {
 
 	if metaBlocks == nil || metaBlocks.IsInterfaceNil() {
@@ -47,6 +49,9 @@ func NewMetaDataPool(
 	if trieNodes == nil || trieNodes.IsInterfaceNil() {
 		return nil, dataRetriever.ErrNilTrieNodesPool
 	}
+	if currBlockTxs == nil || currBlockTxs.IsInterfaceNil() {
+		return nil, dataRetriever.ErrNilCurrBlockTxs
+	}
 
 	return &metaDataPool{
 		metaBlocks:           metaBlocks,
@@ -56,7 +61,13 @@ func NewMetaDataPool(
 		headersNonces:        headersNonces,
 		transactions:         transactions,
 		unsignedTransactions: unsignedTransactions,
+		currBlockTxs:         currBlockTxs,
 	}, nil
+}
+
+// CurrentBlockTxs returns the holder for current block transactions
+func (mdp *metaDataPool) CurrentBlockTxs() dataRetriever.TransactionCacher {
+	return mdp.currBlockTxs
 }
 
 // MetaBlocks returns the holder for meta blocks

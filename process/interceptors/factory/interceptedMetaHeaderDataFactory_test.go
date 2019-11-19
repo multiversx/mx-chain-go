@@ -61,7 +61,9 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		MultiSigVerifier: mock.NewMultiSigner(),
 		NodesCoordinator: mock.NewNodesCoordinatorMock(),
 		KeyGen:           createMockKeyGen(),
+		BlockKeyGen:      createMockKeyGen(),
 		Signer:           createMockSigner(),
+		BlockSigner:      createMockSigner(),
 		AddrConv:         createMockAddressConverter(),
 		FeeHandler:       createMockFeeHandler(),
 		Db:               &mock.StorerStub{},
@@ -130,6 +132,28 @@ func TestNewInterceptedMetaHeaderDataFactory_NilNodesCoordinatorShouldErr(t *tes
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.Nil(t, imh)
 	assert.Equal(t, process.ErrNilNodesCoordinator, err)
+}
+
+func TestNewInterceptedMetaHeaderDataFactory_NilBlockSingleSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.BlockSigner = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilSingleSigner, err)
+}
+
+func TestNewInterceptedMetaHeaderDataFactory_NilBlockKeyGenShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.BlockKeyGen = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
