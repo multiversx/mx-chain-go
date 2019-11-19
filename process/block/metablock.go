@@ -1628,7 +1628,7 @@ func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header
 	}
 
 	if numAddedMetas > 1 {
-		lastFinalizedMetaHash = shardHdr.MetaBlockHashes[numAddedMetas-1]
+		lastFinalizedMetaHash = shardHdr.MetaBlockHashes[numAddedMetas-2]
 		return lastMetaHash, lastFinalizedMetaHash, nil
 	}
 
@@ -1643,12 +1643,35 @@ func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header
 			continue
 		}
 
-		lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[len(oldShardHdr.MetaBlockHashes)-1]
-		if len(lastMetaHash) == 0 {
-			lastMetaHash = lastFinalizedMetaHash
+		numAddedMetas = len(oldShardHdr.MetaBlockHashes)
+		if numAddedMetas > 1 {
+			if len(lastMetaHash) == 0 {
+				lastMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-1]
+				lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-2]
+				return lastMetaHash, lastFinalizedMetaHash, nil
+			}
+
+			if bytes.Equal(lastMetaHash, oldShardHdr.MetaBlockHashes[numAddedMetas-1]) {
+				lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-2]
+				return lastMetaHash, lastFinalizedMetaHash, nil
+			}
+
+			lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-1]
+			return lastMetaHash, lastFinalizedMetaHash, nil
 		}
 
-		return lastMetaHash, lastFinalizedMetaHash, nil
+		if len(lastMetaHash) == 0 {
+			lastMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-1]
+			currentHdr = oldShardHdr
+			continue
+		}
+
+		lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-1]
+		if !bytes.Equal(lastMetaHash, lastFinalizedMetaHash) {
+			return lastMetaHash, lastFinalizedMetaHash, nil
+		}
+
+		currentHdr = oldShardHdr
 	}
 
 	return nil, nil, process.ErrLastFinalizedMetaHashForShardNotFound
