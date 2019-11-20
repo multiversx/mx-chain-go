@@ -1630,11 +1630,15 @@ func (mp *metaProcessor) getLastNotarizedAndFinalizedHeaders() (*block.EpochStar
 func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, error) {
 	var lastMetaHash []byte
 	var lastFinalizedMetaHash []byte
-	var err error
 
 	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
+		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), mp.dataPool.ShardHeaders(), mp.marshalizer, mp.store)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		if len(currentHdr.MetaBlockHashes) == 0 {
-			currentHdr = currentHdr
+			currentHdr = prevShardHdr
 			continue
 		}
 
@@ -1657,7 +1661,7 @@ func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header
 
 		if len(lastMetaHash) == 0 {
 			lastMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
-			currentHdr = currentHdr
+			currentHdr = prevShardHdr
 			continue
 		}
 
@@ -1666,10 +1670,7 @@ func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header
 			return lastMetaHash, lastFinalizedMetaHash, nil
 		}
 
-		currentHdr, err = process.GetShardHeader(currentHdr.GetPrevHash(), mp.dataPool.ShardHeaders(), mp.marshalizer, mp.store)
-		if err != nil {
-			return nil, nil, err
-		}
+		currentHdr = prevShardHdr
 	}
 
 	return nil, nil, process.ErrLastFinalizedMetaHashForShardNotFound

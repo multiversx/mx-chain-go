@@ -285,7 +285,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 }
 
 // call only if mutex is locked before
-func (t *trigger) getHeaderWithHashFromMaps(nonce uint64, neededHash []byte) *block.MetaBlock {
+func (t *trigger) getHeaderWithNonceAndHashFromMaps(nonce uint64, neededHash []byte) *block.MetaBlock {
 	metaHdrHashesWithNonce := t.mapNonceHashes[nonce]
 	for _, hash := range metaHdrHashesWithNonce {
 		if !bytes.Equal(neededHash, []byte(hash)) {
@@ -332,7 +332,7 @@ func (t *trigger) getHeaderWithHashFromStorage(neededHash []byte) *block.MetaBlo
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*block.MetaBlock, error) {
-	metaHdr := t.getHeaderWithHashFromMaps(nonce, neededHash)
+	metaHdr := t.getHeaderWithNonceAndHashFromMaps(nonce, neededHash)
 	if metaHdr != nil {
 		return metaHdr, nil
 	}
@@ -353,7 +353,7 @@ func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*b
 }
 
 // call only if mutex is locked before
-func (t *trigger) getHeaderWithPrevHashFromMaps(nonce uint64, prevHash []byte) *block.MetaBlock {
+func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash []byte) *block.MetaBlock {
 	metaHdrHashesWithNonce := t.mapNonceHashes[nonce]
 	for _, hash := range metaHdrHashesWithNonce {
 		hdrWithNonce := t.mapHashHdr[hash]
@@ -365,7 +365,7 @@ func (t *trigger) getHeaderWithPrevHashFromMaps(nonce uint64, prevHash []byte) *
 }
 
 // call only if mutex is locked before
-func (t *trigger) getHeaderWithPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
+func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
 	shIdMap, ok := t.metaHdrNonces.Get(nonce)
 	if ok {
 		hdrHash, ok := shIdMap.Load(sharding.MetachainShardId)
@@ -384,12 +384,12 @@ func (t *trigger) getHeaderWithPrevHashFromCache(nonce uint64, prevHash []byte) 
 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (*block.MetaBlock, error) {
-	metaHdr := t.getHeaderWithPrevHashFromMaps(nonce, prevHash)
+	metaHdr := t.getHeaderWithNonceAndPrevHashFromMaps(nonce, prevHash)
 	if metaHdr != nil {
 		return metaHdr, nil
 	}
 
-	metaHdr = t.getHeaderWithPrevHashFromCache(nonce, prevHash)
+	metaHdr = t.getHeaderWithNonceAndPrevHashFromCache(nonce, prevHash)
 	if metaHdr != nil {
 		return metaHdr, nil
 	}
