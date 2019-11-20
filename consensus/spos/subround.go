@@ -147,12 +147,12 @@ func (sr *Subround) Next() int {
 
 // StartTime method returns the start time of the Subround
 func (sr *Subround) StartTime() int64 {
-	return int64(sr.startTime)
+	return sr.startTime
 }
 
 // EndTime method returns the upper time limit of the Subround
 func (sr *Subround) EndTime() int64 {
-	return int64(sr.endTime)
+	return sr.endTime
 }
 
 // Name method returns the name of the Subround

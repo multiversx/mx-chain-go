@@ -57,7 +57,7 @@ func (sfd *shardForkDetector) AddHeader(
 	finalHeadersHashes [][]byte,
 ) error {
 
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return ErrNilHeader
 	}
 	if headerHash == nil {
@@ -71,9 +71,9 @@ func (sfd *shardForkDetector) AddHeader(
 
 	sfd.activateForcedForkIfNeeded(header, state, sharding.MetachainShardId)
 
-	err = sfd.shouldAddBlockInForkDetector(header, state, process.ShardBlockFinality)
-	if err != nil {
-		return err
+	isHeaderReceivedTooLate := sfd.isHeaderReceivedTooLate(header, state, process.ShardBlockFinality)
+	if isHeaderReceivedTooLate {
+		state = process.BHReceivedTooLate
 	}
 
 	if state == process.BHProcessed {

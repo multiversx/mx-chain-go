@@ -56,7 +56,7 @@ func (mfd *metaForkDetector) AddHeader(
 	finalHeadersHashes [][]byte,
 ) error {
 
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return ErrNilHeader
 	}
 	if headerHash == nil {
@@ -70,9 +70,9 @@ func (mfd *metaForkDetector) AddHeader(
 
 	mfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
 
-	err = mfd.shouldAddBlockInForkDetector(header, state, process.MetaBlockFinality)
-	if err != nil {
-		return err
+	isHeaderReceivedTooLate := mfd.isHeaderReceivedTooLate(header, state, process.MetaBlockFinality)
+	if isHeaderReceivedTooLate {
+		state = process.BHReceivedTooLate
 	}
 
 	if state == process.BHProcessed {

@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"math"
 	"reflect"
@@ -699,6 +700,7 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, wasCalled)
+	assert.False(t, bs.IsInterfaceNil())
 }
 
 //------- processing
@@ -2763,6 +2765,285 @@ func TestMetaBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
 	assert.Nil(t, err)
+}
+
+func TestMetaBootstrap_GetMaxNotarizedHeadersNoncesInMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+	pools := createMockMetaPools()
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {},
+	}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+	nonceToByteSlice := uint64Converter.ToByteSlice(uint64(0))
+
+	store := createStore()
+	errKeyNotFound := errors.New("key not found")
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		if unitType == dataRetriever.BlockHeaderUnit {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if !bytes.Equal(key, hash) {
+						return nil, errKeyNotFound
+					}
+
+					hdr := block.Header{Nonce: 3}
+					mshldzHdr, _ := json.Marshal(hdr)
+					return mshldzHdr, nil
+				},
+			}
+		}
+
+		return nil
+	}
+
+	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+			if bytes.Equal(key, nonceToByteSlice) {
+				return nil, errKeyNotFound
+			}
+			return hash, nil
+		}
+
+		return nil, errKeyNotFound
+	}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		store,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
+		&mock.NetworkConnectionWatcherStub{},
+	)
+
+	lastNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	finalNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	blockWithLastNotarized := make(map[uint32]uint64, 0)
+	blockWithFinalNotarized := make(map[uint32]uint64, 0)
+
+	lastNotarized[0] = &sync.HdrInfo{Nonce: 1}
+	finalNotarized[0] = &sync.HdrInfo{Nonce: 1}
+	blockWithLastNotarized[0] = 1
+	blockWithFinalNotarized[0] = 1
+	startNonce := uint64(0)
+
+	shardData := block.ShardData{TxCount: 10, HeaderHash: hash}
+	metaBlock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{shardData},
+	}
+	notarizedInfo := bs.GetNotarizedInfo(lastNotarized, finalNotarized, blockWithLastNotarized, blockWithFinalNotarized, startNonce)
+	resMap, err := bs.GetMaxNotarizedHeadersNoncesInMetaBlock(metaBlock, notarizedInfo)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, resMap)
+}
+
+func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+	pools := createMockMetaPools()
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {},
+	}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerStub{
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return json.Unmarshal(buff, obj)
+		},
+	}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+	nonceToByteSlice := uint64Converter.ToByteSlice(uint64(0))
+
+	store := createStore()
+	errKeyNotFound := errors.New("key not found")
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		if unitType == dataRetriever.BlockHeaderUnit {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if !bytes.Equal(key, hash) {
+						return nil, errKeyNotFound
+					}
+
+					hdr := block.Header{Nonce: 3}
+					mshldzHdr, _ := json.Marshal(hdr)
+					return mshldzHdr, nil
+				},
+			}
+		}
+
+		return nil
+	}
+
+	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+			if bytes.Equal(key, nonceToByteSlice) {
+				return nil, errKeyNotFound
+			}
+			return hash, nil
+		}
+
+		return nil, errKeyNotFound
+	}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		store,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
+		&mock.NetworkConnectionWatcherStub{},
+	)
+
+	lastNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	finalNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	blockWithLastNotarized := make(map[uint32]uint64, 0)
+	blockWithFinalNotarized := make(map[uint32]uint64, 0)
+
+	lastNotarized[0] = &sync.HdrInfo{Nonce: 1}
+	lastNotarized[1] = nil
+
+	finalNotarized[0] = nil
+	finalNotarized[1] = nil
+	blockWithLastNotarized[0] = 0
+	blockWithFinalNotarized[0] = 0
+	startNonce := uint64(0)
+
+	notarizedInfo := bs.GetNotarizedInfo(lastNotarized, finalNotarized, blockWithLastNotarized, blockWithFinalNotarized, startNonce)
+
+	notarizedNonces := make(map[uint32]*sync.HdrInfo, 0)
+	notarizedNonces[0] = nil
+	res := bs.AreNotarizedShardHeadersFound(notarizedInfo, notarizedNonces, 0)
+
+	assert.False(t, res)
+}
+
+func TestMetaBootstrap_AreNotarizedShardHeadersFoundShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+	pools := createMockMetaPools()
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{
+		AddLastNotarizedHdrCalled: func(shardId uint32, processedHdr data.HeaderHandler) {},
+	}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerStub{
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return json.Unmarshal(buff, obj)
+		},
+	}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+	nonceToByteSlice := uint64Converter.ToByteSlice(uint64(0))
+
+	store := createStore()
+	errKeyNotFound := errors.New("key not found")
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
+		if unitType == dataRetriever.BlockHeaderUnit {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if !bytes.Equal(key, hash) {
+						return nil, errKeyNotFound
+					}
+
+					hdr := block.Header{Nonce: 3}
+					mshldzHdr, _ := json.Marshal(hdr)
+					return mshldzHdr, nil
+				},
+			}
+		}
+
+		return nil
+	}
+
+	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+			if bytes.Equal(key, nonceToByteSlice) {
+				return nil, errKeyNotFound
+			}
+			return hash, nil
+		}
+
+		return nil, errKeyNotFound
+	}
+
+	bs, _ := sync.NewMetaBootstrap(
+		pools,
+		store,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinderMeta(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
+		&mock.NetworkConnectionWatcherStub{},
+	)
+
+	lastNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	finalNotarized := make(map[uint32]*sync.HdrInfo, 0)
+	blockWithLastNotarized := make(map[uint32]uint64, 0)
+	blockWithFinalNotarized := make(map[uint32]uint64, 0)
+
+	lastNotarized[0] = nil
+	finalNotarized[0] = &sync.HdrInfo{Nonce: 1}
+
+	blockWithLastNotarized[0] = 0
+	blockWithFinalNotarized[0] = 0
+	startNonce := uint64(0)
+
+	notarizedInfo := bs.GetNotarizedInfo(lastNotarized, finalNotarized, blockWithLastNotarized, blockWithFinalNotarized, startNonce)
+
+	notarizedNonces := make(map[uint32]*sync.HdrInfo, 0)
+	notarizedNonces[0] = &sync.HdrInfo{Nonce: 5}
+
+	res := bs.AreNotarizedShardHeadersFound(notarizedInfo, notarizedNonces, 0)
+
+	assert.True(t, res)
 }
 
 func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {

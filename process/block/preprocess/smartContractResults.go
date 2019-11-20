@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -102,13 +101,15 @@ func (scr *smartContractResults) waitForScrHashes(waitTime time.Duration) error 
 // IsDataPrepared returns non error if all the requested smartContractResults arrived and were saved into the pool
 func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func() time.Duration) error {
 	if requestedScrs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing scr\n", requestedScrs))
+		log.Debug("requested missing scrs",
+			"num scrs", requestedScrs)
 		err := scr.waitForScrHashes(haveTime())
 		scr.scrForBlock.mutTxsForBlock.RLock()
 		missingScrs := scr.scrForBlock.missingTxs
 		scr.scrForBlock.missingTxs = 0
 		scr.scrForBlock.mutTxsForBlock.RUnlock()
-		log.Info(fmt.Sprintf("received %d missing scr\n", requestedScrs-missingScrs))
+		log.Debug("received missing scrs",
+			"num scrs", requestedScrs-missingScrs)
 		if err != nil {
 			return err
 		}
@@ -146,10 +147,11 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		scrBuff, err := scr.storage.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
-			log.Info(fmt.Sprintf("unsigned tx from mini block with sender shard %d and receiver shard %d, having %d txs, was not found in UnsignedTransactionUnit\n",
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-				len(miniBlock.TxHashes)))
+			log.Debug("unsigned tx from mini block was not found in UnsignedTransactionUnit",
+				"sender shard ID", miniBlock.SenderShardID,
+				"receiver shard ID", miniBlock.ReceiverShardID,
+				"num txs", len(miniBlock.TxHashes),
+			)
 
 			return scrRestored, err
 		}

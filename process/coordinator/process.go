@@ -5,15 +5,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var log = logger.GetOrCreate("process/coordinator")
 
 type transactionCoordinator struct {
 	shardCoordinator sharding.Coordinator
@@ -33,8 +35,6 @@ type transactionCoordinator struct {
 
 	onRequestMiniBlock func(shardId uint32, mbHash []byte)
 }
-
-var log = logger.DefaultLogger()
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
 func NewTransactionCoordinator(
@@ -178,7 +178,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 
 			err := preproc.IsDataPrepared(requestedTxs, haveTime)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("IsDataPrepared", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -214,7 +214,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 			err := preproc.SaveTxBlockToStorage(blockBody)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("SaveTxBlockToStorage", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -235,7 +235,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 			err := intermediateProc.SaveCurrentIntermediateTxToStorage()
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("SaveCurrentIntermediateTxToStorage", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -272,7 +272,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 
 			restoredTxs, err := preproc.RestoreTxBlockIntoPools(blockBody, tc.miniBlockPool)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("RestoreTxBlockIntoPools", "error", err.Error())
 
 				localMutex.Lock()
 				errFound = err
@@ -313,7 +313,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 
 			err := preproc.RemoveTxBlockFromPools(blockBody, tc.miniBlockPool)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("RemoveTxBlockFromPools", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -459,7 +459,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			haveTime,
 		)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("CreateAndProcessMiniBlocks", "error", err.Error())
 		}
 
 		if len(mbs) > 0 {
@@ -575,7 +575,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, receiverShardId, miniblock.Type)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("createBroadcastTopic", "error", err.Error())
 			continue
 		}
 
@@ -587,7 +587,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 			currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("CreateMarshalizedData", "error", err.Error())
 				continue
 			}
 
@@ -604,7 +604,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 			currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("CreateMarshalizedData", "error", err.Error())
 				continue
 			}
 
@@ -686,11 +686,11 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	snapshot := tc.accounts.JournalLen()
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("ProcessMiniBlock", "error", err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
-			log.Error(errAccountState.Error())
+			log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 		}
 
 		return err

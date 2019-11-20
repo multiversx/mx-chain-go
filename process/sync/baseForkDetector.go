@@ -62,6 +62,12 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
 
+	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
+		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
+		// which is bound to a previous black listed header.
+		bfd.blackListHandler.Add(string(headerHash))
+		return process.ErrHeaderIsBlackListed
+	}
 	if roundDif < 0 {
 		return ErrLowerRoundInBlock
 	}
@@ -73,12 +79,6 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	}
 	if roundDif < nonceDif {
 		return ErrHigherNonceInBlock
-	}
-	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
-		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
-		// which is bound to a previous black listed header.
-		bfd.blackListHandler.Add(string(headerHash))
-		return process.ErrHeaderIsBlackListed
 	}
 	if state == process.BHProposed {
 		if !isRandomSeedValid(header) {
@@ -118,7 +118,8 @@ func (bfd *baseForkDetector) removeInvalidReceivedHeaders() {
 		for i := 0; i < len(hdrInfos); i++ {
 			roundDif := int64(hdrInfos[i].round) - int64(finalCheckpointRound)
 			nonceDif := int64(hdrInfos[i].nonce) - int64(finalCheckpointNonce)
-			isReceivedHeaderInvalid := hdrInfos[i].state == process.BHReceived && roundDif < nonceDif
+			hasStateReceived := hdrInfos[i].state == process.BHReceived || hdrInfos[i].state == process.BHReceivedTooLate
+			isReceivedHeaderInvalid := hasStateReceived && roundDif < nonceDif
 			if isReceivedHeaderInvalid {
 				continue
 			}
@@ -356,10 +357,7 @@ func (bfd *baseForkDetector) shouldForceFork() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bfd *baseForkDetector) IsInterfaceNil() bool {
-	if bfd == nil {
-		return true
-	}
-	return false
+	return bfd == nil
 }
 
 // CheckFork method checks if the node could be on the fork
@@ -424,6 +422,10 @@ func (bfd *baseForkDetector) computeForkInfo(
 	lastForkRound uint64,
 ) ([]byte, uint64) {
 
+	if headerInfo.state == process.BHReceivedTooLate {
+		return lastForkHash, lastForkRound
+	}
+
 	currentForkRound := headerInfo.round
 	if headerInfo.state == process.BHNotarized {
 		currentForkRound = process.MinForkRound
@@ -455,25 +457,22 @@ func (bfd *baseForkDetector) shouldSignalFork(
 	return shouldSignalFork
 }
 
-func (bfd *baseForkDetector) shouldAddBlockInForkDetector(
+func (bfd *baseForkDetector) isHeaderReceivedTooLate(
 	header data.HeaderHandler,
 	state process.BlockHeaderState,
 	finality int64,
-) error {
+) bool {
 
 	if state == process.BHProcessed {
-		return nil
+		return false
 	}
 
 	// This condition would avoid a stuck situation, when shards would set as final, block with nonce n received from
 	// meta-chain, because they also received n+1. In the same time meta-chain would be reverted to an older block with
 	// nonce n received it with latency but before n+1. Actually this condition would reject these older blocks.
-	roundTooOld := int64(header.GetRound()) < bfd.rounder.Index()-finality
-	if roundTooOld {
-		return ErrLowerRoundInBlock
-	}
+	isHeaderReceivedTooLate := int64(header.GetRound()) < bfd.rounder.Index()-finality
 
-	return nil
+	return isHeaderReceivedTooLate
 }
 
 func (bfd *baseForkDetector) activateForcedForkIfNeeded(
@@ -489,7 +488,14 @@ func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
 	header data.HeaderHandler,
 	state process.BlockHeaderState,
 ) {
+	bfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
+	bfd.activateForcedForkOnCrossNotarizedStuckIfNeeded(header, state)
+}
 
+func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
+	header data.HeaderHandler,
+	state process.BlockHeaderState,
+) {
 	if state != process.BHProposed || bfd.isSyncing() {
 		return
 	}
@@ -513,9 +519,7 @@ func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
 func (bfd *baseForkDetector) activateForcedForkOnCrossNotarizedStuckIfNeeded(
 	header data.HeaderHandler,
 	state process.BlockHeaderState,
-	notarizedShard uint32,
 ) {
-
 	if state != process.BHProposed || bfd.isSyncing() {
 		return
 	}

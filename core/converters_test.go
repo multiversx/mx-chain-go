@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/stretchr/testify/assert"
 )
 

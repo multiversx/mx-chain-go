@@ -1,9 +1,11 @@
 package interceptedBlocks_test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -22,10 +24,25 @@ var hdrEpoch = uint32(78)
 func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		SingleSigVerifier: &mock.SignerMock{
+			VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+				return nil
+			},
+		},
 		MultiSigVerifier: mock.NewMultiSigner(),
 		Hasher:           testHasher,
 		Marshalizer:      testMarshalizer,
-		NodesCoordinator: &mock.NodesCoordinatorMock{},
+		NodesCoordinator: &mock.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validatorsGroup []sharding.Validator, err error) {
+				validator := mock.NewValidatorMock(big.NewInt(0), 0, []byte("pubKey"), []byte("pubKey"))
+				return []sharding.Validator{validator}, nil
+			},
+		},
+		KeyGen: &mock.SingleSignKeyGenMock{
+			PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+				return nil, nil
+			},
+		},
 	}
 
 	hdr := createMockShardHeader()

@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -974,6 +975,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, wasCalled)
+	assert.False(t, bs.IsInterfaceNil())
 }
 
 //------- processing
@@ -4812,4 +4814,210 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 	err := bs.SetStatusHandler(nil)
 	assert.Equal(t, process.ErrNilAppStatusHandler, err)
 
+}
+
+func TestShardBootstrap_RemoveBlockBody(t *testing.T) {
+	t.Parallel()
+
+	pools := &mock.PoolsHolderStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+		hnc := &mock.Uint64SyncMapCacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {
+		}
+
+		return hnc
+	}
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := initBlockchain()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	store := createStore()
+	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		nonceToBytes := mock.NewNonceHashConverterMock().ToByteSlice(uint64(1))
+		if bytes.Equal(key, nonceToBytes) {
+			return []byte("hdr"), nil
+		}
+		if bytes.Equal(key, []byte("hdr")) {
+			hdr := block.Header{}
+			mshlzdHdr, _ := json.Marshal(hdr)
+			return mshlzdHdr, nil
+		}
+
+		return nil, nil
+	}
+
+	store.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+		mapToRet := make(map[string][]byte, 0)
+		mb := block.MiniBlock{ReceiverShardID: 1, SenderShardID: 0}
+		mshlzdMb, _ := json.Marshal(mb)
+		mapToRet["mb1"] = mshlzdMb
+		return mapToRet, nil
+	}
+
+	bs, _ := sync.NewShardBootstrap(
+		pools,
+		store,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinder(),
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
+		&mock.NetworkConnectionWatcherStub{},
+	)
+
+	err := bs.RemoveBlockBody(
+		1,
+		dataRetriever.BlockHeaderUnit,
+		dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(shardCoordinator.SelfId()))
+
+	assert.Nil(t, err)
+}
+
+func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing.T) {
+	t.Parallel()
+
+	requestDataWasCalled := false
+	pools := &mock.PoolsHolderStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		sds.PeekCalled = func(key []byte) (interface{}, bool) {
+			hdr := block.Header{Round: 5}
+			return &hdr, true
+		}
+		return sds
+	}
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64SyncMapCacher {
+		hnc := &mock.Uint64SyncMapCacherStub{
+			GetCalled: func(nonce uint64) (dataRetriever.ShardIdHashMap, bool) {
+				shIdSyncMap := dataPool.ShardIdHashSyncMap{}
+				shIdSyncMap.Store(uint32(0), []byte("hash"))
+				return &shIdSyncMap, true
+			},
+		}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64, shardId uint32, hash []byte)) {}
+
+		return hnc
+	}
+
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := initBlockchain()
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &block.Header{Round: 10}
+	}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return uint64(5)
+	}
+	resFinder := createMockResolversFinderNilMiniBlocks()
+	resFinder.IntraShardResolverCalled = func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+		if strings.Contains(baseTopic, factory.HeadersTopic) {
+			return &mock.HeaderResolverMock{
+				RequestDataFromHashCalled: func(hash []byte) error {
+					return nil
+				},
+			}, nil
+		}
+
+		if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
+			return &mock.MiniBlocksResolverMock{
+				RequestDataFromHashArrayCalled: func(hash [][]byte) error {
+					requestDataWasCalled = true
+					return nil
+				},
+				GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+					return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
+				},
+			}, nil
+		}
+
+		return nil, nil
+	}
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	store := createStore()
+	store.GetCalled = func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+		nonceToBytes := mock.NewNonceHashConverterMock().ToByteSlice(uint64(1))
+		if bytes.Equal(key, nonceToBytes) {
+			return []byte("hdr"), nil
+		}
+		if bytes.Equal(key, []byte("hdr")) {
+			hdr := block.Header{}
+			mshlzdHdr, _ := json.Marshal(hdr)
+			return mshlzdHdr, nil
+		}
+
+		return nil, nil
+	}
+
+	store.GetAllCalled = func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+		mapToRet := make(map[string][]byte, 0)
+		mb := block.MiniBlock{ReceiverShardID: 1, SenderShardID: 0}
+		mshlzdMb, _ := json.Marshal(mb)
+		mapToRet["mb1"] = mshlzdMb
+		return mapToRet, nil
+	}
+
+	bs, _ := sync.NewShardBootstrap(
+		pools,
+		store,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		resFinder,
+		shardCoordinator,
+		account,
+		math.MaxUint32,
+		&mock.BlackListHandlerStub{},
+		&mock.NetworkConnectionWatcherStub{},
+	)
+
+	bs.RequestMiniBlocksFromHeaderWithNonceIfMissing(uint32(0), uint64(1))
+	assert.True(t, requestDataWasCalled)
 }

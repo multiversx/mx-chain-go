@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -86,7 +85,10 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 				if err != io.EOF {
 					_ = s.Reset()
-					log.Debug(fmt.Sprintf("error reading rpc from %s: %s", s.Conn().RemotePeer(), err))
+					log.Trace("error reading rpc",
+						"from", s.Conn().RemotePeer(),
+						"error", err.Error(),
+					)
 				} else {
 					// Just be nice. They probably won't read this
 					// but it doesn't hurt to send it.
@@ -97,7 +99,7 @@ func (ds *directSender) directStreamHandler(s network.Stream) {
 
 			err = ds.processReceivedDirectMessage(msg)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("p2p processReceivedDirectMessage", "error", err.Error())
 			}
 		}
 	}(reader)
