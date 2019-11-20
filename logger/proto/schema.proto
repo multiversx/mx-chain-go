@@ -1,0 +1,10 @@
+// to compile, use: protoc -I=. --go_out=. ./schema.proto
+syntax = "proto3";
+package protobuf;
+
+message LogLineMessage{
+    string Message = 1;
+    int32 LogLevel = 2;
+    repeated string Args = 3;
+    int64 Timestamp = 4;
+}

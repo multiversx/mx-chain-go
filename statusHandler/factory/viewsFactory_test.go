@@ -13,7 +13,7 @@ func TestViewsFactory_NewViewFactoryShouldError(t *testing.T) {
 	viewsFactory, err := NewViewsFactory(nil)
 
 	assert.Nil(t, viewsFactory)
-	assert.Error(t, statusHandler.ErrorNilPresenterInterface, err)
+	assert.Error(t, statusHandler.ErrNilPresenterInterface, err)
 }
 
 func TestViewsFactory_Create(t *testing.T) {

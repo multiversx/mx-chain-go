@@ -89,26 +89,30 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 	}
 
 	mb := block.MetaBlock{
-		Nonce:            uint64(1),
-		Epoch:            uint32(1),
-		Round:            uint64(1),
-		TimeStamp:        uint64(100000),
-		ShardInfo:        []block.ShardData{sd},
-		PeerInfo:         []block.PeerData{pd},
-		Signature:        []byte("signature"),
-		PubKeysBitmap:    []byte("pub keys"),
-		PrevHash:         []byte("previous hash"),
-		PrevRandSeed:     []byte("previous random seed"),
-		RandSeed:         []byte("random seed"),
-		RootHash:         []byte("root hash"),
-		TxCount:          uint32(1),
-		MiniBlockHeaders: []block.MiniBlockHeader{mbHdr},
+		Nonce:                  uint64(1),
+		Epoch:                  uint32(1),
+		Round:                  uint64(1),
+		TimeStamp:              uint64(100000),
+		ShardInfo:              []block.ShardData{sd},
+		PeerInfo:               []block.PeerData{pd},
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte("pub keys"),
+		PrevHash:               []byte("previous hash"),
+		PrevRandSeed:           []byte("previous random seed"),
+		RandSeed:               []byte("random seed"),
+		RootHash:               []byte("root hash"),
+		TxCount:                uint32(1),
+		ValidatorStatsRootHash: []byte("rootHash"),
+		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
+		LeaderSignature:        []byte("leader_sign"),
 	}
 	var b bytes.Buffer
-	_ = mb.Save(&b)
+	err := mb.Save(&b)
+	assert.Nil(t, err)
 
 	loadMb := block.MetaBlock{}
-	_ = loadMb.Load(&b)
+	err = loadMb.Load(&b)
+	assert.Nil(t, err)
 
 	assert.Equal(t, loadMb, mb)
 }

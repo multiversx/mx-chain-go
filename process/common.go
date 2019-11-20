@@ -1,23 +1,21 @@
 package process
 
 import (
-	"fmt"
 	"math"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("process")
 
 // EmptyChannel empties the given channel
 func EmptyChannel(ch chan bool) int {
@@ -594,10 +592,11 @@ func IsInProperRound(index int64) bool {
 func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
 	err := blackListHandler.Add(string(hash))
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("blackListHandler.Add", "error", err.Error())
 	}
 
-	log.Info(fmt.Sprintf("header with hash %s has been added to blacklist\n", core.ToB64(hash)))
+	log.Debug("header has been added to blacklist",
+		"hash", hash)
 }
 
 // ForkInfo hold the data related to a detected fork
