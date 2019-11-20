@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -365,7 +364,7 @@ func verifyRewardsForShards(
 			totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
 
 			expectedBalance.Add(expectedBalance, totalFees)
-			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
+			fmt.Println(fmt.Sprintf("checking account %s has balance %d", acc.AddressContainer().Bytes(), expectedBalance))
 			assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 		}
 	}
