@@ -43,7 +43,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 
 	destinationAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	addValue := uint64(128)
-	data := fmt.Sprintf("add@%X", addValue)
+	data := fmt.Sprintf("add@00%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
 		t,
@@ -111,7 +111,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 
 	destinationAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	addValue := uint64(128)
-	data := fmt.Sprintf("add@%X", addValue)
+	data := fmt.Sprintf("add@00%X", addValue)
 	//contract call tx that will fail with out of gas
 	gasLimitFail := uint64(10)
 	txRun := vm.CreateTx(
