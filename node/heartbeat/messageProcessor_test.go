@@ -30,7 +30,7 @@ func TestNewMessageProcessor_SingleSignerNilShouldErr(t *testing.T) {
 		nil,
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
-		&mock.NetworkShardingUpdaterStub{},
+		&mock.NetworkShardingCollectorStub{},
 	)
 
 	assert.Nil(t, mon)
@@ -44,7 +44,7 @@ func TestNewMessageProcessor_KeyGeneratorNilShouldErr(t *testing.T) {
 		&mock.SinglesignMock{},
 		nil,
 		&mock.MarshalizerMock{},
-		&mock.NetworkShardingUpdaterStub{},
+		&mock.NetworkShardingCollectorStub{},
 	)
 
 	assert.Nil(t, mon)
@@ -58,14 +58,14 @@ func TestNewMessageProcessor_MarshalizerNilShouldErr(t *testing.T) {
 		&mock.SinglesignMock{},
 		&mock.KeyGenMock{},
 		nil,
-		&mock.NetworkShardingUpdaterStub{},
+		&mock.NetworkShardingCollectorStub{},
 	)
 
 	assert.Nil(t, mon)
 	assert.Equal(t, heartbeat.ErrNilMarshalizer, err)
 }
 
-func TestNewMessageProcessor_NetworkShardingUpdaterNilShouldErr(t *testing.T) {
+func TestNewMessageProcessor_NetworkShardingCollectorNilShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mon, err := heartbeat.NewMessageProcessor(
@@ -76,7 +76,7 @@ func TestNewMessageProcessor_NetworkShardingUpdaterNilShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, mon)
-	assert.Equal(t, heartbeat.ErrNilNetworkShardingUpdater, err)
+	assert.Equal(t, heartbeat.ErrNilNetworkShardingCollector, err)
 }
 
 func TestNewMessageProcessor_ShouldWork(t *testing.T) {
@@ -86,7 +86,7 @@ func TestNewMessageProcessor_ShouldWork(t *testing.T) {
 		&mock.SinglesignMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
-		&mock.NetworkShardingUpdaterStub{},
+		&mock.NetworkShardingCollectorStub{},
 	)
 
 	assert.Nil(t, err)
@@ -254,7 +254,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 		singleSigner,
 		keyGen,
 		marshalizer,
-		&mock.NetworkShardingUpdaterStub{
+		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
 				updatePubKeyWasCalled = true
 			},
@@ -295,7 +295,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 		&mock.SinglesignMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
-		&mock.NetworkShardingUpdaterStub{
+		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 		},
 	)
@@ -329,7 +329,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 				return expectedErr
 			},
 		},
-		&mock.NetworkShardingUpdaterStub{
+		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 		},
 	)
@@ -385,7 +385,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithTooLongLengthsShou
 		singleSigner,
 		keyGen,
 		marshalizer,
-		&mock.NetworkShardingUpdaterStub{
+		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 		},
 	)
@@ -413,7 +413,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testin
 		&mock.SinglesignMock{},
 		&mock.KeyGenMock{},
 		&mock.MarshalizerMock{},
-		&mock.NetworkShardingUpdaterStub{
+		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 		},
 	)

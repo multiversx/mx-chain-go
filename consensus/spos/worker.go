@@ -34,8 +34,8 @@ type Worker struct {
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
 
-	networkShardingUpdater consensus.NetworkShardingUpdater
-	checkSigChan           chan struct{}
+	networkShardingCollector consensus.NetworkShardingCollector
+	checkSigChan             chan struct{}
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
 	receivedMessagesCalls map[consensus.MessageType]func(*consensus.Message) bool
@@ -65,7 +65,7 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
-	networkShardingUpdater consensus.NetworkShardingUpdater,
+	networkShardingCollector consensus.NetworkShardingCollector,
 ) (*Worker, error) {
 	err := checkNewWorkerParams(
 		consensusService,
@@ -81,28 +81,28 @@ func NewWorker(
 		shardCoordinator,
 		singleSigner,
 		syncTimer,
-		networkShardingUpdater,
+		networkShardingCollector,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	wrk := Worker{
-		consensusService:       consensusService,
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessor,
-		bootstrapper:           bootstrapper,
-		broadcastMessenger:     broadcastMessenger,
-		consensusState:         consensusState,
-		forkDetector:           forkDetector,
-		keyGenerator:           keyGenerator,
-		marshalizer:            marshalizer,
-		rounder:                rounder,
-		shardCoordinator:       shardCoordinator,
-		singleSigner:           singleSigner,
-		syncTimer:              syncTimer,
-		networkShardingUpdater: networkShardingUpdater,
-		checkSigChan:           make(chan struct{}, 1),
+		consensusService:         consensusService,
+		blockChain:               blockChain,
+		blockProcessor:           blockProcessor,
+		bootstrapper:             bootstrapper,
+		broadcastMessenger:       broadcastMessenger,
+		consensusState:           consensusState,
+		forkDetector:             forkDetector,
+		keyGenerator:             keyGenerator,
+		marshalizer:              marshalizer,
+		rounder:                  rounder,
+		shardCoordinator:         shardCoordinator,
+		singleSigner:             singleSigner,
+		syncTimer:                syncTimer,
+		networkShardingCollector: networkShardingCollector,
+		checkSigChan:             make(chan struct{}, 1),
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -132,7 +132,7 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 	syncTimer ntp.SyncTimer,
-	networkShardingUpdater consensus.NetworkShardingUpdater,
+	networkShardingCollector consensus.NetworkShardingCollector,
 ) error {
 	if check.IfNil(consensusService) {
 		return ErrNilConsensusService
@@ -173,8 +173,8 @@ func checkNewWorkerParams(
 	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
 	}
-	if check.IfNil(networkShardingUpdater) {
-		return ErrNilNetworkShardingUpdater
+	if check.IfNil(networkShardingCollector) {
+		return ErrNilNetworkShardingCollector
 	}
 
 	return nil
@@ -333,8 +333,8 @@ func (wrk *Worker) updateNetworkShardingVals(message p2p.MessageP2P, cnsMsg *con
 		return
 	}
 
-	wrk.networkShardingUpdater.UpdatePeerIdPublicKey(message.Peer(), cnsMsg.PubKey)
-	wrk.networkShardingUpdater.UpdatePublicKeyShardId(cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
+	wrk.networkShardingCollector.UpdatePeerIdPublicKey(message.Peer(), cnsMsg.PubKey)
+	wrk.networkShardingCollector.UpdatePublicKeyShardId(cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {

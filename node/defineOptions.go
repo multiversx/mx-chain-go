@@ -433,13 +433,13 @@ func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
 	}
 }
 
-// WithNetworkShardingUpdater sets up a network sharding updater for the Node
-func WithNetworkShardingUpdater(networkShardingUpdater consensus.NetworkShardingUpdater) Option {
+// WithNetworkShardingCollector sets up a network sharding updater for the Node
+func WithNetworkShardingCollector(networkShardingCollector consensus.NetworkShardingCollector) Option {
 	return func(n *Node) error {
-		if check.IfNil(networkShardingUpdater) {
-			return ErrNilNetworkShardingUpdater
+		if check.IfNil(networkShardingCollector) {
+			return ErrNilNetworkShardingCollector
 		}
-		n.networkShardingUpdater = networkShardingUpdater
+		n.networkShardingCollector = networkShardingCollector
 		return nil
 	}
 }

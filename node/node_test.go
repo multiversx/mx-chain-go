@@ -1179,8 +1179,8 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				return mock.NewStorerMock()
 			},
 		}),
-		node.WithNetworkShardingUpdater(
-			&mock.NetworkShardingUpdaterStub{
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 	)
@@ -1245,8 +1245,8 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
-		node.WithNetworkShardingUpdater(
-			&mock.NetworkShardingUpdaterStub{
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 	)
@@ -1307,8 +1307,8 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
-		node.WithNetworkShardingUpdater(
-			&mock.NetworkShardingUpdaterStub{
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 	)
@@ -1370,8 +1370,8 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				return mock.NewStorerMock()
 			},
 		}),
-		node.WithNetworkShardingUpdater(
-			&mock.NetworkShardingUpdaterStub{
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 	)
@@ -1438,8 +1438,8 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 				return mock.NewStorerMock()
 			},
 		}),
-		node.WithNetworkShardingUpdater(
-			&mock.NetworkShardingUpdaterStub{
+		node.WithNetworkShardingCollector(
+			&mock.NetworkShardingCollectorStub{
 				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
 			}),
 	)

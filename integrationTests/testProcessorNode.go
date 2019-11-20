@@ -135,7 +135,8 @@ type TestProcessorNode struct {
 	PreProcessorsContainer process.PreProcessorsContainer
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	BlockChainHookImpl     process.BlockChainHookHandler
-	NetworkShardingUpdater consensus.NetworkShardingUpdater
+
+	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -233,7 +234,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.NodesCoordinator,
 	)
-	tpn.NetworkShardingUpdater = mock.NewNetworkShardingUpdaterMock()
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(factory2.UserAccount)
 	tpn.PeerState, _, _ = CreateAccountsDB(factory2.ValidatorAccount)
@@ -726,7 +727,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlackListHandler(tpn.BlackListHandler),
-		node.WithNetworkShardingUpdater(tpn.NetworkShardingUpdater),
+		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())

@@ -1104,7 +1104,7 @@ func createNode(
 		return nil, err
 	}
 
-	networkShardingUpdater, err := prepareNetworkShardingUpdater(
+	networkShardingCollector, err := prepareNetworkShardingCollector(
 		network,
 		config,
 		nodesCoordinator,
@@ -1151,7 +1151,7 @@ func createNode(
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithBlackListHandler(process.BlackListHandler),
-		node.WithNetworkShardingUpdater(networkShardingUpdater),
+		node.WithNetworkShardingCollector(networkShardingCollector),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -1184,30 +1184,30 @@ func createNode(
 	return nd, nil
 }
 
-func prepareNetworkShardingUpdater(
+func prepareNetworkShardingCollector(
 	network *factory.Network,
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 ) (*networkSharding.PeerShardMapper, error) {
 
-	networkShardingUpdater, err := createNetworkShardingUpdater(config, nodesCoordinator)
+	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
 	localId := network.NetMessenger.ID()
-	networkShardingUpdater.UpdatePeerIdShardId(localId, coordinator.SelfId())
+	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
 
-	err = network.NetMessenger.SetPeerShardResolver(networkShardingUpdater)
+	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
 	if err != nil {
 		return nil, err
 	}
 
-	return networkShardingUpdater, nil
+	return networkShardingCollector, nil
 }
 
-func createNetworkShardingUpdater(
+func createNetworkShardingCollector(
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 ) (*networkSharding.PeerShardMapper, error) {

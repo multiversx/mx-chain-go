@@ -73,11 +73,11 @@ func (psm *PeerShardMapper) byIDWithNodesCoordinator(pid p2p.PeerID) (shardId ui
 	}
 
 	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff)
-	if err == nil {
-		return shardId, pkBuff, true
+	if err != nil {
+		return sharding.UnknownShardId, pkBuff, false
 	}
 
-	return sharding.UnknownShardId, pkBuff, false
+	return shardId, pkBuff, true
 }
 
 func (psm *PeerShardMapper) byIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {

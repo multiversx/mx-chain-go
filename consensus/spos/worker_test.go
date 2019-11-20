@@ -20,8 +20,8 @@ import (
 
 const roundTimeDuration = 100 * time.Millisecond
 
-func createMockNetworkShardingUpdater() *mock.NetworkShardingUpdaterStub {
-	return &mock.NetworkShardingUpdaterStub{
+func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
+	return &mock.NetworkShardingCollectorStub{
 		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
 		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
 	}
@@ -73,7 +73,7 @@ func initWorker() *spos.Worker {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	return sposWorker
@@ -121,7 +121,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -158,7 +158,7 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -195,7 +195,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -232,7 +232,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -269,7 +269,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -305,7 +305,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -341,7 +341,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -377,7 +377,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -413,7 +413,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -449,7 +449,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -485,7 +485,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		nil,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -521,7 +521,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		nil,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
@@ -557,14 +557,14 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		nil,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
-func TestWorker_NewWorkerNilNetworkShardingUpdaterShouldFailShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFailShouldFail(t *testing.T) {
 	t.Parallel()
 	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
@@ -598,7 +598,7 @@ func TestWorker_NewWorkerNilNetworkShardingUpdaterShouldFailShouldFail(t *testin
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilNetworkShardingUpdater, err)
+	assert.Equal(t, spos.ErrNilNetworkShardingCollector, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
@@ -631,7 +631,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		shardCoordinatorMock,
 		singleSignerMock,
 		syncTimerMock,
-		createMockNetworkShardingUpdater(),
+		createMockNetworkShardingCollector(),
 	)
 
 	assert.NotNil(t, wrk)

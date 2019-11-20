@@ -62,5 +62,5 @@ var ErrMarshalGenesisTime = errors.New("monitor: can't marshal genesis time")
 // ErrPropertyTooLong signals that one of the properties is too long
 var ErrPropertyTooLong = errors.New("property too long in Heartbeat")
 
-// ErrNilNetworkShardingUpdater defines the error for setting a nil network sharding updater
-var ErrNilNetworkShardingUpdater = errors.New("nil network sharding updater")
+// ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
+var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")

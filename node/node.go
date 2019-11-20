@@ -89,13 +89,14 @@ type Node struct {
 	multiSigner       crypto.MultiSigner
 	forkDetector      process.ForkDetector
 
-	blkc                   data.ChainHandler
-	dataPool               dataRetriever.PoolsHolder
-	metaDataPool           dataRetriever.MetaPoolsHolder
-	store                  dataRetriever.StorageService
-	shardCoordinator       sharding.Coordinator
-	nodesCoordinator       sharding.NodesCoordinator
-	networkShardingUpdater NetworkShardingUpdater
+	blkc             data.ChainHandler
+	dataPool         dataRetriever.PoolsHolder
+	metaDataPool     dataRetriever.MetaPoolsHolder
+	store            dataRetriever.StorageService
+	shardCoordinator sharding.Coordinator
+	nodesCoordinator sharding.NodesCoordinator
+
+	networkShardingCollector NetworkShardingCollector
 
 	consensusTopic string
 	consensusType  string
@@ -277,7 +278,7 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.singleSigner,
 		n.syncTimer,
-		n.networkShardingUpdater,
+		n.networkShardingCollector,
 	)
 	if err != nil {
 		return err
@@ -813,7 +814,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		n.singleSigner,
 		n.keyGen,
 		n.marshalizer,
-		n.networkShardingUpdater,
+		n.networkShardingCollector,
 	)
 	if err != nil {
 		return err
