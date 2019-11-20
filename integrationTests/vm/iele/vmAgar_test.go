@@ -170,7 +170,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 
 	//withdraw
 	withdraw := big.NewInt(49999)
-	data = fmt.Sprintf("withdraw@%X", withdraw)
+	data = "withdraw@" + hex.EncodeToString(withdraw.Bytes())
 	//contract call tx
 	txRun = vm.CreateTx(
 		t,
@@ -289,7 +289,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	//reward
 	prize := big.NewInt(10)
 	for i := 0; i < noOfUsers; i++ {
-		data := fmt.Sprintf("rewardAndSendToWallet@aaaa@%s@%X", hex.EncodeToString(usersAddresses[i]), prize)
+		data := "rewardAndSendToWallet@aaaa@" + hex.EncodeToString(usersAddresses[i]) + "@" + hex.EncodeToString(prize.Bytes())
 		//contract call tx
 		txRun := vm.CreateTx(
 			t,
