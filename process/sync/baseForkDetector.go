@@ -80,16 +80,6 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	if roundDif < nonceDif {
 		return ErrHigherNonceInBlock
 	}
-	if state == process.BHProposed {
-		if !isRandomSeedValid(header) {
-			return ErrRandomSeedNotValid
-		}
-	}
-	if state == process.BHReceived || state == process.BHProcessed {
-		if !isSigned(header) {
-			return ErrBlockIsNotSigned
-		}
-	}
 
 	return nil
 }
@@ -488,14 +478,6 @@ func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
 	header data.HeaderHandler,
 	state process.BlockHeaderState,
 ) {
-	bfd.activateForcedForkOnConsensusStuckIfNeeded(header, state)
-	bfd.activateForcedForkOnCrossNotarizedStuckIfNeeded(header, state)
-}
-
-func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
-	header data.HeaderHandler,
-	state process.BlockHeaderState,
-) {
 	if state != process.BHProposed || bfd.isSyncing() {
 		return
 	}
@@ -519,6 +501,7 @@ func (bfd *baseForkDetector) activateForcedForkOnConsensusStuckIfNeeded(
 func (bfd *baseForkDetector) activateForcedForkOnCrossNotarizedStuckIfNeeded(
 	header data.HeaderHandler,
 	state process.BlockHeaderState,
+	notarizedShard uint32,
 ) {
 	if state != process.BHProposed || bfd.isSyncing() {
 		return

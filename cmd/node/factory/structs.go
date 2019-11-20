@@ -571,7 +571,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		forkDetector,
 		genesisBlocks,
-		rounder,
+		blockTracker,
 	)
 
 	if err != nil {
@@ -1703,7 +1703,7 @@ func newBlockProcessor(
 	resolversFinder dataRetriever.ResolversFinder,
 	forkDetector process.ForkDetector,
 	genesisBlocks map[uint32]data.HeaderHandler,
-	rounder consensus.Rounder,
+	blockTracker process.BlockTracker,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1749,7 +1749,7 @@ func newBlockProcessor(
 			genesisBlocks,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
-			rounder,
+			blockTracker,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1771,7 +1771,7 @@ func newBlockProcessor(
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
-			rounder,
+			blockTracker,
 		)
 	}
 

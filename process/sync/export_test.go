@@ -90,8 +90,9 @@ func (bfd *baseForkDetector) ComputeProbableHighestNonce() uint64 {
 func (bfd *baseForkDetector) ActivateForcedForkIfNeeded(
 	header data.HeaderHandler,
 	state process.BlockHeaderState,
+	notarizedShard uint32,
 ) {
-	bfd.activateForcedForkIfNeeded(header, state)
+	bfd.activateForcedForkIfNeeded(header, state, notarizedShard)
 }
 
 func (bfd *baseForkDetector) ShouldForceFork() bool {
@@ -331,8 +332,8 @@ func (bfd *baseForkDetector) SetProbableHighestNonce(nonce uint64) {
 	bfd.setProbableHighestNonce(nonce)
 }
 
-func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
-	sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
+func (sfd *shardForkDetector) ComputeFinalCheckpoint() {
+	sfd.computeFinalCheckpoint()
 }
 
 func (bfd *baseForkDetector) AddCheckPoint(round uint64, nonce uint64) {

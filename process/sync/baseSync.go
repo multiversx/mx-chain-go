@@ -578,28 +578,6 @@ func checkBootstrapNilParameters(
 	return nil
 }
 
-// isSigned verifies if a block is signed
-func isSigned(header data.HeaderHandler) bool {
-	// TODO: Later, here it should be done a more complex verification (signature for this round matches with the bitmap,
-	// and validators which signed here, were in this round consensus group)
-	bitmap := header.GetPubKeysBitmap()
-	isBitmapEmpty := bytes.Equal(bitmap, make([]byte, len(bitmap)))
-
-	return !isBitmapEmpty
-}
-
-// isRandomSeedValid verifies if the random seed is valid (equal with a signed previous rand seed)
-func isRandomSeedValid(header data.HeaderHandler) bool {
-	// TODO: Later, here should be done a more complex verification (random seed should be equal with the previous rand
-	// seed signed by the proposer of this round)
-	prevRandSeed := header.GetPrevRandSeed()
-	randSeed := header.GetRandSeed()
-	isPrevRandSeedNilOrEmpty := len(prevRandSeed) == 0
-	isRandSeedNilOrEmpty := len(randSeed) == 0
-
-	return !isPrevRandSeedNilOrEmpty && !isRandSeedNilOrEmpty
-}
-
 func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	nonce uint64,
 	haveHeaderInPoolWithNonce func(uint64) bool,

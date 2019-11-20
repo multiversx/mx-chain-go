@@ -645,7 +645,12 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockChainHookImpl,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
-		Rounder:                      &mock.RounderMock{},
+		BlockTracker: &mock.BlockTrackerStub{
+			AddHeaderCalled: func(header data.HeaderHandler) {},
+		},
+		HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
+			CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

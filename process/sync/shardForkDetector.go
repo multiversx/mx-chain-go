@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -76,18 +78,18 @@ func (sfd *shardForkDetector) AddHeader(
 		state = process.BHReceivedTooLate
 	}
 
-	if state == process.BHProcessed {
-		sfd.addFinalHeaders(finalHeaders, finalHeadersHashes)
-		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
-		sfd.removePastOrInvalidRecords()
-	}
-
 	sfd.append(&headerInfo{
 		nonce: header.GetNonce(),
 		round: header.GetRound(),
 		hash:  headerHash,
 		state: state,
 	})
+
+	if state == process.BHProcessed {
+		sfd.AddFinalHeaders(finalHeaders, finalHeadersHashes)
+		sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
+		sfd.removePastOrInvalidRecords()
+	}
 
 	probableHighestNonce := sfd.computeProbableHighestNonce()
 	sfd.setLastBlockRound(uint64(sfd.rounder.Index()))
@@ -96,25 +98,43 @@ func (sfd *shardForkDetector) AddHeader(
 	return nil
 }
 
-func (sfd *shardForkDetector) UpdateFinal() {
+// AddFinalHeaders method adds new final headers to headers map
+func (sfd *shardForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
+	for i := 0; i < len(finalHeaders); i++ {
+		sfd.append(&headerInfo{
+			nonce: finalHeaders[i].GetNonce(),
+			round: finalHeaders[i].GetRound(),
+			hash:  finalHeadersHashes[i],
+			state: process.BHNotarized,
+		})
+	}
+
+	sfd.computeFinalCheckpoint()
 }
 
-func (sfd *shardForkDetector) addFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
-	finalCheckpointWasSet := false
-	for i := 0; i < len(finalHeaders); i++ {
-		isFinalHeaderNonceNotLowerThanCurrent := finalHeaders[i].GetNonce() >= sfd.finalCheckpoint().nonce
-		if isFinalHeaderNonceNotLowerThanCurrent {
-			if !finalCheckpointWasSet {
-				sfd.setFinalCheckpoint(&checkpointInfo{nonce: finalHeaders[i].GetNonce(), round: finalHeaders[i].GetRound()})
-				finalCheckpointWasSet = true
-			}
+func (sfd *shardForkDetector) computeFinalCheckpoint() {
+	finalCheckPoint := sfd.finalCheckpoint()
 
-			sfd.append(&headerInfo{
-				nonce: finalHeaders[i].GetNonce(),
-				round: finalHeaders[i].GetRound(),
-				hash:  finalHeadersHashes[i],
-				state: process.BHNotarized,
-			})
+	sfd.mutHeaders.RLock()
+	for nonce, hdrInfos := range sfd.headers {
+		indexBHNotarized := -1
+		indexBHProcessed := -1
+		for index, hdrInfo := range hdrInfos {
+			if hdrInfo.state == process.BHNotarized {
+				indexBHNotarized = index
+			}
+			if hdrInfo.state == process.BHProcessed {
+				indexBHProcessed = index
+			}
+		}
+
+		if indexBHNotarized != -1 && indexBHProcessed != -1 {
+			if finalCheckPoint.nonce < nonce {
+				if bytes.Equal(hdrInfos[indexBHNotarized].hash, hdrInfos[indexBHProcessed].hash) {
+					sfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: hdrInfos[indexBHNotarized].round})
+				}
+			}
 		}
 	}
+	sfd.mutHeaders.RUnlock()
 }

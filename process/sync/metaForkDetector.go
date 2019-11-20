@@ -75,18 +75,18 @@ func (mfd *metaForkDetector) AddHeader(
 		state = process.BHReceivedTooLate
 	}
 
-	if state == process.BHProcessed {
-		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
-		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
-		mfd.removePastOrInvalidRecords()
-	}
-
 	mfd.append(&headerInfo{
 		nonce: header.GetNonce(),
 		round: header.GetRound(),
 		hash:  headerHash,
 		state: state,
 	})
+
+	if state == process.BHProcessed {
+		mfd.setFinalCheckpoint(mfd.lastCheckpoint())
+		mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound()})
+		mfd.removePastOrInvalidRecords()
+	}
 
 	probableHighestNonce := mfd.computeProbableHighestNonce()
 	mfd.setLastBlockRound(uint64(mfd.rounder.Index()))
@@ -95,5 +95,6 @@ func (mfd *metaForkDetector) AddHeader(
 	return nil
 }
 
-func (mfd *metaForkDetector) UpdateFinal() {
+// AddFinalHeaders method adds new final headers to headers map
+func (mfd *metaForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
 }

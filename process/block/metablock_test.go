@@ -40,7 +40,12 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
-			Rounder:                      &mock.RounderMock{},
+			BlockTracker: &mock.BlockTrackerStub{
+				AddHeaderCalled: func(header data.HeaderHandler) {},
+			},
+			HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
+				CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},
+			},
 		},
 		DataPool:           mdp,
 		SCDataGetter:       &mock.ScDataGetterMock{},

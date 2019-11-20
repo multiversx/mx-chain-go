@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -121,7 +122,12 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		Core:                         nil,
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
-		Rounder:                      &mock.RounderMock{},
+		BlockTracker: &mock.BlockTrackerStub{
+			AddHeaderCalled: func(header data.HeaderHandler) {},
+		},
+		HeaderPoolsCleaner: &mock.HeaderPoolsCleanerMock{
+			CleanCalled: func(finalNonceInSelfShard uint64, finalNoncesInNotarizedShards map[uint32]uint64) {},
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

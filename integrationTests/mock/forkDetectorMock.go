@@ -15,7 +15,7 @@ type ForkDetectorMock struct {
 	ResetProbableHighestNonceCalled func()
 	ResetForkCalled                 func()
 	GetNotarizedHeaderHashCalled    func(nonce uint64) []byte
-	UpdateFinalCalled               func()
+	AddFinalHeadersCalled           func(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte)
 }
 
 // AddHeader is a mock implementation for AddHeader
@@ -55,14 +55,11 @@ func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
 	return fdm.GetNotarizedHeaderHashCalled(nonce)
 }
 
-func (fdm *ForkDetectorMock) UpdateFinal() {
-	fdm.UpdateFinalCalled()
+func (fdm *ForkDetectorMock) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
+	fdm.AddFinalHeadersCalled(finalHeaders, finalHeadersHashes)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (fdm *ForkDetectorMock) IsInterfaceNil() bool {
-	if fdm == nil {
-		return true
-	}
-	return false
+	return fdm == nil
 }
