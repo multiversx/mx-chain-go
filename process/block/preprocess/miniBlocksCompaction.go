@@ -1,10 +1,9 @@
 package preprocess
 
 import (
-	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -70,7 +69,7 @@ func (mbc *miniBlocksCompaction) Compact(
 	for index, miniBlock := range miniBlocks {
 		mbc.mapMiniBlockGasConsumed[index], err = mbc.computeGasConsumedByMiniBlock(miniBlock)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("computeGasConsumedByMiniBlock", "error", err.Error())
 			return miniBlocks
 		}
 	}
@@ -87,8 +86,10 @@ func (mbc *miniBlocksCompaction) Compact(
 	}
 
 	if len(miniBlocks) > len(compactedMiniBlocks) {
-		log.Info(fmt.Sprintf("compacted %d miniblocks to %d miniblocks\n",
-			len(miniBlocks), len(compactedMiniBlocks)))
+		log.Debug("compacted miniblocks",
+			"from", len(miniBlocks),
+			"to", len(compactedMiniBlocks),
+		)
 	}
 
 	return compactedMiniBlocks
@@ -182,8 +183,10 @@ func (mbc *miniBlocksCompaction) Expand(
 	}
 
 	if len(miniBlocks) < len(expandedMiniBlocks) {
-		log.Info(fmt.Sprintf("expanded from %d miniblocks to %d miniblocks\n",
-			len(miniBlocks), len(expandedMiniBlocks)))
+		log.Debug("expanded miniblocks",
+			"from", len(miniBlocks),
+			"to", len(expandedMiniBlocks),
+		)
 	}
 
 	return expandedMiniBlocks, nil

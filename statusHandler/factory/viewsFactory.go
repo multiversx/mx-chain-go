@@ -13,7 +13,7 @@ type viewsFactory struct {
 // NewViewsFactory is responsible for creating a new viewers factory object
 func NewViewsFactory(presenter view.Presenter) (*viewsFactory, error) {
 	if presenter == nil || presenter.IsInterfaceNil() {
-		return nil, statusHandler.ErrorNilPresenterInterface
+		return nil, statusHandler.ErrNilPresenterInterface
 	}
 
 	return &viewsFactory{
