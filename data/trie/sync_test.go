@@ -57,9 +57,13 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 
 	resolver := &mock.TrieNodesResolverStub{
 		RequestDataFromHashCalled: func(hash []byte) error {
+			requestedNode := interceptedNodes[nodesIndex]
 			for i := nodesIndex; i < nodesIndex+nrNodesToSend; i++ {
 				interceptedNodesCacher.Put(interceptedNodes[i].Hash(), interceptedNodes[i])
 			}
+
+			requestedNode.CreateEndOfProcessingTriggerNode()
+			interceptedNodesCacher.Put(requestedNode.Hash(), requestedNode)
 			nodesIndex += nrNodesToSend
 			nrRequests++
 

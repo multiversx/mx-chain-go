@@ -1,6 +1,8 @@
 package trie
 
 import (
+	"bytes"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,6 +17,9 @@ type trieSyncer struct {
 	interceptedNodes storage.Cacher
 	chRcvTrieNodes   chan bool
 	waitTime         time.Duration
+
+	requestedHashes      [][]byte
+	requestedHashesMutex sync.Mutex
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -44,6 +49,7 @@ func NewTrieSyncer(
 		interceptedNodes: interceptedNodes,
 		trie:             pmt,
 		chRcvTrieNodes:   make(chan bool),
+		requestedHashes:  make([][]byte, 0),
 		waitTime:         waitTime,
 	}, nil
 }
@@ -108,14 +114,6 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return trieNode(n)
 	}
 
-	//TODO change interceptors so that the trie will start syncing only after all of the
-	// requested nodes are added to the cacher, and remove this code.
-	time.Sleep(time.Millisecond)
-	n, ok = ts.interceptedNodes.Get(hash)
-	if ok {
-		return trieNode(n)
-	}
-
 	err := ts.requestNode(hash)
 	if err != nil {
 		return nil, err
@@ -140,6 +138,11 @@ func (ts *trieSyncer) requestNode(hash []byte) error {
 		return err
 	}
 
+	receivedRequestedHashTrigger := append(hash, hash...)
+	ts.requestedHashesMutex.Lock()
+	ts.requestedHashes = append(ts.requestedHashes, receivedRequestedHashTrigger)
+	ts.requestedHashesMutex.Unlock()
+
 	return ts.waitForTrieNode()
 }
 
@@ -153,7 +156,30 @@ func (ts *trieSyncer) waitForTrieNode() error {
 }
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte) {
-	ts.chRcvTrieNodes <- true
+	ts.requestedHashesMutex.Lock()
+
+	if hashInSlice(hash, ts.requestedHashes) {
+		ts.chRcvTrieNodes <- true
+		ts.removeRequestedHash(hash)
+	}
+	ts.requestedHashesMutex.Unlock()
+}
+
+func (ts *trieSyncer) removeRequestedHash(hash []byte) {
+	for i := range ts.requestedHashes {
+		if bytes.Equal(ts.requestedHashes[i], hash) {
+			ts.requestedHashes = append(ts.requestedHashes[:i], ts.requestedHashes[i+1:]...)
+		}
+	}
+}
+
+func hashInSlice(hash []byte, hashes [][]byte) bool {
+	for _, h := range hashes {
+		if bytes.Equal(h, hash) {
+			return true
+		}
+	}
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -79,3 +79,9 @@ func (inTn *InterceptedTrieNode) IsInterfaceNil() bool {
 func (inTn *InterceptedTrieNode) EncodedNode() []byte {
 	return inTn.encNode
 }
+
+// CreateEndOfProcessingTriggerNode changes the hash of the current node by appending the hash to the current hash.
+// This construction will be used to trigger the end of processing for all of the received data
+func (inTn *InterceptedTrieNode) CreateEndOfProcessingTriggerNode() {
+	inTn.hash = append(inTn.hash, inTn.hash...)
+}

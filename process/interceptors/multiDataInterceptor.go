@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -74,20 +75,32 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	lastErrEncountered := error(nil)
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(len(multiDataBuff))
+
+	firstDataBuff := multiDataBuff[0]
+
 	go func() {
 		wgProcess.Wait()
+
+		interceptedData, err := mdi.interceptedData(firstDataBuff)
+		if err != nil {
+			mdi.throttler.EndProcessing()
+			return
+		}
+
+		nodeData, ok := interceptedData.(*trie.InterceptedTrieNode)
+		if !ok {
+			mdi.throttler.EndProcessing()
+			return
+		}
+
+		nodeData.CreateEndOfProcessingTriggerNode()
+		_ = mdi.processor.Save(nodeData)
+
 		mdi.throttler.EndProcessing()
 	}()
 
 	for _, dataBuff := range multiDataBuff {
-		interceptedData, err := mdi.factory.Create(dataBuff)
-		if err != nil {
-			lastErrEncountered = err
-			wgProcess.Done()
-			continue
-		}
-
-		err = interceptedData.CheckValidity()
+		interceptedData, err := mdi.interceptedData(dataBuff)
 		if err != nil {
 			lastErrEncountered = err
 			wgProcess.Done()
@@ -119,6 +132,20 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	return lastErrEncountered
+}
+
+func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.InterceptedData, error) {
+	interceptedData, err := mdi.factory.Create(dataBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	err = interceptedData.CheckValidity()
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptedData, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
