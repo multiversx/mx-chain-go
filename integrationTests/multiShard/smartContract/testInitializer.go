@@ -117,9 +117,11 @@ type keyPair struct {
 }
 
 type cryptoParams struct {
-	keyGen       crypto.KeyGenerator
-	keys         map[uint32][]*keyPair
-	singleSigner crypto.SingleSigner
+	keyGen            crypto.KeyGenerator
+	blockKeyGen       crypto.KeyGenerator
+	keys              map[uint32][]*keyPair
+	singleSigner      crypto.SingleSigner
+	blockSingleSigner crypto.SingleSigner
 }
 
 func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
@@ -141,6 +143,12 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
+	blockKeyGen := &mock.KeyGenMock{}
+	blockSingleSigner := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 
 	keysMap := make(map[uint32][]*keyPair)
 	keyPairs := make([]*keyPair, nodesPerShard)
@@ -162,9 +170,11 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 	keysMap[sharding.MetachainShardId] = keyPairs
 
 	params := &cryptoParams{
-		keys:         keysMap,
-		keyGen:       keyGen,
-		singleSigner: singleSigner,
+		keys:              keysMap,
+		keyGen:            keyGen,
+		blockKeyGen:       blockKeyGen,
+		singleSigner:      singleSigner,
+		blockSingleSigner: blockSingleSigner,
 	}
 
 	return params
@@ -332,7 +342,9 @@ func createNetNode(
 		testMarshalizer,
 		testHasher,
 		params.keyGen,
+		params.blockKeyGen,
 		params.singleSigner,
+		params.blockSingleSigner,
 		testMultiSig,
 		dPool,
 		testAddressConverter,
@@ -805,7 +817,9 @@ func createMetaNetNode(
 		accntAdapter,
 		testAddressConverter,
 		params.singleSigner,
+		params.blockSingleSigner,
 		params.keyGen,
+		params.blockKeyGen,
 		maxTxNonceDeltaAllowed,
 		feeHandler,
 		timecache.NewTimeCache(time.Second),
