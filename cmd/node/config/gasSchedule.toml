@@ -2,6 +2,7 @@
     StorePerByte      = 500
     ReleaseGasPerByte = 250
     DataCopyPerByte   = 10
+    PersistPerByte    = 50
 
 [ElrondAPICost]
     GetOwner           = 10
