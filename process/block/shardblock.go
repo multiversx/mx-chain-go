@@ -296,9 +296,9 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		return process.ErrWrongTypeAssertion
 	}
 
-	isEpochStartMetaHahhIncorrect := shardHdr.IsStartOfEpochBlock() &&
+	isEpochStartMetaHashIncorrect := shardHdr.IsStartOfEpochBlock() &&
 		!bytes.Equal(shardHdr.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash())
-	if isEpochStartMetaHahhIncorrect {
+	if isEpochStartMetaHashIncorrect {
 		return process.ErrEpochDoesNotMatch
 	}
 

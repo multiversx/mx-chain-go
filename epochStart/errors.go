@@ -3,28 +3,28 @@ package epochStart
 import "errors"
 
 // ErrNilArgsNewMetaEpochStartTrigger signals that nil arguments were provided
-var ErrNilArgsNewMetaEpochStartTrigger = errors.New("nil arguments for meta end of epoch trigger")
+var ErrNilArgsNewMetaEpochStartTrigger = errors.New("nil arguments for meta start of epoch trigger")
 
 // ErrNilRounder signals that nil round was provided
 var ErrNilRounder = errors.New("nil rounder")
 
-// ErrNilEpochStartSettings signals that nil end of epoch settings has been provided
-var ErrNilEpochStartSettings = errors.New("nil end of epoch settings")
+// ErrNilEpochStartSettings signals that nil start of epoch settings has been provided
+var ErrNilEpochStartSettings = errors.New("nil start of epoch settings")
 
-// ErrInvalidSettingsForEpochStartTrigger signals that settings for end of epoch trigger are invalid
-var ErrInvalidSettingsForEpochStartTrigger = errors.New("invalid end of epoch trigger settings")
+// ErrInvalidSettingsForEpochStartTrigger signals that settings for start of epoch trigger are invalid
+var ErrInvalidSettingsForEpochStartTrigger = errors.New("invalid start of epoch trigger settings")
 
 // ErrNilSyncTimer signals that sync timer is nil
 var ErrNilSyncTimer = errors.New("nil sync timer")
 
 // ErrNilArgsNewShardEpochStartTrigger signals that nil arguments for shard epoch trigger has been provided
-var ErrNilArgsNewShardEpochStartTrigger = errors.New("nil arguments for shard end of epoch trigger")
+var ErrNilArgsNewShardEpochStartTrigger = errors.New("nil arguments for shard start of epoch trigger")
 
 // ErrNotEnoughRoundsBetweenEpochs signals that not enough rounds has passed since last epoch start
-var ErrNotEnoughRoundsBetweenEpochs = errors.New("tried to force end of epoch before passing of enough rounds")
+var ErrNotEnoughRoundsBetweenEpochs = errors.New("tried to force start of epoch before passing of enough rounds")
 
-// ErrForceEpochStartCanBeCalledOnlyOnNewRound signals that force end of epoch was called on wrong round
-var ErrForceEpochStartCanBeCalledOnlyOnNewRound = errors.New("invalid time to call force end of epoch, possible only on new round")
+// ErrForceEpochStartCanBeCalledOnlyOnNewRound signals that force start of epoch was called on wrong round
+var ErrForceEpochStartCanBeCalledOnlyOnNewRound = errors.New("invalid time to call force start of epoch, possible only on new round")
 
 // ErrSavedRoundIsHigherThanInputRound signals that input round was wrong
 var ErrSavedRoundIsHigherThanInputRound = errors.New("saved round is higher than input round")

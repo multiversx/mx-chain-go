@@ -47,7 +47,7 @@ type ChronologyHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartHandler defines that actions which should be handled by an end of epoch implementation
+// EpochStartHandler defines that actions which should be handled by an start of epoch implementation
 type EpochStartHandler interface {
 	IsEpochStart() bool
 	Update(round int64)

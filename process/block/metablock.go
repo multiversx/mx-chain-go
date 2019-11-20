@@ -1562,45 +1562,13 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 }
 
 func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock) (*block.EpochStart, error) {
-	epochStart := &block.EpochStart{
-		LastFinalizedHeaders: make([]block.EpochStartShardData, 0),
-	}
-
 	if !mp.epochStartTrigger.IsEpochStart() {
-		return epochStart, nil
+		return &block.EpochStart{}, nil
 	}
 
-	mp.mutNotarizedHdrs.RLock()
-	defer mp.mutNotarizedHdrs.RUnlock()
-
-	lastNotarizedHeaders := make([]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		lastNotarizedHdr := mp.lastNotarizedHdrForShard(i)
-		shardHdr, ok := lastNotarizedHdr.(*block.Header)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
-		}
-
-		hdrHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, lastNotarizedHdr)
-		if err != nil {
-			return nil, err
-		}
-
-		lastMetaHash, lastFinalizedMetaHash, err := mp.getLastFinalizedMetaHashForShard(shardHdr)
-		if err != nil {
-			return nil, err
-		}
-
-		finalHeader := block.EpochStartShardData{
-			ShardId:               lastNotarizedHdr.GetShardID(),
-			HeaderHash:            hdrHash,
-			RootHash:              lastNotarizedHdr.GetRootHash(),
-			FirstPendingMetaBlock: lastMetaHash,
-			LastFinishedMetaBlock: lastFinalizedMetaHash,
-		}
-
-		epochStart.LastFinalizedHeaders = append(epochStart.LastFinalizedHeaders, finalHeader)
-		lastNotarizedHeaders[i] = lastNotarizedHdr
+	epochStart, lastNotarizedHeaders, err := mp.getLastNotarizedAndFinalizedHeaders()
+	if err != nil {
+		return nil, err
 	}
 
 	pendingMiniBlocks, err := mp.pendingMiniBlocks.PendingMiniBlockHeaders(lastNotarizedHeaders)
@@ -1618,60 +1586,90 @@ func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock
 	return epochStart, nil
 }
 
-func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, error) {
-	var lastMetaHash []byte
-	var lastFinalizedMetaHash []byte
+func (mp *metaProcessor) getLastNotarizedAndFinalizedHeaders() (*block.EpochStart, []data.HeaderHandler, error) {
+	mp.mutNotarizedHdrs.RLock()
+	defer mp.mutNotarizedHdrs.RUnlock()
 
-	numAddedMetas := len(shardHdr.MetaBlockHashes)
-	if numAddedMetas > 0 {
-		lastMetaHash = shardHdr.MetaBlockHashes[numAddedMetas-1]
+	epochStart := &block.EpochStart{
+		LastFinalizedHeaders: make([]block.EpochStartShardData, 0),
 	}
 
-	if numAddedMetas > 1 {
-		lastFinalizedMetaHash = shardHdr.MetaBlockHashes[numAddedMetas-2]
-		return lastMetaHash, lastFinalizedMetaHash, nil
-	}
+	lastNotarizedHeaders := make([]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
+		lastNotarizedHdr := mp.lastNotarizedHdrForShard(i)
+		shardHdr, ok := lastNotarizedHdr.(*block.Header)
+		if !ok {
+			return nil, nil, process.ErrWrongTypeAssertion
+		}
 
-	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
-		oldShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), mp.dataPool.ShardHeaders(), mp.marshalizer, mp.store)
+		hdrHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, lastNotarizedHdr)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		if len(oldShardHdr.MetaBlockHashes) == 0 {
-			currentHdr = oldShardHdr
+		lastMetaHash, lastFinalizedMetaHash, err := mp.getLastFinalizedMetaHashForShard(shardHdr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		finalHeader := block.EpochStartShardData{
+			ShardId:               lastNotarizedHdr.GetShardID(),
+			HeaderHash:            hdrHash,
+			RootHash:              lastNotarizedHdr.GetRootHash(),
+			FirstPendingMetaBlock: lastMetaHash,
+			LastFinishedMetaBlock: lastFinalizedMetaHash,
+		}
+
+		epochStart.LastFinalizedHeaders = append(epochStart.LastFinalizedHeaders, finalHeader)
+		lastNotarizedHeaders[i] = lastNotarizedHdr
+	}
+
+	return epochStart, lastNotarizedHeaders, nil
+}
+
+func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header) ([]byte, []byte, error) {
+	var lastMetaHash []byte
+	var lastFinalizedMetaHash []byte
+	var err error
+
+	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
+		if len(currentHdr.MetaBlockHashes) == 0 {
+			currentHdr = currentHdr
 			continue
 		}
 
-		numAddedMetas = len(oldShardHdr.MetaBlockHashes)
+		numAddedMetas := len(currentHdr.MetaBlockHashes)
 		if numAddedMetas > 1 {
 			if len(lastMetaHash) == 0 {
-				lastMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-1]
-				lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-2]
+				lastMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
+				lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-2]
 				return lastMetaHash, lastFinalizedMetaHash, nil
 			}
 
-			if bytes.Equal(lastMetaHash, oldShardHdr.MetaBlockHashes[numAddedMetas-1]) {
-				lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-2]
+			if bytes.Equal(lastMetaHash, currentHdr.MetaBlockHashes[numAddedMetas-1]) {
+				lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-2]
 				return lastMetaHash, lastFinalizedMetaHash, nil
 			}
 
-			lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-1]
+			lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
 			return lastMetaHash, lastFinalizedMetaHash, nil
 		}
 
 		if len(lastMetaHash) == 0 {
-			lastMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-1]
-			currentHdr = oldShardHdr
+			lastMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
+			currentHdr = currentHdr
 			continue
 		}
 
-		lastFinalizedMetaHash = oldShardHdr.MetaBlockHashes[numAddedMetas-1]
+		lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
 		if !bytes.Equal(lastMetaHash, lastFinalizedMetaHash) {
 			return lastMetaHash, lastFinalizedMetaHash, nil
 		}
 
-		currentHdr = oldShardHdr
+		currentHdr, err = process.GetShardHeader(currentHdr.GetPrevHash(), mp.dataPool.ShardHeaders(), mp.marshalizer, mp.store)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	return nil, nil, process.ErrLastFinalizedMetaHashForShardNotFound
@@ -1721,24 +1719,19 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
+func (mp *metaProcessor) getSortedHeadersPerShard(round uint64) (map[uint32][]*hashAndHdr, int, error) {
 	shardBlocksPool := mp.dataPool.ShardHeaders()
 	if shardBlocksPool == nil {
-		return nil, nil, nil, process.ErrNilShardBlockPool
+		return nil, 0, process.ErrNilShardBlockPool
 	}
-
-	hashAndBlockMap := make(map[uint32][]*hashAndHdr)
-	headersMap := make(map[uint32][]*block.Header)
-	headers := make([]*block.Header, 0)
-	hdrHashes := make([][]byte, 0)
 
 	mp.mutNotarizedHdrs.RLock()
 	if mp.notarizedHdrs == nil {
 		mp.mutNotarizedHdrs.RUnlock()
-		return nil, nil, nil, process.ErrNotarizedHdrsSliceIsNil
+		return nil, 0, process.ErrNotarizedHdrsSliceIsNil
 	}
 
-	// get keys and arrange them into shards
+	hashAndBlockMap := make(map[uint32][]*hashAndHdr)
 	for _, key := range shardBlocksPool.Keys() {
 		val, _ := shardBlocksPool.Peek(key)
 		if val == nil {
@@ -1772,7 +1765,11 @@ func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte
 	}
 	mp.mutNotarizedHdrs.RUnlock()
 
-	// sort headers for each shard
+	maxHdrLen := mp.sortShardHeadrs(hashAndBlockMap)
+	return hashAndBlockMap, maxHdrLen, nil
+}
+
+func (mp *metaProcessor) sortShardHeadrs(hashAndBlockMap map[uint32][]*hashAndHdr) int {
 	maxHdrLen := 0
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
 		hdrsForShard := hashAndBlockMap[shardId]
@@ -1790,7 +1787,19 @@ func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte
 		}
 	}
 
-	// copy from map to lists - equality between number of headers per shard
+	return maxHdrLen
+}
+
+func (mp *metaProcessor) getOrderedHdrs(round uint64) ([]*block.Header, [][]byte, map[uint32][]*block.Header, error) {
+	hashAndBlockMap, maxHdrLen, err := mp.getSortedHeadersPerShard(round)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	headersMap := make(map[uint32][]*block.Header)
+	headers := make([]*block.Header, 0)
+	hdrHashes := make([][]byte, 0)
+
 	for i := 0; i < maxHdrLen; i++ {
 		for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
 			hdrsForShard := hashAndBlockMap[shardId]

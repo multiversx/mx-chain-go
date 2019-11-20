@@ -362,7 +362,7 @@ type VirtualMachinesContainerFactory interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartTriggerHandler defines that actions which are needed by processor for end of epoch
+// EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
 	ReceivedHeader(header data.HeaderHandler)
 	IsEpochStart() bool

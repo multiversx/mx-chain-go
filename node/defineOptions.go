@@ -403,7 +403,7 @@ func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	}
 }
 
-// WithEpochStartTrigger sets up an end of epoch trigger option for the node
+// WithEpochStartTrigger sets up an start of epoch trigger option for the node
 func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(epochStartTrigger) {

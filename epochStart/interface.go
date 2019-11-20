@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
-// TriggerHandler defines the functionalities for an end of epoch trigger
+// TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
 	ForceEpochStart(round int64) error
 	IsEpochStart() bool

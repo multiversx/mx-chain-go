@@ -710,7 +710,7 @@ func newEpochStartTrigger(
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
-			return nil, errors.New("error creating new end of epoch trigger" + err.Error())
+			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
 		}
 
 		return epochStartTrigger, nil
@@ -725,13 +725,13 @@ func newEpochStartTrigger(
 		}
 		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
-			return nil, errors.New("error creating new end of epoch trigger" + err.Error())
+			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
 		}
 
 		return epochStartTrigger, nil
 	}
 
-	return nil, errors.New("error creating new end of epoch trigger because of invalid shard id")
+	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
 type seedRandReader struct {

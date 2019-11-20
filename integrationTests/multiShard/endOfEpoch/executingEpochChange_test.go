@@ -142,23 +142,8 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	time.Sleep(time.Second)
 
 	/////////----- wait for epoch end period
-	for i := uint64(0); i <= uint64(roundsPerEpoch); i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-
-		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "")
-		}
-
-		time.Sleep(time.Second)
-	}
-
-	time.Sleep(time.Second)
-
-	nrRoundsToPropagateMultiShard := 10
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+	nrRoundsToPropagateMultiShard := uint64(10)
+	for i := uint64(0); i <= uint64(roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)

@@ -25,9 +25,9 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	neoet, err := NewEpochStartTrigger(nil)
+	epochStartTrigger, err := NewEpochStartTrigger(nil)
 
-	assert.Nil(t, neoet)
+	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilArgsNewMetaEpochStartTrigger, err)
 }
 
@@ -37,8 +37,8 @@ func TestNewEpochStartTrigger_NilRounderShouldErr(t *testing.T) {
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Rounder = nil
 
-	neoet, err := NewEpochStartTrigger(arguments)
-	assert.Nil(t, neoet)
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilRounder, err)
 }
 
@@ -48,8 +48,8 @@ func TestNewEpochStartTrigger_NilSettingsShouldErr(t *testing.T) {
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings = nil
 
-	neoet, err := NewEpochStartTrigger(arguments)
-	assert.Nil(t, neoet)
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilEpochStartSettings, err)
 }
 
@@ -59,8 +59,8 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr(t *testing.T) {
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.RoundsPerEpoch = 0
 
-	neoet, err := NewEpochStartTrigger(arguments)
-	assert.Nil(t, neoet)
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
 }
 
@@ -71,8 +71,8 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr2(t *testing.T) {
 	arguments.Settings.RoundsPerEpoch = 1
 	arguments.Settings.MinRoundsBetweenEpochs = 0
 
-	neoet, err := NewEpochStartTrigger(arguments)
-	assert.Nil(t, neoet)
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
 }
 
@@ -83,8 +83,8 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr3(t *testing.T) {
 	arguments.Settings.RoundsPerEpoch = 4
 	arguments.Settings.MinRoundsBetweenEpochs = 6
 
-	neoet, err := NewEpochStartTrigger(arguments)
-	assert.Nil(t, neoet)
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
 }
 
@@ -93,8 +93,8 @@ func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 
 	arguments := createMockEpochStartTriggerArguments()
 
-	neoet, err := NewEpochStartTrigger(arguments)
-	assert.NotNil(t, neoet)
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	assert.NotNil(t, epochStartTrigger)
 	assert.Nil(t, err)
 }
 
@@ -105,24 +105,24 @@ func TestTrigger_Update(t *testing.T) {
 	round := int64(0)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	neoet, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	neoet.Update(round)
+	epochStartTrigger.Update(round)
 	round++
-	neoet.Update(round)
+	epochStartTrigger.Update(round)
 	round++
-	neoet.Update(round)
+	epochStartTrigger.Update(round)
 	round++
-	neoet.Update(round)
+	epochStartTrigger.Update(round)
 
-	ret := neoet.IsEpochStart()
+	ret := epochStartTrigger.IsEpochStart()
 	assert.True(t, ret)
 
-	epc := neoet.Epoch()
+	epc := epochStartTrigger.Epoch()
 	assert.Equal(t, epoch+1, epc)
 
-	neoet.Processed()
-	ret = neoet.IsEpochStart()
+	epochStartTrigger.Processed()
+	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 }
 
@@ -131,11 +131,11 @@ func TestTrigger_ForceEpochStartIncorrectRoundShouldErr(t *testing.T) {
 
 	round := int64(1)
 	arguments := createMockEpochStartTriggerArguments()
-	neoet, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	neoet.Update(round)
+	epochStartTrigger.Update(round)
 
-	err := neoet.ForceEpochStart(0)
+	err := epochStartTrigger.ForceEpochStart(0)
 	assert.Equal(t, epochStart.ErrSavedRoundIsHigherThanInputRound, err)
 }
 
@@ -143,9 +143,9 @@ func TestTrigger_ForceEpochStartRoundEqualWithSavedRoundShouldErr(t *testing.T) 
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
-	neoet, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	err := neoet.ForceEpochStart(0)
+	err := epochStartTrigger.ForceEpochStart(0)
 	assert.Equal(t, epochStart.ErrForceEpochStartCanBeCalledOnlyOnNewRound, err)
 }
 
@@ -154,9 +154,9 @@ func TestTrigger_ForceEpochStartNotEnoughRoundsShouldErr(t *testing.T) {
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.MinRoundsBetweenEpochs = 2
-	neoet, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	err := neoet.ForceEpochStart(1)
+	err := epochStartTrigger.ForceEpochStart(1)
 	assert.Equal(t, epochStart.ErrNotEnoughRoundsBetweenEpochs, err)
 }
 
@@ -166,14 +166,14 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	epoch := uint32(0)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	neoet, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	err := neoet.ForceEpochStart(1)
+	err := epochStartTrigger.ForceEpochStart(1)
 	assert.Nil(t, err)
 
-	newEpoch := neoet.Epoch()
+	newEpoch := epochStartTrigger.Epoch()
 	assert.Equal(t, epoch+1, newEpoch)
 
-	isEpochStart := neoet.IsEpochStart()
+	isEpochStart := epochStartTrigger.IsEpochStart()
 	assert.True(t, isEpochStart)
 }
