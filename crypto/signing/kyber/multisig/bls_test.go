@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/mock"
 	smock "github.com/ElrondNetwork/elrond-go/crypto/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/stretchr/testify/assert"
 	"go.dedis.ch/kyber/v3/pairing"
 )
@@ -150,7 +150,7 @@ func TestKyberMultiSignerBLS_SignShareInvalidPrivateKeyShouldErr(t *testing.T) {
 	msg := []byte("message")
 	_, _, _, lls := genSigParamsBLS()
 	pk := &mock.PrivateKeyStub{
-		ScalarHandler: func() crypto.Scalar {
+		ScalarStub: func() crypto.Scalar {
 			return &smock.ScalarMock{}
 		},
 	}

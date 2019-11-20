@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("p2p/memp2p")
 
 // Messenger is an implementation of the p2p.Messenger interface that
 // uses no real networking code, but instead connects to a network simulated in

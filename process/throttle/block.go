@@ -1,15 +1,14 @@
 package throttle
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("process/throttle")
 
 const (
 	jumpAbovePercent = 90
@@ -84,7 +83,9 @@ func (bst *blockSizeThrottle) ComputeMaxItems() {
 
 	bst.mutThrottler.Lock()
 	defer func() {
-		log.Info(fmt.Sprintf("max number of items which could be added in one block is %d\n", bst.maxItems))
+		log.Debug("block's max number of items",
+			"num", bst.maxItems,
+		)
 		bst.mutThrottler.Unlock()
 	}()
 

@@ -102,7 +102,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 				bufferToSend,
 			)
 			if err != nil {
-				log.Error(err.Error())
+				log.Debug("BroadcastOnChannelBlocking", "error", err.Error())
 			}
 
 			atomic.AddInt32(&n.currentSendingGoRoutines, -1)

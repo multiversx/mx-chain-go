@@ -1,8 +1,6 @@
 package bn
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
@@ -64,20 +62,20 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Error(err.Error())
+		debugError("SelfConsensusGroupIndex", err)
 		return false
 	}
 
 	multiSig, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
-		log.Error(err.Error())
+		debugError("getBnMultiSigner", err)
 		return false
 	}
 
 	// commitment
 	commitment, err := multiSig.Commitment(uint16(selfIndex))
 	if err != nil {
-		log.Error(err.Error())
+		debugError("Commitment", err)
 		return false
 	}
 
@@ -92,15 +90,17 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
-		log.Error(err.Error())
+		debugError("BroadcastConsensusMessage", err)
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 4: commitment has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Debug("step 4: commitment has been sent",
+		"type", "spos/bn",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 	err = sr.SetSelfJobDone(SrCommitment, true)
 	if err != nil {
-		log.Error(err.Error())
+		debugError("SetSelfJobDone", err)
 		return false
 	}
 
@@ -131,33 +131,36 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Error(err.Error())
+		debugError("ConsensusGroupIndex", err)
 		return false
 	}
 
 	currentMultiSigner, err := getBnMultiSigner(sr.MultiSigner())
 	if err != nil {
-		log.Error(err.Error())
+		debugError("getBnMultiSigner", err)
 		return false
 	}
 
 	err = currentMultiSigner.StoreCommitment(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
-		log.Error(err.Error())
+		debugError("StoreCommitment", err)
 		return false
 	}
 
 	err = sr.SetJobDone(node, SrCommitment, true)
 	if err != nil {
-		log.Error(err.Error())
+		debugError("SetJobDone", err)
 		return false
 	}
 
 	threshold := sr.Threshold(SrCommitment)
 	if sr.commitmentsCollected(threshold) {
 		n := sr.ComputeSize(SrCommitment)
-		log.Info(fmt.Sprintf("%sStep 4: received %d from %d commitments\n",
-			sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
+		log.Debug("step 4: received commitments",
+			"type", "spos/bn",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+			"received", n,
+			"total", len(sr.ConsensusGroup()))
 	}
 
 	return true
@@ -175,7 +178,10 @@ func (sr *subroundCommitment) doCommitmentConsensusCheck() bool {
 
 	threshold := sr.Threshold(SrCommitment)
 	if sr.commitmentsCollected(threshold) {
-		log.Info(fmt.Sprintf("%sStep 4: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		log.Debug("step 4: subround has been finished",
+			"type", "spos/bn",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+			"subround", sr.Name())
 		sr.SetStatus(SrCommitment, spos.SsFinished)
 		return true
 	}
@@ -192,15 +198,14 @@ func (sr *subroundCommitment) commitmentsCollected(threshold int) bool {
 		node := sr.ConsensusGroup()[i]
 		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
 		if err != nil {
-			log.Error(err.Error())
+			debugError("JobDone SrBitmap", err)
 			continue
 		}
 
 		if isBitmapJobDone {
 			isCommJobDone, err := sr.JobDone(node, SrCommitment)
-
 			if err != nil {
-				log.Error(err.Error())
+				debugError("JobDone SrCommitment", err)
 				continue
 			}
 
