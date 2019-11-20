@@ -19,7 +19,9 @@ type PeerAccountHandlerMock struct {
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetRootHashWithJournalCalled func([]byte) error          `json:"-"`
+	RatingCalled                 func() uint32               `json:"-"`
 	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
+	SetRatingWithJournalCalled   func(rating uint32) error   `json:"-"`
 
 	IncreaseLeaderSuccessRateWithJournalCalled    func() error
 	DecreaseLeaderSuccessRateWithJournalCalled    func() error
@@ -116,6 +118,20 @@ func (pahm *PeerAccountHandlerMock) IncreaseValidatorSuccessRateWithJournal() er
 func (pahm *PeerAccountHandlerMock) DecreaseValidatorSuccessRateWithJournal() error {
 	if pahm.DecreaseValidatorSuccessRateWithJournalCalled != nil {
 		return pahm.DecreaseValidatorSuccessRateWithJournalCalled()
+	}
+	return nil
+}
+
+func (pahm *PeerAccountHandlerMock) GetRating() uint32 {
+	if pahm.SetRatingWithJournalCalled != nil {
+		return pahm.RatingCalled()
+	}
+	return 10
+}
+
+func (pahm *PeerAccountHandlerMock) SetRatingWithJournal(rating uint32) error {
+	if pahm.SetRatingWithJournalCalled != nil {
+		return pahm.SetRatingWithJournalCalled(rating)
 	}
 	return nil
 }

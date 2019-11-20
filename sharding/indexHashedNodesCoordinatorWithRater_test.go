@@ -181,7 +181,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 		SelfPublicKey:           []byte("key"),
 	}
 	raterCalled := false
-	rater := &mock.RaterMock{GetRatingCalled: func(string) int64 {
+	rater := &mock.RaterMock{GetRatingCalled: func(string) uint32 {
 		raterCalled = true
 		return 1
 	}}
@@ -207,9 +207,9 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 		SelfPublicKey:           []byte("key"),
 	}
 
-	ratingPk0 := int64(5)
-	ratingPk1 := int64(1)
-	rater := &mock.RaterMock{GetRatingCalled: func(pk string) int64 {
+	ratingPk0 := uint32(5)
+	ratingPk1 := uint32(1)
+	rater := &mock.RaterMock{GetRatingCalled: func(pk string) uint32 {
 		if pk == "pk0" {
 			return ratingPk0
 		}
@@ -223,7 +223,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 	expandedList := ihgs.ExpandEligibleList(0)
 	assert.Equal(t, int(ratingPk0+ratingPk1), len(expandedList))
 
-	occurences := make(map[string]int64, 2)
+	occurences := make(map[string]uint32, 2)
 	occurences["pk0"] = 0
 	occurences["pk1"] = 0
 	for _, validator := range expandedList {

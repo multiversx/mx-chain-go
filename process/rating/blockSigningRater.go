@@ -3,15 +3,18 @@ package rating
 import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
 type BlockSigningRater struct {
-	startRating   int64
-	maxRating     int64
-	minRating     int64
-	ratings       map[string]int64
-	ratingOptions map[string]int64
+	sharding.RatingReader
+	startRating      uint32
+	maxRating        uint32
+	minRating        uint32
+	ratings          map[string]uint32
+	ratingOptions    map[string]int32
+	ratingOptionKeys []string
 }
 
 //NewBlockSigningRater creates a new Rater of Type BlockSigningRater
@@ -22,50 +25,50 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 	if ratingsData.MaxRating() < ratingsData.StartRating() || ratingsData.MinRating() > ratingsData.StartRating() {
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
+
+	ratingOptionKeys := make([]string, 0)
+	for key, _ := range ratingsData.RatingOptions() {
+		ratingOptionKeys = append(ratingOptionKeys, key)
+	}
+
 	return &BlockSigningRater{
-		ratings:       make(map[string]int64),
-		ratingOptions: ratingsData.RatingOptions(),
-		startRating:   ratingsData.StartRating(),
-		minRating:     ratingsData.MinRating(),
-		maxRating:     ratingsData.MaxRating(),
+		ratingOptions:    ratingsData.RatingOptions(),
+		startRating:      ratingsData.StartRating(),
+		minRating:        ratingsData.MinRating(),
+		maxRating:        ratingsData.MaxRating(),
+		ratingOptionKeys: ratingOptionKeys,
+		ratings:          make(map[string]uint32, 0),
 	}, nil
 }
 
-//UpdateRatings does an update on the ratings based on the new updatevalues
-func (bsr *BlockSigningRater) UpdateRatings(updateValues map[string][]string) {
-	for k, v := range updateValues {
-		for _, pk := range v {
-			bsr.updateRating(k, pk)
-		}
+func (bsr *BlockSigningRater) ComputeRating(pk, ratingKey string, val uint32) uint32 {
+	newVal := int64(val) + int64(bsr.ratingOptions[ratingKey])
+	if newVal < int64(bsr.minRating) {
+		return bsr.minRating
 	}
+	if newVal > int64(bsr.maxRating) {
+		return bsr.maxRating
+	}
+
+	return uint32(newVal)
 }
 
-func (bsr *BlockSigningRater) updateRating(ratingKey string, pk string) {
-	val, ok := bsr.ratings[pk]
-	if !ok {
-		val = bsr.startRating
-	}
-	val += bsr.ratingOptions[ratingKey]
-	if val < bsr.minRating {
-		val = bsr.minRating
-	}
-	if val > bsr.maxRating {
-		val = bsr.maxRating
-	}
-
-	bsr.ratings[pk] = val
+//GetRatingOptionKeys gets all the ratings  keys for the options
+func (bsr *BlockSigningRater) GetRatingOptionKeys() []string {
+	return bsr.ratingOptionKeys
 }
 
 //GetRating returns the Rating for the specified public key
-func (bsr *BlockSigningRater) GetRating(pk string) int64 {
-	_, ok := bsr.ratings[pk]
-	if !ok {
-		bsr.ratings[pk] = bsr.startRating
-	}
-	return bsr.ratings[pk]
+func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
+	return bsr.RatingReader.GetRating(pk)
 }
 
 //GetRatings gets all the ratings that the current rater has
-func (bsr *BlockSigningRater) GetRatings() map[string]int64 {
-	return bsr.ratings
+func (bsr *BlockSigningRater) GetRatings(addresses []string) map[string]uint32 {
+	return bsr.RatingReader.GetRatings(addresses)
+}
+
+//SetRatingReader sets the Reader that can read ratings
+func (bsr *BlockSigningRater) SetRatingReader(reader sharding.RatingReader) {
+	bsr.RatingReader = reader
 }

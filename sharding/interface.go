@@ -48,10 +48,21 @@ type PublicKeysSelector interface {
 }
 
 type Rater interface {
-	//UpdateRating updates all the ratings
-	UpdateRatings(updateValues map[string][]string)
+	RatingReader
+	//UpdateRating updates the current rating
+	ComputeRating(string, string, uint32) uint32
+	//GetRatingOptionKeys gets all the ratings option keys
+	GetRatingOptionKeys() []string
+}
+
+type RatingReader interface {
 	//GetRating gets the rating for the public key
-	GetRating(string) int64
+	GetRating(string) uint32
 	//GetRatings gets all the ratings as a map[pk] ratingValue
-	GetRatings() map[string]int64
+	GetRatings([]string) map[string]uint32
+}
+
+type RatingReaderSetter interface {
+	//GetRating gets the rating for the public key
+	SetRatingReader(RatingReader)
 }

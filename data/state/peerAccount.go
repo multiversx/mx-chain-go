@@ -370,6 +370,11 @@ func (a *PeerAccount) DecreaseLeaderSuccessRateWithJournal() error {
 	return a.accountTracker.SaveAccount(a)
 }
 
+// GetRating gets the rating
+func (a *PeerAccount) GetRating() uint32 {
+	return a.Rating
+}
+
 // SetRatingWithJournal sets the account's rating id, saving the old state before changing
 func (a *PeerAccount) SetRatingWithJournal(rating uint32) error {
 	entry, err := NewPeerJournalEntryRating(a, a.Rating)

@@ -462,6 +462,7 @@ type processComponentsFactoryArgs struct {
 	state                *State
 	network              *Network
 	coreServiceContainer serviceContainer.Core
+	rater                sharding.Rater
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -479,6 +480,7 @@ func NewProcessComponentsFactoryArgs(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
+	rater sharding.Rater,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:       coreComponents,
@@ -494,6 +496,7 @@ func NewProcessComponentsFactoryArgs(
 		state:                state,
 		network:              network,
 		coreServiceContainer: coreServiceContainer,
+		rater:                rater,
 	}
 }
 
@@ -2219,7 +2222,8 @@ func newValidatorStatisticsProcessor(
 		DataPool:         peerDataPool,
 		StorageService:   storageService,
 		Marshalizer:      processComponents.core.Marshalizer,
-		Economics:        processComponents.economicsData,
+		StakeValue:       processComponents.economicsData.StakeValue(),
+		Rater:            processComponents.rater,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

@@ -436,9 +436,9 @@ func TestEconomicsData_RatingsStartLowerMinShouldErr(t *testing.T) {
 func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	t.Parallel()
 
-	minRating := int64(10)
-	maxRating := int64(100)
-	startRating := int64(50)
+	minRating := uint32(10)
+	maxRating := uint32(100)
+	startRating := uint32(50)
 	ratingValues := createDummyEconomicsConfig().RatingSettings.RatingValue
 
 	economicsConfig := createDummyEconomicsConfig()

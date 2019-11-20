@@ -52,9 +52,37 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		AdrConv:          &mock.AddressConverterMock{},
 		PeerAdapter:      getAccountsMock(),
-		Economics:        economicsData,
+		StakeValue:       economicsData.StakeValue(),
+		Rater:            createMockRater(),
 	}
 	return arguments
+}
+
+func createMockRater() *mock.RaterMock {
+	increaseLeader := "increaseLeader"
+	decreaseLeader := "decreaseLeader"
+	increaseValidator := "increaseValidator"
+	decreaseValidator := "decreaseValidator"
+
+	optionList := make(map[string]int32, 0)
+	optionList[increaseLeader] = 2
+	optionList[decreaseLeader] = -4
+	optionList[increaseValidator] = 1
+	optionList[decreaseValidator] = -2
+
+	rater := &mock.RaterMock{
+		ComputeRatingCalled: func(pk string, option string, previousValue uint32) uint32 {
+			return 1
+		},
+		GetRatingCalled: func(s string) uint32 {
+			return 1
+		},
+		GetRatingOptionKeyCalled: func() []string {
+			return []string{increaseLeader, increaseValidator, decreaseLeader, decreaseValidator}
+		},
+	}
+
+	return rater
 }
 
 func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) {
@@ -742,6 +770,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	}
 	arguments.PeerAdapter = adapter
 	arguments.Marshalizer = marshalizer
+	arguments.Rater = createMockRater()
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -789,7 +818,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
 
-
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(1, 0, []byte("prev"), 0)
 	assert.Nil(t, err)
@@ -822,7 +850,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments.ShardCoordinator = shardCoordinatorMock
 	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
-
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
@@ -889,7 +916,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 	}
 	arguments.PeerAdapter = peerAdapter
 
-
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, decreaseErr, err)
@@ -928,10 +954,11 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 		},
 	}
 	arguments.PeerAdapter = peerAdapter
+	arguments.Rater = createMockRater()
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0)
-	assert.Equal(t, currentHeaderRound - previousHeaderRound - 1, decreaseCount)
+	assert.Equal(t, currentHeaderRound-previousHeaderRound-1, decreaseCount)
 }
 
 func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {

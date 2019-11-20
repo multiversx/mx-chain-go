@@ -7,11 +7,11 @@ import (
 
 type indexHashedNodesCoordinatorWithRater struct {
 	indexHashedNodesCoordinator
-	Rater
+	RatingReader
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
-func NewIndexHashedNodesCoordinatorWithRater(arguments ArgNodesCoordinator, rater Rater) (*indexHashedNodesCoordinatorWithRater,
+func NewIndexHashedNodesCoordinatorWithRater(arguments ArgNodesCoordinator, rater RatingReader) (*indexHashedNodesCoordinatorWithRater,
 	error) {
 	indexNodesCoordinator, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -25,7 +25,7 @@ func NewIndexHashedNodesCoordinatorWithRater(arguments ArgNodesCoordinator, rate
 
 	return &indexHashedNodesCoordinatorWithRater{
 		indexHashedNodesCoordinator: *indexNodesCoordinator,
-		Rater:                       rater,
+		RatingReader:                rater,
 	}, nil
 }
 
@@ -69,7 +69,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) expandEligibleList(shardId uin
 	for _, validator := range ihgs.nodesMap[shardId] {
 		pk := validator.PubKey()
 		rating := ihgs.GetRating(string(pk))
-		for i := int64(0); i < rating; i++ {
+		for i := uint32(0); i < rating; i++ {
 			validatorList = append(validatorList, validator)
 		}
 	}

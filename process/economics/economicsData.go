@@ -44,7 +44,7 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
-	ratingValues := make(map[string]int64, 0)
+	ratingValues := make(map[string]int32, 0)
 	for _, ratingValue := range economics.RatingSettings.RatingValue {
 		ratingValues[ratingValue.Name] = ratingValue.Value
 	}

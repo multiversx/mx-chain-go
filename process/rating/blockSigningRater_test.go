@@ -16,13 +16,13 @@ const (
 )
 
 func createDefaultRatingsData() *economics.RatingsData {
-	ratingValues := make(map[string]int64, 0)
+	ratingValues := make(map[string]int32, 0)
 	ratingValues[validatorIncreaseRatingStep] = 1
 	ratingValues[validatorDecreaseRatingStep] = 2
 	ratingValues[proposerIncreaseRatingStepKey] = 3
 	ratingValues[proposerDecreaseRatingStepKey] = 4
 
-	ratingsData, _ := economics.NewRatingsData(int64(5), int64(1), int64(10), "mockRater", ratingValues)
+	ratingsData, _ := economics.NewRatingsData(uint32(5), uint32(1), uint32(10), "mockRater", ratingValues)
 	return ratingsData
 }
 
@@ -34,10 +34,10 @@ func createUpdateMap(ratingPk string, updateStep string) map[string][]string {
 	return updatedPeers
 }
 
-func setupRater(rd *economics.RatingsData, pk string, initialRating int64) *rating.BlockSigningRater {
+func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rating.BlockSigningRater {
 	bsr, _ := rating.NewBlockSigningRater(rd)
 	ratingPk := pk
-	ratingsMap := make(map[string]int64)
+	ratingsMap := make(map[string]uint32)
 	ratingsMap[ratingPk] = initialRating
 	bsr.SetRatings(ratingsMap)
 
@@ -58,9 +58,9 @@ func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T
 	bsr, _ := rating.NewBlockSigningRater(rd)
 
 	ratingPk := "test"
-	ratingValue := int64(5)
+	ratingValue := uint32(5)
 
-	ratingsMap := make(map[string]int64)
+	ratingsMap := make(map[string]uint32)
 	ratingsMap[ratingPk] = ratingValue
 	bsr.SetRatings(ratingsMap)
 	rt := bsr.GetRating(ratingPk)
@@ -70,61 +70,55 @@ func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testing.T) {
 	pk := "test"
-	initialRatingValue := int64(5)
+	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	updatedPeers := createUpdateMap(pk, proposerIncreaseRatingStepKey)
-	bsr.UpdateRatings(updatedPeers)
+	computedRating := bsr.ComputeRating(pk, proposerIncreaseRatingStepKey, initialRatingValue)
 
-	rt := bsr.GetRating(pk)
+	expectedValue := uint32(int32(initialRatingValue) + rd.RatingOptions()[proposerIncreaseRatingStepKey])
 
-	expectedValue := initialRatingValue + rd.RatingOptions()[proposerIncreaseRatingStepKey]
-
-	assert.Equal(t, expectedValue, rt)
+	assert.Equal(t, expectedValue, computedRating)
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidator(t *testing.T) {
 	pk := "test"
-	initialRatingValue := int64(5)
+	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	updatedPeers := createUpdateMap(pk, validatorIncreaseRatingStep)
-	bsr.UpdateRatings(updatedPeers)
-	rt := bsr.GetRating(pk)
 
-	expectedValue := initialRatingValue + rd.RatingOptions()[validatorIncreaseRatingStep]
+	computedRating := bsr.ComputeRating(pk, validatorIncreaseRatingStep, initialRatingValue)
 
-	assert.Equal(t, expectedValue, rt)
+	expectedValue := uint32(int32(initialRatingValue) + rd.RatingOptions()[validatorIncreaseRatingStep])
+
+	assert.Equal(t, expectedValue, computedRating)
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidatorButNotAccepted(t *testing.T) {
 	pk := "test"
-	initialRatingValue := int64(5)
+	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	updatedPeers := createUpdateMap(pk, validatorDecreaseRatingStep)
-	bsr.UpdateRatings(updatedPeers)
-	rt := bsr.GetRating(pk)
 
-	expectedValue := initialRatingValue + rd.RatingOptions()[validatorDecreaseRatingStep]
+	computedRating := bsr.ComputeRating(pk, validatorDecreaseRatingStep, initialRatingValue)
 
-	assert.Equal(t, expectedValue, rt)
+	expectedValue := uint32(int32(initialRatingValue) + rd.RatingOptions()[validatorDecreaseRatingStep])
+
+	assert.Equal(t, expectedValue, computedRating)
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposerButNotAccepted(t *testing.T) {
 	pk := "test"
-	initialRatingValue := int64(5)
+	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	updatedPeers := createUpdateMap(pk, proposerDecreaseRatingStepKey)
-	bsr.UpdateRatings(updatedPeers)
-	rt := bsr.GetRating(pk)
 
-	expectedValue := initialRatingValue + rd.RatingOptions()[proposerDecreaseRatingStepKey]
+	computedRating := bsr.ComputeRating(pk, proposerDecreaseRatingStepKey, initialRatingValue)
 
-	assert.Equal(t, expectedValue, rt)
+	expectedValue := uint32(int32(initialRatingValue) + rd.RatingOptions()[proposerDecreaseRatingStepKey])
+
+	assert.Equal(t, expectedValue, computedRating)
 }

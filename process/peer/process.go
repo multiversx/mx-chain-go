@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"math/big"
 )
@@ -17,7 +16,7 @@ import (
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
 	InitialNodes     []*sharding.InitialNode
-	Economics        *economics.EconomicsData
+	StakeValue       *big.Int
 	Marshalizer      marshal.Marshalizer
 	NodesCoordinator sharding.NodesCoordinator
 	ShardCoordinator sharding.Coordinator
@@ -25,6 +24,7 @@ type ArgValidatorStatisticsProcessor struct {
 	StorageService   dataRetriever.StorageService
 	AdrConv          state.AddressConverter
 	PeerAdapter      state.AccountsAdapter
+	Rater            sharding.Rater
 }
 
 type validatorStatistics struct {
@@ -37,7 +37,8 @@ type validatorStatistics struct {
 	peerAdapter      state.AccountsAdapter
 	prevShardInfo    map[uint32]block.ShardData
 	mutPrevShardInfo sync.RWMutex
-	mediator shardMetaMediator
+	mediator         shardMetaMediator
+	rater            sharding.Rater
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -64,12 +65,16 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-	if arguments.Economics == nil {
+	if arguments.StakeValue == nil {
 		return nil, process.ErrNilEconomicsData
 	}
-	if arguments.Economics.StakeValue() == nil {
-		return nil, process.ErrNilEconomicsData
+	if arguments.Rater == nil {
+		return nil, process.ErrNilRater
 	}
+
+	rater := arguments.Rater
+
+	ratingReaderSetter, ok := rater.(sharding.RatingReaderSetter)
 
 	vs := &validatorStatistics{
 		peerAdapter:      arguments.PeerAdapter,
@@ -80,10 +85,20 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		storageService:   arguments.StorageService,
 		marshalizer:      arguments.Marshalizer,
 		prevShardInfo:    make(map[uint32]block.ShardData, 0),
+		rater:            arguments.Rater,
 	}
 	vs.mediator = vs.createMediator()
 
-	err := vs.saveInitialState(arguments.InitialNodes, arguments.Economics.StakeValue())
+	if ok {
+		ratingReaderSetter.SetRatingReader(&RatingReader{
+			getRating: func(s string) uint32 {
+				peer, _ := vs.getPeerAccount([]byte(s))
+				return peer.GetRating()
+			},
+		})
+	}
+
+	err := vs.saveInitialState(arguments.InitialNodes, arguments.StakeValue)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +215,16 @@ func (p *validatorStatistics) checkForMissedBlocks(
 		if err != nil {
 			return err
 		}
+
+		newRating := p.rater.ComputeRating(string(consensusGroup[0].Address()), p.rater.GetRatingOptionKeys()[2],
+			leaderPeerAcc.GetRating())
+
+		err = leaderPeerAcc.SetRatingWithJournal(newRating)
+
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil
@@ -228,7 +253,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 	}
 
 	err := p.mediator.loadPreviousShardHeaders(metaHeader, prevMetaHeader)
-	if err !=  nil {
+	if err != nil {
 		return err
 	}
 
@@ -337,17 +362,29 @@ func (p *validatorStatistics) savePeerAccountData(
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := p.getPeerAccount(validatorList[i].Address())
+		address := validatorList[i].Address()
+		peerAcc, err := p.getPeerAccount(address)
 		if err != nil {
 			return err
 		}
 
 		isLeader := i == 0
+		ratingOption := ""
 		if isLeader {
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
+			ratingOption = p.rater.GetRatingOptionKeys()[0]
 		} else {
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
+			ratingOption = p.rater.GetRatingOptionKeys()[1]
 		}
+
+		if err != nil {
+			return err
+		}
+
+		newRating := p.rater.ComputeRating(string(address), ratingOption, peerAcc.GetRating())
+
+		err = peerAcc.SetRatingWithJournal(newRating)
 
 		if err != nil {
 			return err
@@ -436,11 +473,11 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 		}
 
 		p.prevShardInfo[shardData.ShardID] = block.ShardData{
-			ShardID: previousHeader.ShardId,
-			Nonce: previousHeader.Nonce,
-			Round: previousHeader.Round,
+			ShardID:      previousHeader.ShardId,
+			Nonce:        previousHeader.Nonce,
+			Round:        previousHeader.Round,
 			PrevRandSeed: previousHeader.PrevRandSeed,
-			PrevHash: previousHeader.PrevHash,
+			PrevHash:     previousHeader.PrevHash,
 		}
 	}
 	return nil
