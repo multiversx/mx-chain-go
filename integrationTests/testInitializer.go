@@ -870,7 +870,7 @@ func CreateAndSendTransaction(
 		Value:    txValue,
 		SndAddr:  node.OwnAccount.Address.Bytes(),
 		RcvAddr:  rcvAddress,
-		Data:     txData,
+		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
 		GasLimit: MinTxGasLimit*5 + uint64(len(txData)),
 	}
