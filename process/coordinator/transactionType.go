@@ -42,8 +42,8 @@ func NewTxTypeHandler(
 }
 
 // ComputeTransactionType calculates the transaction type
-func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
-	err := tc.checkTxValidity(tx)
+func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
+	err := tth.checkTxValidity(tx)
 	if err != nil {
 		return process.InvalidTransaction, err
 	}
@@ -53,7 +53,7 @@ func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pro
 		return process.RewardTx, nil
 	}
 
-	isEmptyAddress := tc.isDestAddressEmpty(tx)
+	isEmptyAddress := tth.isDestAddressEmpty(tx)
 	if isEmptyAddress {
 		if len(tx.GetData()) > 0 {
 			return process.SCDeployment, nil
@@ -61,7 +61,7 @@ func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pro
 		return process.InvalidTransaction, process.ErrWrongTransaction
 	}
 
-	acntDst, err := tc.getAccountFromAddress(tx.GetRecvAddress())
+	acntDst, err := tth.getAccountFromAddress(tx.GetRecvAddress())
 	if err != nil {
 		return process.InvalidTransaction, err
 	}
@@ -77,24 +77,24 @@ func (tc *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pro
 	return process.MoveBalance, nil
 }
 
-func (tc *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, tc.adrConv.AddressLen()))
+func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
+	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, tth.adrConv.AddressLen()))
 	return isEmptyAddress
 }
 
-func (tc *txTypeHandler) getAccountFromAddress(address []byte) (state.AccountHandler, error) {
-	adrSrc, err := tc.adrConv.CreateAddressFromPublicKeyBytes(address)
+func (tth *txTypeHandler) getAccountFromAddress(address []byte) (state.AccountHandler, error) {
+	adrSrc, err := tth.adrConv.CreateAddressFromPublicKeyBytes(address)
 	if err != nil {
 		return nil, err
 	}
 
-	shardForCurrentNode := tc.shardCoordinator.SelfId()
-	shardForSrc := tc.shardCoordinator.ComputeId(adrSrc)
+	shardForCurrentNode := tth.shardCoordinator.SelfId()
+	shardForSrc := tth.shardCoordinator.ComputeId(adrSrc)
 	if shardForCurrentNode != shardForSrc {
 		return nil, nil
 	}
 
-	acnt, err := tc.accounts.GetAccountWithJournal(adrSrc)
+	acnt, err := tth.accounts.GetAccountWithJournal(adrSrc)
 	if err != nil {
 		return nil, err
 	}
@@ -102,12 +102,12 @@ func (tc *txTypeHandler) getAccountFromAddress(address []byte) (state.AccountHan
 	return acnt, nil
 }
 
-func (tc *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
+func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := tc.adrConv.AddressLen() != len(tx.GetRecvAddress())
+	recvAddressIsInvalid := tth.adrConv.AddressLen() != len(tx.GetRecvAddress())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}
@@ -116,8 +116,8 @@ func (tc *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tx *txTypeHandler) IsInterfaceNil() bool {
-	if tx == nil {
+func (tth *txTypeHandler) IsInterfaceNil() bool {
+	if tth == nil {
 		return true
 	}
 	return false

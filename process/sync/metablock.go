@@ -1,12 +1,10 @@
 package sync
 
 import (
-	"fmt"
 	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -195,7 +193,7 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 
 		maxNonce, err := boot.getMaxNotarizedHeadersNoncesInMetaBlock(metaBlock, &ni)
 		if err != nil {
-			log.Info(err.Error())
+			log.Debug("getMaxNotarizedHeadersNoncesInMetaBlock", "error", err.Error())
 			ni.reset()
 			continue
 		}
@@ -205,7 +203,9 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 		}
 	}
 
-	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
+	log.Debug("bootstrap from meta block",
+		"nonce", ni.startNonce,
+	)
 
 	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
 		if ni.lastNotarized[i] == nil || ni.finalNotarized[i] == nil {
@@ -216,8 +216,13 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 			ni.finalNotarized[i] = ni.lastNotarized[i]
 		}
 
-		log.Info(fmt.Sprintf("last notarized block from shard %d is %d and final notarized shard block is %d\n",
-			i, ni.lastNotarized[i].Nonce, ni.finalNotarized[i].Nonce))
+		log.Debug("last notarized block",
+			"shard", i,
+			"nonce", ni.lastNotarized[i].Nonce,
+		)
+		log.Debug("final notarized block",
+			"nonce", ni.finalNotarized[i].Nonce,
+		)
 	}
 
 	return ni.startNonce, ni.finalNotarized, ni.lastNotarized
@@ -226,18 +231,21 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 func (boot *MetaBootstrap) isMetaBlockValid(nonce uint64) (*block.MetaBlock, bool) {
 	headerHandler, _, err := boot.getHeader(sharding.MetachainShardId, nonce)
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug("getHeader", "error", err.Error())
 		return nil, false
 	}
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Info(process.ErrWrongTypeAssertion.Error())
+		log.Debug("headerHandler is not of type metaBlock", "error", process.ErrWrongTypeAssertion.Error())
 		return nil, false
 	}
 
 	if metaBlock.Round > boot.bootstrapRoundIndex {
-		log.Debug(ErrHigherRoundInBlock.Error())
+		log.Debug("higher round in metablock",
+			"round", metaBlock.Round,
+			"bootstrapRoundIndex", boot.bootstrapRoundIndex,
+			"error", ErrHigherRoundInBlock.Error())
 		return nil, false
 	}
 
@@ -347,7 +355,10 @@ func (boot *MetaBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]*Hdr
 		for nonce := lastNotarized[shardId].Nonce + 1; nonce <= highestNonceInStorer; nonce++ {
 			errNotCritical := boot.removeBlockHeader(nonce, dataRetriever.BlockHeaderUnit, hdrNonceHashDataUnit)
 			if errNotCritical != nil {
-				log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
+				log.Debug("remove notarized block header",
+					"nonce", nonce,
+					"error", errNotCritical.Error(),
+				)
 			}
 		}
 	}
@@ -356,7 +367,7 @@ func (boot *MetaBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]*Hdr
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
 	header, err := process.GetMetaHeaderFromPool(headerHash, boot.headers)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("GetMetaHeaderFromPool", "error", err.Error())
 		return
 	}
 
@@ -371,7 +382,7 @@ func (boot *MetaBootstrap) StartSync() {
 		dataRetriever.MetaHdrNonceHashDataUnit,
 		process.ShardBlockFinality)
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug("syncFromStorer", "error", errNotCritical.Error())
 	}
 
 	go boot.syncBlocks()
@@ -392,25 +403,34 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
-	log.Info(fmt.Sprintf("requested header with nonce %d from network as probable highest nonce is %d\n",
-		nonce,
-		boot.forkDetector.ProbableHighestNonce()))
+	log.Debug("requested header from network",
+		"nonce", nonce,
+		"highest probable nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
 
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("RequestDataFromNonce", "error", err.Error())
 	}
+
+	log.Debug("requested header from network",
+		"nonce", nonce,
+	)
+	log.Debug("probable highest nonce",
+		"nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
 }
 
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
 	err := boot.hdrRes.RequestDataFromHash(hash)
-
-	log.Info(fmt.Sprintf("requested header with hash %s from network\n", core.ToB64(hash)))
-
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("RequestDataFromHash", "error", err.Error())
 	}
+
+	log.Debug("requested header from network",
+		"hash", hash,
+	)
 }
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will

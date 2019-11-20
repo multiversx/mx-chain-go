@@ -5,6 +5,6 @@ import (
 )
 
 // Hasher will return the hasher of InterceptedRewardTransaction for using in test files
-func (irt *InterceptedRewardTransaction) Hasher() hashing.Hasher {
-	return irt.hasher
+func (inRTx *InterceptedRewardTransaction) Hasher() hashing.Hasher {
+	return inRTx.hasher
 }
