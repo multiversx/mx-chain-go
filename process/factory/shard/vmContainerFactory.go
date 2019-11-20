@@ -70,7 +70,6 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 
 func (vmf *vmContainerFactory) createIeleVM() (vmcommon.VMExecutionHandler, error) {
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, vmf.blockChainHookImpl, vmf.cryptoHook)
-
 	return ieleVM, nil
 }
 

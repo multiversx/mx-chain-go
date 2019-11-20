@@ -1,22 +1,23 @@
 [BaseOperationCost]
-    StorePerByte    = 10
-    DataCopyPerByte = 10
+    StorePerByte      = 500
+    ReleaseGasPerByte = 250
+    DataCopyPerByte   = 10
 
 [ElrondAPICost]
     GetOwner           = 10
-    GetExternalBalance = 10
+    GetExternalBalance = 50
     GetBlockHash       = 10
-    TransferValue      = 10
+    TransferValue      = 5000
     GetArgument        = 10
     GetFunction        = 10
     GetNumArguments    = 10
-    StorageStore       = 10
-    StorageLoad        = 10
+    StorageStore       = 5000
+    StorageLoad        = 200
     GetCaller          = 10
     GetCallValue       = 10
-    Log                = 10
-    Finish             = 10
-    SignalError        = 10
+    Log                = 375
+    Finish             = 1
+    SignalError        = 1
     GetBlockTimeStamp  = 10
     GetGasLeft         = 10
     Int64GetArgument   = 10
@@ -28,40 +29,48 @@
     GetBlockEpoch      = 10
     GetBlockRound      = 10
     GetBlockRandomSeed = 10
+    ExecuteOnSameContext = 500
+    ExecuteOnDestContext = 500
+    DelegateExecution    = 500
+    ExecuteReadOnly      = 500
+    CreateContract       = 30000
+    GetReturnData        = 10
+    GetNumReturnData     = 10
+    GetReturnDataSize    = 10
 
 [EthAPICost]
     UseGas              = 10
     GetAddress          = 10
-    GetExternalBalance  = 10
+    GetExternalBalance  = 400
     GetBlockHash        = 10
-    Call                = 10
-    CallDataCopy        = 10
+    Call                = 700
+    CallDataCopy        = 20
     GetCallDataSize     = 10
-    CallCode            = 10
-    CallDelegate        = 10
-    CallStatic          = 10
-    StorageStore        = 10
-    StorageLoad         = 10
+    CallCode            = 700
+    CallDelegate        = 700
+    CallStatic          = 700
+    StorageStore        = 5000
+    StorageLoad         = 200
     GetCaller           = 10
     GetCallValue        = 10
-    CodeCopy            = 10
+    CodeCopy            = 100
     GetCodeSize         = 10
     GetBlockCoinbase    = 10
-    Create              = 10
+    Create              = 320000
     GetBlockDifficulty  = 10
-    ExternalCodeCopy    = 10
-    GetExternalCodeSize = 10
+    ExternalCodeCopy    = 1000
+    GetExternalCodeSize = 50
     GetGasLeft          = 10
     GetBlockGasLimit    = 10
     GetTxGasPrice       = 10
-    Log                 = 10
+    Log                 = 375
     GetBlockNumber      = 10
     GetTxOrigin         = 10
-    Finish              = 10
-    Revert              = 10
-    GetReturnDataSize   = 10
-    ReturnDataCopy      = 10
-    SelfDestruct        = 10
+    Finish              = 1
+    Revert              = 1
+    GetReturnDataSize   = 20
+    ReturnDataCopy      = 50
+    SelfDestruct        = 5000
     GetBlockTimeStamp   = 10
 
 [BigIntAPICost]
@@ -74,18 +83,18 @@
     BigIntSetInt64           = 10
     BigIntAdd                = 10
     BigIntSub                = 10
-    BigIntMul                = 10
+    BigIntMul                = 60
     BigIntCmp                = 10
     BigIntFinish             = 10
-    BigIntStorageLoad        = 10
-    BigIntStorageStore       = 10
+    BigIntStorageLoad        = 200
+    BigIntStorageStore       = 5000
     BigIntGetArgument        = 10
     BigIntGetCallValue       = 10
-    BigIntGetExternalBalance = 10
+    BigIntGetExternalBalance = 50
 
 [CryptoAPICost]
-    SHA256    = 10
-    Keccak256 = 10
+    SHA256    = 60
+    Keccak256 = 60
 
 [WASMOpcodeCost]
     Unreachable = 1
@@ -178,11 +187,11 @@
     I32Popcnt = 100
     I32Add = 1
     I32Sub = 1
-    I32Mul = 9
-    I32DivS = 80
-    I32DivU = 80
-    I32RemS = 80
-    I32RemU = 80
+    I32Mul = 6
+    I32DivS = 18
+    I32DivU = 18
+    I32RemS = 18
+    I32RemU = 18
     I32And = 1
     I32Or = 1
     I32Xor = 1
@@ -196,11 +205,11 @@
     I64Popcnt = 100
     I64Add = 1
     I64Sub = 1
-    I64Mul = 9
-    I64DivS = 80
-    I64DivU = 80
-    I64RemS = 80
-    I64RemU = 80
+    I64Mul = 6
+    I64DivS = 18
+    I64DivU = 18
+    I64RemS = 18
+    I64RemU = 18
     I64And = 1
     I64Or = 1
     I64Xor = 1

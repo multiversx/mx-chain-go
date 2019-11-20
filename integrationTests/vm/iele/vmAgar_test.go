@@ -169,8 +169,8 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	assert.Equal(t, transfer, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
 
 	//withdraw
-	withdraw := big.NewInt(49999)
-	data = "withdraw@" + hex.EncodeToString(withdraw.Bytes())
+	withdraw := uint64(49999)
+	data = fmt.Sprintf("withdraw@%X", withdraw)
 	//contract call tx
 	txRun = vm.CreateTx(
 		t,
@@ -190,7 +190,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	newValue := big.NewInt(0).Set(transfer)
-	newValue.Sub(newValue, withdraw)
+	newValue.Sub(newValue, big.NewInt(0).SetUint64(withdraw))
 	assert.Equal(t, newValue, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
 }
 
