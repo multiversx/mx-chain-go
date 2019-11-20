@@ -169,7 +169,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	assert.Equal(t, transfer, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
 
 	//withdraw
-	withdraw := uint64(49999)
+	withdraw := uint64(4999)
 	data = fmt.Sprintf("withdraw@%X", withdraw)
 	//contract call tx
 	txRun = vm.CreateTx(

@@ -222,7 +222,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		nodes,
 		nodes[idxProposerShard0].OwnAccount,
 		topUpValue,
-		"aaaa",
+		100,
 		hardCodedScResultingAddress,
 	)
 
@@ -243,7 +243,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		idxProposerShard1,
 		nodes[idxProposerShard0].OwnAccount,
 		withdrawValue,
-		"aaaa",
+		100,
 		hardCodedScResultingAddress,
 	)
 
@@ -335,7 +335,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 		nodes,
 		nodes[idxProposerShard0].OwnAccount,
 		topUpValue,
-		"aaaa",
+		100,
 		hardCodedScResultingAddress,
 	)
 
