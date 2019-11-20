@@ -398,7 +398,7 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	defer p.mutPrevShardInfo.Unlock()
 
 	p.prevShardInfo = make(map[uint32]block.ShardData)
-	missingShardIds := make([]uint32, 0)
+	missingPreviousShardData := make(map[uint32]block.ShardData)
 
 	for _, currentShardData := range currentHeader.ShardInfo {
 
@@ -406,17 +406,24 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 			continue
 		}
 
-		prevShardData := p.getMatchingShardData(currentShardData.ShardID, previousHeader.ShardInfo)
+		prevShardData := p.getMatchingPrevShardData(currentShardData, currentHeader.ShardInfo)
 		if prevShardData != nil {
 			p.prevShardInfo[currentShardData.ShardID] = *prevShardData
-		} else {
-			missingShardIds = append(missingShardIds, currentShardData.ShardID)
+			continue
 		}
+
+		prevShardData = p.getMatchingPrevShardData(currentShardData, previousHeader.ShardInfo)
+		if prevShardData != nil {
+			p.prevShardInfo[currentShardData.ShardID] = *prevShardData
+			continue
+		}
+
+		missingPreviousShardData[currentShardData.ShardID] = currentShardData
 	}
 
 	searchHeader := &block.MetaBlock{}
 	*searchHeader = *previousHeader
-	for len(missingShardIds) > 0 {
+	for len(missingPreviousShardData) > 0 {
 		if searchHeader.GetNonce() <= 1 {
 			break
 		}
@@ -425,19 +432,19 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 		if err != nil {
 			return err
 		}
-		for i, shardId := range missingShardIds {
-			prevShardData := p.getMatchingShardData(shardId, recursiveHeader.ShardInfo)
+		for shardId, shardData := range missingPreviousShardData {
+			prevShardData := p.getMatchingPrevShardData(shardData, recursiveHeader.ShardInfo)
 			if prevShardData == nil {
 				continue
 			}
 
 			p.prevShardInfo[shardId] = *prevShardData
-			missingShardIds = core.PopUint32(missingShardIds, i)
+			delete(missingPreviousShardData, shardId)
 		}
 		*searchHeader = *recursiveHeader
 	}
 
-	if len(missingShardIds) > 0 {
+	if len(missingPreviousShardData) > 0 {
 		return process.ErrMissingShardDataInStorage
 	}
 
@@ -479,9 +486,12 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 	return nil
 }
 
-func (p *validatorStatistics) getMatchingShardData(shardId uint32, shardInfo []block.ShardData) *block.ShardData {
+func (p *validatorStatistics) getMatchingPrevShardData(currentShardData block.ShardData, shardInfo []block.ShardData) *block.ShardData {
 	for _, prevShardData := range shardInfo {
-		if shardId == prevShardData.ShardID {
+		if currentShardData.ShardID != prevShardData.ShardID {
+			continue
+		}
+		if currentShardData.Nonce == prevShardData.Nonce + 1 {
 			return &prevShardData
 		}
 	}
