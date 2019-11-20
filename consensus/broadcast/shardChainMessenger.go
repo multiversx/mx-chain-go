@@ -1,12 +1,8 @@
 package broadcast
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -112,8 +108,8 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 	return nil
 }
 
-// BroadcastHeader will send on shard headers for metachain topic the header
-func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+// BroadcastShardHeader will send on shard headers for metachain topic the header
+func (scm *shardChainMessenger) BroadcastShardHeader(header data.HeaderHandler) error {
 	if header == nil || header.IsInterfaceNil() {
 		return spos.ErrNilHeader
 	}
@@ -131,48 +127,20 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	return nil
 }
 
-// BroadcastMiniBlocks will send on miniblocks topic the cross-shard miniblocks
-func (scm *shardChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
-	mbs := 0
-	for k, v := range miniBlocks {
-		mbs++
-		miniBlocksTopic := factory.MiniBlocksTopic +
-			scm.shardCoordinator.CommunicationIdentifier(k)
-
-		go scm.messenger.Broadcast(miniBlocksTopic, v)
+// BroadcastHeader will send on in-shard headers topic the header
+func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+	if header == nil || header.IsInterfaceNil() {
+		return spos.ErrNilHeader
 	}
 
-	if mbs > 0 {
-		log.Info(fmt.Sprintf("sent %d miniblocks\n", mbs))
-	}
-
-	return nil
-}
-
-// BroadcastTransactions will send on transaction topic the transactions
-func (scm *shardChainMessenger) BroadcastTransactions(transactions map[string][][]byte) error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(scm.marshalizer)
+	msgHeader, err := scm.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
 
-	txs := 0
-	for topic, v := range transactions {
-		txs += len(v)
-		// forward txs to the destination shards in packets
-		packets, err := dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
-		if err != nil {
-			return err
-		}
+	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
 
-		for _, buff := range packets {
-			go scm.messenger.Broadcast(topic, buff)
-		}
-	}
-
-	if txs > 0 {
-		log.Info(fmt.Sprintf("sent %d transactions\n", txs))
-	}
+	go scm.messenger.Broadcast(factory.HeadersTopic+selfIdentifier, msgHeader)
 
 	return nil
 }

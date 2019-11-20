@@ -75,6 +75,15 @@ func checkMetaChainNilParameters(
 
 // BroadcastBlock will send on metachain blocks topic the header
 func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+	if blockBody == nil || blockBody.IsInterfaceNil() {
+		return spos.ErrNilBody
+	}
+
+	err := blockBody.IntegrityAndValidity()
+	if err != nil {
+		return err
+	}
+
 	if header == nil || header.IsInterfaceNil() {
 		return spos.ErrNilMetaHeader
 	}
@@ -84,29 +93,39 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 		return err
 	}
 
+	msgBlockBody, err := mcm.marshalizer.Marshal(blockBody)
+	if err != nil {
+		return err
+	}
+
+	selfIdentifier := mcm.shardCoordinator.CommunicationIdentifier(mcm.shardCoordinator.SelfId())
+
 	go mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	go mcm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
 
 	return nil
 }
 
-// BroadcastHeader will send on meta-to-shards topic the header
-func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+// BroadcastShardHeader will send on meta-to-shards topic the header
+func (mcm *metaChainMessenger) BroadcastShardHeader(header data.HeaderHandler) error {
 	// meta chain does not need to broadcast separately the header, as it have no body and BroadcastBlock does all
 	// the job for it, but this method is created to satisfy the BroadcastMessenger interface
 	return nil
 }
 
-// BroadcastMiniBlocks will send on miniblocks topic the miniblocks
-func (mcm *metaChainMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) error {
-	// meta chain does not need to broadcast miniblocks but this method is created to satisfy the BroadcastMessenger
-	// interface
-	return nil
-}
+// BroadcastHeader will send on metachain blocks topic the header
+func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+	if header == nil || header.IsInterfaceNil() {
+		return spos.ErrNilHeader
+	}
 
-// BroadcastTransactions will send on transaction topic the transactions
-func (mcm *metaChainMessenger) BroadcastTransactions(transactions map[string][][]byte) error {
-	// meta chain does not need to broadcast transactions but this method is created to satisfy the BroadcastMessenger
-	// interface
+	msgHeader, err := mcm.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	go mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+
 	return nil
 }
 

@@ -134,7 +134,7 @@ func TestMetaChainMessenger_BroadcastBlockShouldErrNilMetaHeader(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := mcm.BroadcastBlock(nil, nil)
+	err := mcm.BroadcastBlock(&block.Body{}, nil)
 	assert.Equal(t, spos.ErrNilMetaHeader, err)
 }
 
@@ -154,7 +154,7 @@ func TestMetaChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T)
 		singleSignerMock,
 	)
 
-	err := mcm.BroadcastBlock(nil, &block.MetaBlock{})
+	err := mcm.BroadcastBlock(&block.Body{}, &block.MetaBlock{})
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
@@ -176,11 +176,11 @@ func TestMetaChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := mcm.BroadcastBlock(nil, &block.MetaBlock{})
+	err := mcm.BroadcastBlock(&block.Body{}, &block.MetaBlock{})
 	assert.Nil(t, err)
 }
 
-func TestMetaChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
+func TestMetaChainMessenger_BroadcastShardHeaderShouldWork(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -195,7 +195,7 @@ func TestMetaChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := mcm.BroadcastHeader(nil)
+	err := mcm.BroadcastShardHeader(nil)
 	assert.Nil(t, err)
 }
 

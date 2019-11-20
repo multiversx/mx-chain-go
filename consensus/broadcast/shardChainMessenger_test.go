@@ -155,7 +155,7 @@ func TestShardChainMessenger_BroadcastBlockShouldErrNilHeader(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastBlock(&block.Body{}, nil)
+	err := scm.BroadcastBlock(block.Body{}, nil)
 	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
@@ -175,7 +175,7 @@ func TestShardChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastBlock(&block.Body{}, &block.Header{})
+	err := scm.BroadcastBlock(block.Body{}, &block.Header{})
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
@@ -197,11 +197,11 @@ func TestShardChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastBlock(&block.Body{}, &block.Header{})
+	err := scm.BroadcastBlock(block.Body{}, &block.Header{})
 	assert.Nil(t, err)
 }
 
-func TestShardChainMessenger_BroadcastHeaderShouldErrNilHeader(t *testing.T) {
+func TestShardChainMessenger_BroadcastShardHeaderShouldErrNilHeader(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -216,11 +216,11 @@ func TestShardChainMessenger_BroadcastHeaderShouldErrNilHeader(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastHeader(nil)
+	err := scm.BroadcastShardHeader(nil)
 	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
-func TestShardChainMessenger_BroadcastHeaderShouldErrMockMarshalizer(t *testing.T) {
+func TestShardChainMessenger_BroadcastShardHeaderShouldErrMockMarshalizer(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -236,11 +236,11 @@ func TestShardChainMessenger_BroadcastHeaderShouldErrMockMarshalizer(t *testing.
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastHeader(&block.Header{})
+	err := scm.BroadcastShardHeader(&block.Header{})
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
-func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
+func TestShardChainMessenger_BroadcastShardHeaderShouldWork(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -258,7 +258,7 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 		singleSignerMock,
 	)
 
-	err := scm.BroadcastHeader(&block.Header{})
+	err := scm.BroadcastShardHeader(&block.Header{})
 	assert.Nil(t, err)
 }
 

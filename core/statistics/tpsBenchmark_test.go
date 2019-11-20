@@ -13,7 +13,7 @@ import (
 
 func updateTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark, txCount uint32) {
 	shardData := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
@@ -70,7 +70,7 @@ func TestTpsBenchmark_BlockNumber(t *testing.T) {
 		Nonce: uint64(blockNumber),
 		Round: blockNumber,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, 10},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, 10},
 		},
 	}
 	assert.Equal(t, tpsBenchmark.BlockNumber(), uint64(0))
@@ -99,14 +99,14 @@ func TestTpsBenchmark_UpdateSmallerNonce(t *testing.T) {
 		Nonce: blockNumber - 1,
 		Round: round - 1,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, 10},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, 10},
 		},
 	}
 	metaBlock2 := &block.MetaBlock{
 		Nonce: blockNumber,
 		Round: round,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, 10},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, 10},
 		},
 	}
 	// Start with block with nonce 1 so it would be processed
@@ -148,7 +148,7 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 		Round:   round,
 		TxCount: txCount,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, txCount},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, txCount},
 		},
 	}
 
@@ -157,7 +157,7 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 		Round:   round + 1,
 		TxCount: txCount,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, txCount},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, txCount},
 		},
 	}
 
@@ -182,7 +182,7 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 		Round:   round,
 		TxCount: peakTps,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, peakTps},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, peakTps},
 		},
 	}
 
@@ -191,7 +191,7 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 		Round:   round + 1,
 		TxCount: txCount,
 		ShardInfo: []block.ShardData{
-			{0, []byte{1}, []block.ShardMiniBlockHeader{}, txCount},
+			{0, []byte{1}, []block.ShardMiniBlockHeader{}, []byte{1}, []byte{1}, []byte{1}, txCount},
 		},
 	}
 
@@ -212,7 +212,7 @@ func TestTPSBenchmark_GettersAndSetters(t *testing.T) {
 	txCount := uint32(10)
 
 	shardData := block.ShardData{
-		ShardId:               shardId,
+		ShardID:               shardId,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
@@ -246,7 +246,7 @@ func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
 	txCount := uint32(10)
 
 	shardData := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
@@ -260,7 +260,7 @@ func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
 	tpsBenchmark.Update(metaBlock)
 
 	shardData2 := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
@@ -286,13 +286,13 @@ func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
 	txCount := uint32(10)
 
 	shardData := block.ShardData{
-		ShardId:               0,
+		ShardID:               0,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               txCount,
 	}
 	shard2Data := block.ShardData{
-		ShardId:               1,
+		ShardID:               1,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               0,
@@ -310,6 +310,9 @@ func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
 }
 
 func TestTpsBenchmark_Concurrent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 	t.Parallel()
 
 	numOfTests := 25
@@ -347,7 +350,7 @@ func TestTpsBenchmark_ZeroTxMetaBlockAndShardHeader(t *testing.T) {
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 4)
 
 	shardData := block.ShardData{
-		ShardId:               0,
+		ShardID:               0,
 		HeaderHash:            []byte{1},
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
 		TxCount:               0,

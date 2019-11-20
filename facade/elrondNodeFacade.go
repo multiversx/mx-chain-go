@@ -87,9 +87,10 @@ func (ef *ElrondNodeFacade) StartNode() error {
 	return err
 }
 
-// StopNode stops the underlying node
-func (ef *ElrondNodeFacade) StopNode() error {
-	return ef.node.Stop()
+// GetCurrentPublicKey is just a mock method to satisfies FacadeHandler
+//TODO: Remove this method when it will not be used in elrond facade
+func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
+	return ""
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
@@ -169,7 +170,7 @@ func (ef *ElrondNodeFacade) GetBalance(address string) (*big.Int, error) {
 // CreateTransaction creates a transaction from all needed fields
 func (ef *ElrondNodeFacade) CreateTransaction(
 	nonce uint64,
-	value *big.Int,
+	value string,
 	receiverHex string,
 	senderHex string,
 	gasPrice uint64,
@@ -187,7 +188,7 @@ func (ef *ElrondNodeFacade) SendTransaction(
 	nonce uint64,
 	senderHex string,
 	receiverHex string,
-	value *big.Int,
+	value string,
 	gasPrice uint64,
 	gasLimit uint64,
 	transactionData string,
@@ -211,11 +212,6 @@ func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transactio
 // about the account correlated with provided address
 func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
 	return ef.node.GetAccount(address)
-}
-
-// GetCurrentPublicKey gets the current nodes public Key
-func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
-	return ef.node.GetCurrentPublicKey()
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network

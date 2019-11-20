@@ -2,6 +2,7 @@ package process_test
 
 import (
 	"bytes"
+	"math/big"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1580,6 +1581,51 @@ func TestGetShardHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	assert.Equal(t, hdr, header)
 }
 
+func TestGetHeaderFromStorageWithNonceShouldWorkForShard(t *testing.T) {
+	nonce := uint64(1)
+	shardId := uint32(0)
+	hash := []byte("X")
+	nonceToByte := []byte("1")
+	hdr := &block.Header{Nonce: nonce}
+	marshalizer := &mock.MarshalizerMock{}
+	marshHdr, _ := marshalizer.Marshal(hdr)
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, nonceToByte) {
+						return hash, nil
+					}
+					if bytes.Equal(key, hash) {
+						return marshHdr, nil
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+	uint64Converter := &mock.Uint64ByteSliceConverterMock{
+		ToByteSliceCalled: func(n uint64) []byte {
+			if n == nonce {
+				return nonceToByte
+			}
+
+			return nil
+		},
+	}
+
+	header, headerHash, err := process.GetHeaderFromStorageWithNonce(
+		nonce,
+		shardId,
+		storageService,
+		uint64Converter,
+		marshalizer)
+
+	assert.Nil(t, err)
+	assert.Equal(t, hash, headerHash)
+	assert.Equal(t, hdr, header)
+}
+
 func TestGetMetaHeaderFromStorageWithNonceShouldErrNilStorage(t *testing.T) {
 	nonce := uint64(1)
 
@@ -1801,6 +1847,50 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	assert.Equal(t, hdr, header)
 }
 
+func TestGetHeaderFromStorageWithNonceShouldWorkForMeta(t *testing.T) {
+	nonce := uint64(1)
+	hash := []byte("X")
+	nonceToByte := []byte("1")
+	hdr := &block.MetaBlock{Nonce: nonce}
+	marshalizer := &mock.MarshalizerMock{}
+	marshHdr, _ := marshalizer.Marshal(hdr)
+	storageService := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, nonceToByte) {
+						return hash, nil
+					}
+					if bytes.Equal(key, hash) {
+						return marshHdr, nil
+					}
+					return nil, errors.New("error")
+				},
+			}
+		},
+	}
+	uint64Converter := &mock.Uint64ByteSliceConverterMock{
+		ToByteSliceCalled: func(n uint64) []byte {
+			if n == nonce {
+				return nonceToByte
+			}
+
+			return nil
+		},
+	}
+
+	header, headerHash, err := process.GetHeaderFromStorageWithNonce(
+		nonce,
+		sharding.MetachainShardId,
+		storageService,
+		uint64Converter,
+		marshalizer)
+
+	assert.Nil(t, err)
+	assert.Equal(t, hash, headerHash)
+	assert.Equal(t, hdr, header)
+}
+
 func TestGetTransactionHandlerShouldErrNilShardedDataCacherNotifier(t *testing.T) {
 	hash := []byte("X")
 
@@ -1885,7 +1975,10 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 
 func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 	hash := []byte("X")
-	txFromStorage := &transaction.Transaction{Nonce: 1}
+	txFromStorage := &transaction.Transaction{
+		Nonce: 1,
+		Value: big.NewInt(0),
+	}
 
 	marshalizer := &mock.MarshalizerMock{}
 	txMarsh, _ := marshalizer.Marshal(txFromStorage)
@@ -2090,7 +2183,10 @@ func TestGetTransactionHandlerFromStorageShouldErrWhenUnmarshalFail(t *testing.T
 
 func TestGetTransactionHandlerFromStorageShouldWork(t *testing.T) {
 	hash := []byte("X")
-	txFromPool := &transaction.Transaction{Nonce: 1}
+	txFromPool := &transaction.Transaction{
+		Nonce: 1,
+		Value: big.NewInt(0),
+	}
 
 	marshalizer := &mock.MarshalizerMock{}
 	txMarsh, _ := marshalizer.Marshal(txFromPool)

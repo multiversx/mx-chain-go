@@ -99,6 +99,8 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
+	// broadcast section
+
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
 	if err != nil {
@@ -106,7 +108,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	}
 
 	// broadcast header to metachain
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
+	err = sr.BroadcastMessenger().BroadcastShardHeader(sr.Header)
 	if err != nil {
 		log.Error(err.Error())
 	}

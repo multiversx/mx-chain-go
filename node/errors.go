@@ -31,6 +31,12 @@ var ErrNilPrivateKey = errors.New("trying to set nil private key")
 // ErrNilSingleSignKeyGen signals that a nil single key generator has been provided
 var ErrNilSingleSignKeyGen = errors.New("trying to set nil single sign key generator")
 
+// ErrNilKeyGenForBalances signals that a nil keygen for balances has been provided
+var ErrNilKeyGenForBalances = errors.New("trying to set a nil key gen for signing")
+
+// ErrNilTxFeeHandler signals that a nil tx fee handler was provided
+var ErrNilTxFeeHandler = errors.New("trying to set a nil tx fee handler")
+
 // ErrNilPublicKey signals that a nil public key has been provided
 var ErrNilPublicKey = errors.New("trying to set nil public key")
 
@@ -109,11 +115,8 @@ var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
 // ErrGenesisBlockNotInitialized signals that genesis block is not initialized
 var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
 
-// ErrNilTransactionPool signals that a nil transaction pool was used
-var ErrNilTransactionPool = errors.New("nil transaction pool")
-
-// ErrTooManyTransactionsInPool signals that are too many transactions in pool
-var ErrTooManyTransactionsInPool = errors.New("too many transactions in pool")
+// ErrNilBlackListHandler signals that a nil black list handler was provided
+var ErrNilBlackListHandler = errors.New("nil black list handler")
 
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")
@@ -123,3 +126,6 @@ var ErrNilStatusHandler = errors.New("nil AppStatusHandler")
 
 // ErrNoTxToProcess signals that no transaction were sent for processing
 var ErrNoTxToProcess = errors.New("no transaction to process")
+
+// ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
+var ErrInvalidValue = errors.New("invalid value")

@@ -10,6 +10,10 @@
    # StatusPollingIntervalSec represents the no of seconds between multiple polling for the status for AppStatusHandler
    StatusPollingIntervalSec = 2
 
+   # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
+   # Length should be less than 128 characters (bytes)
+   NodeDisplayName = ""
+
 [Explorer]
    Enabled = false
    IndexerURL = "http://localhost:9200"
@@ -104,13 +108,13 @@
 
 [RewardTxStorage]
     [RewardTxStorage.Cache]
-        Size = 10000
+        Size = 100000
         Type = "LRU"
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
-        MaxBatchSize = 500
+        MaxBatchSize = 45000
         MaxOpenFiles = 10
 
 [ShardHdrNonceHashStorage]
@@ -141,6 +145,17 @@
         Type = "LRU"
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 15
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
+[PeerAccountsTrieStorage]
+    [PeerAccountsTrieStorage.Cache]
+        Size = 100000
+        Type = "LRU"
+    [PeerAccountsTrieStorage.DB]
+        FilePath = "PeerAccountsTrie"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 15
         MaxBatchSize = 45000
@@ -184,7 +199,7 @@
     Type = "LRU"
 
 [RewardTransactionDataPool]
-    Size = 5000
+    Size = 100000
     Type = "LRU"
 
 [ShardHeadersDataPool]
@@ -247,9 +262,9 @@
    Type = "bls"
 
 [NTPConfig]
-   Host = "time.google.com"
+   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
    Port = 123
-   Timeout = 0  # Setting 0 means 'use default value'
+   TimeoutMilliseconds = 100
    Version = 0  # Setting 0 means 'use default value'
 
 

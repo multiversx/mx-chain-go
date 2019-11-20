@@ -1,7 +1,5 @@
 package config
 
-import "time"
-
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
 	Size   uint32 `json:"size"`
@@ -50,10 +48,10 @@ type TypeConfig struct {
 
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
-	Host    string
-	Port    int
-	Timeout time.Duration
-	Version int
+	Hosts               []string
+	Port                int
+	TimeoutMilliseconds int
+	Version             int
 }
 
 // Config will hold the entire application configuration parameters
@@ -71,8 +69,9 @@ type Config struct {
 	MetaBlockStorage StorageConfig
 	PeerDataStorage  StorageConfig
 
-	AccountsTrieStorage StorageConfig
-	BadBlocksCache      CacheConfig
+	AccountsTrieStorage     StorageConfig
+	PeerAccountsTrieStorage StorageConfig
+	BadBlocksCache          CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	StateBlockBodyDataPool      CacheConfig
@@ -105,8 +104,9 @@ type Config struct {
 
 // NodeConfig will hold basic p2p settings
 type NodeConfig struct {
-	Port int
-	Seed string
+	Port            int
+	Seed            string
+	TargetPeerCount int
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings

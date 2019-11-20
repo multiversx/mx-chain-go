@@ -38,6 +38,7 @@ type interceptorsContainerFactory struct {
 	messenger              process.TopicHandler
 	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
+	blackList              process.BlackListHandler
 	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
@@ -59,6 +60,7 @@ func NewInterceptorsContainerFactory(
 	keyGen crypto.KeyGenerator,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
+	blackList process.BlackListHandler,
 ) (*interceptorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -100,6 +102,9 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(blackList) {
+		return nil, process.ErrNilBlackListHandler
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Marshalizer:      marshalizer,
@@ -122,6 +127,7 @@ func NewInterceptorsContainerFactory(
 		multiSigner:            multiSigner,
 		dataPool:               dataPool,
 		nodesCoordinator:       nodesCoordinator,
+		blackList:              blackList,
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 		accounts:               accounts,
@@ -205,10 +211,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		return nil, nil, err
 	}
 
-	hdrFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedMetaHeader,
-	)
+	hdrFactory, err := interceptorFactory.NewInterceptedMetaHeaderDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -217,6 +220,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 		Headers:       icf.dataPool.MetaBlocks(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
+		BlackList:     icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -272,10 +276,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 		return nil, err
 	}
 
-	hdrFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedShardHeader,
-	)
+	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -284,6 +285,7 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(topic s
 		Headers:       icf.dataPool.ShardHeaders(),
 		HeadersNonces: icf.dataPool.HeadersNonces(),
 		HdrValidator:  hdrValidator,
+		BlackList:     icf.blackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -352,10 +354,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(topic string) (p
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewMetaInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedTx,
-	)
+	txFactory, err := interceptorFactory.NewInterceptedTxDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -418,10 +417,7 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(topic st
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewShardInterceptedDataFactory(
-		icf.argInterceptorFactory,
-		interceptorFactory.InterceptedTxBlockBody,
-	)
+	txFactory, err := interceptorFactory.NewInterceptedTxBlockBodyDataFactory(icf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
