@@ -176,12 +176,12 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 
 func TestWASMNamespacing(t *testing.T) {
 	round := uint64(444)
-	accnts, txProc, scAddress := deploySmartContract(t, "./fib_ewasmified.wasm", round, big.NewInt(1))
 
 	// This SmartContract had its imports modified after compilation, replacing
 	// the namespace 'env' to 'ethereum'. If WASM namespacing is done correctly
 	// by Arwen, then this SC should have no problem to call imported functions
 	// (as if it were run by Ethereuem).
+	accnts, txProc, scAddress := deploySmartContract(t, "./fib_ewasmified.wasm", round, big.NewInt(1))
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
@@ -256,7 +256,29 @@ func TestWASMMetering(t *testing.T) {
 }
 
 func TestGasExhaustionError(t *testing.T) {
-	// accnts, txProc, scAddress := deploySmartContract(t, "./fib_arwen.wasm")
+	round := uint64(444)
+	accnts, txProc, scAddress := deploySmartContract(t, "./fib_arwen.wasm", round, big.NewInt(1))
+
+	alice := []byte("12345678901234567890123456789111")
+	aliceNonce := uint64(0)
+	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(10000000000))
+
+	gasLimit := uint64(10)
+
+	tx := &transaction.Transaction{
+		Nonce:     aliceNonce,
+		Value:     big.NewInt(0).SetUint64(16),
+		RcvAddr:   scAddress,
+		SndAddr:   alice,
+		GasPrice:  1,
+		GasLimit:  gasLimit,
+		Data:      "_main",
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	_ = txProc.ProcessTransaction(tx, round+10)
+
 }
 
 func deploySmartContract(tb testing.TB, smartContractFile string, round uint64, deployTxValue *big.Int) (state.AccountsAdapter, process.TransactionProcessor, []byte) {
