@@ -32,6 +32,7 @@ type KadDhtDiscoverer struct {
 	randezVous       string
 	initialPeersList []string
 	initConns        bool // Initiate new connections
+	watchdogKick     chan struct{}
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
@@ -227,4 +228,34 @@ func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// StartWatchdog start the watchdog, and return the kick channel
+func (kdd *KadDhtDiscoverer) StartWatchdog(timeout time.Duration) chan struct{} {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+
+	if kdd.contextProvider == nil {
+		return nil
+	}
+
+	if kdd.watchdogKick != nil {
+		return kdd.watchdogKick
+	}
+
+	kdd.watchdogKick = make(chan struct{})
+	ctx := kdd.contextProvider.Context()
+	go func() {
+		for {
+			select {
+			case <-time.After(timeout):
+				kdd.Resume()
+			case <-ctx.Done():
+				return
+			case <-kdd.watchdogKick:
+			}
+		}
+	}()
+
+	return kdd.watchdogKick
 }
