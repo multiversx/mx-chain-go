@@ -271,21 +271,8 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	for _, metaHeader := range processedMetaHdrs {
-		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
-		if err != nil {
-			return err
-		}
-
-		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
-			err = process.ErrValidatorStatsRootHashDoesNotMatch
-			return err
-		}
-	}
-
-	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()
-	if !bytes.Equal(vRootHash, header.GetValidatorStatsRootHash()) {
-		err = process.ErrValidatorStatsRootHashDoesNotMatch
+	err = sp.checkValidatorStatisticsRootHash(header, processedMetaHdrs)
+	if err != nil {
 		return err
 	}
 
@@ -1778,5 +1765,25 @@ func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data
 			return err
 		}
 	}
+	return nil
+}
+
+func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.Header, processedMetaHdrs []data.HeaderHandler) error {
+	for _, metaHeader := range processedMetaHdrs {
+		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
+			return process.ErrValidatorStatsRootHashDoesNotMatch
+		}
+	}
+
+	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()
+	if !bytes.Equal(vRootHash, currentHeader.GetValidatorStatsRootHash()) {
+		return process.ErrValidatorStatsRootHashDoesNotMatch
+	}
+
 	return nil
 }
