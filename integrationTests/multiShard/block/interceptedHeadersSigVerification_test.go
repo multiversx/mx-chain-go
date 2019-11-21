@@ -239,6 +239,10 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 }
 
 func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepted(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	nodesPerShard := 4
 	nbMetaNodes := 4
 	nbShards := 1
