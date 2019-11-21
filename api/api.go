@@ -2,23 +2,28 @@ package api
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"reflect"
 
 	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/logs"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gin-gonic/gin/json"
+	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/go-playground/validator.v8"
 )
+
+var log = logger.GetOrCreate("api")
 
 type validatorInput struct {
 	Name      string
@@ -32,7 +37,7 @@ type prometheus struct {
 
 // MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
 type MainApiHandler interface {
-	RestApiPort() string
+	RestApiInterface() string
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
 	PrometheusMonitoring() bool
@@ -41,16 +46,34 @@ type MainApiHandler interface {
 	IsInterfaceNil() bool
 }
 
+type ginWriter struct {
+}
+
+func (gv *ginWriter) Write(p []byte) (n int, err error) {
+	log.Debug("gin server", "message", string(p))
+
+	return len(p), nil
+}
+
+type ginErrorWriter struct {
+}
+
+func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
+	log.Debug("gin server", "error", string(p))
+
+	return len(p), nil
+}
+
 // Start will boot up the api and appropriate routes, handlers and validators
 func Start(elrondFacade MainApiHandler) error {
 	var ws *gin.Engine
-	if elrondFacade.RestAPIServerDebugMode() {
-		ws = gin.Default()
-	} else {
-		ws = gin.New()
-		ws.Use(gin.Recovery())
+	if !elrondFacade.RestAPIServerDebugMode() {
+		gin.DefaultWriter = &ginWriter{}
+		gin.DefaultErrorWriter = &ginErrorWriter{}
+		gin.DisableConsoleColor()
 		gin.SetMode(gin.ReleaseMode)
 	}
+	ws = gin.Default()
 	ws.Use(cors.Default())
 
 	err := registerValidators()
@@ -67,13 +90,13 @@ func Start(elrondFacade MainApiHandler) error {
 		}
 	}
 
-	return ws.Run(fmt.Sprintf(":%s", elrondFacade.RestApiPort()))
+	return ws.Run(elrondFacade.RestApiInterface())
 }
 
 func joinMonitoringSystem(elrondFacade MainApiHandler) error {
 	prometheusJoinUrl := elrondFacade.PrometheusJoinURL()
 	structToSend := prometheus{
-		NodePort:  elrondFacade.RestApiPort(),
+		NodePort:  elrondFacade.RestApiInterface(),
 		NetworkID: elrondFacade.PrometheusNetworkID(),
 	}
 
@@ -122,6 +145,9 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	if apiHandler.PprofEnabled() {
 		pprof.Register(ws)
 	}
+
+	marshalizerForLogs := &marshal.ProtobufMarshalizer{}
+	registerLoggerWsRoute(ws, marshalizerForLogs)
 }
 
 func registerValidators() error {
@@ -137,6 +163,30 @@ func registerValidators() error {
 		}
 	}
 	return nil
+}
+
+func registerLoggerWsRoute(ws *gin.Engine, marshalizer marshal.Marshalizer) {
+	upgrader := websocket.Upgrader{}
+
+	ws.GET("/log", func(c *gin.Context) {
+		upgrader.CheckOrigin = func(r *http.Request) bool {
+			return true
+		}
+
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		ls, err := logs.NewLogSender(marshalizer, conn, log)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		ls.StartSendingBlocking()
+	})
 }
 
 // skValidator validates a secret key from user input for correctness

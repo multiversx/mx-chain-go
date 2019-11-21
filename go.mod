@@ -26,6 +26,7 @@ require (
 	github.com/golang/protobuf v1.3.1
 	github.com/google/gops v0.3.6
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
+	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
@@ -45,9 +46,8 @@ require (
 	github.com/pkg/profile v1.3.0
 	github.com/prometheus/client_golang v1.0.0
 	github.com/satori/go.uuid v1.2.0
-	github.com/shirou/gopsutil v2.19.10+incompatible
-	github.com/sirupsen/logrus v1.4.0
-	github.com/stretchr/testify v1.4.0
+	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
+	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.20.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc

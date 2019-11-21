@@ -1,17 +1,15 @@
 package resolvers
 
 import (
-	"fmt"
-
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("dataretriever/resolvers")
 
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
@@ -91,7 +89,8 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 		return err
 	}
 	if buff == nil {
-		log.Debug(fmt.Sprintf("missing data: %v", rd))
+		log.Trace("missing data",
+			"data", rd)
 		return nil
 	}
 
@@ -104,7 +103,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	// Search the nonce-key pair in cache-storage
 	hash, err := hdrRes.hdrNoncesStorage.Get(key)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("hdrNoncesStorage.Get", "error", err.Error())
 	}
 
 	// Search the nonce-key pair in data pool

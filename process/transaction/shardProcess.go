@@ -121,7 +121,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 func (txProc *txProcessor) processTxFee(tx *transaction.Transaction, acntSnd *state.Account) (*big.Int, error) {
 	if acntSnd == nil {
-		return nil, nil
+		return big.NewInt(0), nil
 	}
 
 	err := txProc.economicsFee.CheckValidityTxValues(tx)
