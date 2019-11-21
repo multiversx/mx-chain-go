@@ -72,11 +72,10 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	filteredMultiDataBuff := make([][]byte, 0)
+	firstDataBuff := multiDataBuff[0]
 	lastErrEncountered := error(nil)
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(len(multiDataBuff))
-
-	firstDataBuff := multiDataBuff[0]
 
 	go func() {
 		wgProcess.Wait()
@@ -93,8 +92,13 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			return
 		}
 
+		// TODO instead of using a node to trigger the end of processing, use a dedicated channel
+		//  between interceptor and sync
 		nodeData.CreateEndOfProcessingTriggerNode()
-		_ = mdi.processor.Save(nodeData)
+		err = mdi.processor.Save(nodeData)
+		if err != nil {
+			log.Debug(err.Error())
+		}
 
 		mdi.throttler.EndProcessing()
 	}()
