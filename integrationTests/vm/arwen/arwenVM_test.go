@@ -11,13 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
+	//_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
 }
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
@@ -182,7 +181,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	aliceNonce++
 
 	start := time.Now()
-	nrTxs := 10
+	nrTxs := 10000
 
 	for i := 0; i < nrTxs; i++ {
 		tx = vm.CreateTransferTx(aliceNonce, transferOnCalls, scAddress, alice, bob)

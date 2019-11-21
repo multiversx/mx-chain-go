@@ -2,7 +2,6 @@ package smartContract
 
 import (
 	"fmt"
-	"math"
 	"math/big"
 	"sync"
 
@@ -12,17 +11,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-var maxGasValue = math.MaxInt64
-
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
-	vmContainer process.VirtualMachinesContainer
-	mutRunSc    sync.Mutex
+	vmContainer      process.VirtualMachinesContainer
+	gasLimitPerBlock uint64
+	mutRunSc         sync.Mutex
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
 func NewSCQueryService(
 	vmContainer process.VirtualMachinesContainer,
+	gasLimitPerBlock uint64,
 ) (*SCQueryService, error) {
 
 	if vmContainer == nil || vmContainer.IsInterfaceNil() {
@@ -30,7 +29,8 @@ func NewSCQueryService(
 	}
 
 	return &SCQueryService{
-		vmContainer: vmContainer,
+		vmContainer:      vmContainer,
+		gasLimitPerBlock: gasLimitPerBlock,
 	}, nil
 }
 
@@ -80,7 +80,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery) *vmcomm
 		CallerAddr:  query.ScAddress,
 		CallValue:   big.NewInt(0),
 		GasPrice:    0,
-		GasProvided: uint64(maxGasValue),
+		GasProvided: service.gasLimitPerBlock,
 		Arguments:   query.Arguments,
 	}
 

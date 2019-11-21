@@ -4,6 +4,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"math"
 	"math/big"
 	"testing"
 
@@ -406,7 +407,7 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 
 func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, nil)
-	scQueryService, _ := smartContract.NewSCQueryService(vmContainer)
+	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
 
 	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
