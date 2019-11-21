@@ -75,6 +75,10 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData) error {
 	return nil
 }
 
+// SignalEndOfProcessing signals the end of processing
+func (hip *HdrInterceptorProcessor) SignalEndOfProcessing(data []process.InterceptedData) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hip *HdrInterceptorProcessor) IsInterfaceNil() bool {
 	if hip == nil {

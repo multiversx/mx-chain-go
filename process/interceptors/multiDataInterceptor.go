@@ -71,28 +71,26 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	filteredMultiDataBuff := make([][]byte, 0)
+	interceptedMultiData := make([]process.InterceptedData, 0)
 	lastErrEncountered := error(nil)
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(len(multiDataBuff))
+
 	go func() {
 		wgProcess.Wait()
+		mdi.processor.SignalEndOfProcessing(interceptedMultiData)
 		mdi.throttler.EndProcessing()
 	}()
 
 	for _, dataBuff := range multiDataBuff {
-		interceptedData, err := mdi.factory.Create(dataBuff)
+		interceptedData, err := mdi.interceptedData(dataBuff)
 		if err != nil {
 			lastErrEncountered = err
 			wgProcess.Done()
 			continue
 		}
 
-		err = interceptedData.CheckValidity()
-		if err != nil {
-			lastErrEncountered = err
-			wgProcess.Done()
-			continue
-		}
+		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)
@@ -119,6 +117,20 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	return lastErrEncountered
+}
+
+func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.InterceptedData, error) {
+	interceptedData, err := mdi.factory.Create(dataBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	err = interceptedData.CheckValidity()
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptedData, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

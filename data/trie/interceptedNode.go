@@ -1,6 +1,8 @@
 package trie
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -12,6 +14,7 @@ type InterceptedTrieNode struct {
 	node    node
 	encNode []byte
 	hash    []byte
+	mutex   sync.Mutex
 }
 
 // NewInterceptedTrieNode creates a new instance of InterceptedTrieNode
@@ -67,6 +70,9 @@ func (inTn *InterceptedTrieNode) IsForCurrentShard() bool {
 
 // Hash returns the hash of the intercepted node
 func (inTn *InterceptedTrieNode) Hash() []byte {
+	inTn.mutex.Lock()
+	defer inTn.mutex.Unlock()
+
 	return inTn.hash
 }
 
@@ -78,4 +84,12 @@ func (inTn *InterceptedTrieNode) IsInterfaceNil() bool {
 // EncodedNode returns the intercepted encoded node
 func (inTn *InterceptedTrieNode) EncodedNode() []byte {
 	return inTn.encNode
+}
+
+// CreateEndOfProcessingTriggerNode changes the hash of the current node by appending the hash to the current hash.
+// This construction will be used to trigger the end of processing for all of the received data
+func (inTn *InterceptedTrieNode) CreateEndOfProcessingTriggerNode() {
+	inTn.mutex.Lock()
+	inTn.hash = append(inTn.hash, inTn.hash...)
+	inTn.mutex.Unlock()
 }
