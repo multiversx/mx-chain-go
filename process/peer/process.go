@@ -397,7 +397,29 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	defer p.mutPrevShardInfo.Unlock()
 
 	p.prevShardInfo = make(map[string]block.ShardData)
-	missingPreviousShardData := p.getMissingPrevShardData(currentHeader)
+	missingPreviousShardData := make(map[string]block.ShardData)
+
+	for _, currentShardData := range currentHeader.ShardInfo {
+
+		if currentShardData.Nonce == 1 {
+			continue
+		}
+
+		sdKey := p.buildShardDataKey(currentShardData)
+		prevShardData := p.getMatchingPrevShardData(currentShardData, currentHeader.ShardInfo)
+		if prevShardData != nil {
+			p.prevShardInfo[sdKey] = *prevShardData
+			continue
+		}
+
+		prevShardData = p.getMatchingPrevShardData(currentShardData, previousHeader.ShardInfo)
+		if prevShardData != nil {
+			p.prevShardInfo[sdKey] = *prevShardData
+			continue
+		}
+
+		missingPreviousShardData[sdKey] = currentShardData
+	}
 
 	searchHeader := &block.MetaBlock{}
 	*searchHeader = *previousHeader
@@ -427,33 +449,6 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	}
 
 	return nil
-}
-
-func (p *validatorStatistics) getMissingPrevShardData(metaBlock *block.MetaBlock) map[string]block.ShardData {
-	missingPreviousShardData := make(map[string]block.ShardData)
-
-	for _, currentShardData := range metaBlock.ShardInfo {
-		if currentShardData.Nonce == 1 {
-			continue
-		}
-
-		sdKey := p.buildShardDataKey(currentShardData)
-		prevShardData := p.getMatchingPrevShardData(currentShardData, metaBlock.ShardInfo)
-		if prevShardData != nil {
-			p.prevShardInfo[sdKey] = *prevShardData
-			continue
-		}
-
-		prevShardData = p.getMatchingPrevShardData(currentShardData, metaBlock.ShardInfo)
-		if prevShardData != nil {
-			p.prevShardInfo[sdKey] = *prevShardData
-			continue
-		}
-
-		missingPreviousShardData[sdKey] = currentShardData
-	}
-
-	return missingPreviousShardData
 }
 
 func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlock) error {
