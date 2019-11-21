@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// DataPool indicates the main funcitonality needed in order to fetch the required blocks from the pool
+// DataPool indicates the main functionality needed in order to fetch the required blocks from the pool
 type DataPool interface {
 	MetaBlocks() storage.Cacher
 	IsInterfaceNil() bool

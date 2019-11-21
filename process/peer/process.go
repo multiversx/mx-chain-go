@@ -40,7 +40,7 @@ type validatorStatistics struct {
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
 	peerAdapter      state.AccountsAdapter
-	prevShardInfo    map[uint32]block.ShardData
+	prevShardInfo    map[string]block.ShardData
 	mutPrevShardInfo sync.RWMutex
 	mediator shardMetaMediator
 }
@@ -84,7 +84,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		dataPool:         arguments.DataPool,
 		storageService:   arguments.StorageService,
 		marshalizer:      arguments.Marshalizer,
-		prevShardInfo:    make(map[uint32]block.ShardData, 0),
+		prevShardInfo:    make(map[string]block.ShardData, 0),
 	}
 	vs.mediator = vs.createMediator()
 
@@ -144,10 +144,8 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
-	// TODO: Currently there is a bug that shards build a different meta genesis block.
-	//  Instead of returning the root hash, when this bug is fixed we should go on
-	//  with calculating missed blocks starting from genesis until
-	//  the first block was actually proposed.
+	// TODO: This should be removed when we have the genesis block in the storage also
+	//  and make sure to calculate gaps for the first block also
 	if header.GetNonce() == 1 {
 		return p.peerAdapter.RootHash()
 	}
@@ -260,14 +258,15 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 			continue
 		}
 
+		sdKey := p.buildShardDataKey(h)
 		p.mutPrevShardInfo.RLock()
-		prevShardData, prevDataOk := p.prevShardInfo[h.ShardID]
+		prevShardData, prevDataOk := p.prevShardInfo[sdKey]
 		p.mutPrevShardInfo.RUnlock()
 		if !prevDataOk {
 			return process.ErrMissingPrevShardData
 		}
 
-		log.Info(fmt.Sprintf("CALCULATE MISSING BLOCKS SHR: %d, PSHR: %d, PSHRS: %s, PSHID: %d", h.Round, prevShardData.Round, core.ToB64(prevShardData.PrevRandSeed), h.ShardID))
+		log.Info(fmt.Sprintf("CALCULATE MISSING BLOCKS SHR: %d, SHN:%d PSHR: %d, PSHN: %d,PSHRS: %s, PSHID: %d", h.Round, h.Nonce, prevShardData.Round, prevShardData.Nonce, core.ToB64(prevShardData.PrevRandSeed), h.ShardID))
 		shardInfoErr = p.checkForMissedBlocks(
 			h.Round,
 			prevShardData.Round,
@@ -397,29 +396,8 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	p.mutPrevShardInfo.Lock()
 	defer p.mutPrevShardInfo.Unlock()
 
-	p.prevShardInfo = make(map[uint32]block.ShardData)
-	missingPreviousShardData := make(map[uint32]block.ShardData)
-
-	for _, currentShardData := range currentHeader.ShardInfo {
-
-		if currentShardData.Nonce == 1 {
-			continue
-		}
-
-		prevShardData := p.getMatchingPrevShardData(currentShardData, currentHeader.ShardInfo)
-		if prevShardData != nil {
-			p.prevShardInfo[currentShardData.ShardID] = *prevShardData
-			continue
-		}
-
-		prevShardData = p.getMatchingPrevShardData(currentShardData, previousHeader.ShardInfo)
-		if prevShardData != nil {
-			p.prevShardInfo[currentShardData.ShardID] = *prevShardData
-			continue
-		}
-
-		missingPreviousShardData[currentShardData.ShardID] = currentShardData
-	}
+	p.prevShardInfo = make(map[string]block.ShardData)
+	missingPreviousShardData := p.getMissingPrevShardData(currentHeader)
 
 	searchHeader := &block.MetaBlock{}
 	*searchHeader = *previousHeader
@@ -432,14 +410,14 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 		if err != nil {
 			return err
 		}
-		for shardId, shardData := range missingPreviousShardData {
+		for key, shardData := range missingPreviousShardData {
 			prevShardData := p.getMatchingPrevShardData(shardData, recursiveHeader.ShardInfo)
 			if prevShardData == nil {
 				continue
 			}
 
-			p.prevShardInfo[shardId] = *prevShardData
-			delete(missingPreviousShardData, shardId)
+			p.prevShardInfo[key] = *prevShardData
+			delete(missingPreviousShardData, key)
 		}
 		*searchHeader = *recursiveHeader
 	}
@@ -449,6 +427,33 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	}
 
 	return nil
+}
+
+func (p *validatorStatistics) getMissingPrevShardData(metaBlock *block.MetaBlock) map[string]block.ShardData {
+	missingPreviousShardData := make(map[string]block.ShardData)
+
+	for _, currentShardData := range metaBlock.ShardInfo {
+		if currentShardData.Nonce == 1 {
+			continue
+		}
+
+		sdKey := p.buildShardDataKey(currentShardData)
+		prevShardData := p.getMatchingPrevShardData(currentShardData, metaBlock.ShardInfo)
+		if prevShardData != nil {
+			p.prevShardInfo[sdKey] = *prevShardData
+			continue
+		}
+
+		prevShardData = p.getMatchingPrevShardData(currentShardData, metaBlock.ShardInfo)
+		if prevShardData != nil {
+			p.prevShardInfo[sdKey] = *prevShardData
+			continue
+		}
+
+		missingPreviousShardData[sdKey] = currentShardData
+	}
+
+	return missingPreviousShardData
 }
 
 func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlock) error {
@@ -475,7 +480,8 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 			return err
 		}
 
-		p.prevShardInfo[shardData.ShardID] = block.ShardData{
+		sdKey := p.buildShardDataKey(shardData)
+		p.prevShardInfo[sdKey] = block.ShardData{
 			ShardID: previousHeader.ShardId,
 			Nonce: previousHeader.Nonce,
 			Round: previousHeader.Round,
@@ -497,6 +503,10 @@ func (p *validatorStatistics) getMatchingPrevShardData(currentShardData block.Sh
 	}
 
 	return nil
+}
+
+func (p *validatorStatistics) buildShardDataKey(sh block.ShardData) string {
+	return fmt.Sprintf("%d_%d", sh.ShardID, sh.Nonce)
 }
 
 func (p *validatorStatistics) createMediator() shardMetaMediator {

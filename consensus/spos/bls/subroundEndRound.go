@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -100,7 +101,10 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
 	// broadcast section
-
+	if sr.RoundIndex % 10 == 0 && sr.ShardCoordinator().SelfId() == sharding.MetachainShardId { time.Sleep(time.Duration(float64(sr.Rounder().TimeDuration()) * float64(2))) }
+	if sr.RoundIndex % 14 == 0 && sr.ShardCoordinator().SelfId() == 1 { time.Sleep(time.Duration(float64(sr.Rounder().TimeDuration()) * float64(2))) }
+	if sr.RoundIndex % 8 == 0 && sr.ShardCoordinator().SelfId() == 3 { time.Sleep(time.Duration(float64(sr.Rounder().TimeDuration()) * float64(2))) }
+	if sr.RoundIndex % 21 == 0 && sr.ShardCoordinator().SelfId() == 0 { time.Sleep(time.Duration(float64(sr.Rounder().TimeDuration()) * float64(2))) }
 	// broadcast block body and header
 	err = sr.BroadcastMessenger().BroadcastBlock(sr.BlockBody, sr.Header)
 	if err != nil {
