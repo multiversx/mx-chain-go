@@ -432,3 +432,14 @@ func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
 		return nil
 	}
 }
+
+// WithRequestedItemsHandler sets up a requested items handler for the Node
+func WithRequestedItemsHandler(requestedItemsHandler process.RequestedItemsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(requestedItemsHandler) {
+			return ErrNilRequestedItemsHandler
+		}
+		n.requestedItemsHandler = requestedItemsHandler
+		return nil
+	}
+}

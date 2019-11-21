@@ -545,6 +545,9 @@ var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 // ErrNilBlackListHandler signals that a nil black list handler was provided
 var ErrNilBlackListHandler = errors.New("nil black list handler")
 
+// ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
+var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
+
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
 

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -39,40 +40,45 @@ func NewRewardTxPreprocessor(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
+	requestedItemsHandler process.RequestedItemsHandler,
 ) (*rewardTxPreprocessor, error) {
 
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if rewardTxDataPool == nil || rewardTxDataPool.IsInterfaceNil() {
+	if check.IfNil(rewardTxDataPool) {
 		return nil, process.ErrNilRewardTxDataPool
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
-	if rewardProcessor == nil || rewardProcessor.IsInterfaceNil() {
+	if check.IfNil(rewardProcessor) {
 		return nil, process.ErrNilRewardsTxProcessor
 	}
-	if rewardProducer == nil || rewardProcessor.IsInterfaceNil() {
+	if check.IfNil(rewardProducer) {
 		return nil, process.ErrNilInternalTransactionProducer
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestRewardTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
+	if check.IfNil(requestedItemsHandler) {
+		return nil, process.ErrNilRequestedItemsHandler
+	}
 
 	bpp := &basePreProcess{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: shardCoordinator,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		shardCoordinator:      shardCoordinator,
+		requestedItemsHandler: requestedItemsHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -314,7 +320,10 @@ func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body block.Body) int {
 	for senderShardID, mbsRewardTxHashes := range missingRewardTxsForShards {
 		for _, mbRewardTxHashes := range mbsRewardTxHashes {
 			requestedRewardTxs += len(mbRewardTxHashes.txHashes)
-			rtp.onRequestRewardTx(senderShardID, mbRewardTxHashes.txHashes)
+			notRequestedTxHashes := rtp.getNotRequestedTxHashes(mbRewardTxHashes.txHashes)
+			if len(notRequestedTxHashes) > 0 {
+				rtp.onRequestRewardTx(senderShardID, notRequestedTxHashes)
+			}
 		}
 	}
 
@@ -383,8 +392,10 @@ func (rtp *rewardTxPreprocessor) RequestTransactionsForMiniBlock(miniBlock *bloc
 	}
 
 	missingRewardTxsForMiniBlock := rtp.computeMissingRewardTxsForMiniBlock(miniBlock)
-	if len(missingRewardTxsForMiniBlock) > 0 {
-		rtp.onRequestRewardTx(miniBlock.SenderShardID, missingRewardTxsForMiniBlock)
+
+	notRequestedTxHashes := rtp.getNotRequestedTxHashes(missingRewardTxsForMiniBlock)
+	if len(notRequestedTxHashes) > 0 {
+		rtp.onRequestRewardTx(miniBlock.SenderShardID, notRequestedTxHashes)
 	}
 
 	return len(missingRewardTxsForMiniBlock)
@@ -481,11 +492,13 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 		err := rtp.ProcessMiniBlock(mb, haveTime, round)
 		if err != nil {
 			log.Debug("reward txs ProcessMiniBlock", "error", err.Error())
+
 			errAccountState := rtp.accounts.RevertToSnapshot(snapshot)
 			if errAccountState != nil {
 				// TODO: evaluate if reloading the trie from disk will solve the problem
 				log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 			}
+
 			return nil, err
 		}
 	}

@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -99,10 +100,11 @@ type baseBootstrap struct {
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
-	headerStore          storage.Storer
-	headerNonceHashStore storage.Storer
-	hdrRes               dataRetriever.HeaderResolver
-	syncStarter          syncStarter
+	headerStore           storage.Storer
+	headerNonceHashStore  storage.Storer
+	hdrRes                dataRetriever.HeaderResolver
+	syncStarter           syncStarter
+	requestedItemsHandler process.RequestedItemsHandler
 }
 
 func (boot *baseBootstrap) loadBlocks(
@@ -368,6 +370,10 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, hash []byte) {
+	if shardId != boot.shardCoordinator.SelfId() {
+		return
+	}
+
 	log.Trace("received header from network",
 		"nonce", nonce,
 		"hash", hash,
@@ -537,6 +543,7 @@ func checkBootstrapNilParameters(
 	store dataRetriever.StorageService,
 	blackListHandler process.BlackListHandler,
 	watcher process.NetworkConnectionWatcher,
+	requestedItemsHandler process.RequestedItemsHandler,
 ) error {
 	if check.IfNil(blkc) {
 		return process.ErrNilBlockChain
@@ -574,6 +581,9 @@ func checkBootstrapNilParameters(
 	if check.IfNil(watcher) {
 		return process.ErrNilNetworkWatcher
 	}
+	if check.IfNil(requestedItemsHandler) {
+		return process.ErrNilRequestedItemsHandler
+	}
 
 	return nil
 }
@@ -608,6 +618,11 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	nbRequestedHdrs := 0
 	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
+		key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), currentNonce)
+		if boot.requestedItemsHandler.Has(key) {
+			continue
+		}
+
 		haveHeader := haveHeaderInPoolWithNonce(nonce)
 		if !haveHeader {
 			err := hdrRes.RequestDataFromNonce(currentNonce)
@@ -615,6 +630,8 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 				log.Debug("RequestDataFromNonce", "error", err.Error())
 				continue
 			}
+
+			boot.requestedItemsHandler.Add(key)
 
 			nbRequestedHdrs++
 		}

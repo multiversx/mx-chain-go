@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -33,7 +34,8 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock func(shardId uint32, mbHash []byte)
+	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
+	requestedItemsHandler process.RequestedItemsHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -44,24 +46,29 @@ func NewTransactionCoordinator(
 	requestHandler process.RequestHandler,
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
+	requestedItemsHandler process.RequestedItemsHandler,
 ) (*transactionCoordinator, error) {
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
+	if check.IfNil(miniBlockPool) {
 		return nil, process.ErrNilMiniBlockPool
 	}
-	if requestHandler == nil || requestHandler.IsInterfaceNil() {
+	if check.IfNil(requestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
-	if interProcessors == nil || interProcessors.IsInterfaceNil() {
+	if check.IfNil(interProcessors) {
 		return nil, process.ErrNilIntermediateProcessorContainer
 	}
-	if preProcessors == nil || preProcessors.IsInterfaceNil() {
+	if check.IfNil(preProcessors) {
 		return nil, process.ErrNilPreProcessorsContainer
+	}
+	if check.IfNil(requestedItemsHandler) {
+		return nil, process.ErrNilRequestedItemsHandler
 	}
 
 	tc := &transactionCoordinator{
@@ -73,6 +80,7 @@ func NewTransactionCoordinator(
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
+	tc.requestedItemsHandler = requestedItemsHandler
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
@@ -392,7 +400,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		miniVal, _ := tc.miniBlockPool.Peek([]byte(key))
 		if miniVal == nil {
-			go tc.onRequestMiniBlock(senderShardId, []byte(key))
+			if !tc.requestedItemsHandler.Has(key) {
+				go tc.onRequestMiniBlock(senderShardId, []byte(key))
+				tc.requestedItemsHandler.Add(key)
+			}
+
 			continue
 		}
 
@@ -649,7 +661,10 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 	for key, senderShardId := range crossMiniBlockHashes {
 		obj, _ := tc.miniBlockPool.Peek([]byte(key))
 		if obj == nil {
-			go tc.onRequestMiniBlock(senderShardId, []byte(key))
+			if !tc.requestedItemsHandler.Has(key) {
+				go tc.onRequestMiniBlock(senderShardId, []byte(key))
+				tc.requestedItemsHandler.Add(key)
+			}
 		}
 	}
 }
@@ -687,6 +702,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
 		log.Debug("ProcessMiniBlock", "error", err.Error())
+
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem

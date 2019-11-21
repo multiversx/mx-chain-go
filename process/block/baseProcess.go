@@ -41,12 +41,11 @@ type hdrInfo struct {
 }
 
 type hdrForBlock struct {
-	missingHdrs                    uint32
-	missingFinalityAttestingHdrs   uint32
-	requestedFinalityAttestingHdrs map[uint32][]uint64
-	highestHdrNonce                map[uint32]uint64
-	mutHdrsForBlock                sync.RWMutex
-	hdrHashAndInfo                 map[string]*hdrInfo
+	missingHdrs                  uint32
+	missingFinalityAttestingHdrs uint32
+	highestHdrNonce              map[uint32]uint64
+	mutHdrsForBlock              sync.RWMutex
+	hdrHashAndInfo               map[string]*hdrInfo
 }
 
 type mapShardHeaders map[uint32][]data.HeaderHandler
@@ -79,7 +78,8 @@ type baseProcessor struct {
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 
-	appStatusHandler core.AppStatusHandler
+	appStatusHandler      core.AppStatusHandler
+	requestedItemsHandler process.RequestedItemsHandler
 }
 
 func checkForNils(
@@ -462,7 +462,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	lastNotarizedHdrNonce := prevHdr.GetNonce()
-	highestHdr := prevHdr
 
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
@@ -485,21 +484,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 				missingNonces = append(missingNonces, j)
 			}
 		}
-
-		highestHdr = currHdr
-	}
-
-	// ask for headers, if there most probably should be
-	roundDiff := int64(maxRound) - int64(highestHdr.GetRound())
-	if roundDiff > 0 {
-		nonceDiff := int64(lastNotarizedHdrNonce) + process.MaxHeadersToRequestInAdvance - int64(highestHdr.GetNonce())
-		if nonceDiff > 0 {
-			nbHeadersToRequestInAdvance := core.MinUint64(uint64(roundDiff), uint64(nonceDiff))
-			startNonce := highestHdr.GetNonce() + 1
-			for nonce := startNonce; nonce < startNonce+nbHeadersToRequestInAdvance; nonce++ {
-				missingNonces = append(missingNonces, nonce)
-			}
-		}
 	}
 
 	requested := 0
@@ -518,8 +502,12 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			break
 		}
 
-		requested++
-		go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
+		key := fmt.Sprintf("%d-%d", shardId, nonce)
+		if !bp.requestedItemsHandler.Has(key) {
+			requested++
+			go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
+			bp.requestedItemsHandler.Add(key)
+		}
 	}
 
 	return nil
@@ -622,7 +610,6 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
-	bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	bp.txCoordinator.CreateBlockStarted()
 }
@@ -778,21 +765,6 @@ func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher st
 	return isHeaderOutOfRange
 }
 
-func (bp *baseProcessor) wasHeaderRequested(shardId uint32, nonce uint64) bool {
-	requestedNonces, ok := bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId]
-	if !ok {
-		return false
-	}
-
-	for _, requestedNonce := range requestedNonces {
-		if requestedNonce == nonce {
-			return true
-		}
-	}
-
-	return false
-}
-
 // requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for
 // processing the current block. It requests the finality headers greater than the highest header, for given shard,
 // related to the block which should be processed
@@ -816,11 +788,11 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
-			wasHeaderRequested := bp.wasHeaderRequested(shardId, i)
-			if !wasHeaderRequested {
+			key := fmt.Sprintf("%d-%d", shardId, i)
+			if !bp.requestedItemsHandler.Has(key) {
 				requestedHeaders++
-				bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId] = append(bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId], i)
 				go bp.onRequestHeaderHandlerByNonce(shardId, i)
+				bp.requestedItemsHandler.Add(key)
 			}
 
 			continue
@@ -963,6 +935,7 @@ func (bp *baseProcessor) getHeadersFromPools(
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
+	//TODO: This for could be deleted when the implementation of the new cache will be done
 	for _, headerHash := range cacher.Keys() {
 		val, _ := cacher.Peek(headerHash)
 		if val == nil {

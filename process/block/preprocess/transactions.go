@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -51,43 +52,48 @@ func NewTransactionPreprocessor(
 	onRequestTransaction func(shardID uint32, txHashes [][]byte),
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
+	requestedItemsHandler process.RequestedItemsHandler,
 ) (*transactions, error) {
 
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if txDataPool == nil || txDataPool.IsInterfaceNil() {
+	if check.IfNil(txDataPool) {
 		return nil, process.ErrNilTransactionPool
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilTxStorage
 	}
-	if txProcessor == nil || txProcessor.IsInterfaceNil() {
+	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
-	if economicsFee == nil || economicsFee.IsInterfaceNil() {
+	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if miniBlocksCompacter == nil || miniBlocksCompacter.IsInterfaceNil() {
+	if check.IfNil(miniBlocksCompacter) {
 		return nil, process.ErrNilMiniBlocksCompacter
+	}
+	if check.IfNil(requestedItemsHandler) {
+		return nil, process.ErrNilRequestedItemsHandler
 	}
 
 	bpp := basePreProcess{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: shardCoordinator,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		shardCoordinator:      shardCoordinator,
+		requestedItemsHandler: requestedItemsHandler,
 	}
 
 	txs := transactions{
@@ -307,7 +313,10 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 	for senderShardID, mbsTxHashes := range missingTxsForShards {
 		for _, mbTxHashes := range mbsTxHashes {
 			requestedTxs += len(mbTxHashes.txHashes)
-			txs.onRequestTransaction(senderShardID, mbTxHashes.txHashes)
+			notRequestedTxHashes := txs.getNotRequestedTxHashes(mbTxHashes.txHashes)
+			if len(notRequestedTxHashes) > 0 {
+				txs.onRequestTransaction(senderShardID, notRequestedTxHashes)
+			}
 		}
 	}
 
@@ -368,8 +377,10 @@ func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBl
 	}
 
 	missingTxsForMiniBlock := txs.computeMissingTxsForMiniBlock(miniBlock)
-	if len(missingTxsForMiniBlock) > 0 {
-		txs.onRequestTransaction(miniBlock.SenderShardID, missingTxsForMiniBlock)
+
+	notRequestedTxHashes := txs.getNotRequestedTxHashes(missingTxsForMiniBlock)
+	if len(notRequestedTxHashes) > 0 {
+		txs.onRequestTransaction(miniBlock.SenderShardID, notRequestedTxHashes)
 	}
 
 	return len(missingTxsForMiniBlock)

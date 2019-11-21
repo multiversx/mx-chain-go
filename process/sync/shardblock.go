@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -52,6 +53,7 @@ func NewShardBootstrap(
 	bootstrapRoundIndex uint64,
 	blackListHandler process.BlackListHandler,
 	networkWatcher process.NetworkConnectionWatcher,
+	requestedItemsHandler process.RequestedItemsHandler,
 ) (*ShardBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -80,27 +82,29 @@ func NewShardBootstrap(
 		store,
 		blackListHandler,
 		networkWatcher,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base := &baseBootstrap{
-		blkc:                blkc,
-		blkExecutor:         blkExecutor,
-		store:               store,
-		headers:             poolsHolder.Headers(),
-		headersNonces:       poolsHolder.HeadersNonces(),
-		rounder:             rounder,
-		waitTime:            waitTime,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		forkDetector:        forkDetector,
-		shardCoordinator:    shardCoordinator,
-		accounts:            accounts,
-		bootstrapRoundIndex: bootstrapRoundIndex,
-		blackListHandler:    blackListHandler,
-		networkWatcher:      networkWatcher,
+		blkc:                  blkc,
+		blkExecutor:           blkExecutor,
+		store:                 store,
+		headers:               poolsHolder.Headers(),
+		headersNonces:         poolsHolder.HeadersNonces(),
+		rounder:               rounder,
+		waitTime:              waitTime,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		forkDetector:          forkDetector,
+		shardCoordinator:      shardCoordinator,
+		accounts:              accounts,
+		bootstrapRoundIndex:   bootstrapRoundIndex,
+		blackListHandler:      blackListHandler,
+		networkWatcher:        networkWatcher,
+		requestedItemsHandler: requestedItemsHandler,
 	}
 
 	boot := ShardBootstrap{
@@ -459,15 +463,13 @@ func (boot *ShardBootstrap) SyncBlock() error {
 func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
-
-	log.Debug("requested header from network",
-		"nonce", nonce,
-		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
+		return
 	}
+
+	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
+	boot.requestedItemsHandler.Add(key)
 
 	log.Debug("requested header from network",
 		"nonce", nonce,
@@ -483,7 +485,10 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 	err := boot.hdrRes.RequestDataFromHash(hash)
 	if err != nil {
 		log.Debug("RequestDataFromHash", "error", err.Error())
+		return
 	}
+
+	boot.requestedItemsHandler.Add(string(hash))
 
 	log.Debug("requested header from network",
 		"hash", hash,
@@ -546,6 +551,11 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes)
 	if err != nil {
 		log.Debug("RequestDataFromHashArray", "error", err.Error())
+		return
+	}
+
+	for _, hash := range hashes {
+		boot.requestedItemsHandler.Add(string(hash))
 	}
 
 	log.Debug("requested mini blocks from network",
@@ -663,9 +673,13 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		return
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	hashes := make([][]byte, 0)
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
+		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
+			continue
+		}
+
+		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
@@ -674,6 +688,10 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		if err != nil {
 			log.Debug("RequestDataFromHashArray", "error", err.Error())
 			return
+		}
+
+		for _, hash := range missingMiniBlocksHashes {
+			boot.requestedItemsHandler.Add(string(hash))
 		}
 
 		log.Trace("requested in advance mini blocks",

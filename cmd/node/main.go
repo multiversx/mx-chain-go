@@ -50,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -687,6 +688,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesConfig.RoundDuration))
+
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
 		genesisConfig,
@@ -701,6 +704,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents,
 		networkComponents,
 		coreServiceContainer,
+		requestedItemsHandler,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1138,6 +1142,7 @@ func createNode(
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithBlackListHandler(process.BlackListHandler),
+		node.WithRequestedItemsHandler(process.RequestedItemsHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -44,6 +45,7 @@ func NewMetaBootstrap(
 	bootstrapRoundIndex uint64,
 	blackListHandler process.BlackListHandler,
 	networkWatcher process.NetworkConnectionWatcher,
+	requestedItemsHandler process.RequestedItemsHandler,
 ) (*MetaBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -69,27 +71,29 @@ func NewMetaBootstrap(
 		store,
 		blackListHandler,
 		networkWatcher,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base := &baseBootstrap{
-		blkc:                blkc,
-		blkExecutor:         blkExecutor,
-		store:               store,
-		headers:             poolsHolder.MetaBlocks(),
-		headersNonces:       poolsHolder.HeadersNonces(),
-		rounder:             rounder,
-		waitTime:            waitTime,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		forkDetector:        forkDetector,
-		shardCoordinator:    shardCoordinator,
-		accounts:            accounts,
-		bootstrapRoundIndex: bootstrapRoundIndex,
-		blackListHandler:    blackListHandler,
-		networkWatcher:      networkWatcher,
+		blkc:                  blkc,
+		blkExecutor:           blkExecutor,
+		store:                 store,
+		headers:               poolsHolder.MetaBlocks(),
+		headersNonces:         poolsHolder.HeadersNonces(),
+		rounder:               rounder,
+		waitTime:              waitTime,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		forkDetector:          forkDetector,
+		shardCoordinator:      shardCoordinator,
+		accounts:              accounts,
+		bootstrapRoundIndex:   bootstrapRoundIndex,
+		blackListHandler:      blackListHandler,
+		networkWatcher:        networkWatcher,
+		requestedItemsHandler: requestedItemsHandler,
 	}
 
 	boot := MetaBootstrap{
@@ -402,15 +406,13 @@ func (boot *MetaBootstrap) SyncBlock() error {
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
-
-	log.Debug("requested header from network",
-		"nonce", nonce,
-		"highest probable nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
+		return
 	}
+
+	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
+	boot.requestedItemsHandler.Add(key)
 
 	log.Debug("requested header from network",
 		"nonce", nonce,
@@ -426,7 +428,10 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	err := boot.hdrRes.RequestDataFromHash(hash)
 	if err != nil {
 		log.Debug("RequestDataFromHash", "error", err.Error())
+		return
 	}
+
+	boot.requestedItemsHandler.Add(string(hash))
 
 	log.Debug("requested header from network",
 		"hash", hash,

@@ -82,6 +82,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		txCoordinator:                 arguments.TxCoordinator,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 		rounder:                       arguments.Rounder,
+		requestedItemsHandler:         arguments.RequestedItemsHandler,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -101,7 +102,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
-	mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 
 	headerPool := mp.dataPool.ShardHeaders()
 	headerPool.RegisterHandler(mp.receivedShardHeader)
@@ -137,7 +137,10 @@ func (mp *metaProcessor) ProcessBlock(
 				"for shard", headerHandler.GetShardID(),
 			)
 
-			go mp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
+			if !mp.requestedItemsHandler.Has(string(headerHandler.GetPrevHash())) {
+				go mp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
+				mp.requestedItemsHandler.Add(string(headerHandler.GetPrevHash()))
+			}
 		}
 
 		return err
@@ -1158,7 +1161,12 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 			if shardHdr.GetNonce() == lastVerifiedHdr.GetNonce()+1 {
 				err := mp.isHdrConstructionValid(shardHdr, lastVerifiedHdr)
 				if err != nil {
-					go mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
+					key := fmt.Sprintf("%d-%d", shardHdr.GetShardID(), shardHdr.GetNonce())
+					if !mp.requestedItemsHandler.Has(key) {
+						go mp.removeHeaderFromPools(shardHdr, mp.dataPool.ShardHeaders(), mp.dataPool.HeadersNonces())
+						mp.requestedItemsHandler.Add(key)
+					}
+
 					log.Debug("isHdrConstructionValid", "error", err.Error())
 					continue
 				}
@@ -1169,7 +1177,12 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 		}
 
 		if nextBlocksVerified < mp.shardBlockFinality {
-			go mp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
+			key := fmt.Sprintf("%d-%d", lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
+			if !mp.requestedItemsHandler.Has(key) {
+				go mp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
+				mp.requestedItemsHandler.Add(key)
+			}
+
 			errFinal = process.ErrHeaderNotFinal
 		}
 	}
@@ -1329,7 +1342,10 @@ func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32
 	for shardId, shardHeaderHashes := range missingHeaderHashes {
 		for _, hash := range shardHeaderHashes {
 			mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: nil, usedInBlock: true}
-			go mp.onRequestHeaderHandler(shardId, hash)
+			if !mp.requestedItemsHandler.Has(string(hash)) {
+				go mp.onRequestHeaderHandler(shardId, hash)
+				mp.requestedItemsHandler.Add(string(hash))
+			}
 		}
 	}
 

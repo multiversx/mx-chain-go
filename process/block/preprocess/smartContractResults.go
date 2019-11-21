@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -39,37 +40,42 @@ func NewSmartContractResultPreprocessor(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
+	requestedItemsHandler process.RequestedItemsHandler,
 ) (*smartContractResults, error) {
 
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if scrDataPool == nil || scrDataPool.IsInterfaceNil() {
+	if check.IfNil(scrDataPool) {
 		return nil, process.ErrNilUTxDataPool
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilUTxStorage
 	}
-	if scrProcessor == nil || scrProcessor.IsInterfaceNil() {
+	if check.IfNil(scrProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if onRequestSmartContractResult == nil {
 		return nil, process.ErrNilRequestHandler
 	}
+	if check.IfNil(requestedItemsHandler) {
+		return nil, process.ErrNilRequestedItemsHandler
+	}
 
 	bpp := &basePreProcess{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: shardCoordinator,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		shardCoordinator:      shardCoordinator,
+		requestedItemsHandler: requestedItemsHandler,
 	}
 
 	scr := &smartContractResults{
@@ -287,7 +293,10 @@ func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 	for senderShardID, mbsTxHashes := range missingSCResultsForShards {
 		for _, mbTxHashes := range mbsTxHashes {
 			requestedSCResults += len(mbTxHashes.txHashes)
-			scr.onRequestSmartContractResult(senderShardID, mbTxHashes.txHashes)
+			notRequestedTxHashes := scr.getNotRequestedTxHashes(mbTxHashes.txHashes)
+			if len(notRequestedTxHashes) > 0 {
+				scr.onRequestSmartContractResult(senderShardID, notRequestedTxHashes)
+			}
 		}
 	}
 
@@ -354,8 +363,10 @@ func (scr *smartContractResults) RequestTransactionsForMiniBlock(miniBlock *bloc
 	}
 
 	missingScrsForMiniBlock := scr.computeMissingScrsForMiniBlock(miniBlock)
-	if len(missingScrsForMiniBlock) > 0 {
-		scr.onRequestSmartContractResult(miniBlock.SenderShardID, missingScrsForMiniBlock)
+
+	notRequestedTxHashes := scr.getNotRequestedTxHashes(missingScrsForMiniBlock)
+	if len(notRequestedTxHashes) > 0 {
+		scr.onRequestSmartContractResult(miniBlock.SenderShardID, notRequestedTxHashes)
 	}
 
 	return len(missingScrsForMiniBlock)

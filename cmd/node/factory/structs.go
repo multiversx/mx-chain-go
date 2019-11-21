@@ -160,6 +160,7 @@ type Process struct {
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
 	BlackListHandler      process.BlackListHandler
+	RequestedItemsHandler process.RequestedItemsHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -449,19 +450,20 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, co
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents       *coreComponentsFactoryArgs
-	genesisConfig        *sharding.Genesis
-	economicsData        *economics.EconomicsData
-	nodesConfig          *sharding.NodesSetup
-	syncer               ntp.SyncTimer
-	shardCoordinator     sharding.Coordinator
-	nodesCoordinator     sharding.NodesCoordinator
-	data                 *Data
-	core                 *Core
-	crypto               *Crypto
-	state                *State
-	network              *Network
-	coreServiceContainer serviceContainer.Core
+	coreComponents        *coreComponentsFactoryArgs
+	genesisConfig         *sharding.Genesis
+	economicsData         *economics.EconomicsData
+	nodesConfig           *sharding.NodesSetup
+	syncer                ntp.SyncTimer
+	shardCoordinator      sharding.Coordinator
+	nodesCoordinator      sharding.NodesCoordinator
+	data                  *Data
+	core                  *Core
+	crypto                *Crypto
+	state                 *State
+	network               *Network
+	coreServiceContainer  serviceContainer.Core
+	requestedItemsHandler process.RequestedItemsHandler
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -479,21 +481,23 @@ func NewProcessComponentsFactoryArgs(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
+	requestedItemsHandler process.RequestedItemsHandler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
-		coreComponents:       coreComponents,
-		genesisConfig:        genesisConfig,
-		economicsData:        economicsData,
-		nodesConfig:          nodesConfig,
-		syncer:               syncer,
-		shardCoordinator:     shardCoordinator,
-		nodesCoordinator:     nodesCoordinator,
-		data:                 data,
-		core:                 core,
-		crypto:               crypto,
-		state:                state,
-		network:              network,
-		coreServiceContainer: coreServiceContainer,
+		coreComponents:        coreComponents,
+		genesisConfig:         genesisConfig,
+		economicsData:         economicsData,
+		nodesConfig:           nodesConfig,
+		syncer:                syncer,
+		shardCoordinator:      shardCoordinator,
+		nodesCoordinator:      nodesCoordinator,
+		data:                  data,
+		core:                  core,
+		crypto:                crypto,
+		state:                 state,
+		network:               network,
+		coreServiceContainer:  coreServiceContainer,
+		requestedItemsHandler: requestedItemsHandler,
 	}
 }
 
@@ -579,6 +583,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
 		BlackListHandler:      blackListHandler,
+		RequestedItemsHandler: args.requestedItemsHandler,
 	}, nil
 }
 
@@ -1743,6 +1748,7 @@ func newBlockProcessor(
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			rounder,
+			processArgs.requestedItemsHandler,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1765,6 +1771,7 @@ func newBlockProcessor(
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
 			rounder,
+			processArgs.requestedItemsHandler,
 		)
 	}
 
@@ -1784,6 +1791,7 @@ func newShardBlockProcessor(
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	rounder consensus.Rounder,
+	requestedItemsHandler process.RequestedItemsHandler,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1929,6 +1937,7 @@ func newShardBlockProcessor(
 		internalTransactionProducer,
 		economics,
 		miniBlocksCompacter,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1946,6 +1955,7 @@ func newShardBlockProcessor(
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1977,6 +1987,7 @@ func newShardBlockProcessor(
 		BlockChainHook:        vmFactory.BlockChainHookImpl(),
 		TxCoordinator:         txCoordinator,
 		Rounder:               rounder,
+		RequestedItemsHandler: requestedItemsHandler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2011,6 +2022,7 @@ func newMetaBlockProcessor(
 	economics *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
+	requestedItemsHandler process.RequestedItemsHandler,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2120,6 +2132,7 @@ func newMetaBlockProcessor(
 		transactionProcessor,
 		economics,
 		miniBlocksCompacter,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2137,6 +2150,7 @@ func newMetaBlockProcessor(
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2179,6 +2193,7 @@ func newMetaBlockProcessor(
 		TxCoordinator:                txCoordinator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		Rounder:                      rounder,
+		RequestedItemsHandler:        requestedItemsHandler,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,
