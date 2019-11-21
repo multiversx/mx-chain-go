@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -25,7 +24,6 @@ func NewTestElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	logger *logger.Logger,
 	options *Options,
 ) ElasticIndexer {
 
@@ -36,8 +34,14 @@ func NewTestElasticIndexer(
 	}
 
 	es, _ := elasticsearch.NewClient(cfg)
-	indexer := elasticIndexer{es, shardCoordinator,
-		marshalizer, hasher, logger, options, false}
+	indexer := elasticIndexer{
+		db:               es,
+		shardCoordinator: shardCoordinator,
+		marshalizer:      marshalizer,
+		hasher:           hasher,
+		options:          options,
+		isNilIndexer:     false,
+	}
 
 	return ElasticIndexer{indexer}
 }

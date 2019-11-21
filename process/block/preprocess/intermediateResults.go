@@ -193,7 +193,7 @@ func (irp *intermediateResultsProcessor) SaveCurrentIntermediateTxToStorage() er
 
 		errNotCritical := irp.store.Put(dataRetriever.UnsignedTransactionUnit, irp.hasher.Compute(string(buff)), buff)
 		if errNotCritical != nil {
-			log.Error(errNotCritical.Error())
+			log.Debug("UnsignedTransactionUnit.Put", "error", errNotCritical.Error())
 		}
 	}
 

@@ -172,7 +172,7 @@ type ElasticSearchConfig struct {
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
 type FacadeConfig struct {
-	RestApiPort       string
+	RestApiInterface  string
 	PprofEnabled      bool
 	Prometheus        bool
 	PrometheusJoinURL string

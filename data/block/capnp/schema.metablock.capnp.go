@@ -874,9 +874,9 @@ func (s ShardDataCapn_List) Set(i int, item ShardDataCapn) { C.PointerList(s).Se
 
 type MetaBlockCapn C.Struct
 
-func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(32, 10)) }
-func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(32, 10)) }
-func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(32, 10)) }
+func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(32, 11)) }
+func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(32, 11)) }
+func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(32, 11)) }
 func ReadRootMetaBlockCapn(s *C.Segment) MetaBlockCapn { return MetaBlockCapn(s.Root(0).ToStruct()) }
 func (s MetaBlockCapn) Nonce() uint64                  { return C.Struct(s).Get64(0) }
 func (s MetaBlockCapn) SetNonce(v uint64)              { C.Struct(s).Set64(0, v) }
@@ -896,27 +896,29 @@ func (s MetaBlockCapn) PeerInfo() PeerDataCapn_List {
 func (s MetaBlockCapn) SetPeerInfo(v PeerDataCapn_List) { C.Struct(s).SetObject(1, C.Object(v)) }
 func (s MetaBlockCapn) Signature() []byte               { return C.Struct(s).GetObject(2).ToData() }
 func (s MetaBlockCapn) SetSignature(v []byte)           { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) PubKeysBitmap() []byte           { return C.Struct(s).GetObject(3).ToData() }
-func (s MetaBlockCapn) SetPubKeysBitmap(v []byte)       { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) PrevHash() []byte                { return C.Struct(s).GetObject(4).ToData() }
-func (s MetaBlockCapn) SetPrevHash(v []byte)            { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) PrevRandSeed() []byte            { return C.Struct(s).GetObject(5).ToData() }
-func (s MetaBlockCapn) SetPrevRandSeed(v []byte)        { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) RandSeed() []byte                { return C.Struct(s).GetObject(6).ToData() }
-func (s MetaBlockCapn) SetRandSeed(v []byte)            { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) RootHash() []byte                { return C.Struct(s).GetObject(7).ToData() }
-func (s MetaBlockCapn) SetRootHash(v []byte)            { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) ValidatorStatsRootHash() []byte  { return C.Struct(s).GetObject(8).ToData() }
+func (s MetaBlockCapn) LeaderSignature() []byte         { return C.Struct(s).GetObject(3).ToData() }
+func (s MetaBlockCapn) SetLeaderSignature(v []byte)     { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) PubKeysBitmap() []byte           { return C.Struct(s).GetObject(4).ToData() }
+func (s MetaBlockCapn) SetPubKeysBitmap(v []byte)       { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) PrevHash() []byte                { return C.Struct(s).GetObject(5).ToData() }
+func (s MetaBlockCapn) SetPrevHash(v []byte)            { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) PrevRandSeed() []byte            { return C.Struct(s).GetObject(6).ToData() }
+func (s MetaBlockCapn) SetPrevRandSeed(v []byte)        { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) RandSeed() []byte                { return C.Struct(s).GetObject(7).ToData() }
+func (s MetaBlockCapn) SetRandSeed(v []byte)            { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) RootHash() []byte                { return C.Struct(s).GetObject(8).ToData() }
+func (s MetaBlockCapn) SetRootHash(v []byte)            { C.Struct(s).SetObject(8, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) ValidatorStatsRootHash() []byte  { return C.Struct(s).GetObject(9).ToData() }
 func (s MetaBlockCapn) SetValidatorStatsRootHash(v []byte) {
-	C.Struct(s).SetObject(8, s.Segment.NewData(v))
+	C.Struct(s).SetObject(9, s.Segment.NewData(v))
 }
 func (s MetaBlockCapn) TxCount() uint32     { return C.Struct(s).Get32(12) }
 func (s MetaBlockCapn) SetTxCount(v uint32) { C.Struct(s).Set32(12, v) }
 func (s MetaBlockCapn) MiniBlockHeaders() MiniBlockHeaderCapn_List {
-	return MiniBlockHeaderCapn_List(C.Struct(s).GetObject(9))
+	return MiniBlockHeaderCapn_List(C.Struct(s).GetObject(10))
 }
 func (s MetaBlockCapn) SetMiniBlockHeaders(v MiniBlockHeaderCapn_List) {
-	C.Struct(s).SetObject(9, C.Object(v))
+	C.Struct(s).SetObject(10, C.Object(v))
 }
 func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
@@ -1075,6 +1077,25 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Signature()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"leaderSignature\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.LeaderSignature()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -1432,6 +1453,25 @@ func (s MetaBlockCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	_, err = b.WriteString("leaderSignature = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.LeaderSignature()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
 	_, err = b.WriteString("pubKeysBitmap = ")
 	if err != nil {
 		return err
@@ -1610,7 +1650,7 @@ func (s MetaBlockCapn) MarshalCapLit() ([]byte, error) {
 type MetaBlockCapn_List C.PointerList
 
 func NewMetaBlockCapnList(s *C.Segment, sz int) MetaBlockCapn_List {
-	return MetaBlockCapn_List(s.NewCompositeList(32, 10, sz))
+	return MetaBlockCapn_List(s.NewCompositeList(32, 11, sz))
 }
 func (s MetaBlockCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s MetaBlockCapn_List) At(i int) MetaBlockCapn {
