@@ -2,8 +2,6 @@ source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 
 generateConfig() {
   echo "Generating configuration using values from scripts/variables.sh..."
-  cd $CONFIGGENERATORDIR
-  go build ./...
 
   ./filegen \
     -mint-value $MINT_VALUE                               \

@@ -1,7 +1,8 @@
 # These paths must be absolute
 export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
 export TESTNETDIR="$HOME/work/Elrond/testnet"
-export CONFIGGENERATORDIR="$ELRONDDIR/../elrond-deploy-go"
+export CONFIGGENERATORDIR="$(dirname $ELRONDDIR)/elrond-deploy-go/cmd/filegen"
+export CONFIGGENERATOR="$CONFIGGENERATORDIR/filegen"
 export NODEDIR="$ELRONDDIR/cmd/node"
 export NODE="$NODEDIR/node"
 export SEEDNODEDIR="$ELRONDDIR/cmd/seednode"
