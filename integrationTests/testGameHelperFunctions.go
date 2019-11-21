@@ -54,7 +54,7 @@ func PlayerJoinsGame(
 			value:    joinGameVal,
 			rcvAddr:  scAddress,
 			sndAddr:  player.Address.Bytes(),
-			data:     fmt.Sprintf("joinGame@%X", round),
+			data:     fmt.Sprintf("joinGame@00%X", round),
 			gasLimit: 5000,
 			gasPrice: MinTxGasPrice,
 		})
@@ -86,7 +86,7 @@ func NodeCallsRewardAndSend(
 			value:    big.NewInt(0),
 			rcvAddr:  scAddress,
 			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
-			data:     fmt.Sprintf("rewardAndSendToWallet@%X@%s@%X", round, hex.EncodeToString(winnerAddress), prize),
+			data:     fmt.Sprintf("rewardAndSendToWallet@00%X@%s@00%X", round, hex.EncodeToString(winnerAddress), prize),
 			gasLimit: 30000,
 			gasPrice: MinTxGasPrice,
 		})
@@ -122,7 +122,7 @@ func NodeDoesWithdraw(
 			value:    big.NewInt(0),
 			rcvAddr:  scAddress,
 			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
-			data:     fmt.Sprintf("withdraw@%X", withdrawValue.Uint64()),
+			data:     fmt.Sprintf("withdraw@00%X", withdrawValue.Uint64()),
 			gasLimit: 5000,
 			gasPrice: MinTxGasPrice,
 		})
