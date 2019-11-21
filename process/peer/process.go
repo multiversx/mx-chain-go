@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -16,8 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
-
-var log = logger.DefaultLogger()
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
@@ -129,7 +125,6 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 // UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
-	currRh, _ := p.peerAdapter.RootHash()
 	if header.GetNonce() == 0 {
 		return p.peerAdapter.RootHash()
 	}
@@ -169,9 +164,6 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 	if err != nil {
 		return nil, err
 	}
-
-	rh, _ := p.peerAdapter.RootHash()
-	log.Info(fmt.Sprintf("UPDATE PEER STATE FOR HEADER %d From %s TO %s", header.GetNonce(), core.ToB64(currRh), core.ToB64(rh)))
 
 	return p.peerAdapter.RootHash()
 }
@@ -266,7 +258,6 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 			return process.ErrMissingPrevShardData
 		}
 
-		log.Info(fmt.Sprintf("CALCULATE MISSING BLOCKS SHR: %d, SHN:%d PSHR: %d, PSHN: %d,PSHRS: %s, PSHID: %d", h.Round, h.Nonce, prevShardData.Round, prevShardData.Nonce, core.ToB64(prevShardData.PrevRandSeed), h.ShardID))
 		shardInfoErr = p.checkForMissedBlocks(
 			h.Round,
 			prevShardData.Round,
@@ -393,6 +384,20 @@ func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountH
 //  to iterate through past metachain headers until we find all the ShardData we are interested in
 func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHeader *block.MetaBlock) error {
 
+	missingPreviousShardData := p.loadExistingPrevShardData(currentHeader, previousHeader)
+	missingPreviousShardData, err := p.loadMissingPrevShardDataFromStorage(missingPreviousShardData, previousHeader)
+	if err != nil {
+		return err
+	}
+
+	if len(missingPreviousShardData) > 0 {
+		return process.ErrMissingShardDataInStorage
+	}
+
+	return nil
+}
+
+func (p *validatorStatistics) loadExistingPrevShardData(currentHeader, previousHeader *block.MetaBlock) map[string]block.ShardData {
 	p.mutPrevShardInfo.Lock()
 	defer p.mutPrevShardInfo.Unlock()
 
@@ -400,7 +405,6 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 	missingPreviousShardData := make(map[string]block.ShardData)
 
 	for _, currentShardData := range currentHeader.ShardInfo {
-
 		if currentShardData.Nonce == 1 {
 			continue
 		}
@@ -421,6 +425,13 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 		missingPreviousShardData[sdKey] = currentShardData
 	}
 
+	return missingPreviousShardData
+}
+
+func (p *validatorStatistics) loadMissingPrevShardDataFromStorage(missingPreviousShardData map[string]block.ShardData, previousHeader *block.MetaBlock) (map[string]block.ShardData, error) {
+	p.mutPrevShardInfo.Lock()
+	defer p.mutPrevShardInfo.Unlock()
+
 	searchHeader := &block.MetaBlock{}
 	*searchHeader = *previousHeader
 	for len(missingPreviousShardData) > 0 {
@@ -430,7 +441,7 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 
 		recursiveHeader, err := process.GetMetaHeader(searchHeader.GetPrevHash(), p.dataPool.MetaBlocks(), p.marshalizer, p.storageService)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for key, shardData := range missingPreviousShardData {
 			prevShardData := p.getMatchingPrevShardData(shardData, recursiveHeader.ShardInfo)
@@ -444,11 +455,7 @@ func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHe
 		*searchHeader = *recursiveHeader
 	}
 
-	if len(missingPreviousShardData) > 0 {
-		return process.ErrMissingShardDataInStorage
-	}
-
-	return nil
+	return missingPreviousShardData, nil
 }
 
 func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlock) error {
