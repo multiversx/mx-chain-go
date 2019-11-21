@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
 const ownerKey = "owner"
 const initialStakeKey = "initialStake"
@@ -117,20 +117,22 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	if data != nil {
 		err := json.Unmarshal(data, &registrationData)
 		if err != nil {
-			log.Error("unmarshal error on staking smart contract stake function " + err.Error())
+			log.Debug("unmarshal error on staking SC stake function",
+				"error", err.Error(),
+			)
 			return vmcommon.UserError
 		}
 	}
 
 	if registrationData.Staked == true {
-		log.Error("account already staked, re-staking is invalid")
+		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.UserError
 	}
 
 	registrationData.Staked = true
 
 	if len(args.Arguments) < 1 {
-		log.Error("not enough arguments to process stake function")
+		log.Debug("not enough arguments to process stake function")
 		return vmcommon.UserError
 	}
 
@@ -140,7 +142,9 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	data, err := json.Marshal(registrationData)
 	if err != nil {
-		log.Error("marshal error on staking smart contract stake function " + err.Error())
+		log.Debug("marshal error on staking SC stake function ",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 
@@ -153,13 +157,15 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	var registrationData StakingData
 	data := r.eei.GetStorage(args.CallerAddr)
 	if data == nil {
-		log.Error("unStake is not possible for address which is not staked")
+		log.Debug("unStake is not possible for address which is not staked")
 		return vmcommon.UserError
 	}
 
 	err := json.Unmarshal(data, &registrationData)
 	if err != nil {
-		log.Error("unmarshal error in unStake function of staking smart contract " + err.Error())
+		log.Debug("unmarshal error in unStake function of staking SC",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 
@@ -173,7 +179,9 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	data, err = json.Marshal(registrationData)
 	if err != nil {
-		log.Error("marshal error in unStake function of staking smart contract" + err.Error())
+		log.Debug("marshal error in unStake function of staking SC",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 
@@ -192,18 +200,20 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	err := json.Unmarshal(data, &registrationData)
 	if err != nil {
-		log.Error("unmarshal error in unBound function of staking smart contract " + err.Error())
+		log.Debug("unmarshal error on finalize unstake function",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked == true || registrationData.UnStakedNonce <= registrationData.StartNonce {
-		log.Error("unBound is not possible for address with is staked")
+	if registrationData.Staked || registrationData.UnStakedNonce <= registrationData.StartNonce {
+		log.Debug("unBound is not possible for address which is staked or is not in unbound period")
 		return vmcommon.UserError
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBoundPeriod {
-		log.Error("unBound is not possible for address because unbound period did not pass")
+		log.Debug("unBound is not possible for address because unbound period did not pass")
 		return vmcommon.UserError
 	}
 
@@ -212,7 +222,9 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	err = r.eei.Transfer(args.CallerAddr, ownerAddress, registrationData.StakeValue, nil)
 	if err != nil {
-		log.Error("transfer error on finalizeUnStake function " + err.Error())
+		log.Debug("transfer error on finalizeUnStake function",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 
@@ -222,12 +234,12 @@ func (r *stakingSC) unBound(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
-		log.Error("slash function called by not the owners address")
+		log.Debug("slash function called by not the owners address")
 		return vmcommon.UserError
 	}
 
 	if len(args.Arguments) != 2 {
-		log.Error("slash function called by wrong number of arguments")
+		log.Debug("slash function called by wrong number of arguments")
 		return vmcommon.UserError
 	}
 
@@ -239,12 +251,14 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 	err := json.Unmarshal(data, &registrationData)
 	if err != nil {
-		log.Error("unmarshal error on slash function" + err.Error())
+		log.Debug("unmarshal error on slash function",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 
 	if !registrationData.Staked {
-		log.Error("cannot slash already unstaked or user not staked")
+		log.Debug("cannot slash already unstaked or user not staked")
 		return vmcommon.UserError
 	}
 
@@ -254,7 +268,9 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	data, err = json.Marshal(registrationData)
 	if err != nil {
-		log.Error("marshal error in slash function of staking smart contract" + err.Error())
+		log.Debug("marshal error in slash function of staking smart contract",
+			"error", err.Error(),
+		)
 		return vmcommon.UserError
 	}
 

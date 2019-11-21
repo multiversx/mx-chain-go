@@ -6,9 +6,12 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/dataValidators")
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
@@ -53,7 +56,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	accountHandler, err := txv.accounts.GetExistingAccount(sndAddr)
 	if err != nil {
 		sndAddrBytes := sndAddr.Bytes()
-		return errors.New(fmt.Sprintf("Transaction's sender address %s does not exist in current shard %d",
+		return errors.New(fmt.Sprintf("transaction's sender address %s does not exist in current shard %d",
 			hex.EncodeToString(sndAddrBytes),
 			shardId))
 	}
@@ -71,14 +74,14 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	account, ok := accountHandler.(*state.Account)
 	if !ok {
 		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
-		return errors.New(fmt.Sprintf("Cannot convert account handler in a state.Account %s", hexSenderAddr))
+		return errors.New(fmt.Sprintf("cannot convert account handler in a state.Account %s", hexSenderAddr))
 	}
 
 	accountBalance := account.Balance
 	txTotalValue := interceptedTx.TotalValue()
 	if accountBalance.Cmp(txTotalValue) < 0 {
 		txv.rejectedTxs++
-		return errors.New(fmt.Sprintf("Insufficient balance. Needed %d ERD, account has %d ERD", txTotalValue, accountBalance))
+		return errors.New(fmt.Sprintf("insufficient balance. Needed %d, account has %d", txTotalValue, accountBalance))
 	}
 
 	return nil
