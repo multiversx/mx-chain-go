@@ -252,6 +252,9 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) bool {
 		}
 
 		neededHdr, err := t.getHeaderWithNonceAndPrevHash(nonce, currHash)
+		if err != nil {
+			continue
+		}
 
 		err = t.headerValidator.IsHeaderConstructionValid(neededHdr, currHdr)
 		if err != nil {
@@ -266,11 +269,10 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) bool {
 		for nonce := currHdr.Nonce + 1; nonce <= currHdr.Nonce+t.finality; nonce++ {
 			go t.requestHandler.RequestHeaderByNonce(sharding.MetachainShardId, nonce)
 		}
-	} else {
-		return true
+		return false
 	}
 
-	return false
+	return true
 }
 
 // call only if mutex is locked before
