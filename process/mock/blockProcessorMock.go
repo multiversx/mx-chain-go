@@ -22,7 +22,6 @@ type BlockProcessorMock struct {
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
-	HeaderCopyCalled                 func(hdr data.HeaderHandler) data.HeaderHandler
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
@@ -84,10 +83,6 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 		return bpm.RevertStateToBlock(header)
 	}
 	return nil
-}
-
-func (bpm *BlockProcessorMock) HeaderCopy(hdr data.HeaderHandler) data.HeaderHandler {
-	return bpm.HeaderCopyCalled(hdr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

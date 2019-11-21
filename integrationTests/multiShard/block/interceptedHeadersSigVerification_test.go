@@ -236,20 +236,59 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 		assert.True(t, ok)
 		assert.Equal(t, header, v)
 	}
+}
 
-	// ----------------
-	// now we send a block with a wrong randomness -> should not arrive in pools
+func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeendShouldNotBeAccepted(t *testing.T) {
+	nodesPerShard := 4
+	nbMetaNodes := 4
+	nbShards := 1
+	consensusGroupSize := 3
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	singleSigner := getBlockSingleSignerStub()
+	keyGen := signing.NewKeyGenerator(kyber.NewSuitePairingBn256())
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+		singleSigner,
+		keyGen,
+	)
+
+	for _, nodes := range nodesMap {
+		integrationTests.DisplayAndStartNodes(nodes)
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	fmt.Println("Shard node generating header and block body...")
+
 	wrongRandomness := []byte("wrong randomness")
-	round = 2
-	nonce = 2
-	body, header, _, _ = integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness)
+	round := uint64(2)
+	nonce := uint64(2)
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, wrongRandomness)
 
 	nodesMap[0][0].BroadcastBlock(body, header)
 
 	time.Sleep(broadcastDelay)
 
-	headerBytes, _ = integrationTests.TestMarshalizer.Marshal(header)
-	headerHash = integrationTests.TestHasher.Compute(string(headerBytes))
+	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
+	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
 	for _, metaNode := range nodesMap[sharding.MetachainShardId] {

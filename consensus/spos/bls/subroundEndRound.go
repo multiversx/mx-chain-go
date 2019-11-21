@@ -140,10 +140,10 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 }
 
 func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
-	headerCopy := sr.BlockProcessor().HeaderCopy(sr.Header)
-	headerCopy.SetLeaderSignature(nil)
+	headerClone := sr.Header.Clone()
+	headerClone.SetLeaderSignature(nil)
 
-	marshalizedHdr, err := sr.Marshalizer().Marshal(headerCopy)
+	marshalizedHdr, err := sr.Marshalizer().Marshal(headerClone)
 	if err != nil {
 		return nil, err
 	}

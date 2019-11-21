@@ -219,7 +219,6 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
-	HeaderCopy(hdr data.HeaderHandler) data.HeaderHandler
 	IsInterfaceNil() bool
 }
 
@@ -420,7 +419,7 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorSettingsHandler
+// ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
 	UnBoundPeriod() uint64
 	StakeValue() *big.Int

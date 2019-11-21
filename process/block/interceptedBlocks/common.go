@@ -66,53 +66,45 @@ func (hsv *headerSigVerifier) verifySig(header data.HeaderHandler) error {
 	return verifier.Verify(hash, bitmap)
 }
 
-func (hsv *headerSigVerifier) verifyRandSeed(header data.HeaderHandler) error {
-	prevRandSeed := header.GetPrevRandSeed()
-	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
+func (hsv *headerSigVerifier) verifyRandSeedAndLeaderSignature(header data.HeaderHandler) error {
+	leaderPubKey, err := hsv.getLeader(header)
 	if err != nil {
 		return err
 	}
 
-	randSeed := header.GetRandSeed()
-	leaderPubKeyValidator := headerConsensusGroup[0]
-	leaderPubKey, err := hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
+	err = hsv.verifyRandSeed(leaderPubKey, header)
 	if err != nil {
 		return err
 	}
 
-	err = hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return hsv.verifyLeaderSignature(leaderPubKey, header)
 }
 
-func (hsv *headerSigVerifier) verifyLeaderSignature(header data.HeaderHandler) error {
+func (hsv *headerSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
 	prevRandSeed := header.GetPrevRandSeed()
-	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
-	if err != nil {
-		return err
-	}
+	randSeed := header.GetRandSeed()
+	return hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)
+}
 
-	leaderPubKeyValidator := headerConsensusGroup[0]
-	leaderPubKey, err := hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
-	if err != nil {
-		return err
-	}
-
+func (hsv *headerSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
 	headerCopy := hsv.copyHeaderWithoutLeaderSig(header)
 	headerBytes, err := hsv.marshalizer.Marshal(&headerCopy)
 	if err != nil {
 		return err
 	}
 
-	err = hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
+	return hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
+}
+
+func (hsv *headerSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
+	prevRandSeed := header.GetPrevRandSeed()
+	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, header.GetRound(), header.GetShardID())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	leaderPubKeyValidator := headerConsensusGroup[0]
+	return hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
 }
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {

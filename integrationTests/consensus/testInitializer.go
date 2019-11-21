@@ -329,9 +329,6 @@ func createConsensusOnlyNode(
 		CreateNewHeaderCalled: func() data.HeaderHandler {
 			return &dataBlock.Header{}
 		},
-		HeaderCopyCalled: func(hdr data.HeaderHandler) data.HeaderHandler {
-			return &dataBlock.Header{}
-		},
 	}
 
 	blockProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {

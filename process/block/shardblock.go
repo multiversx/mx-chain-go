@@ -1673,15 +1673,6 @@ func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return &header
 }
 
-// HeaderCopy will return a copy of the header
-func (sp *shardProcessor) HeaderCopy(hdr data.HeaderHandler) data.HeaderHandler {
-	//it is virtually impossible here to have a wrong type assertion case
-	header := hdr.(*block.Header)
-	headerCopy := *header
-
-	return &headerCopy
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *shardProcessor) IsInterfaceNil() bool {
 	if sp == nil {

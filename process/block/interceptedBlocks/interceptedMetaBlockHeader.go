@@ -108,12 +108,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	err = imh.sigVerifier.verifyRandSeed(imh.hdr)
-	if err != nil {
-		return err
-	}
-
-	err = imh.sigVerifier.verifyLeaderSignature(imh.hdr)
+	err = imh.sigVerifier.verifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
 	}

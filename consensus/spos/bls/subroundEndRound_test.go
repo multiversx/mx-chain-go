@@ -447,14 +447,11 @@ func TestSubroundEndRound_CheckIfSignatureIsFilled(t *testing.T) {
 	t.Parallel()
 
 	expectedSignature := []byte("signature")
-	// a header with nonce 100 is returned in HeaderCopy stub method of block processor
-	header := block.Header{Nonce: 100}
 	container := mock.InitConsensusCore()
 	singleSigner := &mock.SingleSignerMock{
 		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 			var receivedHdr block.Header
 			_ = container.Marshalizer().Unmarshal(&receivedHdr, msg)
-			assert.Equal(t, header.Nonce, receivedHdr.Nonce)
 			return expectedSignature, nil
 		},
 	}

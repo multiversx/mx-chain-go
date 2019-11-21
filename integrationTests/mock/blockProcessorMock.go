@@ -25,7 +25,6 @@ type BlockProcessorMock struct {
 	SetConsensusDataCalled           func(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	CreateNewHeaderCalled            func() data.HeaderHandler
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
-	HeaderCopyCalled                 func(hdr data.HeaderHandler) data.HeaderHandler
 }
 
 // ProcessBlock mocks pocessing a block
@@ -112,10 +111,6 @@ func (blProcMock BlockProcessorMock) SetConsensusData(randomness []byte, round u
 	if blProcMock.SetConsensusDataCalled != nil {
 		blProcMock.SetConsensusDataCalled(randomness, round, epoch, shardId)
 	}
-}
-
-func (blProcMock *BlockProcessorMock) HeaderCopy(hdr data.HeaderHandler) data.HeaderHandler {
-	return blProcMock.HeaderCopyCalled(hdr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

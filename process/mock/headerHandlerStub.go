@@ -1,5 +1,9 @@
 package mock
 
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+)
+
 type HeaderHandlerStub struct {
 	GetMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
 	GetPubKeysBitmapCalled           func() []byte
@@ -8,6 +12,10 @@ type HeaderHandlerStub struct {
 	GetRandSeedCalled                func() []byte
 	GetPrevRandSeedCalled            func() []byte
 	GetPrevHashCalled                func() []byte
+}
+
+func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
+	return &*hhs
 }
 
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {

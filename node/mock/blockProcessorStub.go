@@ -23,7 +23,6 @@ type BlockProcessorStub struct {
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func() data.HeaderHandler
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
-	HeaderCopyCalled                 func(hdr data.HeaderHandler) data.HeaderHandler
 }
 
 // ProcessBlock mocks pocessing a block
@@ -90,10 +89,6 @@ func (blProcMock BlockProcessorStub) SetConsensusData(randomness []byte, round u
 // CreateNewHeader creates a new header
 func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
-}
-
-func (blProcMock *BlockProcessorStub) HeaderCopy(hdr data.HeaderHandler) data.HeaderHandler {
-	return blProcMock.HeaderCopyCalled(hdr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
