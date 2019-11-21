@@ -12,7 +12,7 @@ import (
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
 	hdr               *block.Header
-	sigVerifier       *headerMultiSigVerifier
+	sigVerifier       *headerSigVerifier
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	hash              []byte
@@ -31,11 +31,13 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		return nil, err
 	}
 
-	sigVerifier := &headerMultiSigVerifier{
-		marshalizer:      arg.Marshalizer,
-		hasher:           arg.Hasher,
-		nodesCoordinator: arg.NodesCoordinator,
-		multiSigVerifier: arg.MultiSigVerifier,
+	sigVerifier := &headerSigVerifier{
+		marshalizer:       arg.Marshalizer,
+		hasher:            arg.Hasher,
+		nodesCoordinator:  arg.NodesCoordinator,
+		multiSigVerifier:  arg.MultiSigVerifier,
+		singleSigVerifier: arg.SingleSigVerifier,
+		keyGen:            arg.KeyGen,
 	}
 
 	inHdr := &InterceptedHeader{
@@ -86,6 +88,11 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
 	err := inHdr.integrity()
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.sigVerifier.verifyRandSeed(inHdr.hdr)
 	if err != nil {
 		return err
 	}

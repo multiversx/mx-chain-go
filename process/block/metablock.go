@@ -914,19 +914,6 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (mp *metaProcessor) RevertAccountState() {
-	err := mp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Error(err.Error())
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
-	if err != nil {
-		log.Error(err.Error())
-	}
-}
-
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
 	metaBlockStore := mp.store.GetStorer(dataRetriever.MetaBlockUnit)
 	buff, err := metaBlockStore.Get(header.GetPrevHash())

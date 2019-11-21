@@ -9,8 +9,8 @@ type ValidatorStatisticsProcessorMock struct {
 	RevertPeerStateCalled           func(header data.HeaderHandler) error
 	IsInterfaceNilCalled            func() bool
 	RevertPeerStateToSnapshotCalled func(snapshot int) error
-	CommitCalled func() ([]byte, error)
-	RootHashCalled func() ([]byte, error)
+	CommitCalled                    func() ([]byte, error)
+	RootHashCalled                  func() ([]byte, error)
 }
 
 func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {

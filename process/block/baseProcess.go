@@ -117,6 +117,19 @@ func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.H
 	bp.mutNotarizedHdrs.Unlock()
 }
 
+// RevertAccountState reverts the account state for cleanup failed process
+func (bp *baseProcessor) RevertAccountState() {
+	err := bp.accounts.RevertToSnapshot(0)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
+	err = bp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (bp *baseProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	err := bp.accounts.RecreateTrie(header.GetRootHash())

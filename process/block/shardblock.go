@@ -212,6 +212,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if sp.accounts.JournalLen() != 0 {
+		log.Info(fmt.Sprintf("Length of accouts journal: %d", sp.accounts.JournalLen()))
 		return process.ErrAccountStateDirty
 	}
 
@@ -751,14 +752,6 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-// RevertAccountState reverts the account state for cleanup failed process
-func (sp *shardProcessor) RevertAccountState() {
-	err := sp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Error(err.Error())
-	}
-}
-
 func (sp *shardProcessor) cleanTxsPools() {
 	_, err := sp.txsPoolsCleaner.Clean(maxCleanTime)
 	log.LogIfError(err)
@@ -766,7 +759,7 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (mp *shardProcessor) CreateNewHeader() data.HeaderHandler {
+func (sp *shardProcessor) CreateNewHeader() data.HeaderHandler {
 	return &block.Header{}
 }
 
