@@ -1444,6 +1444,10 @@ func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testi
 }
 
 func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testing.T) {
+	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
 	msg := []byte("test message")
 
 	_, sk1 := createLibP2PCredentialsMessenger()
