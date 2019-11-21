@@ -442,7 +442,7 @@ func CreateTransferTx(
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,
-		GasLimit: 5000,
+		GasLimit: 50000,
 		Data:     "transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
 	}
 }
