@@ -59,7 +59,7 @@ func TestHasNotPresent(t *testing.T) {
 
 	err := mdb.Has(key)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Contains(t, err.Error(), "key not found")
 }
 
 func TestDeletePresent(t *testing.T) {
@@ -74,7 +74,7 @@ func TestDeletePresent(t *testing.T) {
 
 	err = mdb.Has(key)
 	assert.NotNil(t, err, "element not expected as already deleted")
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Contains(t, err.Error(), "key not found")
 }
 
 func TestDeleteNotPresent(t *testing.T) {

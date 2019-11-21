@@ -127,7 +127,9 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 		if err != nil {
 			//it might happen to error on a tx (maybe it is missing) but should continue
 			// as to send back as many as it can
-			log.Debug(err.Error())
+			log.Trace("fetchTxAsByteSlice missing",
+				"error", err.Error(),
+				"hash", hash)
 			continue
 		}
 		txsBuffSlice = append(txsBuffSlice, tx)

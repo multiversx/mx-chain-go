@@ -267,7 +267,7 @@ func TestHasNotPresentWithNilBloomFilter(t *testing.T) {
 	err := s.Has(key)
 
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Contains(t, err.Error(), "key not found")
 }
 
 func TestHasNotPresentCache(t *testing.T) {
@@ -356,7 +356,7 @@ func TestDeleteNotPresentCache(t *testing.T) {
 	err = s.Has(key)
 
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Contains(t, err.Error(), "key not found")
 }
 
 func TestDeleteNotPresentCacheWithNilBloomFilter(t *testing.T) {
@@ -377,7 +377,7 @@ func TestDeleteNotPresentCacheWithNilBloomFilter(t *testing.T) {
 	err = s.Has(key)
 
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Contains(t, err.Error(), "key not found")
 }
 
 func TestDeletePresent(t *testing.T) {
@@ -397,7 +397,7 @@ func TestDeletePresent(t *testing.T) {
 	err = s.Has(key)
 
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Contains(t, err.Error(), "key not found")
 }
 
 func TestDeletePresentWithNilBloomFilter(t *testing.T) {
@@ -417,7 +417,7 @@ func TestDeletePresentWithNilBloomFilter(t *testing.T) {
 	err = s.Has(key)
 
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Key not found")
+	assert.Contains(t, err.Error(), "key not found")
 }
 
 func TestClearCacheNotAffectPersist(t *testing.T) {

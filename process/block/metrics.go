@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -100,11 +101,11 @@ func saveMetachainCommitBlockMetrics(
 	nodesCoordinator sharding.NodesCoordinator,
 
 ) {
-	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, core.ToB64(headerHash))
+	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
 
 	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, sharding.MetachainShardId)
 	if err != nil {
-		log.Error("cannot get validators public keys", err)
+		log.Debug("cannot get validators public keys", "error", err.Error())
 	}
 
 	countNotarizedHeaders(pubKeys, nodesCoordinator.GetOwnPublicKey(), appStatusHandler, len(header.ShardInfo))
@@ -182,11 +183,11 @@ func calculateRoundDuration(
 	currentBlockRound uint64,
 ) uint64 {
 	if lastBlockTimestamp >= currentBlockTimestamp {
-		log.Error("last block timestamp is greater or equals than current block timestamp")
+		log.Debug("last block timestamp is greater or equals than current block timestamp")
 		return 0
 	}
 	if lastBlockRound >= currentBlockRound {
-		log.Error("last block round is greater or equals than current block round")
+		log.Debug("last block round is greater or equals than current block round")
 		return 0
 	}
 

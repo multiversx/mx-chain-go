@@ -54,7 +54,7 @@ func (s *DB) Has(key []byte) error {
 	_, ok := s.db[string(key)]
 
 	if !ok {
-		return errors.New("Key not found")
+		return errors.New("key not found")
 	}
 	return nil
 }
