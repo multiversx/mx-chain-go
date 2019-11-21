@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 const checkInterval = time.Hour + 5*time.Minute
@@ -24,7 +24,7 @@ type SoftwareVersionChecker struct {
 	checkRandInterval         time.Duration
 }
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("core/statistics")
 
 // NewSoftwareVersionChecker will create an object for software  version checker
 func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler) (*SoftwareVersionChecker, error) {
@@ -59,7 +59,7 @@ func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
 func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 	tagVersion, err := readJSONFromUrl(stableTagLocation)
 	if err != nil {
-		log.Error("cannot read json with latest stable tag", err)
+		log.Debug("cannot read json with latest stable tag", err)
 		return
 	}
 	if tagVersion != "" {
@@ -77,7 +77,9 @@ func readJSONFromUrl(url string) (string, error) {
 
 	defer func() {
 		err := resp.Body.Close()
-		log.LogIfError(err)
+		if err != nil {
+			log.Debug(err.Error())
+		}
 	}()
 
 	buf := new(bytes.Buffer)

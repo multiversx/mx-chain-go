@@ -3,20 +3,20 @@ package heartbeat
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
+
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("node/heartbeat")
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
@@ -85,7 +85,7 @@ func NewMonitor(
 
 	err = mon.loadRestOfPubKeysFromStorage()
 	if err != nil {
-		log.Debug(fmt.Sprintf("heartbeat can't load public keys from storage: %s", err.Error()))
+		log.Debug("heartbeat can't load public keys from storage", "error", err.Error())
 	}
 
 	return mon, nil
@@ -140,7 +140,7 @@ func (m *Monitor) SaveMultipleHeartbeatMessageInfos(pubKeysToSave map[string]*he
 		hbDTO := m.convertToExportedStruct(hmbi)
 		err := m.storer.SavePubkeyData([]byte(key), &hbDTO)
 		if err != nil {
-			log.Error(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
+			log.Debug("cannot save heartbeat to db", "error", err.Error())
 		}
 	}
 }
@@ -223,7 +223,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 		var err error
 		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, false, m.genesisTime, m.timer)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("error creating hbmi", "error", err.Error())
 			m.mutHeartbeatMessages.Unlock()
 			return
 		}
@@ -238,7 +238,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *Heartbeat) {
 
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
 	if err != nil {
-		log.Error(fmt.Sprintf("cannot save heartbeat to db: %s", err.Error()))
+		log.Debug("cannot save heartbeat to db", "error", err.Error())
 	}
 	m.addPeerToFullPeersSlice(hb.Pubkey)
 }
@@ -250,7 +250,7 @@ func (m *Monitor) addPeerToFullPeersSlice(pubKey []byte) {
 		m.fullPeersSlice = append(m.fullPeersSlice, pubKey)
 		err := m.storer.SaveKeys(m.fullPeersSlice)
 		if err != nil {
-			log.Error(fmt.Sprintf("can't store the keys slice: %s", err.Error()))
+			log.Debug("can't store the keys slice", "error", err.Error())
 		}
 	}
 }

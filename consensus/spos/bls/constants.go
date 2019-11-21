@@ -2,10 +2,10 @@ package bls
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("consensus/spos/bls")
 
 const (
 	// SrStartRound defines ID of Subround "Start round"
