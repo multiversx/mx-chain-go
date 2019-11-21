@@ -70,7 +70,10 @@ func (ks *kadSharder) GetDistance(a, b sortingID) *big.Int {
 
 // SortList sort the provided peers list
 func (ks *kadSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
-	return sortList(ks, peers, ref), ks.resolver.IsBalanced()
+	sl := getSortingList(ks, peers, ref)
+	// for balance we just try to keep at least 1 connection ouside of shard
+	balanced := len(peers) > sl.InShardCount()
+	return sl.SortedPeers(), balanced
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
