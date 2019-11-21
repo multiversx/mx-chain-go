@@ -554,6 +554,9 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
+// ErrNilRatingReader signals that nil rating reader has been provided
+var ErrNilRatingReader = errors.New("nil rating reader")
+
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
 

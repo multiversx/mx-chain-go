@@ -2,6 +2,7 @@ package rating_test
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/stretchr/testify/assert"
 
@@ -26,6 +27,32 @@ func createDefaultRatingsData() *economics.RatingsData {
 	return ratingsData
 }
 
+func createDefaultRatingReader(ratingsMap map[string]uint32) *mock.RatingReaderMock {
+	rrm := &mock.RatingReaderMock{
+		RatingsMap: ratingsMap,
+		GetRatingCalled: func(s string) uint32 {
+			value, ok := ratingsMap[s]
+			if !ok {
+				return 0
+			}
+			return value
+		},
+		GetRatingsCalled: func(pks []string) map[string]uint32 {
+			newMap := make(map[string]uint32)
+			for k, v := range ratingsMap {
+				for _, pk := range pks {
+					if k == pk {
+						newMap[k] = v
+					}
+				}
+			}
+			return newMap
+		},
+	}
+
+	return rrm
+}
+
 func createUpdateMap(ratingPk string, updateStep string) map[string][]string {
 	updatedPeers := make(map[string][]string, 0)
 	peerList := make([]string, 0)
@@ -39,22 +66,27 @@ func setupRater(rd *economics.RatingsData, pk string, initialRating uint32) *rat
 	ratingPk := pk
 	ratingsMap := make(map[string]uint32)
 	ratingsMap[ratingPk] = initialRating
-	bsr.SetRatings(ratingsMap)
+	rrm := createDefaultRatingReader(ratingsMap)
+	bsr.SetRatingReader(rrm)
 
 	return bsr
 }
 
-func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnDefaultRating(t *testing.T) {
+func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnError(t *testing.T) {
 	rd := createDefaultRatingsData()
 	bsr, _ := rating.NewBlockSigningRater(rd)
 
+	rrm := createDefaultRatingReader(make(map[string]uint32))
+	bsr.SetRatingReader(rrm)
+
 	rt := bsr.GetRating("test")
 
-	assert.Equal(t, rd.StartRating(), rt)
+	assert.Equal(t, uint32(0), rt)
 }
 
 func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T) {
 	rd := createDefaultRatingsData()
+
 	bsr, _ := rating.NewBlockSigningRater(rd)
 
 	ratingPk := "test"
@@ -62,7 +94,8 @@ func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T
 
 	ratingsMap := make(map[string]uint32)
 	ratingsMap[ratingPk] = ratingValue
-	bsr.SetRatings(ratingsMap)
+	rrd := createDefaultRatingReader(ratingsMap)
+	bsr.SetRatingReader(rrd)
 	rt := bsr.GetRating(ratingPk)
 
 	assert.Equal(t, ratingValue, rt)

@@ -528,7 +528,7 @@ func (p *validatorStatistics) getMatchingPrevShardData(currentShardData block.Sh
 		if currentShardData.ShardID != prevShardData.ShardID {
 			continue
 		}
-		if currentShardData.Nonce == prevShardData.Nonce + 1 {
+		if currentShardData.Nonce == prevShardData.Nonce+1 {
 			return &prevShardData
 		}
 	}

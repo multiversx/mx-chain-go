@@ -12,7 +12,6 @@ type BlockSigningRater struct {
 	startRating      uint32
 	maxRating        uint32
 	minRating        uint32
-	ratings          map[string]uint32
 	ratingOptions    map[string]int32
 	ratingOptionKeys []string
 }
@@ -27,7 +26,7 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 	}
 
 	ratingOptionKeys := make([]string, 0)
-	for key, _ := range ratingsData.RatingOptions() {
+	for key := range ratingsData.RatingOptions() {
 		ratingOptionKeys = append(ratingOptionKeys, key)
 	}
 
@@ -37,7 +36,6 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 		minRating:        ratingsData.MinRating(),
 		maxRating:        ratingsData.MaxRating(),
 		ratingOptionKeys: ratingOptionKeys,
-		ratings:          make(map[string]uint32, 0),
 	}, nil
 }
 
@@ -60,6 +58,9 @@ func (bsr *BlockSigningRater) GetRatingOptionKeys() []string {
 
 //GetRating returns the Rating for the specified public key
 func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
+	if bsr.RatingReader == nil {
+		return 0
+	}
 	return bsr.RatingReader.GetRating(pk)
 }
 
