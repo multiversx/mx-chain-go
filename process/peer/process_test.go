@@ -961,6 +961,217 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 	assert.Equal(t, currentHeaderRound-previousHeaderRound-1, decreaseCount)
 }
 
+func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataEmptySDReturnsNil(t *testing.T) {
+	arguments := CreateMockArguments()
+
+	currentShardData := block.ShardData{}
+	shardInfo := make([]block.ShardData, 0)
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	sd := validatorStatistics.GetMatchingPrevShardData(currentShardData, shardInfo)
+
+	assert.Nil(t, sd)
+}
+
+func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataNoMatch(t *testing.T) {
+	arguments := CreateMockArguments()
+
+	currentShardData := block.ShardData{ShardID: 1, Nonce: 10}
+	shardInfo := []block.ShardData{{ShardID: 1, Nonce: 8}, {ShardID: 2, Nonce: 9}}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	sd := validatorStatistics.GetMatchingPrevShardData(currentShardData, shardInfo)
+
+	assert.Nil(t, sd)
+}
+
+func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataFindsMatch(t *testing.T) {
+	arguments := CreateMockArguments()
+
+	currentShardData := block.ShardData{ShardID: 1, Nonce: 10}
+	shardInfo := []block.ShardData{{ShardID: 1, Nonce: 9}, {ShardID: 2, Nonce: 9}}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	sd := validatorStatistics.GetMatchingPrevShardData(currentShardData, shardInfo)
+
+	assert.NotNil(t, sd)
+}
+
+func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersSkipsFirst(t *testing.T) {
+	arguments := CreateMockArguments()
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	currentHeader := &block.MetaBlock{Nonce: 1, ShardInfo: []block.ShardData{{Nonce: 1}}}
+	prevHeader := &block.MetaBlock{}
+
+	err := validatorStatistics.LoadPreviousShardHeaders(currentHeader, prevHeader)
+	assert.Nil(t, err)
+	prevShardHeaders := validatorStatistics.PrevShardInfo()
+	assert.Empty(t, prevShardHeaders)
+}
+
+func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMetaSkipsFirst(t *testing.T) {
+	arguments := CreateMockArguments()
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	currentHeader := &block.MetaBlock{Nonce: 2, ShardInfo: []block.ShardData{{Nonce: 1}}}
+	prevHeader := &block.MetaBlock{}
+
+	err := validatorStatistics.LoadPreviousShardHeadersMeta(currentHeader, prevHeader)
+	assert.Nil(t, err)
+	prevShardHeaders := validatorStatistics.PrevShardInfo()
+	assert.Empty(t, prevShardHeaders)
+}
+
+func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersFindsMatchInCurrentAndFindsPrev(t *testing.T) {
+	arguments := CreateMockArguments()
+
+	sd1 := block.ShardData{ShardID: 1, Nonce: 1}
+	sd2 := block.ShardData{ShardID: 1, Nonce: 2}
+	sd3 := block.ShardData{ShardID: 1, Nonce: 3}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	currentHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{sd3, sd2}}
+	prevHeader := &block.MetaBlock{Nonce: 2, ShardInfo: []block.ShardData{sd1}}
+
+	err := validatorStatistics.LoadPreviousShardHeaders(currentHeader, prevHeader)
+	assert.Nil(t, err)
+
+	prevShardHeaders := validatorStatistics.PrevShardInfo()
+	sdKey2 := validatorStatistics.BuildShardDataKey(sd2)
+	sdKey3 := validatorStatistics.BuildShardDataKey(sd3)
+	assert.Equal(t, map[string]block.ShardData{sdKey3: sd2, sdKey2: sd1}, prevShardHeaders)
+}
+
+func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMeta(t *testing.T) {
+	sd1 := block.ShardData{ShardID: 1, Nonce: 1}
+	sd2 := block.ShardData{ShardID: 1, Nonce: 2}
+	sd3 := block.ShardData{ShardID: 1, Nonce: 3}
+
+	currentHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{sd3, sd2}}
+	prevHeader := &block.Header{Nonce: sd1.Nonce, ShardId: sd1.ShardID}
+
+	arguments := CreateMockArguments()
+	arguments.DataPool = &mock.MetaPoolsHolderFake{
+		ShardHeadersCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					return prevHeader, true
+				},
+			}
+		},
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+
+
+	err := validatorStatistics.LoadPreviousShardHeadersMeta(currentHeader, &block.MetaBlock{})
+	assert.Nil(t, err)
+
+	prevShardHeaders := validatorStatistics.PrevShardInfo()
+	sdKey2 := validatorStatistics.BuildShardDataKey(sd2)
+	sdKey3 := validatorStatistics.BuildShardDataKey(sd3)
+
+	// For every key sd1 since our mocked storer returns prevHeader every time
+	assert.Equal(t, map[string]block.ShardData{sdKey3: sd1, sdKey2: sd1}, prevShardHeaders)
+}
+
+func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersLoadsMissingFromStorage(t *testing.T) {
+	arguments := CreateMockArguments()
+	sd1 := block.ShardData{ShardID: 1, Nonce: 1}
+	sd2 := block.ShardData{ShardID: 1, Nonce: 2}
+	sd3 := block.ShardData{ShardID: 1, Nonce: 3}
+	currentHeader := &block.MetaBlock{Nonce: 4, ShardInfo: []block.ShardData{sd3, sd2}}
+	prevHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{}}
+	storageHeader := &block.MetaBlock{Nonce: 2, ShardInfo: []block.ShardData{sd1}}
+
+	arguments.DataPool = &mock.MetaPoolsHolderFake{
+		MetaBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					return storageHeader, true
+				},
+			}
+		},
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	err := validatorStatistics.LoadPreviousShardHeaders(currentHeader, prevHeader)
+	assert.Nil(t, err)
+
+	prevShardHeaders := validatorStatistics.PrevShardInfo()
+	sdKey2 := validatorStatistics.BuildShardDataKey(sd2)
+	sdKey3 := validatorStatistics.BuildShardDataKey(sd3)
+	assert.Equal(t, map[string]block.ShardData{sdKey3: sd2, sdKey2: sd1}, prevShardHeaders)
+}
+
+func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersErrForStorage(t *testing.T) {
+	arguments := CreateMockArguments()
+
+	sd2 := block.ShardData{ShardID: 1, Nonce: 2}
+	sd3 := block.ShardData{ShardID: 1, Nonce: 3}
+	currentHeader := &block.MetaBlock{Nonce: 4, ShardInfo: []block.ShardData{sd3, sd2}}
+	prevHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{}}
+
+	arguments.DataPool = &mock.MetaPoolsHolderFake{
+		MetaBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					return nil, false
+				},
+			}
+		},
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	err := validatorStatistics.LoadPreviousShardHeaders(currentHeader, prevHeader)
+	assert.Equal(t, dataRetriever.ErrNilHeadersStorage, err)
+}
+
+func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMetaErrForStorage(t *testing.T) {
+	arguments := CreateMockArguments()
+
+	sd2 := block.ShardData{ShardID: 1, Nonce: 2}
+	sd3 := block.ShardData{ShardID: 1, Nonce: 3}
+	currentHeader := &block.MetaBlock{Nonce: 4, ShardInfo: []block.ShardData{sd3, sd2}}
+	prevHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{}}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	err := validatorStatistics.LoadPreviousShardHeadersMeta(currentHeader, prevHeader)
+	assert.Equal(t, dataRetriever.ErrNilCacher, err)
+}
+
+func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersErrIfStillMissing(t *testing.T) {
+	arguments := CreateMockArguments()
+	sd2 := block.ShardData{ShardID: 1, Nonce: 2}
+	sd3 := block.ShardData{ShardID: 1, Nonce: 3}
+	currentHeader := &block.MetaBlock{Nonce: 4, ShardInfo: []block.ShardData{sd3, sd2}}
+	prevHeader := &block.MetaBlock{Nonce: 3, ShardInfo: []block.ShardData{}}
+	storageHeader := &block.MetaBlock{Nonce: 1, ShardInfo: []block.ShardData{}}
+
+	arguments.DataPool = &mock.MetaPoolsHolderFake{
+		MetaBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					return storageHeader, true
+				},
+			}
+		},
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	err := validatorStatistics.LoadPreviousShardHeaders(currentHeader, prevHeader)
+	assert.Equal(t, process.ErrMissingShardDataInStorage, err)
+}
+
 func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 	return &block.MetaBlock{
 		Nonce:         1,

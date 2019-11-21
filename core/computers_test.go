@@ -78,38 +78,3 @@ func TestMinUint64ShouldReturnA(t *testing.T) {
 	b := uint64(11)
 	assert.Equal(t, a, core.MinUint64(a, b))
 }
-
-func TestPopUint32RemoveFirst(t *testing.T) {
-	a := []uint32{1,2,3}
-	a = core.PopUint32(a, 0)
-
-	assert.Equal(t, []uint32{2,3}, a)
-}
-
-func TestPopUint32RemoveLast(t *testing.T) {
-	a := []uint32{1,2,3}
-	a = core.PopUint32(a, 2)
-
-	assert.Equal(t, []uint32{1,2}, a)
-}
-
-func TestPopUint32RemoveReverse(t *testing.T) {
-	a := []uint32{1,2,3}
-	a = core.PopUint32(a, -2)
-
-	assert.Equal(t, []uint32{1,3}, a)
-}
-
-func TestPopUint32RemoveInside(t *testing.T) {
-	a := []uint32{1,2,3}
-	a = core.PopUint32(a, 1)
-
-	assert.Equal(t, []uint32{1,3}, a)
-}
-
-func TestPopUint32RemoveOutOfBounds(t *testing.T) {
-	a := []uint32{1,2,3}
-	a = core.PopUint32(a, len(a))
-
-	assert.Equal(t, []uint32{1,2,3}, a)
-}
