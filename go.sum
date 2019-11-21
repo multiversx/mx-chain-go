@@ -10,6 +10,8 @@ github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgf
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
+github.com/ElrondNetwork/elrond-vm v0.0.21 h1:uCWQS/W7l2FjXplKk4UUKUnpxCnecl9QgOhLGbzjNSo=
+github.com/ElrondNetwork/elrond-vm v0.0.21/go.mod h1:rR1Swgx9XDlacB9l2HczuMDsIkZtxC5xGTwo+GIAJEY=
 github.com/ElrondNetwork/elrond-vm v0.0.22 h1:KNWhL+/rVwb4Y7kkXVjBBCcnyHqaeHud2ayMuk49K/Y=
 github.com/ElrondNetwork/elrond-vm v0.0.22/go.mod h1:rR1Swgx9XDlacB9l2HczuMDsIkZtxC5xGTwo+GIAJEY=
 github.com/ElrondNetwork/elrond-vm-common v0.0.9 h1:Ff8vEJSKChRfmp+TVo7AgciRkMXjL4+TbNin6LQ7xKw=

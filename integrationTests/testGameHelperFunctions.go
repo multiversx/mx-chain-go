@@ -86,7 +86,7 @@ func NodeCallsRewardAndSend(
 			value:    big.NewInt(0),
 			rcvAddr:  scAddress,
 			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
-			data:     fmt.Sprintf("rewardAndSendToWallet@00%X@%s@00%s", hex.EncodeToString(big.NewInt(0).SetInt64(int64(round)).Bytes()), hex.EncodeToString(winnerAddress), hex.EncodeToString(prize.Bytes())),
+			data:     fmt.Sprintf("rewardAndSendToWallet@%X@%s@%s", hex.EncodeToString(big.NewInt(0).SetInt64(int64(round)).Bytes()), hex.EncodeToString(winnerAddress), hex.EncodeToString(prize.Bytes())),
 			gasLimit: 30000,
 			gasPrice: MinTxGasPrice,
 		})
