@@ -486,12 +486,14 @@ type NetworkConnectionWatcher interface {
 // GasHandler is able to perform some gas calculation
 type GasHandler interface {
 	Init()
-	AddGasConsumed(gasConsumed uint64)
-	AddGasRefunded(gasRefunded uint64)
-	SetGasConsumed(gasConsumed uint64)
-	SetGasRefunded(gasRefunded uint64)
-	GasConsumed() uint64
-	GasRefunded() uint64
+	SetGasConsumed(gasConsumed uint64, hash []byte)
+	SetGasRefunded(gasRefunded uint64, hash []byte)
+	GasConsumed(hash []byte) uint64
+	GasRefunded(hash []byte) uint64
+	TotalGasConsumed() uint64
+	TotalGasRefunded() uint64
+	RemoveGasConsumed(hashes [][]byte)
+	RemoveGasRefunded(hashes [][]byte)
 	ComputeGasConsumedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool

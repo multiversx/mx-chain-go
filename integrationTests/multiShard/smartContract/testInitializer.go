@@ -428,7 +428,7 @@ func createNetNode(
 		scForwarder,
 		rewardsHandler,
 		&mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 

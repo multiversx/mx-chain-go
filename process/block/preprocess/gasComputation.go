@@ -1,7 +1,7 @@
 package preprocess
 
 import (
-	"sync/atomic"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,9 +12,11 @@ import (
 )
 
 type gasComputation struct {
-	economicsFee process.FeeHandler
-	gasConsumed  uint64
-	gasRefunded  uint64
+	economicsFee   process.FeeHandler
+	gasConsumed    map[string]uint64
+	mutGasConsumed sync.RWMutex
+	gasRefunded    map[string]uint64
+	mutGasRefunded sync.RWMutex
 }
 
 func NewGasComputation(
@@ -27,38 +29,86 @@ func NewGasComputation(
 
 	return &gasComputation{
 		economicsFee: economicsFee,
-		gasConsumed:  0,
-		gasRefunded:  0,
+		gasConsumed:  make(map[string]uint64),
+		gasRefunded:  make(map[string]uint64),
 	}, nil
 }
 
 func (gc *gasComputation) Init() {
-	atomic.StoreUint64(&gc.gasConsumed, 0)
-	atomic.StoreUint64(&gc.gasRefunded, 0)
+	gc.mutGasConsumed.Lock()
+	gc.gasConsumed = make(map[string]uint64)
+	gc.mutGasConsumed.Unlock()
+
+	gc.mutGasRefunded.Lock()
+	gc.gasRefunded = make(map[string]uint64)
+	gc.mutGasRefunded.Unlock()
 }
 
-func (gc *gasComputation) AddGasConsumed(gasConsumed uint64) {
-	atomic.AddUint64(&gc.gasConsumed, gasConsumed)
+func (gc *gasComputation) SetGasConsumed(gasConsumed uint64, hash []byte) {
+	gc.mutGasConsumed.Lock()
+	gc.gasConsumed[string(hash)] = gasConsumed
+	gc.mutGasConsumed.Unlock()
 }
 
-func (gc *gasComputation) AddGasRefunded(gasRefunded uint64) {
-	atomic.AddUint64(&gc.gasRefunded, gasRefunded)
+func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
+	gc.mutGasRefunded.Lock()
+	gc.gasRefunded[string(hash)] = gasRefunded
+	gc.mutGasRefunded.Unlock()
 }
 
-func (gc *gasComputation) SetGasConsumed(gasConsumed uint64) {
-	atomic.StoreUint64(&gc.gasConsumed, gasConsumed)
+func (gc *gasComputation) GasConsumed(hash []byte) uint64 {
+	gc.mutGasConsumed.RLock()
+	defer gc.mutGasConsumed.RUnlock()
+
+	return gc.gasConsumed[string(hash)]
+
 }
 
-func (gc *gasComputation) SetGasRefunded(gasRefunded uint64) {
-	atomic.StoreUint64(&gc.gasRefunded, gasRefunded)
+func (gc *gasComputation) GasRefunded(hash []byte) uint64 {
+	gc.mutGasRefunded.RLock()
+	defer gc.mutGasRefunded.RUnlock()
+
+	return gc.gasRefunded[string(hash)]
 }
 
-func (gc *gasComputation) GasConsumed() uint64 {
-	return atomic.LoadUint64(&gc.gasConsumed)
+func (gc *gasComputation) TotalGasConsumed() uint64 {
+	gc.mutGasConsumed.RLock()
+	defer gc.mutGasConsumed.RUnlock()
+
+	totalGasConsumed := uint64(0)
+	for _, gasConsumed := range gc.gasConsumed {
+		totalGasConsumed += gasConsumed
+	}
+
+	return totalGasConsumed
 }
 
-func (gc *gasComputation) GasRefunded() uint64 {
-	return atomic.LoadUint64(&gc.gasRefunded)
+func (gc *gasComputation) TotalGasRefunded() uint64 {
+	gc.mutGasRefunded.RLock()
+	defer gc.mutGasRefunded.RUnlock()
+
+	totalGasRefunded := uint64(0)
+	for _, gasRefunded := range gc.gasRefunded {
+		totalGasRefunded += gasRefunded
+	}
+
+	return totalGasRefunded
+}
+
+func (gc *gasComputation) RemoveGasConsumed(hashes [][]byte) {
+	gc.mutGasConsumed.Lock()
+	for _, hash := range hashes {
+		delete(gc.gasConsumed, string(hash))
+	}
+	gc.mutGasConsumed.Unlock()
+}
+
+func (gc *gasComputation) RemoveGasRefunded(hashes [][]byte) {
+	gc.mutGasRefunded.Lock()
+	for _, hash := range hashes {
+		delete(gc.gasRefunded, string(hash))
+	}
+	gc.mutGasRefunded.Unlock()
 }
 
 func (gc *gasComputation) ComputeGasConsumedByMiniBlock(

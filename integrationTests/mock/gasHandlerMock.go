@@ -7,12 +7,14 @@ import (
 
 type GasHandlerMock struct {
 	InitCalled                          func()
-	AddGasConsumedCalled                func(gasConsumed uint64)
-	AddGasRefundedCalled                func(gasRefunded uint64)
-	SetGasConsumedCalled                func(gasConsumed uint64)
-	SetGasRefundedCalled                func(gasRefunded uint64)
-	GasConsumedCalled                   func() uint64
-	GasRefundedCalled                   func() uint64
+	SetGasConsumedCalled                func(gasConsumed uint64, hash []byte)
+	SetGasRefundedCalled                func(gasRefunded uint64, hash []byte)
+	GasConsumedCalled                   func(hash []byte) uint64
+	GasRefundedCalled                   func(hash []byte) uint64
+	TotalGasConsumedCalled              func() uint64
+	TotalGasRefundedCalled              func() uint64
+	RemoveConsumedCalled                func(hashes [][]byte)
+	RemoveRefundedCalled                func(hashes [][]byte)
 	ComputeGasConsumedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 }
@@ -21,28 +23,36 @@ func (ghm *GasHandlerMock) Init() {
 	ghm.InitCalled()
 }
 
-func (ghm *GasHandlerMock) AddGasConsumed(gasConsumed uint64) {
-	ghm.AddGasConsumedCalled(gasConsumed)
+func (ghm *GasHandlerMock) SetGasConsumed(gasConsumed uint64, hash []byte) {
+	ghm.SetGasConsumedCalled(gasConsumed, hash)
 }
 
-func (ghm *GasHandlerMock) AddGasRefunded(gasRefunded uint64) {
-	ghm.AddGasRefundedCalled(gasRefunded)
+func (ghm *GasHandlerMock) SetGasRefunded(gasRefunded uint64, hash []byte) {
+	ghm.SetGasRefundedCalled(gasRefunded, hash)
 }
 
-func (ghm *GasHandlerMock) SetGasConsumed(gasConsumed uint64) {
-	ghm.SetGasConsumedCalled(gasConsumed)
+func (ghm *GasHandlerMock) GasConsumed(hash []byte) uint64 {
+	return ghm.GasConsumedCalled(hash)
 }
 
-func (ghm *GasHandlerMock) SetGasRefunded(gasRefunded uint64) {
-	ghm.SetGasRefundedCalled(gasRefunded)
+func (ghm *GasHandlerMock) GasRefunded(hash []byte) uint64 {
+	return ghm.GasRefundedCalled(hash)
 }
 
-func (ghm *GasHandlerMock) GasConsumed() uint64 {
-	return ghm.GasConsumedCalled()
+func (ghm *GasHandlerMock) TotalGasConsumed() uint64 {
+	return ghm.TotalGasConsumedCalled()
 }
 
-func (ghm *GasHandlerMock) GasRefunded() uint64 {
-	return ghm.GasRefundedCalled()
+func (ghm *GasHandlerMock) TotalGasRefunded() uint64 {
+	return ghm.TotalGasRefundedCalled()
+}
+
+func (ghm *GasHandlerMock) RemoveGasConsumed(hashes [][]byte) {
+	ghm.RemoveConsumedCalled(hashes)
+}
+
+func (ghm *GasHandlerMock) RemoveGasRefunded(hashes [][]byte) {
+	ghm.RemoveRefundedCalled(hashes)
 }
 
 func (ghm *GasHandlerMock) ComputeGasConsumedByMiniBlock(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {

@@ -264,14 +264,14 @@ func (txs *transactions) ProcessBlockTransactions(
 				return process.ErrMissingTransaction
 			}
 
-			currTx, ok := txInfo.tx.(*transaction.Transaction)
+			tx, ok := txInfo.tx.(*transaction.Transaction)
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
 
 			err := txs.processAndRemoveBadTransaction(
 				txHash,
-				currTx,
+				tx,
 				round,
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
@@ -284,7 +284,8 @@ func (txs *transactions) ProcessBlockTransactions(
 			err = txs.computeGasConsumed(
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
-				currTx,
+				tx,
+				txHash,
 				&gasConsumedByMiniBlockInSenderShard,
 				&gasConsumedByMiniBlockInReceiverShard)
 
@@ -389,8 +390,6 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
-
-	txs.gasHandler.SetGasRefunded(0)
 
 	err := txs.txProcessor.ProcessTransaction(transaction, round)
 	if err == process.ErrLowerNonceInTransaction ||
@@ -626,6 +625,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			orderedTxs[index],
+			orderedTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
 
@@ -633,7 +633,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			log.Debug(fmt.Sprintf("max gas limit is reached: %d per mini block in sender shard, %d per mini block in receiver shard, %d per block in self shard: added %d txs from %d txs\n",
 				gasConsumedByMiniBlockInSenderShard,
 				gasConsumedByMiniBlockInReceiverShard,
-				txs.gasHandler.GasConsumed(),
+				txs.gasHandler.TotalGasConsumed(),
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
 
@@ -732,8 +732,6 @@ func (txs *transactions) ProcessMiniBlock(
 			return process.ErrTimeIsOut
 		}
 
-		txs.gasHandler.SetGasRefunded(0)
-
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
 		if err != nil {
 			return err
@@ -743,6 +741,7 @@ func (txs *transactions) ProcessMiniBlock(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockTxs[index],
+			miniBlockTxHashes[index],
 			&gasConsumedByMiniBlockInSenderShard,
 			&gasConsumedByMiniBlockInReceiverShard)
 
@@ -875,6 +874,7 @@ func (txs *transactions) computeGasConsumed(
 	senderShardId uint32,
 	receiverShardId uint32,
 	tx *transaction.Transaction,
+	txHash []byte,
 	gasConsumedByMiniBlockInSenderShard *uint64,
 	gasConsumedByMiniBlockInReceiverShard *uint64,
 ) error {
@@ -882,7 +882,8 @@ func (txs *transactions) computeGasConsumed(
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := txs.computeGasConsumedByTx(
 		senderShardId,
 		receiverShardId,
-		tx)
+		tx,
+		txHash)
 	if err != nil {
 		return err
 	}
@@ -902,13 +903,13 @@ func (txs *transactions) computeGasConsumed(
 		}
 	}
 
-	if txs.gasHandler.GasConsumed()+gasConsumedByTxInSelfShard > txs.economicsFee.MaxGasLimitPerBlock() {
+	if txs.gasHandler.TotalGasConsumed()+gasConsumedByTxInSelfShard > txs.economicsFee.MaxGasLimitPerBlock() {
 		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
 	*gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
 	*gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
-	txs.gasHandler.AddGasConsumed(gasConsumedByTxInSelfShard)
+	txs.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 
 	return nil
 }
@@ -917,6 +918,7 @@ func (txs *transactions) computeGasConsumedByTx(
 	senderShardId uint32,
 	receiverShardId uint32,
 	tx *transaction.Transaction,
+	txHash []byte,
 ) (uint64, uint64, error) {
 
 	txGasLimitInSenderShard, txGasLimitInReceiverShard, err := txs.gasHandler.ComputeGasConsumedByTx(
@@ -928,7 +930,7 @@ func (txs *transactions) computeGasConsumedByTx(
 	}
 
 	if core.IsSmartContractAddress(tx.GetRecvAddress()) {
-		txGasRefunded := txs.gasHandler.GasRefunded()
+		txGasRefunded := txs.gasHandler.GasRefunded(txHash)
 
 		if txGasLimitInReceiverShard < txGasRefunded {
 			return 0, 0, process.ErrInsufficientGasLimitInTx

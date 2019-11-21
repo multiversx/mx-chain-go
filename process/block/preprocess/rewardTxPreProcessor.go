@@ -495,11 +495,12 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	}
 
 	snapshot := rtp.accounts.JournalLen()
-	currentGasConsumedByBlock := rtp.gasHandler.GasConsumed()
+	processedTxHashes := make([][]byte, 0)
 
 	for _, mb := range rewardMiniBlocksSlice {
-		err := rtp.ProcessMiniBlock(mb, haveTime, round)
+		processedTxHashes = append(processedTxHashes, mb.TxHashes...)
 
+		err := rtp.ProcessMiniBlock(mb, haveTime, round)
 		if err != nil {
 			log.Debug("reward txs ProcessMiniBlock", "error", err.Error())
 
@@ -509,7 +510,8 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 				log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 			}
 
-			rtp.gasHandler.SetGasConsumed(currentGasConsumedByBlock)
+			rtp.gasHandler.RemoveGasConsumed(processedTxHashes)
+			rtp.gasHandler.RemoveGasRefunded(processedTxHashes)
 			return nil, err
 		}
 	}

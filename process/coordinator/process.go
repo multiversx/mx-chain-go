@@ -695,7 +695,6 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
-	currentGasConsumedByBlock := tc.gasHandler.GasConsumed()
 
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
@@ -707,7 +706,8 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 		}
 
-		tc.gasHandler.SetGasConsumed(currentGasConsumedByBlock)
+		tc.gasHandler.RemoveGasConsumed(miniBlock.TxHashes)
+		tc.gasHandler.RemoveGasRefunded(miniBlock.TxHashes)
 		return err
 	}
 

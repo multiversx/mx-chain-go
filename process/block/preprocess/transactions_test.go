@@ -740,17 +740,17 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
-			AddGasConsumedCalled: func(gasConsumed uint64) {
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
-			GasConsumedCalled: func() uint64 {
+			TotalGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
-			GasRefundedCalled: func() uint64 {
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			TotalGasRefundedCalled: func() uint64 {
 				return 0
 			},
 		},
@@ -800,17 +800,17 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
-			AddGasConsumedCalled: func(gasConsumed uint64) {
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
-			GasConsumedCalled: func() uint64 {
+			TotalGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
-			GasRefundedCalled: func() uint64 {
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			TotalGasRefundedCalled: func() uint64 {
 				return 0
 			},
 		},
@@ -865,17 +865,17 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
-			AddGasConsumedCalled: func(gasConsumed uint64) {
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return gasLimit, gasLimit, nil
 			},
-			GasConsumedCalled: func() uint64 {
+			TotalGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
-			GasRefundedCalled: func() uint64 {
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			GasRefundedCalled: func(hash []byte) uint64 {
 				return 0
 			},
 		},
@@ -1077,17 +1077,17 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 			InitCalled: func() {
 				totalGasConsumed = 0
 			},
-			AddGasConsumedCalled: func(gasConsumed uint64) {
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
 			},
-			GasConsumedCalled: func() uint64 {
+			TotalGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
-			GasRefundedCalled: func() uint64 {
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			GasRefundedCalled: func(hash []byte) uint64 {
 				return 0
 			},
 		},

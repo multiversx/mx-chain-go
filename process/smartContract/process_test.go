@@ -625,7 +625,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 	assert.NotNil(t, sc)
@@ -827,7 +827,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 	assert.NotNil(t, sc)
@@ -1195,7 +1195,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 	assert.NotNil(t, sc)
@@ -1229,7 +1229,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 	assert.NotNil(t, sc)
@@ -1943,7 +1943,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 	assert.NotNil(t, sc)

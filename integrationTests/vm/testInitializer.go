@@ -113,7 +113,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 
@@ -195,7 +195,7 @@ func CreateTxProcessorWithOneSCExecutorIeleVM(
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64) {},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 

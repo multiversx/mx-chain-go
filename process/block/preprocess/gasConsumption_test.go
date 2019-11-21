@@ -42,14 +42,19 @@ func TestGasConsumed_ShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 	)
 
-	gc.SetGasConsumed(2)
-	assert.Equal(t, uint64(2), gc.GasConsumed())
+	gc.SetGasConsumed(2, []byte("hash1"))
+	assert.Equal(t, uint64(2), gc.GasConsumed([]byte("hash1")))
 
-	gc.AddGasConsumed(1)
-	assert.Equal(t, uint64(3), gc.GasConsumed())
+	gc.SetGasConsumed(3, []byte("hash2"))
+	assert.Equal(t, uint64(3), gc.GasConsumed([]byte("hash2")))
+
+	assert.Equal(t, uint64(5), gc.TotalGasConsumed())
+
+	gc.RemoveGasConsumed([][]byte{[]byte("hash1")})
+	assert.Equal(t, uint64(3), gc.TotalGasConsumed())
 
 	gc.Init()
-	assert.Equal(t, uint64(0), gc.GasConsumed())
+	assert.Equal(t, uint64(0), gc.TotalGasConsumed())
 }
 
 func TestGasRefunded_ShouldWork(t *testing.T) {
@@ -59,14 +64,19 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 	)
 
-	gc.SetGasRefunded(2)
-	assert.Equal(t, uint64(2), gc.GasRefunded())
+	gc.SetGasRefunded(2, []byte("hash1"))
+	assert.Equal(t, uint64(2), gc.GasRefunded([]byte("hash1")))
 
-	gc.AddGasRefunded(1)
-	assert.Equal(t, uint64(3), gc.GasRefunded())
+	gc.SetGasRefunded(3, []byte("hash2"))
+	assert.Equal(t, uint64(3), gc.GasRefunded([]byte("hash2")))
+
+	assert.Equal(t, uint64(5), gc.TotalGasRefunded())
+
+	gc.RemoveGasRefunded([][]byte{[]byte("hash1")})
+	assert.Equal(t, uint64(3), gc.TotalGasRefunded())
 
 	gc.Init()
-	assert.Equal(t, uint64(0), gc.GasRefunded())
+	assert.Equal(t, uint64(0), gc.TotalGasRefunded())
 }
 
 func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
