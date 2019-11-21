@@ -98,15 +98,15 @@ type MetaBlock struct {
 	PeerInfo               []PeerData        `capid:"5"`
 	Signature              []byte            `capid:"6"`
 	LeaderSignature        []byte            `capid:"7"`
-	PubKeysBitmap          []byte            `capid:"7"`
-	PrevHash               []byte            `capid:"8"`
-	PrevRandSeed           []byte            `capid:"9"`
-	RandSeed               []byte            `capid:"10"`
-	RootHash               []byte            `capid:"11"`
-	ValidatorStatsRootHash []byte            `capid:"12"`
-	TxCount                uint32            `capid:"13"`
-	MiniBlockHeaders       []MiniBlockHeader `capid:"14"`
-	EndOfEpoch             EndOfEpoch        `capid:"15"`
+	PubKeysBitmap          []byte            `capid:"8"`
+	PrevHash               []byte            `capid:"9"`
+	PrevRandSeed           []byte            `capid:"10"`
+	RandSeed               []byte            `capid:"11"`
+	RootHash               []byte            `capid:"12"`
+	ValidatorStatsRootHash []byte            `capid:"13"`
+	TxCount                uint32            `capid:"14"`
+	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
+	EndOfEpoch             EndOfEpoch        `capid:"16"`
 }
 
 // MetaBlockBody hold the data for metablock body
