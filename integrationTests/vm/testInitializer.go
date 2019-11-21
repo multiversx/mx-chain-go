@@ -114,6 +114,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(
@@ -152,7 +153,10 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 	return vm
 }
 
-func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
+func CreateVMAndBlockchainHook(
+	accnts state.AccountsAdapter,
+	gasSchedule map[string]uint64,
+) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
 		AddrConv:         addrConv,
@@ -167,8 +171,13 @@ func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (process.VirtualMac
 	//vm.SetTracePretty()
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	gasSchedule := arwenConfig.MakeGasMap(1)
-	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, gasSchedule, args)
+
+	actualGasSchedule := gasSchedule
+	if gasSchedule == nil {
+		actualGasSchedule = arwenConfig.MakeGasMap(1)
+	}
+
+	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
 	vmContainer, _ := vmFactory.Create()
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	return vmContainer, blockChainHook
@@ -176,9 +185,9 @@ func CreateVMAndBlockchainHook(accnts state.AccountsAdapter) (process.VirtualMac
 
 func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
-) (process.TransactionProcessor, vmcommon.BlockchainHook) {
-	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts)
-
+	vmContainer process.VirtualMachinesContainer,
+	blockChainHook *hooks.BlockChainHookImpl,
+) process.TransactionProcessor {
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		vmContainer,
@@ -191,6 +200,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		oneShardCoordinator,
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(
@@ -210,7 +220,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		&mock.FeeHandlerStub{},
 	)
 
-	return txProcessor, blockChainHook
+	return txProcessor
 }
 
 func TestDeployedContractContents(
@@ -266,10 +276,30 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	accnts := CreateInMemoryShardAccountsDB()
 	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor, blockchainHook := CreateTxProcessorWithOneSCExecutorWithVMs(accnts)
+	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, nil)
+
+	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
 	assert.NotNil(tb, txProcessor)
 
-	return txProcessor, accnts, blockchainHook
+	return txProcessor, accnts, blockChainHook
+}
+
+func CreateTxProcessorArwenVMWithGasSchedule(
+	tb testing.TB,
+	senderNonce uint64,
+	senderAddressBytes []byte,
+	senderBalance *big.Int,
+	gasSchedule map[string]uint64,
+) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
+
+	accnts := CreateInMemoryShardAccountsDB()
+	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+
+	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule)
+	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
+	assert.NotNil(tb, txProcessor)
+
+	return txProcessor, accnts, blockChainHook
 }
 
 func CreatePreparedTxProcessorAndAccountsWithMockedVM(
@@ -375,7 +405,7 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 }
 
 func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	vmContainer, _ := CreateVMAndBlockchainHook(accnts)
+	vmContainer, _ := CreateVMAndBlockchainHook(accnts, nil)
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer)
 
 	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{

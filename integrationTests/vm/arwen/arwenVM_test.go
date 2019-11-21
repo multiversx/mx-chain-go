@@ -8,11 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
+}
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
@@ -96,8 +102,8 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 		Signature: nil,
 		Challenge: nil,
 	}
-
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(tb, ownerNonce, ownerAddressBytes, ownerBalance)
+	gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	err = txProc.ProcessTransaction(tx, round)
@@ -134,18 +140,18 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(100000000)
+	ownerBalance := big.NewInt(10000000000000)
 	round := uint64(444)
 	gasPrice := uint64(1)
-	gasLimit := uint64(100000)
+	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
 	scCode, err := ioutil.ReadFile("./wrc20_arwen.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
-
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	tx := vm.CreateDeployTx(
@@ -176,7 +182,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	aliceNonce++
 
 	start := time.Now()
-	nrTxs := 10000
+	nrTxs := 10
 
 	for i := 0; i < nrTxs; i++ {
 		tx = vm.CreateTransferTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
@@ -329,7 +335,7 @@ func TestWASMMetering(t *testing.T) {
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(2429)
+	expectedBalance := big.NewInt(2409)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -343,5 +349,5 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	assert.Equal(t, 556, int(consumedGasValue))
+	assert.Equal(t, 576, int(consumedGasValue))
 }

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -43,6 +44,7 @@ type scProcessor struct {
 
 	scrForwarder process.IntermediateTransactionHandler
 	txFeeHandler process.TransactionFeeHandler
+	economicsFee process.FeeHandler
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -57,6 +59,7 @@ func NewSmartContractProcessor(
 	coordinator sharding.Coordinator,
 	scrForwarder process.IntermediateTransactionHandler,
 	txFeeHandler process.TransactionFeeHandler,
+	economicsFee process.FeeHandler,
 ) (*scProcessor, error) {
 	if vmContainer == nil || vmContainer.IsInterfaceNil() {
 		return nil, process.ErrNoVM
@@ -88,6 +91,9 @@ func NewSmartContractProcessor(
 	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	return &scProcessor{
 		vmContainer:      vmContainer,
@@ -100,38 +106,8 @@ func NewSmartContractProcessor(
 		shardCoordinator: coordinator,
 		scrForwarder:     scrForwarder,
 		txFeeHandler:     txFeeHandler,
+		economicsFee:     economicsFee,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
-}
-
-// ComputeTransactionType calculates the type of the transaction
-func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
-	err := sc.checkTxValidity(tx)
-	if err != nil {
-		return 0, err
-	}
-
-	isEmptyAddress := sc.isDestAddressEmpty(tx)
-	if isEmptyAddress {
-		if len(tx.Data) > 0 {
-			return process.SCDeployment, nil
-		}
-		return 0, process.ErrWrongTransaction
-	}
-
-	acntDst, err := sc.getAccountFromAddress(tx.RcvAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	if acntDst == nil || acntDst.IsInterfaceNil() {
-		return process.MoveBalance, nil
-	}
-
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
-		return process.SCInvoking, nil
-	}
-
-	return process.MoveBalance, nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
@@ -365,7 +341,8 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 	}
 	vmInput.CallValue = tx.Value
 	vmInput.GasPrice = tx.GasPrice
-	vmInput.GasProvided = tx.GasLimit
+	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
+	vmInput.GasProvided = tx.GasLimit - moveBalanceGasConsume
 
 	return vmInput, nil
 }
@@ -378,6 +355,11 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 	}
 
 	err := acntSnd.SetNonceWithJournal(acntSnd.GetNonce() + 1)
+	if err != nil {
+		return err
+	}
+
+	err = sc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -466,6 +448,9 @@ func (sc *scProcessor) processVMOutput(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	totalGasConsumed := tx.GasLimit + vmOutput.GasRefund.Uint64() - vmOutput.GasRemaining.Uint64()
+	log.Debug("total gas consumed", "value", totalGasConsumed, "hash", txHash)
 
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
