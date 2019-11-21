@@ -29,7 +29,7 @@ func LoadServersPConfig(filepath string) (*config.ServersConfig, error) {
 
 // LoadGasScheduleConfig returns a map[string]uint64 of gas costs read from the provided config file
 func LoadGasScheduleConfig(filepath string) (map[string]uint64, error) {
-	gasScheduleConfig, err := LoadTomlFileToMap(filepath, log)
+	gasScheduleConfig, err := LoadTomlFileToMap(filepath)
 	if err != nil {
 		return nil, err
 	}

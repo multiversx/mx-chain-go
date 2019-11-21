@@ -44,8 +44,8 @@ func LoadTomlFile(dest interface{}, relativePath string) error {
 }
 
 // LoadTomlFileToMap opens and decodes a toml file as a map[string]interface{}
-func LoadTomlFileToMap(relativePath string, log *logger.Logger) (map[string]interface{}, error) {
-	f, err := OpenFile(relativePath, log)
+func LoadTomlFileToMap(relativePath string) (map[string]interface{}, error) {
+	f, err := OpenFile(relativePath)
 	if err != nil {
 		return nil, err
 	}
