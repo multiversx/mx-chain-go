@@ -32,8 +32,8 @@ func (tkr *testKadResolver) ByID(peer p2p.PeerID) uint32 {
 	return tkr.f(peer)
 }
 
-func (tkr *testKadResolver) IsBalanced() bool {
-	return true
+func (tkr *testKadResolver) NumShards() int {
+	return 3
 }
 
 func (tkr *testKadResolver) IsInterfaceNil() bool {
