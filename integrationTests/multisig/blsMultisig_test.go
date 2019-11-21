@@ -139,6 +139,10 @@ func aggregateSignatureSharesAllSignersBls(multiSigners []crypto.MultiSigner, bi
 }
 
 func TestMultiSig_Bls(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Parallel()
 
 	consensusGroupSize := uint16(6)
