@@ -11,6 +11,7 @@ source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 prepareFolders
 
 # Phase 1: build Seednode and Node executables
+buildConfigGenerator
 buildSeednode
 buildNode
 buildProxy
