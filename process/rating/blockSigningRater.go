@@ -66,6 +66,9 @@ func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
 
 //GetRatings gets all the ratings that the current rater has
 func (bsr *BlockSigningRater) GetRatings(addresses []string) map[string]uint32 {
+	if bsr.RatingReader == nil {
+		return map[string]uint32{}
+	}
 	return bsr.RatingReader.GetRatings(addresses)
 }
 

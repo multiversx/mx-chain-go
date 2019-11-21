@@ -212,6 +212,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 	if currentHeaderRound-previousHeaderRound <= 1 {
 		return nil
 	}
+	proposerDecreaseOption := p.rater.GetRatingOptionKeys()[2]
 
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
 		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
@@ -229,8 +230,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		newRating := p.rater.ComputeRating(string(consensusGroup[0].Address()), p.rater.GetRatingOptionKeys()[2],
-			leaderPeerAcc.GetRating())
+		newRating := p.rater.ComputeRating(string(consensusGroup[0].Address()), proposerDecreaseOption, leaderPeerAcc.GetRating())
 
 		err = leaderPeerAcc.SetRatingWithJournal(newRating)
 
