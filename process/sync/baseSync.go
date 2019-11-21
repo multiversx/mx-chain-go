@@ -368,6 +368,10 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, hash []byte) {
+	if boot.shardCoordinator.SelfId() != shardId {
+		return
+	}
+
 	log.Trace("received header from network",
 		"nonce", nonce,
 		"hash", hash,
