@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
-	github.com/ElrondNetwork/arwen-wasm-vm v0.2.9
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.0
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.22
 	github.com/ElrondNetwork/elrond-vm-common v0.1.2
@@ -57,5 +57,3 @@ require (
 	golang.org/x/sys v0.0.0-20190825160603-fb81701db80f // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
-
-replace github.com/ElrondNetwork/arwen-wasm-vm v0.2.9 => ../arwen-wasm-vm
