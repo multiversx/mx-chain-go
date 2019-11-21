@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -22,9 +21,6 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
 
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)

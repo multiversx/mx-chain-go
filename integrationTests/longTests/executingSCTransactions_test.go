@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -25,9 +24,6 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
-
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
 
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
@@ -110,9 +106,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
 
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
-
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -193,9 +186,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
-
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
 
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
@@ -289,9 +279,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
-
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
 
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
