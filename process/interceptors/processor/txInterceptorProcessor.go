@@ -62,6 +62,10 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 	return nil
 }
 
+// SignalEndOfProcessing signals the end of processing
+func (txip *TxInterceptorProcessor) SignalEndOfProcessing(data []process.InterceptedData) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txip *TxInterceptorProcessor) IsInterfaceNil() bool {
 	if txip == nil {

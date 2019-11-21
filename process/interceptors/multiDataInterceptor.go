@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logger"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -72,34 +71,14 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	filteredMultiDataBuff := make([][]byte, 0)
-	firstDataBuff := multiDataBuff[0]
+	interceptedMultiData := make([]process.InterceptedData, 0)
 	lastErrEncountered := error(nil)
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(len(multiDataBuff))
 
 	go func() {
 		wgProcess.Wait()
-
-		interceptedData, err := mdi.interceptedData(firstDataBuff)
-		if err != nil {
-			mdi.throttler.EndProcessing()
-			return
-		}
-
-		nodeData, ok := interceptedData.(*trie.InterceptedTrieNode)
-		if !ok {
-			mdi.throttler.EndProcessing()
-			return
-		}
-
-		// TODO instead of using a node to trigger the end of processing, use a dedicated channel
-		//  between interceptor and sync
-		nodeData.CreateEndOfProcessingTriggerNode()
-		err = mdi.processor.Save(nodeData)
-		if err != nil {
-			log.Debug(err.Error())
-		}
-
+		mdi.processor.SignalEndOfProcessing(interceptedMultiData)
 		mdi.throttler.EndProcessing()
 	}()
 
@@ -110,6 +89,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			wgProcess.Done()
 			continue
 		}
+
+		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
 		//data is validated, add it to filtered out buff
 		filteredMultiDataBuff = append(filteredMultiDataBuff, dataBuff)

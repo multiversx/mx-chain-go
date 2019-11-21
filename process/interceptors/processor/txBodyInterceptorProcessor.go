@@ -105,6 +105,10 @@ func (tbip *TxBodyInterceptorProcessor) checkMiniblock(miniblock *block.MiniBloc
 	return nil
 }
 
+// SignalEndOfProcessing signals the end of processing
+func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(data []process.InterceptedData) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tbip *TxBodyInterceptorProcessor) IsInterfaceNil() bool {
 	if tbip == nil {

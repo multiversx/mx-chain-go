@@ -91,6 +91,7 @@ type InterceptedData interface {
 type InterceptorProcessor interface {
 	Validate(data InterceptedData) error
 	Save(data InterceptedData) error
+	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }
 
