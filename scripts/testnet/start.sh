@@ -44,7 +44,9 @@ sleep $PROXY_DELAY
 # Phase 6: start the TxGen, with or without regenerating the accounts
 if [ -n "$REGENERATE_ACCOUNTS" ]
 then
+  echo "Starting TxGen with account generation..."
   startTxGen_NewAccounts
 else
+  echo "Starting TxGen with existing accounts..."
   startTxGen_ExistingAccounts
 fi
