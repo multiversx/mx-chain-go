@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -166,9 +167,17 @@ func NewTestProcessorNode(
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
+
+	pkBytes, _ := pk.ToByteArray()
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
+			validator := mock.NewValidatorMock(big.NewInt(0), 0, pkBytes, []byte("add"))
+			return []sharding.Validator{validator}, nil
+		},
+	}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
@@ -336,7 +345,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.AccntState,
 			TestAddressConverter,
 			tpn.OwnAccount.SingleSigner,
+			tpn.OwnAccount.BlockSingleSigner,
 			tpn.OwnAccount.KeygenTxSign,
+			tpn.OwnAccount.KeygenBlockSign,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
 			tpn.BlackListHandler,
@@ -356,7 +367,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestMarshalizer,
 			TestHasher,
 			tpn.OwnAccount.KeygenTxSign,
+			tpn.OwnAccount.KeygenBlockSign,
 			tpn.OwnAccount.SingleSigner,
+			tpn.OwnAccount.BlockSingleSigner,
 			TestMultiSig,
 			tpn.ShardDataPool,
 			TestAddressConverter,

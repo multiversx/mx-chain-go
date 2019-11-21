@@ -171,9 +171,8 @@ func (rcns *roundConsensus) ComputeSize(subroundId int) int {
 
 	for i := 0; i < len(rcns.consensusGroup); i++ {
 		isJobDone, err := rcns.JobDone(rcns.consensusGroup[i], subroundId)
-
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("JobDone", "error", err.Error())
 			continue
 		}
 
@@ -192,9 +191,8 @@ func (rcns *roundConsensus) ResetRoundState() {
 
 	for i := 0; i < len(rcns.consensusGroup); i++ {
 		roundState := rcns.validatorRoundStates[rcns.consensusGroup[i]]
-
 		if roundState == nil {
-			log.Error(ErrNilRoundState.Error())
+			log.Debug("validatorRoundStates", "error", ErrNilRoundState.Error())
 			continue
 		}
 
