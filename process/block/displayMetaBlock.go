@@ -1,11 +1,9 @@
 package block
 
 import (
-	"encoding/base64"
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/display"
 )
@@ -63,20 +61,20 @@ func (hc *headersCounter) displayLogInfo(
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("CreateTableString", "error", err.Error())
 		return
 	}
 
 	hc.shardMBHeaderCounterMutex.RLock()
-	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal shard MB headers "+
-		"processed until now: %d. Total shard MB headers processed for this block: %d. Total shard headers remained in pool: %d\n",
-		core.ToB64(headerHash),
-		hc.shardMBHeadersTotalProcessed,
-		hc.shardMBHeadersCurrentBlockProcessed,
-		numHeadersFromPool)
+	message := fmt.Sprintf("header hash: %s\n%s", display.DisplayByteSlice(headerHash), tblString)
+	arguments := []interface{}{
+		"total MB processed", hc.shardMBHeadersTotalProcessed,
+		"block MB processed", hc.shardMBHeadersCurrentBlockProcessed,
+		"shard headers in pool", numHeadersFromPool,
+	}
 	hc.shardMBHeaderCounterMutex.RUnlock()
 
-	log.Info(tblString)
+	log.Debug(message, arguments...)
 }
 
 func (hc *headersCounter) createDisplayableMetaHeader(
@@ -105,7 +103,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 		lines = append(lines, display.NewLineData(false, []string{
 			fmt.Sprintf("ShardData_%d", shardData.ShardID),
 			"Header hash",
-			base64.StdEncoding.EncodeToString(shardData.HeaderHash)}))
+			display.DisplayByteSlice(shardData.HeaderHash)}))
 
 		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -120,7 +118,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d_%d", j+1, senderShard, receiverShard),
-					core.ToB64(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					display.DisplayByteSlice(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
@@ -158,7 +156,7 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body blo
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					core.ToB64(miniBlock.TxHashes[j])}))
+					display.DisplayByteSlice(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {

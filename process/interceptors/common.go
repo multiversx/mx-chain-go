@@ -1,7 +1,6 @@
 package interceptors
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -31,14 +30,18 @@ func processInterceptedData(
 ) {
 	err := processor.Validate(data)
 	if err != nil {
-		log.Debug(fmt.Sprintf("intercepted data is not valid: %s", err.Error()))
+		log.Trace("intercepted data is not valid",
+			"error", err.Error(),
+		)
 		wgProcess.Done()
 		return
 	}
 
 	err = processor.Save(data)
 	if err != nil {
-		log.Debug(fmt.Sprintf("intercepted data can not be processed: %s", err.Error()))
+		log.Trace("intercepted data can not be processed",
+			"error", err.Error(),
+		)
 	}
 
 	wgProcess.Done()

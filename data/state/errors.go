@@ -33,7 +33,7 @@ func NewErrorWrongSize(exp int, got int) *ErrorWrongSize {
 
 // Error returns the error as string
 func (e *ErrorWrongSize) Error() string {
-	return fmt.Sprintf("wrong size! expected: %d, got %d", e.Exp, e.Got)
+	return fmt.Sprintf("wrong size, expected: %d, got %d", e.Exp, e.Got)
 }
 
 //------- ErrorTrieNotNormalized

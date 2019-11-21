@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
@@ -47,7 +47,7 @@ const SendTransactionsPipe = "send transactions pipe"
 // HeartbeatTopic is the topic used for heartbeat signaling
 const HeartbeatTopic = "heartbeat"
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("node")
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -236,7 +236,7 @@ func (n *Node) StartConsensus() error {
 
 	err = bootstrapper.SetStatusHandler(n.GetAppStatusHandler())
 	if err != nil {
-		log.Warn("cannot set app status handler for shard bootstrapper")
+		log.Debug("cannot set app status handler for shard bootstrapper")
 	}
 
 	bootstrapper.StartSync()
@@ -592,7 +592,7 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 	for shardId, txs := range transactionsByShards {
 		err := n.sendBulkTransactionsFromShard(txs, shardId)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("sendBulkTransactionsFromShard", "error", err.Error())
 		} else {
 			numOfSentTxs += uint64(len(txs))
 		}
@@ -657,7 +657,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 				bufferToSend,
 			)
 			if err != nil {
-				log.Error(err.Error())
+				log.Debug("BroadcastOnChannelBlocking", "error", err.Error())
 			}
 
 			atomic.AddInt32(&n.currentSendingGoRoutines, -1)
@@ -882,7 +882,9 @@ func (n *Node) startSendingHeartbeats(config config.HeartbeatConfig) {
 		time.Sleep(timeToWait)
 
 		err := n.heartbeatSender.SendHeartbeat()
-		log.LogIfError(err)
+		if err != nil {
+			log.Debug("SendHeartbeat", "error", err.Error())
+		}
 	}
 }
 
