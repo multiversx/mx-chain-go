@@ -1,7 +1,8 @@
 # These paths must be absolute
 export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
 export TESTNETDIR="$HOME/work/Elrond/testnet"
-export CONFIGGENERATORDIR="$ELRONDDIR/../elrond-deploy-go"
+export CONFIGGENERATORDIR="$(dirname $ELRONDDIR)/elrond-deploy-go/cmd/filegen"
+export CONFIGGENERATOR="$CONFIGGENERATORDIR/filegen"
 export NODEDIR="$ELRONDDIR/cmd/node"
 export NODE="$NODEDIR/node"
 export SEEDNODEDIR="$ELRONDDIR/cmd/seednode"
@@ -16,7 +17,7 @@ export NODE_DELAY=2
 export PROXY_DELAY=3
 
 # Shard structure
-export SHARDCOUNT=3
+export SHARDCOUNT=1
 export SHARD_VALIDATORCOUNT=2
 export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=2

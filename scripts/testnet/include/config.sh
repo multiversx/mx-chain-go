@@ -2,9 +2,8 @@ source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 
 generateConfig() {
   echo "Generating configuration using values from scripts/variables.sh..."
-  cd $CONFIGGENERATORDIR
-  go build ./...
 
+  cd $TESTNETDIR/filegen
   ./filegen \
     -mint-value $MINT_VALUE                               \
     -num-of-shards $SHARDCOUNT                            \
@@ -20,14 +19,14 @@ generateConfig() {
 copyConfig() {
   cd $TESTNETDIR
 
-  cp $CONFIGGENERATORDIR/genesis.json ./node/config
-  cp $CONFIGGENERATORDIR/nodesSetup.json ./node/config
-  cp $CONFIGGENERATORDIR/initialBalancesPkPlain.txt ./node/config
-  cp $CONFIGGENERATORDIR/initialBalancesSk.pem ./node/config
-  cp $CONFIGGENERATORDIR/initialBalancesSkPlain.txt ./node/config
-  cp $CONFIGGENERATORDIR/initialNodesPkPlain.txt ./node/config
-  cp $CONFIGGENERATORDIR/initialNodesSk.pem ./node/config
-  cp $CONFIGGENERATORDIR/initialNodesSkPlain.txt ./node/config
+  cp ./filegen/genesis.json ./node/config
+  cp ./filegen/nodesSetup.json ./node/config
+  cp ./filegen/initialBalancesPkPlain.txt ./node/config
+  cp ./filegen/initialBalancesSk.pem ./node/config
+  cp ./filegen/initialBalancesSkPlain.txt ./node/config
+  cp ./filegen/initialNodesPkPlain.txt ./node/config
+  cp ./filegen/initialNodesSk.pem ./node/config
+  cp ./filegen/initialNodesSkPlain.txt ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
 }
 
@@ -78,6 +77,7 @@ copyTxGenConfig() {
   cd $TESTNETDIR
 
   cp $TXGENDIR/config/config.toml ./txgen/config/
+  cp $TXGENDIR/config/sc.toml ./txgen/config/
 
   cp ./node/config/economics.toml ./txgen/config/
   cp ./node/config/initialBalancesSk.pem ./txgen/config

@@ -3,10 +3,10 @@ source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 # Determine which terminal emulator is available 
 # (currently, one of "konsole" or "gnome-terminal").
 # TMUX support is in development.
-if [ -n $(command -v "konsole") ]
+if [ -n "$(command -v "konsole")" ]
 then
   export TERMWRAPPER="konsole"
-elif [ -n $(command -v "gnome-terminal") ]
+elif [ -n "$(command -v "gnome-terminal")" ]
 then
   export TERMWRAPPER="gnome-terminal"
 fi

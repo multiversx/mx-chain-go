@@ -3,15 +3,26 @@ source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 prepareFolders() {
   [ -d $TESTNETDIR ] || mkdir -p $TESTNETDIR
   cd $TESTNETDIR
-  [ -d node_working_dirs ] || mkdir -p node_working_dirs
+  [ -d filegen ] || mkdir -p filegen
   [ -d node ] || mkdir -p node
   [ -d node/config ] || mkdir -p node/config
   [ -d seednode ] || mkdir -p seednode
   [ -d seednode/config ] || mkdir -p seednode/config
+  [ -d node_working_dirs ] || mkdir -p node_working_dirs
   [ -d proxy ] || mkdir -p proxy
   [ -d ./proxy/config ] || mkdir -p ./proxy/config
   [ -d txgen ] || mkdir -p txgen
   [ -d ./txgen/config ] || mkdir -p ./txgen/config
+}
+
+buildConfigGenerator() {
+  echo "Building Configuration Generator..."
+  cd $CONFIGGENERATORDIR
+  go build .
+
+  cd $TESTNETDIR
+  cp $CONFIGGENERATOR ./filegen/
+  echo "Configuration Generator built..."
 }
 
 
