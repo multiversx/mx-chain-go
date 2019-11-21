@@ -273,3 +273,30 @@ func TestKadDhtPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, ctx == kdd.ContextProvider())
 }
+
+func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
+	ctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
+	interval := time.Second
+	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
+
+	err := kdd.ApplyContext(ctx)
+	assert.Nil(t, err)
+
+	c1 := kdd.StartWatchdog(interval)
+	c2 := kdd.StartWatchdog(interval)
+
+	assert.NotNil(t, c1)
+	assert.Equal(t, c1, c2)
+
+	if testing.Short() {
+		return
+	}
+	//kick
+	c1 <- struct{}{}
+	kdd.Pause()
+	assert.True(t, kdd.IsDiscoveryPaused())
+	time.Sleep(interval / 2)
+	assert.True(t, kdd.IsDiscoveryPaused())
+	time.Sleep(interval)
+	assert.False(t, kdd.IsDiscoveryPaused())
+}
