@@ -3,7 +3,7 @@
     ReleasePerByte    = 250
     DataCopyPerByte   = 10
     PersistPerByte    = 50
-    CompilePerByte    = 50
+    CompilePerByte    = 1000
 
 [ElrondAPICost]
     GetOwner           = 10

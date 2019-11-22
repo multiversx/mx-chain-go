@@ -427,7 +427,7 @@ func CreateTopUpTx(nonce uint64, value *big.Int, scAddrress []byte, sndAddress [
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,
-		GasLimit: 500000,
+		GasLimit: 5000000,
 		Data:     "topUp@00",
 	}
 }
@@ -445,7 +445,7 @@ func CreateTransferTx(
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 0,
-		GasLimit: 500000,
+		GasLimit: 5000000,
 		Data:     "transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
 	}
 }
