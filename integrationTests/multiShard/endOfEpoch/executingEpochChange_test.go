@@ -97,8 +97,6 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	logger.DefaultLogger().SetLevel("DEBUG")
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,

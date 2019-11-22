@@ -41,8 +41,8 @@ func TestHeader_SaveLoad(t *testing.T) {
 		RootHash:           []byte("root hash"),
 		MetaBlockHashes:    make([][]byte, 0),
 		TxCount:            uint32(10),
-		EpochStartMetaHash: []byte("endofepoch"),
-		LeaderSignature:  []byte("leader_sig"),
+		EpochStartMetaHash: []byte("epochStart"),
+		LeaderSignature:    []byte("leader_sig"),
 	}
 
 	var b bytes.Buffer
