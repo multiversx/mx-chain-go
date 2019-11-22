@@ -15,11 +15,11 @@ type miniBlocksCompaction struct {
 	shardCoordinator sharding.Coordinator
 	gasHandler       process.GasHandler
 
-	mapHashToTx                            map[string]data.TransactionHandler
-	mapMinSenderNonce                      map[string]uint64
-	mapUnallocatedTxsHashes                map[string]struct{}
-	mapMiniBlockGasConsumedInSenderShard   map[int]uint64
-	mapMiniBlockGasConsumedInReceiverShard map[int]uint64
+	mapHashToTx             map[string]data.TransactionHandler
+	mapMinSenderNonce       map[string]uint64
+	mapUnallocatedTxsHashes map[string]struct{}
+	gasSpentSender          map[int]uint64
+	gasSpentReceiver        map[int]uint64
 
 	mutMiniBlocksCompaction sync.RWMutex
 }
@@ -50,8 +50,8 @@ func NewMiniBlocksCompaction(
 	mbc.mapHashToTx = make(map[string]data.TransactionHandler)
 	mbc.mapMinSenderNonce = make(map[string]uint64)
 	mbc.mapUnallocatedTxsHashes = make(map[string]struct{})
-	mbc.mapMiniBlockGasConsumedInSenderShard = make(map[int]uint64)
-	mbc.mapMiniBlockGasConsumedInReceiverShard = make(map[int]uint64)
+	mbc.gasSpentSender = make(map[int]uint64)
+	mbc.gasSpentReceiver = make(map[int]uint64)
 
 	return &mbc, nil
 }
@@ -72,11 +72,11 @@ func (mbc *miniBlocksCompaction) Compact(
 	var err error
 
 	mbc.mapHashToTx = mapHashToTx
-	mbc.mapMiniBlockGasConsumedInSenderShard = make(map[int]uint64)
-	mbc.mapMiniBlockGasConsumedInReceiverShard = make(map[int]uint64)
+	mbc.gasSpentSender = make(map[int]uint64)
+	mbc.gasSpentReceiver = make(map[int]uint64)
 
 	for index, miniBlock := range miniBlocks {
-		mbc.mapMiniBlockGasConsumedInSenderShard[index], mbc.mapMiniBlockGasConsumedInReceiverShard[index], err = mbc.gasHandler.ComputeGasConsumedByMiniBlock(
+		mbc.gasSpentSender[index], mbc.gasSpentReceiver[index], err = mbc.gasHandler.ComputeGasConsumedByMiniBlock(
 			miniBlock,
 			mapHashToTx)
 
@@ -283,65 +283,73 @@ func (mbc *miniBlocksCompaction) computeMerge(
 	srcIndex int,
 ) bool {
 
-	gasConsumedByMergedMiniBlocksInSenderShard := mbc.mapMiniBlockGasConsumedInSenderShard[dstIndex] +
-		mbc.mapMiniBlockGasConsumedInSenderShard[srcIndex]
-
-	gasConsumedByMergedMiniBlocksInReceiverShard := mbc.mapMiniBlockGasConsumedInReceiverShard[dstIndex] +
-		mbc.mapMiniBlockGasConsumedInReceiverShard[srcIndex]
-
-	canBeFullyMerged := gasConsumedByMergedMiniBlocksInSenderShard <= mbc.economicsFee.MaxGasLimitPerBlock() &&
-		gasConsumedByMergedMiniBlocksInReceiverShard <= mbc.economicsFee.MaxGasLimitPerBlock()
+	newGasSpentSender := mbc.gasSpentSender[dstIndex] + mbc.gasSpentSender[srcIndex]
+	newGasSpentReceiver := mbc.gasSpentReceiver[dstIndex] + mbc.gasSpentReceiver[srcIndex]
+	senderGasLimitOK := newGasSpentSender <= mbc.economicsFee.MaxGasLimitPerBlock()
+	receiverGasLimitOK := newGasSpentReceiver <= mbc.economicsFee.MaxGasLimitPerBlock()
+	canBeFullyMerged := senderGasLimitOK && receiverGasLimitOK
 
 	if canBeFullyMerged {
 		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, srcMiniBlock.TxHashes...)
-		mbc.mapMiniBlockGasConsumedInSenderShard[dstIndex] += mbc.mapMiniBlockGasConsumedInSenderShard[srcIndex]
-		mbc.mapMiniBlockGasConsumedInReceiverShard[dstIndex] += mbc.mapMiniBlockGasConsumedInReceiverShard[srcIndex]
+		mbc.gasSpentSender[dstIndex] += mbc.gasSpentSender[srcIndex]
+		mbc.gasSpentReceiver[dstIndex] += mbc.gasSpentReceiver[srcIndex]
 		return true
 	}
 
+	mbGasSpentSender := mbc.gasSpentSender[dstIndex]
+	mbGasSpentReceiver := mbc.gasSpentReceiver[dstIndex]
+
+	txHashes := mbc.getMaxTxsForMerge(mbGasSpentSender, mbGasSpentReceiver, srcMiniBlock)
+	if len(txHashes) > 0 {
+		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, txHashes...)
+		srcMiniBlock.TxHashes = mbc.removeTxHashesFromMiniBlock(srcMiniBlock, txHashes)
+
+		gasTransferred := mbGasSpentSender - mbc.gasSpentSender[dstIndex]
+		mbc.gasSpentSender[dstIndex] += gasTransferred
+		mbc.gasSpentSender[srcIndex] -= gasTransferred
+
+		gasTransferred = mbGasSpentReceiver - mbc.gasSpentReceiver[dstIndex]
+		mbc.gasSpentReceiver[dstIndex] += gasTransferred
+		mbc.gasSpentReceiver[srcIndex] -= gasTransferred
+	}
+
+	return false
+}
+
+func (mbc *miniBlocksCompaction) getMaxTxsForMerge(
+	gasSpentSender uint64,
+	gasSpentReceiver uint64,
+	miniBlock *block.MiniBlock,
+) [][]byte {
 	txHashes := make([][]byte, 0)
-	gasConsumedByDstMiniBlockInSenderShard := mbc.mapMiniBlockGasConsumedInSenderShard[dstIndex]
-	gasConsumedByDstMiniBlockInReceiverShard := mbc.mapMiniBlockGasConsumedInReceiverShard[dstIndex]
-	for _, txHash := range srcMiniBlock.TxHashes {
+	for _, txHash := range miniBlock.TxHashes {
 		txHandler, ok := mbc.mapHashToTx[string(txHash)]
 		if !ok {
 			break
 		}
 
-		gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := mbc.gasHandler.ComputeGasConsumedByTx(
-			srcMiniBlock.SenderShardID,
-			srcMiniBlock.ReceiverShardID,
-			txHandler)
+		txGasSpentSender, txGasSpentReceiver, err := mbc.gasHandler.ComputeGasConsumedByTx(
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID,
+			txHandler,
+		)
 		if err != nil {
 			break
 		}
 
-		gasConsumedInSenderShard := gasConsumedByDstMiniBlockInSenderShard + gasConsumedByTxInSenderShard
-		gasConsumedInReceiverShard := gasConsumedByDstMiniBlockInReceiverShard + gasConsumedByTxInReceiverShard
-		if gasConsumedInSenderShard > mbc.economicsFee.MaxGasLimitPerBlock() ||
-			gasConsumedInReceiverShard > mbc.economicsFee.MaxGasLimitPerBlock() {
+		gasSpentSender := gasSpentSender + txGasSpentSender
+		gasSpentReceiverShard := gasSpentReceiver + txGasSpentReceiver
+		if gasSpentSender > mbc.economicsFee.MaxGasLimitPerBlock() ||
+			gasSpentReceiverShard > mbc.economicsFee.MaxGasLimitPerBlock() {
 			break
 		}
 
 		txHashes = append(txHashes, txHash)
-		gasConsumedByDstMiniBlockInSenderShard += gasConsumedByTxInSenderShard
-		gasConsumedByDstMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+		gasSpentSender += txGasSpentSender
+		gasSpentReceiver += txGasSpentReceiver
 	}
 
-	if len(txHashes) > 0 {
-		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, txHashes...)
-		srcMiniBlock.TxHashes = mbc.removeTxHashesFromMiniBlock(srcMiniBlock, txHashes)
-
-		miniBlockGasTransfered := gasConsumedByDstMiniBlockInSenderShard - mbc.mapMiniBlockGasConsumedInSenderShard[dstIndex]
-		mbc.mapMiniBlockGasConsumedInSenderShard[dstIndex] += miniBlockGasTransfered
-		mbc.mapMiniBlockGasConsumedInSenderShard[srcIndex] -= miniBlockGasTransfered
-
-		miniBlockGasTransfered = gasConsumedByDstMiniBlockInReceiverShard - mbc.mapMiniBlockGasConsumedInReceiverShard[dstIndex]
-		mbc.mapMiniBlockGasConsumedInReceiverShard[dstIndex] += miniBlockGasTransfered
-		mbc.mapMiniBlockGasConsumedInReceiverShard[srcIndex] -= miniBlockGasTransfered
-	}
-
-	return false
+	return txHashes
 }
 
 func (mbc *miniBlocksCompaction) removeTxHashesFromMiniBlock(miniBlock *block.MiniBlock, txHashes [][]byte) [][]byte {

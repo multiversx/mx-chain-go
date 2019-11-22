@@ -682,10 +682,10 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
 			},
-			RemoveConsumedCalled: func(hashes [][]byte) {
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
 				totalGasConsumed = 0
 			},
-			RemoveRefundedCalled: func(hashes [][]byte) {
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
 			},
 		},
 	)

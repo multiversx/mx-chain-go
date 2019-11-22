@@ -618,6 +618,9 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 				log.Debug("revert to snapshot", "error", err.Error())
 			}
 
+			txs.gasHandler.RemoveGasConsumed([][]byte{orderedTxHashes[index]})
+			txs.gasHandler.RemoveGasRefunded([][]byte{orderedTxHashes[index]})
+
 			continue
 		}
 
@@ -637,14 +640,17 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 				len(miniBlock.TxHashes),
 				len(orderedTxs)))
 
-			txs.txsForCurrBlock.mutTxsForBlock.Lock()
-			delete(txs.txsForCurrBlock.txHashAndInfo, string(orderedTxHashes[index]))
-			txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
 				log.Error(err.Error())
 			}
+
+			txs.txsForCurrBlock.mutTxsForBlock.Lock()
+			delete(txs.txsForCurrBlock.txHashAndInfo, string(orderedTxHashes[index]))
+			txs.txsForCurrBlock.mutTxsForBlock.Unlock()
+
+			txs.gasHandler.RemoveGasConsumed([][]byte{orderedTxHashes[index]})
+			txs.gasHandler.RemoveGasRefunded([][]byte{orderedTxHashes[index]})
 
 			continue
 		}
@@ -719,10 +725,19 @@ func (txs *transactions) ProcessMiniBlock(
 		return process.ErrWrongTypeInMiniBlock
 	}
 
+	var err error
+
 	miniBlockTxs, miniBlockTxHashes, err := txs.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		if err != nil {
+			txs.gasHandler.RemoveGasConsumed(miniBlock.TxHashes)
+			txs.gasHandler.RemoveGasRefunded(miniBlock.TxHashes)
+		}
+	}()
 
 	gasConsumedByMiniBlockInSenderShard := uint64(0)
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)

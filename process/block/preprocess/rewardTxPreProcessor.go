@@ -208,8 +208,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			continue
 		}
 
-		//TODO: Should be checked max gas limit per block also when a node processes reward transactions from a received block?
-
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
@@ -381,6 +379,7 @@ func (rtp *rewardTxPreprocessor) processRewardTransaction(
 		return err
 	}
 
+	//TODO: These lines could be deleted as in this point these values are already set (this action only overwrites them)
 	txShardData := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
 	rtp.rewardTxsForBlock.txHashAndInfo[string(rewardTxHash)] = &txInfo{tx: rewardTx, txShardInfo: txShardData}
@@ -498,8 +497,6 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 	processedTxHashes := make([][]byte, 0)
 
 	for _, mb := range rewardMiniBlocksSlice {
-		processedTxHashes = append(processedTxHashes, mb.TxHashes...)
-
 		err := rtp.ProcessMiniBlock(mb, haveTime, round)
 		if err != nil {
 			log.Debug("reward txs ProcessMiniBlock", "error", err.Error())
@@ -510,10 +507,16 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 				log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 			}
 
-			rtp.gasHandler.RemoveGasConsumed(processedTxHashes)
-			rtp.gasHandler.RemoveGasRefunded(processedTxHashes)
+			rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
+			for _, txHash := range processedTxHashes {
+				delete(rtp.rewardTxsForBlock.txHashAndInfo, string(txHash))
+			}
+			rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
+
 			return nil, err
 		}
+
+		processedTxHashes = append(processedTxHashes, mb.TxHashes...)
 	}
 
 	return rewardMiniBlocksSlice, nil
@@ -540,8 +543,6 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		if !haveTime() {
 			return process.ErrTimeIsOut
 		}
-
-		//TODO: Should be checked max gas limit per block also for reward transactions from/to me?
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {

@@ -19,6 +19,7 @@ type gasComputation struct {
 	mutGasRefunded sync.RWMutex
 }
 
+// NewGasComputation creates a new object which computes the gas consumption
 func NewGasComputation(
 	economicsFee process.FeeHandler,
 ) (*gasComputation, error) {
@@ -34,6 +35,7 @@ func NewGasComputation(
 	}, nil
 }
 
+// Init method resets consumed and refunded gas structures
 func (gc *gasComputation) Init() {
 	gc.mutGasConsumed.Lock()
 	gc.gasConsumed = make(map[string]uint64)
@@ -44,18 +46,21 @@ func (gc *gasComputation) Init() {
 	gc.mutGasRefunded.Unlock()
 }
 
+// SetGasConsumed sets gas consumed for a given hash
 func (gc *gasComputation) SetGasConsumed(gasConsumed uint64, hash []byte) {
 	gc.mutGasConsumed.Lock()
 	gc.gasConsumed[string(hash)] = gasConsumed
 	gc.mutGasConsumed.Unlock()
 }
 
+// SetGasRefunded sets gas refunded for a given hash
 func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded[string(hash)] = gasRefunded
 	gc.mutGasRefunded.Unlock()
 }
 
+// GasConsumed gets gas consumed for a given hash
 func (gc *gasComputation) GasConsumed(hash []byte) uint64 {
 	gc.mutGasConsumed.RLock()
 	defer gc.mutGasConsumed.RUnlock()
@@ -64,6 +69,7 @@ func (gc *gasComputation) GasConsumed(hash []byte) uint64 {
 
 }
 
+// GasRefunded gets gas refunded for a given hash
 func (gc *gasComputation) GasRefunded(hash []byte) uint64 {
 	gc.mutGasRefunded.RLock()
 	defer gc.mutGasRefunded.RUnlock()
@@ -71,6 +77,7 @@ func (gc *gasComputation) GasRefunded(hash []byte) uint64 {
 	return gc.gasRefunded[string(hash)]
 }
 
+// TotalGasConsumed gets the total gas consumed
 func (gc *gasComputation) TotalGasConsumed() uint64 {
 	gc.mutGasConsumed.RLock()
 	defer gc.mutGasConsumed.RUnlock()
@@ -83,6 +90,7 @@ func (gc *gasComputation) TotalGasConsumed() uint64 {
 	return totalGasConsumed
 }
 
+// TotalGasRefunded gets the total gas refunded
 func (gc *gasComputation) TotalGasRefunded() uint64 {
 	gc.mutGasRefunded.RLock()
 	defer gc.mutGasRefunded.RUnlock()
@@ -95,6 +103,7 @@ func (gc *gasComputation) TotalGasRefunded() uint64 {
 	return totalGasRefunded
 }
 
+// RemoveGasConsumed removes gas consumed for the given hashes
 func (gc *gasComputation) RemoveGasConsumed(hashes [][]byte) {
 	gc.mutGasConsumed.Lock()
 	for _, hash := range hashes {
@@ -103,6 +112,7 @@ func (gc *gasComputation) RemoveGasConsumed(hashes [][]byte) {
 	gc.mutGasConsumed.Unlock()
 }
 
+// RemoveGasRefunded removes gas refunded for the given hashes
 func (gc *gasComputation) RemoveGasRefunded(hashes [][]byte) {
 	gc.mutGasRefunded.Lock()
 	for _, hash := range hashes {
@@ -111,6 +121,7 @@ func (gc *gasComputation) RemoveGasRefunded(hashes [][]byte) {
 	gc.mutGasRefunded.Unlock()
 }
 
+// ComputeGasConsumedByMiniBlock computes gas consumed by the given miniblock in sender and receiver shard
 func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
 	miniBlock *block.MiniBlock,
 	mapHashTx map[string]data.TransactionHandler,
@@ -140,6 +151,7 @@ func (gc *gasComputation) ComputeGasConsumedByMiniBlock(
 	return gasConsumedByMiniBlockInSenderShard, gasConsumedByMiniBlockInReceiverShard, nil
 }
 
+// ComputeGasConsumedByTx computes gas consumed by the given transaction in sender and receiver shard
 func (gc *gasComputation) ComputeGasConsumedByTx(
 	txSenderShardId uint32,
 	txReceiverShardId uint32,
@@ -170,6 +182,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 	return txGasLimitConsumption, txGasLimitConsumption, nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (gc *gasComputation) IsInterfaceNil() bool {
 	return gc == nil
 }

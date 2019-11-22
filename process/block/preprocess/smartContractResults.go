@@ -206,8 +206,6 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			continue
 		}
 
-		//TODO: Should be checked max gas limit per block also when a node processes smart contract result transactions from a received block?
-
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
@@ -352,6 +350,7 @@ func (scr *smartContractResults) processSmartContractResult(
 		return err
 	}
 
+	//TODO: These lines could be deleted as in this point these values are already set (this action only overwrites them)
 	txShardInfo := &txShardInfo{senderShardID: sndShardId, receiverShardID: dstShardId}
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	scr.scrForBlock.txHashAndInfo[string(smartContractResultHash)] = &txInfo{tx: smartContractResult, txShardInfo: txShardInfo}
@@ -476,8 +475,6 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		if !haveTime() {
 			return process.ErrTimeIsOut
 		}
-
-		//TODO: Should be checked max gas limit per block also for smart contract result transaction with destination me?
 
 		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {

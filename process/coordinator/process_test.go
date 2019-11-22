@@ -516,6 +516,10 @@ func createPreProcessorContainerWithDataPool(
 			GasRefundedCalled: func(hash []byte) uint64 {
 				return 0
 			},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
+			},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
+			},
 		},
 	)
 	container, _ := preFactory.Create()
@@ -2000,6 +2004,10 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 				return 0
 			},
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
+			},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
+			},
 		},
 	)
 	container, _ := preFactory.Create()
@@ -2018,11 +2026,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			},
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed = gasConsumed
-			},
-			RemoveConsumedCalled: func(hashes [][]byte) {
-				totalGasConsumed = 0
-			},
-			RemoveRefundedCalled: func(hashes [][]byte) {
 			},
 		},
 	)

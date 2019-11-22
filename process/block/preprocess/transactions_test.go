@@ -878,6 +878,11 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 			GasRefundedCalled: func(hash []byte) uint64 {
 				return 0
 			},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
+				totalGasConsumed = 0
+			},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
+			},
 		},
 	)
 	assert.NotNil(t, txs)

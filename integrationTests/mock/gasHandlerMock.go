@@ -13,8 +13,8 @@ type GasHandlerMock struct {
 	GasRefundedCalled                   func(hash []byte) uint64
 	TotalGasConsumedCalled              func() uint64
 	TotalGasRefundedCalled              func() uint64
-	RemoveConsumedCalled                func(hashes [][]byte)
-	RemoveRefundedCalled                func(hashes [][]byte)
+	RemoveGasConsumedCalled             func(hashes [][]byte)
+	RemoveGasRefundedCalled             func(hashes [][]byte)
 	ComputeGasConsumedByMiniBlockCalled func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasConsumedByTxCalled        func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 }
@@ -48,11 +48,11 @@ func (ghm *GasHandlerMock) TotalGasRefunded() uint64 {
 }
 
 func (ghm *GasHandlerMock) RemoveGasConsumed(hashes [][]byte) {
-	ghm.RemoveConsumedCalled(hashes)
+	ghm.RemoveGasConsumedCalled(hashes)
 }
 
 func (ghm *GasHandlerMock) RemoveGasRefunded(hashes [][]byte) {
-	ghm.RemoveRefundedCalled(hashes)
+	ghm.RemoveGasRefundedCalled(hashes)
 }
 
 func (ghm *GasHandlerMock) ComputeGasConsumedByMiniBlock(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
