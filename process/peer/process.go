@@ -1,6 +1,10 @@
 package peer
 
 import (
+	"fmt"
+	"math/big"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -9,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"math/big"
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
@@ -19,7 +22,7 @@ type ArgValidatorStatisticsProcessor struct {
 	Marshalizer      marshal.Marshalizer
 	NodesCoordinator sharding.NodesCoordinator
 	ShardCoordinator sharding.Coordinator
-	DataPool         dataRetriever.MetaPoolsHolder
+	DataPool         DataPool
 	StorageService   dataRetriever.StorageService
 	AdrConv          state.AddressConverter
 	PeerAdapter      state.AccountsAdapter
@@ -27,12 +30,15 @@ type ArgValidatorStatisticsProcessor struct {
 
 type validatorStatistics struct {
 	marshalizer      marshal.Marshalizer
-	dataPool         dataRetriever.MetaPoolsHolder
+	dataPool         DataPool
 	storageService   dataRetriever.StorageService
 	nodesCoordinator sharding.NodesCoordinator
 	shardCoordinator sharding.Coordinator
 	adrConv          state.AddressConverter
 	peerAdapter      state.AccountsAdapter
+	prevShardInfo    map[string]block.ShardData
+	mutPrevShardInfo sync.RWMutex
+	mediator shardMetaMediator
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -74,7 +80,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		dataPool:         arguments.DataPool,
 		storageService:   arguments.StorageService,
 		marshalizer:      arguments.Marshalizer,
+		prevShardInfo:    make(map[string]block.ShardData, 0),
 	}
+	vs.mediator = vs.createMediator()
 
 	err := vs.saveInitialState(arguments.InitialNodes, arguments.Economics.StakeValue())
 	if err != nil {
@@ -114,7 +122,7 @@ func (p *validatorStatistics) IsNodeValid(node *sharding.InitialNode) bool {
 	return true
 }
 
-// UpdatePeerState takes the ca header, updates the peer state for all of the
+// UpdatePeerState takes a header, updates the peer state for all of the
 //  consensus members and returns the new root hash
 func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
@@ -131,18 +139,28 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
-	//previousHeader, err := p.getMetaHeaderFromStorage(header.GetPrevHash())
+	// TODO: This should be removed when we have the genesis block in the storage also
+	//  and make sure to calculate gaps for the first block also
+	if header.GetNonce() == 1 {
+		return p.peerAdapter.RootHash()
+	}
+
 	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), p.dataPool.MetaBlocks(), p.marshalizer, p.storageService)
 	if err != nil {
 		return nil, err
 	}
 
-	err = p.checkForMissedBlocks(header, previousHeader)
+	err = p.checkForMissedBlocks(
+		header.GetRound(),
+		previousHeader.GetRound(),
+		previousHeader.GetPrevRandSeed(),
+		previousHeader.GetShardID(),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = p.updateShardDataPeerState(header)
+	err = p.updateShardDataPeerState(header, previousHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -160,13 +178,18 @@ func (p *validatorStatistics) RootHash() ([]byte, error) {
 	return p.peerAdapter.RootHash()
 }
 
-func (p *validatorStatistics) checkForMissedBlocks(currentHeader, previousHeader data.HeaderHandler) error {
-	if currentHeader.GetRound()-previousHeader.GetRound() <= 1 {
+func (p *validatorStatistics) checkForMissedBlocks(
+	currentHeaderRound,
+	previousHeaderRound uint64,
+	prevRandSeed []byte,
+	shardId uint32,
+) error {
+	if currentHeaderRound-previousHeaderRound <= 1 {
 		return nil
 	}
 
-	for i := previousHeader.GetRound() + 1; i < currentHeader.GetRound(); i++ {
-		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(previousHeader.GetPrevRandSeed(), i, previousHeader.GetShardID())
+	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
+		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
 		if err != nil {
 			return err
 		}
@@ -196,41 +219,53 @@ func (p *validatorStatistics) RevertPeerStateToSnapshot(snapshot int) error {
 	return p.peerAdapter.RevertToSnapshot(snapshot)
 }
 
-func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler) error {
+func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader data.HeaderHandler) error {
 	metaHeader, ok := header.(*block.MetaBlock)
 	if !ok {
 		return process.ErrInvalidMetaHeader
 	}
+	prevMetaHeader, ok := previousHeader.(*block.MetaBlock)
+	if !ok {
+		return process.ErrInvalidMetaHeader
+	}
+
+	err := p.mediator.loadPreviousShardHeaders(metaHeader, prevMetaHeader)
+	if err !=  nil {
+		return err
+	}
 
 	for _, h := range metaHeader.ShardInfo {
-		shardHeader, err := process.GetShardHeaderFromPool(h.HeaderHash, p.dataPool.ShardHeaders())
-		if err != nil {
-			return err
+
+		shardConsensus, shardInfoErr := p.nodesCoordinator.ComputeValidatorsGroup(h.PrevRandSeed, h.Round, h.ShardID)
+		if shardInfoErr != nil {
+			return shardInfoErr
 		}
 
-		shardConsensus, err := p.nodesCoordinator.ComputeValidatorsGroup(shardHeader.GetPrevRandSeed(), shardHeader.GetRound(), shardHeader.GetShardID())
-		if err != nil {
-			return err
+		shardInfoErr = p.updateValidatorInfo(shardConsensus, h.ShardID)
+		if shardInfoErr != nil {
+			return shardInfoErr
 		}
 
-		err = p.updateValidatorInfo(shardConsensus, shardHeader.GetShardID())
-		if err != nil {
-			return err
-		}
-
-		if shardHeader.GetNonce() == 1 {
+		if h.Nonce == 1 {
 			continue
 		}
 
-		//previousHeader, err :=  p.getHeaderFromStorage(shardHeader.GetPrevHash())
-		previousHeader, err := process.GetShardHeader(shardHeader.GetPrevHash(), p.dataPool.ShardHeaders(), p.marshalizer, p.storageService)
-		if err != nil {
-			return err
+		sdKey := p.buildShardDataKey(h)
+		p.mutPrevShardInfo.RLock()
+		prevShardData, prevDataOk := p.prevShardInfo[sdKey]
+		p.mutPrevShardInfo.RUnlock()
+		if !prevDataOk {
+			return process.ErrMissingPrevShardData
 		}
 
-		err = p.checkForMissedBlocks(shardHeader, previousHeader)
-		if err != nil {
-			return err
+		shardInfoErr = p.checkForMissedBlocks(
+			h.Round,
+			prevShardData.Round,
+			prevShardData.PrevRandSeed,
+			h.ShardID,
+		)
+		if shardInfoErr != nil {
+			return shardInfoErr
 		}
 	}
 
@@ -342,6 +377,145 @@ func (p *validatorStatistics) getPeerAccount(address []byte) (state.PeerAccountH
 	}
 
 	return peerAccount, nil
+}
+
+// loadPreviousShardHeaders loads the previous shard headers for a given metablock. For the metachain it's easy
+//  since it has all the shard headers in its storage, but for the shard it's a bit trickier and we need
+//  to iterate through past metachain headers until we find all the ShardData we are interested in
+func (p *validatorStatistics) loadPreviousShardHeaders(currentHeader, previousHeader *block.MetaBlock) error {
+
+	missingPreviousShardData := p.loadExistingPrevShardData(currentHeader, previousHeader)
+	missingPreviousShardData, err := p.loadMissingPrevShardDataFromStorage(missingPreviousShardData, previousHeader)
+	if err != nil {
+		return err
+	}
+
+	if len(missingPreviousShardData) > 0 {
+		return process.ErrMissingShardDataInStorage
+	}
+
+	return nil
+}
+
+func (p *validatorStatistics) loadExistingPrevShardData(currentHeader, previousHeader *block.MetaBlock) map[string]block.ShardData {
+	p.mutPrevShardInfo.Lock()
+	defer p.mutPrevShardInfo.Unlock()
+
+	p.prevShardInfo = make(map[string]block.ShardData)
+	missingPreviousShardData := make(map[string]block.ShardData)
+
+	for _, currentShardData := range currentHeader.ShardInfo {
+		if currentShardData.Nonce == 1 {
+			continue
+		}
+
+		sdKey := p.buildShardDataKey(currentShardData)
+		prevShardData := p.getMatchingPrevShardData(currentShardData, currentHeader.ShardInfo)
+		if prevShardData != nil {
+			p.prevShardInfo[sdKey] = *prevShardData
+			continue
+		}
+
+		prevShardData = p.getMatchingPrevShardData(currentShardData, previousHeader.ShardInfo)
+		if prevShardData != nil {
+			p.prevShardInfo[sdKey] = *prevShardData
+			continue
+		}
+
+		missingPreviousShardData[sdKey] = currentShardData
+	}
+
+	return missingPreviousShardData
+}
+
+func (p *validatorStatistics) loadMissingPrevShardDataFromStorage(missingPreviousShardData map[string]block.ShardData, previousHeader *block.MetaBlock) (map[string]block.ShardData, error) {
+	p.mutPrevShardInfo.Lock()
+	defer p.mutPrevShardInfo.Unlock()
+
+	searchHeader := &block.MetaBlock{}
+	*searchHeader = *previousHeader
+	for len(missingPreviousShardData) > 0 {
+		if searchHeader.GetNonce() <= 1 {
+			break
+		}
+
+		recursiveHeader, err := process.GetMetaHeader(searchHeader.GetPrevHash(), p.dataPool.MetaBlocks(), p.marshalizer, p.storageService)
+		if err != nil {
+			return nil, err
+		}
+		for key, shardData := range missingPreviousShardData {
+			prevShardData := p.getMatchingPrevShardData(shardData, recursiveHeader.ShardInfo)
+			if prevShardData == nil {
+				continue
+			}
+
+			p.prevShardInfo[key] = *prevShardData
+			delete(missingPreviousShardData, key)
+		}
+		*searchHeader = *recursiveHeader
+	}
+
+	return missingPreviousShardData, nil
+}
+
+func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlock) error {
+	p.mutPrevShardInfo.Lock()
+	defer p.mutPrevShardInfo.Unlock()
+
+	metaDataPool, ok := p.dataPool.(dataRetriever.MetaPoolsHolder)
+	if !ok {
+		return process.ErrInvalidMetaPoolHolder
+	}
+
+	for _, shardData := range header.ShardInfo {
+		if shardData.Nonce == 1 {
+			continue
+		}
+
+		previousHeader, err := process.GetShardHeader(
+			shardData.PrevHash,
+			metaDataPool.ShardHeaders(),
+			p.marshalizer,
+			p.storageService,
+		)
+		if err != nil {
+			return err
+		}
+
+		sdKey := p.buildShardDataKey(shardData)
+		p.prevShardInfo[sdKey] = block.ShardData{
+			ShardID: previousHeader.ShardId,
+			Nonce: previousHeader.Nonce,
+			Round: previousHeader.Round,
+			PrevRandSeed: previousHeader.PrevRandSeed,
+			PrevHash: previousHeader.PrevHash,
+		}
+	}
+	return nil
+}
+
+func (p *validatorStatistics) getMatchingPrevShardData(currentShardData block.ShardData, shardInfo []block.ShardData) *block.ShardData {
+	for _, prevShardData := range shardInfo {
+		if currentShardData.ShardID != prevShardData.ShardID {
+			continue
+		}
+		if currentShardData.Nonce == prevShardData.Nonce + 1 {
+			return &prevShardData
+		}
+	}
+
+	return nil
+}
+
+func (p *validatorStatistics) buildShardDataKey(sh block.ShardData) string {
+	return fmt.Sprintf("%d_%d", sh.ShardID, sh.Nonce)
+}
+
+func (p *validatorStatistics) createMediator() shardMetaMediator {
+	if p.shardCoordinator.SelfId() < sharding.MetachainShardId {
+		return &shardMediator{p}
+	}
+	return &metaMediator{p}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

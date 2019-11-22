@@ -131,6 +131,44 @@ func (bp *baseProcessor) RestoreLastNotarizedHrdsToGenesis() {
 	bp.mutNotarizedHdrs.Unlock()
 }
 
+// RevertAccountState reverts the account state for cleanup failed process
+func (bp *baseProcessor) RevertAccountState() {
+	err := bp.accounts.RevertToSnapshot(0)
+	if err != nil {
+		log.Debug("RevertToSnapshot", "error", err.Error())
+	}
+
+	err = bp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
+	if err != nil {
+		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
+	}
+}
+
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (bp *baseProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+	err := bp.accounts.RecreateTrie(header.GetRootHash())
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", header.GetNonce(),
+			"hash", header.GetRootHash(),
+		)
+
+		return err
+	}
+
+	err = bp.validatorStatisticsProcessor.RevertPeerState(header)
+	if err != nil {
+		log.Debug("revert peer state with error for header",
+			"nonce", header.GetNonce(),
+			"validators root hash", header.GetValidatorStatsRootHash(),
+		)
+
+		return err
+	}
+
+	return nil
+}
+
 // checkBlockValidity method checks if the given block is valid
 func (bp *baseProcessor) checkBlockValidity(
 	chainHandler data.ChainHandler,
@@ -1067,4 +1105,18 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 			log.Debug("cannot save boot data in storage", "error", err.Error())
 		}
 	}()
+}
+
+func (bp *baseProcessor) commitAll() error {
+	_, err := bp.accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	_, err = bp.validatorStatisticsProcessor.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

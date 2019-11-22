@@ -85,10 +85,10 @@ func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64,
 	panic("implement me")
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
-	if bpm.RevertStateToBlockCalled != nil {
-		return bpm.RevertStateToBlockCalled(header)
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if blProcMock.RevertStateToBlockCalled != nil {
+		return blProcMock.RevertStateToBlockCalled(header)
 	}
 	return nil
 }

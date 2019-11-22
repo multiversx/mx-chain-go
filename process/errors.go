@@ -553,3 +553,15 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
+
+// ErrMissingPrevShardData signals that a required shard data information is missing
+var ErrMissingPrevShardData = errors.New("shard data is missing")
+
+// ErrInvalidMetaPoolHolder signals that a required shard data information is missing
+var ErrInvalidMetaPoolHolder = errors.New("invalid meta pool holder")
+
+// ErrNilMediator signals that a mediator implementation is needed, but it is nil
+var ErrNilMediator = errors.New("nil mediator")
+
+// ErrMissingShardDataInStorage signals that some ShardData information is missing from storage
+var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")

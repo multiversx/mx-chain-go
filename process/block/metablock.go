@@ -957,47 +957,8 @@ func (mp *metaProcessor) CommitBlock(
 
 	return nil
 }
-
 // ApplyProcessedMiniBlocks will do nothing on meta processor
 func (mp *metaProcessor) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
-}
-
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := mp.accounts.RecreateTrie(header.GetRootHash())
-	if err != nil {
-		log.Debug("recreate trie with error for header",
-			"nonce", header.GetNonce(),
-			"hash", header.GetRootHash(),
-		)
-
-		return err
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
-	if err != nil {
-		log.Debug("revert peer state with error for header",
-			"nonce", header.GetNonce(),
-			"validators root hash", header.GetValidatorStatsRootHash(),
-		)
-
-		return err
-	}
-
-	return nil
-}
-
-// RevertAccountState reverts the account state for cleanup failed process
-func (mp *metaProcessor) RevertAccountState() {
-	err := mp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err.Error())
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
-	}
 }
 
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
@@ -1032,20 +993,6 @@ func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
 	if valueStored < value {
 		mp.shardsHeadersNonce.Store(key, value)
 	}
-}
-
-func (mp *metaProcessor) commitAll() error {
-	_, err := mp.accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	_, err = mp.validatorStatisticsProcessor.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
@@ -1413,6 +1360,10 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.TxCount = shardHdr.TxCount
 		shardData.ShardID = shardHdr.ShardId
 		shardData.HeaderHash = []byte(hdrHash)
+		shardData.Round = shardHdr.Round
+		shardData.PrevHash = shardHdr.PrevHash
+		shardData.Nonce = shardHdr.Nonce
+		shardData.PrevRandSeed = shardHdr.PrevRandSeed
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
