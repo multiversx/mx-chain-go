@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -102,8 +101,8 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 		Signature: nil,
 		Challenge: nil,
 	}
-	gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
-	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	//gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, nil)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	err = txProc.ProcessTransaction(tx, round)
@@ -137,6 +136,12 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 	}
 }
 
+func TestMultipleTimesTheSameTest(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		TestVmDeployWithTransferAndExecuteERC20(t)
+	}
+}
+
 func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
@@ -150,8 +155,8 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
-	gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
-	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	//gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, nil)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	tx := vm.CreateDeployTx(
@@ -182,7 +187,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	aliceNonce++
 
 	start := time.Now()
-	nrTxs := 10
+	nrTxs := 3
 
 	for i := 0; i < nrTxs; i++ {
 		tx = vm.CreateTransferTx(aliceNonce, transferOnCalls, scAddress, alice, bob)

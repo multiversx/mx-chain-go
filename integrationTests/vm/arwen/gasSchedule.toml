@@ -1,9 +1,9 @@
 [BaseOperationCost]
-    StorePerByte      = 500
-    ReleasePerByte    = 250
-    DataCopyPerByte   = 10
-    PersistPerByte    = 50
-    CompilePerByte    = 50
+    StorePerByte      = 1
+    ReleasePerByte    = 1
+    DataCopyPerByte   = 1
+    PersistPerByte    = 1
+    CompilePerByte    = 1
 
 [ElrondAPICost]
     GetOwner           = 10
@@ -133,15 +133,15 @@
     I64Load16U = 3
     I64Load32S = 3
     I64Load32U = 3
-    I32Store = 3
-    I64Store = 3
-    F32Store = 6
-    F64Store = 6
-    I32Store8 = 3
-    I32Store16 = 3
-    I64Store8 = 3
-    I64Store16 = 3
-    I64Store32 = 3
+    I32Store = 6
+    I64Store = 6
+    F32Store = 12
+    F64Store = 12
+    I32Store8 = 6
+    I32Store16 = 6
+    I64Store8 = 6
+    I64Store16 = 6
+    I64Store32 = 6
     MemorySize = 5
     MemoryGrow = 5
     I32Const = 1
