@@ -251,6 +251,11 @@ VERSION:
 		Usage: "This flag specifies the logger level",
 		Value: "*:" + logger.LogInfo.String(),
 	}
+	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
+	disableAnsiColor = cli.BoolFlag{
+		Name:  "disable-ansi-color",
+		Usage: "This flag specifies that the log output should not use ANSI colors",
+	}
 	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
 	bootstrapRoundIndex = cli.Uint64Flag{
 		Name:  "bootstrap-round-index",
@@ -330,6 +335,7 @@ func main() {
 		nodeDisplayName,
 		restApiInterface,
 		restApiDebug,
+		disableAnsiColor,
 		logLevel,
 		usePrometheus,
 		useLogView,
@@ -376,6 +382,22 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err := logger.SetLogLevel(logLevel)
 	if err != nil {
 		return err
+	}
+	noAnsiColor := ctx.GlobalBool(disableAnsiColor.Name)
+	if noAnsiColor {
+		err = logger.RemoveLogObserver(os.Stdout)
+		if err != nil {
+			//we need to print this manually as we do not have console log observer
+			fmt.Println("error removing log observer: " + err.Error())
+			return err
+		}
+
+		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
+		if err != nil {
+			//we need to print this manually as we do not have console log observer
+			fmt.Println("error setting log observer: " + err.Error())
+			return err
+		}
 	}
 
 	enableGopsIfNeeded(ctx, log)
