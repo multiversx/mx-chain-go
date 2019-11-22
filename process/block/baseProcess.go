@@ -1064,7 +1064,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	go func() {
 		err := bp.bootStorer.Put(int64(round), bootData)
 		if err != nil {
-			log.Info("cannot save boot data in storage", err.Error())
+			log.Debug("cannot save boot data in storage", "error", err.Error())
 		}
 	}()
 }

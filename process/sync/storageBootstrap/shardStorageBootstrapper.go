@@ -1,8 +1,6 @@
 package storageBootstrap
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -121,7 +119,8 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(lastNotarized map[u
 
 		err := storer.Remove(nonceToByteSlice)
 		if err != nil {
-			log.Info(fmt.Sprintf("header with nonce %d and shard %d cannot be removed", hdrInfo.Nonce, shardId))
+			log.Debug("header cannot be removed", "error", err.Error(),
+				"nonce", hdrInfo.Nonce, "shardId", shardId)
 		}
 	}
 }

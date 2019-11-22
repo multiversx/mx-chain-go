@@ -1,12 +1,10 @@
 package sync
 
 import (
-	"fmt"
 	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -100,7 +98,6 @@ func NewMetaBootstrap(
 		baseBootstrap: base,
 	}
 
-	//base.storageBootstrapper = &boot
 	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.syncStarter = &boot
@@ -151,7 +148,7 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
 	header, err := process.GetMetaHeaderFromPool(headerHash, boot.headers)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("GetMetaHeaderFromPool", "error", err.Error())
 		return
 	}
 
@@ -163,7 +160,7 @@ func (boot *MetaBootstrap) StartSync() {
 	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug("syncFromStorer", "error", errNotCritical.Error())
 	}
 
 	go boot.syncBlocks()
@@ -184,25 +181,34 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
-	log.Info(fmt.Sprintf("requested header with nonce %d from network as probable highest nonce is %d\n",
-		nonce,
-		boot.forkDetector.ProbableHighestNonce()))
+	log.Debug("requested header from network",
+		"nonce", nonce,
+		"highest probable nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
 
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("RequestDataFromNonce", "error", err.Error())
 	}
+
+	log.Debug("requested header from network",
+		"nonce", nonce,
+	)
+	log.Debug("probable highest nonce",
+		"nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
 }
 
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
 	err := boot.hdrRes.RequestDataFromHash(hash)
-
-	log.Info(fmt.Sprintf("requested header with hash %s from network\n", core.ToB64(hash)))
-
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("RequestDataFromHash", "error", err.Error())
 	}
+
+	log.Debug("requested header from network",
+		"hash", hash,
+	)
 }
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will

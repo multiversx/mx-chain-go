@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var log = logger.GetOrCreate("process/sync")
 
 // ArgsStorageBootstrapper is structure used to create a new storage bootstrapper
 type ArgsStorageBootstrapper struct {
@@ -45,8 +47,6 @@ type storageBootstrapper struct {
 	headerNonceHashStore storage.Storer
 }
 
-var log = logger.DefaultLogger()
-
 func (st *storageBootstrapper) loadBlocks() error {
 	var err error
 	var storageHeaderInfo bootstrapStorage.BootstrapData
@@ -54,7 +54,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 	round := st.bootStorer.GetHighestRound()
 	storageHeadersInfo := make([]bootstrapStorage.BootstrapData, 0)
 
-	log.Info(fmt.Sprintf("Load blocks started...\n"))
+	log.Debug("Load blocks started...")
 
 	for {
 		storageHeaderInfo, err = st.bootStorer.Get(round)
@@ -94,15 +94,15 @@ func (st *storageBootstrapper) loadBlocks() error {
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	log.Info(fmt.Sprintf("\n processed mini blocks applyed %v", storageHeaderInfo.ProcessedMiniBlocks))
+	log.Debug("\nprocessed mini blocks applied",
+		"processed mini blocks ", storageHeaderInfo.ProcessedMiniBlocks)
 	st.blkExecutor.ApplyProcessedMiniBlocks(storageHeaderInfo.ProcessedMiniBlocks)
 
-	log.Info(fmt.Sprintf("\n"))
+	log.Debug("\n")
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
 		st.cleanupStorage(storageHeadersInfo[i].HeaderInfo.Nonce)
-		log.Info(fmt.Sprintf("cleanup storage :header with nonce %d",
-			storageHeadersInfo[i].HeaderInfo.Nonce))
+		log.Info("cleanup storage :header with nonce", "nonce", storageHeadersInfo[i].HeaderInfo.Nonce)
 
 		lastNotarized := make(map[uint32]*sync.HdrInfo)
 		for _, lastNotarizedHeader := range storageHeadersInfo[i].LastNotarizedHeaders {
@@ -112,14 +112,14 @@ func (st *storageBootstrapper) loadBlocks() error {
 			}
 		}
 
-		log.Info(fmt.Sprintf("cleanup notarized sotrage : %d notarized headers", len(lastNotarized)))
+		log.Debug("cleanup notarized storage", "notarized headers", len(lastNotarized))
 		st.bootstrapper.cleanupNotarizedStorage(lastNotarized)
 	}
-	log.Info(fmt.Sprintf("\n"))
+	log.Debug(fmt.Sprintf("\n"))
 
 	err = st.bootStorer.SaveLastRound(round)
 	if err != nil {
-		log.Info(fmt.Sprintf("cannot save last round in storage %s", err.Error()))
+		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
 	return nil
@@ -129,19 +129,21 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	headerHash := hdrInfo.HeaderInfo.Hash
 	headerFromStorage, err := st.bootstrapper.getHeader(headerHash)
 	if err != nil {
-		log.Info(fmt.Sprintf("cannot get header with nonce %d: %s", hdrInfo.HeaderInfo.Nonce, err.Error()))
+		log.Debug("cannot get header ", "nonce", hdrInfo.HeaderInfo.Nonce,
+			"error", err.Error())
 		return err
 	}
 
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage)
 	if err != nil {
-		log.Info(fmt.Sprintf("cannot recreate trie for header with nonce %d", headerFromStorage.GetNonce()))
+		log.Debug("cannot recreate trie for header with nonce", "nonce", headerFromStorage.GetNonce())
 		return err
 	}
 
 	err = st.applyBlock(headerFromStorage, headerHash)
 	if err != nil {
-		log.Info(fmt.Sprintf("cannot apply block for header with nonce %d : %s", headerFromStorage.GetNonce(), err.Error()))
+		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(),
+			"error", err.Error())
 		return err
 	}
 
@@ -156,13 +158,14 @@ func (st *storageBootstrapper) getBootInfos(storageHeaderInfo bootstrapStorage.B
 	bootInfos := make([]bootstrapStorage.BootstrapData, 0)
 	bootInfos = append(bootInfos, storageHeaderInfo)
 
-	log.Info(fmt.Sprintf("highest nonce %d lastFinalNone %d last round %d", highestNonce, highestFinalNonce, lastRound))
+	log.Debug("block info from storage",
+		"highest nonce", highestNonce, "lastFinalNone", highestFinalNonce, "last round", lastRound)
 
 	lowestNonce := core.MaxUint64(highestFinalNonce-1, 1)
 	for highestNonce > lowestNonce {
 		strHdrI, err := st.bootStorer.Get(lastRound)
 		if err != nil {
-			log.Info(fmt.Sprintf("cannot load header info from storage %s", err.Error()))
+			log.Debug("cannot load header info from storage ", "error", err.Error())
 			return nil, err
 		}
 
@@ -189,12 +192,15 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 	}()
 
 	for i := len(bootInfos) - 1; i >= 0; i-- {
-		log.Info(fmt.Sprintf("\napply block with nonce %d for shard %d", bootInfos[i].HeaderInfo.Nonce, bootInfos[i].HeaderInfo.ShardId))
+		log.Debug("apply block",
+			"nonce", bootInfos[i].HeaderInfo.Nonce,
+			"shardId", bootInfos[i].HeaderInfo.ShardId)
 
 		lastNotarized := make(map[uint32]*sync.HdrInfo)
 		for _, lastNotarizedHeader := range bootInfos[i].LastNotarizedHeaders {
-			log.Info(fmt.Sprintf("added notarized header with nonce %d for shard %d",
-				lastNotarizedHeader.Nonce, lastNotarizedHeader.ShardId))
+			log.Debug("added notarized header",
+				"nonce", lastNotarizedHeader.Nonce,
+				"shardId", lastNotarizedHeader.ShardId)
 
 			lastNotarized[lastNotarizedHeader.ShardId] = &sync.HdrInfo{
 				Nonce: lastNotarizedHeader.Nonce,
@@ -204,7 +210,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 		err = st.bootstrapper.applyNotarizedBlocks(lastNotarized)
 		if err != nil {
-			log.Info(fmt.Sprintf("cannot apply notarized block %s", err.Error()))
+			log.Debug("cannot apply notarized block", "error", err.Error())
 
 			return err
 		}
@@ -216,7 +222,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 		err = st.addHeaderToForkDetector(bootInfos[i].HeaderInfo.Hash, lastFinalHashes)
 		if err != nil {
-			log.Info(fmt.Sprintf("cannot apply final block %s", err.Error()))
+			log.Debug("cannot apply final block", "error", err.Error())
 			return err
 		}
 	}
@@ -228,7 +234,9 @@ func (st *storageBootstrapper) cleanupStorage(nonce uint64) {
 	nonceToByteSlice := st.uint64Converter.ToByteSlice(nonce)
 	err := st.headerNonceHashStore.Remove(nonceToByteSlice)
 	if err != nil {
-		log.Info(fmt.Sprintf("cannot cleanup storage header with nonce %d %s", nonce, err.Error()))
+		log.Debug("cannot cleanup header from storage",
+			"nonce", nonce,
+			"error", err.Error())
 	}
 }
 
@@ -271,7 +279,9 @@ func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, finalH
 		return err
 	}
 
-	log.Info(fmt.Sprintf("added header with nonce %d and shard %d to fork detector", header.GetNonce(), header.GetShardID()))
+	log.Debug("added header to fork detector",
+		"nonce", header.GetNonce(),
+		"shardId", header.GetShardID())
 
 	finalHeaders := make([]data.HeaderHandler, 0)
 	for _, hash := range finalHeadersHashes {
@@ -280,7 +290,7 @@ func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, finalH
 			return err
 		}
 		finalHeaders = append(finalHeaders, finalHeader)
-		log.Info(fmt.Sprintf("added final header with nonce %d", finalHeader.GetNonce()))
+		log.Debug("added final header", "nonce", finalHeader.GetNonce())
 	}
 
 	err = st.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, false)

@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -111,7 +110,6 @@ func NewShardBootstrap(
 		miniBlocks:    poolsHolder.MiniBlocks(),
 	}
 
-	//base.storageBootstrapper = &boot
 	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.syncStarter = &boot
@@ -196,7 +194,7 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
 	header, err := process.GetShardHeaderFromPool(headerHash, boot.headers)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("GetShardHeaderFromPool", "error", err.Error())
 		return
 	}
 
@@ -219,7 +217,7 @@ func (boot *ShardBootstrap) receivedBodyHash(hash []byte) {
 
 	boot.requestedHashes.SetReceivedHash(hash)
 	if boot.requestedHashes.ReceivedAll() {
-		log.Info(fmt.Sprintf("received all the requested mini blocks from network\n"))
+		log.Debug("received all the requested mini blocks from network")
 		boot.setRequestedMiniBlocks(nil)
 		boot.mutRcvMiniBlocks.Unlock()
 		boot.chRcvMiniBlocks <- true
@@ -232,7 +230,9 @@ func (boot *ShardBootstrap) receivedBodyHash(hash []byte) {
 func (boot *ShardBootstrap) StartSync() {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
-		log.Info(errNotCritical.Error())
+		log.Debug("boot.syncFromStorer",
+			"error", errNotCritical.Error(),
+		)
 	}
 
 	go boot.syncBlocks()
@@ -253,25 +253,34 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
-	log.Info(fmt.Sprintf("requested header with nonce %d from network as probable highest nonce is %d\n",
-		nonce,
-		boot.forkDetector.ProbableHighestNonce()))
+	log.Debug("requested header from network",
+		"nonce", nonce,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
 
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("RequestDataFromNonce", "error", err.Error())
 	}
+
+	log.Debug("requested header from network",
+		"nonce", nonce,
+	)
+	log.Debug("probable highest nonce",
+		"nonce", boot.forkDetector.ProbableHighestNonce(),
+	)
 }
 
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
 	err := boot.hdrRes.RequestDataFromHash(hash)
-
-	log.Info(fmt.Sprintf("requested header with hash %s from network\n", core.ToB64(hash)))
-
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("RequestDataFromHash", "error", err.Error())
 	}
+
+	log.Debug("requested header from network",
+		"hash", hash,
+	)
 }
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
@@ -328,12 +337,13 @@ func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (d
 func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	boot.setRequestedMiniBlocks(hashes)
 	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes)
-
-	log.Info(fmt.Sprintf("requested %d mini blocks from network\n", len(hashes)))
-
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("RequestDataFromHashArray", "error", err.Error())
 	}
+
+	log.Debug("requested mini blocks from network",
+		"num miniblocks", len(hashes),
+	)
 }
 
 // getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,
@@ -442,7 +452,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		boot.headersNonces)
 
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("GetShardHeaderFromPoolWithNonce", "error", err.Error())
 		return
 	}
 
@@ -455,13 +465,14 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 	if len(missingMiniBlocksHashes) > 0 {
 		err := boot.miniBlocksResolver.RequestDataFromHashArray(missingMiniBlocksHashes)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("RequestDataFromHashArray", "error", err.Error())
 			return
 		}
 
-		log.Debug(fmt.Sprintf("requested in advance %d mini blocks from header with nonce %d\n",
-			len(missingMiniBlocksHashes),
-			header.Nonce))
+		log.Trace("requested in advance mini blocks",
+			"num miniblocks", len(missingMiniBlocksHashes),
+			"header nonce", header.Nonce,
+		)
 	}
 }
 
