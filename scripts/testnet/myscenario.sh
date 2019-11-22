@@ -8,7 +8,7 @@ curl -d '{
   "gasLimit": 10,
   "crossShard": true,
   "recallNonce": true,
-  "scAddress": "000000000000000005009c4a0e096d39eaa6e21c38ffe4262363087622578fcf",
+  "scAddress": "00000000000000000500b753a538d157677a8a18e97afa92460c5efaec3ded99",
   "data": "transfer"
 }' \
   -H "Content-Type: application/json" -X POST http://localhost:7999/transaction/send-multiple

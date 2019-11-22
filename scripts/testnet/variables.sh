@@ -14,7 +14,7 @@ export TXGEN=$TXGENDIR/txgen
 
 export SEEDNODE_DELAY=1
 export NODE_DELAY=2
-export PROXY_DELAY=60
+export PROXY_DELAY=65
 
 # Shard structure
 export SHARDCOUNT=3
@@ -46,6 +46,6 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 export PORT_PROXY="8000"
 export PORT_TXGEN="7999"
 
-export NUMACCOUNTS="500"
+export NUMACCOUNTS="100"
 
 export REGENERATE_ACCOUNTS=1
