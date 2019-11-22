@@ -148,7 +148,7 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 		return nil, err
 	}
 
-	return sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), marshalizedHdr)
+	return sr.SingleSigner().Sign(sr.PrivateKey(), marshalizedHdr)
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {

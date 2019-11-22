@@ -38,10 +38,10 @@ type ConsensusCoreHandler interface {
 	SyncTimer() ntp.SyncTimer
 	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
 	NodesCoordinator() sharding.NodesCoordinator
-	// RandomnessPrivateKey returns the private key stored in the ConsensusStore used for randomness generation
-	RandomnessPrivateKey() crypto.PrivateKey
-	// RandomnessSingleSigner returns the single signer stored in the ConsensusStore used for randomness generation
-	RandomnessSingleSigner() crypto.SingleSigner
+	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
+	PrivateKey() crypto.PrivateKey
+	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
+	SingleSigner() crypto.SingleSigner
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

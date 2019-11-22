@@ -127,12 +127,12 @@ func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector s
 	ccm.validatorGroupSelector = validatorGroupSelector
 }
 
-func (ccm *ConsensusCoreMock) RandomnessPrivateKey() crypto.PrivateKey {
+func (ccm *ConsensusCoreMock) PrivateKey() crypto.PrivateKey {
 	return ccm.blsPrivateKey
 }
 
-// RandomnessSingleSigner returns the bls single signer stored in the ConsensusStore
-func (ccm *ConsensusCoreMock) RandomnessSingleSigner() crypto.SingleSigner {
+// SingleSigner returns the bls single signer stored in the ConsensusStore
+func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
 	return ccm.blsSingleSigner
 }
 

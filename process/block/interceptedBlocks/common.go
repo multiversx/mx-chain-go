@@ -77,10 +77,19 @@ func (hsv *headerSigVerifier) verifyRandSeedAndLeaderSignature(header data.Heade
 
 	err = hsv.verifyRandSeed(leaderPubKey, header)
 	if err != nil {
+		log.Trace("block rand seed",
+			"error", err.Error())
 		return err
 	}
 
-	return hsv.verifyLeaderSignature(leaderPubKey, header)
+	err = hsv.verifyLeaderSignature(leaderPubKey, header)
+	if err != nil {
+		log.Trace("block leader's signature",
+			"error", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func (hsv *headerSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
