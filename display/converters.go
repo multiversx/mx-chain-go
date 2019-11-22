@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
-const ellipsisCharacter = "\u2026"
+const ellipsisString = "..."
 
 var mutDisplayByteSlice sync.RWMutex
 var displayByteSlice func(slice []byte) string
@@ -60,5 +60,5 @@ func ToHexShort(slice []byte) string {
 
 	prefix := hex.EncodeToString(slice[:3])
 	suffix := hex.EncodeToString(slice[len(slice)-3:])
-	return prefix + ellipsisCharacter + suffix
+	return prefix + ellipsisString + suffix
 }
