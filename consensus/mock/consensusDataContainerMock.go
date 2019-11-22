@@ -138,8 +138,5 @@ func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ccm *ConsensusCoreMock) IsInterfaceNil() bool {
-	if ccm == nil {
-		return true
-	}
-	return false
+	return ccm == nil
 }

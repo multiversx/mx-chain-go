@@ -12,10 +12,11 @@ type HeaderHandlerStub struct {
 	GetRandSeedCalled                func() []byte
 	GetPrevRandSeedCalled            func() []byte
 	GetPrevHashCalled                func() []byte
+	CloneCalled                      func() data.HeaderHandler
 }
 
 func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
-	return &*hhs
+	return hhs.CloneCalled()
 }
 
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
