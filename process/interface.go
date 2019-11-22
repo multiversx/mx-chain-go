@@ -229,6 +229,7 @@ type ValidatorStatisticsProcessor interface {
 	RevertPeerStateToSnapshot(snapshot int) error
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
+	RootHash() ([]byte, error)
 }
 
 // HashAccesser interface provides functionality over hashable objects
