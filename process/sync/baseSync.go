@@ -149,7 +149,7 @@ func (boot *baseBootstrap) loadBlocks(
 		}
 
 		if err == nil {
-			err = boot.accounts.RecreateTrie(boot.blkc.GetCurrentBlockHeader().GetRootHash())
+			err = boot.blkExecutor.RevertStateToBlock(boot.blkc.GetCurrentBlockHeader())
 			if err != nil {
 				log.Debug("recreate trie for block",
 					"nonce", boot.blkc.GetCurrentBlockHeader().GetNonce(),
@@ -370,7 +370,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, hash []byte) {
-	if shardId != boot.shardCoordinator.SelfId() {
+	if boot.shardCoordinator.SelfId() != shardId {
 		return
 	}
 
