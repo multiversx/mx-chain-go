@@ -18,7 +18,7 @@ startTxGen_NewAccounts() {
   startTerminal
 
   cd $TESTNETDIR/txgen
-  runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -num-shards $SHARDCOUNT -new-accounts" $1
+  runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -num-shards $SHARDCOUNT -new-accounts -sc-mode" $1
 
   endTerminal
 }
