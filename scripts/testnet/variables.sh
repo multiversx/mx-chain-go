@@ -1,6 +1,6 @@
 # These paths must be absolute
 export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
-export TESTNETDIR="$HOME/work/Elrond/testnet"
+export TESTNETDIR="$HOME/Work/Elrond/testnet"
 export CONFIGGENERATORDIR="$(dirname $ELRONDDIR)/elrond-deploy-go/cmd/filegen"
 export CONFIGGENERATOR="$CONFIGGENERATORDIR/filegen"
 export NODEDIR="$ELRONDDIR/cmd/node"
@@ -12,15 +12,16 @@ export PROXY=$PROXYDIR/proxy
 export TXGENDIR="$(dirname $ELRONDDIR)/elrond-txgen-go/cmd/txgen"
 export TXGEN=$TXGENDIR/txgen
 
-export NODETERMUI=0
+export USETMUX=1
+export NODETERMUI=1
 
-export SEEDNODE_DELAY=1
-export NODE_DELAY=3
-export PROXY_DELAY=8
+export SEEDNODE_DELAY=5
+export NODE_DELAY=5
+export PROXY_DELAY=60
 
 # Shard structure
-export SHARDCOUNT=1
-export SHARD_VALIDATORCOUNT=1
+export SHARDCOUNT=3
+export SHARD_VALIDATORCOUNT=2
 export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=1
 
@@ -47,6 +48,8 @@ export PORT_ORIGIN_VALIDATOR="21500"
 export PORT_ORIGIN_VALIDATOR_REST="9500"
 export PORT_PROXY="7950"
 export PORT_TXGEN="7951"
+
+export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"
 
 export NUMACCOUNTS="100"
 

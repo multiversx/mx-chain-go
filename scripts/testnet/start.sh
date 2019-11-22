@@ -20,8 +20,12 @@ buildTxGen
 # Phase 2: generate configuration
 generateConfig
 copyConfig
+
 copySeednodeConfig
+updateSeednodeConfig
+
 copyNodeConfig
+updateNodeConfig
 
 copyProxyConfig
 updateProxyConfig
@@ -30,15 +34,20 @@ updateTxGenConfig
 
 # Phase 3: start the Seednode
 startSeednode
+showTerminalSession "elrond-tools"
+echo "Waiting for the Seednode to start ($SEEDNODE_DELAY s)..."
 sleep $SEEDNODE_DELAY
 
 # Phase 4: start the Observer Nodes and Validator Nodes
 startObservers
 startValidators
+showTerminalSession "elrond-nodes"
+echo "Waiting for the Nodes to start ($NODE_DELAY s)..."
 sleep $NODE_DELAY
 
 # Phase 5: start the Proxy
 startProxy
+echo "Waiting for the Proxy to start ($PROXY_DELAY s)..."
 sleep $PROXY_DELAY
 
 # Phase 6: start the TxGen, with or without regenerating the accounts

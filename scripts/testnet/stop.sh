@@ -10,3 +10,9 @@ stopProxy
 stopValidators
 stopObservers
 stopSeednode
+
+if [ $USETMUX -eq 1 ]
+then
+  tmux kill-session -t "elrond-tools"
+  tmux kill-session -t "elrond-nodes"
+fi
