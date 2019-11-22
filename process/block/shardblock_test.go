@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -27,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -71,6 +73,25 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	)
 
 	return dPool
+}
+
+func createMockResolversFinder() *mock.ResolversFinderStub {
+	return &mock.ResolversFinderStub{
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
+				return &mock.MiniBlocksResolverMock{
+					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), make([][]byte, 0)
+					},
+					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return make(block.MiniBlockSlice, 0), make([][]byte, 0)
+					},
+				}, nil
+			}
+
+			return nil, nil
+		},
+	}
 }
 
 //------- NewShardProcessor

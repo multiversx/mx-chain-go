@@ -380,6 +380,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
+			ResolversFinder: createMockResolversFinder(),
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

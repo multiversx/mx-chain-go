@@ -34,6 +34,7 @@ type ArgBaseProcessor struct {
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rounder                      consensus.Rounder
 	RequestedItemsHandler        process.RequestedItemsHandler
+	ResolversFinder              dataRetriever.ResolversFinder
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

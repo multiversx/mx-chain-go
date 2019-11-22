@@ -80,6 +80,7 @@ type baseProcessor struct {
 
 	appStatusHandler      core.AppStatusHandler
 	requestedItemsHandler process.RequestedItemsHandler
+	miniBlocksResolver    dataRetriever.MiniBlocksResolver
 }
 
 func checkForNils(
@@ -828,6 +829,7 @@ func (bp *baseProcessor) cleanupPools(
 	notarizedHeadersPool storage.Cacher,
 ) {
 	bp.removeHeadersBehindNonceFromPools(
+		bp.getBlockBody,
 		headersPool,
 		headersNoncesPool,
 		bp.shardCoordinator.SelfId(),
@@ -840,6 +842,7 @@ func (bp *baseProcessor) cleanupPools(
 		}
 
 		bp.removeHeadersBehindNonceFromPools(
+			nil,
 			notarizedHeadersPool,
 			headersNoncesPool,
 			shardId,
@@ -850,6 +853,7 @@ func (bp *baseProcessor) cleanupPools(
 }
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
+	getBlockBody func(headerHandler data.HeaderHandler) (data.BodyHandler, error),
 	cacher storage.Cacher,
 	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 	shardId uint32,
@@ -879,6 +883,11 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 			continue
 		}
 
+		errNotCritical := bp.removeBlockBodyOfHeader(getBlockBody, hdr)
+		if errNotCritical != nil {
+			log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
+		}
+
 		cacher.Remove(key)
 
 		if check.IfNil(uint64SyncMapCacher) {
@@ -887,6 +896,52 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 
 		uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
 	}
+}
+
+func (bp *baseProcessor) removeBlockBodyOfHeader(
+	getBlockBody func(headerHandler data.HeaderHandler) (data.BodyHandler, error),
+	headerHandler data.HeaderHandler,
+) error {
+
+	if getBlockBody == nil {
+		return process.ErrNilMethodHandler
+	}
+
+	bodyHandler, err := getBlockBody(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	body, ok := bodyHandler.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = bp.txCoordinator.RemoveBlockDataFromPool(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	header, ok := headerHandler.(*block.Header)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	for i := 0; i < len(header.MiniBlockHeaders); i++ {
+		hashes[i] = header.MiniBlockHeaders[i].Hash
+	}
+
+	miniBlocks, missingMiniBlocksHashes := bp.miniBlocksResolver.GetMiniBlocks(hashes)
+	if len(missingMiniBlocksHashes) > 0 {
+		return nil, process.ErrMissingBody
+	}
+
+	return block.Body(miniBlocks), nil
 }
 
 func (bp *baseProcessor) removeHeaderFromPools(

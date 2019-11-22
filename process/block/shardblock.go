@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -51,6 +52,16 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
+	resolver, err := arguments.ResolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocksResolver, ok := resolver.(dataRetriever.MiniBlocksResolver)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
 	base := &baseProcessor{
 		accounts:                      arguments.Accounts,
 		blockSizeThrottler:            blockSizeThrottler,
@@ -68,6 +79,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		txCoordinator:                 arguments.TxCoordinator,
 		rounder:                       arguments.Rounder,
 		requestedItemsHandler:         arguments.RequestedItemsHandler,
+		miniBlocksResolver:            miniBlocksResolver,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)

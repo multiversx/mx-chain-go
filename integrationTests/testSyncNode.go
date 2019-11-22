@@ -130,6 +130,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
+		ResolversFinder: tpn.ResolverFinder,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

@@ -1988,6 +1988,7 @@ func newShardBlockProcessor(
 		TxCoordinator:         txCoordinator,
 		Rounder:               rounder,
 		RequestedItemsHandler: requestedItemsHandler,
+		ResolversFinder:       resolversFinder,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2194,6 +2195,7 @@ func newMetaBlockProcessor(
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		Rounder:                      rounder,
 		RequestedItemsHandler:        requestedItemsHandler,
+		ResolversFinder:              resolversFinder,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,

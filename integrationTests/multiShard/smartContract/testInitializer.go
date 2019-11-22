@@ -506,6 +506,7 @@ func createNetNode(
 			TxCoordinator:                tc,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			Rounder:                      &mock.RounderMock{},
+			ResolversFinder:              createResolversFinder(),
 		},
 		DataPool:        dPool,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -889,6 +890,7 @@ func createMetaNetNode(
 			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:   &mock.TransactionCoordinatorMock{},
 			Rounder:         &mock.RounderMock{},
+			ResolversFinder: createResolversFinder(),
 		},
 		DataPool:           dPool,
 		SCDataGetter:       &mock.ScDataGetterMock{},
@@ -1035,4 +1037,23 @@ func createVMAndBlockchainHook(
 	vm.GasForOperation = uint64(opGas)
 
 	return vm, blockChainHook
+}
+
+func createResolversFinder() *mock.ResolversFinderStub {
+	return &mock.ResolversFinderStub{
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
+				return &mock.MiniBlocksResolverMock{
+					GetMiniBlocksCalled: func(hashes [][]byte) (dataBlock.MiniBlockSlice, [][]byte) {
+						return make(dataBlock.MiniBlockSlice, 0), make([][]byte, 0)
+					},
+					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (dataBlock.MiniBlockSlice, [][]byte) {
+						return make(dataBlock.MiniBlockSlice, 0), make([][]byte, 0)
+					},
+				}, nil
+			}
+
+			return nil, nil
+		},
+	}
 }

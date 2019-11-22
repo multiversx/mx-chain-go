@@ -556,3 +556,6 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
+
+// ErrNilMethodHandler signals that a method handler is nil
+var ErrNilMethodHandler = errors.New("method handler is nil")
