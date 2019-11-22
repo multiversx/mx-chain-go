@@ -69,6 +69,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
 	tpn.initResolvers()
+	tpn.initRequestedItemsHandler()
 	tpn.initInnerProcessors()
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
@@ -84,6 +85,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
+	tpn.RequestedItemsHandler = &mock.RequestedItemsHandlerMock{}
 }
 
 func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
@@ -120,6 +122,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		Rounder:                      &mock.RounderMock{},
+		RequestedItemsHandler: &mock.RequestedItemsHandlerMock{
+			HasCalled: func(key string) bool {
+				return false
+			},
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -173,6 +183,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		1,
 		tpn.BlackListHandler,
 		tpn.Messenger,
+		tpn.RequestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -200,6 +211,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		1,
 		tpn.BlackListHandler,
 		tpn.Messenger,
+		tpn.RequestedItemsHandler,
 	)
 
 	if err != nil {

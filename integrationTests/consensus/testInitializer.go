@@ -424,6 +424,14 @@ func createConsensusOnlyNode(
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerMock{
+			HasCalled: func(key string) bool {
+				return false
+			},
+			AddCalled: func(key string) error {
+				return nil
+			},
+		}),
 	)
 
 	if err != nil {

@@ -62,22 +62,30 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 	)
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			Accounts:              &mock.AccountsStub{},
-			ForkDetector:          &mock.ForkDetectorMock{},
-			Hasher:                &mock.HasherMock{},
-			Marshalizer:           &mock.MarshalizerMock{},
-			Store:                 &mock.ChainStorerMock{},
-			ShardCoordinator:      shardCoordinator,
-			NodesCoordinator:      nodesCoordinator,
-			SpecialAddressHandler: specialAddressHandler,
-			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:          genesisBlocks,
-			RequestHandler:        &mock.RequestHandlerMock{},
-			Core:                  &mock.ServiceContainerMock{},
-			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:         &mock.TransactionCoordinatorMock{},
+			Accounts:                     &mock.AccountsStub{},
+			ForkDetector:                 &mock.ForkDetectorMock{},
+			Hasher:                       &mock.HasherMock{},
+			Marshalizer:                  &mock.MarshalizerMock{},
+			Store:                        &mock.ChainStorerMock{},
+			ShardCoordinator:             shardCoordinator,
+			NodesCoordinator:             nodesCoordinator,
+			SpecialAddressHandler:        specialAddressHandler,
+			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:                 genesisBlocks,
+			RequestHandler:               &mock.RequestHandlerMock{},
+			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			Rounder:                      &mock.RounderMock{},
+			RequestedItemsHandler: &mock.RequestedItemsHandlerMock{
+				HasCalled: func(key string) bool {
+					return false
+				},
+				AddCalled: func(key string) error {
+					return nil
+				},
+			},
 		},
 		DataPool:        tdp,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -108,10 +116,6 @@ func (mp *metaProcessor) AddHdrHashToRequestedList(hdr *block.Header, hdrHash []
 
 	if mp.hdrsForCurrBlock.highestHdrNonce == nil {
 		mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64, mp.shardCoordinator.NumberOfShards())
-	}
-
-	if mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs == nil {
-		mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64, mp.shardCoordinator.NumberOfShards())
 	}
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)] = &hdrInfo{hdr: hdr, usedInBlock: true}

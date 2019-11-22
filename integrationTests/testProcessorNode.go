@@ -136,11 +136,12 @@ type TestProcessorNode struct {
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	BlockChainHookImpl     process.BlockChainHookHandler
 
-	ForkDetector       process.ForkDetector
-	BlockProcessor     process.BlockProcessor
-	BroadcastMessenger consensus.BroadcastMessenger
-	Bootstrapper       TestBootstrapper
-	Rounder            *mock.RounderMock
+	ForkDetector          process.ForkDetector
+	BlockProcessor        process.BlockProcessor
+	BroadcastMessenger    consensus.BroadcastMessenger
+	Bootstrapper          TestBootstrapper
+	Rounder               *mock.RounderMock
+	RequestedItemsHandler process.RequestedItemsHandler
 
 	MultiSigner crypto.MultiSigner
 
@@ -239,6 +240,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
 	tpn.initResolvers()
+	tpn.initRequestedItemsHandler()
 	tpn.initInnerProcessors()
 	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.GenesisBlocks = CreateGenesisBlocks(
@@ -523,6 +525,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		internalTxProducer,
 		tpn.EconomicsData,
 		tpn.MiniBlocksCompacter,
+		tpn.RequestedItemsHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -533,6 +536,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
+		tpn.RequestedItemsHandler,
 	)
 }
 
@@ -601,6 +605,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.TxProcessor,
 		tpn.EconomicsData.EconomicsData,
 		tpn.MiniBlocksCompacter,
+		tpn.RequestedItemsHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -611,6 +616,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
+		tpn.RequestedItemsHandler,
 	)
 }
 
@@ -645,6 +651,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockChainHook:               tpn.BlockChainHookImpl,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		Rounder:                      &mock.RounderMock{},
+		RequestedItemsHandler:        tpn.RequestedItemsHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1089,4 +1096,15 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 
 func (tpn *TestProcessorNode) initRounder() {
 	tpn.Rounder = &mock.RounderMock{}
+}
+
+func (tpn *TestProcessorNode) initRequestedItemsHandler() {
+	tpn.RequestedItemsHandler = &mock.RequestedItemsHandlerMock{
+		HasCalled: func(key string) bool {
+			return false
+		},
+		AddCalled: func(key string) error {
+			return nil
+		},
+	}
 }

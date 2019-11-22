@@ -227,6 +227,7 @@ func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, tc)
@@ -243,6 +244,7 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, tc)
@@ -259,6 +261,7 @@ func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, tc)
@@ -275,6 +278,7 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 		nil,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, tc)
@@ -291,6 +295,7 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		nil,
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, tc)
@@ -307,10 +312,28 @@ func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		nil,
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, tc)
 	assert.Equal(t, process.ErrNilIntermediateProcessorContainer, err)
+}
+
+func TestNewTransactionCoordinator_NilRequestedItemsHandler(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerMock{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		nil,
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilRequestedItemsHandler, err)
 }
 
 func TestNewTransactionCoordinator_OK(t *testing.T) {
@@ -323,6 +346,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, err)
@@ -339,6 +363,7 @@ func TestTransactionCoordinator_SeparateBodyNil(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -357,6 +382,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -397,6 +423,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -441,6 +468,14 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{
+			HasCalled: func(key string) bool {
+				return false
+			},
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 	container, _ := preFactory.Create()
 
@@ -457,6 +492,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -481,6 +517,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -520,6 +557,7 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -541,6 +579,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		interimContainer,
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -593,6 +632,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -641,6 +681,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -667,6 +708,14 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{
+			HasCalled: func(key string) bool {
+				return false
+			},
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -714,6 +763,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -724,6 +774,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -806,6 +857,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -816,6 +868,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -840,6 +893,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -864,6 +918,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -895,6 +950,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -938,6 +994,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -994,6 +1051,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1050,6 +1108,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1109,6 +1168,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1152,6 +1212,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1178,6 +1239,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1211,6 +1273,7 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1287,6 +1350,14 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{
+			HasCalled: func(key string) bool {
+				return false
+			},
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 	container, _ := preFactory.Create()
 
@@ -1297,6 +1368,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		requestHandler,
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	tc.receivedMiniBlock(miniBlockHash)
@@ -1321,6 +1393,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1357,6 +1430,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(tdp),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1400,6 +1474,7 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(dataPool),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1443,6 +1518,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1453,6 +1529,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1496,6 +1573,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainerWithDataPool(dataPool),
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1565,6 +1643,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1575,6 +1654,14 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		requestHandler,
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{
+			HasCalled: func(key string) bool {
+				return false
+			},
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1682,6 +1769,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1692,6 +1780,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1790,6 +1879,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1800,6 +1890,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1841,6 +1932,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		container,
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1888,6 +1980,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		container,
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1977,6 +2070,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 				return nil, errors.New("invalid handler type")
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2019,6 +2113,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 				return nil, errors.New("invalid handler type")
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)

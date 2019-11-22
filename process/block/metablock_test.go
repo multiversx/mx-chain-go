@@ -41,6 +41,14 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			Rounder:                      &mock.RounderMock{},
+			RequestedItemsHandler: &mock.RequestedItemsHandlerMock{
+				HasCalled: func(key string) bool {
+					return false
+				},
+				AddCalled: func(key string) error {
+					return nil
+				},
+			},
 		},
 		DataPool:           mdp,
 		SCDataGetter:       &mock.ScDataGetterMock{},

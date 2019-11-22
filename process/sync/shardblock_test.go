@@ -312,6 +312,7 @@ func TestNewShardBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -351,6 +352,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -389,6 +391,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersNoncesShouldErr(t *testing.
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -427,6 +430,7 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T)
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -461,6 +465,7 @@ func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -495,6 +500,7 @@ func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -529,6 +535,7 @@ func TestNewShardBootstrap_NilRounderShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -563,6 +570,7 @@ func TestNewShardBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -597,6 +605,7 @@ func TestNewShardBootstrap_NilHasherShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -631,6 +640,7 @@ func TestNewShardBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -665,6 +675,7 @@ func TestNewShardBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -700,6 +711,7 @@ func TestNewShardBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -734,6 +746,7 @@ func TestNewShardBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -768,6 +781,7 @@ func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -803,6 +817,7 @@ func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 		math.MaxUint32,
 		nil,
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -853,6 +868,7 @@ func TestNewShardBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -903,6 +919,7 @@ func TestNewShardBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, bs)
@@ -970,6 +987,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.NotNil(t, bs)
@@ -1047,6 +1065,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	r := bs.SyncBlock()
@@ -1107,6 +1126,11 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		&mock.NetworkConnectionWatcherStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return true
+			},
+		},
+		&mock.RequestedItemsHandlerMock{
+			AddCalled: func(key string) error {
+				return nil
 			},
 		},
 	)
@@ -1208,6 +1232,11 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 
 	bs.RequestHeaderWithNonce(2)
@@ -1269,6 +1298,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.StartSync()
@@ -1394,6 +1424,11 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 
 	bs.StartSync()
@@ -1516,6 +1551,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	r := bs.SyncBlock()
@@ -1638,6 +1674,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.SyncBlock()
@@ -1685,6 +1722,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1730,6 +1768,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1780,6 +1819,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1830,6 +1870,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1896,6 +1937,7 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil, false)
@@ -1977,6 +2019,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	_ = forkDetector.AddHeader(&hdr1, hash1, process.BHProcessed, nil, nil, false)
@@ -2029,6 +2072,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	hdr, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers(), pools.HeadersNonces())
@@ -2101,6 +2145,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	hdr2, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers(), pools.HeadersNonces())
@@ -2151,6 +2196,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	mbHashes := make([][]byte, 0)
@@ -2226,6 +2272,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -2305,6 +2352,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolShouldNotAddToForkDetector(t *te
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -2343,6 +2391,7 @@ func TestBootstrap_RollBackNilBlockchainHeaderShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.RollBack(false)
@@ -2378,6 +2427,7 @@ func TestBootstrap_RollBackNilParamHeaderShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -2435,6 +2485,7 @@ func TestBootstrap_RollBackIsNotEmptyShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
@@ -2572,6 +2623,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 			},
 		},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2743,6 +2795,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 			},
 		},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetForkNonce(currentHdrNonce)
@@ -2841,6 +2894,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
@@ -2897,6 +2951,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
@@ -2959,6 +3014,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
 
@@ -2994,6 +3050,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	f1 := func(bool) {}
@@ -3037,6 +3094,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	mutex.RLock()
@@ -3134,6 +3192,7 @@ func TestBootstrap_LoadBlocksShouldErrBootstrapFromStorage(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3213,6 +3272,7 @@ func TestBootstrap_LoadBlocksShouldErrBootstrapFromStorageWhenBlocksAreNotValid(
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3306,6 +3366,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3402,6 +3463,7 @@ func TestBootstrap_LoadBlocksShouldWorkAfterRemoveInvalidBlocks(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3473,6 +3535,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenHeaderIsNotFound(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3546,6 +3609,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenBodyIsNotFound(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3618,6 +3682,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockBodyFails(t *testing.T)
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3691,6 +3756,7 @@ func TestBootstrap_ApplyBlockShouldErrWhenSetCurrentBlockHeaderFails(t *testing.
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3759,6 +3825,7 @@ func TestBootstrap_ApplyBlockShouldWork(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	bs.SetStorageBootstrapper(storageBootstrapper)
@@ -3825,6 +3892,7 @@ func TestBootstrap_RemoveBlockHeaderShouldWorkWhenHeaderHashIsNotFound(t *testin
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.RemoveBlockHeader(1,
@@ -3904,6 +3972,7 @@ func TestBootstrap_RemoveBlockHeaderShouldWorkWhenRemoveHeaderHashFails(t *testi
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.RemoveBlockHeader(1,
@@ -3965,6 +4034,7 @@ func TestBootstrap_RemoveBlockHeaderShouldWork(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.RemoveBlockHeader(1,
@@ -4029,6 +4099,7 @@ func TestBootstrap_SyncFromStorerShouldErrWhenLoadBlocksFails(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.SyncFromStorer(process.ShardBlockFinality,
@@ -4241,6 +4312,7 @@ func TestBootstrap_SyncFromStorerShouldWork(t *testing.T) {
 				return true
 			},
 		},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.SyncFromStorer(process.ShardBlockFinality,
@@ -4336,6 +4408,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetFinalNotarizedMetaHeaderFr
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	lastNotarized := bs.InitNotarizedMap()
@@ -4440,6 +4513,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedMetaHeaderFro
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 	lastNotarized := bs.InitNotarizedMap()
 	finalNotarized := bs.InitNotarizedMap()
@@ -4543,6 +4617,7 @@ func TestBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	lastNotarized := bs.InitNotarizedMap()
@@ -4627,6 +4702,7 @@ func TestBootstrap_RemoveNotarizedBlockShouldWorkWhenRemoveHeaderHashFails(t *te
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.RemoveBlockHeader(
@@ -4689,6 +4765,7 @@ func TestBootstrap_RemoveNotarizedBlockShouldWork(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.RemoveBlockHeader(
@@ -4801,6 +4878,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.SetStatusHandler(nil)
@@ -4882,6 +4960,7 @@ func TestShardBootstrap_RemoveBlockBody(t *testing.T) {
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	err := bs.RemoveBlockBody(
@@ -5008,6 +5087,11 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		math.MaxUint32,
 		&mock.BlackListHandlerStub{},
 		&mock.NetworkConnectionWatcherStub{},
+		&mock.RequestedItemsHandlerMock{
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 
 	bs.RequestMiniBlocksFromHeaderWithNonceIfMissing(uint32(0), uint64(1))

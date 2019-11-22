@@ -211,6 +211,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -233,6 +234,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -255,6 +257,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -277,6 +280,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -299,6 +303,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -321,6 +326,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -343,6 +349,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -364,6 +371,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		nil,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -386,6 +394,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		requestTransaction,
 		nil,
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
@@ -408,10 +417,34 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMiniBlocksCompacter(t *tes
 		requestTransaction,
 		feeHandlerMock(),
 		nil,
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilMiniBlocksCompacter, err)
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestedItemsHandler(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, err := NewTransactionPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		feeHandlerMock(),
+		miniBlocksCompacterMock(),
+		nil,
+	)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilRequestedItemsHandler, err)
 }
 
 func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
@@ -429,6 +462,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	txHash := []byte("tx1_hash")
 	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, tdp.Transactions())
@@ -452,6 +486,14 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{
+			HasCalled: func(key string) bool {
+				return false
+			},
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
@@ -481,6 +523,14 @@ func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{
+			HasCalled: func(key string) bool {
+				return false
+			},
+			AddCalled: func(key string) error {
+				return nil
+			},
+		},
 	)
 
 	shardId := uint32(1)
@@ -525,6 +575,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	//add 3 tx hashes on requested list
@@ -600,6 +651,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	mb := &block.MiniBlock{
@@ -636,6 +688,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *test
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
 	assert.NotNil(t, err)
@@ -657,6 +710,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	body := make(block.Body, 0)
 	txHash := []byte("txHash")
@@ -693,6 +747,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.NotNil(t, txs)
 
@@ -737,6 +792,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.NotNil(t, txs)
 
@@ -783,6 +839,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.NotNil(t, txs)
 
@@ -979,6 +1036,7 @@ func TestMiniBlocksCompaction_CompactAndExpandMiniBlocksShouldResultTheSameMiniB
 		requestTransaction,
 		feeHandlerMock(),
 		miniBlocksCompacterMock(),
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	keygen := signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
