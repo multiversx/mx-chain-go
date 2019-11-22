@@ -129,11 +129,18 @@ assembleCommand_startObserverNode() {
   let "KEY_INDEX=$TOTAL_NODECOUNT - $OBSERVER_INDEX - 1"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
-  echo "./node \
+  local nodeCommand="./node \
         -port $PORT -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT -storage-cleanup -destination-shard-as-observer $SHARD \
         -working-directory $WORKING_DIR"
+
+  if [ -n "$NODETERMUI" ]
+  then
+    nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel *:DEBUG"
+  fi
+
+  echo $nodeCommand
 }
 
 assembleCommand_startValidatorNode() {
@@ -143,9 +150,17 @@ assembleCommand_startValidatorNode() {
   let "KEY_INDEX=$VALIDATOR_INDEX"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
-  echo "./node \
+  local nodeCommand="./node \
         -port $PORT -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT -storage-cleanup \
         -working-directory $WORKING_DIR"
+
+  if [ -n "$NODETERMUI" ]
+  then
+    nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel *:DEBUG"
+  fi
+
+  echo $nodeCommand
 }
+
