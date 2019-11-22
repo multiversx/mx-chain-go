@@ -140,7 +140,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 		query := process.SCQuery{
 			ScAddress: factory.StakingSCAddress,
 			FuncName:  "get",
-			Arguments: []*big.Int{big.NewInt(0).SetBytes([]byte(key))},
+			Arguments: [][]byte{[]byte(key)},
 		}
 		vmOutput, err := stp.scQuery.ExecuteQuery(&query)
 		if err != nil {
@@ -149,7 +149,7 @@ func (stp *stakingToPeer) UpdateProtocol(body block.Body, nonce uint64) error {
 
 		data := make([]byte, 0)
 		if len(vmOutput.ReturnData) > 0 {
-			data = vmOutput.ReturnData[0].Bytes()
+			data = vmOutput.ReturnData[0]
 		}
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {

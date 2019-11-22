@@ -128,7 +128,6 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ComputeTransactionType(tx *transaction.Transaction) (TransactionType, error)
 	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error
 	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint64) error
 	IsInterfaceNil() bool
@@ -374,7 +373,7 @@ type RequestHandler interface {
 
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetArguments() ([]*big.Int, error)
+	GetArguments() ([][]byte, error)
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
 	ParseData(data string) error
@@ -487,5 +486,5 @@ type NetworkConnectionWatcher interface {
 type SCQuery struct {
 	ScAddress []byte
 	FuncName  string
-	Arguments []*big.Int
+	Arguments [][]byte
 }
