@@ -70,7 +70,7 @@
         FilePath = "BootstrapData"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 30
-        MaxBatchSize = 2
+        MaxBatchSize = 1
         MaxOpenFiles = 10
 
 [PeerDataStorage]

@@ -20,6 +20,10 @@ func (bsm *BoostrapStorerMock) GetHighestRound() int64 {
 	return bsm.GetHighestRoundCalled()
 }
 
+func (bsm *BoostrapStorerMock) SaveLastRound(round int64) error {
+	return nil
+}
+
 func (bsm *BoostrapStorerMock) IsInterfaceNil() bool {
 	if bsm == nil {
 		return true

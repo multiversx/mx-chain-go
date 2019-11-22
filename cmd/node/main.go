@@ -1129,6 +1129,7 @@ func createNode(
 		node.WithAppStatusHandler(core.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithBlackListHandler(process.BlackListHandler),
+		node.WithBootStorer(process.BootStorer),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

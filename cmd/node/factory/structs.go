@@ -161,6 +161,7 @@ type Process struct {
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
 	BlackListHandler      process.BlackListHandler
+	BootStorer            process.BootStorer
 }
 
 type coreComponentsFactoryArgs struct {
@@ -562,14 +563,20 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	bootStr := args.data.Store.GetStorer(dataRetriever.BootstrapUnit)
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(args.core.Marshalizer, bootStr)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessor, err := newBlockProcessor(
 		args,
 		resolversFinder,
 		forkDetector,
 		genesisBlocks,
 		rounder,
+		bootStorer,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -581,6 +588,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
 		BlackListHandler:      blackListHandler,
+		BootStorer:            bootStorer,
 	}, nil
 }
 
@@ -1720,6 +1728,7 @@ func newBlockProcessor(
 	forkDetector process.ForkDetector,
 	genesisBlocks map[uint32]data.HeaderHandler,
 	rounder consensus.Rounder,
+	bootStorer process.BootStorer,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1766,6 +1775,7 @@ func newBlockProcessor(
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			rounder,
+			bootStorer,
 		)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -1788,6 +1798,7 @@ func newBlockProcessor(
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
 			rounder,
+			bootStorer,
 		)
 	}
 
@@ -1807,6 +1818,7 @@ func newShardBlockProcessor(
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	rounder consensus.Rounder,
+	bootStorer process.BootStorer,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1984,12 +1996,6 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	bootStr := data.Store.GetStorer(dataRetriever.BootstrapUnit)
-	bootStorer, err := bootstrapStorage.NewBootstrapStorer(core.Marshalizer, bootStr)
-	if err != nil {
-		return nil, err
-	}
-
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Accounts:              state.AccountsAdapter,
 		ForkDetector:          forkDetector,
@@ -2041,6 +2047,7 @@ func newMetaBlockProcessor(
 	economics *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
+	bootStorer process.BootStorer,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2188,12 +2195,6 @@ func newMetaBlockProcessor(
 		ScDataGetter: scDataGetter,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
-	if err != nil {
-		return nil, err
-	}
-
-	bootStr := data.Store.GetStorer(dataRetriever.BootstrapUnit)
-	bootStorer, err := bootstrapStorage.NewBootstrapStorer(core.Marshalizer, bootStr)
 	if err != nil {
 		return nil, err
 	}

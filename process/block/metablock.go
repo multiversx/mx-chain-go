@@ -907,8 +907,7 @@ func (mp *metaProcessor) CommitBlock(
 		Nonce:   header.Nonce,
 		Hash:    headerHash,
 	}
-
-	mp.prepareDataForBootStorer(headerInfo, header.Round, []data.HeaderHandler{}, [][]byte{})
+	mp.prepareDataForBootStorer(headerInfo, header.Round, nil, nil, nil)
 
 	mp.blockSizeThrottler.Succeed(header.Round)
 
@@ -922,6 +921,10 @@ func (mp *metaProcessor) CommitBlock(
 	go mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
 
 	return nil
+}
+
+// ApplyProcessedMiniBlocks will do nothing on meta processor
+func (mp *metaProcessor) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
 }
 
 // RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header

@@ -43,6 +43,7 @@ func NewTestSyncNode(
 				return nil
 			},
 		},
+		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -180,9 +181,10 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.ResolverFinder,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		1,
 		tpn.BlackListHandler,
 		tpn.Messenger,
+		tpn.BootstrapStorer,
+		tpn.StorageBootstrapper,
 	)
 	if err != nil {
 		return nil, err
@@ -207,9 +209,10 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.ResolverFinder,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		1,
 		tpn.BlackListHandler,
 		tpn.Messenger,
+		tpn.BootstrapStorer,
+		tpn.StorageBootstrapper,
 	)
 
 	if err != nil {

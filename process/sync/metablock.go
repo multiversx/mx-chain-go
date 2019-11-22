@@ -43,9 +43,10 @@ func NewMetaBootstrap(
 	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	bootstrapRoundIndex uint64,
 	blackListHandler process.BlackListHandler,
 	networkWatcher process.NetworkConnectionWatcher,
+	bootStorer process.BootStorer,
+	storageBootstrapper process.BootstrapperFromStorage,
 ) (*MetaBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -89,16 +90,17 @@ func NewMetaBootstrap(
 		forkDetector:        forkDetector,
 		shardCoordinator:    shardCoordinator,
 		accounts:            accounts,
-		bootstrapRoundIndex: bootstrapRoundIndex,
 		blackListHandler:    blackListHandler,
 		networkWatcher:      networkWatcher,
+		bootStorer:          bootStorer,
+		storageBootstrapper: storageBootstrapper,
 	}
 
 	boot := MetaBootstrap{
 		baseBootstrap: base,
 	}
 
-	base.storageBootstrapper = &boot
+	//base.storageBootstrapper = &boot
 	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.syncStarter = &boot
@@ -142,215 +144,8 @@ func NewMetaBootstrap(
 	return &boot, nil
 }
 
-func (boot *MetaBootstrap) syncFromStorer(
-	blockFinality uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
-	notarizedBlockFinality uint64,
-) error {
-	err := boot.loadBlocks(
-		blockFinality,
-		blockUnit,
-		hdrNonceHashDataUnit)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (boot *MetaBootstrap) getHeader(shardId uint32, nonce uint64) (data.HeaderHandler, []byte, error) {
-	return boot.getMetaHeaderFromStorage(shardId, nonce)
-}
-
 func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	return block.Body{}, nil
-}
-
-func (boot *MetaBootstrap) removeBlockBody(
-	nonce uint64,
-	blockUnit dataRetriever.UnitType,
-	hdrNonceHashDataUnit dataRetriever.UnitType,
-) error {
-	return nil
-}
-
-func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]*HdrInfo, map[uint32]*HdrInfo) {
-	ni := notarizedInfo{}
-	ni.reset()
-	for currentNonce := nonce; currentNonce > 0; currentNonce-- {
-		metaBlock, ok := boot.isMetaBlockValid(currentNonce)
-		if !ok {
-			ni.reset()
-			continue
-		}
-
-		if ni.startNonce == 0 {
-			ni.startNonce = currentNonce
-		}
-
-		if len(metaBlock.ShardInfo) == 0 {
-			continue
-		}
-
-		maxNonce, err := boot.getMaxNotarizedHeadersNoncesInMetaBlock(metaBlock, &ni)
-		if err != nil {
-			log.Info(err.Error())
-			ni.reset()
-			continue
-		}
-
-		if boot.areNotarizedShardHeadersFound(&ni, maxNonce, currentNonce) {
-			break
-		}
-	}
-
-	log.Info(fmt.Sprintf("bootstrap from meta block with nonce %d\n", ni.startNonce))
-
-	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if ni.lastNotarized[i] == nil || ni.finalNotarized[i] == nil {
-			continue
-		}
-
-		if ni.startNonce > ni.blockWithLastNotarized[i] {
-			ni.finalNotarized[i] = ni.lastNotarized[i]
-		}
-
-		log.Info(fmt.Sprintf("last notarized block from shard %d is %d and final notarized shard block is %d\n",
-			i, ni.lastNotarized[i].Nonce, ni.finalNotarized[i].Nonce))
-	}
-
-	return ni.startNonce, ni.finalNotarized, ni.lastNotarized
-}
-
-func (boot *MetaBootstrap) isMetaBlockValid(nonce uint64) (*block.MetaBlock, bool) {
-	headerHandler, _, err := boot.getHeader(sharding.MetachainShardId, nonce)
-	if err != nil {
-		log.Info(err.Error())
-		return nil, false
-	}
-
-	metaBlock, ok := headerHandler.(*block.MetaBlock)
-	if !ok {
-		log.Info(process.ErrWrongTypeAssertion.Error())
-		return nil, false
-	}
-
-	if metaBlock.Round > boot.bootstrapRoundIndex {
-		log.Debug(ErrHigherRoundInBlock.Error())
-		return nil, false
-	}
-
-	return metaBlock, true
-}
-
-func (boot *MetaBootstrap) getMaxNotarizedHeadersNoncesInMetaBlock(
-	metaBlock *block.MetaBlock,
-	ni *notarizedInfo,
-) (map[uint32]*HdrInfo, error) {
-
-	maxNonce := make(map[uint32]*HdrInfo, 0)
-	for _, shardData := range metaBlock.ShardInfo {
-		header, err := process.GetShardHeaderFromStorage(shardData.HeaderHash, boot.marshalizer, boot.store)
-		if err != nil {
-			return maxNonce, err
-		}
-
-		if maxNonce[shardData.ShardID] == nil {
-			maxNonce[shardData.ShardID] = &HdrInfo{Nonce: header.Nonce, Hash: shardData.HeaderHash}
-			continue
-		}
-
-		if header.Nonce > maxNonce[shardData.ShardID].Nonce {
-			maxNonce[shardData.ShardID].Nonce = header.Nonce
-			maxNonce[shardData.ShardID].Hash = shardData.HeaderHash
-		}
-	}
-
-	return maxNonce, nil
-}
-
-func (boot *MetaBootstrap) areNotarizedShardHeadersFound(
-	ni *notarizedInfo,
-	notarizedNonce map[uint32]*HdrInfo,
-	nonce uint64,
-) bool {
-
-	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if notarizedNonce[i] == nil {
-			continue
-		}
-
-		if ni.lastNotarized[i] == nil {
-			ni.lastNotarized[i] = notarizedNonce[i]
-			ni.blockWithLastNotarized[i] = nonce
-			continue
-		}
-
-		if ni.finalNotarized[i] == nil {
-			ni.finalNotarized[i] = notarizedNonce[i]
-			ni.blockWithFinalNotarized[i] = nonce
-			continue
-		}
-	}
-
-	foundAllNotarizedShardHeaders := true
-	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if ni.lastNotarized[i] == nil || ni.finalNotarized[i] == nil {
-			foundAllNotarizedShardHeaders = false
-			break
-		}
-	}
-
-	return foundAllNotarizedShardHeaders
-}
-
-func (boot *MetaBootstrap) applyNotarizedBlocks(
-	finalNotarized map[uint32]*HdrInfo,
-	lastNotarized map[uint32]*HdrInfo,
-) error {
-	for i := uint32(0); i < boot.shardCoordinator.NumberOfShards(); i++ {
-		if finalNotarized[i] == nil || lastNotarized[i] == nil {
-			return ErrNilNotarizedHeader
-		}
-		if finalNotarized[i].Hash == nil || lastNotarized[i].Hash == nil {
-			return ErrNilHash
-		}
-
-		headerHandler, err := process.GetShardHeaderFromStorage(finalNotarized[i].Hash, boot.marshalizer, boot.store)
-		if err != nil {
-			return err
-		}
-
-		boot.blkExecutor.AddLastNotarizedHdr(i, headerHandler)
-
-		headerHandler, err = process.GetShardHeaderFromStorage(lastNotarized[i].Hash, boot.marshalizer, boot.store)
-		if err != nil {
-			return err
-		}
-
-		boot.blkExecutor.AddLastNotarizedHdr(i, headerHandler)
-	}
-
-	return nil
-}
-
-func (boot *MetaBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]*HdrInfo) {
-	for shardId := uint32(0); shardId < boot.shardCoordinator.NumberOfShards(); shardId++ {
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardId)
-		highestNonceInStorer := boot.computeHighestNonce(hdrNonceHashDataUnit)
-
-		if lastNotarized[shardId] == nil {
-			continue
-		}
-
-		for nonce := lastNotarized[shardId].Nonce + 1; nonce <= highestNonceInStorer; nonce++ {
-			errNotCritical := boot.removeBlockHeader(nonce, dataRetriever.BlockHeaderUnit, hdrNonceHashDataUnit)
-			if errNotCritical != nil {
-				log.Info(fmt.Sprintf("remove notarized block header with nonce %d: %s\n", nonce, errNotCritical.Error()))
-			}
-		}
-	}
 }
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
@@ -366,10 +161,7 @@ func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
 // StartSync method will start SyncBlocks as a go routine
 func (boot *MetaBootstrap) StartSync() {
 	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
-	errNotCritical := boot.syncFromStorer(process.MetaBlockFinality,
-		dataRetriever.MetaBlockUnit,
-		dataRetriever.MetaHdrNonceHashDataUnit,
-		process.ShardBlockFinality)
+	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}

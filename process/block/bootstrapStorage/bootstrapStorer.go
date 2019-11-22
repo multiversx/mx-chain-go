@@ -16,7 +16,7 @@ const highestRoundFromBootStorage = "highestRoundFromBootStorage"
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNilBootStorer signals that an operation has been attempted to or with a nil storer implementation
-var ErrNilBootStorer = errors.New("nil Marshalizer")
+var ErrNilBootStorer = errors.New("nil boot storer")
 
 //BootstrapHeaderInfo is struct used to store information about a header
 type BootstrapHeaderInfo struct {
@@ -30,6 +30,7 @@ type BootstrapData struct {
 	HeaderInfo           BootstrapHeaderInfo
 	LastNotarizedHeaders []BootstrapHeaderInfo
 	LastFinals           []BootstrapHeaderInfo
+	ProcessedMiniBlocks  map[string]map[string]struct{}
 	HighestFinalNonce    uint64
 	LastRound            int64
 }
@@ -124,6 +125,24 @@ func (bs *bootstrapStorer) GetHighestRound() int64 {
 	}
 
 	return round
+}
+
+// SaveLastRound will save the last round
+func (bs *bootstrapStorer) SaveLastRound(round int64) error {
+	bs.lastRound = round
+
+	// save round with a static key
+	roundBytes, err := bs.marshalizer.Marshal(&round)
+	if err != nil {
+		return err
+	}
+
+	err = bs.store.Put([]byte(highestRoundFromBootStorage), roundBytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -137,12 +137,13 @@ type TestProcessorNode struct {
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	BlockChainHookImpl     process.BlockChainHookHandler
 
-	ForkDetector       process.ForkDetector
-	BlockProcessor     process.BlockProcessor
-	BroadcastMessenger consensus.BroadcastMessenger
-	Bootstrapper       TestBootstrapper
-	Rounder            *mock.RounderMock
-	BootstrapStorer    *mock.BoostrapStorerMock
+	ForkDetector        process.ForkDetector
+	BlockProcessor      process.BlockProcessor
+	BroadcastMessenger  consensus.BroadcastMessenger
+	Bootstrapper        TestBootstrapper
+	Rounder             *mock.RounderMock
+	BootstrapStorer     *mock.BoostrapStorerMock
+	StorageBootstrapper *mock.StorageBootstrapperMock
 
 	MultiSigner crypto.MultiSigner
 
@@ -192,6 +193,9 @@ func NewTestProcessorNode(
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initTestNode()
+
+	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
+	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
 
 	return tpn
 }

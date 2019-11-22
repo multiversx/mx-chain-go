@@ -188,8 +188,7 @@ func (p *validatorStatistics) checkForMissedBlocks(currentHeader, previousHeader
 // RevertPeerState takes the current and previous headers and undos the peer state
 //  for all of the consensus members
 func (p *validatorStatistics) RevertPeerState(header data.HeaderHandler) error {
-	_ = p.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
-	return nil
+	return p.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 }
 
 // RevertPeerStateToSnapshot reverts the applied changes to the peerAdapter

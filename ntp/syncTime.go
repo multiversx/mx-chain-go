@@ -27,7 +27,7 @@ type NTPOptions struct {
 // loading a configuration file just to have an NTPConfig.
 func NewNTPGoogleConfig() config.NTPConfig {
 	return config.NTPConfig{
-		Hosts:               []string{"time.google.com"},
+		Hosts:               []string{"time.google.com", "time.cloudflare.com", "time.apple.com", "time.windows.com"},
 		Port:                123,
 		Version:             0,
 		TimeoutMilliseconds: 100}

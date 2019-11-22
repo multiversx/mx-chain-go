@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -106,6 +107,7 @@ type Node struct {
 
 	indexer          indexer.Indexer
 	blackListHandler process.BlackListHandler
+	bootStorer       process.BootStorer
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -216,7 +218,7 @@ func (n *Node) CreateShardedStores() error {
 	return nil
 }
 
-// StartConsensus will start the consesus service for the current node
+// StartConsensus will start the consensus service for the current node
 func (n *Node) StartConsensus() error {
 	isGenesisBlockNotInitialized := n.blkc.GetGenesisHeaderHash() == nil ||
 		n.blkc.GetGenesisHeader() == nil
@@ -381,6 +383,24 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 }
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+		ResolversFinder:     n.resolversFinder,
+		BootStorer:          n.bootStorer,
+		ForkDetector:        n.forkDetector,
+		BlockProcessor:      n.blockProcessor,
+		ChainHandler:        n.blkc,
+		Marshalizer:         n.marshalizer,
+		Store:               n.store,
+		Uint64Converter:     n.uint64ByteSliceConverter,
+		BootstrapRoundIndex: n.bootstrapRoundIndex,
+		ShardCoordinator:    n.shardCoordinator,
+	}
+
+	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(storageBootstrapArguments)
+	if err != nil {
+		return nil, err
+	}
+
 	bootstrap, err := sync.NewShardBootstrap(
 		n.dataPool,
 		n.store,
@@ -394,9 +414,10 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.bootstrapRoundIndex,
 		n.blackListHandler,
 		n.messenger,
+		n.bootStorer,
+		shardStorageBootstrapper,
 	)
 	if err != nil {
 		return nil, err
@@ -406,6 +427,24 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 }
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	storageBootstrapArguments := storageBootstrap.ArgsStorageBootstrapper{
+		ResolversFinder:     n.resolversFinder,
+		BootStorer:          n.bootStorer,
+		ForkDetector:        n.forkDetector,
+		BlockProcessor:      n.blockProcessor,
+		ChainHandler:        n.blkc,
+		Marshalizer:         n.marshalizer,
+		Store:               n.store,
+		Uint64Converter:     n.uint64ByteSliceConverter,
+		BootstrapRoundIndex: n.bootstrapRoundIndex,
+		ShardCoordinator:    n.shardCoordinator,
+	}
+
+	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(storageBootstrapArguments)
+	if err != nil {
+		return nil, err
+	}
+
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,
@@ -419,9 +458,10 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
-		n.bootstrapRoundIndex,
 		n.blackListHandler,
 		n.messenger,
+		n.bootStorer,
+		metaStorageBootstrapper,
 	)
 
 	if err != nil {

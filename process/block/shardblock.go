@@ -711,7 +711,15 @@ func (sp *shardProcessor) CommitBlock(
 		Nonce:   header.Nonce,
 		Hash:    headerHash,
 	}
-	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes)
+
+	processedMiniBlock := make(map[string]map[string]struct{}, 0)
+	sp.mutProcessedMiniBlocks.Lock()
+	for key, value := range sp.processedMiniBlocks {
+		processedMiniBlock[key] = value
+	}
+	sp.mutProcessedMiniBlocks.Unlock()
+
+	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlock)
 
 	go sp.cleanTxsPools()
 
@@ -739,6 +747,15 @@ func (sp *shardProcessor) CommitBlock(
 	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
 
 	return nil
+}
+
+// ApplyProcessedMiniBlocks will apply processed mini blocks
+func (sp *shardProcessor) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+	sp.mutProcessedMiniBlocks.Lock()
+	for key, value := range miniBlocks {
+		sp.processedMiniBlocks[key] = value
+	}
+	sp.mutProcessedMiniBlocks.Unlock()
 }
 
 // RevertStateToBlock recreates thee state tries to the root hashes indicated by the providd header
@@ -795,10 +812,6 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 		}
 
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
-	}
-
-	if len(ownShIdHdrs) == 0 {
-		ownShIdHdrs = append(ownShIdHdrs, &block.Header{})
 	}
 
 	process.SortHeadersByNonce(ownShIdHdrs)

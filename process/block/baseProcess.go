@@ -119,6 +119,18 @@ func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.H
 	bp.mutNotarizedHdrs.Unlock()
 }
 
+// RestoreLastNotarizedHrdsToGenesis will restore notarized header slice to genesis
+func (bp *baseProcessor) RestoreLastNotarizedHrdsToGenesis() {
+	bp.mutNotarizedHdrs.Lock()
+	for shardId := range bp.notarizedHdrs {
+		notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
+		if notarizedHdrsCount > 1 {
+			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][:1]
+		}
+	}
+	bp.mutNotarizedHdrs.Unlock()
+}
+
 // checkBlockValidity method checks if the given block is valid
 func (bp *baseProcessor) checkBlockValidity(
 	chainHandler data.ChainHandler,
@@ -986,6 +998,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	round uint64,
 	lastFinalHdrs []data.HeaderHandler,
 	lastFinalHashes [][]byte,
+	processedMiniBlock map[string]map[string]struct{},
 ) {
 	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
@@ -1030,10 +1043,13 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 		LastNotarizedHeaders: lastNotarizedHdrs,
 		LastFinals:           lastFinals,
 		HighestFinalNonce:    highestFinalNonce,
+		ProcessedMiniBlocks:  processedMiniBlock,
 	}
 
 	go func() {
 		err := bp.bootStorer.Put(int64(round), bootData)
-		log.Info("cannot save boot data in storage", err)
+		if err != nil {
+			log.Info("cannot save boot data in storage", err.Error())
+		}
 	}()
 }
