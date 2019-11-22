@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -1107,44 +1106,6 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 		},
 		AddCalled: func(key string) error {
 			return nil
-		},
-	}
-}
-
-func (tpn *TestProcessorNode) initResolversFinder() {
-	tpn.ResolverFinder = &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
-				return &mock.MiniBlocksResolverMock{
-					GetMiniBlocksCalled: func(hashes [][]byte) (dataBlock.MiniBlockSlice, [][]byte) {
-						return make(dataBlock.MiniBlockSlice, 0), make([][]byte, 0)
-					},
-					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (dataBlock.MiniBlockSlice, [][]byte) {
-						return make(dataBlock.MiniBlockSlice, 0), make([][]byte, 0)
-					},
-				}, nil
-			}
-
-			return nil, nil
-		},
-	}
-}
-
-func (tpn *TestProcessorNode) createResolversFinder() *mock.ResolversFinderStub {
-	return &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
-				return &mock.MiniBlocksResolverMock{
-					GetMiniBlocksCalled: func(hashes [][]byte) (dataBlock.MiniBlockSlice, [][]byte) {
-						return make(dataBlock.MiniBlockSlice, 0), make([][]byte, 0)
-					},
-					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (dataBlock.MiniBlockSlice, [][]byte) {
-						return make(dataBlock.MiniBlockSlice, 0), make([][]byte, 0)
-					},
-				}, nil
-			}
-
-			return nil, nil
 		},
 	}
 }
