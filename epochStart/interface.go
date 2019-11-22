@@ -1,4 +1,4 @@
-package endOfEpoch
+package epochStart
 
 import (
 	"time"
@@ -7,14 +7,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
-// TriggerHandler defines the functionalities for an end of epoch trigger
+// TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
-	ForceEndOfEpoch(round int64) error
-	IsEndOfEpoch() bool
+	ForceEpochStart(round int64) error
+	IsEpochStart() bool
 	Epoch() uint32
 	ReceivedHeader(header data.HeaderHandler)
 	Update(round int64)
 	EpochStartRound() uint64
+	EpochStartMetaHdrHash() []byte
 	Processed()
 	Revert()
 	IsInterfaceNil() bool
@@ -22,7 +23,7 @@ type TriggerHandler interface {
 
 // PendingMiniBlocksHandler defines the actions which should be handled by pending miniblocks implementation
 type PendingMiniBlocksHandler interface {
-	PendingMiniBlockHeaders() []block.ShardMiniBlockHeader
+	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
 	IsInterfaceNil() bool

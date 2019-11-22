@@ -29,8 +29,8 @@ import (
 	metafactoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/metachain"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/metachain"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/shardchain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -144,7 +144,7 @@ type TestProcessorNode struct {
 	Bootstrapper       TestBootstrapper
 	Rounder            *mock.RounderMock
 
-	EndOfEpochTrigger TestEndOfEpochTrigger
+	EpochStartTrigger TestEpochStartTrigger
 
 	MultiSigner crypto.MultiSigner
 
@@ -660,20 +660,20 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 
-		argsEndOfEpoch := &metachain.ArgsNewMetaEndOfEpochTrigger{
+		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			Rounder:     argumentsBase.Rounder,
 			GenesisTime: argumentsBase.Rounder.TimeStamp(),
-			Settings: &config.EndOfEpochConfig{
+			Settings: &config.EpochStartConfig{
 				MinRoundsBetweenEpochs: 1000,
 				RoundsPerEpoch:         10000,
 			},
 			Epoch: 0,
 		}
-		endOfEpochTrigger, _ := metachain.NewEndOfEpochTrigger(argsEndOfEpoch)
-		tpn.EndOfEpochTrigger = &metachain.TestTrigger{}
-		tpn.EndOfEpochTrigger.SetTrigger(endOfEpochTrigger)
+		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
+		tpn.EpochStartTrigger = &metachain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
-		argumentsBase.EndOfEpochTrigger = tpn.EndOfEpochTrigger
+		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
 		argsStakingToPeer := scToProtocol2.ArgStakingToPeer{
@@ -699,7 +699,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 
 	} else {
-		argsShardEndOfEpoch := &shardchain.ArgsShardEndOfEpochTrigger{
+		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
 			Marshalizer:     TestMarshalizer,
 			Hasher:          TestHasher,
 			HeaderValidator: headerValidator,
@@ -711,11 +711,11 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			Validity:        1,
 			Finality:        1,
 		}
-		endOfEpochTrigger, _ := shardchain.NewEndOfEpochTrigger(argsShardEndOfEpoch)
-		tpn.EndOfEpochTrigger = &shardchain.TestTrigger{}
-		tpn.EndOfEpochTrigger.SetTrigger(endOfEpochTrigger)
+		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
+		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
-		argumentsBase.EndOfEpochTrigger = tpn.EndOfEpochTrigger
+		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
@@ -861,7 +861,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader := tpn.BlockProcessor.CreateNewHeader()
 
-	blockHeader.SetEpoch(tpn.EndOfEpochTrigger.Epoch())
+	blockHeader.SetEpoch(tpn.EpochStartTrigger.Epoch())
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})

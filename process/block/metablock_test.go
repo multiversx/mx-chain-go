@@ -46,7 +46,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
-			EndOfEpochTrigger:            &mock.EndOfEpochTriggerStub{},
+			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
 		},
@@ -259,14 +259,14 @@ func TestNewMetaProcessor_NilTxCoordinatorShouldErr(t *testing.T) {
 	assert.Nil(t, be)
 }
 
-func TestNewMetaProcessor_NilEndOfEpochShouldErr(t *testing.T) {
+func TestNewMetaProcessor_NilEpochStartShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
-	arguments.EndOfEpochTrigger = nil
+	arguments.EpochStartTrigger = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)
-	assert.Equal(t, process.ErrNilEndOfEpochTrigger, err)
+	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 	assert.Nil(t, be)
 }
 

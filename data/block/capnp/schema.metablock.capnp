@@ -30,14 +30,16 @@ struct ShardDataCapn {
 }
 
 struct FinalizedHeadersCapn {
-	shardId    @0: UInt32;
-	headerHash @1: Data;
-	rootHash   @2: Data;
+	shardId                 @0: UInt32;
+	headerHash              @1: Data;
+	rootHash                @2: Data;
+	firstPendingMetaBlock   @3: Data;
+	lastFinishedMetaBlock   @4: Data;
+	pendingMiniBlockHeaders @5: List(ShardMiniBlockHeaderCapn);
 }
 
-struct EndOfEpochCapn {
-	pendingMiniBlockHeaders @0: List(ShardMiniBlockHeaderCapn);
-	lastFinalizedHeaders    @1: List(FinalizedHeadersCapn);
+struct EpochStartCapn {
+	lastFinalizedHeaders    @0: List(FinalizedHeadersCapn);
 }
 
 struct MetaBlockCapn {
@@ -57,7 +59,7 @@ struct MetaBlockCapn {
     validatorStatsRootHash @13: Data;
     txCount                @14: UInt32;
     miniBlockHeaders       @15: List(MiniBlockHeaderCapn);
-    endOfEpoch             @16: EndOfEpochCapn;
+    epochStart             @16: EpochStartCapn;
 }
 
 ##compile with:

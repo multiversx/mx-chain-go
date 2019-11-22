@@ -75,17 +75,19 @@ type ShardData struct {
 	TxCount               uint32                 `capid:"6"`
 }
 
-// FinalizedHeaders hold the last finalized headers hash and state root hash
-type FinalizedHeaders struct {
-	ShardId    uint32 `capid:"0"`
-	HeaderHash []byte `capid:"1"`
-	RootHash   []byte `capid:"2"`
+// EpochStartShardData hold the last finalized headers hash and state root hash
+type EpochStartShardData struct {
+	ShardId                 uint32                 `capid:"0"`
+	HeaderHash              []byte                 `capid:"1"`
+	RootHash                []byte                 `capid:"2"`
+	FirstPendingMetaBlock   []byte                 `capid:"3"`
+	LastFinishedMetaBlock   []byte                 `capid:"4"`
+	PendingMiniBlockHeaders []ShardMiniBlockHeader `capid:"5"`
 }
 
-// EndOfEpoch holds the block information for end-of-epoch
-type EndOfEpoch struct {
-	PendingMiniBlockHeaders []ShardMiniBlockHeader `capid:"0"`
-	LastFinalizedHeaders    []FinalizedHeaders     `capid:"1"`
+// EpochStart holds the block information for end-of-epoch
+type EpochStart struct {
+	LastFinalizedHeaders []EpochStartShardData `capid:"1"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -106,7 +108,7 @@ type MetaBlock struct {
 	ValidatorStatsRootHash []byte            `capid:"13"`
 	TxCount                uint32            `capid:"14"`
 	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
-	EndOfEpoch             EndOfEpoch        `capid:"16"`
+	EpochStart             EpochStart        `capid:"15"`
 }
 
 // MetaBlockBody hold the data for metablock body
@@ -167,6 +169,25 @@ func (m *MetaBlock) Load(r io.Reader) error {
 	}
 	z := capnp.ReadRootMetaBlockCapn(capMsg)
 	MetaBlockCapnToGo(z, m)
+	return nil
+}
+
+// Save saves the serialized data of a ShardData into a stream through Capnp protocol
+func (e *EpochStart) Save(w io.Writer) error {
+	seg := capn.NewBuffer(nil)
+	EpochStartGoToCapn(seg, *e)
+	_, err := seg.WriteTo(w)
+	return err
+}
+
+// Load loads the data from the stream into a EpochStart object through Capnp protocol
+func (e *EpochStart) Load(r io.Reader) error {
+	capMsg, err := capn.ReadFromStream(r, nil)
+	if err != nil {
+		return err
+	}
+	z := capnp.ReadRootEpochStartCapn(capMsg)
+	EpochStartCapnToGo(z, e)
 	return nil
 }
 
@@ -275,14 +296,87 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 	return dest
 }
 
+// EpochStartShardDataGoToCapn is a helper function to copy fields from a FinalizedHeaderHeader object to a
+// EpochStartShardDataCapn object
+func EpochStartShardDataGoToCapn(seg *capn.Segment, src *EpochStartShardData) capnp.FinalizedHeadersCapn {
+	dest := capnp.AutoNewFinalizedHeadersCapn(seg)
+
+	dest.SetRootHash(src.RootHash)
+	dest.SetHeaderHash(src.HeaderHash)
+	dest.SetShardId(src.ShardId)
+	dest.SetFirstPendingMetaBlock(src.FirstPendingMetaBlock)
+	dest.SetLastFinishedMetaBlock(src.LastFinishedMetaBlock)
+
+	if len(src.PendingMiniBlockHeaders) > 0 {
+		typedList := capnp.NewShardMiniBlockHeaderCapnList(seg, len(src.PendingMiniBlockHeaders))
+		plist := capn.PointerList(typedList)
+
+		for i, elem := range src.PendingMiniBlockHeaders {
+			_ = plist.Set(i, capn.Object(ShardMiniBlockHeaderGoToCapn(seg, &elem)))
+		}
+		dest.SetPendingMiniBlockHeaders(typedList)
+	}
+
+	return dest
+}
+
+// EpochStartShardDataCapnToGo is a helper function to copy fields from a FinalizedHeaderCapn object to a
+// EpochStartShardData object
+func EpochStartShardDataCapnToGo(src capnp.FinalizedHeadersCapn, dest *EpochStartShardData) *EpochStartShardData {
+	if dest == nil {
+		dest = &EpochStartShardData{}
+	}
+
+	dest.RootHash = src.RootHash()
+	dest.HeaderHash = src.HeaderHash()
+	dest.ShardId = src.ShardId()
+	dest.FirstPendingMetaBlock = src.FirstPendingMetaBlock()
+	dest.LastFinishedMetaBlock = src.LastFinishedMetaBlock()
+
+	n := src.PendingMiniBlockHeaders().Len()
+	dest.PendingMiniBlockHeaders = make([]ShardMiniBlockHeader, n)
+	for i := 0; i < n; i++ {
+		dest.PendingMiniBlockHeaders[i] = *ShardMiniBlockHeaderCapnToGo(src.PendingMiniBlockHeaders().At(i), nil)
+	}
+
+	return dest
+}
+
+// EpochStartGoToCapn is a helper function to copy fields from a ShardData object to a ShardDataCapn object
+func EpochStartGoToCapn(seg *capn.Segment, src EpochStart) capnp.EpochStartCapn {
+	dest := capnp.AutoNewEpochStartCapn(seg)
+
+	if len(src.LastFinalizedHeaders) > 0 {
+		typedList := capnp.NewFinalizedHeadersCapnList(seg, len(src.LastFinalizedHeaders))
+		pList := capn.PointerList(typedList)
+
+		for i, elem := range src.LastFinalizedHeaders {
+			_ = pList.Set(i, capn.Object(EpochStartShardDataGoToCapn(seg, &elem)))
+		}
+		dest.SetLastFinalizedHeaders(typedList)
+	}
+
+	return dest
+}
+
+// EpochStartCapnToGo is a helper function to copy fields from a ShardDataCapn object to a ShardData object
+func EpochStartCapnToGo(src capnp.EpochStartCapn, dest *EpochStart) *EpochStart {
+	if dest == nil {
+		dest = &EpochStart{}
+	}
+
+	n := src.LastFinalizedHeaders().Len()
+	dest.LastFinalizedHeaders = make([]EpochStartShardData, n)
+	for i := 0; i < n; i++ {
+		dest.LastFinalizedHeaders[i] = *EpochStartShardDataCapnToGo(src.LastFinalizedHeaders().At(i), nil)
+	}
+
+	return dest
+}
+
 // MetaBlockGoToCapn is a helper function to copy fields from a MetaBlock object to a MetaBlockCapn object
 func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest := capnp.AutoNewMetaBlockCapn(seg)
-
-	dest.SetNonce(src.Nonce)
-	dest.SetEpoch(src.Epoch)
-	dest.SetRound(src.Round)
-	dest.SetTimeStamp(src.TimeStamp)
 
 	if len(src.ShardInfo) > 0 {
 		typedList := capnp.NewShardDataCapnList(seg, len(src.ShardInfo))
@@ -322,6 +416,11 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetRootHash(src.RootHash)
 	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
 	dest.SetTxCount(src.TxCount)
+	dest.SetNonce(src.Nonce)
+	dest.SetEpoch(src.Epoch)
+	dest.SetRound(src.Round)
+	dest.SetTimeStamp(src.TimeStamp)
+	dest.SetEpochStart(EpochStartGoToCapn(seg, src.EpochStart))
 	dest.SetLeaderSignature(src.LeaderSignature)
 
 	return dest
@@ -332,10 +431,6 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	if dest == nil {
 		dest = &MetaBlock{}
 	}
-	dest.Nonce = src.Nonce()
-	dest.Epoch = src.Epoch()
-	dest.Round = src.Round()
-	dest.TimeStamp = src.TimeStamp()
 
 	n := src.ShardInfo().Len()
 	dest.ShardInfo = make([]ShardData, n)
@@ -363,6 +458,11 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 	dest.TxCount = src.TxCount()
 	dest.LeaderSignature = src.LeaderSignature()
+	dest.Nonce = src.Nonce()
+	dest.Epoch = src.Epoch()
+	dest.Round = src.Round()
+	dest.TimeStamp = src.TimeStamp()
+	dest.EpochStart = *EpochStartCapnToGo(src.EpochStart(), nil)
 
 	return dest
 }
@@ -549,7 +649,7 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (m *MetaBlock) IsStartOfEpochBlock() bool {
-	return len(m.EndOfEpoch.LastFinalizedHeaders) > 0
+	return len(m.EpochStart.LastFinalizedHeaders) > 0
 }
 
 // ItemsInBody gets the number of items(hashes) added in block body

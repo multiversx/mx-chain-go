@@ -4,19 +4,27 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/endOfEpoch/mock"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArguments() *ArgsPendingMiniBlocks {
-	storer := &mock.StorerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-
 	return &ArgsPendingMiniBlocks{
-		Marshalizer: marshalizer,
-		Storage:     storer,
+		Marshalizer: &mock.MarshalizerMock{},
+		Storage:     &mock.StorerStub{},
+		MetaBlockStorage: &mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, e error) {
+				return nil, epochStart.ErrMetaHdrNotFound
+			},
+		},
+		MetaBlockPool: &mock.CacherStub{
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+		},
 	}
 }
 
@@ -35,7 +43,7 @@ func TestNewPendingMiniBlocks_NilArgumentsShouldErr(t *testing.T) {
 	pmb, err := NewPendingMiniBlocks(nil)
 
 	assert.Nil(t, pmb)
-	assert.Equal(t, endOfEpoch.ErrNilArgsPendingMiniblocks, err)
+	assert.Equal(t, epochStart.ErrNilArgsPendingMiniblocks, err)
 }
 
 func TestNewPendingMiniBlocks_NilMarshalizerShouldErr(t *testing.T) {
@@ -46,7 +54,7 @@ func TestNewPendingMiniBlocks_NilMarshalizerShouldErr(t *testing.T) {
 
 	pmb, err := NewPendingMiniBlocks(arguments)
 	assert.Nil(t, pmb)
-	assert.Equal(t, endOfEpoch.ErrNilMarshalizer, err)
+	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
 func TestNewPendingMiniBlocks_NilStorageShouldErr(t *testing.T) {
@@ -57,7 +65,7 @@ func TestNewPendingMiniBlocks_NilStorageShouldErr(t *testing.T) {
 
 	pmb, err := NewPendingMiniBlocks(arguments)
 	assert.Nil(t, pmb)
-	assert.Equal(t, endOfEpoch.ErrNilStorage, err)
+	assert.Equal(t, epochStart.ErrNilStorage, err)
 }
 
 func TestNewPendingMiniBlocks_ShouldWork(t *testing.T) {
@@ -77,7 +85,7 @@ func TestPendingMiniBlockHeaders_AddCommittedHeaderNilHeaderShouldErr(t *testing
 	pmb, _ := NewPendingMiniBlocks(arguments)
 
 	err := pmb.AddProcessedHeader(nil)
-	assert.Equal(t, endOfEpoch.ErrNilHeaderHandler, err)
+	assert.Equal(t, epochStart.ErrNilHeaderHandler, err)
 }
 
 func TestPendingMiniBlockHeaders_AddProcessedHeaderWrongHeaderShouldErr(t *testing.T) {
@@ -88,7 +96,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderWrongHeaderShouldErr(t *testi
 	header := &block.Header{}
 
 	err := pmb.AddProcessedHeader(header)
-	assert.Equal(t, endOfEpoch.ErrWrongTypeAssertion, err)
+	assert.Equal(t, epochStart.ErrWrongTypeAssertion, err)
 }
 
 func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
@@ -103,7 +111,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 			return nil
 		},
 	}
-	pmb, _ := NewPendingMiniBlocks(arguments)
+
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
@@ -112,12 +120,17 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 			}},
 		},
 	}
+	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
+		return header, true
+	}}
+	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
+	pmb, _ := NewPendingMiniBlocks(arguments)
 	err := pmb.AddProcessedHeader(header)
 	assert.Nil(t, err)
 
 	//Check miniblocks headers are returned
-	shdMbHdrs := pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, err := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.True(t, isMbInSlice(hash2, shdMbHdrs))
 
@@ -125,12 +138,12 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Check miniblocks headers are removed from pending list
-	shdMbHdrs = pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, err = pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.False(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
 }
 
-func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing.T) {
+func TestPendingMiniBlockHeaders_PendingMiniBlockHeaders(t *testing.T) {
 	t.Parallel()
 
 	hash1 := []byte("hash1")
@@ -139,35 +152,35 @@ func TestPendingMiniBlockHeaders_PendingMiniBlockHeadersSliceIsSorted(t *testing
 	hash4 := []byte("hash4")
 	hash5 := []byte("hash5")
 
-	sortedTxCount := []uint32{1, 2, 3, 4, 5}
-	numMiniBlocks := 5
 	arguments := createMockArguments()
 	arguments.Storage = &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			return nil
 		},
 	}
-	pmb, _ := NewPendingMiniBlocks(arguments)
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
-				{Hash: hash1, SenderShardID: 1, TxCount: sortedTxCount[2]},
-				{Hash: hash2, SenderShardID: 1, TxCount: sortedTxCount[4]},
-				{Hash: hash3, SenderShardID: 1, TxCount: sortedTxCount[1]},
-				{Hash: hash4, SenderShardID: 1, TxCount: sortedTxCount[0]},
-				{Hash: hash5, SenderShardID: 1, TxCount: sortedTxCount[3]},
+				{Hash: hash1, SenderShardID: 1, TxCount: 5},
+				{Hash: hash2, SenderShardID: 1, TxCount: 5},
+				{Hash: hash3, SenderShardID: 1, TxCount: 5},
+				{Hash: hash4, SenderShardID: 1, TxCount: 5},
+				{Hash: hash5, SenderShardID: 1, TxCount: 5},
 			}},
 		},
 	}
+	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
+		return header, true
+	}}
+	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
+	pmb, _ := NewPendingMiniBlocks(arguments)
 	err := pmb.AddProcessedHeader(header)
 	assert.Nil(t, err)
 
 	//Check miniblocks headers are returned
-	shdMbHdrs := pmb.PendingMiniBlockHeaders()
-	for i := 0; i < numMiniBlocks; i++ {
-		assert.Equal(t, shdMbHdrs[i].TxCount, sortedTxCount[i])
-	}
+	shdMbHdrs, _ := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
+	assert.Equal(t, len(shdMbHdrs), len(header.ShardInfo[0].ShardMiniBlockHeaders))
 }
 
 func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *testing.T) {
@@ -189,7 +202,6 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *
 		Fail: true,
 	}
 
-	pmb, _ := NewPendingMiniBlocks(arguments)
 	header := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
@@ -198,11 +210,16 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *
 			}},
 		},
 	}
+	arguments.MetaBlockPool = &mock.CacherStub{PeekCalled: func(key []byte) (value interface{}, ok bool) {
+		return header, true
+	}}
+	shardHeader := &block.Header{MetaBlockHashes: [][]byte{[]byte("metaHash")}}
 
+	pmb, _ := NewPendingMiniBlocks(arguments)
 	err := pmb.AddProcessedHeader(header)
 	assert.Nil(t, err)
 
-	shdMbHdrs := pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, _ := pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.True(t, isMbInSlice(hash2, shdMbHdrs))
 
@@ -210,7 +227,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeaderCannotMarshalShouldRevert(t *
 	assert.NotNil(t, err)
 
 	//Check miniblocks headers are not removed from pending list
-	shdMbHdrs = pmb.PendingMiniBlockHeaders()
+	shdMbHdrs, _ = pmb.PendingMiniBlockHeaders([]data.HeaderHandler{shardHeader})
 	assert.True(t, isMbInSlice(hash1, shdMbHdrs))
 	assert.False(t, isMbInSlice(hash2, shdMbHdrs))
 }
@@ -222,7 +239,7 @@ func TestPendingMiniBlockHeaders_RevertHeaderNilHeaderShouldErr(t *testing.T) {
 	pmb, _ := NewPendingMiniBlocks(arguments)
 
 	err := pmb.RevertHeader(nil)
-	assert.Equal(t, endOfEpoch.ErrNilHeaderHandler, err)
+	assert.Equal(t, epochStart.ErrNilHeaderHandler, err)
 }
 
 func TestPendingMiniBlockHeaders_RevertHeaderWrongHeaderTypeShouldErr(t *testing.T) {
@@ -233,5 +250,5 @@ func TestPendingMiniBlockHeaders_RevertHeaderWrongHeaderTypeShouldErr(t *testing
 	header := &block.Header{}
 
 	err := pmb.RevertHeader(header)
-	assert.Equal(t, endOfEpoch.ErrWrongTypeAssertion, err)
+	assert.Equal(t, epochStart.ErrWrongTypeAssertion, err)
 }
