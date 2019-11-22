@@ -13,7 +13,7 @@ export TXGENDIR="$(dirname $ELRONDDIR)/elrond-txgen-go/cmd/txgen"
 export TXGEN=$TXGENDIR/txgen
 
 export USETMUX=1
-export NODETERMUI=1
+export NODETERMUI=0
 
 export SEEDNODE_DELAY=5
 export NODE_DELAY=5

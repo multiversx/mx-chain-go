@@ -127,6 +127,7 @@ assembleCommand_startObserverNode() {
   if [ $NODETERMUI -eq 0 ]
   then
     nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel *:DEBUG"
+    nodeCommand="$nodeCommand | tee $WORKING_DIR/logs/stdout.txt"
   fi
 
   echo $nodeCommand
@@ -148,6 +149,7 @@ assembleCommand_startValidatorNode() {
   if [ $NODETERMUI -eq 0 ]
   then
     nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel *:DEBUG"
+    nodeCommand="$nodeCommand | tee $WORKING_DIR/logs/stdout.txt"
   fi
 
   echo $nodeCommand
