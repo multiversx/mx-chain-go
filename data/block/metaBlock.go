@@ -74,6 +74,9 @@ type ShardData struct {
 	PubKeysBitmap         []byte                 `capid:"4"`
 	Signature             []byte                 `capid:"5"`
 	TxCount               uint32                 `capid:"6"`
+	Round                 uint64                 `capid:"7"`
+	PrevHash              []byte                 `capid:"8"`
+	Nonce                 uint64                 `capid:"9"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
