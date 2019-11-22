@@ -79,15 +79,29 @@ startValidators() {
 
   cd $TESTNETDIR/node
 
+  # Start Shard Validators
   VALIDATOR_INDEX=0
   let "max_shard_id=$SHARDCOUNT - 1"
   for SHARD in `seq 0 1 $max_shard_id`; do
     for VALIDATOR_IN_SHARD in `seq $SHARD_VALIDATORCOUNT`; do
 
       runCommandInTerminal "$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)" $1
+      echo "$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)"
 
       let VALIDATOR_INDEX++
     done
+  done
+
+  endTerminal
+
+  startTerminal
+  # Start Metachain Validators
+  SHARD="metachain"
+  for META_VALIDATOR in `seq $META_VALIDATORCOUNT`; do
+
+    runCommandInTerminal "$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)" $1
+
+    let VALIDATOR_INDEX++
   done
 
   endTerminal
