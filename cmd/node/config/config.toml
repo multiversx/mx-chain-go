@@ -29,6 +29,17 @@
         MaxBatchSize = 1
         MaxOpenFiles = 10
 
+[MiniBlockHeadersStorage]
+    [MiniBlockHeadersStorage.Cache]
+        Size = 300
+        Type = "LRU"
+    [MiniBlockHeadersStorage.DB]
+        FilePath = "MiniBlockHeaders"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 1
+        MaxOpenFiles = 10
+
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
         Size = 1000
@@ -231,6 +242,10 @@
 [Marshalizer]
    Type = "json"
 
+[EpochStartConfig]
+    MinRoundsBetweenEpochs = 100
+    RoundsPerEpoch         = 20000
+
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
 # RefreshIntervalInSec will tell how often a new line containing stats should be added in stats file
@@ -266,7 +281,3 @@
    Port = 123
    TimeoutMilliseconds = 100
    Version = 0  # Setting 0 means 'use default value'
-
-[EpochStartConfig]
-   MinRoundsBetweenEpochs = 100
-   RoundsPerEpoch         = 20000

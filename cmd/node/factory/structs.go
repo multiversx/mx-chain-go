@@ -1196,9 +1196,9 @@ func createMetaChainDataStoreFromConfig(
 	}
 
 	miniBlockHeadersUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MiniBlocksStorage.Cache),
-		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
+		getCacherFromConfig(config.MiniBlockHeadersStorage.Cache),
+		getDBFromConfig(config.MiniBlockHeadersStorage.DB, uniqueID),
+		getBloomFromConfig(config.MiniBlockHeadersStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -1211,7 +1211,7 @@ func createMetaChainDataStoreFromConfig(
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, metaHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
-	store.AddStorer(dataRetriever.MiniBlockUnit, unsignedTxUnit)
+	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 	store.AddStorer(dataRetriever.MiniBlockHeaderUnit, miniBlockHeadersUnit)
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)

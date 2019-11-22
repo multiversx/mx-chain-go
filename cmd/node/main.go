@@ -701,7 +701,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents,
 		networkComponents,
 		coreServiceContainer,
-		&generalConfig.EpochStart,
+		&generalConfig.EpochStartConfig,
 		0,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)

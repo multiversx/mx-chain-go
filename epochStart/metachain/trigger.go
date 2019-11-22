@@ -52,10 +52,10 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	}
 
 	return &trigger{
-		roundsPerEpoch:         args.Settings.RoundsPerEpoch,
+		roundsPerEpoch:         int64(args.Settings.RoundsPerEpoch),
 		epochStartTime:         args.GenesisTime,
 		epoch:                  args.Epoch,
-		minRoundsBetweenEpochs: args.Settings.MinRoundsBetweenEpochs,
+		minRoundsBetweenEpochs: int64(args.Settings.MinRoundsBetweenEpochs),
 		rounder:                args.Rounder,
 		mutTrigger:             sync.RWMutex{},
 	}, nil
