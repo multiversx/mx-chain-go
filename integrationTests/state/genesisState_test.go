@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -33,11 +32,10 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 	}
 	t.Parallel()
 
-	log := logger.DefaultLogger()
 	genesisFile := "genesisEdgeCase.json"
 
 	genesisBalances := &sharding.Genesis{}
-	err := core.LoadJsonFile(genesisBalances, genesisFile, log)
+	err := core.LoadJsonFile(genesisBalances, genesisFile)
 	assert.Nil(t, err)
 
 	fmt.Printf("Loaded %d entries...\n", len(genesisBalances.InitialBalances))

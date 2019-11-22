@@ -42,13 +42,16 @@ func TestHeader_SaveLoad(t *testing.T) {
 		MetaBlockHashes:    make([][]byte, 0),
 		TxCount:            uint32(10),
 		EpochStartMetaHash: []byte("endofepoch"),
+		LeaderSignature:  []byte("leader_sig"),
 	}
 
 	var b bytes.Buffer
-	h.Save(&b)
+	err := h.Save(&b)
+	assert.Nil(t, err)
 
 	loadHeader := block.Header{}
-	loadHeader.Load(&b)
+	err = loadHeader.Load(&b)
+	assert.Nil(t, err)
 
 	assert.Equal(t, loadHeader, h)
 }
@@ -62,10 +65,12 @@ func TestPeerChange_SaveLoad(t *testing.T) {
 	}
 
 	var b bytes.Buffer
-	pc.Save(&b)
+	err := pc.Save(&b)
+	assert.Nil(t, err)
 
 	loadPc := block.PeerChange{}
-	loadPc.Load(&b)
+	err = loadPc.Load(&b)
+	assert.Nil(t, err)
 
 	assert.Equal(t, loadPc, pc)
 }
@@ -80,10 +85,12 @@ func TestMiniBlockHeader_SaveLoad(t *testing.T) {
 	}
 
 	var b bytes.Buffer
-	mbh.Save(&b)
+	err := mbh.Save(&b)
+	assert.Nil(t, err)
 
 	loadMbh := block.MiniBlockHeader{}
-	loadMbh.Load(&b)
+	err = loadMbh.Load(&b)
+	assert.Nil(t, err)
 
 	assert.Equal(t, loadMbh, mbh)
 }
@@ -98,10 +105,12 @@ func TestMiniBlock_SaveLoad(t *testing.T) {
 	}
 
 	var b bytes.Buffer
-	mb.Save(&b)
+	err := mb.Save(&b)
+	assert.Nil(t, err)
 
 	loadMb := block.MiniBlock{}
-	loadMb.Load(&b)
+	err = loadMb.Load(&b)
+	assert.Nil(t, err)
 
 	assert.Equal(t, loadMb, mb)
 }
@@ -352,7 +361,7 @@ func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.
 	mb0 := block.MiniBlock{
 		ReceiverShardID: 0,
 		SenderShardID:   0,
-		TxHashes:        [][]byte{[]byte(txHash0)},
+		TxHashes:        [][]byte{txHash0},
 	}
 
 	mb1 := block.MiniBlock{}

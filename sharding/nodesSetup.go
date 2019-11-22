@@ -57,7 +57,7 @@ type NodesSetup struct {
 func NewNodesSetup(nodesFilePath string, numOfNodes uint64) (*NodesSetup, error) {
 	nodes := &NodesSetup{}
 
-	err := core.LoadJsonFile(nodes, nodesFilePath, log)
+	err := core.LoadJsonFile(nodes, nodesFilePath)
 	if err != nil {
 		return nil, err
 	}

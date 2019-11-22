@@ -30,7 +30,7 @@ func NewMessage(message *pubsub.Message) *Message {
 
 	id, err := peer.IDFromBytes(msg.from)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Trace("creating new p2p message", "error", err.Error())
 	} else {
 		msg.peer = p2p.PeerID(id)
 	}
