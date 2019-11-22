@@ -4,8 +4,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 // according to http://cacr.uwaterloo.ca/hac/about/chap4.pdf, table 4.4, 12 will suffice for 256 bit primes
@@ -15,7 +15,7 @@ const basesMillerRabin = 12
 var g = big.NewInt(3)
 var bigZero = big.NewInt(0)
 var bigOne = big.NewInt(1)
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("crypto/accumulator/rsa")
 
 // Modulus taken from https://en.wikipedia.org/wiki/RSA_numbers#RSA-2048
 var Modulus = func() *big.Int {
@@ -29,7 +29,7 @@ var Modulus = func() *big.Int {
 
 	m, ok := new(big.Int).SetString(modString, 10)
 	if !ok {
-		log.Error("error converting modulus to big int")
+		log.Debug("error converting modulus to big int")
 	}
 	return m
 }()
