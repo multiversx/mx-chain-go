@@ -106,7 +106,10 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 
 	err = inHdr.sigVerifier.verifyRandSeedAndLeaderSignature(inHdr.hdr)
 	if err != nil {
+		log.Debug("leader signature incorrect")
 		return err
+	} else {
+		log.Debug("leader signature OK")
 	}
 
 	return inHdr.sigVerifier.verifySig(inHdr.hdr)
