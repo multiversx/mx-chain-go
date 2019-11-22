@@ -84,7 +84,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	_, _ = accnts.Commit()
 
 	//balanceOf should return 0 for userAddress
-	assert.Equal(t, big.NewInt(0), vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, big.NewInt(0), vm.GetIntValueFromSC(nil, accnts, scAddressBytes, "balanceOf", userAddress))
 
 	transfer := big.NewInt(123456)
 	data := "topUp"
@@ -106,7 +106,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	assert.Equal(t, transfer, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, transfer, vm.GetIntValueFromSC(nil, accnts, scAddressBytes, "balanceOf", userAddress))
 }
 
 func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
@@ -143,7 +143,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	_, _ = accnts.Commit()
 
 	//balanceOf should return 0 for userAddress
-	assert.Equal(t, big.NewInt(0), vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, big.NewInt(0), vm.GetIntValueFromSC(nil, accnts, scAddressBytes, "balanceOf", userAddress))
 
 	transfer := big.NewInt(123456)
 	data := "topUp"
@@ -166,7 +166,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	assert.Equal(t, transfer, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, transfer, vm.GetIntValueFromSC(nil, accnts, scAddressBytes, "balanceOf", userAddress))
 
 	//withdraw
 	withdraw := uint64(4999)
@@ -191,7 +191,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 
 	newValue := big.NewInt(0).Set(transfer)
 	newValue.Sub(newValue, big.NewInt(0).SetUint64(withdraw))
-	assert.Equal(t, newValue, vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", userAddress))
+	assert.Equal(t, newValue, vm.GetIntValueFromSC(nil, accnts, scAddressBytes, "balanceOf", userAddress))
 }
 
 func TestAgarioContractJoinGameReward(t *testing.T) {
@@ -245,7 +245,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 
 	for i := 0; i < noOfUsers; i++ {
 		//balanceOf should return 0 for userAddress
-		balanceOfUser := vm.GetIntValueFromSC(accnts, scAddressBytes, "balanceOf", usersAddresses[i])
+		balanceOfUser := vm.GetIntValueFromSC(nil, accnts, scAddressBytes, "balanceOf", usersAddresses[i])
 		fmt.Printf("balance of user %s: %v\n", hex.EncodeToString(usersAddresses[i]), balanceOfUser)
 		assert.Equal(t, big.NewInt(0), balanceOfUser)
 	}

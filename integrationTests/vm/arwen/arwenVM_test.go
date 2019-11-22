@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -15,8 +16,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var gasSchedule map[string]uint64
+
 func init() {
 	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
+	gasSchedule, _ = core.LoadGasScheduleConfig("./gasSchedule.toml")
 }
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
@@ -101,8 +105,8 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 		Signature: nil,
 		Challenge: nil,
 	}
-	//gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
-	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, nil)
+
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	err = txProc.ProcessTransaction(tx, round)
@@ -156,7 +160,7 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 
 	scCodeString := hex.EncodeToString(scCode)
 	//gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
-	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, nil)
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	tx := vm.CreateDeployTx(
@@ -208,9 +212,9 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", nrTxs, elapsedTime.String())
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(nrTxs)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "do_balance", alice).Uint64())
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "do_balance", alice).Uint64())
 	finalBob := big.NewInt(int64(nrTxs) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "do_balance", bob).Uint64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "do_balance", bob).Uint64())
 }
 
 func TestWASMNamespacing(t *testing.T) {

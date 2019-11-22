@@ -1,9 +1,9 @@
 [BaseOperationCost]
-    StorePerByte      = 1
-    ReleasePerByte    = 1
-    DataCopyPerByte   = 1
-    PersistPerByte    = 1
-    CompilePerByte    = 1
+    StorePerByte      = 500
+    ReleasePerByte    = 250
+    DataCopyPerByte   = 10
+    PersistPerByte    = 50
+    CompilePerByte    = 50
 
 [ElrondAPICost]
     GetOwner           = 10

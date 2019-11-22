@@ -4,6 +4,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math"
 	"math/big"
 	"testing"
@@ -176,6 +177,7 @@ func CreateVMAndBlockchainHook(
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
 		actualGasSchedule = arwenConfig.MakeGasMap(1)
+		fmt.Println("this is bad - whatever")
 	}
 
 	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
@@ -405,8 +407,8 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 	return shardAccnt.Balance
 }
 
-func GetIntValueFromSC(accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	vmContainer, _ := CreateVMAndBlockchainHook(accnts, nil)
+func GetIntValueFromSC(gasSchedule map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
+	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
 
 	vmOutput, _ := scQueryService.ExecuteQuery(&process.SCQuery{
