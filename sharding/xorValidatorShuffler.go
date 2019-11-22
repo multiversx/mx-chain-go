@@ -54,23 +54,23 @@ func (rxs *randXORShuffler) UpdateParams(
 // UpdateNodeLists shuffles the nodes and returns the lists with the new nodes configuration
 // The function needs to ensure that:
 //      1.  Old eligible nodes list will have up to shuffleOutThreshold percent nodes shuffled out from each shard
-//      2.  shuffledOutNodes = oldEligibleNodes + waitingListNodes - minNbNodesPerShard (for each shard)
-//      3.  Old waiting nodes list for each shard will be added to the remaining eligible nodes list
-//      4.  The leaving nodes are checked against the new nodes and shuffled out nodes and removed if present from the
-//          pools and leaving nodes list
-//      5.  The remaining new nodes are equally distributed among the existing shards into waiting lists
-//      6.  The remaining shuffled out nodes are distributed among the existing shards into waiting lists.
+//      2.  The leaving nodes are checked against the eligible nodes and waiting nodes and removed if present from the
+//          pools and leaving nodes list (if remaining nodes can still sustain the shard)
+//      3.  shuffledOutNodes = oldEligibleNodes + waitingListNodes - minNbNodesPerShard (for each shard)
+//      4.  Old waiting nodes list for each shard will be added to the remaining eligible nodes list
+//      5.  The new nodes are equally distributed among the existing shards into waiting lists
+//      6.  The shuffled out nodes are distributed among the existing shards into waiting lists.
 //          We may have three situations:
 //          a)  In case (shuffled out nodes + new nodes) > (nbShards * perShardHysteresis + minNodesPerShard) then
 //              we need to prepare for a split event, so a higher percentage of nodes need to be directed to the shard
 //              that will be split.
-//          b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we need to prepare for a
-//              shard merge event so
+//          b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
+//              execute the shard merge
 //          c)  No change in the number of shards then nothing extra needs to be done
-func (rxs *randXORShuffler) UpdateNodeLists(args UpdateNodesArgs) (map[uint32][]Validator, map[uint32][]Validator) {
+func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 	var shuffledOutNodes []Validator
-	var newEligible map[uint32][]Validator
-	var newWaiting map[uint32][]Validator
+	eligibleAfterReshard := copyValidatorMap(args.eligible)
+	waitingAfterReshard := copyValidatorMap(args.waiting)
 
 	newNbShards := rxs.computeNewShards(args.eligible, args.waiting, args.newNodes, args.leaving, args.nbShards)
 
@@ -79,29 +79,36 @@ func (rxs *randXORShuffler) UpdateNodeLists(args UpdateNodesArgs) (map[uint32][]
 	canMerge := rxs.adaptivity && newNbShards < args.nbShards
 	rxs.mutShufflerParams.RUnlock()
 
+	leavingNodes := args.leaving
+
 	if canSplit {
-		newEligible, newWaiting = rxs.splitShards(args.eligible, args.waiting, newNbShards)
+		eligibleAfterReshard, waitingAfterReshard = rxs.splitShards(args.eligible, args.waiting, newNbShards)
 	}
 	if canMerge {
-		newEligible, newWaiting = rxs.mergeShards(args.eligible, args.waiting, newNbShards)
+		eligibleAfterReshard, waitingAfterReshard = rxs.mergeShards(args.eligible, args.waiting, newNbShards)
 	}
 
-	for shard, vList := range newWaiting {
+	for shard, vList := range waitingAfterReshard {
 		nbToRemove := len(vList)
-		if len(args.leaving) < nbToRemove {
-			nbToRemove = len(args.leaving)
+		if len(leavingNodes) < nbToRemove {
+			nbToRemove = len(leavingNodes)
 		}
 
-		vList, args.leaving = removeValidatorsFromList(vList, args.leaving, nbToRemove)
-		newWaiting[shard] = vList
+		vList, leavingNodes = removeValidatorsFromList(vList, leavingNodes, nbToRemove)
+		waitingAfterReshard[shard] = vList
 	}
 
-	shuffledOutNodes, newEligible, args.leaving = shuffleOutNodes(args.eligible, args.waiting, args.leaving, args.rand)
-	promoteWaitingToEligible(newEligible, args.waiting)
-	distributeValidators(args.newNodes, newWaiting, args.rand, newNbShards+1)
-	distributeValidators(shuffledOutNodes, newWaiting, args.rand, newNbShards+1)
+	shuffledOutNodes, eligibleAfterReshard, leavingNodes = shuffleOutNodes(
+		eligibleAfterReshard,
+		waitingAfterReshard,
+		leavingNodes,
+		args.rand,
+	)
+	promoteWaitingToEligible(eligibleAfterReshard, waitingAfterReshard)
+	distributeValidators(args.newNodes, waitingAfterReshard, args.rand, newNbShards+1)
+	distributeValidators(shuffledOutNodes, waitingAfterReshard, args.rand, newNbShards+1)
 
-	return newEligible, newWaiting
+	return eligibleAfterReshard, waitingAfterReshard, leavingNodes
 }
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
@@ -137,7 +144,7 @@ func (rxs *randXORShuffler) computeNewShards(
 		return nbShardsNew
 	}
 
-	if nodesNewEpoch == nodesForMerge {
+	if nodesNewEpoch < nodesForMerge {
 		return nbShardsNew - 1
 	}
 

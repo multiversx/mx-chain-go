@@ -194,55 +194,55 @@ func getValidatorsInMap(valMap map[uint32][]Validator) []Validator {
 func Test_xorBytes_SameLen(t *testing.T) {
 	t.Parallel()
 
-	rez := xorBytes(firstArray, secondArray)
+	result := xorBytes(firstArray, secondArray)
 
-	assert.Equal(t, expectedArray, rez)
+	assert.Equal(t, expectedArray, result)
 }
 
 func Test_xorBytes_FirstLowerLen(t *testing.T) {
 	t.Parallel()
 
-	rez := xorBytes(firstArray[:len(firstArray)-1], secondArray)
+	result := xorBytes(firstArray[:len(firstArray)-1], secondArray)
 
-	assert.Equal(t, expectedArray[:len(expectedArray)-1], rez)
+	assert.Equal(t, expectedArray[:len(expectedArray)-1], result)
 }
 
 func Test_xorBytes_SecondLowerLen(t *testing.T) {
 	t.Parallel()
 
-	rez := xorBytes(firstArray, secondArray[:len(secondArray)-1])
+	result := xorBytes(firstArray, secondArray[:len(secondArray)-1])
 
-	assert.Equal(t, expectedArray[:len(expectedArray)-1], rez)
+	assert.Equal(t, expectedArray[:len(expectedArray)-1], result)
 }
 
 func Test_xorBytes_FirstEmpty(t *testing.T) {
 	t.Parallel()
 
-	rez := xorBytes([]byte{}, secondArray)
+	result := xorBytes([]byte{}, secondArray)
 
-	assert.Equal(t, []byte{}, rez)
+	assert.Equal(t, []byte{}, result)
 }
 
 func Test_xorBytes_SecondEmpty(t *testing.T) {
-	rez := xorBytes(firstArray, []byte{})
+	result := xorBytes(firstArray, []byte{})
 
-	assert.Equal(t, []byte{}, rez)
+	assert.Equal(t, []byte{}, result)
 }
 
 func Test_xorBytes_FirstNil(t *testing.T) {
 	t.Parallel()
 
-	rez := xorBytes(nil, secondArray)
+	result := xorBytes(nil, secondArray)
 
-	assert.Equal(t, []byte{}, rez)
+	assert.Equal(t, []byte{}, result)
 }
 
 func Test_xorBytes_SecondNil(t *testing.T) {
 	t.Parallel()
 
-	rez := xorBytes(firstArray, nil)
+	result := xorBytes(firstArray, nil)
 
-	assert.Equal(t, []byte{}, rez)
+	assert.Equal(t, []byte{}, result)
 }
 
 func Test_copyValidatorMap(t *testing.T) {
@@ -508,8 +508,8 @@ func Test_shuffleListParameterNotChanged(t *testing.T) {
 
 	randomness := generateRandomByteArray(32)
 	validators := generateValidatorList(30)
-	validatorsCopy := make([]Validator, 0)
-	validatorsCopy = append(validatorsCopy, validators...)
+	validatorsCopy := make([]Validator, len(validators))
+	_ = copy(validatorsCopy, validators)
 
 	_ = shuffleList(validators, randomness)
 	assert.Equal(t, validatorsCopy, validators)
@@ -715,7 +715,7 @@ func TestRandXORShuffler_computeNewShardsWithMerge(t *testing.T) {
 	nbWaitingPerShard := 0
 	waiting := generateValidatorMap(nbWaitingPerShard, currentNbShards)
 	newNodes := generateValidatorList(0)
-	leaving := generateValidatorList(0)
+	leaving := generateValidatorList(1)
 
 	newNbShards := shuffler.computeNewShards(eligible, waiting, newNodes, leaving, currentNbShards)
 	assert.Equal(t, currentNbShards-1, newNbShards)
@@ -759,7 +759,7 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
 	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
 
-	args := UpdateNodesArgs{
+	args := ArgsUpdateNodes{
 		eligible: eligibleMap,
 		waiting:  waitingMap,
 		newNodes: newNodes,
@@ -767,7 +767,7 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 		rand:     randomness,
 	}
 
-	eligible, waiting := shuffler.UpdateNodeLists(args)
+	eligible, waiting, _ := shuffler.UpdateNodeLists(args)
 
 	allPrevEligible := getValidatorsInMap(eligibleMap)
 	allNewEligible := getValidatorsInMap(eligible)

@@ -47,8 +47,8 @@ type PublicKeysSelector interface {
 	GetOwnPublicKey() []byte
 }
 
-// UpdateNodesArgs holds the parameters required by the shuffler to generate a new nodes configuration
-type UpdateNodesArgs struct {
+// ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
+type ArgsUpdateNodes struct {
 	eligible map[uint32][]Validator
 	waiting  map[uint32][]Validator
 	newNodes []Validator
@@ -60,5 +60,5 @@ type UpdateNodesArgs struct {
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
-	UpdateNodeLists(args UpdateNodesArgs) (map[uint32][]Validator, map[uint32][]Validator)
+	UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator)
 }
