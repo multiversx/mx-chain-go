@@ -138,7 +138,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	/////////----- wait for epoch end period
 	nrRoundsToPropagateMultiShard := uint64(10)
-	for i := uint64(0); i <= uint64(roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
+	for i := uint64(0); i <= uint64(2*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -153,7 +153,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	time.Sleep(time.Second)
 
-	epoch := uint32(1)
+	epoch := uint32(2)
 	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }

@@ -8,7 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
+
+var log = logger.GetOrCreate("endOfEpoch")
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
@@ -51,9 +54,12 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrInvalidSettingsForEpochStartTrigger
 	}
 
+	log.Info("roundsPerEpoch", "value", args.Settings.RoundsPerEpoch)
+
 	return &trigger{
 		roundsPerEpoch:         int64(args.Settings.RoundsPerEpoch),
 		epochStartTime:         args.GenesisTime,
+		epochStartRound:        0,
 		epoch:                  args.Epoch,
 		minRoundsBetweenEpochs: int64(args.Settings.MinRoundsBetweenEpochs),
 		rounder:                args.Rounder,
