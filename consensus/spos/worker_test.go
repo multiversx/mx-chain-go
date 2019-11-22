@@ -564,7 +564,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
-func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFailShouldFail(t *testing.T) {
+func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
 	t.Parallel()
 	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{}
