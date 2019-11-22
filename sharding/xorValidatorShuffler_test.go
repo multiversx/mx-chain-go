@@ -520,8 +520,6 @@ func Test_shuffleListConsistentShuffling(t *testing.T) {
 
 	randomness := generateRandomByteArray(32)
 	validators := generateValidatorList(30)
-	validatorsCopy := make([]Validator, 0)
-	validatorsCopy = append(validatorsCopy, validators...)
 
 	nbTrials := 10
 	shuffled := shuffleList(validators, randomness)
