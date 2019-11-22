@@ -8,6 +8,7 @@ import (
 type iterator struct {
 	currentNode node
 	nextNodes   []node
+	db          data.DBWriteCacher
 }
 
 // NewIterator creates a new instance of trie iterator
@@ -21,7 +22,7 @@ func NewIterator(trie data.Trie) (*iterator, error) {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	nextNodes, err := pmt.root.getChildren()
+	nextNodes, err := pmt.root.getChildren(trie.Database())
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +30,7 @@ func NewIterator(trie data.Trie) (*iterator, error) {
 	return &iterator{
 		currentNode: pmt.root,
 		nextNodes:   nextNodes,
+		db:          trie.Database(),
 	}, nil
 }
 
@@ -47,7 +49,7 @@ func (it *iterator) Next() error {
 	}
 
 	it.currentNode = n
-	nextChildren, err := it.currentNode.getChildren()
+	nextChildren, err := it.currentNode.getChildren(it.db)
 	if err != nil {
 		return err
 	}

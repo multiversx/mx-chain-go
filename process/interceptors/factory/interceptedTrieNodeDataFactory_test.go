@@ -16,17 +16,6 @@ func TestNewInterceptedTrieNodeDataFactory_NilArgumentsShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilArguments, err)
 }
 
-func TestNewInterceptedTrieNodeDataFactory_NilTrieShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.Db = nil
-
-	itn, err := NewInterceptedTrieNodeDataFactory(arg)
-	assert.Nil(t, itn)
-	assert.Equal(t, process.ErrNilDatabase, err)
-}
-
 func TestNewInterceptedTrieNodeDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 

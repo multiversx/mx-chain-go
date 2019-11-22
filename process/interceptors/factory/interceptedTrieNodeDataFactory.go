@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -10,7 +9,6 @@ import (
 )
 
 type interceptedTrieNodeDataFactory struct {
-	db          data.DBWriteCacher
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
 }
@@ -23,9 +21,6 @@ func NewInterceptedTrieNodeDataFactory(
 	if argument == nil {
 		return nil, process.ErrNilArguments
 	}
-	if check.IfNil(argument.Db) {
-		return nil, process.ErrNilDatabase
-	}
 	if check.IfNil(argument.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -34,7 +29,6 @@ func NewInterceptedTrieNodeDataFactory(
 	}
 
 	return &interceptedTrieNodeDataFactory{
-		db:          argument.Db,
 		marshalizer: argument.Marshalizer,
 		hasher:      argument.Hasher,
 	}, nil
@@ -42,7 +36,7 @@ func NewInterceptedTrieNodeDataFactory(
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (sidf *interceptedTrieNodeDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	return trie.NewInterceptedTrieNode(buff, sidf.db, sidf.marshalizer, sidf.hasher)
+	return trie.NewInterceptedTrieNode(buff, sidf.marshalizer, sidf.hasher)
 
 }
 

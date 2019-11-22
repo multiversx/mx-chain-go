@@ -104,7 +104,6 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -132,7 +131,6 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -160,7 +158,6 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -188,7 +185,6 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -216,7 +212,6 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -244,7 +239,6 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -272,7 +266,6 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -300,7 +293,6 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -328,7 +320,6 @@ func TestNewInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -356,7 +347,6 @@ func TestNewInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -384,7 +374,6 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -412,7 +401,6 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -440,40 +428,11 @@ func TestNewInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		nil,
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
-}
-
-func TestNewInterceptorsContainerFactory_NilDbShouldErr(t *testing.T) {
-	t.Parallel()
-
-	icf, err := metachain.NewInterceptorsContainerFactory(
-		mock.NewOneShardCoordinatorMock(),
-		mock.NewNodesCoordinatorMock(),
-		&mock.TopicHandlerStub{},
-		createStore(),
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		mock.NewMultiSigner(),
-		createDataPools(),
-		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
-		&mock.SignerMock{},
-		&mock.SignerMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SingleSignKeyGenMock{},
-		maxTxNonceDeltaAllowed,
-		&mock.FeeHandlerStub{},
-		nil,
-		&mock.BlackListHandlerStub{},
-	)
-
-	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilDatabase, err)
 }
 
 func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
@@ -496,7 +455,6 @@ func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		nil,
 	)
 
@@ -524,7 +482,6 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -554,7 +511,6 @@ func TestInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *tes
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -584,7 +540,6 @@ func TestInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsSh
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -614,7 +569,6 @@ func TestInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -644,7 +598,6 @@ func TestInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFail
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -674,7 +627,6 @@ func TestInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *t
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -711,7 +663,6 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
@@ -761,7 +712,6 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.SingleSignKeyGenMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
-		&mock.StorerStub{},
 		&mock.BlackListHandlerStub{},
 	)
 
