@@ -160,6 +160,7 @@ type Messenger interface {
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
+	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -197,4 +198,10 @@ type DirectSender interface {
 type PeerDiscoveryFactory interface {
 	CreatePeerDiscoverer() (PeerDiscoverer, error)
 	IsInterfaceNil() bool
+}
+
+// PeerShardResolver is able to resolve the link between the provided PeerID and the shardID
+type PeerShardResolver interface {
+	ByID(pid PeerID) uint32 //ByID get the shard id of the given peer.ID
+	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
 }

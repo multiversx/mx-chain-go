@@ -87,3 +87,9 @@ var ErrTooManyGoroutines = errors.New(" number of goroutines exceeded")
 
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
+
+//ErrNilSharder signals that the provided sharder is nil
+var ErrNilSharder = errors.New("nil sharder")
+
+//ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
+var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")

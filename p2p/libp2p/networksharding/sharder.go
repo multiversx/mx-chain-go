@@ -1,37 +1,12 @@
 package networksharding
 
 import (
+	"crypto/sha256"
 	"math/big"
 	"sort"
-	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	sha256 "github.com/minio/sha256-simd"
 )
-
-var (
-	currentSharder Sharder = &noSharder{}
-	onceSetter     sync.Once
-)
-
-// Get the sharder
-func Get() Sharder {
-	return currentSharder
-}
-
-// Set the sharder, can only be done once
-func Set(s Sharder) error {
-	if s == nil {
-		return ErrNilSharder
-	}
-
-	ret := ErrAlreadySet
-	onceSetter.Do(func() {
-		currentSharder = s
-		ret = nil
-	})
-	return ret
-}
 
 // Sharder - Main sharder interface
 type Sharder interface {
@@ -41,6 +16,7 @@ type Sharder interface {
 	GetDistance(a, b sortingID) *big.Int
 	// SortList sort the provided peers list
 	SortList(peers []peer.ID, ref peer.ID) []peer.ID
+	IsInterfaceNil() bool
 }
 
 func keyFromID(id peer.ID) []byte {

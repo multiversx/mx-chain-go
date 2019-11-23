@@ -49,30 +49,3 @@ func checkOrdering(s Sharder, t *testing.T) {
 	assert.Equal(t, len(l1), len(l3), "The two lists should have the seame size")
 	assert.Equal(t, l1, l3, "The two lists should be the same")
 }
-
-func TestSetterGetter(t *testing.T) {
-
-	_, isNoSharder := Get().(*noSharder)
-	assert.True(t, isNoSharder, "Init should have * NoSharder type")
-
-	k1, _ := NewKadSharder(0, fs0)
-	k2, _ := NewKadSharder(1, fs0)
-	k3, _ := NewKadSharder(2, fs0)
-
-	err := Set(k1)
-	assert.NotNil(t, err)
-	_, isNoSharder = Get().(*noSharder)
-	assert.True(t, isNoSharder, "Init should have * NoSharder type")
-
-	err = Set(k2)
-	assert.Nil(t, err)
-	c, isKadSharder := Get().(*kadSharder)
-	assert.True(t, isKadSharder, "Current sharder should be *KadSharder")
-	assert.Equal(t, c, k2)
-
-	err = Set(k3)
-	assert.NotNil(t, err)
-	c, isKadSharder = Get().(*kadSharder)
-	assert.True(t, isKadSharder, "Current sharder should be *KadSharder")
-	assert.Equal(t, c, k2)
-}

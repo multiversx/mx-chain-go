@@ -9,6 +9,9 @@ import (
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 
+// UnknownShardId will be used to identify an unknown shard ID
+const UnknownShardId = uint32(0xFFFFFFFE)
+
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
 	NumberOfShards() uint32

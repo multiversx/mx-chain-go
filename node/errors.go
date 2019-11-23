@@ -129,3 +129,6 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
+var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")

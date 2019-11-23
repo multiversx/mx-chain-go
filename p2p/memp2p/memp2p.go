@@ -375,6 +375,11 @@ func (messenger *Messenger) ThresholdMinConnectedPeers() int {
 	return 0
 }
 
+// SetPeerShardResolver is a dummy function, not setting anything
+func (messenger *Messenger) SetPeerShardResolver(peerShardResolver p2p.PeerShardResolver) error {
+	return nil
+}
+
 // Close disconnects this Messenger from the network it was connected to.
 func (messenger *Messenger) Close() error {
 	messenger.Network.UnregisterPeer(messenger.ID())

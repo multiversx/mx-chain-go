@@ -2,10 +2,12 @@ package libp2p
 
 import (
 	"math"
+	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	ns "github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
+	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -21,6 +23,8 @@ type libp2pConnectionMonitor struct {
 	thresholdDiscoveryResume   int // if the number of connections drops under this value, the discovery is restarted
 	thresholdDiscoveryPause    int // if the number of connections is over this value, the discovery is stopped
 	thresholdConnTrim          int // if the number of connections is over this value, we start trimming
+	mutSharder                 sync.RWMutex
+	sharder                    networksharding.Sharder
 }
 
 func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnectedPeers int, targetConnCount int) (*libp2pConnectionMonitor, error) {
@@ -35,6 +39,7 @@ func newLibp2pConnectionMonitor(reconnecter p2p.Reconnecter, thresholdMinConnect
 		thresholdDiscoveryResume:   0,
 		thresholdDiscoveryPause:    math.MaxInt32,
 		thresholdConnTrim:          math.MaxInt32,
+		sharder:                    &networksharding.NoSharder{},
 	}
 
 	if targetConnCount > 0 {
@@ -70,7 +75,9 @@ func (lcm *libp2pConnectionMonitor) Connected(netw network.Network, conn network
 		lcm.reconnecter.Pause()
 	}
 	if len(netw.Conns()) > lcm.thresholdConnTrim {
-		sorted := ns.Get().SortList(netw.Peers(), netw.LocalPeer())
+		lcm.mutSharder.RLock()
+		sorted := lcm.sharder.SortList(netw.Peers(), netw.LocalPeer())
+		lcm.mutSharder.RUnlock()
 		for i := lcm.thresholdDiscoveryPause; i < len(sorted); i++ {
 			_ = netw.ClosePeer(sorted[i])
 		}
@@ -113,4 +120,17 @@ func (lcm *libp2pConnectionMonitor) doReconnection() {
 
 func (lcm *libp2pConnectionMonitor) isConnectedToTheNetwork(netw network.Network) bool {
 	return len(netw.Conns()) >= lcm.thresholdMinConnectedPeers
+}
+
+// SetSharder sets the sharder that is able to sort the peers by their distance
+func (lcm *libp2pConnectionMonitor) SetSharder(sharder networksharding.Sharder) error {
+	if check.IfNil(sharder) {
+		return p2p.ErrNilSharder
+	}
+
+	lcm.mutSharder.Lock()
+	lcm.sharder = sharder
+	lcm.mutSharder.Unlock()
+
+	return nil
 }

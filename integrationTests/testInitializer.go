@@ -859,6 +859,8 @@ func GenerateAndDisseminateTxs(
 	}
 }
 
+// CreateAndSendTransaction will generate a transaction with provided parameters, sign it with the provided
+// node's tx sign private key and send it on the transaction topic
 func CreateAndSendTransaction(
 	node *TestProcessorNode,
 	txValue *big.Int,

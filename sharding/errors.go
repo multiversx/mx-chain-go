@@ -81,3 +81,9 @@ var ErrNilAddress = errors.New("nil address")
 
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
+
+// ErrNilNodesCoordinator signals that a nil nodes coordinator was provided
+var ErrNilNodesCoordinator = errors.New("nil NodesCoordinator")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")

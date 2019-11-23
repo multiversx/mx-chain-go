@@ -5,11 +5,11 @@ import (
 )
 
 func TestNoSharderDistance(t *testing.T) {
-	s := &noSharder{}
+	s := &NoSharder{}
 	checkDistance(s, t)
 }
 
 func TestNoSharderOrdering(t *testing.T) {
-	s := &noSharder{}
+	s := &NoSharder{}
 	checkOrdering(s, t)
 }

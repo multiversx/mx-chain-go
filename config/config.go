@@ -87,6 +87,10 @@ type Config struct {
 	ShardHeadersDataPool          CacheConfig
 	MetaHeaderNoncesDataPool      CacheConfig
 
+	PublicKeyShardId CacheConfig
+	PublicKeyPeerId  CacheConfig
+	PeerIdShardId    CacheConfig
+
 	Logger         LoggerConfig
 	Address        AddressConfig
 	Hasher         TypeConfig
