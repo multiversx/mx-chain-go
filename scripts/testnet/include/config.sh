@@ -35,6 +35,18 @@ copySeednodeConfig() {
   cp $SEEDNODEDIR/config/p2p.toml ./seednode/config
 }
 
+updateSeednodeConfig() {
+  cd $TESTNETDIR/seednode/config
+  cp p2p.toml p2p_edit.toml
+
+  updateTOMLValue p2p_edit.toml "Port" $PORT_SEEDNODE
+
+  cp p2p_edit.toml p2p.toml
+  rm p2p_edit.toml
+
+  echo "Updated configuration for the Seednode."
+}
+
 copyNodeConfig() {
   cd $TESTNETDIR
   cp $NODEDIR/config/config.toml ./node/config
@@ -44,6 +56,17 @@ copyNodeConfig() {
   cp $NODEDIR/config/p2p.toml ./node/config
 
   echo "Configuration files copied from the Node to the working directories of the executables."
+}
+
+updateNodeConfig() {
+  cd $TESTNETDIR/node/config
+  cp p2p.toml p2p_edit.toml
+
+  updateTOMLValue p2p_edit.toml "InitialPeerList" "[\"$P2P_SEEDNODE_ADDRESS\"]"
+  cp p2p_edit.toml p2p.toml
+  rm p2p_edit.toml
+
+  echo "Updated configuration for Nodes."
 }
 
 copyProxyConfig() {

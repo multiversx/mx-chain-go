@@ -2,12 +2,11 @@ source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/terminal.sh"
 
 startSeednode() {
-  startTerminal
+  setTerminalSession "elrond-tools"
+  setTerminalLayout "even-horizontal"
 
-  cd $TESTNETDIR/seednode
-  runCommandInTerminal "./seednode -port $PORT_SEEDNODE" $1
-
-  endTerminal
+  setWorkdirForNextCommands "$TESTNETDIR/seednode"
+  runCommandInTerminal "./seednode -port $PORT_SEEDNODE" $1 h
 }
 
 stopSeednode() {
@@ -15,9 +14,10 @@ stopSeednode() {
 }
 
 startObservers() {
-  startTerminal
+  setTerminalSession "elrond-nodes"
+  setTerminalLayout "tiled"
 
-  cd $TESTNETDIR/node
+  setWorkdirForNextCommands "$TESTNETDIR/node"
 
   OBSERVER_INDEX=0
   # Start Shard Observers
@@ -31,9 +31,6 @@ startObservers() {
     done
   done
 
-  endTerminal
-
-  startTerminal
   # Start Metachain Observers
   SHARD="metachain"
   for META_OBSERVER in `seq $META_OBSERVERCOUNT`; do
@@ -42,8 +39,6 @@ startObservers() {
 
     let OBSERVER_INDEX++
   done
-
-  endTerminal
 }
 
 stopObservers() {
@@ -60,9 +55,6 @@ stopObservers() {
     done
   done
 
-  endTerminal
-
-  startTerminal
   # Start Metachain Observers
   SHARD="metachain"
   for META_OBSERVER in `seq $META_OBSERVERCOUNT`; do
@@ -75,9 +67,10 @@ stopObservers() {
 }
 
 startValidators() {
-  startTerminal
+  setTerminalSession "elrond-nodes"
+  setTerminalLayout "tiled"
 
-  cd $TESTNETDIR/node
+  setWorkdirForNextCommands "$TESTNETDIR/node"
 
   # Start Shard Validators
   VALIDATOR_INDEX=0
@@ -86,15 +79,13 @@ startValidators() {
     for VALIDATOR_IN_SHARD in `seq $SHARD_VALIDATORCOUNT`; do
 
       runCommandInTerminal "$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)" $1
-      echo "$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)"
 
       let VALIDATOR_INDEX++
     done
   done
 
-  endTerminal
-
-  startTerminal
+  setTerminalSession "elrond-nodes"
+  setTerminalLayout "tiled"
   # Start Metachain Validators
   SHARD="metachain"
   for META_VALIDATOR in `seq $META_VALIDATORCOUNT`; do
@@ -103,8 +94,6 @@ startValidators() {
 
     let VALIDATOR_INDEX++
   done
-
-  endTerminal
 }
 
 stopValidators() {
@@ -129,11 +118,21 @@ assembleCommand_startObserverNode() {
   let "KEY_INDEX=$TOTAL_NODECOUNT - $OBSERVER_INDEX - 1"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
-  echo "./node \
+  local nodeCommand="./node \
         -port $PORT -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT -storage-cleanup -destination-shard-as-observer $SHARD \
         -working-directory $WORKING_DIR"
+
+  if [ $NODETERMUI -eq 0 ]
+  then
+    local logs_folder=$WORKING_DIR/logs
+    [ -d $logs_folder ] || mkdir -p $logs_folder
+    nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel $LOGLEVEL"
+    nodeCommand="$nodeCommand | tee $WORKING_DIR/logs/stdout.txt"
+  fi
+
+  echo $nodeCommand
 }
 
 assembleCommand_startValidatorNode() {
@@ -143,9 +142,20 @@ assembleCommand_startValidatorNode() {
   let "KEY_INDEX=$VALIDATOR_INDEX"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
-  echo "./node \
+  local nodeCommand="./node \
         -port $PORT -rest-api-interface localhost:$RESTAPIPORT \
         -tx-sign-sk-index $KEY_INDEX -sk-index $KEY_INDEX \
         -num-of-nodes $TOTAL_NODECOUNT -storage-cleanup \
         -working-directory $WORKING_DIR"
+
+  if [ $NODETERMUI -eq 0 ]
+  then
+    local logs_folder=$WORKING_DIR/logs
+    [ -d $logs_folder ] || mkdir -p $logs_folder
+    nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel $LOGLEVEL"
+    nodeCommand="$nodeCommand | tee $WORKING_DIR/logs/stdout.txt"
+  fi
+
+  echo $nodeCommand
 }
+

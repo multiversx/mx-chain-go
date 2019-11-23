@@ -2,12 +2,11 @@ source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/terminal.sh"
 
 startProxy() {
-  startTerminal
+  setTerminalSession "elrond-tools"
+  setTerminalLayout "even-horizontal"
 
-  cd $TESTNETDIR/proxy
-  runCommandInTerminal "./proxy" $1
-
-  endTerminal
+  setWorkdirForNextCommands "$TESTNETDIR/proxy"
+  runCommandInTerminal "./proxy" $1 h
 }
 
 stopProxy() {
@@ -15,21 +14,19 @@ stopProxy() {
 }
 
 startTxGen_NewAccounts() {
-  startTerminal
+  setTerminalSession "elrond-tools"
+  setTerminalLayout "even-horizontal"
 
-  cd $TESTNETDIR/txgen
+  setWorkdirForNextCommands "$TESTNETDIR/txgen" h
   runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -num-shards $SHARDCOUNT -new-accounts" $1
-
-  endTerminal
 }
 
 startTxGen_ExistingAccounts() {
-  startTerminal
+  setTerminalSession "elrond-tools"
+  setTerminalLayout "even-horizontal"
 
-  cd $TESTNETDIR/txgen
+  setWorkdirForNextCommands "$TESTNETDIR/txgen" h
   runCommandInTerminal "./txgen" $1
-
-  endTerminal
 }
 
 stopTxGen() {
