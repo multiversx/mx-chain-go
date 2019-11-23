@@ -129,15 +129,6 @@ func ProposeBlockWithConsensusSignature(
 
 	// set some randomness
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
-	/*currHdr := consensusNodes[0].BlockChain.GetCurrentBlockHeader()
-	if currHdr == nil {
-		currHdr = consensusNodes[0].BlockChain.GetGenesisHeader()
-		currHdr.SetRandSeed(randomness)
-		_ = consensusNodes[0].BlockChain.SetGenesisHeader(currHdr)
-	} else {
-		currHdr.SetRandSeed(randomness)
-		_ = consensusNodes[0].BlockChain.SetCurrentBlockHeader(currHdr)
-	}*/
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
 	header.SetPrevRandSeed(randomness)
