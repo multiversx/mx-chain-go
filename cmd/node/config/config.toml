@@ -215,15 +215,15 @@
     Type = "LRU"
 
 [PublicKeyShardId]
-    Size = 1000
+    Size = 30000
     Type = "LRU"
 
 [PublicKeyPeerId]
-    Size = 1000
+    Size = 30000
     Type = "LRU"
 
 [PeerIdShardId]
-    Size = 1000
+    Size = 30000
     Type = "LRU"
 
 [Logger]

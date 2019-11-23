@@ -424,7 +424,7 @@ func createConsensusOnlyNode(
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithNetworkShardingUpdater(mock.NewNetworkShardingUpdaterMock()),
+		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),
 	)
 
 	if err != nil {

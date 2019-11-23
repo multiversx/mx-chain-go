@@ -4,10 +4,10 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/concurrent-map"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("storage/fifocache")
 
 // FIFOShardedCache implements a First In First Out eviction cache
 type FIFOShardedCache struct {
@@ -105,7 +105,7 @@ func (c *FIFOShardedCache) Remove(key []byte) {
 // RemoveOldest removes the oldest item from the cache.
 func (c *FIFOShardedCache) RemoveOldest() {
 	// nothing to do, oldest is automatically removed when adding a new item.
-	log.Warn("remove oldest item not done, oldest item will be automatically cleared on reaching capacity")
+	log.Debug("remove oldest item not done, oldest item will be automatically cleared on reaching capacity")
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.

@@ -875,26 +875,26 @@ func TestWithBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithNetworkShardingUpdater_NilNetworkShardingUpdaterShouldErr(t *testing.T) {
+func TestWithNetworkShardingCollector_NilNetworkShardingCollectorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithNetworkShardingUpdater(nil)
+	opt := WithNetworkShardingCollector(nil)
 	err := opt(node)
 
-	assert.Equal(t, ErrNilNetworkShardingUpdater, err)
+	assert.Equal(t, ErrNilNetworkShardingCollector, err)
 }
 
-func TestWithNetworkShardingUpdater_OkHandlerShouldWork(t *testing.T) {
+func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	networkShardingUpdater := &mock.NetworkShardingUpdaterStub{}
-	opt := WithNetworkShardingUpdater(networkShardingUpdater)
+	networkShardingCollector := &mock.NetworkShardingCollectorStub{}
+	opt := WithNetworkShardingCollector(networkShardingCollector)
 	err := opt(node)
 
-	assert.True(t, node.networkShardingUpdater == networkShardingUpdater)
+	assert.True(t, node.networkShardingCollector == networkShardingCollector)
 	assert.Nil(t, err)
 }

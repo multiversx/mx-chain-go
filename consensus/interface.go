@@ -70,8 +70,9 @@ type P2PMessenger interface {
 	IsInterfaceNil() bool
 }
 
-// NetworkShardingUpdater defines the updating methods used by the network sharding component
-type NetworkShardingUpdater interface {
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+// The interface assures that the collected data will be used by the p2p network sharding components
+type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	IsInterfaceNil() bool
