@@ -68,13 +68,11 @@ runCommandInTerminal() {
   if [ $USETMUX -eq 1 ]
   then
     local pane_to_use=${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}
-    echo "TMUX: pane to use $pane_to_use in session $CURRENT_TMUX_SESSION"
     if [ $pane_to_use -gt 1 ]
     then
       tmux split-window $splitwindow -t $CURRENT_TMUX_SESSION:1
       tmux select-layout -t $CURRENT_TMUX_SESSION:1 $CURRENT_TMUX_LAYOUT
       let TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]=${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}+1
-      echo "TMUX: set pane to use in session $CURRENT_TMUX_SESSION: ${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}"
     fi
     let pane_id=$pane_to_use-1
     tmux send-keys -t $CURRENT_TMUX_SESSION:1.$pane_id "cd $CURRENT_COMMAND_WORKDIR" C-m
@@ -82,7 +80,6 @@ runCommandInTerminal() {
     if [ $pane_to_use -eq 1 ]
     then
       let TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]=${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}+1
-      echo "TMUX: set pane to use in session $CURRENT_TMUX_SESSION: ${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}"
     fi
   else
     executeCommandInTerminalEmulator $command_to_run $keepopen

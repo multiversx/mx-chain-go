@@ -14,6 +14,7 @@ export TXGEN=$TXGENDIR/txgen
 
 export USETMUX=1
 export NODETERMUI=0
+export LOGLEVEL="*:DEBUG"
 
 export SEEDNODE_DELAY=5
 export NODE_DELAY=5
