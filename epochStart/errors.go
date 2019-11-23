@@ -5,9 +5,6 @@ import "errors"
 // ErrNilArgsNewMetaEpochStartTrigger signals that nil arguments were provided
 var ErrNilArgsNewMetaEpochStartTrigger = errors.New("nil arguments for meta start of epoch trigger")
 
-// ErrNilRounder signals that nil round was provided
-var ErrNilRounder = errors.New("nil rounder")
-
 // ErrNilEpochStartSettings signals that nil start of epoch settings has been provided
 var ErrNilEpochStartSettings = errors.New("nil start of epoch settings")
 

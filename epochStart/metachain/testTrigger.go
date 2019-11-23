@@ -20,7 +20,7 @@ func (t *TestTrigger) SetTrigger(triggerHandler epochStart.TriggerHandler) {
 }
 
 // SetRoundsPerEpoch sets the number of round between epochs
-func (t *TestTrigger) SetRoundsPerEpoch(roundsPerEpoch int64) {
+func (t *TestTrigger) SetRoundsPerEpoch(roundsPerEpoch uint64) {
 	t.roundsPerEpoch = roundsPerEpoch
 	if t.minRoundsBetweenEpochs > t.roundsPerEpoch {
 		t.minRoundsBetweenEpochs = t.roundsPerEpoch - 1
@@ -28,6 +28,6 @@ func (t *TestTrigger) SetRoundsPerEpoch(roundsPerEpoch int64) {
 }
 
 // GetRoundsPerEpoch gets the number of rounds per epoch
-func (t *TestTrigger) GetRoundsPerEpoch() int64 {
+func (t *TestTrigger) GetRoundsPerEpoch() uint64 {
 	return t.roundsPerEpoch
 }

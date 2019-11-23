@@ -356,7 +356,7 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 		n.genesisTime,
 		rounder,
 		n.syncTimer,
-		n.epochStartTrigger)
+	)
 
 	if err != nil {
 		return nil, err

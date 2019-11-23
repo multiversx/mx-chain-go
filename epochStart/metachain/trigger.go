@@ -5,31 +5,28 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
-
-var log = logger.GetOrCreate("endOfEpoch")
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
-	Rounder     epochStart.Rounder
-	GenesisTime time.Time
-	Settings    *config.EpochStartConfig
-	Epoch       uint32
+	GenesisTime     time.Time
+	Settings        *config.EpochStartConfig
+	Epoch           uint32
+	EpochStartRound uint64
 }
 
 type trigger struct {
 	isEpochStart           bool
 	epoch                  uint32
-	currentRound           int64
-	epochStartRound        int64
-	roundsPerEpoch         int64
-	minRoundsBetweenEpochs int64
+	currentRound           uint64
+	currEpochStartRound    uint64
+	prevEpochStartRound    uint64
+	roundsPerEpoch         uint64
+	minRoundsBetweenEpochs uint64
+	epochStartMetaHash     []byte
 	epochStartTime         time.Time
-	rounder                epochStart.Rounder
 	mutTrigger             sync.RWMutex
 }
 
@@ -37,9 +34,6 @@ type trigger struct {
 func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) {
 	if args == nil {
 		return nil, epochStart.ErrNilArgsNewMetaEpochStartTrigger
-	}
-	if check.IfNil(args.Rounder) {
-		return nil, epochStart.ErrNilRounder
 	}
 	if args.Settings == nil {
 		return nil, epochStart.ErrNilEpochStartSettings
@@ -54,15 +48,13 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrInvalidSettingsForEpochStartTrigger
 	}
 
-	log.Info("roundsPerEpoch", "value", args.Settings.RoundsPerEpoch)
-
 	return &trigger{
-		roundsPerEpoch:         int64(args.Settings.RoundsPerEpoch),
+		roundsPerEpoch:         uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:         args.GenesisTime,
-		epochStartRound:        0,
+		currEpochStartRound:    args.EpochStartRound,
+		prevEpochStartRound:    args.EpochStartRound,
 		epoch:                  args.Epoch,
-		minRoundsBetweenEpochs: int64(args.Settings.MinRoundsBetweenEpochs),
-		rounder:                args.Rounder,
+		minRoundsBetweenEpochs: uint64(args.Settings.MinRoundsBetweenEpochs),
 		mutTrigger:             sync.RWMutex{},
 	}, nil
 }
@@ -80,11 +72,11 @@ func (t *trigger) EpochStartRound() uint64 {
 	t.mutTrigger.RLock()
 	defer t.mutTrigger.RUnlock()
 
-	return uint64(t.epochStartRound)
+	return t.currEpochStartRound
 }
 
 // ForceEpochStart sets the conditions for start of epoch to true in case of edge cases
-func (t *trigger) ForceEpochStart(round int64) error {
+func (t *trigger) ForceEpochStart(round uint64) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -97,20 +89,19 @@ func (t *trigger) ForceEpochStart(round int64) error {
 
 	t.currentRound = round
 
-	if t.currentRound-t.epochStartRound < t.minRoundsBetweenEpochs {
+	if t.currentRound-t.currEpochStartRound < t.minRoundsBetweenEpochs {
 		return epochStart.ErrNotEnoughRoundsBetweenEpochs
 	}
 
-	t.epochStartTime = t.rounder.TimeStamp()
 	t.epoch += 1
-	t.epochStartRound = t.currentRound
+	t.currEpochStartRound = t.currentRound
 	t.isEpochStart = true
 
 	return nil
 }
 
 // Update processes changes in the trigger
-func (t *trigger) Update(round int64) {
+func (t *trigger) Update(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -120,11 +111,11 @@ func (t *trigger) Update(round int64) {
 
 	t.currentRound = round
 
-	if t.currentRound > t.epochStartRound+t.roundsPerEpoch {
+	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
+		t.prevEpochStartRound = t.currEpochStartRound
 		t.epoch += 1
-		t.epochStartTime = t.rounder.TimeStamp()
 		t.isEpochStart = true
-		t.epochStartRound = t.currentRound
+		t.currEpochStartRound = t.currentRound
 	}
 }
 
@@ -142,6 +133,8 @@ func (t *trigger) Revert() {
 	defer t.mutTrigger.Unlock()
 
 	t.isEpochStart = true
+	t.currEpochStartRound = t.prevEpochStartRound
+	t.epoch -= 1
 }
 
 // Epoch return the current epoch
@@ -158,7 +151,12 @@ func (t *trigger) ReceivedHeader(header data.HeaderHandler) {
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch
 func (t *trigger) EpochStartMetaHdrHash() []byte {
-	return nil
+	return t.epochStartMetaHash
+}
+
+// SetEpochStartMetaHdrHash sets the epoch start meta header hase
+func (t *trigger) SetEpochStartMetaHdrHash(metaHdrHash []byte) {
+	t.epochStartMetaHash = metaHdrHash
 }
 
 // IsInterfaceNil return true if underlying object is nil

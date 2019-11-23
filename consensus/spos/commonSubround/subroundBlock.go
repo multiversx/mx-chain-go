@@ -223,11 +223,11 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
+	hdr.SetShardID(sr.ShardCoordinator().SelfId())
 	hdr.SetRound(uint64(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)
-	hdr.SetEpoch(sr.Chronology().Epoch())
 
 	return hdr, nil
 }

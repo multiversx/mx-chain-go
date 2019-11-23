@@ -6,13 +6,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 	return &ArgsNewMetaEpochStartTrigger{
-		Rounder:     &mock.RounderStub{},
 		GenesisTime: time.Time{},
 		Settings: &config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 1,
@@ -29,17 +27,6 @@ func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
 
 	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilArgsNewMetaEpochStartTrigger, err)
-}
-
-func TestNewEpochStartTrigger_NilRounderShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockEpochStartTriggerArguments()
-	arguments.Rounder = nil
-
-	epochStartTrigger, err := NewEpochStartTrigger(arguments)
-	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilRounder, err)
 }
 
 func TestNewEpochStartTrigger_NilSettingsShouldErr(t *testing.T) {
@@ -102,7 +89,7 @@ func TestTrigger_Update(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(0)
-	round := int64(0)
+	round := uint64(0)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
@@ -129,7 +116,7 @@ func TestTrigger_Update(t *testing.T) {
 func TestTrigger_ForceEpochStartIncorrectRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	round := int64(1)
+	round := uint64(1)
 	arguments := createMockEpochStartTriggerArguments()
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 

@@ -553,7 +553,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	epochStartTrigger, err := newEpochStartTrigger(args, rounder, requestHandler)
+	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -687,7 +687,6 @@ func newRequestHandler(
 
 func newEpochStartTrigger(
 	args *processComponentsFactoryArgs,
-	rounder epochStart.Rounder,
 	requestHandler epochStart.RequestHandler,
 ) (epochStart.TriggerHandler, error) {
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
@@ -722,7 +721,6 @@ func newEpochStartTrigger(
 
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		argEpochStart := &metachainEpochStart.ArgsNewMetaEpochStartTrigger{
-			Rounder:     rounder,
 			GenesisTime: time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:    args.epochStart,
 			Epoch:       args.startEpochNum,

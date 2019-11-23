@@ -9,11 +9,11 @@ import (
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
-	ForceEpochStart(round int64) error
+	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
 	ReceivedHeader(header data.HeaderHandler)
-	Update(round int64)
+	Update(round uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
 	Processed()

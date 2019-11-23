@@ -157,7 +157,7 @@ func (t *trigger) EpochStartRound() uint64 {
 }
 
 // ForceEpochStart sets the conditions for start of epoch to true in case of edge cases
-func (t *trigger) ForceEpochStart(round int64) error {
+func (t *trigger) ForceEpochStart(round uint64) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -413,7 +413,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 }
 
 // Update updates the end-of-epoch trigger
-func (t *trigger) Update(round int64) {
+func (t *trigger) Update(round uint64) {
 }
 
 // Processed sets start of epoch to false and cleans underlying structure

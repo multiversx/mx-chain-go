@@ -33,7 +33,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 
-	roundsPerEpoch := int64(20)
+	roundsPerEpoch := uint64(10)
 	for _, node := range nodes {
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
@@ -60,9 +60,9 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 10
+	nrRoundsToPropagateMultiShard := 5
 	/////////----- wait for epoch end period
-	for i := uint64(0); i <= uint64(roundsPerEpoch); i++ {
+	for i := uint64(0); i <= roundsPerEpoch; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -104,7 +104,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		integrationTests.GetConnectableAddress(advertiser),
 	)
 
-	roundsPerEpoch := int64(20)
+	roundsPerEpoch := uint64(10)
 	for _, node := range nodes {
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
@@ -137,8 +137,9 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	time.Sleep(time.Second)
 
 	/////////----- wait for epoch end period
-	nrRoundsToPropagateMultiShard := uint64(10)
-	for i := uint64(0); i <= uint64(2*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
+	epoch := uint32(2)
+	nrRoundsToPropagateMultiShard := uint64(5)
+	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -153,7 +154,6 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 
 	time.Sleep(time.Second)
 
-	epoch := uint32(2)
 	verifyIfNodesHasCorrectEpoch(t, epoch, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }

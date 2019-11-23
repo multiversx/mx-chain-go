@@ -226,7 +226,12 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		go mp.checkAndRequestIfShardHeadersMissing(header.Round)
+		if err != nil && header.IsStartOfEpochBlock() {
+			mp.epochStartTrigger.Revert()
+		}
 	}()
+
+	mp.epochStartTrigger.Update(header.GetRound())
 
 	err = mp.checkEpochCorrectness(header, chainHandler)
 	if err != nil {
@@ -379,11 +384,6 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 	}
 
 	return miniBlockShardsHashes, nil
-}
-
-// SetConsensusData - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-	// nothing to do
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
@@ -556,6 +556,11 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	)
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
+	mp.blockChainHook.SetCurrentHeader(initialHdrData)
+
+	mp.epochStartTrigger.Update(initialHdrData.GetRound())
+	initialHdrData.SetEpoch(mp.epochStartTrigger.Epoch())
+
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
 
 	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), initialHdrData.GetRound(), haveTime)
@@ -950,6 +955,7 @@ func (mp *metaProcessor) CommitBlock(
 	log.Info("meta block has been committed successfully",
 		"nonce", header.Nonce,
 		"round", header.Round,
+		"epoch", header.Epoch,
 		"hash", headerHash)
 
 	errNotCritical = mp.removeBlockInfoFromPool(header)
