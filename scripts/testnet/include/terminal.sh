@@ -24,8 +24,6 @@ setTerminalSession() {
       session_name=$CURRENT_TMUX_SESSION
     fi
 
-    tmux ls
-
     if [ "$(tmuxSessionAlreadyExists $session_name)" -eq 0 ]
     then
       CURRENT_TMUX_SESSION=$session_name
