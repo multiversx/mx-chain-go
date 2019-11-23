@@ -35,7 +35,7 @@ export USETMUX=1
 
 # Start Nodes with TermUI or not. Looks good with TermUI, but if you want full
 # info and saved logs, set this to 0. TermUI can't save logs.
-export NODETERMUI=0
+export NODETERMUI=1
 
 # Log level for the logger in the Node.
 export LOGLEVEL="*:DEBUG"
