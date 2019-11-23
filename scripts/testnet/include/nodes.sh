@@ -126,6 +126,8 @@ assembleCommand_startObserverNode() {
 
   if [ $NODETERMUI -eq 0 ]
   then
+    local logs_folder=$WORKING_DIR/logs
+    [ -d $logs_folder ] || mkdir -p $logs_folder
     nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel *:DEBUG"
     nodeCommand="$nodeCommand | tee $WORKING_DIR/logs/stdout.txt"
   fi
@@ -148,6 +150,8 @@ assembleCommand_startValidatorNode() {
 
   if [ $NODETERMUI -eq 0 ]
   then
+    local logs_folder=$WORKING_DIR/logs
+    [ -d $logs_folder ] || mkdir -p $logs_folder
     nodeCommand="$nodeCommand -use-log-view -disable-ansi-color -logLevel *:DEBUG"
     nodeCommand="$nodeCommand | tee $WORKING_DIR/logs/stdout.txt"
   fi
