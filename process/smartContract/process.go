@@ -20,7 +20,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var log = logger.GetOrCreate("process/smartcontract")
+var log = logger.GetOrCreate("process/smartContract")
 
 type scExecutionState struct {
 	allLogs       map[string][]*vmcommon.LogEntry
@@ -146,7 +146,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return process.ErrNilSCDestAccount
 	}
 
-	err := sc.prepareSmartContractCall(tx, acntSnd)
+	log.Debug("About to execute SmartContract transaction")
+	json, err := tx.MarshalJSON()
+	log.Debug("Transaction", "JSON", string(json))
+
+	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
 		return err
 	}
@@ -232,48 +236,68 @@ func (sc *scProcessor) DeploySmartContract(
 ) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
-	err := sc.checkTxValidity(tx)
+	log.Debug("About to deploy SmartContract transaction")
+	json, err := tx.MarshalJSON()
+	log.Debug("Transaction", "JSON", string(json))
+
+	err = sc.checkTxValidity(tx)
 	if err != nil {
+		log.Debug("Transaction invalid", "error", err.Error())
 		return err
 	}
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
+		log.Debug("Transaction wrong", "error", process.ErrWrongTransaction.Error())
 		return process.ErrWrongTransaction
 	}
 
+	log.Debug("Preparing SC call")
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
+		log.Debug("Transaction error", "error", err.Error())
 		return err
 	}
 
+	log.Debug("Creating VM Deploy Input")
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {
+		log.Debug("Transaction error", "error", err.Error())
 		return err
 	}
 
+	log.Debug("Retrieving VM")
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
+		log.Debug("VM error", "error", err.Error())
 		return err
 	}
 
+	log.Debug("Running SmartContract create")
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
 	if err != nil {
+		log.Debug("VM error", "error", err.Error())
 		return err
 	}
 
+	log.Debug("Processing VMOutput")
 	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
+		log.Debug("Processing error", "error", err.Error())
 		return err
 	}
 
+	log.Debug("Adding intermediate transactions")
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
+		log.Debug("Processing error", "error", err.Error())
 		return err
 	}
 
+	log.Debug("Processing Tx Fees")
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
+	log.Debug("SmartContract deployed")
 	return nil
 }
 

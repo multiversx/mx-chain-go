@@ -541,18 +541,25 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			break
 		}
 
+		txJsonBytes, _ := orderedTxs[index].MarshalJSON()
+		txJson := string(txJsonBytes)
+
+		log.Debug("Analyzing transaction for inclusion in miniblock", "transaction", txJson)
+
 		if txs.isTxAlreadyProcessed(orderedTxHashes[index], &txs.txsForCurrBlock) {
+			log.Debug("Transaction already processed")
 			continue
 		}
 
 		currTxGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
 		if core.IsSmartContractAddress(orderedTxs[index].RcvAddr) {
+			log.Debug("This is a SC transaction")
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}
 
 		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
 		if isGasLimitReached {
-			log.Trace("max gas limit per mini block is reached",
+			log.Debug("max gas limit per mini block is reached",
 				"num added txs", len(miniBlock.TxHashes),
 				"ordered txs", len(orderedTxs),
 			)
@@ -560,6 +567,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 
 		snapshot := txs.accounts.JournalLen()
+
+		log.Debug("processAndRemoveBadTransaction()", "transaction", txJson)
 
 		// execute transaction to change the trie root hash
 		err := txs.processAndRemoveBadTransaction(
@@ -571,7 +580,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		)
 
 		if err != nil {
-			log.Trace("bad tx",
+			log.Debug("bad tx",
 				"error", err.Error(),
 				"hash", orderedTxHashes[index],
 			)
@@ -585,6 +594,8 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
 		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
+
+		log.Debug("Transaction added to miniblock", "transaction", txJson)
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Debug("max txs accepted in one block is reached",

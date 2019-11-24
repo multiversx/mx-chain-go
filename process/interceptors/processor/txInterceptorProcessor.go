@@ -1,6 +1,9 @@
 package processor
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -38,11 +41,13 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 		return process.ErrWrongTypeAssertion
 	}
 
+	debugTx(interceptedTx, "validate")
 	errTxValidation := txip.txValidator.CheckTxValidity(interceptedTx)
 	if errTxValidation != nil {
+		log.Debug("Intercepted transaction", "error", errTxValidation)
 		return errTxValidation
 	}
-
+	log.Debug("Intercepted transaction", "valid", true)
 	return nil
 }
 
@@ -59,6 +64,8 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 		interceptedTx.Transaction(),
 		cacherIdentifier,
 	)
+
+	debugTx(interceptedTx, "save")
 	return nil
 }
 
@@ -68,4 +75,29 @@ func (txip *TxInterceptorProcessor) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func debugTx(tx InterceptedTransactionHandler, verb string) {
+	if tx.Transaction() == nil {
+		log.Debug("Intercepted transaction", "nil transaction")
+	}
+
+	sender := "nil"
+	if tx.SenderAddress() != nil {
+		if tx.SenderAddress().Bytes() != nil {
+			senderAddress := hex.EncodeToString(tx.SenderAddress().Bytes())
+			sender = fmt.Sprintf("S%d - %s (%d)", tx.SenderShardId(), senderAddress, tx.Nonce())
+		}
+	}
+
+	receiver := "nil"
+	if tx.Transaction().GetRecvAddress() != nil {
+		receiverAddress := hex.EncodeToString(tx.Transaction().GetRecvAddress())
+		receiver = fmt.Sprintf("R%d - %s", tx.ReceiverShardId(), receiverAddress)
+	}
+
+	data := fmt.Sprintf("Data: %s", tx.Transaction().GetData())
+	log.Debug("Intercepted transaction "+verb, "sender", sender)
+	log.Debug("Intercepted transaction "+verb, "receiver", receiver)
+	log.Debug("Intercepted transaction "+verb, "data", data)
 }

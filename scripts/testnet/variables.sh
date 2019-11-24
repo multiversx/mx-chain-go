@@ -86,3 +86,9 @@ export NUMACCOUNTS="100"
 # Recommended value is 1, but 0 is useful to run the txgen a second time, to
 # continue a testing session on the same accounts.
 export REGENERATE_ACCOUNTS=1
+
+if [ "$TESTNETMODE" == "debug" ]; then
+  NODETERMUI=0
+  USETMUX=1
+  LOGLEVEL="*:DEBUG"
+fi
