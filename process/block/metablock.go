@@ -317,8 +317,11 @@ func (mp *metaProcessor) checkEpochCorrectness(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	if mp.epochStartTrigger.IsEpochStart() &&
-		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
+	isEpochIncorrect = mp.epochStartTrigger.IsEpochStart() &&
+		mp.epochStartTrigger.EpochStartRound() <= headerHandler.GetRound() &&
+		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1
+
+	if isEpochIncorrect {
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -556,7 +559,6 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	)
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
-	mp.blockChainHook.SetCurrentHeader(initialHdrData)
 
 	mp.epochStartTrigger.Update(initialHdrData.GetRound())
 	initialHdrData.SetEpoch(mp.epochStartTrigger.Epoch())
@@ -1563,6 +1565,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		return err
 	}
 
+	metaHdr.Epoch = mp.epochStartTrigger.Epoch()
 	metaHdr.ShardInfo = shardInfo
 	metaHdr.PeerInfo = peerInfo
 	metaHdr.RootHash = mp.getRootHash()

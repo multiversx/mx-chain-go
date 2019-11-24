@@ -19,6 +19,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 
 type trigger struct {
 	isEpochStart           bool
+	revertRound            uint64
 	epoch                  uint32
 	currentRound           uint64
 	currEpochStartRound    uint64
@@ -56,6 +57,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		epoch:                  args.Epoch,
 		minRoundsBetweenEpochs: uint64(args.Settings.MinRoundsBetweenEpochs),
 		mutTrigger:             sync.RWMutex{},
+		revertRound:            args.EpochStartRound,
 	}, nil
 }
 
@@ -93,7 +95,10 @@ func (t *trigger) ForceEpochStart(round uint64) error {
 		return epochStart.ErrNotEnoughRoundsBetweenEpochs
 	}
 
-	t.epoch += 1
+	if t.currentRound-t.revertRound > t.minRoundsBetweenEpochs {
+		t.epoch += 1
+	}
+
 	t.currEpochStartRound = t.currentRound
 	t.isEpochStart = true
 
@@ -105,7 +110,7 @@ func (t *trigger) Update(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	if t.currentRound+1 != round {
+	if round <= t.currentRound {
 		return
 	}
 
@@ -113,7 +118,9 @@ func (t *trigger) Update(round uint64) {
 
 	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
 		t.prevEpochStartRound = t.currEpochStartRound
-		t.epoch += 1
+		if t.currentRound-t.revertRound > t.roundsPerEpoch {
+			t.epoch += 1
+		}
 		t.isEpochStart = true
 		t.currEpochStartRound = t.currentRound
 	}
@@ -125,6 +132,7 @@ func (t *trigger) Processed() {
 	defer t.mutTrigger.Unlock()
 
 	t.isEpochStart = false
+	t.revertRound = t.currEpochStartRound
 }
 
 // Revert sets the start of epoch back to true
@@ -134,7 +142,7 @@ func (t *trigger) Revert() {
 
 	t.isEpochStart = true
 	t.currEpochStartRound = t.prevEpochStartRound
-	t.epoch -= 1
+	t.revertRound = t.currentRound
 }
 
 // Epoch return the current epoch
