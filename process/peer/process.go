@@ -73,9 +73,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.StakeValue == nil {
 		return nil, process.ErrNilEconomicsData
 	}
-	if arguments.Rater == nil {
-		return nil, process.ErrNilRater
-	}
+	//if arguments.Rater == nil {
+	//	return nil, process.ErrNilRater
+	//}
 
 	rater := arguments.Rater
 
@@ -388,22 +388,22 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 		}
 
 		isLeader := i == 0
-		ratingOption := ""
+		//ratingOption := ""
 		if isLeader {
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
-			ratingOption = p.rater.GetRatingOptionKeys()[0]
+			//ratingOption = p.rater.GetRatingOptionKeys()[0]
 		} else {
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
-			ratingOption = p.rater.GetRatingOptionKeys()[1]
+			//ratingOption = p.rater.GetRatingOptionKeys()[1]
 		}
 
 		if err != nil {
 			return err
 		}
 
-		newRating := p.rater.ComputeRating(string(address), ratingOption, peerAcc.GetRating())
+		//newRating := p.rater.ComputeRating(string(address), ratingOption, peerAcc.GetRating())
 
-		err = peerAcc.SetRatingWithJournal(newRating)
+		//err = peerAcc.SetRatingWithJournal(newRating)
 
 		if err != nil {
 			return err
