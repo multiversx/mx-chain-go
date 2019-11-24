@@ -2,9 +2,11 @@ package peer
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -13,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/peer")
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
@@ -89,17 +93,21 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		rater:            arguments.Rater,
 	}
 	vs.mediator = vs.createMediator()
-
+	defaultRatingValue := uint32(1)
 	if ok {
-		ratingReaderSetter.SetRatingReader(&RatingReader{
-			getRating: func(s string) uint32 {
-				peer, _ := vs.getPeerAccount([]byte(s))
-				return peer.GetRating()
-			},
-		})
+		log.Info("Setting ratingReader")
+
+		rr := &RatingReader{
+			getRating: vs.getRating,
+		}
+
+		ratingReaderSetter.SetRatingReader(rr)
+		defaultRatingValue = rater.GetStartRating()
+	} else {
+		log.Info("No ratingReader has been set!!!")
 	}
 
-	err := vs.saveInitialState(arguments.InitialNodes, arguments.StakeValue)
+	err := vs.saveInitialState(arguments.InitialNodes, arguments.StakeValue, defaultRatingValue)
 	if err != nil {
 		return nil, err
 	}
@@ -108,9 +116,10 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 }
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
-func (p *validatorStatistics) saveInitialState(in []*sharding.InitialNode, stakeValue *big.Int) error {
+func (p *validatorStatistics) saveInitialState(in []*sharding.InitialNode, stakeValue *big.Int,
+	startRating uint32) error {
 	for _, node := range in {
-		err := p.initializeNode(node, stakeValue)
+		err := p.initializeNode(node, stakeValue, startRating)
 		if err != nil {
 			return err
 		}
@@ -297,7 +306,8 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 	return nil
 }
 
-func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeValue *big.Int) error {
+func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeValue *big.Int,
+	startRating uint32) error {
 	if !p.IsNodeValid(node) {
 		return process.ErrInvalidInitialNodesState
 	}
@@ -307,7 +317,7 @@ func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeVa
 		return err
 	}
 
-	err = p.savePeerAccountData(peerAccount, node, stakeValue)
+	err = p.savePeerAccountData(peerAccount, node, stakeValue, startRating)
 	if err != nil {
 		return err
 	}
@@ -338,6 +348,7 @@ func (p *validatorStatistics) savePeerAccountData(
 	peerAccount *state.PeerAccount,
 	data *sharding.InitialNode,
 	stakeValue *big.Int,
+	startRating uint32,
 ) error {
 	err := peerAccount.SetAddressWithJournal([]byte(data.Address))
 	if err != nil {
@@ -355,6 +366,11 @@ func (p *validatorStatistics) savePeerAccountData(
 	}
 
 	err = peerAccount.SetStakeWithJournal(stakeValue)
+	if err != nil {
+		return err
+	}
+
+	err = peerAccount.SetRatingWithJournal(startRating)
 	if err != nil {
 		return err
 	}
@@ -521,11 +537,11 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 
 		sdKey := p.buildShardDataKey(shardData)
 		p.prevShardInfo[sdKey] = block.ShardData{
-			ShardID: previousHeader.ShardId,
-			Nonce: previousHeader.Nonce,
-			Round: previousHeader.Round,
+			ShardID:      previousHeader.ShardId,
+			Nonce:        previousHeader.Nonce,
+			Round:        previousHeader.Round,
 			PrevRandSeed: previousHeader.PrevRandSeed,
-			PrevHash: previousHeader.PrevHash,
+			PrevHash:     previousHeader.PrevHash,
 		}
 	}
 	return nil
@@ -536,7 +552,7 @@ func (p *validatorStatistics) getMatchingPrevShardData(currentShardData block.Sh
 		if currentShardData.ShardID != prevShardData.ShardID {
 			continue
 		}
-		if currentShardData.Nonce == prevShardData.Nonce + 1 {
+		if currentShardData.Nonce == prevShardData.Nonce+1 {
 			return &prevShardData
 		}
 	}
@@ -561,4 +577,10 @@ func (p *validatorStatistics) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (vs *validatorStatistics) getRating(s string) uint32 {
+	peer, _ := vs.getPeerAccount([]byte(s))
+	log.Debug("Got rating for peer", "pk:", core.ToHex([]byte(s)), "rating: ", peer.GetRating())
+	return peer.GetRating()
 }

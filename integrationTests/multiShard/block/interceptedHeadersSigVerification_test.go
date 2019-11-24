@@ -156,3 +156,72 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 		assert.Equal(t, header, v)
 	}
 }
+
+func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroupWithRating(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodesPerShard := 4
+	nbMetaNodes := 4
+	nbShards := 1
+	consensusGroupSize := 3
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+	// create map of shard - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorWithRater(
+		nodesPerShard,
+		nbMetaNodes,
+		nbShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		seedAddress,
+	)
+
+	for _, nodes := range nodesMap {
+		integrationTests.DisplayAndStartNodes(nodes)
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Node.Stop()
+			}
+		}
+	}()
+
+	fmt.Println("Shard node generating header and block body...")
+
+	// one testNodeProcessor from shard proposes block signed by all other nodes in shard consensus
+	randomness := []byte("random seed")
+	round := uint64(1)
+	nonce := uint64(1)
+
+	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness)
+
+	nodesMap[0][0].BroadcastBlock(body, header)
+
+	time.Sleep(broadcastDelay)
+
+	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
+	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
+
+	// all nodes in metachain have the block header in pool as interceptor validates it
+	for _, metaNode := range nodesMap[sharding.MetachainShardId] {
+		v, ok := metaNode.MetaDataPool.ShardHeaders().Get(headerHash)
+		assert.True(t, ok)
+		assert.Equal(t, header, v)
+	}
+
+	// all nodes in shard have the block in pool as interceptor validates it
+	for _, shardNode := range nodesMap[0] {
+		v, ok := shardNode.ShardDataPool.Headers().Get(headerHash)
+		assert.True(t, ok)
+		assert.Equal(t, header, v)
+	}
+}

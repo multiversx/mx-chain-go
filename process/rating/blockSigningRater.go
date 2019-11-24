@@ -59,7 +59,7 @@ func (bsr *BlockSigningRater) GetRatingOptionKeys() []string {
 //GetRating returns the Rating for the specified public key
 func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
 	if bsr.RatingReader == nil {
-		return 0
+		return 1
 	}
 	return bsr.RatingReader.GetRating(pk)
 }
@@ -67,7 +67,11 @@ func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
 //GetRatings gets all the ratings that the current rater has
 func (bsr *BlockSigningRater) GetRatings(addresses []string) map[string]uint32 {
 	if bsr.RatingReader == nil {
-		return map[string]uint32{}
+		newMap := make(map[string]uint32)
+		for _, v := range addresses {
+			newMap[v] = 1
+		}
+		return newMap
 	}
 	return bsr.RatingReader.GetRatings(addresses)
 }
@@ -75,4 +79,9 @@ func (bsr *BlockSigningRater) GetRatings(addresses []string) map[string]uint32 {
 //SetRatingReader sets the Reader that can read ratings
 func (bsr *BlockSigningRater) SetRatingReader(reader sharding.RatingReader) {
 	bsr.RatingReader = reader
+}
+
+//GetStartRating gets the StartingRating
+func (bsr *BlockSigningRater) GetStartRating() uint32 {
+	return bsr.startRating
 }

@@ -29,6 +29,10 @@ func (rm *RaterMock) GetRatingOptionKeys() []string {
 	return make([]string, 0)
 }
 
+func (rm *RaterMock) GetStartRating() uint32 {
+	return 5
+}
+
 //SetRatingReader sets the Reader that can read ratings
 func (rm *RaterMock) SetRatingReader(reader RatingReader) {
 

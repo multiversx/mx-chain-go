@@ -179,7 +179,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnInvalidNode(t *testin
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	initialNodes := []*sharding.InitialNode{{PubKey: "", Address: ""}}
-	err := validatorStatistics.SaveInitialState(initialNodes, big.NewInt(100))
+	err := validatorStatistics.SaveInitialState(initialNodes, big.NewInt(100), uint32(5))
 
 	assert.Equal(t, process.ErrInvalidInitialNodesState, err)
 }
@@ -1066,8 +1066,6 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMeta(t *testing.T)
 	}
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-
-
 
 	err := validatorStatistics.LoadPreviousShardHeadersMeta(currentHeader, &block.MetaBlock{})
 	assert.Nil(t, err)

@@ -27,3 +27,7 @@ func (rm *RaterMock) GetRatingOptionKeys() []string {
 	}
 	return make([]string, 0)
 }
+
+func (rm *RaterMock) GetStartRating() uint32 {
+	return 5
+}

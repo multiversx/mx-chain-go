@@ -53,6 +53,8 @@ type Rater interface {
 	ComputeRating(string, string, uint32) uint32
 	//GetRatingOptionKeys gets all the ratings option keys
 	GetRatingOptionKeys() []string
+	//GetStartRating gets the start rating values
+	GetStartRating() uint32
 }
 
 type RatingReader interface {
