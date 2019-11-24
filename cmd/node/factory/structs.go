@@ -2216,7 +2216,7 @@ func newValidatorStatisticsProcessor(
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
-	var peerDataPool peer.DataPool =  processComponents.data.MetaDatapool
+	var peerDataPool peer.DataPool = processComponents.data.MetaDatapool
 	if processComponents.shardCoordinator.SelfId() < processComponents.shardCoordinator.NumberOfShards() {
 		peerDataPool = processComponents.data.Datapool
 	}
@@ -2444,7 +2444,7 @@ func getSk(
 
 func GetRater(ratingsData *economics.RatingsData) (sharding.Rater, error) {
 	switch ratingsData.RatingType() {
-	case "BlocSigningRater":
+	case "BlockSigningRater":
 		return rating.NewBlockSigningRater(ratingsData)
 	}
 	return nil, errors.New("Rater type not supported")
