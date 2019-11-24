@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
@@ -19,7 +20,6 @@ type ArgsNewMetaEpochStartTrigger struct {
 
 type trigger struct {
 	isEpochStart           bool
-	revertRound            uint64
 	epoch                  uint32
 	currentRound           uint64
 	currEpochStartRound    uint64
@@ -57,7 +57,6 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		epoch:                  args.Epoch,
 		minRoundsBetweenEpochs: uint64(args.Settings.MinRoundsBetweenEpochs),
 		mutTrigger:             sync.RWMutex{},
-		revertRound:            args.EpochStartRound,
 	}, nil
 }
 
@@ -95,7 +94,7 @@ func (t *trigger) ForceEpochStart(round uint64) error {
 		return epochStart.ErrNotEnoughRoundsBetweenEpochs
 	}
 
-	if t.currentRound-t.revertRound > t.minRoundsBetweenEpochs {
+	if !t.isEpochStart {
 		t.epoch += 1
 	}
 
@@ -117,22 +116,28 @@ func (t *trigger) Update(round uint64) {
 	t.currentRound = round
 
 	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
-		t.prevEpochStartRound = t.currEpochStartRound
-		if t.currentRound-t.revertRound > t.roundsPerEpoch {
-			t.epoch += 1
-		}
+		t.epoch += 1
 		t.isEpochStart = true
 		t.currEpochStartRound = t.currentRound
 	}
 }
 
 // Processed sets start of epoch to false and cleans underlying structure
-func (t *trigger) Processed() {
+func (t *trigger) Processed(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	metaBlock, ok := header.(*block.MetaBlock)
+	if !ok {
+		return
+	}
+	if !metaBlock.IsStartOfEpochBlock() {
+		return
+	}
+
+	t.currEpochStartRound = metaBlock.Round
+	t.epoch = metaBlock.Epoch
 	t.isEpochStart = false
-	t.revertRound = t.currEpochStartRound
 }
 
 // Revert sets the start of epoch back to true
@@ -141,8 +146,6 @@ func (t *trigger) Revert() {
 	defer t.mutTrigger.Unlock()
 
 	t.isEpochStart = true
-	t.currEpochStartRound = t.prevEpochStartRound
-	t.revertRound = t.currentRound
 }
 
 // Epoch return the current epoch

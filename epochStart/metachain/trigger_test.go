@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/stretchr/testify/assert"
 )
@@ -108,7 +109,9 @@ func TestTrigger_Update(t *testing.T) {
 	epc := epochStartTrigger.Epoch()
 	assert.Equal(t, epoch+1, epc)
 
-	epochStartTrigger.Processed()
+	epochStartTrigger.Processed(&block.MetaBlock{
+		Round:      round,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{block.EpochStartShardData{RootHash: []byte("root")}}}})
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 }

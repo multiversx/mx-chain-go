@@ -368,7 +368,7 @@ type EpochStartTriggerHandler interface {
 	IsEpochStart() bool
 	Epoch() uint32
 	EpochStartRound() uint64
-	Processed()
+	Processed(header data.HeaderHandler)
 	Revert()
 	EpochStartMetaHdrHash() []byte
 	IsInterfaceNil() bool

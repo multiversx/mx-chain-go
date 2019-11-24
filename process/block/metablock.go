@@ -226,9 +226,6 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		go mp.checkAndRequestIfShardHeadersMissing(header.Round)
-		if err != nil && header.IsStartOfEpochBlock() {
-			mp.epochStartTrigger.Revert()
-		}
 	}()
 
 	mp.epochStartTrigger.Update(header.GetRound())
@@ -951,7 +948,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.Processed()
+		mp.epochStartTrigger.Processed(header)
 	}
 
 	log.Info("meta block has been committed successfully",

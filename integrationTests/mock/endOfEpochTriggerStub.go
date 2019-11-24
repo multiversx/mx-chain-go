@@ -11,7 +11,7 @@ type EpochStartTriggerStub struct {
 	EpochCalled           func() uint32
 	ReceivedHeaderCalled  func(handler data.HeaderHandler)
 	UpdateCalled          func(round uint64)
-	ProcessedCalled       func()
+	ProcessedCalled       func(header data.HeaderHandler)
 	EpochStartRoundCalled func() uint64
 }
 
@@ -42,9 +42,9 @@ func (e *EpochStartTriggerStub) Update(round uint64) {
 	}
 }
 
-func (e *EpochStartTriggerStub) Processed() {
+func (e *EpochStartTriggerStub) Processed(header data.HeaderHandler) {
 	if e.ProcessedCalled != nil {
-		e.ProcessedCalled()
+		e.ProcessedCalled(header)
 	}
 }
 

@@ -293,7 +293,7 @@ func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	assert.True(t, et.IsEpochStart())
 	assert.Equal(t, epochStartRound, et.EpochStartRound())
 
-	et.Processed()
+	et.Processed(&block.Header{EpochStartMetaHash: []byte("metahash")})
 	assert.False(t, et.isEpochStart)
 	assert.False(t, et.newEpochHdrReceived)
 

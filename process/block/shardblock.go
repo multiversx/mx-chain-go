@@ -747,7 +747,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		sp.epochStartTrigger.Processed()
+		sp.epochStartTrigger.Processed(header)
 	}
 
 	log.Info("shard block has been committed successfully",

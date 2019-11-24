@@ -417,12 +417,22 @@ func (t *trigger) Update(round uint64) {
 }
 
 // Processed sets start of epoch to false and cleans underlying structure
-func (t *trigger) Processed() {
+func (t *trigger) Processed(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	shardHdr, ok := header.(*block.Header)
+	if !ok {
+		return
+	}
+
+	if !shardHdr.IsStartOfEpochBlock() {
+		return
+	}
+
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
+	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
 
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)
