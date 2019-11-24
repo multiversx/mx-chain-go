@@ -95,7 +95,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	vs.mediator = vs.createMediator()
 	defaultRatingValue := uint32(1)
 	if ok {
-		log.Info("Setting ratingReader")
+		log.Debug("Setting ratingReader")
 
 		rr := &RatingReader{
 			getRating: vs.getRating,
@@ -104,7 +104,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		ratingReaderSetter.SetRatingReader(rr)
 		defaultRatingValue = rater.GetStartRating()
 	} else {
-		log.Info("No ratingReader has been set!!!")
+		log.Debug("No ratingReader has been set!!!")
 	}
 
 	err := vs.saveInitialState(arguments.InitialNodes, arguments.StakeValue, defaultRatingValue)
@@ -580,6 +580,7 @@ func (p *validatorStatistics) IsInterfaceNil() bool {
 }
 
 func (vs *validatorStatistics) getRating(s string) uint32 {
+	log.Debug("Asked for rating for peer", "pk:", core.ToHex([]byte(s)))
 	peer, _ := vs.getPeerAccount([]byte(s))
 	log.Debug("Got rating for peer", "pk:", core.ToHex([]byte(s)), "rating: ", peer.GetRating())
 	return peer.GetRating()
