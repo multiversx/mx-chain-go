@@ -156,7 +156,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 
 func CreateVMAndBlockchainHook(
 	accnts state.AccountsAdapter,
-	gasSchedule map[string]uint64,
+	gasSchedule map[string]map[string]uint64,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
@@ -290,7 +290,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
-	gasSchedule map[string]uint64,
+	gasSchedule map[string]map[string]uint64,
 ) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
 
 	accnts := CreateInMemoryShardAccountsDB()
@@ -405,7 +405,7 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 	return shardAccnt.Balance
 }
 
-func GetIntValueFromSC(gasSchedule map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
+func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
 	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, uint64(math.MaxUint64))
 

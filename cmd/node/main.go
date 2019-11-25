@@ -1259,7 +1259,7 @@ func createApiResolver(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
-	gasSchedule map[string]uint64,
+	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory

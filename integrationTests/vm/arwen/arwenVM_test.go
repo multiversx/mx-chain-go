@@ -16,12 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var gasSchedule map[string]uint64
-
-func init() {
-	gasSchedule, _ = core.LoadGasScheduleConfig("./gasSchedule.toml")
-}
-
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
@@ -67,18 +61,24 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 }
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./fib_arwen.wasm", b.N, 32)
+	runWASMVMBenchmark(b, "./fib_arwen.wasm", b.N, 32, nil)
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./cpucalculate_arwen.wasm", b.N, 8000)
+	runWASMVMBenchmark(b, "./cpucalculate_arwen.wasm", b.N, 8000, nil)
 }
 
 func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./stringconcat_arwen.wasm", b.N, 10000)
+	runWASMVMBenchmark(b, "./stringconcat_arwen.wasm", b.N, 10000, nil)
 }
 
-func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue uint64) {
+func runWASMVMBenchmark(
+	tb testing.TB,
+	fileSC string,
+	numRun int,
+	testingValue uint64,
+	gasSchedule map[string]map[string]uint64,
+) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(0xfffffffffffffff)
@@ -142,29 +142,32 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 func TestGasModel(t *testing.T) {
 	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
 
-	fmt.Println("FIBONNACI 32 ")
-	runWASMVMBenchmark(t, "./fib_arwen.wasm", 1, 32)
-	fmt.Println("CPUCALCULATE 8000 ")
-	runWASMVMBenchmark(t, "./cpucalculate_arwen.wasm", 1, 8000)
-	fmt.Println("STRINGCONCAT 1000 ")
-	runWASMVMBenchmark(t, "./stringconcat_arwen.wasm", 1, 10000)
-	fmt.Println("ERC20 ")
-	deployWithTransferAndExecuteERC20(t, 2)
-}
+	gasSchedule, _ := core.LoadGasScheduleConfig("./gasSchedule.toml")
 
-func TestMultipleTimesGasTest(t *testing.T) {
-	for i := 0; i < 10; i++ {
-		TestGasModel(t)
+	totalOp := uint64(0)
+	for _, opCodeClass := range gasSchedule {
+		for _, opCode := range opCodeClass {
+			totalOp += opCode
+		}
 	}
+	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
+	fmt.Println("FIBONNACI 32 ")
+	runWASMVMBenchmark(t, "./fib_arwen.wasm", 1, 32, gasSchedule)
+	fmt.Println("CPUCALCULATE 8000 ")
+	runWASMVMBenchmark(t, "./cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
+	fmt.Println("STRINGCONCAT 1000 ")
+	runWASMVMBenchmark(t, "./stringconcat_arwen.wasm", 1, 10000, gasSchedule)
+	fmt.Println("ERC20 ")
+	deployWithTransferAndExecuteERC20(t, 2, gasSchedule)
 }
 
 func TestMultipleTimesERC20InBatches(t *testing.T) {
 	for i := 0; i < 10; i++ {
-		deployWithTransferAndExecuteERC20(t, 100)
+		deployWithTransferAndExecuteERC20(t, 100, nil)
 	}
 }
 
-func deployWithTransferAndExecuteERC20(t *testing.T, numRun int) {
+func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map[string]map[string]uint64) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)

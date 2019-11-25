@@ -14,13 +14,13 @@ type vmContainerFactory struct {
 	blockChainHookImpl *hooks.BlockChainHookImpl
 	cryptoHook         vmcommon.CryptoHook
 	blockGasLimit      uint64
-	gasSchedule        map[string]uint64
+	gasSchedule        map[string]map[string]uint64
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	blockGasLimit uint64,
-	gasSchedule map[string]uint64,
+	gasSchedule map[string]map[string]uint64,
 	argBlockChainHook hooks.ArgBlockChainHook,
 ) (*vmContainerFactory, error) {
 	if gasSchedule == nil {
