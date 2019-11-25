@@ -147,8 +147,5 @@ func (bs *bootstrapStorer) SaveLastRound(round int64) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bs *bootstrapStorer) IsInterfaceNil() bool {
-	if bs == nil {
-		return true
-	}
-	return false
+	return bs == nil
 }

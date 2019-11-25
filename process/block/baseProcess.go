@@ -1056,6 +1056,8 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 
+	//TODO add end of epoch stuff
+
 	bp.mutNotarizedHdrs.RLock()
 	for shardId := range bp.notarizedHdrs {
 		hdr := bp.lastNotarizedHdrForShard(shardId)

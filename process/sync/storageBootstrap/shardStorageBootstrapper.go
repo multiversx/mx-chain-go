@@ -59,10 +59,7 @@ func (ssb *shardStorageBootstrapper) LoadFromStorage() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ssb *shardStorageBootstrapper) IsInterfaceNil() bool {
-	if ssb == nil {
-		return true
-	}
-	return false
+	return ssb == nil
 }
 
 func (ssb *shardStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler, error) {

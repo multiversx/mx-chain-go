@@ -750,7 +750,7 @@ func (sp *shardProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	processedMiniBlock := make(map[string]map[string]struct{}, 0)
+	processedMiniBlock := make(map[string]map[string]struct{})
 	sp.mutProcessedMiniBlocks.Lock()
 	for key, value := range sp.processedMiniBlocks {
 		processedMiniBlock[key] = value

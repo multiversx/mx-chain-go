@@ -44,10 +44,7 @@ func (msb *metaStorageBootstrapper) LoadFromStorage() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (msb *metaStorageBootstrapper) IsInterfaceNil() bool {
-	if msb == nil {
-		return true
-	}
-	return false
+	return msb == nil
 }
 
 func (msb *metaStorageBootstrapper) applyNotarizedBlocks(
