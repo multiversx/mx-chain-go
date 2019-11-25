@@ -708,8 +708,8 @@ func newEpochStartTrigger(
 			Storage:         args.data.Store,
 			RequestHandler:  requestHandler,
 			Epoch:           args.startEpochNum,
-			Validity:        0,
-			Finality:        0,
+			Validity:        process.MetaBlockFinality,
+			Finality:        process.MetaBlockFinality,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

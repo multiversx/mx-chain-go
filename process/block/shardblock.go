@@ -31,7 +31,6 @@ type shardProcessor struct {
 	chRcvAllMetaHdrs  chan bool
 
 	chRcvEpochStart chan bool
-	mutEpochStart   sync.Mutex
 
 	processedMiniBlocks    map[string]map[string]struct{}
 	mutProcessedMiniBlocks sync.RWMutex
@@ -284,10 +283,8 @@ func (sp *shardProcessor) ProcessBlock(
 }
 
 func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, waitTime time.Duration) error {
-	sp.mutEpochStart.Lock()
 	_ = process.EmptyChannel(sp.chRcvEpochStart)
 	haveMissingMetaHeaders := header.IsStartOfEpochBlock() && sp.epochStartTrigger.IsEpochStart() == false
-	sp.mutEpochStart.Unlock()
 
 	if haveMissingMetaHeaders {
 		select {
@@ -310,7 +307,12 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		return nil
 	}
 
-	isEpochIncorrect := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
+	isEpochIncorrect := header.GetEpoch() < currentBlockHeader.GetEpoch()
+	if isEpochIncorrect {
+		return process.ErrEpochDoesNotMatch
+	}
+
+	isEpochIncorrect = header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
 	if isEpochIncorrect {
 		return process.ErrEpochDoesNotMatch
@@ -318,7 +320,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
 		header.GetRound() > sp.epochStartTrigger.EpochStartRound()+process.MetaBlockFinality+1 &&
-		header.GetEpoch() != sp.epochStartTrigger.Epoch()
+		header.GetEpoch() != currentBlockHeader.GetEpoch()+1
 	if isOldEpochAndShouldBeNew {
 		return process.ErrEpochDoesNotMatch
 	}
@@ -1249,8 +1251,6 @@ func (sp *shardProcessor) receivedMetaBlock(metaBlockHash []byte) {
 
 	sp.epochStartTrigger.ReceivedHeader(metaBlock)
 	if sp.epochStartTrigger.IsEpochStart() {
-		sp.mutEpochStart.Lock()
-		sp.mutEpochStart.Unlock()
 		sp.chRcvEpochStart <- true
 	}
 

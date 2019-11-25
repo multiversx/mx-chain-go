@@ -214,7 +214,7 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 
 	for hash, meta := range t.mapEpochStartHdrs {
 		canActivateEpochStart := t.checkIfTriggerCanBeActivated(hash, meta)
-		if canActivateEpochStart && t.epoch != meta.Epoch {
+		if canActivateEpochStart && t.epoch+1 == meta.Epoch {
 			t.epoch = meta.Epoch
 			t.isEpochStart = true
 			t.epochStartRound = meta.Round
@@ -279,7 +279,7 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) bool {
 func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaBlock) bool {
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)
 	if !isMetaHdrValid {
-		return isMetaHdrValid
+		return false
 	}
 
 	isMetaHdrFinal := t.isMetaBlockFinal(hash, metaHdr)
