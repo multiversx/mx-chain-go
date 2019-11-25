@@ -23,7 +23,7 @@ var batchDelay = 2 * time.Second
 func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
 	t.Parallel()
 
-	bn, collapsedBn := getBnAndCollapsedBn(getTestDbMarshAndHasher())
+	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
 	expectedNodeHash, _ := encodeNodeAndGetHash(collapsedBn)
 
 	hash, err := hashChildrenAndNode(bn)
@@ -45,7 +45,7 @@ func TestNode_hashChildrenAndNodeExtensionNode(t *testing.T) {
 func TestNode_hashChildrenAndNodeLeafNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestDbMarshAndHasher())
+	ln := getLn(getTestMarshAndHasher())
 	expectedNodeHash, _ := encodeNodeAndGetHash(ln)
 
 	hash, err := hashChildrenAndNode(ln)
@@ -56,7 +56,7 @@ func TestNode_hashChildrenAndNodeLeafNode(t *testing.T) {
 func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 	t.Parallel()
 
-	bn, _ := newBranchNode(getTestDbMarshAndHasher())
+	bn, _ := newBranchNode(getTestMarshAndHasher())
 	encChildren := make([][]byte, nrOfChildren)
 	encChildren[1] = []byte("dog")
 	encChildren[10] = []byte("doge")
@@ -74,14 +74,14 @@ func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	db, marsh, hasher := getTestDbMarshAndHasher()
+	marsh, hasher := getTestMarshAndHasher()
 	en := &extensionNode{
 		CollapsedEn: protobuf.CollapsedEn{
 			Key:          []byte{2},
 			EncodedChild: []byte("doge"),
 		},
 		baseNode: &baseNode{
-			db:     db,
+
 			marsh:  marsh,
 			hasher: hasher,
 		},
@@ -99,8 +99,8 @@ func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 	t.Parallel()
 
-	db, marsh, hasher := getTestDbMarshAndHasher()
-	ln, _ := newLeafNode([]byte("dog"), []byte("dog"), db, marsh, hasher)
+	marsh, hasher := getTestMarshAndHasher()
+	ln, _ := newLeafNode([]byte("dog"), []byte("dog"), marsh, hasher)
 
 	encNode, _ := marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -114,59 +114,63 @@ func TestNode_encodeNodeAndGetHashLeafNode(t *testing.T) {
 func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	t.Parallel()
 
-	_, collapsedBn := getBnAndCollapsedBn(getTestDbMarshAndHasher())
+	db := mock.NewMemDbMock()
+	_, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
 	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
 	nodeHash := collapsedBn.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(collapsedBn, collapsedBn.db)
+	err := encodeNodeAndCommitToDB(collapsedBn, db)
 	assert.Nil(t, err)
 
-	val, _ := collapsedBn.db.Get(nodeHash)
+	val, _ := db.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	t.Parallel()
 
+	db := mock.NewMemDbMock()
 	_, collapsedEn := getEnAndCollapsedEn()
 	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
 	nodeHash := collapsedEn.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(collapsedEn, collapsedEn.db)
+	err := encodeNodeAndCommitToDB(collapsedEn, db)
 	assert.Nil(t, err)
 
-	val, _ := collapsedEn.db.Get(nodeHash)
+	val, _ := db.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestDbMarshAndHasher())
+	db := mock.NewMemDbMock()
+	ln := getLn(getTestMarshAndHasher())
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(ln, ln.db)
+	err := encodeNodeAndCommitToDB(ln, db)
 	assert.Nil(t, err)
 
-	val, _ := ln.db.Get(nodeHash)
+	val, _ := db.Get(nodeHash)
 	assert.Equal(t, encNode, val)
 }
 
 func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	t.Parallel()
 
-	bn, collapsedBn := getBnAndCollapsedBn(getTestDbMarshAndHasher())
-	_ = bn.commit(false, 0, bn.db)
+	db := mock.NewMemDbMock()
+	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
+	_ = bn.commit(false, 0, db, db)
 
 	encNode, _ := bn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
 	nodeHash := bn.hasher.Compute(string(encNode))
 
-	node, err := getNodeFromDBAndDecode(nodeHash, bn.db, bn.marsh, bn.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedBn)
@@ -177,14 +181,15 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	t.Parallel()
 
+	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commit(false, 0, en.db)
+	_ = en.commit(false, 0, db, db)
 
 	encNode, _ := en.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
 	nodeHash := en.hasher.Compute(string(encNode))
 
-	node, err := getNodeFromDBAndDecode(nodeHash, en.db, en.marsh, en.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
@@ -195,17 +200,18 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestDbMarshAndHasher())
-	_ = ln.commit(false, 0, ln.db)
+	db := mock.NewMemDbMock()
+	ln := getLn(getTestMarshAndHasher())
+	_ = ln.commit(false, 0, db, db)
 
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
 
-	node, err := getNodeFromDBAndDecode(nodeHash, ln.db, ln.marsh, ln.hasher)
+	node, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher)
 	assert.Nil(t, err)
 
-	ln = getLn(ln.db, ln.marsh, ln.hasher)
+	ln = getLn(ln.marsh, ln.hasher)
 	ln.dirty = false
 	assert.Equal(t, ln, node)
 }
@@ -213,11 +219,12 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	t.Parallel()
 
-	bn, collapsedBn := getBnAndCollapsedBn(getTestDbMarshAndHasher())
+	db := mock.NewMemDbMock()
+	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
 	childPos := byte(2)
-	_ = bn.commit(false, 0, bn.db)
+	_ = bn.commit(false, 0, db, db)
 
-	err := resolveIfCollapsed(collapsedBn, childPos)
+	err := resolveIfCollapsed(collapsedBn, childPos, db)
 	assert.Nil(t, err)
 	assert.False(t, collapsedBn.isCollapsed())
 }
@@ -225,10 +232,11 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 	t.Parallel()
 
+	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commit(false, 0, en.db)
+	_ = en.commit(false, 0, db, db)
 
-	err := resolveIfCollapsed(collapsedEn, 0)
+	err := resolveIfCollapsed(collapsedEn, 0, db)
 	assert.Nil(t, err)
 	assert.False(t, collapsedEn.isCollapsed())
 }
@@ -236,10 +244,11 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestDbMarshAndHasher())
-	_ = ln.commit(false, 0, ln.db)
+	db := mock.NewMemDbMock()
+	ln := getLn(getTestMarshAndHasher())
+	_ = ln.commit(false, 0, db, db)
 
-	err := resolveIfCollapsed(ln, 0)
+	err := resolveIfCollapsed(ln, 0, db)
 	assert.Nil(t, err)
 	assert.False(t, ln.isCollapsed())
 }
@@ -249,7 +258,7 @@ func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 
 	var node *extensionNode
 
-	err := resolveIfCollapsed(node, 0)
+	err := resolveIfCollapsed(node, 0, nil)
 	assert.Equal(t, ErrNilNode, err)
 }
 
@@ -266,7 +275,7 @@ func TestNode_concat(t *testing.T) {
 func TestNode_hasValidHash(t *testing.T) {
 	t.Parallel()
 
-	bn, _ := getBnAndCollapsedBn(getTestDbMarshAndHasher())
+	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
 	ok, err := hasValidHash(bn)
 	assert.Nil(t, err)
 	assert.False(t, ok)
@@ -291,11 +300,11 @@ func TestNode_hasValidHashNilNode(t *testing.T) {
 func TestNode_decodeNodeBranchNode(t *testing.T) {
 	t.Parallel()
 
-	_, collapsedBn := getBnAndCollapsedBn(getTestDbMarshAndHasher())
+	_, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
 	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
 
-	node, err := decodeNode(encNode, collapsedBn.db, collapsedBn.marsh, collapsedBn.hasher)
+	node, err := decodeNode(encNode, collapsedBn.marsh, collapsedBn.hasher)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedBn)
@@ -310,7 +319,7 @@ func TestNode_decodeNodeExtensionNode(t *testing.T) {
 	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
 
-	node, err := decodeNode(encNode, collapsedEn.db, collapsedEn.marsh, collapsedEn.hasher)
+	node, err := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
 	assert.Nil(t, err)
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
@@ -321,11 +330,11 @@ func TestNode_decodeNodeExtensionNode(t *testing.T) {
 func TestNode_decodeNodeLeafNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestDbMarshAndHasher())
+	ln := getLn(getTestMarshAndHasher())
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
 
-	node, err := decodeNode(encNode, ln.db, ln.marsh, ln.hasher)
+	node, err := decodeNode(encNode, ln.marsh, ln.hasher)
 	assert.Nil(t, err)
 	ln.dirty = false
 
@@ -337,13 +346,13 @@ func TestNode_decodeNodeLeafNode(t *testing.T) {
 func TestNode_decodeNodeInvalidNode(t *testing.T) {
 	t.Parallel()
 
-	ln := getLn(getTestDbMarshAndHasher())
+	ln := getLn(getTestMarshAndHasher())
 	invalidNode := byte(6)
 
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, invalidNode)
 
-	node, err := decodeNode(encNode, ln.db, ln.marsh, ln.hasher)
+	node, err := decodeNode(encNode, ln.marsh, ln.hasher)
 	assert.Nil(t, node)
 	assert.Equal(t, ErrInvalidNode, err)
 }
@@ -351,10 +360,10 @@ func TestNode_decodeNodeInvalidNode(t *testing.T) {
 func TestNode_decodeNodeInvalidEncoding(t *testing.T) {
 	t.Parallel()
 
-	db, marsh, hasher := getTestDbMarshAndHasher()
+	marsh, hasher := getTestMarshAndHasher()
 	var encNode []byte
 
-	node, err := decodeNode(encNode, db, marsh, hasher)
+	node, err := decodeNode(encNode, marsh, hasher)
 	assert.Nil(t, node)
 	assert.Equal(t, ErrInvalidEncoding, err)
 }
@@ -399,13 +408,13 @@ func TestNode_childPosOutOfRange(t *testing.T) {
 }
 
 func TestMarshalingAndUnmarshalingWithCapnp(t *testing.T) {
-	db, _, hasher := getTestDbMarshAndHasher()
+	_, hasher := getTestMarshAndHasher()
 	marsh := &marshal.CapnpMarshalizer{}
 
-	_, collapsedBn := getBnAndCollapsedBn(db, marsh, hasher)
+	_, collapsedBn := getBnAndCollapsedBn(marsh, hasher)
 	collapsedBn.dirty = false
 
-	bn, _ := newBranchNode(db, marsh, hasher)
+	bn, _ := newBranchNode(marsh, hasher)
 
 	encBn, err := marsh.Marshal(collapsedBn)
 	assert.Nil(t, err)
@@ -455,7 +464,8 @@ func TestPrefixLen(t *testing.T) {
 func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 	t.Parallel()
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
@@ -474,7 +484,7 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 
 	rootHash, _ := tr.Root()
 	rootKey := []byte{6, 4, 6, 15, 6}
-	nextNode, _, _ := tr.root.getNext(rootKey)
+	nextNode, _, _ := tr.root.getNext(rootKey, db)
 
 	_ = tr.Commit()
 
@@ -487,7 +497,6 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 		baseNode: &baseNode{
 			hash:   rootHash,
 			dirty:  false,
-			db:     db,
 			marsh:  msh,
 			hasher: hsh,
 		},
@@ -500,7 +509,8 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 	t.Parallel()
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
@@ -533,7 +543,8 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 func TestTrieDatabasePruning(t *testing.T) {
 	t.Parallel()
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	size := 5
 	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
 
@@ -558,7 +569,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 	oldHashes = append(oldHashes, rootHash)
 
 	for i := 0; i < 3; i++ {
-		n, key, _ = n.getNext(key)
+		n, key, _ = n.getNext(key, db)
 		oldHashes = append(oldHashes, n.getHash())
 	}
 
@@ -578,7 +589,8 @@ func TestTrieDatabasePruning(t *testing.T) {
 func TestTrieResetOldHashes(t *testing.T) {
 	t.Parallel()
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
@@ -611,7 +623,8 @@ func TestTrieResetOldHashes(t *testing.T) {
 func TestTrieAddHashesToOldHashes(t *testing.T) {
 	t.Parallel()
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 	hashes := [][]byte{[]byte("one"), []byte("two"), []byte("three")}
@@ -649,7 +662,8 @@ func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 		{[]byte("dogglesworth"), []byte("cat")},
 	}
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
@@ -708,7 +722,8 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 		{[]byte("dogglesworth"), []byte("cat")},
 	}
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
@@ -760,7 +775,8 @@ func TestDeleteOldSnapshots(t *testing.T) {
 		{[]byte("horse"), []byte("mustang")},
 	}
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 
@@ -809,7 +825,8 @@ func TestNode_getDirtyHashes(t *testing.T) {
 		{[]byte("dogglesworth"), []byte("cat")},
 	}
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitList := &mock.EvictionWaitingList{
 		Cache:       make(map[string][][]byte),
 		CacheSize:   100,
@@ -849,7 +866,8 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 		{[]byte("horse"), []byte("stallion")},
 	}
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitList := &mock.EvictionWaitingList{
 		Cache:       make(map[string][][]byte),
 		CacheSize:   100,
@@ -913,7 +931,8 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	index := 0
 	var rootHashes [][]byte
 
-	db, msh, hsh := getTestDbMarshAndHasher()
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
 

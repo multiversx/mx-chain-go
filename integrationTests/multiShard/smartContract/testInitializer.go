@@ -356,7 +356,6 @@ func createNetNode(
 		testAddressConverter,
 		maxTxNonceDeltaAllowed,
 		createMockTxFeeHandler(),
-		trie.Database(),
 		timecache.NewTimeCache(time.Second),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
@@ -839,7 +838,6 @@ func createMetaNetNode(
 		params.blockKeyGen,
 		maxTxNonceDeltaAllowed,
 		feeHandler,
-		trie.Database(),
 		timecache.NewTimeCache(time.Second),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()

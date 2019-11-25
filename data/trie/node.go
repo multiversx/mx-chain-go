@@ -26,20 +26,20 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	commit(force bool, level byte, db data.DBWriteCacher) error
-	resolveCollapsed(pos byte) error
+	commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
+	resolveCollapsed(pos byte, db data.DBWriteCacher) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte) ([]byte, error)
-	getNext(key []byte) (node, []byte, error)
-	insert(n *leafNode) (bool, node, [][]byte, error)
-	delete(key []byte) (bool, node, [][]byte, error)
+	tryGet(key []byte, db data.DBWriteCacher) ([]byte, error)
+	getNext(key []byte, db data.DBWriteCacher) (node, []byte, error)
+	insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error)
+	delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int)
 	deepClone() node
 	getDirtyHashes() ([][]byte, error)
-	getChildren() ([]node, error)
+	getChildren(db data.DBWriteCacher) ([]node, error)
 	isValid() bool
 	setDirty(bool)
 	loadChildren(*trieSyncer) error
@@ -48,14 +48,11 @@ type node interface {
 	setMarshalizer(marshal.Marshalizer)
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
-	getDb() data.DBWriteCacher
-	setDb(data.DBWriteCacher)
 }
 
 type baseNode struct {
 	hash   []byte
 	dirty  bool
-	db     data.DBWriteCacher
 	marsh  marshal.Marshalizer
 	hasher hashing.Hasher
 }
@@ -133,7 +130,7 @@ func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal
 		return nil, err
 	}
 
-	decodedNode, err := decodeNode(encChild, db, marshalizer, hasher)
+	decodedNode, err := decodeNode(encChild, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -141,14 +138,14 @@ func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal
 	return decodedNode, nil
 }
 
-func resolveIfCollapsed(n node, pos byte) error {
+func resolveIfCollapsed(n node, pos byte, db data.DBWriteCacher) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
 	}
 
 	if n.isPosCollapsed(int(pos)) {
-		err = n.resolveCollapsed(pos)
+		err = n.resolveCollapsed(pos, db)
 		if err != nil {
 			return err
 		}
@@ -180,7 +177,7 @@ func hasValidHash(n node) (bool, error) {
 	return true, nil
 }
 
-func decodeNode(encNode []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	if encNode == nil || len(encNode) < 1 {
 		return nil, ErrInvalidEncoding
 	}
@@ -198,7 +195,6 @@ func decodeNode(encNode []byte, db data.DBWriteCacher, marshalizer marshal.Marsh
 		return nil, err
 	}
 
-	newNode.setDb(db)
 	newNode.setMarshalizer(marshalizer)
 	newNode.setHasher(hasher)
 

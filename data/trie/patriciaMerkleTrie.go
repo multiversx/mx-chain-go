@@ -102,7 +102,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	return tr.root.tryGet(hexKey)
+	return tr.root.tryGet(hexKey, tr.db)
 }
 
 // Update updates the value at the given key.
@@ -113,7 +113,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	defer tr.mutOperation.Unlock()
 
 	hexKey := keyBytesToHex(key)
-	newLn, err := newLeafNode(hexKey, value, tr.db, tr.marshalizer, tr.hasher)
+	newLn, err := newLeafNode(hexKey, value, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	var oldHashes [][]byte
 	if len(value) != 0 {
 		if tr.root == nil {
-			newRoot, err = newLeafNode(hexKey, value, tr.db, tr.marshalizer, tr.hasher)
+			newRoot, err = newLeafNode(hexKey, value, tr.marshalizer, tr.hasher)
 			if err != nil {
 				return err
 			}
@@ -135,7 +135,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err = tr.root.insert(newLn)
+		_, newRoot, oldHashes, err = tr.root.insert(newLn, tr.db)
 		if err != nil {
 			return err
 		}
@@ -150,7 +150,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err = tr.root.delete(hexKey)
+		_, newRoot, oldHashes, err = tr.root.delete(hexKey, tr.db)
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, oldHashes, err := tr.root.delete(hexKey)
+	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.db)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 		}
 		proof = append(proof, encNode)
 
-		n, hexKey, err = n.getNext(hexKey)
+		n, hexKey, err = n.getNext(hexKey, tr.db)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +264,7 @@ func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, er
 		}
 
 		var n node
-		n, err = decodeNode(encNode, tr.db, tr.marshalizer, tr.hasher)
+		n, err = decodeNode(encNode, tr.marshalizer, tr.hasher)
 		if err != nil {
 			return false, err
 		}
@@ -328,7 +328,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		tr.oldHashes = make([][]byte, 0)
 	}
 
-	err = tr.root.commit(false, 0, tr.db)
+	err = tr.root.commit(false, 0, tr.db, tr.db)
 	if err != nil {
 		return err
 	}
@@ -456,7 +456,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	}
 	tr.snapshotInProgress = true
 
-	err := tr.root.commit(false, 0, tr.db)
+	err := tr.root.commit(false, 0, tr.db, tr.db)
 	if err != nil {
 		return err
 	}
@@ -502,7 +502,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 		return err
 	}
 
-	newRoot, err := decodeNode(encRoot, tr.db, tr.marshalizer, tr.hasher)
+	newRoot, err := decodeNode(encRoot, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
@@ -523,7 +523,7 @@ func removeDirectory(path string) {
 }
 
 func (tr *patriciaMerkleTrie) snapshot(newTrie *patriciaMerkleTrie, db data.DBWriteCacher) {
-	err := newTrie.root.commit(true, 0, db)
+	err := newTrie.root.commit(true, 0, tr.db, db)
 	if err != nil {
 		log.Error(err.Error())
 	}
@@ -590,7 +590,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCac
 		return nil, err
 	}
 
-	newRoot, err := decodeNode(encRoot, db, tr.marshalizer, tr.hasher)
+	newRoot, err := decodeNode(encRoot, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -24,5 +23,4 @@ type ArgInterceptedDataFactory struct {
 	BlockSigner      crypto.SingleSigner
 	AddrConv         state.AddressConverter
 	FeeHandler       process.FeeHandler
-	Db               data.DBWriteCacher
 }

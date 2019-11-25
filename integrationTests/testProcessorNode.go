@@ -347,7 +347,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			tpn.OwnAccount.KeygenBlockSign,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
-			tpn.StateTrie.Database(),
 			tpn.BlackListHandler,
 		)
 
@@ -373,7 +372,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TestAddressConverter,
 			maxTxNonceDeltaAllowed,
 			tpn.EconomicsData,
-			tpn.StateTrie.Database(),
 			tpn.BlackListHandler,
 		)
 

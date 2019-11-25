@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -43,7 +42,6 @@ type interceptorsContainerFactory struct {
 	tpsBenchmark           *statistics.TpsBenchmark
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
-	db                     data.DBWriteCacher
 }
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -64,7 +62,6 @@ func NewInterceptorsContainerFactory(
 	blockKeyGen crypto.KeyGenerator,
 	maxTxNonceDeltaAllowed int,
 	txFeeHandler process.FeeHandler,
-	db data.DBWriteCacher,
 	blackList process.BlackListHandler,
 ) (*interceptorsContainerFactory, error) {
 
@@ -107,9 +104,6 @@ func NewInterceptorsContainerFactory(
 	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(db) {
-		return nil, process.ErrNilDatabase
-	}
 	if check.IfNil(blackList) {
 		return nil, process.ErrNilBlackListHandler
 	}
@@ -132,7 +126,6 @@ func NewInterceptorsContainerFactory(
 		BlockSigner:      blockSingleSigner,
 		AddrConv:         addrConverter,
 		FeeHandler:       txFeeHandler,
-		Db:               db,
 	}
 
 	icf := &interceptorsContainerFactory{

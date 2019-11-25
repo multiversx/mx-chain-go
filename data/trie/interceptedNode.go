@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -20,15 +19,11 @@ type InterceptedTrieNode struct {
 // NewInterceptedTrieNode creates a new instance of InterceptedTrieNode
 func NewInterceptedTrieNode(
 	buff []byte,
-	db data.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (*InterceptedTrieNode, error) {
 	if len(buff) == 0 {
 		return nil, ErrValueTooShort
-	}
-	if check.IfNil(db) {
-		return nil, ErrNilDatabase
 	}
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
@@ -37,7 +32,7 @@ func NewInterceptedTrieNode(
 		return nil, ErrNilHasher
 	}
 
-	n, err := decodeNode(buff, db, marshalizer, hasher)
+	n, err := decodeNode(buff, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
