@@ -40,6 +40,8 @@ func NewTestSyncNode(
 		NodesCoordinator: nodesCoordinator,
 	}
 
+	tpn.BlockProcessorInitializer = &blockProcessorInitializer{InitBlockProcessorCalled: tpn.initBlockProcessor}
+
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 	tpn.NodeKeys = &TestKeyPair{

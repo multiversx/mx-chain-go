@@ -27,7 +27,6 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	nodesCoordinator sharding.NodesCoordinator,
 	cp *CryptoParams,
 	keyIndex int,
-	rater sharding.Rater,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -38,8 +37,10 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		Messenger:        messenger,
 		NodesCoordinator: nodesCoordinator,
 	}
+
+	tpn.BlockProcessorInitializer = &blockProcessorInitializer{InitBlockProcessorCalled: tpn.initBlockProcessor}
+
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
-	tpn.Rater = rater
 	llsig := &kmultisig.KyberMultiSignerBLS{}
 	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}
 
@@ -81,7 +82,6 @@ func CreateNodesWithNodesCoordinator(
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	nodesMap := make(map[uint32][]*TestProcessorNode)
-
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
@@ -107,7 +107,6 @@ func CreateNodesWithNodesCoordinator(
 				nodesCoordinator,
 				cp,
 				i,
-				nil,
 			)
 		}
 		nodesMap[shardId] = nodesList
