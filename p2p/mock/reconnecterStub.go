@@ -20,6 +20,9 @@ func (rs *ReconnecterStub) IsInterfaceNil() bool {
 	return false
 }
 
-func (rs *ReconnecterStub) Pause()                                    { rs.PauseCall() }
-func (rs *ReconnecterStub) Resume()                                   { rs.ResumeCall() }
-func (rs *ReconnecterStub) StartWatchdog(time.Duration) chan struct{} { return nil }
+func (rs *ReconnecterStub) Pause()  { rs.PauseCall() }
+func (rs *ReconnecterStub) Resume() { rs.ResumeCall() }
+
+func (rs *ReconnecterStub) StartWatchdog(time.Duration) error { return nil }
+func (rs *ReconnecterStub) StopWatchdog() error               { return nil }
+func (rs *ReconnecterStub) KickWatchdog() error               { return nil }

@@ -279,24 +279,38 @@ func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
 	interval := time.Second
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 
-	err := kdd.ApplyContext(ctx)
+	// starting with no context fails (no panic)
+	err := kdd.StartWatchdog(interval)
+	assert.NotNil(t, err)
+
+	err = kdd.StopWatchdog()
+	assert.NotNil(t, err)
+
+	err = kdd.KickWatchdog()
+	assert.NotNil(t, err)
+
+	err = kdd.ApplyContext(ctx)
 	assert.Nil(t, err)
 
-	c1 := kdd.StartWatchdog(interval)
-	c2 := kdd.StartWatchdog(interval)
+	err = kdd.StartWatchdog(interval / 2)
+	assert.NotNil(t, err)
 
-	assert.NotNil(t, c1)
-	assert.Equal(t, c1, c2)
+	s1 := kdd.StartWatchdog(interval)
+	s2 := kdd.StartWatchdog(interval)
 
-	if testing.Short() {
-		return
+	assert.Nil(t, s1)
+	assert.Equal(t, s2, p2p.ErrWatchdogAlreadyStarted)
+
+	if !testing.Short() {
+		//kick
+		kdd.KickWatchdog()
+		kdd.Pause()
+		assert.True(t, kdd.IsDiscoveryPaused())
+		time.Sleep(interval / 2)
+		assert.True(t, kdd.IsDiscoveryPaused())
+		time.Sleep(interval)
+		assert.False(t, kdd.IsDiscoveryPaused())
 	}
-	//kick
-	c1 <- struct{}{}
-	kdd.Pause()
-	assert.True(t, kdd.IsDiscoveryPaused())
-	time.Sleep(interval / 2)
-	assert.True(t, kdd.IsDiscoveryPaused())
-	time.Sleep(interval)
-	assert.False(t, kdd.IsDiscoveryPaused())
+
+	kdd.StopWatchdog()
 }

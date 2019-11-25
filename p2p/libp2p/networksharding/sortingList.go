@@ -45,13 +45,3 @@ func (sl *sortingList) SortedPeers() []peer.ID {
 	}
 	return ret
 }
-
-func (sl *sortingList) InShardCount() int {
-	cnt := 0
-	for _, p := range sl.peers {
-		if p.shard == sl.ref.shard {
-			cnt++
-		}
-	}
-	return cnt
-}

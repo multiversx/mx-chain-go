@@ -72,11 +72,21 @@ func (ks *kadSharder) GetDistance(a, b sortingID) *big.Int {
 func (ks *kadSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
 	sl := getSortingList(ks, peers, ref)
 	// for balance we just try to keep at least 1 connection ouside of shard
-	balanced := len(peers) > sl.InShardCount()
+	balanced := len(peers) > inShardCount(sl)
 	return sl.SortedPeers(), balanced
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ks *kadSharder) IsInterfaceNil() bool {
 	return ks == nil
+}
+
+func inShardCount(sl *sortingList) int {
+	cnt := 0
+	for _, p := range sl.peers {
+		if p.shard == sl.ref.shard {
+			cnt++
+		}
+	}
+	return cnt
 }
