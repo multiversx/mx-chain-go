@@ -284,7 +284,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, waitTime time.Duration) error {
 	_ = process.EmptyChannel(sp.chRcvEpochStart)
-	haveMissingMetaHeaders := header.IsStartOfEpochBlock() && sp.epochStartTrigger.IsEpochStart() == false
+	haveMissingMetaHeaders := header.IsStartOfEpochBlock() && !sp.epochStartTrigger.IsEpochStart()
 
 	if haveMissingMetaHeaders {
 		select {
@@ -319,7 +319,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	}
 
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
-		header.GetRound() > sp.epochStartTrigger.EpochStartRound()+process.MetaBlockFinality+1 &&
+		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
 		header.GetEpoch() != currentBlockHeader.GetEpoch()+1
 	if isOldEpochAndShouldBeNew {
 		return process.ErrEpochDoesNotMatch
@@ -329,6 +329,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		!bytes.Equal(header.EpochStartMetaHash, sp.epochStartTrigger.EpochStartMetaHdrHash())
 	if isEpochStartMetaHashIncorrect {
 		go sp.onRequestHeaderHandler(sharding.MetachainShardId, header.EpochStartMetaHash)
+		sp.epochStartTrigger.Revert()
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -749,7 +750,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	if header.IsStartOfEpochBlock() {
-		sp.epochStartTrigger.Processed(header)
+		sp.epochStartTrigger.SetProcessed(header)
 	}
 
 	log.Info("shard block has been committed successfully",

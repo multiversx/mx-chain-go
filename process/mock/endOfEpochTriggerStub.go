@@ -12,6 +12,13 @@ type EpochStartTriggerStub struct {
 	EpochStartRoundCalled func() uint64
 }
 
+func (e *EpochStartTriggerStub) SetFinalityAttestingRound(round uint64) {
+}
+
+func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {
+	return 0
+}
+
 func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 	return nil
 }
@@ -32,7 +39,7 @@ func (e *EpochStartTriggerStub) Update(round uint64) {
 	}
 }
 
-func (e *EpochStartTriggerStub) Processed(header data.HeaderHandler) {
+func (e *EpochStartTriggerStub) SetProcessed(header data.HeaderHandler) {
 	if e.ProcessedCalled != nil {
 		e.ProcessedCalled(header)
 	}

@@ -16,7 +16,9 @@ type TriggerHandler interface {
 	Update(round uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
-	Processed(header data.HeaderHandler)
+	SetProcessed(header data.HeaderHandler)
+	SetFinalityAttestingRound(round uint64)
+	EpochFinalityAttestingRound() uint64
 	Revert()
 	IsInterfaceNil() bool
 }

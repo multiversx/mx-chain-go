@@ -109,7 +109,7 @@ func TestTrigger_Update(t *testing.T) {
 	epc := epochStartTrigger.Epoch()
 	assert.Equal(t, epoch+1, epc)
 
-	epochStartTrigger.Processed(&block.MetaBlock{
+	epochStartTrigger.SetProcessed(&block.MetaBlock{
 		Round:      round,
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{block.EpochStartShardData{RootHash: []byte("root")}}}})
 	ret = epochStartTrigger.IsEpochStart()

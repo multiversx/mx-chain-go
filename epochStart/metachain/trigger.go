@@ -19,16 +19,17 @@ type ArgsNewMetaEpochStartTrigger struct {
 }
 
 type trigger struct {
-	isEpochStart           bool
-	epoch                  uint32
-	currentRound           uint64
-	currEpochStartRound    uint64
-	prevEpochStartRound    uint64
-	roundsPerEpoch         uint64
-	minRoundsBetweenEpochs uint64
-	epochStartMetaHash     []byte
-	epochStartTime         time.Time
-	mutTrigger             sync.RWMutex
+	isEpochStart                bool
+	epoch                       uint32
+	currentRound                uint64
+	epochFinalityAttestingRound uint64
+	currEpochStartRound         uint64
+	prevEpochStartRound         uint64
+	roundsPerEpoch              uint64
+	minRoundsBetweenEpochs      uint64
+	epochStartMetaHash          []byte
+	epochStartTime              time.Time
+	mutTrigger                  sync.RWMutex
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -50,13 +51,14 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	}
 
 	return &trigger{
-		roundsPerEpoch:         uint64(args.Settings.RoundsPerEpoch),
-		epochStartTime:         args.GenesisTime,
-		currEpochStartRound:    args.EpochStartRound,
-		prevEpochStartRound:    args.EpochStartRound,
-		epoch:                  args.Epoch,
-		minRoundsBetweenEpochs: uint64(args.Settings.MinRoundsBetweenEpochs),
-		mutTrigger:             sync.RWMutex{},
+		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
+		epochStartTime:              args.GenesisTime,
+		currEpochStartRound:         args.EpochStartRound,
+		prevEpochStartRound:         args.EpochStartRound,
+		epoch:                       args.Epoch,
+		minRoundsBetweenEpochs:      uint64(args.Settings.MinRoundsBetweenEpochs),
+		mutTrigger:                  sync.RWMutex{},
+		epochFinalityAttestingRound: args.EpochStartRound,
 	}, nil
 }
 
@@ -74,6 +76,14 @@ func (t *trigger) EpochStartRound() uint64 {
 	defer t.mutTrigger.RUnlock()
 
 	return t.currEpochStartRound
+}
+
+// EpochFinalityAttestingRound returns the round when epoch start block was finalized
+func (t *trigger) EpochFinalityAttestingRound() uint64 {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	return t.epochFinalityAttestingRound
 }
 
 // ForceEpochStart sets the conditions for start of epoch to true in case of edge cases
@@ -122,8 +132,8 @@ func (t *trigger) Update(round uint64) {
 	}
 }
 
-// Processed sets start of epoch to false and cleans underlying structure
-func (t *trigger) Processed(header data.HeaderHandler) {
+// SetProcessed sets start of epoch to false and cleans underlying structure
+func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -138,6 +148,16 @@ func (t *trigger) Processed(header data.HeaderHandler) {
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
 	t.isEpochStart = false
+}
+
+// SetFinalityAttestingRound sets the round which finalized the start of epoch block
+func (t *trigger) SetFinalityAttestingRound(round uint64) {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	if round > t.currEpochStartRound {
+		t.epochFinalityAttestingRound = round
+	}
 }
 
 // Revert sets the start of epoch back to true

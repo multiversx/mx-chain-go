@@ -56,8 +56,8 @@ type NTPConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs int
-	RoundsPerEpoch         int
+	MinRoundsBetweenEpochs int64
+	RoundsPerEpoch         int64
 }
 
 // Config will hold the entire application configuration parameters
