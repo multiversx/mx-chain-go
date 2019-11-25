@@ -1451,6 +1451,8 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		return err
 	}
 
+	log.Debug("Computed PeerStateRootHash ", "rootHash", core.ToHex(rootHash))
+
 	metaHdr.ValidatorStatsRootHash = rootHash
 
 	return nil
