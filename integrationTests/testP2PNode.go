@@ -150,7 +150,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithSingleSigner(tP2pNode.SingleSigner),
 		node.WithPrivKey(tP2pNode.NodeKeys.Sk),
 		node.WithPubKey(tP2pNode.NodeKeys.Pk),
-		node.WithNetworkShardingUpdater(tP2pNode.NetworkShardingUpdater),
+		node.WithNetworkShardingCollector(tP2pNode.NetworkShardingUpdater),
 		node.WithDataStore(tP2pNode.Storage),
 		node.WithInitialNodesPubKeys(convertInitialPks(tP2pNode.NodesCoordinator.GetAllValidatorsPublicKeys())),
 	)
