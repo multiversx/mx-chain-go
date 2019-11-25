@@ -94,8 +94,14 @@ func (st *storageBootstrapper) loadBlocks() error {
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	log.Debug("\nprocessed mini blocks applied",
-		"processed mini blocks ", storageHeaderInfo.ProcessedMiniBlocks)
+	log.Debug("\nprocessed mini blocks applied")
+	for metaBlockHash, miniBlockHashes := range storageHeaderInfo.ProcessedMiniBlocks {
+		log.Debug("meta hash ", []byte(metaBlockHash))
+		for miniBlockHash := range miniBlockHashes {
+			log.Debug("mini block hash", []byte(miniBlockHash))
+		}
+	}
+
 	st.blkExecutor.ApplyProcessedMiniBlocks(storageHeaderInfo.ProcessedMiniBlocks)
 
 	log.Debug("\n")
