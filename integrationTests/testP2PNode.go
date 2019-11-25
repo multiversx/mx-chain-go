@@ -35,6 +35,8 @@ const ShardTopic = "shard"
 // GlobalTopic is a global testing that all nodes will bind an interceptor
 const GlobalTopic = "global"
 
+const networkShardingPrioBits = 6
+
 // TestP2PNode represents a container type of class used in integration tests
 // with all its fields exported, used mainly on P2P tests
 type TestP2PNode struct {
@@ -90,7 +92,7 @@ func NewTestP2PNode(
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 
-	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater)
+	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater, networkShardingPrioBits)
 	if err != nil {
 		fmt.Printf("Error setting messenger.SetPeerShardResolver: %s\n", err.Error())
 	}
