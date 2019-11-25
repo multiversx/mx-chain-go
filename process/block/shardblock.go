@@ -750,10 +750,20 @@ func (sp *shardProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
+	log.Debug("validator info on block ",
+		"nonce", header.Nonce,
+		"validator root hash", core.ToB64(header.ValidatorStatsRootHash))
+
 	processedMiniBlock := make(map[string]map[string]struct{})
 	sp.mutProcessedMiniBlocks.Lock()
+	log.Debug("processed mini blocks on commit block")
 	for key, value := range sp.processedMiniBlocks {
+		log.Debug("meta hash ", []byte(key))
 		processedMiniBlock[key] = value
+
+		for miniBlockHash := range value {
+			log.Debug("mini block hash", []byte(miniBlockHash))
+		}
 	}
 	sp.mutProcessedMiniBlocks.Unlock()
 

@@ -94,7 +94,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	log.Debug("\nprocessed mini blocks applied")
+	log.Debug("processed mini blocks applied")
 	for metaBlockHash, miniBlockHashes := range storageHeaderInfo.ProcessedMiniBlocks {
 		log.Debug("meta hash ", []byte(metaBlockHash))
 		for miniBlockHash := range miniBlockHashes {
@@ -103,8 +103,6 @@ func (st *storageBootstrapper) loadBlocks() error {
 	}
 
 	st.blkExecutor.ApplyProcessedMiniBlocks(storageHeaderInfo.ProcessedMiniBlocks)
-
-	log.Debug("\n")
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
 		st.cleanupStorage(storageHeadersInfo[i].HeaderInfo.Nonce)
