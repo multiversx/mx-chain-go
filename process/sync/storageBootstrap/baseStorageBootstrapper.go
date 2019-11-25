@@ -96,9 +96,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	log.Debug("processed mini blocks applied")
 	for metaBlockHash, miniBlockHashes := range storageHeaderInfo.ProcessedMiniBlocks {
-		log.Debug("meta hash ", []byte(metaBlockHash))
+		log.Debug("processed",
+			"meta hash", []byte(metaBlockHash))
 		for miniBlockHash := range miniBlockHashes {
-			log.Debug("mini block hash", []byte(miniBlockHash))
+			log.Debug("processed",
+				"mini block hash", []byte(miniBlockHash))
 		}
 	}
 
