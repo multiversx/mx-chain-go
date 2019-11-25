@@ -4,7 +4,6 @@ package vm
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math"
 	"math/big"
 	"testing"
@@ -177,7 +176,6 @@ func CreateVMAndBlockchainHook(
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
 		actualGasSchedule = arwenConfig.MakeGasMap(1)
-		fmt.Println("this is bad - whatever")
 	}
 
 	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
