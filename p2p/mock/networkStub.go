@@ -15,6 +15,7 @@ type NetworkStub struct {
 	ConnsCalled         func() []network.Conn
 	ConnectednessCalled func(peer.ID) network.Connectedness
 	NotifyCalled        func(network.Notifiee)
+	StopNotifyCalled    func(network.Notifiee)
 	PeersCall           func() []peer.ID
 	ClosePeerCall       func(peer.ID) error
 }
@@ -55,8 +56,8 @@ func (ns *NetworkStub) Notify(notifee network.Notifiee) {
 	ns.NotifyCalled(notifee)
 }
 
-func (ns *NetworkStub) StopNotify(network.Notifiee) {
-	panic("implement me")
+func (ns *NetworkStub) StopNotify(notifee network.Notifiee) {
+	ns.StopNotifyCalled(notifee)
 }
 
 func (ns *NetworkStub) Close() error {

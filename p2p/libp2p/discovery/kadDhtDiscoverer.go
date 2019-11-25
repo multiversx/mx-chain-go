@@ -29,8 +29,9 @@ var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
 // KadDhtDiscoverer is the kad-dht discovery type implementation
 type KadDhtDiscoverer struct {
-	mutKadDht sync.Mutex
-	kadDHT    *dht.IpfsDHT
+	mutKadDht     sync.RWMutex
+	kadDHT        *dht.IpfsDHT
+	refreshCancel context.CancelFunc
 
 	contextProvider *libp2p.Libp2pContext
 
@@ -77,30 +78,72 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 		return p2p.ErrNilContextProvider
 	}
 
+	return kdd.startDHT()
+}
+
+// UpdateRandezVous change the randezVous string, and restart the discovery with the new protocols
+func (kdd *KadDhtDiscoverer) UpdateRandezVous(s string) error {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+
+	if s == kdd.randezVous {
+		return nil
+	}
+
+	err := kdd.stopDHT()
+	if err != nil {
+		log.Warn("Error wile stopDHT, ignore", "err", err)
+	}
+	kdd.randezVous = s
+	return kdd.startDHT()
+}
+
+func (kdd *KadDhtDiscoverer) protocols() []protocol.ID {
+	return []protocol.ID{
+		protocol.ID(fmt.Sprintf("%s/erd_%s", opts.ProtocolDHT, kdd.randezVous)),
+		protocol.ID(fmt.Sprintf("%s/erd", opts.ProtocolDHT)),
+	}
+}
+
+func (kdd *KadDhtDiscoverer) startDHT() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
 
-	protos := []protocol.ID{
-		protocol.ID(fmt.Sprintf("/ipfs/kad/1.0.0/erd_%s", kdd.randezVous)),
-		protocol.ID("/ipfs/kad/1.0.0/erd"),
-	}
-
-	// Start a DHT, for use in peer discovery. We can't just make a new DHT
-	// client because we want each peer to maintain its own local copy of the
-	// DHT, so that the bootstrapping node of the DHT can go down without
-	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h, opts.Protocols(protos...))
+	kademliaDHT, err := dht.New(ctx, h, opts.Protocols(kdd.protocols()...))
 	if err != nil {
 		return err
 	}
 
-	go kdd.connectToInitialAndBootstrap()
+	ctxrun, cancel := context.WithCancel(ctx)
+	go kdd.connectToInitialAndBootstrap(ctxrun)
 
 	kdd.kadDHT = kademliaDHT
+	kdd.refreshCancel = cancel
 	return nil
 }
 
-func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
+func (kdd *KadDhtDiscoverer) stopDHT() error {
+	if kdd.refreshCancel == nil {
+		return nil
+	}
+
+	kdd.refreshCancel()
+	kdd.refreshCancel = nil
+
+	h := kdd.contextProvider.Host()
+
+	for _, p := range kdd.protocols() {
+		h.RemoveStreamHandler(p)
+	}
+
+	err := kdd.kadDHT.Close()
+
+	kdd.kadDHT = nil
+
+	return err
+}
+
+func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 	chanStartBootstrap := kdd.connectToOnePeerFromInitialPeersList(
 		kdd.refreshInterval,
 		kdd.initialPeersList)
@@ -111,17 +154,19 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 		Timeout: peerDiscoveryTimeout,
 	}
 
-	ctx := kdd.contextProvider.Context()
-
 	go func() {
 		<-chanStartBootstrap
 
-		kdd.mutKadDht.Lock()
 		go func() {
 			i := 1
 			for {
 				if kdd.initConns {
-					err := kdd.kadDHT.BootstrapOnce(ctx, cfg)
+					var err error = nil
+					kdd.mutKadDht.RLock()
+					if kdd.kadDHT != nil {
+						err = kdd.kadDHT.BootstrapOnce(ctx, cfg)
+					}
+					kdd.mutKadDht.RUnlock()
 					if err == kbucket.ErrLookupFailure {
 						<-kdd.ReconnectToNetwork()
 					}
@@ -139,8 +184,8 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 					return
 				}
 			}
+
 		}()
-		kdd.mutKadDht.Unlock()
 	}()
 }
 
@@ -229,8 +274,8 @@ func (kdd *KadDhtDiscoverer) Resume() {
 
 // IsDiscoveryPaused will return true if the discoverer is initiating connections
 func (kdd *KadDhtDiscoverer) IsDiscoveryPaused() bool {
-	kdd.mutKadDht.Lock()
-	defer kdd.mutKadDht.Unlock()
+	kdd.mutKadDht.RLock()
+	defer kdd.mutKadDht.RUnlock()
 	return !kdd.initConns
 }
 
@@ -297,8 +342,8 @@ func (kdd *KadDhtDiscoverer) StopWatchdog() error {
 
 // KickWatchdog extends the discovery resume timeout
 func (kdd *KadDhtDiscoverer) KickWatchdog() error {
-	kdd.mutKadDht.Lock()
-	defer kdd.mutKadDht.Unlock()
+	kdd.mutKadDht.RLock()
+	defer kdd.mutKadDht.RUnlock()
 
 	if kdd.watchdogKick == nil {
 		return p2p.ErrWatchdogNotStarted
