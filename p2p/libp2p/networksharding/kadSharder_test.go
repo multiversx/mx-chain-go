@@ -32,7 +32,7 @@ func (tkr *testKadResolver) ByID(peer p2p.PeerID) uint32 {
 	return tkr.f(peer)
 }
 
-func (tkr *testKadResolver) NumShards() int {
+func (tkr *testKadResolver) NumShards() uint32 {
 	return 3
 }
 

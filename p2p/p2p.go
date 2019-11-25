@@ -60,9 +60,13 @@ type PeerDiscoverer interface {
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
-	Pause()                                    // Pause the peer discovery
-	Resume()                                   // Resume the peer discovery
-	StartWatchdog(time.Duration) chan struct{} //StartWatchdog start a discovery watchdog an return the kick channel
+	Pause()  // Pause the peer discovery
+	Resume() // Resume the peer discovery
+
+	StartWatchdog(time.Duration) error // StartWatchdog start a discovery resume watchdog
+	StopWatchdog() error               // StopWatchdog stops the watchdog
+	KickWatchdog() error               // KickWatchdog kicks the watchdog
+
 	IsInterfaceNil() bool
 }
 

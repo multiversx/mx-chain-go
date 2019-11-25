@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -20,6 +21,8 @@ const (
 	noOfQueries          = 3
 
 	kadDhtName = "kad-dht discovery"
+
+	minWatchdogTimeout = time.Second
 )
 
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
@@ -36,6 +39,7 @@ type KadDhtDiscoverer struct {
 	initialPeersList []string
 	initConns        bool // Initiate new connections
 	watchdogKick     chan struct{}
+	watchdogCancel   context.CancelFunc
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
@@ -238,32 +242,71 @@ func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
 	return false
 }
 
-// StartWatchdog start the watchdog, and return the kick channel
-func (kdd *KadDhtDiscoverer) StartWatchdog(timeout time.Duration) chan struct{} {
+// StartWatchdog start the watchdog
+func (kdd *KadDhtDiscoverer) StartWatchdog(timeout time.Duration) error {
 	kdd.mutKadDht.Lock()
 	defer kdd.mutKadDht.Unlock()
 
 	if kdd.contextProvider == nil {
-		return nil
+		return p2p.ErrNilContextProvider
 	}
 
 	if kdd.watchdogKick != nil {
-		return kdd.watchdogKick
+		return p2p.ErrWatchdogAlreadyStarted
+	}
+
+	if timeout < minWatchdogTimeout {
+		return p2p.ErrInvalidDurationProvided
 	}
 
 	kdd.watchdogKick = make(chan struct{})
 	ctx := kdd.contextProvider.Context()
-	go func() {
+	wdCtx, wdCancel := context.WithCancel(ctx)
+	go func(kick <-chan struct{}) {
 		for {
 			select {
 			case <-time.After(timeout):
 				kdd.Resume()
-			case <-ctx.Done():
+			case <-wdCtx.Done():
 				return
-			case <-kdd.watchdogKick:
+			case <-kick:
 			}
 		}
-	}()
+	}(kdd.watchdogKick)
 
-	return kdd.watchdogKick
+	kdd.watchdogCancel = wdCancel
+	return nil
+}
+
+// StopWatchdog stops the discovery watchdog
+func (kdd *KadDhtDiscoverer) StopWatchdog() error {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+
+	if kdd.watchdogCancel == nil {
+		return p2p.ErrWatchdogNotStarted
+	}
+
+	kdd.watchdogCancel()
+	kdd.watchdogCancel = nil
+
+	close(kdd.watchdogKick)
+	kdd.watchdogKick = nil
+	return nil
+}
+
+// KickWatchdog stops the discovery watchdog
+func (kdd *KadDhtDiscoverer) KickWatchdog() error {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+
+	if kdd.watchdogKick == nil {
+		return p2p.ErrWatchdogNotStarted
+	}
+
+	select {
+	case kdd.watchdogKick <- struct{}{}:
+	default:
+	}
+	return nil
 }
