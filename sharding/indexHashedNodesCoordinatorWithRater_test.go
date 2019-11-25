@@ -210,10 +210,10 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 	ratingPk0 := uint32(5)
 	ratingPk1 := uint32(1)
 	rater := &mock.RaterMock{GetRatingCalled: func(pk string) uint32 {
-		if pk == "pk0" {
+		if pk == "addr0" {
 			return ratingPk0
 		}
-		if pk == "pk1" {
+		if pk == "addr1" {
 			return ratingPk1
 		}
 		return 1
@@ -224,14 +224,14 @@ func TestIndexHashedGroupSelectorWithRater_ComputeExpandedList(t *testing.T) {
 	assert.Equal(t, int(ratingPk0+ratingPk1), len(expandedList))
 
 	occurences := make(map[string]uint32, 2)
-	occurences["pk0"] = 0
-	occurences["pk1"] = 0
+	occurences["addr0"] = 0
+	occurences["addr1"] = 0
 	for _, validator := range expandedList {
-		occurences[string(validator.PubKey())]++
+		occurences[string(validator.Address())]++
 	}
 
-	assert.Equal(t, ratingPk0, occurences["pk0"])
-	assert.Equal(t, ratingPk1, occurences["pk1"])
+	assert.Equal(t, ratingPk0, occurences["addr0"])
+	assert.Equal(t, ratingPk1, occurences["addr1"])
 }
 
 func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup21of400(b *testing.B) {

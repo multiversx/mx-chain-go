@@ -24,14 +24,14 @@
 	MinRating = 0
 	RatingType = "BlockSigningRater"
 	[[RatingSettings.RatingValue]]
+    name = "ProposerIncreaseRatingStep"
+    value = 2
+	[[RatingSettings.RatingValue]]
     name = "ValidatorIncreaseRatingStep"
     value = 1
     [[RatingSettings.RatingValue]]
-    name = "ValidatorDecreaseRatingStep"
-    value = -2
-    [[RatingSettings.RatingValue]]
-    name = "ProposerIncreaseRatingStep"
-    value = 2
-    [[RatingSettings.RatingValue]]
     name = "ProposerDecreaseRatingStep"
     value = -4
+    [[RatingSettings.RatingValue]]
+    name = "ValidatorDecreaseRatingStep"
+    value = -2

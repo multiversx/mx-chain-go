@@ -46,7 +46,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeValidatorsGroup(
 		return nil, ErrNilRandomness
 	}
 
-	log.Debug("Computing Validator Group")
+	log.Debug("Computing Validator Group", "round", round)
 
 	tempList := make([]Validator, 0)
 	consensusSize := ihgs.consensusGroupSize(shardId)

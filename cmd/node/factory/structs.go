@@ -2231,7 +2231,7 @@ func newValidatorStatisticsProcessor(
 		StorageService:   storageService,
 		Marshalizer:      processComponents.core.Marshalizer,
 		StakeValue:       processComponents.economicsData.StakeValue(),
-		//Rater:            processComponents.rater,
+		Rater:            processComponents.rater,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

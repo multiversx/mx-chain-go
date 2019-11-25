@@ -71,7 +71,7 @@ func createMockRater() *mock.RaterMock {
 	optionList[decreaseValidator] = -2
 
 	rater := &mock.RaterMock{
-		ComputeRatingCalled: func(pk string, option string, previousValue uint32) uint32 {
+		ComputeRatingCalled: func(option string, previousValue uint32) uint32 {
 			return 1
 		},
 		GetRatingCalled: func(s string) uint32 {

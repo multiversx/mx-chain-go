@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"math/big"
 	"strconv"
 	"sync/atomic"
@@ -108,13 +109,14 @@ type TestProcessorNode struct {
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestKeyPair
 
-	ShardDataPool dataRetriever.PoolsHolder
-	MetaDataPool  dataRetriever.MetaPoolsHolder
-	Storage       dataRetriever.StorageService
-	PeerState     state.AccountsAdapter
-	AccntState    state.AccountsAdapter
-	BlockChain    data.ChainHandler
-	GenesisBlocks map[uint32]data.HeaderHandler
+	ShardDataPool    dataRetriever.PoolsHolder
+	MetaDataPool     dataRetriever.MetaPoolsHolder
+	Storage          dataRetriever.StorageService
+	PeerState        state.AccountsAdapter
+	AccntState       state.AccountsAdapter
+	AddressConverter state.AddressConverter
+	BlockChain       data.ChainHandler
+	GenesisBlocks    map[uint32]data.HeaderHandler
 
 	EconomicsData *economics.TestEconomicsData
 
@@ -135,6 +137,9 @@ type TestProcessorNode struct {
 	PreProcessorsContainer process.PreProcessorsContainer
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	BlockChainHookImpl     process.BlockChainHookHandler
+
+	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	Rater                        sharding.Rater
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -629,6 +634,46 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 	}
 
+	if tpn.Rater != nil {
+
+		var peerDataPool peer.DataPool = tpn.MetaDataPool
+		if tpn.ShardCoordinator.SelfId() < tpn.ShardCoordinator.NumberOfShards() {
+			peerDataPool = tpn.ShardDataPool
+		}
+
+		initialNodes := make([]*sharding.InitialNode, 0)
+
+		for _, pks := range tpn.NodesCoordinator.GetAllValidatorsPublicKeys() {
+			for _, pk := range pks {
+				validator, _, _ := tpn.NodesCoordinator.GetValidatorWithPublicKey(pk)
+				n := &sharding.InitialNode{
+					PubKey:   core.ToHex(validator.PubKey()),
+					Address:  core.ToHex(validator.Address()),
+					NodeInfo: sharding.NodeInfo{},
+				}
+				initialNodes = append(initialNodes, n)
+			}
+		}
+
+		arguments := peer.ArgValidatorStatisticsProcessor{
+			InitialNodes:     initialNodes,
+			PeerAdapter:      tpn.PeerState,
+			AdrConv:          TestAddressConverter,
+			NodesCoordinator: tpn.NodesCoordinator,
+			ShardCoordinator: tpn.ShardCoordinator,
+			DataPool:         peerDataPool,
+			StorageService:   tpn.Storage,
+			Marshalizer:      TestMarshalizer,
+			StakeValue:       tpn.EconomicsData.StakeValue(),
+			Rater:            tpn.Rater,
+		}
+
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+		tpn.ValidatorStatisticsProcessor = validatorStatistics
+	} else {
+		tpn.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorMock{}
+	}
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 tpn.ForkDetector,
@@ -643,7 +688,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
 		BlockChainHook:               tpn.BlockChainHookImpl,
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 		Rounder:                      &mock.RounderMock{},
 	}
 

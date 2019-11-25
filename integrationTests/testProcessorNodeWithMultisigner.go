@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"strconv"
 	"testing"
 	"time"
@@ -28,6 +27,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	nodesCoordinator sharding.NodesCoordinator,
 	cp *CryptoParams,
 	keyIndex int,
+	rater sharding.Rater,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -39,7 +39,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		NodesCoordinator: nodesCoordinator,
 	}
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
-
+	tpn.Rater = rater
 	llsig := &kmultisig.KyberMultiSignerBLS{}
 	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}
 
@@ -107,56 +107,7 @@ func CreateNodesWithNodesCoordinator(
 				nodesCoordinator,
 				cp,
 				i,
-			)
-		}
-		nodesMap[shardId] = nodesList
-	}
-
-	return nodesMap
-}
-
-// CreateNodesWithNodesCoordinator returns a map with nodes per shard each using a real nodes coordinator
-func CreateNodesWithNodesCoordinatorWithRater(
-	nodesPerShard int,
-	nbMetaNodes int,
-	nbShards int,
-	shardConsensusGroupSize int,
-	metaConsensusGroupSize int,
-	seedAddress string,
-) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
-	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
-	nodesMap := make(map[uint32][]*TestProcessorNode)
-
-	for shardId, validatorList := range validatorsMap {
-		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Hasher:                  TestHasher,
-			ShardId:                 shardId,
-			NbShards:                uint32(nbShards),
-			Nodes:                   validatorsMap,
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-		}
-
-		rater := &rating.BlockSigningRater{}
-
-		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(argumentsNodesCoordinator, rater)
-
-		if err != nil {
-			fmt.Println("Error creating node coordinator")
-		}
-
-		nodesList := make([]*TestProcessorNode, len(validatorList))
-		for i := range validatorList {
-			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
-				uint32(nbShards),
-				shardId,
-				seedAddress,
-				nodesCoordinator,
-				cp,
-				i,
+				nil,
 			)
 		}
 		nodesMap[shardId] = nodesList

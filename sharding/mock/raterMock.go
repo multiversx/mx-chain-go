@@ -1,14 +1,14 @@
 package mock
 
 type RaterMock struct {
-	ComputeRatingCalled      func(string, string, uint32) uint32
+	ComputeRatingCalled      func(string, uint32) uint32
 	GetRatingCalled          func(string) uint32
 	GetRatingOptionKeyCalled func() []string
 }
 
-func (rm *RaterMock) ComputeRating(pk, ratingOptionKey string, previousValue uint32) uint32 {
+func (rm *RaterMock) ComputeRating(ratingOptionKey string, previousValue uint32) uint32 {
 	if rm.ComputeRatingCalled != nil {
-		return rm.ComputeRatingCalled(pk, ratingOptionKey, previousValue)
+		return rm.ComputeRatingCalled(ratingOptionKey, previousValue)
 	}
 	return 1
 }

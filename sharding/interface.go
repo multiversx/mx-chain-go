@@ -49,8 +49,8 @@ type PublicKeysSelector interface {
 
 type Rater interface {
 	RatingReader
-	//UpdateRating updates the current rating
-	ComputeRating(string, string, uint32) uint32
+	//ComputeRating computes the current rating
+	ComputeRating(string, uint32) uint32
 	//GetRatingOptionKeys gets all the ratings option keys
 	GetRatingOptionKeys() []string
 	//GetStartRating gets the start rating values

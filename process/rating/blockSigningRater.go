@@ -39,7 +39,7 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 	}, nil
 }
 
-func (bsr *BlockSigningRater) ComputeRating(pk, ratingKey string, val uint32) uint32 {
+func (bsr *BlockSigningRater) ComputeRating(ratingKey string, val uint32) uint32 {
 	newVal := int64(val) + int64(bsr.ratingOptions[ratingKey])
 	if newVal < int64(bsr.minRating) {
 		return bsr.minRating
