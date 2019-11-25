@@ -28,6 +28,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	shardingPrioBits = 4
+)
+
 var timeoutWaitResponses = time.Second * 2
 
 func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration) {
@@ -1585,7 +1589,7 @@ func TestNetworkMessenger_SetPeerShardResolverNilShouldErr(t *testing.T) {
 		_ = mes.Close()
 	}()
 
-	err := mes.SetPeerShardResolver(nil)
+	err := mes.SetPeerShardResolver(nil, shardingPrioBits)
 
 	assert.Equal(t, p2p.ErrNilPeerShardResolver, err)
 }
@@ -1596,7 +1600,7 @@ func TestNetworkMessenger_SetPeerShardResolverValidShouldRetNil(t *testing.T) {
 		_ = mes.Close()
 	}()
 
-	err := mes.SetPeerShardResolver(&mock.PeerShardResolverStub{})
+	err := mes.SetPeerShardResolver(&mock.PeerShardResolverStub{}, shardingPrioBits)
 
 	assert.Nil(t, err)
 }
