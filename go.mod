@@ -6,7 +6,7 @@ require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.19
-	github.com/ElrondNetwork/elrond-vm-common v0.0.8
+	github.com/ElrondNetwork/elrond-vm-common v0.0.9
 	github.com/beevik/ntp v0.2.0
 	github.com/boltdb/bolt v1.3.1
 	github.com/btcsuite/btcd v0.0.0-20190523000118-16327141da8c
@@ -25,6 +25,7 @@ require (
 	github.com/golang/protobuf v1.3.1
 	github.com/google/gops v0.3.6
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
+	github.com/gorilla/websocket v1.4.0
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.1.3
@@ -36,6 +37,7 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
 	github.com/libp2p/go-libp2p-pubsub v0.1.1
+	github.com/minio/sha256-simd v0.1.0
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/pelletier/go-toml v1.2.0
@@ -44,7 +46,6 @@ require (
 	github.com/prometheus/client_golang v1.0.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
-	github.com/sirupsen/logrus v1.4.0
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.20.0

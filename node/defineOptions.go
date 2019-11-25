@@ -6,12 +6,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -401,6 +403,17 @@ func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	}
 }
 
+// WithEpochStartTrigger sets up an start of epoch trigger option for the node
+func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(epochStartTrigger) {
+			return ErrNilEpochStartTrigger
+		}
+		n.epochStartTrigger = epochStartTrigger
+		return nil
+	}
+}
+
 // WithAppStatusHandler sets up which handler will monitor the status of the node
 func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 	return func(n *Node) error {
@@ -417,6 +430,17 @@ func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 func WithIndexer(indexer indexer.Indexer) Option {
 	return func(n *Node) error {
 		n.indexer = indexer
+		return nil
+	}
+}
+
+// WithBlackListHandler sets up a black list handler for the Node
+func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(blackListHandler) {
+			return ErrNilBlackListHandler
+		}
+		n.blackListHandler = blackListHandler
 		return nil
 	}
 }

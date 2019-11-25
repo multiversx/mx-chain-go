@@ -88,6 +88,9 @@ var ErrNilInterceptorsContainer = errors.New("nil interceptors container")
 // ErrNilResolversFinder signals that a nil resolvers finder has been provided
 var ErrNilResolversFinder = errors.New("nil resolvers finder")
 
+// ErrNilEpochStartTrigger signals that a nil start of epoch trigger has been provided
+var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
+
 // ErrNilBlockHeader is raised when a valid block header is expected but nil was used
 var ErrNilBlockHeader = errors.New("block header is nil")
 
@@ -114,6 +117,9 @@ var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
 
 // ErrGenesisBlockNotInitialized signals that genesis block is not initialized
 var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
+
+// ErrNilBlackListHandler signals that a nil black list handler was provided
+var ErrNilBlackListHandler = errors.New("nil black list handler")
 
 // ErrSystemBusyGeneratingTransactions signals that to many transactions are trying to get generated
 var ErrSystemBusyGeneratingTransactions = errors.New("system busy while generating bulk transactions")

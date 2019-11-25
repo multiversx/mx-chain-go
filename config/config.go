@@ -1,7 +1,5 @@
 package config
 
-import "time"
-
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
 	Size   uint32 `json:"size"`
@@ -50,10 +48,16 @@ type TypeConfig struct {
 
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
-	Host    string
-	Port    int
-	Timeout time.Duration
-	Version int
+	Hosts               []string
+	Port                int
+	TimeoutMilliseconds int
+	Version             int
+}
+
+// EpochStartConfig will hold the configuration of EpochStart settings
+type EpochStartConfig struct {
+	MinRoundsBetweenEpochs int64
+	RoundsPerEpoch         int64
 }
 
 // Config will hold the entire application configuration parameters
@@ -102,6 +106,8 @@ type Config struct {
 	Explorer        ExplorerConfig
 
 	NTPConfig NTPConfig
+
+	EpochStart EpochStartConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -174,7 +180,7 @@ type ElasticSearchConfig struct {
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
 type FacadeConfig struct {
-	RestApiPort       string
+	RestApiInterface  string
 	PprofEnabled      bool
 	Prometheus        bool
 	PrometheusJoinURL string

@@ -3,10 +3,12 @@ package integrationTests
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
@@ -22,7 +24,12 @@ func NewTestSyncNode(
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
-	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
+			validator := mock.NewValidatorMock(big.NewInt(0), 0, []byte("add"), []byte("add"))
+			return []sharding.Validator{validator}, nil
+		},
+	}
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 
@@ -44,6 +51,8 @@ func NewTestSyncNode(
 	tpn.initDataPools()
 	tpn.initTestNodeWithSync()
 
+	tpn.EpochStartTrigger = &mock.EpochStartTriggerStub{}
+
 	return tpn
 }
 
@@ -52,7 +61,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initStorage()
 	tpn.AccntState, _, _ = CreateAccountsDB(0)
 	tpn.initChainHandler()
-	tpn.GenesisBlocks = CreateGenesisBlocks(tpn.ShardCoordinator)
+	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.SpecialAddressHandler = mock.NewSpecialAddressHandlerMock(
 		TestAddressConverter,
 		tpn.ShardCoordinator,
@@ -73,7 +82,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(tpn.VmDataGetter)
+	tpn.ScDataGetter, _ = smartContract.NewSCDataGetter(TestAddressConverter, tpn.VMContainer)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }
@@ -96,6 +105,12 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	var err error
 
+	argsHeaderValidator := block.ArgsHeaderValidator{
+		Hasher:      TestHasher,
+		Marshalizer: TestMarshalizer,
+	}
+	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
+
 	argumentsBase := block.ArgBaseProcessor{
 		Accounts:                     tpn.AccntState,
 		ForkDetector:                 nil,
@@ -109,27 +124,37 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		StartHeaders:                 tpn.GenesisBlocks,
 		RequestHandler:               tpn.RequestHandler,
 		Core:                         nil,
+		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
+		HeaderValidator:              headerValidator,
+		Rounder:                      &mock.RounderMock{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
+		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor: argumentsBase,
-			DataPool:         tpn.MetaDataPool,
+			ArgBaseProcessor:   argumentsBase,
+			DataPool:           tpn.MetaDataPool,
+			SCDataGetter:       &mock.ScDataGetterMock{},
+			SCToProtocol:       &mock.SCToProtocolStub{},
+			PeerChangesHandler: &mock.PeerChangesHandler{},
+			PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlackListHandler)
 		argumentsBase.ForkDetector = tpn.ForkDetector
+		argumentsBase.BlockChainHook = tpn.BlockChainHookImpl.(process.BlockChainHookHandler)
+		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 			DataPool:         tpn.ShardDataPool,
-			TxCoordinator:    tpn.TxCoordinator,
 			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
@@ -156,6 +181,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		1,
+		tpn.BlackListHandler,
 		tpn.Messenger,
 	)
 	if err != nil {
@@ -182,6 +208,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.ShardCoordinator,
 		tpn.AccntState,
 		1,
+		tpn.BlackListHandler,
 		tpn.Messenger,
 	)
 

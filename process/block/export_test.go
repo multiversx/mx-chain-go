@@ -60,6 +60,13 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 		shardCoordinator,
 		nodesCoordinator,
 	)
+
+	argsHeaderValidator := ArgsHeaderValidator{
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+	headerValidator, _ := NewHeaderValidator(argsHeaderValidator)
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
 			Accounts:                     &mock.AccountsStub{},
@@ -74,10 +81,14 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			StartHeaders:                 genesisBlocks,
 			RequestHandler:               &mock.RequestHandlerMock{},
 			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
+			HeaderValidator:              headerValidator,
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        tdp,
-		TxCoordinator:   &mock.TransactionCoordinatorMock{},
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 	shardProcessor, err := NewShardProcessor(arguments)
@@ -128,8 +139,8 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 	return hdrInfo.hdr == nil || hdrInfo.hdr.IsInterfaceNil()
 }
 
-func (mp *metaProcessor) CreateShardInfo(maxItemsInBlock uint32, round uint64, haveTime func() bool) ([]block.ShardData, error) {
-	return mp.createShardInfo(maxItemsInBlock, round, haveTime)
+func (mp *metaProcessor) CreateShardInfo(round uint64) ([]block.ShardData, error) {
+	return mp.createShardInfo(round)
 }
 
 func (mp *metaProcessor) ProcessBlockHeaders(header *block.MetaBlock, round uint64, haveTime func() time.Duration) error {
@@ -163,6 +174,10 @@ func (bp *baseProcessor) SetHasher(hasher hashing.Hasher) {
 	bp.hasher = hasher
 }
 
+func (bp *baseProcessor) SetHeaderValidator(validator process.HeaderConstructionValidator) {
+	bp.headerValidator = validator
+}
+
 func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	mp.shardBlockFinality = val
@@ -173,8 +188,8 @@ func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error 
 	return mp.saveLastNotarizedHeader(header)
 }
 
-func (mp *metaProcessor) CheckShardHeadersValidity() (map[uint32]data.HeaderHandler, error) {
-	return mp.checkShardHeadersValidity()
+func (mp *metaProcessor) CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
+	return mp.checkShardHeadersValidity(header)
 }
 
 func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]data.HeaderHandler) error {
@@ -182,7 +197,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 }
 
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
-	return bp.isHdrConstructionValid(currHdr, prevHdr)
+	return bp.headerValidator.IsHeaderConstructionValid(currHdr, prevHdr)
 }
 
 func (mp *metaProcessor) IsShardHeaderValidFinal(currHdr *block.Header, lastHdr *block.Header, sortedShardHdrs []*block.Header) (bool, []uint32) {
@@ -210,7 +225,7 @@ func (bp *baseProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs [
 }
 
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr, body)
+	return sp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
 }
 
 func (bp *baseProcessor) SetLastNotarizedHeadersSlice(startHeaders map[uint32]data.HeaderHandler) error {
@@ -236,7 +251,8 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	return sp.requestMissingFinalityAttestingHeaders(
 		sharding.MetachainShardId,
 		sp.metaBlockFinality,
-		sp.getMetaHeaderFromPoolWithNonce)
+		sp.getMetaHeaderFromPoolWithNonce,
+		sp.dataPool.MetaBlocks())
 }
 
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
@@ -317,4 +333,8 @@ func (sp *shardProcessor) CreateBlockStarted() {
 
 func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {
 	return sp.addProcessedCrossMiniBlocksFromHeader(header)
+}
+
+func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {
+	return mp.verifyCrossShardMiniBlockDstMe(header)
 }

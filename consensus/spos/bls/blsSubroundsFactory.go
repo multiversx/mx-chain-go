@@ -273,3 +273,7 @@ func (fct *factory) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+func debugError(message string, err error) {
+	log.Debug(message, "type", "spos/bls", "error", err.Error())
+}
