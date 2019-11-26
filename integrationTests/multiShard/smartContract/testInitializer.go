@@ -412,6 +412,7 @@ func createNetNode(
 			return vm, nil
 		}}
 	argsParser, _ := smartContract.NewAtArgumentParser()
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -424,9 +425,8 @@ func createNetNode(
 		scForwarder,
 		rewardsHandler,
 		&mock.FeeHandlerStub{},
+		txTypeHandler,
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,

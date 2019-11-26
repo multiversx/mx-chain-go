@@ -41,9 +41,9 @@ type scProcessor struct {
 	mutSCState   sync.Mutex
 	mapExecState map[uint64]scExecutionState
 
-	scrForwarder process.IntermediateTransactionHandler
-	txFeeHandler process.TransactionFeeHandler
-	economicsFee process.FeeHandler
+	scrForwarder  process.IntermediateTransactionHandler
+	txFeeHandler  process.TransactionFeeHandler
+	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
 }
 
@@ -116,7 +116,7 @@ func NewSmartContractProcessor(
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
 
@@ -344,10 +344,10 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 	if err != nil {
 		return nil, err
 	}
-	vmInput.CallValue = tx.Value
-	vmInput.GasPrice = tx.GasPrice
+	vmInput.CallValue = tx.GetValue()
+	vmInput.GasPrice = tx.GetGasPrice()
 	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
-	vmInput.GasProvided = tx.GasLimit - moveBalanceGasConsume
+	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
 
 	return vmInput, nil
 }
@@ -404,7 +404,7 @@ func (sc *scProcessor) processVMOutput(
 	if vmOutput == nil {
 		return nil, nil, process.ErrNilVMOutput
 	}
-	if tx == nil {
+	if check.IfNil(tx) {
 		return nil, nil, process.ErrNilTransaction
 	}
 
@@ -454,7 +454,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	totalGasConsumed := tx.GasLimit - vmOutput.GasRemaining.Uint64()
+	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining.Uint64()
 	log.Debug("total gas consumed", "value", totalGasConsumed, "hash", txHash)
 
 	if vmOutput.GasRefund.Uint64() > 0 {

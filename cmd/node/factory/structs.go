@@ -1856,6 +1856,11 @@ func newShardBlockProcessor(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -1868,6 +1873,7 @@ func newShardBlockProcessor(
 		scForwarder,
 		rewardsTxHandler,
 		economics,
+		txTypeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1893,11 +1899,6 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		rewardsTxInterim,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2069,6 +2070,11 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -2081,6 +2087,7 @@ func newMetaBlockProcessor(
 		scForwarder,
 		&metachain.TransactionFeeHandler{},
 		economics,
+		txTypeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2095,11 +2102,6 @@ func newMetaBlockProcessor(
 		factory.MiniBlocksTopic,
 		MaxTxsToRequest,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2129,6 +2131,7 @@ func newMetaBlockProcessor(
 		state.AccountsAdapter,
 		requestHandler,
 		transactionProcessor,
+		scProcessor,
 		economics,
 		miniBlocksCompacter,
 	)
@@ -2219,7 +2222,7 @@ func newValidatorStatisticsProcessor(
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
-	var peerDataPool peer.DataPool =  processComponents.data.MetaDatapool
+	var peerDataPool peer.DataPool = processComponents.data.MetaDatapool
 	if processComponents.shardCoordinator.SelfId() < processComponents.shardCoordinator.NumberOfShards() {
 		peerDataPool = processComponents.data.Datapool
 	}

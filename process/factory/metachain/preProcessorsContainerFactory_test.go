@@ -22,6 +22,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -42,6 +43,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -62,6 +64,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -82,6 +85,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -102,6 +106,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -122,6 +127,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		nil,
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -142,6 +148,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		nil,
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -162,6 +169,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		nil,
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -182,6 +190,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.AccountsStub{},
 		nil,
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -201,6 +210,7 @@ func TestNewPreProcessorsContainerFactory_NilMiniBlocksCompacter(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		nil,
 	)
@@ -220,6 +230,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -245,6 +256,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -269,6 +281,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 	)
@@ -278,5 +291,5 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 
 	container, err := ppcm.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, container.Len())
+	assert.Equal(t, 2, container.Len())
 }

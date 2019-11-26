@@ -498,6 +498,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
@@ -510,9 +511,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScrForwarder,
 		rewardsHandler,
 		tpn.EconomicsData,
+		txTypeHandler,
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
@@ -585,8 +585,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
-	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
 		TestHasher,
@@ -598,10 +599,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ScrForwarder,
 		&metaProcess.TransactionFeeHandler{},
 		tpn.EconomicsData,
+		txTypeHandler,
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
-
+	tpn.ScProcessor = scProcessor
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
 		tpn.AccntState,
 		TestAddressConverter,
@@ -621,6 +621,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.AccntState,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
+		scProcessor,
 		tpn.EconomicsData.EconomicsData,
 		tpn.MiniBlocksCompacter,
 	)

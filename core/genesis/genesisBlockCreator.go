@@ -224,6 +224,11 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
+	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -236,12 +241,8 @@ func createProcessorsForMetaGenesisBlock(
 		scForwarder,
 		&metachain.TransactionFeeHandler{},
 		&metachain.TransactionFeeHandler{},
+		txTypeHandler,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
 	if err != nil {
 		return nil, nil, err
 	}
