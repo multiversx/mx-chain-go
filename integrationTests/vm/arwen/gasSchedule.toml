@@ -23,8 +23,8 @@
     GetBlockTimeStamp  = 100
     GetGasLeft         = 100
     Int64GetArgument   = 100
-    Int64StorageStore  = 200000
-    Int64StorageLoad   = 50000
+    Int64StorageStore  = 250000
+    Int64StorageLoad   = 100000
     Int64Finish        = 100
     GetStateRootHash   = 100
     GetBlockNonce      = 100
@@ -88,8 +88,8 @@
     BigIntMul                = 600
     BigIntCmp                = 100
     BigIntFinish             = 100
-    BigIntStorageLoad        = 20000
-    BigIntStorageStore       = 100000
+    BigIntStorageLoad        = 100000
+    BigIntStorageStore       = 250000
     BigIntGetArgument        = 100
     BigIntGetCallValue       = 100
     BigIntGetExternalBalance = 500

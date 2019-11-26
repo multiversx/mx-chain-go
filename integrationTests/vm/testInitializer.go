@@ -460,3 +460,21 @@ func CreateTransferTx(
 		Data:     "transfer@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
 	}
 }
+
+func CreateTransferTokenTx(
+	nonce uint64,
+	value *big.Int,
+	scAddrress []byte,
+	sndAddress []byte,
+	rcvAddress []byte,
+) *dataTransaction.Transaction {
+	return &dataTransaction.Transaction{
+		Nonce:    nonce,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddrress,
+		SndAddr:  sndAddress,
+		GasPrice: 0,
+		GasLimit: 5000000,
+		Data:     "transferToken@" + hex.EncodeToString(rcvAddress) + "@" + hex.EncodeToString(value.Bytes()),
+	}
+}
