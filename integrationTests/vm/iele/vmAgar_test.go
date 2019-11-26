@@ -30,7 +30,7 @@ func TestScMoveBalanceAndFuncCallBeforeScDeploy(t *testing.T) {
 	gasLimit := uint64(1000000)
 
 	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithIeleVM(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddressBytes, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.IELEVirtualMachine)
+	scAddressBytes, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.IELEVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddressBytes))
 
 	// check that the account for SC address is not yet created
