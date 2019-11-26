@@ -44,3 +44,6 @@ var ErrRandomSeedNotValid = errors.New("random seed is not valid")
 
 // ErrInvalidShardId signals that an invalid shard id has been provided
 var ErrInvalidShardId = errors.New("invalid shard id")
+
+// ErrNilNotarizedHeader signals that an nil notarized header has been provided
+var ErrNilNotarizedHeader = errors.New("nil notarized header")

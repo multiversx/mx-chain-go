@@ -1,6 +1,7 @@
 package process
 
 import (
+	"math"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -8,10 +9,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var log = logger.GetOrCreate("process")
 
 // EmptyChannel empties the given channel
 func EmptyChannel(ch chan bool) int {
@@ -274,6 +278,21 @@ func GetMetaHeaderFromPoolWithNonce(
 	}
 
 	return hdr, hash, nil
+}
+
+// GetHeaderFromStorageWithNonce method returns a block header from storage with a given nonce and shardId
+func GetHeaderFromStorageWithNonce(
+	nonce uint64,
+	shardId uint32,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	marshalizer marshal.Marshalizer,
+) (data.HeaderHandler, []byte, error) {
+
+	if shardId == sharding.MetachainShardId {
+		return GetMetaHeaderFromStorageWithNonce(nonce, storageService, uint64Converter, marshalizer)
+	}
+	return GetShardHeaderFromStorageWithNonce(nonce, shardId, storageService, uint64Converter, marshalizer)
 }
 
 // GetShardHeaderFromStorageWithNonce method returns a shard block header from storage with a given nonce and shardId
@@ -567,4 +586,28 @@ func SortHeadersByNonce(headers []data.HeaderHandler) {
 // IsInProperRound checks if the given round index satisfies the round modulus trigger
 func IsInProperRound(index int64) bool {
 	return index%RoundModulusTrigger == 0
+}
+
+// AddHeaderToBlackList adds a hash to black list handler. Logs if the operation did not succeed
+func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
+	err := blackListHandler.Add(string(hash))
+	if err != nil {
+		log.Trace("blackListHandler.Add", "error", err.Error())
+	}
+
+	log.Debug("header has been added to blacklist",
+		"hash", hash)
+}
+
+// ForkInfo hold the data related to a detected fork
+type ForkInfo struct {
+	IsDetected bool
+	Nonce      uint64
+	Round      uint64
+	Hash       []byte
+}
+
+// NewForkInfo creates a new ForkInfo object
+func NewForkInfo() *ForkInfo {
+	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
 }

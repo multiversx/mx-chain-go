@@ -7,29 +7,32 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"math/big"
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	InitialNodes       []*sharding.InitialNode
-	Marshalizer        marshal.Marshalizer
-	NodesCoordinator   sharding.NodesCoordinator
-	ShardCoordinator   sharding.Coordinator
-	DataPool           dataRetriever.MetaPoolsHolder
-	StorageService     dataRetriever.StorageService
-	AdrConv            state.AddressConverter
-	PeerAdapter        state.AccountsAdapter
+	InitialNodes     []*sharding.InitialNode
+	Economics        *economics.EconomicsData
+	Marshalizer      marshal.Marshalizer
+	NodesCoordinator sharding.NodesCoordinator
+	ShardCoordinator sharding.Coordinator
+	DataPool         dataRetriever.MetaPoolsHolder
+	StorageService   dataRetriever.StorageService
+	AdrConv          state.AddressConverter
+	PeerAdapter      state.AccountsAdapter
 }
 
 type validatorStatistics struct {
-	marshalizer        marshal.Marshalizer
-	dataPool           dataRetriever.MetaPoolsHolder
-	storageService     dataRetriever.StorageService
-	nodesCoordinator   sharding.NodesCoordinator
-	shardCoordinator   sharding.Coordinator
-	adrConv            state.AddressConverter
-	peerAdapter        state.AccountsAdapter
+	marshalizer      marshal.Marshalizer
+	dataPool         dataRetriever.MetaPoolsHolder
+	storageService   dataRetriever.StorageService
+	nodesCoordinator sharding.NodesCoordinator
+	shardCoordinator sharding.Coordinator
+	adrConv          state.AddressConverter
+	peerAdapter      state.AccountsAdapter
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -56,18 +59,24 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.Marshalizer == nil || arguments.Marshalizer.IsInterfaceNil() {
 		return nil, process.ErrNilMarshalizer
 	}
-
-	vs := &validatorStatistics{
-		peerAdapter:        arguments.PeerAdapter,
-		adrConv:            arguments.AdrConv,
-		nodesCoordinator:   arguments.NodesCoordinator,
-		shardCoordinator:   arguments.ShardCoordinator,
-		dataPool:           arguments.DataPool,
-		storageService:     arguments.StorageService,
-		marshalizer:        arguments.Marshalizer,
+	if arguments.Economics == nil {
+		return nil, process.ErrNilEconomicsData
+	}
+	if arguments.Economics.StakeValue() == nil {
+		return nil, process.ErrNilEconomicsData
 	}
 
-	err := vs.SaveInitialState(arguments.InitialNodes)
+	vs := &validatorStatistics{
+		peerAdapter:      arguments.PeerAdapter,
+		adrConv:          arguments.AdrConv,
+		nodesCoordinator: arguments.NodesCoordinator,
+		shardCoordinator: arguments.ShardCoordinator,
+		dataPool:         arguments.DataPool,
+		storageService:   arguments.StorageService,
+		marshalizer:      arguments.Marshalizer,
+	}
+
+	err := vs.saveInitialState(arguments.InitialNodes, arguments.Economics.StakeValue())
 	if err != nil {
 		return nil, err
 	}
@@ -75,10 +84,10 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	return vs, nil
 }
 
-// SaveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
-func (p *validatorStatistics) SaveInitialState(in []*sharding.InitialNode) error {
+// saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
+func (p *validatorStatistics) saveInitialState(in []*sharding.InitialNode, stakeValue *big.Int) error {
 	for _, node := range in {
-		err := p.initializeNode(node)
+		err := p.initializeNode(node, stakeValue)
 		if err != nil {
 			return err
 		}
@@ -229,7 +238,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler
 	return nil
 }
 
-func (p *validatorStatistics) initializeNode(node *sharding.InitialNode) error {
+func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeValue *big.Int) error {
 	if !p.IsNodeValid(node) {
 		return process.ErrInvalidInitialNodesState
 	}
@@ -239,7 +248,7 @@ func (p *validatorStatistics) initializeNode(node *sharding.InitialNode) error {
 		return err
 	}
 
-	err = p.savePeerAccountData(peerAccount, node)
+	err = p.savePeerAccountData(peerAccount, node, stakeValue)
 	if err != nil {
 		return err
 	}
@@ -266,7 +275,11 @@ func (p *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*
 	return peerAccount, nil
 }
 
-func (p *validatorStatistics) savePeerAccountData(peerAccount *state.PeerAccount, data *sharding.InitialNode) error {
+func (p *validatorStatistics) savePeerAccountData(
+	peerAccount *state.PeerAccount,
+	data *sharding.InitialNode,
+	stakeValue *big.Int,
+) error {
 	err := peerAccount.SetAddressWithJournal([]byte(data.Address))
 	if err != nil {
 		return err
@@ -278,6 +291,11 @@ func (p *validatorStatistics) savePeerAccountData(peerAccount *state.PeerAccount
 	}
 
 	err = peerAccount.SetBLSPublicKeyWithJournal([]byte(data.PubKey))
+	if err != nil {
+		return err
+	}
+
+	err = peerAccount.SetStakeWithJournal(stakeValue)
 	if err != nil {
 		return err
 	}

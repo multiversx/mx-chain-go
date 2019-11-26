@@ -5,16 +5,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var log = logger.GetOrCreate("process/coordinator")
 
 type transactionCoordinator struct {
 	shardCoordinator sharding.Coordinator
@@ -35,13 +36,11 @@ type transactionCoordinator struct {
 	onRequestMiniBlock func(shardId uint32, mbHash []byte)
 }
 
-var log = logger.DefaultLogger()
-
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
 func NewTransactionCoordinator(
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	dataPool dataRetriever.PoolsHolder,
+	miniBlockPool storage.Cacher,
 	requestHandler process.RequestHandler,
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
@@ -52,8 +51,8 @@ func NewTransactionCoordinator(
 	if accounts == nil || accounts.IsInterfaceNil() {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if dataPool == nil || dataPool.IsInterfaceNil() {
-		return nil, process.ErrNilDataPoolHolder
+	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
+		return nil, process.ErrNilMiniBlockPool
 	}
 	if requestHandler == nil || requestHandler.IsInterfaceNil() {
 		return nil, process.ErrNilRequestHandler
@@ -70,11 +69,7 @@ func NewTransactionCoordinator(
 		accounts:         accounts,
 	}
 
-	tc.miniBlockPool = dataPool.MiniBlocks()
-	if tc.miniBlockPool == nil || tc.miniBlockPool.IsInterfaceNil() {
-		return nil, process.ErrNilMiniBlockPool
-	}
-
+	tc.miniBlockPool = miniBlockPool
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
@@ -183,7 +178,7 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 
 			err := preproc.IsDataPrepared(requestedTxs, haveTime)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("IsDataPrepared", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -219,7 +214,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 			err := preproc.SaveTxBlockToStorage(blockBody)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("SaveTxBlockToStorage", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -240,7 +235,7 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body block.Body) error 
 
 			err := intermediateProc.SaveCurrentIntermediateTxToStorage()
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("SaveCurrentIntermediateTxToStorage", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -277,7 +272,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body block.Body) (
 
 			restoredTxs, err := preproc.RestoreTxBlockIntoPools(blockBody, tc.miniBlockPool)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("RestoreTxBlockIntoPools", "error", err.Error())
 
 				localMutex.Lock()
 				errFound = err
@@ -318,7 +313,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body block.Body) error
 
 			err := preproc.RemoveTxBlockFromPools(blockBody, tc.miniBlockPool)
 			if err != nil {
-				log.Debug(err.Error())
+				log.Trace("RemoveTxBlockFromPools", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err
@@ -452,7 +447,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	for _, blockType := range tc.keysTxPreProcs {
-
 		txPreProc := tc.getPreProcessor(blockType)
 		if txPreProc == nil || txPreProc.IsInterfaceNil() {
 			return nil
@@ -464,9 +458,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 			round,
 			haveTime,
 		)
-
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("CreateAndProcessMiniBlocks", "error", err.Error())
 		}
 
 		if len(mbs) > 0 {
@@ -582,40 +575,42 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body block.Body) (map[ui
 
 		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, receiverShardId, miniblock.Type)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Trace("createBroadcastTopic", "error", err.Error())
 			continue
 		}
 
+		appended := false
 		preproc := tc.getPreProcessor(miniblock.Type)
-		if preproc == nil || preproc.IsInterfaceNil() {
-			continue
-		}
+		if preproc != nil && !preproc.IsInterfaceNil() {
+			bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			appended = true
 
-		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
+			if err != nil {
+				log.Trace("CreateMarshalizedData", "error", err.Error())
+				continue
+			}
 
-		currMrsTxs, err := preproc.CreateMarshalizedData(miniblock.TxHashes)
-		if err != nil {
-			log.Debug(err.Error())
-			continue
-		}
-
-		if len(currMrsTxs) > 0 {
-			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+			if len(currMrsTxs) > 0 {
+				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsTxs...)
+			}
 		}
 
 		interimProc := tc.getInterimProcessor(miniblock.Type)
-		if interimProc == nil || interimProc.IsInterfaceNil() {
-			continue
-		}
+		if interimProc != nil && !interimProc.IsInterfaceNil() {
+			if !appended {
+				bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
+			}
 
-		currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
-		if err != nil {
-			log.Debug(err.Error())
-			continue
-		}
+			currMrsInterTxs, err := interimProc.CreateMarshalizedData(miniblock.TxHashes)
+			if err != nil {
+				log.Trace("CreateMarshalizedData", "error", err.Error())
+				continue
+			}
 
-		if len(currMrsInterTxs) > 0 {
-			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
+			if len(currMrsInterTxs) > 0 {
+				mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], currMrsInterTxs...)
+			}
 		}
 	}
 
@@ -691,11 +686,11 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	snapshot := tc.accounts.JournalLen()
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug("ProcessMiniBlock", "error", err.Error())
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem
-			log.Error(errAccountState.Error())
+			log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 		}
 
 		return err

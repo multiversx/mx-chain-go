@@ -1,13 +1,15 @@
 @0xddffc3d7f7f36183;
 using Go = import "/go.capnp";
+using MiniBlockHeaderCapn = import "./schema.capnp".MiniBlockHeaderCapn;
 $Go.package("capnp");
 $Go.import("_");
 
 struct PeerDataCapn {
-    publicKey @0: Data;
-    action    @1: UInt8;
-    timestamp @2: UInt64;
-    value     @3: Data;
+    address   @0: Data;
+    publicKey @1: Data;
+    action    @2: UInt8;
+    timestamp @3: UInt64;
+    value     @4: Data;
 }
 
 struct ShardMiniBlockHeaderCapn {
@@ -35,13 +37,15 @@ struct MetaBlockCapn {
     shardInfo              @4:  List(ShardDataCapn);
     peerInfo               @5:  List(PeerDataCapn);
     signature              @6:  Data;
-    pubKeysBitmap          @7:  Data;
-    prevHash               @8:  Data;
-    prevRandSeed           @9:  Data;
-    randSeed               @10: Data;
-    rootHash               @11: Data;
-    validatorStatsRootHash @12: Data;
-    txCount                @13: UInt32;
+    leaderSignature        @7:  Data;
+    pubKeysBitmap          @8:  Data;
+    prevHash               @9:  Data;
+    prevRandSeed           @10: Data;
+    randSeed               @11: Data;
+    rootHash               @12: Data;
+    validatorStatsRootHash @13: Data;
+    txCount                @14: UInt32;
+    miniBlockHeaders       @15: List(MiniBlockHeaderCapn);
 }
 
 ##compile with:

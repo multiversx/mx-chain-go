@@ -98,12 +98,13 @@ type Header struct {
 	Epoch                  uint32            `capid:"8"`
 	BlockBodyType          Type              `capid:"9"`
 	Signature              []byte            `capid:"10"`
-	MiniBlockHeaders       []MiniBlockHeader `capid:"11"`
-	PeerChanges            []PeerChange      `capid:"12"`
-	RootHash               []byte            `capid:"13"`
-	ValidatorStatsRootHash []byte            `capid:"14"`
-	MetaBlockHashes        [][]byte          `capid:"15"`
-	TxCount                uint32            `capid:"16"`
+	LeaderSignature        []byte            `capid:"11"`
+	MiniBlockHeaders       []MiniBlockHeader `capid:"12"`
+	PeerChanges            []PeerChange      `capid:"13"`
+	RootHash               []byte            `capid:"14"`
+	ValidatorStatsRootHash []byte            `capid:"15"`
+	MetaBlockHashes        [][]byte          `capid:"16"`
+	TxCount                uint32            `capid:"17"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -142,6 +143,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.Epoch = src.Epoch()
 	dest.BlockBodyType = Type(src.BlockBodyType())
 	dest.Signature = src.Signature()
+	dest.LeaderSignature = src.LeaderSignature()
 
 	mbLength := src.MiniBlockHeaders().Len()
 	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
@@ -185,6 +187,7 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetEpoch(src.Epoch)
 	dest.SetBlockBodyType(uint8(src.BlockBodyType))
 	dest.SetSignature(src.Signature)
+	dest.SetLeaderSignature(src.LeaderSignature)
 	if len(src.MiniBlockHeaders) > 0 {
 		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
 		pList := capn.PointerList(miniBlockList)
@@ -416,6 +419,11 @@ func (h *Header) GetSignature() []byte {
 	return h.Signature
 }
 
+// GetLeaderSignature returns the leader's signature
+func (h *Header) GetLeaderSignature() []byte {
+	return h.LeaderSignature
+}
+
 // GetTimeStamp returns the time stamp
 func (h *Header) GetTimeStamp() uint64 {
 	return h.TimeStamp
@@ -476,6 +484,11 @@ func (h *Header) SetSignature(sg []byte) {
 	h.Signature = sg
 }
 
+// SetLeaderSignature will set the leader's signature
+func (h *Header) SetLeaderSignature(sg []byte) {
+	h.LeaderSignature = sg
+}
+
 // SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
@@ -497,7 +510,7 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
-// GetAllMiniBlockHashes as a map of hashes and sender IDs
+// MapMiniBlockHashesToShards is a map of mini block hashes and sender IDs
 func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
 	hashDst := make(map[string]uint32, 0)
 	for _, val := range h.MiniBlockHeaders {

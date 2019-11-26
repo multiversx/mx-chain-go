@@ -384,3 +384,36 @@ func (pjer *PeerJournalEntryRating) IsInterfaceNil() bool {
 	}
 	return false
 }
+
+// PeerJournalEntryUnStakedNonce is used to revert a unstaked nonce change
+type PeerJournalEntryUnStakedNonce struct {
+	account          *PeerAccount
+	oldUnStakedNonce uint64
+}
+
+// PeerJournalEntryUnStakedNonce outputs a new PeerJournalEntryCurrentShardId implementation used to revert a state change
+func NewPeerJournalEntryUnStakedNonce(account *PeerAccount, oldUnStakedNonce uint64) (*PeerJournalEntryUnStakedNonce, error) {
+	if account == nil {
+		return nil, ErrNilAccountHandler
+	}
+
+	return &PeerJournalEntryUnStakedNonce{
+		account:          account,
+		oldUnStakedNonce: oldUnStakedNonce,
+	}, nil
+}
+
+// Revert applies undo operation
+func (pjec *PeerJournalEntryUnStakedNonce) Revert() (AccountHandler, error) {
+	pjec.account.UnStakedNonce = pjec.oldUnStakedNonce
+
+	return pjec.account, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pjec *PeerJournalEntryUnStakedNonce) IsInterfaceNil() bool {
+	if pjec == nil {
+		return true
+	}
+	return false
+}

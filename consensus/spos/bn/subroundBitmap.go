@@ -1,8 +1,6 @@
 package bn
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
@@ -72,26 +70,26 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(msg)
 	if err != nil {
-		log.Error(err.Error())
+		debugError("BroadcastConsensusMessage", err)
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 3: bitmap has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
+	log.Debug("step 3: bitmap has been sent",
+		"type", "spos/bn",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime())
 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		pubKey := sr.ConsensusGroup()[i]
 		isJobCommHashJobDone, err := sr.JobDone(pubKey, SrCommitmentHash)
-
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug("spos/bn JobDone", "error", err.Error())
 			continue
 		}
 
 		if isJobCommHashJobDone {
 			err = sr.SetJobDone(pubKey, SrBitmap, true)
-
 			if err != nil {
-				log.Error(err.Error())
+				debugError("SetJobDone", err)
 				return false
 			}
 		}
@@ -130,8 +128,10 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.Message) bool {
 	nbSigners := countBitmapFlags(signersBitmap)
 
 	if int(nbSigners) < sr.Threshold(SrBitmap) {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, too few signers in bitmap\n",
-			sr.Rounder().Index(), getSubroundName(SrBitmap)))
+		log.Debug("canceled round, not enough signers in bitmap",
+			"type", "spos/bn",
+			"round", sr.Rounder().Index(),
+			"subround", getSubroundName(SrBitmap))
 
 		return false
 	}
@@ -146,19 +146,24 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.Message) bool {
 		if isNodeSigner {
 			err := sr.SetJobDone(publicKeys[i], SrBitmap, true)
 			if err != nil {
-				log.Error(err.Error())
+				debugError("SetJobDone", err)
 				return false
 			}
 		}
 	}
 
 	n := sr.ComputeSize(SrBitmap)
-	log.Info(fmt.Sprintf("%sStep 3: received bitmap from leader and it got %d from %d commitment hashes\n",
-		sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
+	log.Debug("step 3: received commitment hashes",
+		"type", "spos/bn",
+		"time [s]", sr.SyncTimer().FormattedCurrentTime(),
+		"received", n,
+		"total", len(sr.ConsensusGroup()))
 
 	if !sr.IsSelfJobDone(SrBitmap) {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, not included in the bitmap\n",
-			sr.Rounder().Index(), getSubroundName(SrBitmap)))
+		log.Debug("canceled round, not included in the bitmap",
+			"type", "spos/bn",
+			"round", sr.Rounder().Index(),
+			"subround", getSubroundName(SrBitmap))
 
 		sr.RoundCanceled = true
 
@@ -197,7 +202,9 @@ func (sr *subroundBitmap) doBitmapConsensusCheck() bool {
 
 	threshold := sr.Threshold(SrBitmap)
 	if sr.isBitmapReceived(threshold) {
-		log.Info(fmt.Sprintf("%sStep 3: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		log.Debug("step 3: subround "+sr.Name()+" has been finished",
+			"type", "spos/bn",
+			"time [s]", sr.SyncTimer().FormattedCurrentTime())
 		sr.SetStatus(SrBitmap, spos.SsFinished)
 		return true
 	}
@@ -212,9 +219,8 @@ func (sr *subroundBitmap) isBitmapReceived(threshold int) bool {
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
 		isJobDone, err := sr.JobDone(node, SrBitmap)
-
 		if err != nil {
-			log.Error(err.Error())
+			debugError("JobDone", err)
 			continue
 		}
 

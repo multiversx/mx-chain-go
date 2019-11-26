@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
@@ -213,15 +212,6 @@ func TestElrondFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *t
 	assert.Nil(t, tx)
 }
 
-func TestElrondNodeFacade_SetLogger(t *testing.T) {
-	node := &mock.NodeMock{}
-
-	ef := createElrondNodeFacadeWithMockResolver(node)
-	log := logger.DefaultLogger()
-	ef.SetLogger(log)
-	assert.Equal(t, log, ef.GetLogger())
-}
-
 func TestElrondNodeFacade_SetSyncer(t *testing.T) {
 	node := &mock.NodeMock{}
 
@@ -305,7 +295,7 @@ func TestElrondNodeFacade_GetDataValue(t *testing.T) {
 	ef := NewElrondNodeFacade(
 		&mock.NodeMock{},
 		&mock.ApiResolverStub{
-			ExecuteSCQueryHandler: func(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 				wasCalled = true
 				return &vmcommon.VMOutput{}, nil
 			},
@@ -321,33 +311,24 @@ func TestElrondNodeFacade_RestApiPortNilConfig(t *testing.T) {
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 	ef.SetConfig(nil)
 
-	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+	assert.Equal(t, DefaultRestInterface, ef.RestApiInterface())
 }
 
 func TestElrondNodeFacade_RestApiPortEmptyPortSpecified(t *testing.T) {
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
 	ef.SetConfig(&config.FacadeConfig{
-		RestApiPort: "",
+		RestApiInterface: "",
 	})
 
-	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
-}
-
-func TestElrondNodeFacade_RestApiPortInvalidPortSpecified(t *testing.T) {
-	ef := createElrondNodeFacadeWithMockNodeAndResolver()
-	ef.SetConfig(&config.FacadeConfig{
-		RestApiPort: "abc123",
-	})
-
-	assert.Equal(t, DefaultRestPort, ef.RestApiPort())
+	assert.Equal(t, DefaultRestInterface, ef.RestApiInterface())
 }
 
 func TestElrondNodeFacade_RestApiPortCorrectPortSpecified(t *testing.T) {
 	ef := createElrondNodeFacadeWithMockNodeAndResolver()
-	port := "1111"
+	intf := "localhost:1111"
 	ef.SetConfig(&config.FacadeConfig{
-		RestApiPort: port,
+		RestApiInterface: intf,
 	})
 
-	assert.Equal(t, port, ef.RestApiPort())
+	assert.Equal(t, intf, ef.RestApiInterface())
 }

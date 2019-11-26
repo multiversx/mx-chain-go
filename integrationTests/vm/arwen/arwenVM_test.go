@@ -198,3 +198,147 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	finalBob := big.NewInt(int64(nrTxs) * transferOnCalls.Int64())
 	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "do_balance", bob).Uint64())
 }
+
+func TestWASMNamespacing(t *testing.T) {
+	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(0xfffffffffffffff)
+	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(0xffffffffffffffff)
+	transferOnCalls := big.NewInt(1)
+
+	// This SmartContract had its imports modified after compilation, replacing
+	// the namespace 'env' to 'ethereum'. If WASM namespacing is done correctly
+	// by Arwen, then this SC should have no problem to call imported functions
+	// (as if it were run by Ethereuem).
+	fileSC := "./fib_ewasmified.wasm"
+	scCode, err := ioutil.ReadFile(fileSC)
+	assert.Nil(t, err)
+
+	scCodeString := hex.EncodeToString(scCode)
+
+	tx := &transaction.Transaction{
+		Nonce:     ownerNonce,
+		Value:     transferOnCalls,
+		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		SndAddr:   ownerAddressBytes,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	alice := []byte("12345678901234567890123456789111")
+	aliceNonce := uint64(0)
+	aliceInitialBalance := uint64(3000)
+	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
+
+	testingValue := uint64(15)
+
+	gasLimit = uint64(2000)
+
+	tx = &transaction.Transaction{
+		Nonce:     aliceNonce,
+		Value:     big.NewInt(0).SetUint64(testingValue),
+		RcvAddr:   scAddress,
+		SndAddr:   alice,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      "main",
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+}
+
+func TestWASMMetering(t *testing.T) {
+	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(0xfffffffffffffff)
+	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(0xffffffffffffffff)
+	transferOnCalls := big.NewInt(1)
+
+	fileSC := "./cpucalculate_arwen.wasm"
+	scCode, err := ioutil.ReadFile(fileSC)
+	assert.Nil(t, err)
+
+	scCodeString := hex.EncodeToString(scCode)
+
+	tx := &transaction.Transaction{
+		Nonce:     ownerNonce,
+		Value:     transferOnCalls,
+		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		SndAddr:   ownerAddressBytes,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine),
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	alice := []byte("12345678901234567890123456789111")
+	aliceNonce := uint64(0)
+	aliceInitialBalance := uint64(3000)
+	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
+
+	testingValue := uint64(15)
+
+	gasLimit = uint64(2000)
+
+	tx = &transaction.Transaction{
+		Nonce:     aliceNonce,
+		Value:     big.NewInt(0).SetUint64(testingValue),
+		RcvAddr:   scAddress,
+		SndAddr:   alice,
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      "_main",
+		Signature: nil,
+		Challenge: nil,
+	}
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	expectedBalance := big.NewInt(2429)
+	expectedNonce := uint64(1)
+
+	actualBalanceBigInt := vm.TestAccount(
+		t,
+		accnts,
+		alice,
+		expectedNonce,
+		expectedBalance)
+
+	actualBalance := actualBalanceBigInt.Uint64()
+
+	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
+
+	assert.Equal(t, 556, int(consumedGasValue))
+}

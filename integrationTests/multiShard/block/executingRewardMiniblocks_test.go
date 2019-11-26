@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -101,7 +100,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		updateRewardsForMetachain(mapRewardsForMetachainAddresses, consensusNodes[0][0])
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.VerifyNodesHaveHeaders(t, headers, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
 		nonce++
@@ -156,14 +154,13 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	nbBlocksProduced := 7
 
 	randomness := generateInitialRandomness(uint32(nbShards))
-	var headers map[uint32]data.HeaderHandler
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	mapRewardsForShardAddresses := make(map[string]uint32)
 	mapRewardsForMetachainAddresses := make(map[string]uint32)
 	nbTxsForLeaderAddress := make(map[string]uint32)
 
 	for i := 0; i < nbBlocksProduced; i++ {
-		_, headers, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
 		for shardId, consensusGroup := range consensusNodes {
 			if shardId == sharding.MetachainShardId {
@@ -182,7 +179,6 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 		updateRewardsForMetachain(mapRewardsForMetachainAddresses, consensusNodes[0][0])
 
 		indexesProposers := getBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.VerifyNodesHaveHeaders(t, headers, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
 		round++
 		nonce++
@@ -367,7 +363,7 @@ func verifyRewardsForShards(
 			totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
 
 			expectedBalance.Add(expectedBalance, totalFees)
-			fmt.Println(fmt.Sprintf("checking account %s has balance %d", core.ToB64(acc.AddressContainer().Bytes()), expectedBalance))
+			fmt.Println(fmt.Sprintf("checking account %s has balance %d", acc.AddressContainer().Bytes(), expectedBalance))
 			assert.Equal(t, expectedBalance, acc.(*state.Account).Balance)
 		}
 	}

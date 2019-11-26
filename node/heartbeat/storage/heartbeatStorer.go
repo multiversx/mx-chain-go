@@ -1,16 +1,15 @@
 package storage
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("node/heartbeat/storage")
 
 const peersKeysDbEntry = "keys"
 const genesisTimeDbEntry = "genesisTime"
@@ -69,7 +68,8 @@ func (hs *HeartbeatDbStorer) UpdateGenesisTime(genesisTime time.Time) error {
 	}
 
 	if genesisTimeFromDb != genesisTime {
-		log.Info(fmt.Sprintf("updated heartbeat's genesis time to %s", genesisTimeFromDb))
+		log.Debug("updated heartbeat's genesis time",
+			"time [s]", genesisTimeFromDb)
 	}
 
 	return nil

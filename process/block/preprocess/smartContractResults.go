@@ -1,7 +1,6 @@
 package preprocess
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -102,13 +101,15 @@ func (scr *smartContractResults) waitForScrHashes(waitTime time.Duration) error 
 // IsDataPrepared returns non error if all the requested smartContractResults arrived and were saved into the pool
 func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func() time.Duration) error {
 	if requestedScrs > 0 {
-		log.Info(fmt.Sprintf("requested %d missing scr\n", requestedScrs))
+		log.Debug("requested missing scrs",
+			"num scrs", requestedScrs)
 		err := scr.waitForScrHashes(haveTime())
 		scr.scrForBlock.mutTxsForBlock.RLock()
 		missingScrs := scr.scrForBlock.missingTxs
 		scr.scrForBlock.missingTxs = 0
 		scr.scrForBlock.mutTxsForBlock.RUnlock()
-		log.Info(fmt.Sprintf("received %d missing scr\n", requestedScrs-missingScrs))
+		log.Debug("received missing scrs",
+			"num scrs", requestedScrs-missingScrs)
 		if err != nil {
 			return err
 		}
@@ -146,6 +147,12 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 		scrBuff, err := scr.storage.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
+			log.Debug("unsigned tx from mini block was not found in UnsignedTransactionUnit",
+				"sender shard ID", miniBlock.SenderShardID,
+				"receiver shard ID", miniBlock.ReceiverShardID,
+				"num txs", len(miniBlock.TxHashes),
+			)
+
 			return scrRestored, err
 		}
 
@@ -157,11 +164,6 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 			}
 
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
-
-			err = scr.storage.GetStorer(dataRetriever.UnsignedTransactionUnit).Remove([]byte(txHash))
-			if err != nil {
-				return scrRestored, err
-			}
 		}
 
 		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
@@ -170,11 +172,6 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 		}
 
 		miniBlockPool.Put(miniBlockHash, miniBlock)
-
-		err = scr.storage.GetStorer(dataRetriever.MiniBlockUnit).Remove(miniBlockHash)
-		if err != nil {
-			return scrRestored, err
-		}
 
 		scrRestored += len(miniBlock.TxHashes)
 	}

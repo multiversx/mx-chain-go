@@ -1,37 +1,36 @@
 package facade
 
 import (
-	"fmt"
 	"math/big"
-	"strconv"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// DefaultRestPort is the default port the REST API will start on if not specified
-const DefaultRestPort = "8080"
+// DefaultRestInterface is the default interface the rest API will start on if not specified
+const DefaultRestInterface = "localhost:8080"
 
 // DefaultRestPortOff is the default value that should be passed if it is desired
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
+
+var log = logger.GetOrCreate("facade")
 
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
 	node                   NodeWrapper
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	log                    *logger.Logger
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 *config.FacadeConfig
 	restAPIServerDebugMode bool
@@ -51,11 +50,6 @@ func NewElrondNodeFacade(node NodeWrapper, apiResolver ApiResolver, restAPIServe
 		apiResolver:            apiResolver,
 		restAPIServerDebugMode: restAPIServerDebugMode,
 	}
-}
-
-// SetLogger sets the current logger
-func (ef *ElrondNodeFacade) SetLogger(log *logger.Logger) {
-	ef.log = log
 }
 
 // SetSyncer sets the current syncer
@@ -89,6 +83,12 @@ func (ef *ElrondNodeFacade) StartNode() error {
 	return err
 }
 
+// GetCurrentPublicKey is just a mock method to satisfies FacadeHandler
+//TODO: Remove this method when it will not be used in elrond facade
+func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
+	return ""
+}
+
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
 func (ef *ElrondNodeFacade) StartBackgroundServices(wg *sync.WaitGroup) {
 	wg.Add(1)
@@ -105,26 +105,18 @@ func (ef *ElrondNodeFacade) RestAPIServerDebugMode() bool {
 	return ef.restAPIServerDebugMode
 }
 
-// RestApiPort returns the port on which the api should start on, based on the config file provided.
-// The API will start on the DefaultRestPort value unless a correct value is passed or
+// RestApiInterface returns the interface on which the rest API should start on, based on the config file provided.
+// The API will start on the DefaultRestInterface value unless a correct value is passed or
 //  the value is explicitly set to off, in which case it will not start at all
-func (ef *ElrondNodeFacade) RestApiPort() string {
+func (ef *ElrondNodeFacade) RestApiInterface() string {
 	if ef.config == nil {
-		return DefaultRestPort
+		return DefaultRestInterface
 	}
-	if ef.config.RestApiPort == "" {
-		return DefaultRestPort
-	}
-	if ef.config.RestApiPort == DefaultRestPortOff {
-		return DefaultRestPortOff
+	if ef.config.RestApiInterface == "" {
+		return DefaultRestInterface
 	}
 
-	_, err := strconv.ParseInt(ef.config.RestApiPort, 10, 32)
-	if err != nil {
-		return DefaultRestPort
-	}
-
-	return ef.config.RestApiPort
+	return ef.config.RestApiInterface
 }
 
 // PrometheusMonitoring returns if prometheus is enabled for monitoring by the flag
@@ -145,15 +137,17 @@ func (ef *ElrondNodeFacade) PrometheusNetworkID() string {
 func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	switch ef.RestApiPort() {
+	switch ef.RestApiInterface() {
 	case DefaultRestPortOff:
-		ef.log.Info(fmt.Sprintf("Web server is off"))
+		log.Debug("web server is off")
 		break
 	default:
-		ef.log.Info("Starting web server...")
+		log.Debug("starting web server...")
 		err := api.Start(ef)
 		if err != nil {
-			ef.log.Error("Could not start webserver", err.Error())
+			log.Debug("could not start webserver",
+				"error", err.Error(),
+			)
 		}
 	}
 }
@@ -226,7 +220,7 @@ func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) ExecuteSCQuery(query *smartContract.SCQuery) (*vmcommon.VMOutput, error) {
+func (ef *ElrondNodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return ef.apiResolver.ExecuteSCQuery(query)
 }
 
