@@ -54,7 +54,7 @@ VERSION:
 	// logLevel defines the logger levels and patterns
 	fetchInterval = cli.IntFlag{
 		Name:        "interval",
-		Usage:       "This flag specifies the the interval in second until new data is fetched from the node",
+		Usage:       "This flag specifies the duration in seconds until new data is fetched from the node",
 		Value:       2,
 		Destination: &argsConfig.interval,
 	}

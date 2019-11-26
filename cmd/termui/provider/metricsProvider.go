@@ -103,6 +103,8 @@ func (smp *StatusMetricsProvider) applyMetricsToPresenter(metricsMap map[string]
 func (smp *StatusMetricsProvider) setPresenterValue(key string, value interface{}) error {
 	switch v := value.(type) {
 	case float64:
+		// json unmarshal treats all the numbers (in a field interface{}) as floats so we need to cast it to uint64
+		// because it is the numeric type used by the presenter
 		smp.presenter.SetUInt64Value(key, uint64(v))
 	case string:
 		smp.presenter.SetStringValue(key, v)
