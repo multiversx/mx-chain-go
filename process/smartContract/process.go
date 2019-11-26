@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -41,8 +41,9 @@ type scProcessor struct {
 	mutSCState   sync.Mutex
 	mapExecState map[uint64]scExecutionState
 
-	scrForwarder process.IntermediateTransactionHandler
-	txFeeHandler process.TransactionFeeHandler
+	scrForwarder  process.IntermediateTransactionHandler
+	txFeeHandler  process.TransactionFeeHandler
+	txTypeHandler process.TxTypeHandler
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -57,36 +58,40 @@ func NewSmartContractProcessor(
 	coordinator sharding.Coordinator,
 	scrForwarder process.IntermediateTransactionHandler,
 	txFeeHandler process.TransactionFeeHandler,
+	txTypeHandler process.TxTypeHandler,
 ) (*scProcessor, error) {
-	if vmContainer == nil || vmContainer.IsInterfaceNil() {
+	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
 	}
-	if argsParser == nil || argsParser.IsInterfaceNil() {
+	if check.IfNil(argsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if accountsDB == nil || accountsDB.IsInterfaceNil() {
+	if check.IfNil(accountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if tempAccounts == nil || tempAccounts.IsInterfaceNil() {
+	if check.IfNil(tempAccounts) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if adrConv == nil || adrConv.IsInterfaceNil() {
+	if check.IfNil(adrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
+	if check.IfNil(scrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
+	}
+	if check.IfNil(txTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
 	}
 
 	return &scProcessor{
@@ -100,46 +105,16 @@ func NewSmartContractProcessor(
 		shardCoordinator: coordinator,
 		scrForwarder:     scrForwarder,
 		txFeeHandler:     txFeeHandler,
+		txTypeHandler:    txTypeHandler,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
 }
 
-// ComputeTransactionType calculates the type of the transaction
-func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
-	err := sc.checkTxValidity(tx)
-	if err != nil {
-		return 0, err
-	}
-
-	isEmptyAddress := sc.isDestAddressEmpty(tx)
-	if isEmptyAddress {
-		if len(tx.Data) > 0 {
-			return process.SCDeployment, nil
-		}
-		return 0, process.ErrWrongTransaction
-	}
-
-	acntDst, err := sc.getAccountFromAddress(tx.RcvAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	if acntDst == nil || acntDst.IsInterfaceNil() {
-		return process.MoveBalance, nil
-	}
-
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
-		return process.SCInvoking, nil
-	}
-
-	return process.MoveBalance, nil
-}
-
-func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
+func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.RcvAddr)
+	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.GetRecvAddress())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}
@@ -147,14 +122,14 @@ func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
 	return nil
 }
 
-func (sc *scProcessor) isDestAddressEmpty(tx *transaction.Transaction) bool {
-	isEmptyAddress := bytes.Equal(tx.RcvAddr, make([]byte, sc.adrConv.AddressLen()))
+func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
+	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, sc.adrConv.AddressLen()))
 	return isEmptyAddress
 }
 
 // ExecuteSmartContractTransaction processes the transaction, call the VM and processes the SC call output
 func (sc *scProcessor) ExecuteSmartContractTransaction(
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 	acntSnd, acntDst state.AccountHandler,
 	round uint64,
 ) error {
@@ -206,8 +181,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	return nil
 }
 
-func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	err := sc.argsParser.ParseData(tx.Data)
+func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
+	err := sc.argsParser.ParseData(tx.GetData())
 	if err != nil {
 		return err
 	}
@@ -217,13 +192,13 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 		return err
 	}
 
-	nonce := tx.Nonce
+	nonce := tx.GetNonce()
 	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
 		nonce = acntSnd.GetNonce()
 	}
 
-	txValue := big.NewInt(0).Set(tx.Value)
-	sc.tempAccounts.AddTempAccount(tx.SndAddr, txValue, nonce)
+	txValue := big.NewInt(0).Set(tx.GetValue())
+	sc.tempAccounts.AddTempAccount(tx.GetSndAddress(), txValue, nonce)
 
 	return nil
 }
@@ -241,8 +216,8 @@ func (sc *scProcessor) getVMTypeFromArguments(arg *big.Int) ([]byte, error) {
 	return vmAppendedType, nil
 }
 
-func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcommon.VMExecutionHandler, error) {
-	vmType := core.GetVMType(tx.RcvAddr)
+func (sc *scProcessor) getVMFromRecvAddress(tx data.TransactionHandler) (vmcommon.VMExecutionHandler, error) {
+	vmType := core.GetVMType(tx.GetRecvAddress())
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		return nil, err
@@ -252,7 +227,7 @@ func (sc *scProcessor) getVMFromRecvAddress(tx *transaction.Transaction) (vmcomm
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 	acntSnd state.AccountHandler,
 	round uint64,
 ) error {
@@ -303,7 +278,7 @@ func (sc *scProcessor) DeploySmartContract(
 	return nil
 }
 
-func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon.ContractCallInput, error) {
+func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.ContractCallInput, error) {
 	vmInput, err := sc.createVMInput(tx)
 	if err != nil {
 		return nil, err
@@ -316,13 +291,13 @@ func (sc *scProcessor) createVMCallInput(tx *transaction.Transaction) (*vmcommon
 		return nil, err
 	}
 
-	vmCallInput.RecipientAddr = tx.RcvAddr
+	vmCallInput.RecipientAddr = tx.GetRecvAddress()
 
 	return vmCallInput, nil
 }
 
 func (sc *scProcessor) createVMDeployInput(
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 ) (*vmcommon.ContractCreateInput, []byte, error) {
 	vmInput, err := sc.createVMInput(tx)
 	if err != nil {
@@ -356,18 +331,18 @@ func (sc *scProcessor) createVMDeployInput(
 	return vmCreateInput, vmType, nil
 }
 
-func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMInput, error) {
+func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMInput, error) {
 	var err error
 	vmInput := &vmcommon.VMInput{}
 
-	vmInput.CallerAddr = tx.SndAddr
+	vmInput.CallerAddr = tx.GetSndAddress()
 	vmInput.Arguments, err = sc.argsParser.GetArguments()
 	if err != nil {
 		return nil, err
 	}
-	vmInput.CallValue = tx.Value
-	vmInput.GasPrice = big.NewInt(int64(tx.GasPrice))
-	vmInput.GasProvided = big.NewInt(int64(tx.GasLimit))
+	vmInput.CallValue = tx.GetValue()
+	vmInput.GasPrice = big.NewInt(int64(tx.GetGasPrice()))
+	vmInput.GasProvided = big.NewInt(int64(tx.GetGasLimit()))
 
 	//TODO: change this when we know for what they are used.
 	scCallHeader := &vmcommon.SCCallHeader{}
@@ -382,7 +357,7 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
-func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
 		// transaction was already done at sender shard
 		return nil
@@ -394,8 +369,8 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 	}
 
 	cost := big.NewInt(0)
-	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost = cost.Add(cost, tx.Value)
+	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
+	cost = cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil
@@ -421,7 +396,7 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 
 func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 	acntSnd state.AccountHandler,
 	round uint64,
 ) ([]data.TransactionHandler, *big.Int, error) {
@@ -455,7 +430,7 @@ func (sc *scProcessor) processVMOutput(
 		}
 
 		totalCost := big.NewInt(0)
-		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.Value))
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -538,13 +513,13 @@ func (sc *scProcessor) createSmartContractResult(
 
 func (sc *scProcessor) createSCRTransactions(
 	outAccs []*vmcommon.OutputAccount,
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 	txHash []byte,
 ) ([]data.TransactionHandler, error) {
 	scResults := make([]data.TransactionHandler, 0)
 
 	for i := 0; i < len(outAccs); i++ {
-		scTx := sc.createSmartContractResult(outAccs[i], tx.RcvAddr, txHash)
+		scTx := sc.createSmartContractResult(outAccs[i], tx.GetRecvAddress(), txHash)
 		scResults = append(scResults, scTx)
 	}
 
@@ -554,25 +529,25 @@ func (sc *scProcessor) createSCRTransactions(
 // give back the user the unused gas money
 func (sc *scProcessor) refundGasToSender(
 	gasRefund *big.Int,
-	tx *transaction.Transaction,
+	tx data.TransactionHandler,
 	txHash []byte,
 	acntSnd state.AccountHandler,
 ) (*smartContractResult.SmartContractResult, *big.Int, error) {
 	consumedFee := big.NewInt(0)
-	consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+	consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 	if gasRefund == nil || gasRefund.Cmp(big.NewInt(0)) <= 0 {
 		return nil, consumedFee, nil
 	}
 
 	refundErd := big.NewInt(0)
-	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GasPrice)))
+	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GetGasPrice())))
 	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
 	scTx := &smartContractResult.SmartContractResult{}
 	scTx.Value = refundErd
-	scTx.RcvAddr = tx.SndAddr
-	scTx.SndAddr = tx.RcvAddr
-	scTx.Nonce = tx.Nonce + 1
+	scTx.RcvAddr = tx.GetSndAddress()
+	scTx.SndAddr = tx.GetRecvAddress()
+	scTx.Nonce = tx.GetNonce() + 1
 	scTx.TxHash = txHash
 
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
@@ -594,9 +569,9 @@ func (sc *scProcessor) refundGasToSender(
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
-func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx *transaction.Transaction) error {
+func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.OutputAccount, tx data.TransactionHandler) error {
 	sumOfAllDiff := big.NewInt(0)
-	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.Value)
+	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
 	zero := big.NewInt(0)
 	for i := 0; i < len(outputAccounts); i++ {
@@ -790,15 +765,36 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return process.ErrNilSmartContractResult
 	}
 
-	accHandler, err := sc.getAccountFromAddress(scr.RcvAddr)
+	dstAcc, err := sc.getAccountFromAddress(scr.RcvAddr)
 	if err != nil {
 		return err
 	}
-	if accHandler == nil || accHandler.IsInterfaceNil() {
+	if dstAcc == nil || dstAcc.IsInterfaceNil() {
 		return process.ErrNilSCDestAccount
 	}
 
-	stAcc, ok := accHandler.(*state.Account)
+	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
+	if err != nil {
+		return err
+	}
+
+	switch txType {
+	case process.MoveBalance:
+		return sc.processSimpleSCR(scr, dstAcc)
+	case process.SCDeployment:
+		return process.ErrSCDeployFromSCRIsNotPermitted
+	case process.SCInvoking:
+		return sc.ExecuteSmartContractTransaction(scr, nil, dstAcc, 0)
+	}
+
+	return process.ErrWrongTransaction
+}
+
+func (sc *scProcessor) processSimpleSCR(
+	scr *smartContractResult.SmartContractResult,
+	dstAcc state.AccountHandler,
+) error {
+	stAcc, ok := dstAcc.(*state.Account)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
