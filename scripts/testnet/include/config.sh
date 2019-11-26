@@ -102,6 +102,7 @@ copyTxGenConfig() {
 
   cp $TXGENDIR/config/config.toml ./txgen/config/
   cp $TXGENDIR/config/sc.toml ./txgen/config/
+  cp $TXGENDIR/config/*.wasm ./txgen/config/
 
   cp ./node/config/economics.toml ./txgen/config/
   cp ./node/config/initialBalancesSk.pem ./txgen/config
