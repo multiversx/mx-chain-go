@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
@@ -91,7 +92,6 @@ const OpGasValueForMockVm = uint64(50)
 
 // TimeSpanForBadHeaders is the expiry time for an added block header hash
 var TimeSpanForBadHeaders = time.Second * 30
-
 
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
@@ -176,11 +176,14 @@ func NewTestProcessorNode(
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	pkBytes, _ := pk.ToByteArray()
+	pkAddr := []byte("aaa00000000000000000000000000000")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32) (validators []sharding.Validator, err error) {
-			validator := mock.NewValidatorMock(big.NewInt(0), 0, pkBytes, []byte("add"))
-			return []sharding.Validator{validator}, nil
+
+			address := pkAddr
+			v, _ := sharding.NewValidator(big.NewInt(0), 1, pkAddr, address)
+
+			return []sharding.Validator{v}, nil
 		},
 	}
 
@@ -314,7 +317,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				BurnAddress:      "addr2",
 			},
 			RewardsSettings: config.RewardsSettings{
-				RewardsValue:        "1000",
+				RewardsValue:        "999",
 				CommunityPercentage: 0.10,
 				LeaderPercentage:    0.50,
 				BurnPercentage:      0.40,
@@ -490,6 +493,10 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 
+	mockVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
+	mockVM.GasForOperation = OpGasValueForMockVm
+	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
+
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
@@ -578,6 +585,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 
+	tpn.addMockVm(tpn.BlockchainHook)
+
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
@@ -589,6 +598,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressConverter,
 		tpn.ShardCoordinator,
 		tpn.ScrForwarder,
+		&metaProcess.TransactionFeeHandler{},
 		&metaProcess.TransactionFeeHandler{},
 	)
 
@@ -632,7 +642,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(blockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm
 
-	_ = tpn.VmProcessors.Add(factory.InternalTestingVM, mockVM)
+	_ = tpn.VMContainer.Add(factory.InternalTestingVM, mockVM)
 }
 
 func (tpn *TestProcessorNode) initBlockProcessor() {

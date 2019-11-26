@@ -2076,6 +2076,7 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scForwarder,
 		&metachain.TransactionFeeHandler{},
+		economics,
 	)
 	if err != nil {
 		return nil, err

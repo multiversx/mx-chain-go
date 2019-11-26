@@ -75,9 +75,10 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	nonce++
 
 	///////////------- send stake tx and check sender's balance
+	var txData string
 	for _, node := range nodes {
 		pubKey, _ := node.NodeKeys.Pk.ToByteArray()
-		txData := "stake" + "@" + hex.EncodeToString(pubKey)
+		txData = "stake" + "@" + hex.EncodeToString(pubKey)
 		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), factory.StakingSCAddress, txData)
 	}
 
@@ -93,6 +94,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
+	consumedBalance := big.NewInt(0).Add(big.NewInt(int64(len(txData))), big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit))
+	consumedBalance.Mul(consumedBalance, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	// verify if staking was done - value taken out of accounts
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
@@ -100,15 +103,20 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
-				assert.Equal(t, big.NewInt(0).Sub(initialVal, node.EconomicsData.StakeValue()), sndAcc.Balance)
+				expectedValue := big.NewInt(0).Sub(initialVal, node.EconomicsData.StakeValue())
+				expectedValue = expectedValue.Sub(expectedValue, consumedBalance)
+				assert.Equal(t, expectedValue, sndAcc.Balance)
 				break
 			}
 		}
 	}
 
 	/////////------ send unStake tx
+	txData = "unStake"
+	consumed := big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
+	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	consumedBalance.Add(consumedBalance, consumed)
 	for _, node := range nodes {
-		txData := "unStake"
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
 	}
 
@@ -130,8 +138,11 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	}
 
 	////////----- send unBound
+	txData = "unBound"
+	consumed = big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
+	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	consumedBalance.Add(consumedBalance, consumed)
 	for _, node := range nodes {
-		txData := "unBound"
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.StakingSCAddress, txData)
 	}
 
@@ -151,7 +162,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
-				assert.Equal(t, initialVal, sndAcc.Balance)
+				expectedValue := big.NewInt(0).Sub(initialVal, consumedBalance)
+				assert.Equal(t, expectedValue, sndAcc.Balance)
 				break
 			}
 		}

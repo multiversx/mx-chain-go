@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -371,7 +370,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 		integrationTests.ProposeBlock(nodes, idxProposersWithoutShard1, round, nonce)
 
 		hdr, body, isBodyEmpty := integrationTests.ProposeBlockSignalsEmptyBlock(nodes[idxProposerShard1], round, nonce)
-		if isBodyEmpty {
+		if !isBodyEmpty {
 			nodes[idxProposerShard1].CommitBlock(body, hdr)
 			integrationTests.SyncBlock(t, nodes, idxProposers, round)
 			round = integrationTests.IncrementAndPrintRound(round)
@@ -404,8 +403,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	logger.DefaultLogger().SetLevel("DEBUG")
 
 	maxShards := 2
 	consensusGroupSize := 2
