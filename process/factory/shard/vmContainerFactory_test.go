@@ -70,7 +70,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, container)
 
-	vm, err := container.Get(factory.IELEVirtualMachine)
+	vm, err := container.Get(factory.ArwenVirtualMachine)
 	assert.Nil(t, err)
 	assert.NotNil(t, vm)
 

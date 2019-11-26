@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"strconv"
 	"testing"
 	"time"
 
@@ -414,7 +413,7 @@ func runMultipleRoundsOfTheGame(
 				nodes,
 				player,
 				topUpValue,
-				strconv.Itoa(currentRound),
+				int32(currentRound),
 				hardCodedScResultingAddress,
 			)
 		}
@@ -425,7 +424,7 @@ func runMultipleRoundsOfTheGame(
 		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], int32(currentRound), hardCodedScResultingAddress)
 		}
 
 		// waiting to disseminate transactions

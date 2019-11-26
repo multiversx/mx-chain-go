@@ -453,7 +453,7 @@ type processComponentsFactoryArgs struct {
 	genesisConfig        *sharding.Genesis
 	economicsData        *economics.EconomicsData
 	nodesConfig          *sharding.NodesSetup
-	gasSchedule          map[string]uint64
+	gasSchedule          map[string]map[string]uint64
 	syncer               ntp.SyncTimer
 	shardCoordinator     sharding.Coordinator
 	nodesCoordinator     sharding.NodesCoordinator
@@ -471,7 +471,7 @@ func NewProcessComponentsFactoryArgs(
 	genesisConfig *sharding.Genesis,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
-	gasSchedule map[string]uint64,
+	gasSchedule map[string]map[string]uint64,
 	syncer ntp.SyncTimer,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1791,7 +1791,7 @@ func newShardBlockProcessor(
 	economics *economics.EconomicsData,
 	rounder consensus.Rounder,
 	statisticsProcessor process.ValidatorStatisticsProcessor,
-	gasSchedule map[string]uint64,
+	gasSchedule map[string]map[string]uint64,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1867,6 +1867,7 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		scForwarder,
 		rewardsTxHandler,
+		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -2079,6 +2080,7 @@ func newMetaBlockProcessor(
 		shardCoordinator,
 		scForwarder,
 		&metachain.TransactionFeeHandler{},
+		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -2151,7 +2153,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCQueryService(vmContainer)
+	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economics.MaxGasLimitPerBlock())
 	if err != nil {
 		return nil, err
 	}

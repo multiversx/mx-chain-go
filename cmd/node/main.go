@@ -1280,7 +1280,7 @@ func createApiResolver(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
-	gasSchedule map[string]uint64,
+	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
@@ -1313,7 +1313,7 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer)
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics.MaxGasLimitPerBlock())
 	if err != nil {
 		return nil, err
 	}

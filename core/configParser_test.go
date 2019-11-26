@@ -71,8 +71,8 @@ func TestLoadGasScheduleConfig(t *testing.T) {
 	file, err := os.Create("testGasSchedule.toml")
 	assert.Nil(t, err)
 
-	file.WriteString(testString)
-	file.Close()
+	_, _ = file.WriteString(testString)
+	_ = file.Close()
 
 	gasSchedule, err := core.LoadGasScheduleConfig("testGasSchedule.toml")
 	assert.Nil(t, err)
@@ -90,5 +90,5 @@ func TestLoadGasScheduleConfig(t *testing.T) {
 	expectedGasSchedule["I64Load"] = 12
 	expectedGasSchedule["MemoryCopy"] = 14623
 
-	assert.Equal(t, expectedGasSchedule, gasSchedule)
+	assert.Equal(t, expectedGasSchedule, gasSchedule["GasSchedule"])
 }
