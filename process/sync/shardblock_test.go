@@ -3259,7 +3259,12 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 		return &block.Header{}
 	}
 	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
+	blkExec := &mock.BlockProcessorMock{
+		RevertStateToBlockCalled: func(header data.HeaderHandler) error {
+			wasCalled = true
+			return errExpected
+		},
+	}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{
@@ -3268,12 +3273,7 @@ func TestBootstrap_LoadBlocksShouldErrWhenRecreateTrieFail(t *testing.T) {
 		},
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
-			wasCalled = true
-			return errExpected
-		},
-	}
+	account := &mock.AccountsStub{}
 	storageBootstrapper := NewStorageBootstrapperMock()
 
 	store := createStore()
