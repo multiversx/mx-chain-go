@@ -78,17 +78,14 @@ func (bpm *BlockProcessorMock) SetConsensusData(randomness []byte, round uint64,
 }
 
 // RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (blProcMock *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
-	if blProcMock.RevertStateToBlockCalled != nil {
-		return blProcMock.RevertStateToBlock(header)
+func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) error {
+	if bpm.RevertStateToBlockCalled != nil {
+		return bpm.RevertStateToBlockCalled(header)
 	}
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
-	if bpm == nil {
-		return true
-	}
-	return false
+	return bpm == nil
 }

@@ -519,6 +519,12 @@ func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
 	return hashDst
 }
 
+// Clone returns a clone of the object
+func (h *Header) Clone() data.HeaderHandler {
+	headerCopy := *h
+	return &headerCopy
+}
+
 // IntegrityAndValidity checks if data is valid
 func (b Body) IntegrityAndValidity() error {
 	if b == nil || b.IsInterfaceNil() {
