@@ -580,3 +580,6 @@ var ErrNilMediator = errors.New("nil mediator")
 
 // ErrMissingShardDataInStorage signals that some ShardData information is missing from storage
 var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")
+
+// ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
+var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
