@@ -28,17 +28,18 @@ func LoadServersPConfig(filepath string) (*config.ServersConfig, error) {
 }
 
 // LoadGasScheduleConfig returns a map[string]uint64 of gas costs read from the provided config file
-func LoadGasScheduleConfig(filepath string) (map[string]uint64, error) {
+func LoadGasScheduleConfig(filepath string) (map[string]map[string]uint64, error) {
 	gasScheduleConfig, err := LoadTomlFileToMap(filepath)
 	if err != nil {
 		return nil, err
 	}
 
-	flattenedGasSchedule := make(map[string]uint64)
-	for _, costs := range gasScheduleConfig {
+	flattenedGasSchedule := make(map[string]map[string]uint64)
+	for libType, costs := range gasScheduleConfig {
+		flattenedGasSchedule[libType] = make(map[string]uint64)
 		costsMap := costs.(map[string]interface{})
 		for operationName, cost := range costsMap {
-			flattenedGasSchedule[operationName] = uint64(cost.(int64))
+			flattenedGasSchedule[libType][operationName] = uint64(cost.(int64))
 		}
 	}
 

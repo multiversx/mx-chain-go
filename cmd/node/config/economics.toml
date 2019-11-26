@@ -11,9 +11,9 @@
     DenominationCoefficientForView = "0.0001"
 
 [FeeSettings]
-    MaxGasLimitPerBlock = "5000000000000000"
+    MaxGasLimitPerBlock = "1500000000"
     MinGasPrice = "0"
-    MinGasLimit = "5"
+    MinGasLimit = "100000"
 
 [ValidatorSettings]
     StakeValue = "500000000000000000000000"
