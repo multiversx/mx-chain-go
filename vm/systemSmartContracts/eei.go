@@ -202,7 +202,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 	vmOutput.GasRefund = big.NewInt(0)
 
 	if len(host.output) > 0 {
-		vmOutput.ReturnData = append(vmOutput.ReturnData, big.NewInt(0).SetBytes(host.output))
+		vmOutput.ReturnData = append(vmOutput.ReturnData, host.output)
 	}
 
 	return vmOutput
