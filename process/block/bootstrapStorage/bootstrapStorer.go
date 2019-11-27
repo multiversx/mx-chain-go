@@ -19,8 +19,8 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 var ErrNilBootStorer = errors.New("nil boot storer")
 
 type MiniBlocksInMeta struct {
-	MetaHash        []byte
-	MiniBlockHashes [][]byte
+	MetaHash         []byte
+	MiniBlocksHashes [][]byte
 }
 
 //BootstrapHeaderInfo is struct used to store information about a header

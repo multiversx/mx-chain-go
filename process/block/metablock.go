@@ -938,8 +938,8 @@ func (mp *metaProcessor) CommitBlock(
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: sharding.MetachainShardId,
-		Nonce:   header.Nonce,
+		ShardId: header.GetShardID(),
+		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
 	mp.prepareDataForBootStorer(headerInfo, header.Round, nil, nil, nil)
@@ -957,8 +957,9 @@ func (mp *metaProcessor) CommitBlock(
 
 	return nil
 }
+
 // ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (mp *metaProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
 }
 
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {

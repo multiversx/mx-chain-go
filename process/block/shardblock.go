@@ -745,8 +745,8 @@ func (sp *shardProcessor) CommitBlock(
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: header.ShardId,
-		Nonce:   header.Nonce,
+		ShardId: header.GetShardID(),
+		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
 
@@ -756,11 +756,11 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.mutProcessedMiniBlocks.RLock()
 	log.Debug("processed mini blocks on commit block")
-	for key, value := range sp.processedMiniBlocks {
+	for metaBlockHash, miniBlocksHashes := range sp.processedMiniBlocks {
 		log.Debug("processed",
-			"meta block hash", []byte(key))
+			"meta block hash", []byte(metaBlockHash))
 
-		for miniBlockHash := range value {
+		for miniBlockHash := range miniBlocksHashes {
 			log.Debug("processed",
 				"mini block hash", []byte(miniBlockHash))
 
@@ -770,10 +770,6 @@ func (sp *shardProcessor) CommitBlock(
 	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
 	sp.mutProcessedMiniBlocks.RUnlock()
 
-	if errNotCritical != nil {
-		log.Debug("commit block",
-			"cannot marshal processed mini block map", errNotCritical.Error())
-	}
 	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlocks)
 
 	go sp.cleanTxsPools()
@@ -807,12 +803,8 @@ func (sp *shardProcessor) CommitBlock(
 // ApplyProcessedMiniBlocks will apply processed mini blocks
 func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
 	sp.mutProcessedMiniBlocks.Lock()
-	for metaHash, miniBlockHashes := range processedMiniBlocks {
-		mapMiniBlockHashes := make(map[string]struct{})
-		for miniBlockHash := range miniBlockHashes {
-			mapMiniBlockHashes[miniBlockHash] = struct{}{}
-		}
-		sp.processedMiniBlocks[metaHash] = mapMiniBlockHashes
+	for metaHash, miniBlocksHashes := range processedMiniBlocks {
+		sp.processedMiniBlocks[metaHash] = miniBlocksHashes
 	}
 	sp.mutProcessedMiniBlocks.Unlock()
 }

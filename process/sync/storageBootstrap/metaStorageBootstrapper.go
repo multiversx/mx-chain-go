@@ -82,10 +82,9 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(lastNotarized map[ui
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardId)
 		storer := msb.store.GetStorer(hdrNonceHashDataUnit)
 		nonceToByteSlice := msb.uint64Converter.ToByteSlice(hdrInfo.Nonce)
-
 		err := storer.Remove(nonceToByteSlice)
 		if err != nil {
-			log.Info("header cannot be removed", "error", err.Error(),
+			log.Debug("header cannot be removed", "error", err.Error(),
 				"nonce", hdrInfo.Nonce, "shardId", shardId)
 		}
 	}

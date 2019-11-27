@@ -113,7 +113,6 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(lastNotarized map[u
 	for shardId, hdrInfo := range lastNotarized {
 		storer := ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 		nonceToByteSlice := ssb.uint64Converter.ToByteSlice(hdrInfo.Nonce)
-
 		err := storer.Remove(nonceToByteSlice)
 		if err != nil {
 			log.Debug("header cannot be removed", "error", err.Error(),

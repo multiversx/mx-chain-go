@@ -1,8 +1,6 @@
 package storageBootstrap
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -97,10 +95,10 @@ func (st *storageBootstrapper) loadBlocks() error {
 	processedMiniBlocks := process.ConvertSliceToProcessedMiniBlocksMap(storageHeaderInfo.ProcessedMiniBlocks)
 
 	log.Debug("processed mini blocks applied")
-	for metaBlockHash, miniBlockHashes := range processedMiniBlocks {
+	for metaBlockHash, miniBlocksHashes := range processedMiniBlocks {
 		log.Debug("processed",
 			"meta hash", []byte(metaBlockHash))
-		for miniBlockHash := range miniBlockHashes {
+		for miniBlockHash := range miniBlocksHashes {
 			log.Debug("processed",
 				"mini block hash", []byte(miniBlockHash))
 		}
@@ -110,7 +108,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
 		st.cleanupStorage(storageHeadersInfo[i].HeaderInfo.Nonce)
-		log.Info("cleanup storage :header with nonce", "nonce", storageHeadersInfo[i].HeaderInfo.Nonce)
+		log.Debug("cleanup storage: header with nonce", "nonce", storageHeadersInfo[i].HeaderInfo.Nonce)
 
 		lastNotarized := make(map[uint32]*sync.HdrInfo)
 		for _, lastNotarizedHeader := range storageHeadersInfo[i].LastNotarizedHeaders {
@@ -123,7 +121,6 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cleanup notarized storage", "notarized headers", len(lastNotarized))
 		st.bootstrapper.cleanupNotarizedStorage(lastNotarized)
 	}
-	log.Debug(fmt.Sprintf("\n"))
 
 	err = st.bootStorer.SaveLastRound(round)
 	if err != nil {
