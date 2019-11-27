@@ -2,6 +2,9 @@
 
 export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+export TESTNETMODE=$1
+export EXTRA=$2
+
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/config.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/build.sh"

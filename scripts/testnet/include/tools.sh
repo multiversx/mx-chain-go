@@ -18,7 +18,7 @@ startTxGen_NewAccounts() {
   setTerminalLayout "even-horizontal"
 
   setWorkdirForNextCommands "$TESTNETDIR/txgen" h
-  runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -num-shards $SHARDCOUNT -new-accounts" $1
+  runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -num-shards $SHARDCOUNT -new-accounts -sc-mode |& tee stdout.txt" $1
 }
 
 startTxGen_ExistingAccounts() {

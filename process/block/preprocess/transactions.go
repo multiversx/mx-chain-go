@@ -552,7 +552,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 
 		isGasLimitReached := addedGasLimitPerCrossShardMiniblock+currTxGasLimit > process.MaxGasLimitPerMiniBlock
 		if isGasLimitReached {
-			log.Trace("max gas limit per mini block is reached",
+			log.Debug("max gas limit per mini block is reached",
 				"num added txs", len(miniBlock.TxHashes),
 				"ordered txs", len(orderedTxs),
 			)
