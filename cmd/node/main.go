@@ -1258,7 +1258,7 @@ func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
 	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards)
 }
 
-func initStatsMonitor(config *config.Config, pubKey crypto.PublicKey, log logger.Logger,
+func initStatsFileMonitor(config *config.Config, pubKey crypto.PublicKey, log logger.Logger,
 	workingDir string) error {
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
