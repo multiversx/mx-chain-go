@@ -54,6 +54,10 @@ func (hhs *HeaderHandlerStub) GetSignature() []byte {
 	return hhs.GetSignatureCalled()
 }
 
+func (hhs *HeaderHandlerStub) GetLeaderSignature() []byte {
+	return hhs.GetSignatureCalled()
+}
+
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
 	panic("implement me")
 }
@@ -95,6 +99,10 @@ func (hhs *HeaderHandlerStub) SetPubKeysBitmap(pkbm []byte) {
 }
 
 func (hhs *HeaderHandlerStub) SetSignature(sg []byte) {
+	panic("implement me")
+}
+
+func (hhs *HeaderHandlerStub) SetLeaderSignature(sg []byte) {
 	panic("implement me")
 }
 

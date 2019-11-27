@@ -3,6 +3,7 @@ package shardchain
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -237,16 +238,25 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrue(t *testing.T) {
 	t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
-	args.Validity = 0
+	args.Validity = 1
 	args.Finality = 2
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
+	oldEpHeader := &block.MetaBlock{Nonce: 99, Epoch: 0}
+	prevHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, oldEpHeader)
+
 	hash := []byte("hash")
-	header := &block.MetaBlock{Nonce: 100, Epoch: 1}
+	header := &block.MetaBlock{Nonce: 100, Epoch: 1, PrevHash: prevHash}
 	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardId: 0, RootHash: hash, HeaderHash: hash}}
 	epochStartTrigger.ReceivedHeader(header)
+	epochStartTrigger.ReceivedHeader(oldEpHeader)
 
-	header = &block.MetaBlock{Nonce: 101, Epoch: 1}
+	prevHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	header = &block.MetaBlock{Nonce: 101, Epoch: 1, PrevHash: prevHash}
+	epochStartTrigger.ReceivedHeader(header)
+
+	prevHash, _ = core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	header = &block.MetaBlock{Nonce: 102, Epoch: 1, PrevHash: prevHash}
 	epochStartTrigger.ReceivedHeader(header)
 
 	assert.True(t, epochStartTrigger.IsEpochStart())

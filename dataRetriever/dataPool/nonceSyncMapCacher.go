@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("dataretriever/datapool")
 
 type nonceSyncMapCacher struct {
 	mergeMut             sync.Mutex

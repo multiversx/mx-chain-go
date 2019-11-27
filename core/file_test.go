@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +18,7 @@ type TestStruct struct {
 func TestOpenFile_NoExistingFileShouldErr(t *testing.T) {
 	t.Parallel()
 
-	file, err := core.OpenFile("testFile1", logger.DefaultLogger())
+	file, err := core.OpenFile("testFile1")
 
 	assert.Nil(t, file)
 	assert.Error(t, err)
@@ -32,7 +31,7 @@ func TestOpenFile_NoErrShouldPass(t *testing.T) {
 	_, err := os.Create(fileName)
 	assert.Nil(t, err)
 
-	file, err := core.OpenFile(fileName, logger.DefaultLogger())
+	file, err := core.OpenFile(fileName)
 	if _, errF := os.Stat(fileName); errF == nil {
 		_ = os.Remove(fileName)
 	}
@@ -46,7 +45,7 @@ func TestLoadTomlFile_NoExistingFileShouldErr(t *testing.T) {
 
 	cfg := &config.Config{}
 
-	err := core.LoadTomlFile(cfg, "file", logger.DefaultLogger())
+	err := core.LoadTomlFile(cfg, "file")
 
 	assert.Error(t, err)
 }
@@ -60,7 +59,7 @@ func TestLoadTomlFile_FileExitsShouldPass(t *testing.T) {
 	_, err := os.Create(fileName)
 	assert.Nil(t, err)
 
-	err = core.LoadTomlFile(cfg, fileName, logger.DefaultLogger())
+	err = core.LoadTomlFile(cfg, fileName)
 	if _, errF := os.Stat(fileName); errF == nil {
 		_ = os.Remove(fileName)
 	}
@@ -73,7 +72,7 @@ func TestLoadJSonFile_NoExistingFileShouldErr(t *testing.T) {
 
 	cfg := &config.Config{}
 
-	err := core.LoadJsonFile(cfg, "file", logger.DefaultLogger())
+	err := core.LoadJsonFile(cfg, "file")
 
 	assert.Error(t, err)
 
@@ -95,7 +94,7 @@ func TestLoadJSonFile_FileExitsShouldPass(t *testing.T) {
 	err = file.Close()
 	assert.Nil(t, err)
 
-	err = core.LoadJsonFile(cfg, fileName, logger.DefaultLogger())
+	err = core.LoadJsonFile(cfg, fileName)
 	if _, errF := os.Stat(fileName); errF == nil {
 		_ = os.Remove(fileName)
 	}
@@ -106,7 +105,7 @@ func TestLoadJSonFile_FileExitsShouldPass(t *testing.T) {
 func TestLoadSkFromPemFile_InvalidSkIndexShouldErr(t *testing.T) {
 	t.Parallel()
 
-	data, err := core.LoadSkFromPemFile("testFile5", logger.DefaultLogger(), -1)
+	data, err := core.LoadSkFromPemFile("testFile5", -1)
 
 	assert.Nil(t, data)
 	assert.Equal(t, core.ErrInvalidIndex, err)
@@ -115,7 +114,7 @@ func TestLoadSkFromPemFile_InvalidSkIndexShouldErr(t *testing.T) {
 func TestLoadSkFromPemFile_NoExistingFileShouldErr(t *testing.T) {
 	t.Parallel()
 
-	data, err := core.LoadSkFromPemFile("testFile6", logger.DefaultLogger(), 0)
+	data, err := core.LoadSkFromPemFile("testFile6", 0)
 
 	assert.Nil(t, data)
 	assert.Error(t, err)
@@ -127,7 +126,7 @@ func TestLoadSkFromPemFile_EmptyFileShouldErr(t *testing.T) {
 	fileName := "testFile7"
 	_, err := os.Create(fileName)
 
-	data, err := core.LoadSkFromPemFile(fileName, logger.DefaultLogger(), 0)
+	data, err := core.LoadSkFromPemFile(fileName, 0)
 	if _, errF := os.Stat(fileName); errF == nil {
 		_ = os.Remove(fileName)
 	}
@@ -150,7 +149,7 @@ func TestLoadSkFromPemFile_ShouldPass(t *testing.T) {
 	_, _ = file.WriteString("ChQeKDI8\n")
 	_, _ = file.WriteString("-----END PRIVATE KEY for data-----")
 
-	data, err := core.LoadSkFromPemFile(fileName, logger.DefaultLogger(), 0)
+	data, err := core.LoadSkFromPemFile(fileName, 0)
 	if _, errF := os.Stat(fileName); errF == nil {
 		_ = os.Remove(fileName)
 	}
@@ -168,7 +167,7 @@ func TestLoadSkFromPemFile_InvalidPemFileShouldErr(t *testing.T) {
 
 	_, _ = file.WriteString("data")
 
-	data, err := core.LoadSkFromPemFile(fileName, logger.DefaultLogger(), 0)
+	data, err := core.LoadSkFromPemFile(fileName, 0)
 	if _, errF := os.Stat(fileName); errF == nil {
 		_ = os.Remove(fileName)
 	}
@@ -191,7 +190,7 @@ func TestLoadSkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 	_, _ = file.WriteString("ChQeKDI8\n")
 	_, _ = file.WriteString("-----END PRIVATE KEY for data-----")
 
-	data, err := core.LoadSkFromPemFile(fileName, logger.DefaultLogger(), 1)
+	data, err := core.LoadSkFromPemFile(fileName, 1)
 	if _, errF := os.Stat(fileName); errF == nil {
 		_ = os.Remove(fileName)
 	}

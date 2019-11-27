@@ -141,18 +141,21 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PrevRandSeed:           []byte("previous random seed"),
 		RandSeed:               []byte("random seed"),
 		RootHash:               []byte("root hash"),
-		ValidatorStatsRootHash: []byte("validator root hash"),
 		TxCount:                uint32(1),
+		ValidatorStatsRootHash: []byte("rootHash"),
 		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
+		LeaderSignature:        []byte("leader_sign"),
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{lastFinalHdr},
 		},
 	}
 	var b bytes.Buffer
-	_ = mb.Save(&b)
+	err := mb.Save(&b)
+	assert.Nil(t, err)
 
 	loadMb := block.MetaBlock{}
-	_ = loadMb.Load(&b)
+	err = loadMb.Load(&b)
+	assert.Nil(t, err)
 
 	assert.Equal(t, mb, loadMb)
 }
