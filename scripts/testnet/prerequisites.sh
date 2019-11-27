@@ -4,7 +4,7 @@ export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/n
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 
 # TODO adapt for Ubuntu (and systems other than Fedora)
-sudo dnf install -y git golang gcc
+sudo dnf install -y git golang gcc lsof
 
 cd $(dirname $ELRONDDIR)
 git clone https://github.com/ElrondNetwork/elrond-deploy-go.git
