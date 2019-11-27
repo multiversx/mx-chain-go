@@ -617,9 +617,7 @@ func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[str
 	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 
 	for metaHash, miniBlockHashes := range processedMiniBlocks {
-		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{}
-		miniBlocksInMeta.MetaHash = []byte(metaHash)
-		miniBlocksInMeta.MiniBlockHashes = make([][]byte, 0)
+		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{MetaHash: []byte(metaHash), MiniBlockHashes: make([][]byte, 0)}
 		for miniBlockHash := range miniBlockHashes {
 			miniBlocksInMeta.MiniBlockHashes = append(miniBlocksInMeta.MiniBlockHashes, []byte(miniBlockHash))
 		}
@@ -633,11 +631,11 @@ func ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStor
 	processedMiniBlocks := make(map[string]map[string]struct{})
 
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
-		mapMiniBlockHashes := make(map[string]struct{})
+		miniBlockHashes := make(map[string]struct{})
 		for _, miniBlockHash := range miniBlocksInMeta.MiniBlockHashes {
-			mapMiniBlockHashes[string(miniBlockHash)] = struct{}{}
+			miniBlockHashes[string(miniBlockHash)] = struct{}{}
 		}
-		processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = mapMiniBlockHashes
+		processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlockHashes
 	}
 
 	return processedMiniBlocks

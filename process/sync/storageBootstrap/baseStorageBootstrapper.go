@@ -110,7 +110,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
 		st.cleanupStorage(storageHeadersInfo[i].HeaderInfo.Nonce)
-		log.Info("cleanup storage :header with nonce", "nonce", storageHeadersInfo[i].HeaderInfo.Nonce)
+		log.Debug("cleanup storage: header with nonce", "nonce", storageHeadersInfo[i].HeaderInfo.Nonce)
 
 		lastNotarized := make(map[uint32]*sync.HdrInfo)
 		for _, lastNotarizedHeader := range storageHeadersInfo[i].LastNotarizedHeaders {
