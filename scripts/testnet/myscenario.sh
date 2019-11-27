@@ -21,8 +21,8 @@ sendTransactions() {
     -H "Content-Type: application/json" -X POST http://localhost:$PORT_TXGEN/transaction/send-multiple
 }
 
-echo "Waiting 3600s..."
-sleep 3600
+echo "Waiting 1800s..."
+sleep 1800
 
 while true
 do
