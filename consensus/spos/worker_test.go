@@ -24,6 +24,7 @@ func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
 	return &mock.NetworkShardingCollectorStub{
 		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
 		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
+		UpdatePeerIdShardIdCalled:    func(pid p2p.PeerID, shardId uint32) {},
 	}
 }
 

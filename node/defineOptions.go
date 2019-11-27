@@ -434,7 +434,7 @@ func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
 }
 
 // WithNetworkShardingCollector sets up a network sharding updater for the Node
-func WithNetworkShardingCollector(networkShardingCollector consensus.NetworkShardingCollector) Option {
+func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollector) Option {
 	return func(n *Node) error {
 		if check.IfNil(networkShardingCollector) {
 			return ErrNilNetworkShardingCollector
