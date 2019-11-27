@@ -2,7 +2,6 @@ package facade
 
 import (
 	"math/big"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -13,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
@@ -88,9 +89,8 @@ func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
-func (ef *ElrondNodeFacade) StartBackgroundServices(wg *sync.WaitGroup) {
-	wg.Add(1)
-	go ef.startRest(wg)
+func (ef *ElrondNodeFacade) StartBackgroundServices() {
+	go ef.startRest()
 }
 
 // IsNodeRunning gets if the underlying node is running
@@ -132,15 +132,15 @@ func (ef *ElrondNodeFacade) PrometheusNetworkID() string {
 	return ef.config.PrometheusJobName
 }
 
-func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (ef *ElrondNodeFacade) startRest() {
+	log.Trace("starting REST api server")
 
 	switch ef.RestApiInterface() {
 	case DefaultRestPortOff:
 		log.Debug("web server is off")
 		break
 	default:
-		log.Debug("starting web server...")
+		log.Debug("starting web server")
 		err := api.Start(ef)
 		if err != nil {
 			log.Debug("could not start webserver",
@@ -217,9 +217,9 @@ func (ef *ElrondNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return ef.apiResolver.StatusMetrics()
 }
 
-// GetVmValue retrieves data from existing SC trie
-func (ef *ElrondNodeFacade) GetVmValue(address string, funcName string, argsBuff ...[]byte) ([]byte, error) {
-	return ef.apiResolver.GetVmValue(address, funcName, argsBuff...)
+// ExecuteSCQuery retrieves data from existing SC trie
+func (ef *ElrondNodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+	return ef.apiResolver.ExecuteSCQuery(query)
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application

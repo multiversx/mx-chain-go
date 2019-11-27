@@ -602,6 +602,10 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		"",
 		"Signature",
 		display.DisplayByteSlice(headerHandler.GetSignature())}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Leader's Signature",
+		display.DisplayByteSlice(headerHandler.GetLeaderSignature())}))
 	lines = append(lines, display.NewLineData(true, []string{
 		"",
 		"Root hash",

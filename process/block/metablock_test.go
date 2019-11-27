@@ -43,7 +43,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:           mdp,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}
