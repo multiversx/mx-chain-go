@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 
 # TODO adapt for Ubuntu (and systems other than Fedora)
 sudo dnf install -y git golang gcc
