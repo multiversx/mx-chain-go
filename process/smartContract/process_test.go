@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
@@ -264,99 +263,6 @@ func TestNewSmartContractProcessor(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestScProcessor_ComputeTransactionTypeScDeployment(t *testing.T) {
-	t.Parallel()
-
-	addressConverter := &mock.AddressConverterMock{}
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(
-		addressConverter,
-		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AccountsStub{
-			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-				return nil, nil
-			},
-		},
-	)
-
-	assert.NotNil(t, txTypeHandler)
-	assert.Nil(t, err)
-
-	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
-	tx.Data = "data"
-	tx.Value = big.NewInt(45)
-
-	txType, err := txTypeHandler.ComputeTransactionType(tx)
-	assert.Nil(t, err)
-	assert.Equal(t, process.SCDeployment, txType)
-}
-
-func TestScProcessor_ComputeTransactionTypeScInvoking(t *testing.T) {
-	t.Parallel()
-
-	addrConverter := &mock.AddressConverterMock{}
-	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
-	tx.Value = big.NewInt(45)
-
-	_, acntDst := createAccounts(tx)
-	acntDst.SetCode([]byte("code"))
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(
-		addrConverter,
-		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AccountsStub{
-			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-				return acntDst, nil
-			},
-		},
-	)
-
-	assert.NotNil(t, txTypeHandler)
-	assert.Nil(t, err)
-
-	txType, err := txTypeHandler.ComputeTransactionType(tx)
-	assert.Nil(t, err)
-	assert.Equal(t, process.SCInvoking, txType)
-}
-
-func TestScProcessor_ComputeTransactionTypeMoveBalance(t *testing.T) {
-	t.Parallel()
-
-	addrConverter := &mock.AddressConverterMock{}
-	tx := &transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
-	tx.Data = "data"
-	tx.Value = big.NewInt(45)
-
-	_, acntDst := createAccounts(tx)
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(
-		addrConverter,
-		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AccountsStub{
-			GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-				return acntDst, nil
-			},
-		},
-	)
-
-	assert.NotNil(t, txTypeHandler)
-	assert.Nil(t, err)
-
-	txType, err := txTypeHandler.ComputeTransactionType(tx)
-	assert.Nil(t, err)
-	assert.Equal(t, process.MoveBalance, txType)
-}
-
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
 
@@ -436,10 +342,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	}
 
 	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
-		args := make([]*big.Int, 0)
-		args = append(args, big.NewInt(0).SetBytes(vmArg))
-		return args, nil
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{vmArg}, nil
 	}
 
 	err = sc.DeploySmartContract(tx, acntSrc, 10)
@@ -515,10 +419,8 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	}
 
 	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
-		args := make([]*big.Int, 0)
-		args = append(args, big.NewInt(0).SetBytes(vmArg))
-		return args, nil
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{vmArg}, nil
 	}
 
 	err = sc.DeploySmartContract(tx, acntSrc, 10)
@@ -822,10 +724,8 @@ func TestScProcessor_CreateVMDeployInputBadFunction(t *testing.T) {
 		return nil, tmpError
 	}
 	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
-		args := make([]*big.Int, 0)
-		args = append(args, big.NewInt(0).SetBytes(vmArg))
-		return args, nil
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{vmArg}, nil
 	}
 
 	vmInput, vmType, err := sc.CreateVMDeployInput(tx)
@@ -863,10 +763,8 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	vmArg := []byte("00")
-	argParser.GetArgumentsCalled = func() ([]*big.Int, error) {
-		args := make([]*big.Int, 0)
-		args = append(args, big.NewInt(0).SetBytes(vmArg))
-		return args, nil
+	argParser.GetArgumentsCalled = func() ([][]byte, error) {
+		return [][]byte{vmArg}, nil
 	}
 
 	vmInput, vmType, err := sc.CreateVMDeployInput(tx)
@@ -938,7 +836,7 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
-	argParser.GetArgumentsCalled = func() (ints []*big.Int, e error) {
+	argParser.GetArgumentsCalled = func() (ints [][]byte, e error) {
 		return nil, tmpError
 	}
 	vmInput, err := sc.CreateVMInput(tx)

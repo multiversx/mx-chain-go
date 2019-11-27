@@ -8,8 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +49,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(99999700)
+	expectedBalance := big.NewInt(99999699)
 	fmt.Printf("%s \n", hex.EncodeToString(expectedBalance.Bytes()))
 
 	vm.TestAccount(
@@ -59,18 +61,24 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 }
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./fib_arwen.wasm", b.N, 32)
+	runWASMVMBenchmark(b, "./fib_arwen.wasm", b.N, 32, nil)
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./cpucalculate_arwen.wasm", b.N, 8000)
+	runWASMVMBenchmark(b, "./cpucalculate_arwen.wasm", b.N, 8000, nil)
 }
 
 func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./stringconcat_arwen.wasm", b.N, 10000)
+	runWASMVMBenchmark(b, "./stringconcat_arwen.wasm", b.N, 10000, nil)
 }
 
-func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue uint64) {
+func runWASMVMBenchmark(
+	tb testing.TB,
+	fileSC string,
+	numRun int,
+	testingValue uint64,
+	gasSchedule map[string]map[string]uint64,
+) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(0xfffffffffffffff)
@@ -97,7 +105,7 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 		Challenge: nil,
 	}
 
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(tb, ownerNonce, ownerAddressBytes, ownerBalance)
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	err = txProc.ProcessTransaction(tx, round)
@@ -131,21 +139,50 @@ func runWASMVMBenchmark(tb testing.TB, fileSC string, numRun int, testingValue u
 	}
 }
 
-func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
+func TestGasModel(t *testing.T) {
+	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
+
+	gasSchedule, _ := core.LoadGasScheduleConfig("./gasSchedule.toml")
+
+	totalOp := uint64(0)
+	for _, opCodeClass := range gasSchedule {
+		for _, opCode := range opCodeClass {
+			totalOp += opCode
+		}
+	}
+	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
+	fmt.Println("FIBONNACI 32 ")
+	runWASMVMBenchmark(t, "./fib_arwen.wasm", 1, 32, gasSchedule)
+	fmt.Println("CPUCALCULATE 8000 ")
+	runWASMVMBenchmark(t, "./cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
+	fmt.Println("STRINGCONCAT 1000 ")
+	runWASMVMBenchmark(t, "./stringconcat_arwen.wasm", 1, 10000, gasSchedule)
+	fmt.Println("ERC20 ")
+	deployWithTransferAndExecuteERC20(t, 2, gasSchedule)
+	fmt.Println("ERC20 BIGINT")
+	deployAndExecuteERC20WithBigInt(t, 2, gasSchedule)
+}
+
+func TestMultipleTimesERC20InBatches(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		deployWithTransferAndExecuteERC20(t, 1000, nil)
+	}
+}
+
+func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map[string]map[string]uint64) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(100000000)
+	ownerBalance := big.NewInt(10000000000000)
 	round := uint64(444)
 	gasPrice := uint64(1)
-	gasLimit := uint64(100000)
+	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
 	scCode, err := ioutil.ReadFile("./wrc20_arwen.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
-
-	txProc, accnts, blockchainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	tx := vm.CreateDeployTx(
@@ -176,27 +213,29 @@ func TestVmDeployWithTransferAndExecuteERC20(t *testing.T) {
 	aliceNonce++
 
 	start := time.Now()
-	nrTxs := 10000
 
-	for i := 0; i < nrTxs; i++ {
+	for i := 0; i < numRun; i++ {
 		tx = vm.CreateTransferTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
 
 		err = txProc.ProcessTransaction(tx, round)
+		if err != nil {
+			assert.Nil(t, err)
+		}
 		assert.Nil(t, err)
 
 		aliceNonce++
 	}
 
+	elapsedTime := time.Since(start)
+	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
+
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	elapsedTime := time.Since(start)
-	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", nrTxs, elapsedTime.String())
-
-	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(nrTxs)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "do_balance", alice).Uint64())
-	finalBob := big.NewInt(int64(nrTxs) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(accnts, scAddress, "do_balance", bob).Uint64())
+	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "do_balance", alice).Uint64())
+	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "do_balance", bob).Uint64())
 }
 
 func TestWASMNamespacing(t *testing.T) {
@@ -326,7 +365,7 @@ func TestWASMMetering(t *testing.T) {
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
-	expectedBalance := big.NewInt(2429)
+	expectedBalance := big.NewInt(2090)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -340,5 +379,81 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	assert.Equal(t, 556, int(consumedGasValue))
+	assert.Equal(t, 895, int(consumedGasValue))
+}
+
+func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		deployAndExecuteERC20WithBigInt(t, 1000, nil)
+	}
+}
+
+func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[string]map[string]uint64) {
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(10000000000000)
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10000000000)
+	transferOnCalls := big.NewInt(5)
+
+	scCode, err := ioutil.ReadFile("./wrc20_arwen_c.wasm")
+	assert.Nil(t, err)
+
+	scCodeString := hex.EncodeToString(scCode)
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		transferOnCalls,
+		gasPrice,
+		gasLimit,
+		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+hex.EncodeToString(ownerBalance.Bytes()),
+	)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+	ownerNonce++
+
+	alice := []byte("12345678901234567890123456789111")
+	aliceNonce := uint64(0)
+	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
+
+	bob := []byte("12345678901234567890123456789222")
+	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
+
+	initAlice := big.NewInt(100000)
+	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	ownerNonce++
+
+	start := time.Now()
+
+	for i := 0; i < numRun; i++ {
+		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
+
+		err = txProc.ProcessTransaction(tx, round)
+		if err != nil {
+			assert.Nil(t, err)
+		}
+		assert.Nil(t, err)
+
+		aliceNonce++
+	}
+
+	elapsedTime := time.Since(start)
+	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "balanceOf", alice).Uint64())
+	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "balanceOf", bob).Uint64())
 }

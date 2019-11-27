@@ -5,9 +5,10 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
@@ -73,6 +74,9 @@ type ShardData struct {
 	PubKeysBitmap         []byte                 `capid:"4"`
 	Signature             []byte                 `capid:"5"`
 	TxCount               uint32                 `capid:"6"`
+	Round                 uint64                 `capid:"7"`
+	PrevHash              []byte                 `capid:"8"`
+	Nonce                 uint64                 `capid:"9"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -532,4 +536,10 @@ func (m *MetaBlock) ItemsInHeader() uint32 {
 // ItemsInBody gets the number of items(hashes) added in block body
 func (m *MetaBlock) ItemsInBody() uint32 {
 	return m.TxCount
+}
+
+// Clone will return a clone of the object
+func (m *MetaBlock) Clone() data.HeaderHandler {
+	metaBlockCopy := *m
+	return &metaBlockCopy
 }

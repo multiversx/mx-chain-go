@@ -1,8 +1,9 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // TransactionFeeHandler is an empty struct which implements TransactionFeeHandler interface

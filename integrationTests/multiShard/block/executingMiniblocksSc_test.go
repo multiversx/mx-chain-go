@@ -230,7 +230,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
-	withdrawValue := big.NewInt(10)
+	rewardValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
@@ -241,7 +241,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		nodes,
 		nodes[idxProposerShard0].OwnAccount,
 		topUpValue,
-		"aaaa",
+		100,
 		hardCodedScResultingAddress,
 	)
 
@@ -261,8 +261,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		nodes,
 		idxProposerShard1,
 		nodes[idxProposerShard0].OwnAccount,
-		withdrawValue,
-		"aaaa",
+		rewardValue,
+		100,
 		hardCodedScResultingAddress,
 	)
 
@@ -273,8 +273,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
-	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
-	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
+	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, big.NewInt(0), hardCodedScResultingAddress)
+	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, big.NewInt(0))
 	integrationTests.CheckRootHashes(t, nodes, idxProposers)
 }
 
@@ -361,7 +361,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 		nodes,
 		nodes[idxProposerShard0].OwnAccount,
 		topUpValue,
-		"aaaa",
+		100,
 		hardCodedScResultingAddress,
 	)
 

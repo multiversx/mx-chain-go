@@ -56,7 +56,7 @@ func (sc *scProcessor) SaveSCOutputToCurrentState(output *vmcommon.VMOutput, rou
 	return sc.saveSCOutputToCurrentState(output, round, txHash)
 }
 
-func (sc *scProcessor) SaveReturnData(returnData []*big.Int, round uint64, txHash []byte) error {
+func (sc *scProcessor) SaveReturnData(returnData [][]byte, round uint64, txHash []byte) error {
 	return sc.saveReturnData(returnData, round, txHash)
 }
 

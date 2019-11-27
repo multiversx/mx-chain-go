@@ -228,6 +228,7 @@ type ValidatorStatisticsProcessor interface {
 	RevertPeerStateToSnapshot(snapshot int) error
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
+	RootHash() ([]byte, error)
 }
 
 // HashAccesser interface provides functionality over hashable objects
@@ -372,7 +373,7 @@ type RequestHandler interface {
 
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetArguments() ([]*big.Int, error)
+	GetArguments() ([][]byte, error)
 	GetCode() ([]byte, error)
 	GetFunction() (string, error)
 	ParseData(data string) error
@@ -418,7 +419,7 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorSettingsHandler
+// ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
 	UnBoundPeriod() uint64
 	StakeValue() *big.Int
@@ -485,5 +486,5 @@ type NetworkConnectionWatcher interface {
 type SCQuery struct {
 	ScAddress []byte
 	FuncName  string
-	Arguments []*big.Int
+	Arguments [][]byte
 }
