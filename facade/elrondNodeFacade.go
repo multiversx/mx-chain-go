@@ -2,7 +2,6 @@ package facade
 
 import (
 	"math/big"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -88,9 +87,8 @@ func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
-func (ef *ElrondNodeFacade) StartBackgroundServices(wg *sync.WaitGroup) {
-	wg.Add(1)
-	go ef.startRest(wg)
+func (ef *ElrondNodeFacade) StartBackgroundServices() {
+	go ef.startRest()
 }
 
 // IsNodeRunning gets if the underlying node is running
@@ -132,15 +130,15 @@ func (ef *ElrondNodeFacade) PrometheusNetworkID() string {
 	return ef.config.PrometheusJobName
 }
 
-func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (ef *ElrondNodeFacade) startRest() {
+	log.Trace("starting REST api server")
 
 	switch ef.RestApiInterface() {
 	case DefaultRestPortOff:
 		log.Debug("web server is off")
 		break
 	default:
-		log.Debug("starting web server...")
+		log.Debug("starting web server")
 		err := api.Start(ef)
 		if err != nil {
 			log.Debug("could not start webserver",
