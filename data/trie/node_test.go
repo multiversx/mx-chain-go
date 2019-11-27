@@ -853,7 +853,6 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 	}
 
 	rootHashes := make([][]byte, 0)
-	rootHashes = append(rootHashes)
 	for _, testVal := range testVals {
 		_ = tr.Update(testVal.key, testVal.value)
 		_ = tr.Commit()

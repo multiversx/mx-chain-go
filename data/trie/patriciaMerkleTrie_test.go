@@ -2,7 +2,6 @@ package trie_test
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -490,7 +489,7 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 
 	tr.CancelPrune(rootHash, data.OldRoot)
 
-	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot)))))
+	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot))))
 	err := tr.Prune(rootHash, data.OldRoot)
 	assert.Equal(t, expectedErr, err)
 }
@@ -512,7 +511,7 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 
 	_ = tr.Prune(rootHash, data.OldRoot)
 
-	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash)))
+	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
 	val, err := db.Get(rootHash)
 	assert.Nil(t, val)
 	assert.Equal(t, expectedErr, err)

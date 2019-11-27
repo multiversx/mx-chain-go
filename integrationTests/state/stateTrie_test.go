@@ -1104,6 +1104,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	_ = tr.Prune(rootHash1, data.OldRoot)
 
 	err := adb.RecreateTrie(rootHash2)
+	assert.Nil(t, err)
 	ok, err := adb.HasAccount(address1)
 	assert.True(t, ok)
 	assert.Nil(t, err)
@@ -1151,6 +1152,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = tr.Prune(oldRootHash, data.OldRoot)
 
 	err := adb.RecreateTrie(newRootHash)
+	assert.Nil(t, err)
 	ok, err := adb.HasAccount(address1)
 	assert.True(t, ok)
 	assert.Nil(t, err)
@@ -1228,7 +1230,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelled(t *testing.T) {
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
-	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	round, _ = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	time.Sleep(time.Second * 5)
 
 	rootHashOfRollbackedBlock, _ := shardNode.AccntState.RootHash()

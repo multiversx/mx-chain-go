@@ -711,16 +711,17 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 }
 
 func (tr *patriciaMerkleTrie) getDbThatContainsHash(rootHash []byte) data.DBWriteCacher {
-	encNode, err := tr.db.Get(rootHash)
+	_, err := tr.db.Get(rootHash)
+
 	hashPresent := err == nil
 	if hashPresent {
 		return tr.db
 	}
 
 	for i := range tr.snapshots {
-		encNode, err = tr.snapshots[i].Get(rootHash)
+		_, err := tr.snapshots[i].Get(rootHash)
 
-		hashPresent = err == nil && encNode != nil
+		hashPresent = err == nil
 		if hashPresent {
 			return tr.snapshots[i]
 		}
