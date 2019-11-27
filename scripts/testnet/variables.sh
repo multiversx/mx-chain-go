@@ -42,8 +42,8 @@ export LOGLEVEL="*:DEBUG"
 
 # Delays after running executables.
 export SEEDNODE_DELAY=5
-export NODE_DELAY=5
-export PROXY_DELAY=60
+export NODE_DELAY=10
+export PROXY_DELAY=10
 
 # Shard structure
 export SHARDCOUNT=3
