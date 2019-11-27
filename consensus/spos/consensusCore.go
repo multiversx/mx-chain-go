@@ -133,13 +133,13 @@ func (cc *ConsensusCore) NodesCoordinator() sharding.NodesCoordinator {
 	return cc.nodesCoordinator
 }
 
-// RandomnessPrivateKey returns the BLS private key stored in the ConsensusStore
-func (cc *ConsensusCore) RandomnessPrivateKey() crypto.PrivateKey {
+// PrivateKey returns the BLS private key stored in the ConsensusStore
+func (cc *ConsensusCore) PrivateKey() crypto.PrivateKey {
 	return cc.blsPrivateKey
 }
 
-// RandomnessSingleSigner returns the bls single signer stored in the ConsensusStore
-func (cc *ConsensusCore) RandomnessSingleSigner() crypto.SingleSigner {
+// SingleSigner returns the bls single signer stored in the ConsensusStore
+func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
 	return cc.blsSingleSigner
 }
 
