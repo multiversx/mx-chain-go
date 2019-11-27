@@ -54,7 +54,9 @@ copyNodeConfig() {
   cp $NODEDIR/config/prefs.toml ./node/config
   cp $NODEDIR/config/server.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
+
   cp $NODEDIR/config/gasSchedule.toml ./node/config
+
 
   echo "Configuration files copied from the Node to the working directories of the executables."
 }
@@ -110,6 +112,7 @@ copyTxGenConfig() {
   cd $TESTNETDIR
 
   cp $TXGENDIR/config/config.toml ./txgen/config/
+
   cp $TXGENDIR/config/sc.toml ./txgen/config/
   cp $TXGENDIR/config/*.wasm ./txgen/config/
 
@@ -161,6 +164,7 @@ updateTOMLValue() {
 
   sed -i "s,$key = .*\$,$key = $escaped_value," $filename
 }
+
 
 updateJSONValue() {
   local filename=$1

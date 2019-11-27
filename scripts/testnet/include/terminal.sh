@@ -4,6 +4,7 @@ source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 # (currently, one of "konsole", "gnome-terminal" or "none").
 # TMUX support is in development.
 TERMWRAPPER="none"
+
 if [ -n "$(command -v "konsole")" ]
 then
   export TERMWRAPPER="konsole"
@@ -77,9 +78,11 @@ runCommandInTerminal() {
       tmux select-layout -t $CURRENT_TMUX_SESSION:0 $CURRENT_TMUX_LAYOUT
       let TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]=${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}+1
     fi
+    
     let pane_id=$pane_to_use-1
     tmux send-keys -t $CURRENT_TMUX_SESSION:0.$pane_id "cd $CURRENT_COMMAND_WORKDIR" C-m
     tmux send-keys -t $CURRENT_TMUX_SESSION:0.$pane_id "$command_to_run" C-m
+
     if [ $pane_to_use -eq 1 ]
     then
       let TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]=${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}+1
@@ -114,6 +117,7 @@ executeCommandInTerminalEmulator() {
   then
     echo "No terminal emulator found, command could not be run."
   fi
+
 }
 
 stopProcessByPort() {
