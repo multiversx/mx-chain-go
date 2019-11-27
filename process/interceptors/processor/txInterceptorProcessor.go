@@ -41,7 +41,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 		return process.ErrWrongTypeAssertion
 	}
 
-	debugTx(interceptedTx, "validate")
+	// debugTx(interceptedTx, "validate")
 	errTxValidation := txip.txValidator.CheckTxValidity(interceptedTx)
 	if errTxValidation != nil {
 		log.Debug("Intercepted transaction", "error", errTxValidation)
@@ -65,7 +65,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 		cacherIdentifier,
 	)
 
-	debugTx(interceptedTx, "save")
+	// debugTx(interceptedTx, "save")
 	return nil
 }
 

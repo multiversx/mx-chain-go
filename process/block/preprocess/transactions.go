@@ -541,11 +541,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 			break
 		}
 
-		txJsonBytes, _ := orderedTxs[index].MarshalJSON()
-		txJson := string(txJsonBytes)
-
-		log.Debug("Analyzing transaction for inclusion in miniblock", "transaction", txJson)
-
 		if txs.isTxAlreadyProcessed(orderedTxHashes[index], &txs.txsForCurrBlock) {
 			log.Debug("Transaction already processed")
 			continue
@@ -567,8 +562,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 
 		snapshot := txs.accounts.JournalLen()
-
-		log.Debug("processAndRemoveBadTransaction()", "transaction", txJson)
 
 		// execute transaction to change the trie root hash
 		err := txs.processAndRemoveBadTransaction(
@@ -594,8 +587,6 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 		addedTxs++
 		addedGasLimitPerCrossShardMiniblock += currTxGasLimit
-
-		log.Debug("Transaction added to miniblock", "transaction", txJson)
 
 		if addedTxs >= spaceRemained { // max transactions count in one block was reached
 			log.Debug("max txs accepted in one block is reached",
