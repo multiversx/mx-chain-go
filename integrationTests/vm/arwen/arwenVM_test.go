@@ -60,6 +60,75 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		expectedBalance)
 }
 
+func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
+	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
+
+	ownerAddressBytes := []byte("12345678901234567890123456789012")
+	ownerNonce := uint64(0)
+	ownerBalance := big.NewInt(100000000)
+	round := uint64(444)
+	gasPrice := uint64(0)
+	gasLimit := uint64(100000)
+	transferOnCalls := big.NewInt(50)
+
+	scCode, err := ioutil.ReadFile("./fib_arwen.wasm")
+	assert.Nil(t, err)
+	scCodeString := hex.EncodeToString(scCode)
+
+	txProc, accnts, blockChainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddressBytes, _ := blockChainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
+	fmt.Println(hex.EncodeToString(scAddressBytes))
+
+	tx := vm.CreateTx(t,
+		ownerAddressBytes,
+		scAddressBytes,
+		ownerNonce,
+		transferOnCalls,
+		gasPrice,
+		gasLimit,
+		"")
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	ownerNonce++
+	tx = vm.CreateTx(
+		t,
+		ownerAddressBytes,
+		vm.CreateEmptyAddress().Bytes(),
+		ownerNonce,
+		transferOnCalls,
+		gasPrice,
+		gasLimit,
+		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine),
+	)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	expectedBalance := ownerBalance.Uint64() - 2*transferOnCalls.Uint64()
+	vm.TestAccount(
+		t,
+		accnts,
+		ownerAddressBytes,
+		ownerNonce+1,
+		big.NewInt(0).SetUint64(expectedBalance))
+
+	expectedBalance = 2 * transferOnCalls.Uint64()
+	vm.TestAccount(
+		t,
+		accnts,
+		scAddressBytes,
+		0,
+		big.NewInt(0).SetUint64(expectedBalance))
+}
+
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
 	runWASMVMBenchmark(b, "./fib_arwen.wasm", b.N, 32, nil)
 }
@@ -429,8 +498,6 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
-
-	ownerNonce++
 
 	start := time.Now()
 
