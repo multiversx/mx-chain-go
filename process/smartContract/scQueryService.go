@@ -103,8 +103,5 @@ func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (service *SCQueryService) IsInterfaceNil() bool {
-	if service == nil {
-		return true
-	}
-	return false
+	return service == nil
 }

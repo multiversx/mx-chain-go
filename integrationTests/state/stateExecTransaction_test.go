@@ -84,6 +84,10 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Parallel()
 
 	accnts, _, _ := integrationTests.CreateAccountsDB(0)

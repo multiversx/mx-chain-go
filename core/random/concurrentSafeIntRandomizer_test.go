@@ -18,7 +18,8 @@ func TestConcurrentSafeIntRandomizer_IntnConcurrent(t *testing.T) {
 		}
 	}()
 
-	for i := 0; i < 1000; i++ {
+	maxIterations := 100
+	for i := 0; i < maxIterations; i++ {
 		go func(idx int) {
 			for {
 				_, err := csir.Intn(idx + 1)

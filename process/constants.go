@@ -57,7 +57,7 @@ const NonceDifferenceWhenSynced = 0
 
 // MaxGasLimitPerMiniBlock defines the maximum gas limit which could be consumed by a miniblock
 //TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
-const MaxGasLimitPerMiniBlock = uint64(0xffffffffffffffff)
+const MaxGasLimitPerMiniBlock = uint64(1500000000)
 
 // MaxRequestsWithTimeoutAllowed defines the maximum allowed number of requests with timeout,
 // before a special action to be applied
