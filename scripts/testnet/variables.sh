@@ -6,7 +6,7 @@ export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
 # anyway.
-export TESTNETDIR="$HOME/work/Elrond/testnet"
+export TESTNETDIR="$HOME/Elrond/testnet"
 
 # Path to elrond-deploy-go, branch: master. Default: near elrond-go.
 export CONFIGGENERATORDIR="$(dirname $ELRONDDIR)/elrond-deploy-go/cmd/filegen"
