@@ -10,6 +10,7 @@ import (
 )
 
 func TestHashToPrime(t *testing.T) {
+	t.Skip("package not in use")
 	for i := 0; i < 1000; i++ {
 		res := rsa.HashToPrime([]byte(strconv.Itoa(i) + "i"))
 		assert.True(t, res.ProbablyPrime(50))
