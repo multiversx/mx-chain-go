@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/cmd/termui/provider"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic"
 	"github.com/urfave/cli"
 )
@@ -17,6 +18,7 @@ type config struct {
 	address  string
 	logLevel string
 	interval int
+	useWss   bool
 }
 
 var (
@@ -47,7 +49,7 @@ VERSION:
 	logLevel = cli.StringFlag{
 		Name:        "log-level",
 		Usage:       "This flag specifies the logger level",
-		Value:       logger.LogDebug.String(),
+		Value:       "*:" + logger.LogInfo.String(),
 		Destination: &argsConfig.logLevel,
 	}
 
@@ -59,9 +61,15 @@ VERSION:
 		Destination: &argsConfig.interval,
 	}
 
+	//useWss is used when the user require connection through wss
+	useWss = cli.BoolFlag{
+		Name:        "use-wss",
+		Usage:       "Will use wss instead of ws when creating the web socket",
+		Destination: &argsConfig.useWss,
+	}
 	argsConfig = &config{}
 
-	log    = logger.GetOrCreate("logviewer")
+	log    = logger.GetOrCreate("termui")
 	cliApp *cli.App
 )
 
@@ -84,12 +92,13 @@ func startTermuiViewer() error {
 	logLevel := argsConfig.logLevel
 	fetchInterval := argsConfig.interval
 
-	statusMetricsProvider, err := provider.NewStatusMetricsProvider(nodeAddress, fetchInterval)
+	presenterStatusHandler := presenter.NewPresenterStatusHandler()
+	statusMetricsProvider, err := provider.NewStatusMetricsProvider(presenterStatusHandler, nodeAddress, fetchInterval)
 	if err != nil {
 		return err
 	}
 
-	termuiConsole, err := termuic.NewTermuiConsole(statusMetricsProvider.Presenter())
+	termuiConsole, err := termuic.NewTermuiConsole(presenterStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -101,12 +110,12 @@ func startTermuiViewer() error {
 		return err
 	}
 
-	err = provider.InitLogHandler(nodeAddress, logLevel)
+	err = provider.InitLogHandler(nodeAddress, logLevel, argsConfig.useWss)
 	if err != nil {
 		return err
 	}
 
-	provider.StartListeningOnWebSocket(statusMetricsProvider.Presenter())
+	provider.StartListeningOnWebSocket(presenterStatusHandler)
 
 	waitForUserToTerminateApp()
 
@@ -123,6 +132,7 @@ func initCliFlags() {
 		address,
 		logLevel,
 		fetchInterval,
+		useWss,
 	}
 	cliApp.Authors = []cli.Author{
 		{

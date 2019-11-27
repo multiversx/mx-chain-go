@@ -2,8 +2,8 @@ package provider
 
 import (
 	"encoding/hex"
-	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -14,10 +14,19 @@ import (
 var formatter = logger.PlainFormatter{}
 var webSocket *websocket.Conn
 
+const (
+	ws  = "ws"
+	wss = "wss"
+)
+
 // InitLogHandler will open the websocket and set the log level
-func InitLogHandler(nodeURL string, logLevel string) error {
+func InitLogHandler(nodeURL string, logLevelPatterns string, useWss bool) error {
 	var err error
-	webSocket, err = openWebSocket(nodeURL, fmt.Sprintf("*:%s", logLevel))
+	scheme := ws
+	if useWss {
+		scheme = wss
+	}
+	webSocket, err = openWebSocket(scheme, nodeURL, logLevelPatterns)
 	if err != nil {
 		return err
 	}
@@ -25,9 +34,9 @@ func InitLogHandler(nodeURL string, logLevel string) error {
 	return nil
 }
 
-func openWebSocket(address string, logLevelPatterns string) (*websocket.Conn, error) {
+func openWebSocket(scheme string, address string, logLevelPatterns string) (*websocket.Conn, error) {
 	u := url.URL{
-		Scheme: "ws",
+		Scheme: scheme,
 		Host:   address,
 		Path:   "/log",
 	}
@@ -53,19 +62,28 @@ func StartListeningOnWebSocket(presenter PresenterHandler) {
 				return
 			}
 			if err == nil {
-				_, _ = presenter.Write(formatMessage(message))
+				writeMessage(presenter, message)
 				continue
 			}
 
 			_, isConnectionClosed := err.(*websocket.CloseError)
 			if !isConnectionClosed {
-				log.Error("logviewer websocket error", "error", err.Error())
+				log.Error("termui websocket error", "error", err.Error())
 			} else {
-				log.Debug("logviewer websocket terminated by the server side", "error", err.Error())
+				log.Debug("termui websocket terminated", "error", err.Error())
 			}
 			return
 		}
 	}()
+}
+
+func writeMessage(presenter PresenterHandler, message []byte) {
+	if strings.Contains(string(message), "/node/status") {
+		return
+	}
+
+	message = formatMessage(message)
+	_, _ = presenter.Write(message)
 }
 
 func formatMessage(message []byte) []byte {

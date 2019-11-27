@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
-	presenter2 "github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
 )
 
-var log = logger.GetOrCreate("cmd/termui/provider")
+var log = logger.GetOrCreate("termui/provider")
 
 const statusMetricsUrlSuffix = "/node/status"
 
@@ -27,14 +26,17 @@ type StatusMetricsProvider struct {
 }
 
 // NewStatusMetricsProvider will return a new instance of a StatusMetricsProvider
-func NewStatusMetricsProvider(nodeAddress string, fetchInterval int) (*StatusMetricsProvider, error) {
+func NewStatusMetricsProvider(presenter PresenterHandler, nodeAddress string, fetchInterval int) (*StatusMetricsProvider, error) {
 	if len(nodeAddress) == 0 {
 		return nil, ErrInvalidAddressLength
 	}
 	if fetchInterval < 1 {
 		return nil, ErrInvalidFetchInterval
 	}
-	presenter := presenter2.NewPresenterStatusHandler()
+	if presenter == nil {
+		return nil, ErrNilTermuiPresenter
+	}
+
 	return &StatusMetricsProvider{
 		presenter:     presenter,
 		nodeAddress:   formatUrlAddress(nodeAddress),
@@ -113,11 +115,6 @@ func (smp *StatusMetricsProvider) setPresenterValue(key string, value interface{
 	}
 
 	return nil
-}
-
-// Presenter will return the presenter so it can be used when creating the termui's instance
-func (smp *StatusMetricsProvider) Presenter() PresenterHandler {
-	return smp.presenter
 }
 
 func formatUrlAddress(address string) string {
