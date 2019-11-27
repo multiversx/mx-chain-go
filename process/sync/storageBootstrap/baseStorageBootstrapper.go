@@ -94,12 +94,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	var processedMiniBlocks map[string]map[string]struct{}
-	errNotCritical := st.marshalizer.Unmarshal(&processedMiniBlocks, storageHeaderInfo.ProcessedMiniBlocksBytes)
-	if errNotCritical != nil && storageHeaderInfo.ProcessedMiniBlocksBytes != nil {
-		log.Debug("cannot unmarshal base storage bootstrapper ",
-			"error", errNotCritical.Error())
-	}
+	processedMiniBlocks := process.ConvertSliceToProcessedMiniBlocksMap(storageHeaderInfo.ProcessedMiniBlocks)
 
 	log.Debug("processed mini blocks applied")
 	for metaBlockHash, miniBlockHashes := range processedMiniBlocks {

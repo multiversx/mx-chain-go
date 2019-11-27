@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
@@ -768,14 +767,14 @@ func (sp *shardProcessor) CommitBlock(
 		}
 	}
 
-	processedMiniBlockBytes, errNotCritical := json.Marshal(sp.processedMiniBlocks)
+	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
 	sp.mutProcessedMiniBlocks.RUnlock()
 
 	if errNotCritical != nil {
 		log.Debug("commit block",
 			"cannot marshal processed mini block map", errNotCritical.Error())
 	}
-	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlockBytes)
+	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlocks)
 
 	go sp.cleanTxsPools()
 
@@ -806,10 +805,14 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 // ApplyProcessedMiniBlocks will apply processed mini blocks
-func (sp *shardProcessor) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
 	sp.mutProcessedMiniBlocks.Lock()
-	for key, value := range miniBlocks {
-		sp.processedMiniBlocks[key] = value
+	for metaHash, miniBlockHashes := range processedMiniBlocks {
+		mapMiniBlockHashes := make(map[string]struct{})
+		for miniBlockHash := range miniBlockHashes {
+			mapMiniBlockHashes[miniBlockHash] = struct{}{}
+		}
+		sp.processedMiniBlocks[metaHash] = mapMiniBlockHashes
 	}
 	sp.mutProcessedMiniBlocks.Unlock()
 }
