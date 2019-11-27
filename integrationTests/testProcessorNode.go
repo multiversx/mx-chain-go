@@ -51,8 +51,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/pkg/errors"
 )
 
@@ -441,6 +439,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 	}
 }
 
+/*
 func createAndAddIeleVM(
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook vmcommon.BlockchainHook,
@@ -448,7 +447,7 @@ func createAndAddIeleVM(
 	cryptoHook := hooks.NewVMCryptoHook()
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 	_ = vmContainer.Add(factory.IELEVirtualMachine, ieleVM)
-}
+}*/
 
 func (tpn *TestProcessorNode) initInnerProcessors() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -495,7 +494,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
+	//createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)

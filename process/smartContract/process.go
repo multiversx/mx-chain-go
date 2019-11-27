@@ -454,7 +454,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining.Uint64()
+	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining
 	log.Debug("total gas consumed", "value", totalGasConsumed, "hash", txHash)
 
 	if vmOutput.GasRefund.Uint64() > 0 {
@@ -462,7 +462,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	totalGasRefund := big.NewInt(0)
-	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
+	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, big.NewInt(0).SetUint64(vmOutput.GasRemaining))
 	scrRefund, consumedFee, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err

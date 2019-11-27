@@ -16,3 +16,8 @@ func (ted *TestEconomicsData) SetMinGasPrice(minGasPrice uint64) {
 func (ted *TestEconomicsData) SetMinGasLimit(minGasLimit uint64) {
 	ted.minGasLimit = minGasLimit
 }
+
+// GetMinGasPrice returns the current min gas price
+func (ted *TestEconomicsData) GetMinGasPrice() uint64 {
+	return ted.minGasPrice
+}
