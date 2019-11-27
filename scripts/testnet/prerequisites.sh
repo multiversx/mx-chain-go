@@ -8,5 +8,8 @@ sudo dnf install -y git golang gcc
 
 cd $(dirname $ELRONDDIR)
 git clone https://github.com/ElrondNetwork/elrond-deploy-go.git
-git clone https://github.com/ElrondNetwork/elrond-txgen-go.git
 git clone https://github.com/ElrondNetwork/elrond-proxy-go.git
+
+git clone https://github.com/ElrondNetwork/elrond-txgen-go.git
+cd elrond-txgen-go
+git checkout EN-5018/adapt-for-sc-arwen
