@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -2199,4 +2200,116 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	err = sc.ProcessSmartContractResult(&scr)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, saveTrieCalled)
+}
+
+func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T) {
+	t.Parallel()
+
+	accountsDB := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return state.NewAccount(addressContainer,
+				&mock.AccountTrackerStub{JournalizeCalled: func(entry state.JournalEntry) {},
+					SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+						return nil
+					}})
+		},
+		SaveDataTrieCalled: func(acountWrapper state.AccountHandler) error {
+			return nil
+		},
+	}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	sc, err := NewSmartContractProcessor(
+		&mock.VMContainerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
+				return process.SCDeployment, nil
+			},
+		},
+	)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	scr := smartContractResult.SmartContractResult{
+		RcvAddr: []byte("recv address"),
+		Data:    "code@06",
+		Value:   big.NewInt(15),
+	}
+	err = sc.ProcessSmartContractResult(&scr)
+	assert.Equal(t, process.ErrSCDeployFromSCRIsNotPermitted, err)
+}
+
+func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
+	t.Parallel()
+
+	tracker := &mock.AccountTrackerStub{
+		JournalizeCalled: func(entry state.JournalEntry) {
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
+		},
+	}
+
+	scAddress := []byte("000000000001234567890123456789012")
+	dstScAddress, _ := state.NewAccount(mock.NewAddressMock(scAddress), tracker)
+	dstScAddress.SetCode([]byte("code"))
+	accountsDB := &mock.AccountsStub{
+		GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return dstScAddress, nil
+		},
+		SaveDataTrieCalled: func(acountWrapper state.AccountHandler) error {
+			return nil
+		},
+	}
+	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	executeCalled := false
+	sc, err := NewSmartContractProcessor(
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return &mock.VMExecutionHandlerStub{
+					RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+						executeCalled = true
+						return nil, nil
+					},
+				}, nil
+			},
+		},
+		&mock.ArgumentParserMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		accountsDB,
+		fakeAccountsHandler,
+		&mock.AddressConverterMock{},
+		shardCoordinator,
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
+				return process.SCInvoking, nil
+			},
+		},
+	)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	scr := smartContractResult.SmartContractResult{
+		RcvAddr: []byte("recv address"),
+		Data:    "code@06",
+		Value:   big.NewInt(15),
+	}
+	err = sc.ProcessSmartContractResult(&scr)
+	assert.Equal(t, process.ErrNilVMOutput, err)
+	assert.True(t, executeCalled)
 }
