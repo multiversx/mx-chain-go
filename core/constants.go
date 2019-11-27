@@ -23,9 +23,6 @@ const MaxBulkTransactionSize = 2 << 17 //128KB bulks
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 
-// GenesisBlockNonce is the nonce of the genesis block
-const GenesisBlockNonce = 0
-
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 
@@ -37,6 +34,9 @@ const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 
 // MetricNumConnectedPeers is the metric for monitoring the number of connected peers
 const MetricNumConnectedPeers = "erd_num_connected_peers"
+
+// MetricNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricNumConnectedPeersClassification = "erd_num_connected_peers_classification"
 
 // MetricSynchronizedRound is the metric for monitoring the synchronized round of a node
 const MetricSynchronizedRound = "erd_synchronized_round"

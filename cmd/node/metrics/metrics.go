@@ -123,6 +123,14 @@ func registerPollConnectedPeers(
 	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
 		numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
 		appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+
+		peerCounts := networkComponents.NetMessenger.GetPeerCounts()
+		peerClassification := fmt.Sprintf("intrashard:%d,crossshard:%d,unknown:%d,",
+			peerCounts.IntraShardPeers,
+			peerCounts.CrossShardPeers,
+			peerCounts.UnknownPeers,
+		)
+		appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, peerClassification)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)

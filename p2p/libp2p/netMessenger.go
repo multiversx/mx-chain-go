@@ -22,6 +22,7 @@ import (
 )
 
 const durationBetweenSends = time.Microsecond * 10
+const durationBetweenPeersPrints = time.Second * 20
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
 const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
@@ -192,6 +193,20 @@ func createMessenger(
 			time.Sleep(durationBetweenSends)
 		}
 	}(pb, netMes.outgoingPLB)
+
+	go func() {
+		for {
+			time.Sleep(durationBetweenPeersPrints)
+
+			peersCount := netMes.GetPeerCounts()
+			log.Debug("network connection status",
+				"connected peers", len(netMes.Peers()),
+				"intra shard", peersCount.IntraShardPeers,
+				"cross shard", peersCount.CrossShardPeers,
+				"unknown", peersCount.UnknownPeers,
+			)
+		}
+	}()
 
 	addresses := make([]interface{}, 0)
 	for i, address := range netMes.ctxProvider.Host().Addrs() {
