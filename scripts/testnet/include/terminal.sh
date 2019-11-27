@@ -1,8 +1,9 @@
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 
 # Determine which terminal emulator is available 
-# (currently, one of "konsole" or "gnome-terminal").
+# (currently, one of "konsole", "gnome-terminal" or "none").
 # TMUX support is in development.
+TERMWRAPPER="none"
 if [ -n "$(command -v "konsole")" ]
 then
   export TERMWRAPPER="konsole"
@@ -44,6 +45,10 @@ showTerminalSession() {
   local keepopen=$2
   if [ $USETMUX -eq 1 ]
   then
+    if [ $TERMWRAPPER == "none" ]
+    then
+      echo "No terminal emulator found. The tmux session will continue to run in background, and can be attached to manually."
+    fi
     executeCommandInTerminalEmulator "tmux attach-session -t $session_name" $keepopen
   fi
 }
@@ -103,6 +108,11 @@ executeCommandInTerminalEmulator() {
   if [ $TERMWRAPPER == "gnome-terminal" ]
   then
     gnome-terminal -- $command_to_run &
+  fi
+
+  if [ $TERMWRAPPER == "none" ]
+  then
+    echo "No terminal emulator found, command could not be run."
   fi
 }
 
