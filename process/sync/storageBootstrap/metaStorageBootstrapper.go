@@ -77,15 +77,45 @@ func (msb *metaStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandle
 	return block.Body{}, nil
 }
 
-func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(lastNotarized map[uint32]*sync.HdrInfo) {
-	for shardId, hdrInfo := range lastNotarized {
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardId)
-		storer := msb.store.GetStorer(hdrNonceHashDataUnit)
-		nonceToByteSlice := msb.uint64Converter.ToByteSlice(hdrInfo.Nonce)
-		err := storer.Remove(nonceToByteSlice)
+func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte) {
+	log.Debug("cleanup notarized storage")
+
+	metaBlock, err := process.GetMetaHeaderFromStorage(metaBlockHash, msb.marshalizer, msb.store)
+	if err != nil {
+		log.Debug("meta block is not found in MetaBlockUnit storage",
+			"hash", metaBlockHash)
+		return
+	}
+
+	shardHeaderHashes := make([][]byte, len(metaBlock.ShardInfo))
+	for i := 0; i < len(metaBlock.ShardInfo); i++ {
+		shardHeaderHashes[i] = metaBlock.ShardInfo[i].HeaderHash
+	}
+
+	for _, shardHeaderHash := range shardHeaderHashes {
+		shardHeader, err := process.GetShardHeaderFromStorage(shardHeaderHash, msb.marshalizer, msb.store)
 		if err != nil {
-			log.Debug("header cannot be removed", "error", err.Error(),
-				"nonce", hdrInfo.Nonce, "shardId", shardId)
+			log.Debug("shard header is not found in BlockHeaderUnit storage",
+				"hash", shardHeaderHash)
+			continue
 		}
+
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
+		storer := msb.store.GetStorer(hdrNonceHashDataUnit)
+		nonceToByteSlice := msb.uint64Converter.ToByteSlice(shardHeader.GetNonce())
+		err = storer.Remove(nonceToByteSlice)
+		if err != nil {
+			log.Debug("shard header was not removed from ShardHdrNonceHashDataUnit storage",
+				"shradId", shardHeader.GetShardID(),
+				"nonce", shardHeader.GetNonce(),
+				"hash", shardHeaderHash,
+				"error", err.Error())
+			continue
+		}
+
+		log.Debug("shard header was removed from ShardHdrNonceHashDataUnit storage",
+			"shradId", shardHeader.GetShardID(),
+			"nonce", shardHeader.GetNonce(),
+			"hash", shardHeaderHash)
 	}
 }

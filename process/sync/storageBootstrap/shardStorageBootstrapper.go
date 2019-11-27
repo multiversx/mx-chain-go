@@ -109,21 +109,47 @@ func (ssb *shardStorageBootstrapper) applyNotarizedBlocks(
 	return nil
 }
 
-func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(lastNotarized map[uint32]*sync.HdrInfo) {
-	for shardId, hdrInfo := range lastNotarized {
-		storer := ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-		nonceToByteSlice := ssb.uint64Converter.ToByteSlice(hdrInfo.Nonce)
-		err := storer.Remove(nonceToByteSlice)
+func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []byte) {
+	log.Debug("cleanup notarized storage")
+
+	shardHeader, err := process.GetShardHeaderFromStorage(shardHeaderHash, ssb.marshalizer, ssb.store)
+	if err != nil {
+		log.Debug("shard header is not found in BlockHeaderUnit storage",
+			"hash", shardHeaderHash)
+		return
+	}
+
+	for _, metaBlockHash := range shardHeader.MetaBlockHashes {
+		metaBlock, err := process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {
-			log.Debug("header cannot be removed", "error", err.Error(),
-				"nonce", hdrInfo.Nonce, "shardId", shardId)
+			log.Debug("meta block is not found in MetaBlockUnit storage",
+				"hash", metaBlockHash)
+			continue
 		}
 
-		storer = ssb.store.GetStorer(dataRetriever.MetaBlockUnit)
-		err = storer.Remove(hdrInfo.Hash)
+		nonceToByteSlice := ssb.uint64Converter.ToByteSlice(metaBlock.GetNonce())
+		err = ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if err != nil {
-			log.Debug("header cannot be removed", "error", err.Error(),
-				"hash", hdrInfo.Hash, "shardId", shardId)
+			log.Debug("meta block was not removed from MetaHdrNonceHashDataUnit storage",
+				"shradId", metaBlock.GetShardID(),
+				"nonce", metaBlock.GetNonce(),
+				"hash", metaBlockHash,
+				"error", err.Error())
 		}
+
+		err = ssb.store.GetStorer(dataRetriever.MetaBlockUnit).Remove(metaBlockHash)
+		if err != nil {
+			log.Debug("meta block was not removed from MetaBlockUnit storage",
+				"shradId", metaBlock.GetShardID(),
+				"nonce", metaBlock.GetNonce(),
+				"hash", metaBlockHash,
+				"error", err.Error())
+			continue
+		}
+
+		log.Debug("meta block was removed from storage",
+			"shradId", metaBlock.GetShardID(),
+			"nonce", metaBlock.GetNonce(),
+			"hash", metaBlockHash)
 	}
 }

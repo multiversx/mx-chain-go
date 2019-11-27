@@ -107,19 +107,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
 
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
-		st.cleanupStorage(storageHeadersInfo[i].HeaderInfo.Nonce)
-		log.Debug("cleanup storage: header with nonce", "nonce", storageHeadersInfo[i].HeaderInfo.Nonce)
-
-		lastNotarized := make(map[uint32]*sync.HdrInfo)
-		for _, lastNotarizedHeader := range storageHeadersInfo[i].LastNotarizedHeaders {
-			lastNotarized[lastNotarizedHeader.ShardId] = &sync.HdrInfo{
-				Nonce: lastNotarizedHeader.Nonce,
-				Hash:  lastNotarizedHeader.Hash,
-			}
-		}
-
-		log.Debug("cleanup notarized storage", "notarized headers", len(lastNotarized))
-		st.bootstrapper.cleanupNotarizedStorage(lastNotarized)
+		st.cleanupStorage(storageHeadersInfo[i].HeaderInfo)
+		st.bootstrapper.cleanupNotarizedStorage(storageHeadersInfo[i].HeaderInfo.Hash)
 	}
 
 	err = st.bootStorer.SaveLastRound(round)
@@ -235,14 +224,24 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 	return nil
 }
 
-func (st *storageBootstrapper) cleanupStorage(nonce uint64) {
-	nonceToByteSlice := st.uint64Converter.ToByteSlice(nonce)
+func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.BootstrapHeaderInfo) {
+	log.Debug("cleanup storage")
+
+	nonceToByteSlice := st.uint64Converter.ToByteSlice(headerInfo.Nonce)
 	err := st.headerNonceHashStore.Remove(nonceToByteSlice)
 	if err != nil {
-		log.Debug("cannot cleanup header from storage",
-			"nonce", nonce,
+		log.Debug("block was not removed from storage",
+			"shradId", headerInfo.ShardId,
+			"nonce", headerInfo.Nonce,
+			"hash", headerInfo.Hash,
 			"error", err.Error())
+		return
 	}
+
+	log.Debug("block was removed from storage",
+		"shradId", headerInfo.ShardId,
+		"nonce", headerInfo.Nonce,
+		"hash", headerInfo.Hash)
 }
 
 func (st *storageBootstrapper) getShardHeaderFromStorage(headerHash []byte) (data.HeaderHandler, error) {
