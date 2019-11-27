@@ -68,6 +68,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.slash(args)
 	case "get":
 		return r.get(args)
+	case "isStaked":
+		return r.isStaked(args)
 	}
 
 	return vmcommon.UserError
@@ -277,6 +279,27 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	r.eei.SetStorage(args.CallerAddr, data)
 
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	data := r.eei.GetStorage(args.CallerAddr)
+	registrationData := StakingData{}
+	if data != nil {
+		err := json.Unmarshal(data, &registrationData)
+		if err != nil {
+			log.Debug("unmarshal error on staking SC stake function",
+				"error", err.Error(),
+			)
+			return vmcommon.UserError
+		}
+	}
+
+	if registrationData.Staked == true {
+		log.Debug("account already staked, re-staking is invalid")
+		return vmcommon.Ok
+	}
+
+	return vmcommon.UserError
 }
 
 // ValueOf returns the value of a selected key

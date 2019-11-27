@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -145,10 +146,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		}
 		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
 		assert.NotNil(t, vmOutput)
-		assert.Equal(t, len(vmOutput.ReturnData), 1)
-
-		retData := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-		assert.Equal(t, uint64(1), retData.Uint64())
+		assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
 	}
 }
 
