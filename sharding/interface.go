@@ -31,7 +31,7 @@ type Validator interface {
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
 	PublicKeysSelector
-	SetNodesPerShards(nodes map[uint32][]Validator) error
+	SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator) error
 	ComputeValidatorsGroup(randomness []byte, round uint64, shardId uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
 	IsInterfaceNil() bool
@@ -49,12 +49,12 @@ type PublicKeysSelector interface {
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {
-	eligible map[uint32][]Validator
-	waiting  map[uint32][]Validator
-	newNodes []Validator
-	leaving  []Validator
-	rand     []byte
-	nbShards uint32
+	Eligible map[uint32][]Validator
+	Waiting  map[uint32][]Validator
+	NewNodes []Validator
+	Leaving  []Validator
+	Rand     []byte
+	NbShards uint32
 }
 
 // NodesShuffler provides shuffling functionality for nodes

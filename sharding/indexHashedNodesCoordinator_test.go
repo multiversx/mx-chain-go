@@ -24,20 +24,24 @@ func uint64ToBytes(value uint64) []byte {
 	return buff
 }
 
-func createDummyNodesMap() map[uint32][]sharding.Validator {
-	list := []sharding.Validator{
-		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0")),
-		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1"), []byte("addr1")),
-	}
-
-	listMeta := []sharding.Validator{
-		mock.NewValidatorMock(big.NewInt(1), 1, []byte("pkMeta1"), []byte("addrMeta1")),
-		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pkMeta2"), []byte("addrMeta2")),
-	}
-
+func createDummyNodesMap(nodesPerShard uint32, nbShards uint32, suffix string) map[uint32][]sharding.Validator {
 	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[0] = list
-	nodesMap[sharding.MetachainShardId] = listMeta
+
+	for i := uint32(0); i <= nbShards; i++ {
+		shard := i
+		list := make([]sharding.Validator, 0)
+		if i == nbShards {
+			shard = sharding.MetachainShardId
+		}
+
+		for j := uint32(0); j < nodesPerShard; j++ {
+			pk := []byte(fmt.Sprintf("pk%s%d", suffix, j))
+			addr := []byte(fmt.Sprintf("addr%s%d", suffix, j))
+			list = append(list, mock.NewValidatorMock(big.NewInt(1), 2, pk, addr))
+		}
+
+		nodesMap[shard] = list
+	}
 
 	return nodesMap
 }
@@ -51,13 +55,17 @@ func genRandSource(round uint64, randomness string) string {
 func TestNewIndexHashedGroupSelector_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
 
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 
@@ -69,12 +77,17 @@ func TestNewIndexHashedGroupSelector_NilHasherShouldErr(t *testing.T) {
 func TestNewIndexHashedGroupSelector_InvalidConsensusGroupSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		MetaConsensusGroupSize: 1,
 		Hasher:                 &mock.HasherMock{},
+		Shuffler:               nodeShuffler,
 		NbShards:               1,
-		Nodes:                  nodesMap,
+		EligibleNodes:          eligibleMap,
+		WaitingNodes:           waitingMap,
 		SelfPublicKey:          []byte("key"),
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -84,13 +97,20 @@ func TestNewIndexHashedGroupSelector_InvalidConsensusGroupSizeShouldErr(t *testi
 }
 
 func TestNewIndexHashedNodesCoordinator_ZeroNbShardsShouldErr(t *testing.T) {
-	nodesMap := createDummyNodesMap()
+	t.Parallel()
+
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                0,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -100,14 +120,21 @@ func TestNewIndexHashedNodesCoordinator_ZeroNbShardsShouldErr(t *testing.T) {
 }
 
 func TestNewIndexHashedNodesCoordinator_InvalidShardIdShouldErr(t *testing.T) {
-	nodesMap := createDummyNodesMap()
+	t.Parallel()
+
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		ShardId:                 2,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -117,13 +144,20 @@ func TestNewIndexHashedNodesCoordinator_InvalidShardIdShouldErr(t *testing.T) {
 }
 
 func TestNewIndexHashedNodesCoordinator_NilSelfPublicKeyShouldErr(t *testing.T) {
-	nodesMap := createDummyNodesMap()
+	t.Parallel()
+
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           nil,
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -135,13 +169,18 @@ func TestNewIndexHashedNodesCoordinator_NilSelfPublicKeyShouldErr(t *testing.T) 
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 
@@ -152,39 +191,71 @@ func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 
 //------- LoadEligibleList
 
-func TestIndexHashedGroupSelector_SetNilNodesMapShouldErr(t *testing.T) {
+func TestIndexHashedGroupSelector_SetNilEligibleMapShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
-	assert.Equal(t, sharding.ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil))
+	assert.Equal(t, sharding.ErrNilInputNodesMap, ihgs.SetNodesPerShards(nil, waitingMap))
+}
+
+func TestIndexHashedGroupSelector_SetNilWaitingMapShouldErr(t *testing.T) {
+	t.Parallel()
+
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
+	arguments := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: 2,
+		MetaConsensusGroupSize:  1,
+		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
+		NbShards:                1,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
+		SelfPublicKey:           []byte("key"),
+	}
+
+	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
+	assert.Equal(t, sharding.ErrNilInputNodesMap, ihgs.SetNodesPerShards(eligibleMap, nil))
 }
 
 func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
-	assert.Equal(t, nodesMap[0], ihgs.EligibleList())
+	assert.Equal(t, eligibleMap[0], ihgs.EligibleList())
 }
 
 //------- ComputeValidatorsGroup
@@ -192,12 +263,17 @@ func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 func TestIndexHashedGroupSelector_NewCoordinatorGroup0SizeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		MetaConsensusGroupSize: 1,
 		Hasher:                 &mock.HasherMock{},
+		Shuffler:               nodeShuffler,
 		NbShards:               1,
-		Nodes:                  nodesMap,
+		EligibleNodes:          eligibleMap,
+		WaitingNodes:           waitingMap,
 		SelfPublicKey:          []byte("key"),
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -209,13 +285,18 @@ func TestIndexHashedGroupSelector_NewCoordinatorGroup0SizeShouldErr(t *testing.T
 func TestIndexHashedGroupSelector_NewCoordinatorTooFewNodesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(5, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 10,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, err := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -227,13 +308,18 @@ func TestIndexHashedGroupSelector_NewCoordinatorTooFewNodesShouldErr(t *testing.
 func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -246,13 +332,18 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 func TestIndexHashedGroupSelector_ComputeValidatorsGroupInvalidShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -273,12 +364,16 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 
 	nodesMap := make(map[uint32][]sharding.Validator)
 	nodesMap[0] = list
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           nodesMap,
+		WaitingNodes:            make(map[uint32][]sharding.Validator),
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -310,13 +405,18 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 		return nil
 	}
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  hasher,
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -324,7 +424,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
 
 	assert.Nil(t, err)
-	assert.Equal(t, nodesMap[0], list2)
+	assert.Equal(t, eligibleMap[0][:2], list2)
 }
 
 func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrder(t *testing.T) {
@@ -358,16 +458,21 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 		validator1,
 	}
 
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[0] = list
+	eligibleMap := make(map[uint32][]sharding.Validator)
+	eligibleMap[0] = list
 	metaNode, _ := sharding.NewValidator(big.NewInt(1), 1, []byte("pubKeyMeta"), []byte("addressMeta"))
-	nodesMap[sharding.MetachainShardId] = []sharding.Validator{metaNode}
+	eligibleMap[sharding.MetachainShardId] = []sharding.Validator{metaNode}
+	waitingMap := make(map[uint32][]sharding.Validator)
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  hasher,
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -401,13 +506,18 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 		return nil
 	}
 
-	nodesMap := createDummyNodesMap()
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  hasher,
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -415,7 +525,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness), 0, 0)
 
 	assert.Nil(t, err)
-	assert.Equal(t, nodesMap[0], list2)
+	assert.Equal(t, eligibleMap[0][:2], list2)
 }
 
 func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsShouldWork(t *testing.T) {
@@ -477,16 +587,20 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 		validator9,
 	}
 
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[0] = list
+	eligibleMap := make(map[uint32][]sharding.Validator)
+	eligibleMap[0] = list
 	validatorMeta, _ := sharding.NewValidator(big.NewInt(1), 1, []byte("pubKeyMeta"), []byte("addressMeta"))
-	nodesMap[sharding.MetachainShardId] = []sharding.Validator{validatorMeta}
+	eligibleMap[sharding.MetachainShardId] = []sharding.Validator{validatorMeta}
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 6,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  hasher,
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            make(map[uint32][]sharding.Validator),
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -513,15 +627,18 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		list = append(list, mock.NewValidatorMock(big.NewInt(0), 0, []byte("pk"+strconv.Itoa(i)), []byte("addr"+strconv.Itoa(i))))
 	}
 
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[0] = list
+	eligibleMap := make(map[uint32][]sharding.Validator)
+	eligibleMap[0] = list
+	nodeShuffler := &mock.NodeShufflerMock{}
 
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            make(map[uint32][]sharding.Validator),
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -542,14 +659,18 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrNilPub
 	list := []sharding.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0")),
 	}
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[0] = list
+	eligibleMap := make(map[uint32][]sharding.Validator)
+	eligibleMap[0] = list
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            make(map[uint32][]sharding.Validator),
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -565,14 +686,18 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldReturnErrValida
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"), []byte("addr0")),
 	}
 
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[0] = list
+	eligibleMap := make(map[uint32][]sharding.Validator)
+	eligibleMap[0] = list
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                1,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            make(map[uint32][]sharding.Validator),
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -600,17 +725,20 @@ func TestIndexHashedGroupSelector_GetValidatorWithPublicKeyShouldWork(t *testing
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk2_shard1"), []byte("addr2_shard1")),
 	}
 
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[sharding.MetachainShardId] = listMeta
-	nodesMap[0] = listShard0
-	nodesMap[1] = listShard1
+	eligibleMap := make(map[uint32][]sharding.Validator)
+	eligibleMap[sharding.MetachainShardId] = listMeta
+	eligibleMap[0] = listShard0
+	eligibleMap[1] = listShard1
+	nodeShuffler := &mock.NodeShufflerMock{}
 
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		NbShards:                2,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            make(map[uint32][]sharding.Validator),
 		SelfPublicKey:           []byte("key"),
 	}
 	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
@@ -658,18 +786,21 @@ func TestIndexHashedGroupSelector_GetAllValidatorsPublicKeys(t *testing.T) {
 		mock.NewValidatorMock(big.NewInt(1), 2, expectedValidatorsPubKeys[shardOneId][2], []byte("addr2_shard1")),
 	}
 
-	nodesMap := make(map[uint32][]sharding.Validator)
-	nodesMap[sharding.MetachainShardId] = listMeta
-	nodesMap[shardZeroId] = listShard0
-	nodesMap[shardOneId] = listShard1
+	eligibleMap := make(map[uint32][]sharding.Validator)
+	eligibleMap[sharding.MetachainShardId] = listMeta
+	eligibleMap[shardZeroId] = listShard0
+	eligibleMap[shardOneId] = listShard1
+	nodeShuffler := &mock.NodeShufflerMock{}
 
 	arguments := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
 		ShardId:                 shardZeroId,
 		NbShards:                2,
-		Nodes:                   nodesMap,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            make(map[uint32][]sharding.Validator),
 		SelfPublicKey:           []byte("key"),
 	}
 

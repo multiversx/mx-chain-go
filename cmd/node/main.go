@@ -981,10 +981,53 @@ func createNodesCoordinator(
 	nbShards := nodesConfig.NumberOfShards()
 	shardConsensusGroupSize := int(nodesConfig.ConsensusGroupSize)
 	metaConsensusGroupSize := int(nodesConfig.MetaChainConsensusGroupSize)
-	initNodesInfo := nodesConfig.InitialNodesInfo()
-	initValidators := make(map[uint32][]sharding.Validator)
+	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
 
-	for shId, nodeInfoList := range initNodesInfo {
+	eligibleValidators, err := nodesInfoToValidators(eligibleNodesInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	waitingValidators, err := nodesInfoToValidators(waitingNodesInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	pubKeyBytes, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	nodeShuffler := sharding.NewXorValidatorsShuffler(
+		nodesConfig.MinNodesPerShard,
+		nodesConfig.MetaChainMinNodes,
+		nodesConfig.Hysteresis,
+		nodesConfig.Adaptivity,
+	)
+
+	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+		ShardConsensusGroupSize: shardConsensusGroupSize,
+		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		Hasher:                  hasher,
+		Shuffler:                nodeShuffler,
+		ShardId:                 shardId,
+		NbShards:                nbShards,
+		EligibleNodes:           eligibleValidators,
+		WaitingNodes:            waitingValidators,
+		SelfPublicKey:           pubKeyBytes,
+	}
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodesCoordinator, nil
+}
+
+func nodesInfoToValidators(nodesInfo map[uint32][]*sharding.NodeInfo) (map[uint32][]sharding.Validator, error) {
+	validatorsMap := make(map[uint32][]sharding.Validator)
+
+	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]sharding.Validator, 0)
 		for _, nodeInfo := range nodeInfoList {
 			validator, err := sharding.NewValidator(big.NewInt(0), 0, nodeInfo.PubKey(), nodeInfo.Address())
@@ -994,29 +1037,10 @@ func createNodesCoordinator(
 
 			validators = append(validators, validator)
 		}
-		initValidators[shId] = validators
+		validatorsMap[shId] = validators
 	}
 
-	pubKeyBytes, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
-	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Hasher:                  hasher,
-		ShardId:                 shardId,
-		NbShards:                nbShards,
-		Nodes:                   initValidators,
-		SelfPublicKey:           pubKeyBytes,
-	}
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	return nodesCoordinator, nil
+	return validatorsMap, nil
 }
 
 func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConfig) (uint32, error) {

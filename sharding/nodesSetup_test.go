@@ -167,10 +167,11 @@ func TestNodesSetup_NewNodesShouldTrimInitialNodesList(t *testing.T) {
 
 func TestNodesSetup_InitialNodesPubKeysFromNil(t *testing.T) {
 	ns := sharding.NodesSetup{}
-	inPubKeys := ns.InitialNodesInfo()
+	eligible, waiting := ns.InitialNodesInfo()
 
 	assert.NotNil(t, ns)
-	assert.Nil(t, inPubKeys)
+	assert.Nil(t, eligible)
+	assert.Nil(t, waiting)
 }
 
 func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) {
@@ -370,38 +371,42 @@ func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShar
 
 func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
 	ns := sharding.NodesSetup{}
-	inPK, err := ns.InitialNodesInfoForShard(0)
+	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(0)
 
 	assert.NotNil(t, ns)
-	assert.Nil(t, inPK)
+	assert.Nil(t, eligiblePK)
+	assert.Nil(t, waitingPK)
 	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 	ns := createNodesSetupOneShardOneNodeWithOneMeta()
-	inPK, err := ns.InitialNodesInfoForShard(1)
+	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
-	assert.Nil(t, inPK)
+	assert.Nil(t, eligiblePK)
+	assert.Nil(t, waitingPK)
 	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 	ns := createNodesSetupTwoShardTwoNodesWithOneMeta()
-	inPK, err := ns.InitialNodesInfoForShard(1)
+	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(1)
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, 2, len(inPK))
+	assert.Equal(t, 2, len(eligiblePK))
+	assert.Equal(t, 0, len(waitingPK))
 	assert.Nil(t, err)
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
 	metaId := sharding.MetachainShardId
-	inPK, err := ns.InitialNodesInfoForShard(metaId)
+	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(metaId)
 
 	assert.NotNil(t, ns)
-	assert.Equal(t, 2, len(inPK))
+	assert.Equal(t, 2, len(eligiblePK))
+	assert.Equal(t, 0, len(waitingPK))
 	assert.Nil(t, err)
 }
 

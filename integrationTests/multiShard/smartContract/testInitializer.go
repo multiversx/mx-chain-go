@@ -60,7 +60,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 )
@@ -606,6 +606,8 @@ func createNodes(
 	keysMap := pubKeysMapFromKeysMap(cp.keys)
 	validatorsMap := genValidatorsFromPubKeys(keysMap)
 
+	nodeShuffler := &mock.NodeShufflerMock{}
+
 	for shardId := 0; shardId < numOfShards; shardId++ {
 		shardNodes := make([]*testNode, nodesPerShard)
 
@@ -620,9 +622,11 @@ func createNodes(
 				ShardConsensusGroupSize: 1,
 				MetaConsensusGroupSize:  1,
 				Hasher:                  testHasher,
+				Shuffler:                nodeShuffler,
 				ShardId:                 uint32(shardId),
 				NbShards:                uint32(numOfShards),
-				Nodes:                   validatorsMap,
+				EligibleNodes:           validatorsMap,
+				WaitingNodes:            make(map[uint32][]sharding.Validator),
 				SelfPublicKey:           []byte(strconv.Itoa(j)),
 			}
 			nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -697,9 +701,11 @@ func createNodes(
 			ShardConsensusGroupSize: 1,
 			MetaConsensusGroupSize:  1,
 			Hasher:                  testHasher,
+			Shuffler:                nodeShuffler,
 			ShardId:                 sharding.MetachainShardId,
 			NbShards:                uint32(numOfShards),
-			Nodes:                   validatorsMap,
+			EligibleNodes:           validatorsMap,
+			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

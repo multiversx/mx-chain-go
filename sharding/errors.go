@@ -73,6 +73,9 @@ var ErrNilHasher = errors.New("nil hasher")
 // ErrNilStake signals that a nil stake structure has been provided
 var ErrNilStake = errors.New("nil stake")
 
+// ErrNilShuffler signals that a nil shuffler was provided
+var ErrNilShuffler = errors.New("nil nodes shuffler provided")
+
 // ErrNegativeStake signals that the stake is negative
 var ErrNegativeStake = errors.New("negative stake")
 

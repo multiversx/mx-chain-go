@@ -127,16 +127,19 @@ func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
 	return addresses, nil
 }
 
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(nodes map[uint32][]sharding.Validator) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(
+	eligible map[uint32][]sharding.Validator,
+	waiting map[uint32][]sharding.Validator,
+) error {
 	if ncm.LoadNodesPerShardsCalled != nil {
-		return ncm.LoadNodesPerShardsCalled(nodes)
+		return ncm.LoadNodesPerShardsCalled(eligible)
 	}
 
-	if nodes == nil {
+	if eligible == nil {
 		return sharding.ErrNilInputNodesMap
 	}
 
-	ncm.Validators = nodes
+	ncm.Validators = eligible
 
 	return nil
 }

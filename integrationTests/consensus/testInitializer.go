@@ -457,8 +457,10 @@ func createNodes(
 	nodes := make(map[uint32][]*testNode)
 	cp := createCryptoParams(nodesPerShard, 1, 1)
 	keysMap := pubKeysMapFromKeysMap(cp.keys)
-	validatorsMap := genValidatorsFromPubKeys(keysMap)
+	eligibleMap := genValidatorsFromPubKeys(keysMap)
 	nodesList := make([]*testNode, nodesPerShard)
+
+	nodeShuffler := &mock.NodeShufflerMock{}
 
 	pubKeys := make([]crypto.PublicKey, len(cp.keys[0]))
 	for idx, keyPairShard := range cp.keys[0] {
@@ -477,8 +479,10 @@ func createNodes(
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
 			Hasher:                  createHasher(consensusType),
+			Shuffler:                nodeShuffler,
 			NbShards:                1,
-			Nodes:                   validatorsMap,
+			EligibleNodes:           eligibleMap,
+			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

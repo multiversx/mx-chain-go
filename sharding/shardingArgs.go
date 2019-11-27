@@ -7,8 +7,10 @@ type ArgNodesCoordinator struct {
 	ShardConsensusGroupSize int
 	MetaConsensusGroupSize  int
 	Hasher                  hashing.Hasher
+	Shuffler                NodesShuffler
 	ShardId                 uint32
 	NbShards                uint32
-	Nodes                   map[uint32][]Validator
+	EligibleNodes           map[uint32][]Validator
+	WaitingNodes            map[uint32][]Validator
 	SelfPublicKey           []byte
 }

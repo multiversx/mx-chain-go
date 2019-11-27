@@ -70,7 +70,7 @@ func InitMetrics(
 		consensusGroupSize = 0
 	}
 
-	validatorsNodes := nodesConfig.InitialNodesInfo()
+	validatorsNodes, _ := nodesConfig.InitialNodesInfo()
 	numValidators := len(validatorsNodes[shardCoordinator.SelfId()])
 
 	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))

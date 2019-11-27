@@ -69,23 +69,23 @@ func (rxs *randXORShuffler) UpdateParams(
 //          c)  No change in the number of shards then nothing extra needs to be done
 func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 	var shuffledOutNodes []Validator
-	eligibleAfterReshard := copyValidatorMap(args.eligible)
-	waitingAfterReshard := copyValidatorMap(args.waiting)
+	eligibleAfterReshard := copyValidatorMap(args.Eligible)
+	waitingAfterReshard := copyValidatorMap(args.Waiting)
 
-	newNbShards := rxs.computeNewShards(args.eligible, args.waiting, args.newNodes, args.leaving, args.nbShards)
+	newNbShards := rxs.computeNewShards(args.Eligible, args.Waiting, args.NewNodes, args.Leaving, args.NbShards)
 
 	rxs.mutShufflerParams.RLock()
-	canSplit := rxs.adaptivity && newNbShards > args.nbShards
-	canMerge := rxs.adaptivity && newNbShards < args.nbShards
+	canSplit := rxs.adaptivity && newNbShards > args.NbShards
+	canMerge := rxs.adaptivity && newNbShards < args.NbShards
 	rxs.mutShufflerParams.RUnlock()
 
-	leavingNodes := args.leaving
+	leavingNodes := args.Leaving
 
 	if canSplit {
-		eligibleAfterReshard, waitingAfterReshard = rxs.splitShards(args.eligible, args.waiting, newNbShards)
+		eligibleAfterReshard, waitingAfterReshard = rxs.splitShards(args.Eligible, args.Waiting, newNbShards)
 	}
 	if canMerge {
-		eligibleAfterReshard, waitingAfterReshard = rxs.mergeShards(args.eligible, args.waiting, newNbShards)
+		eligibleAfterReshard, waitingAfterReshard = rxs.mergeShards(args.Eligible, args.Waiting, newNbShards)
 	}
 
 	for shard, vList := range waitingAfterReshard {
@@ -102,11 +102,11 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]
 		eligibleAfterReshard,
 		waitingAfterReshard,
 		leavingNodes,
-		args.rand,
+		args.Rand,
 	)
 	promoteWaitingToEligible(eligibleAfterReshard, waitingAfterReshard)
-	distributeValidators(args.newNodes, waitingAfterReshard, args.rand, newNbShards+1)
-	distributeValidators(shuffledOutNodes, waitingAfterReshard, args.rand, newNbShards+1)
+	distributeValidators(args.NewNodes, waitingAfterReshard, args.Rand, newNbShards+1)
+	distributeValidators(shuffledOutNodes, waitingAfterReshard, args.Rand, newNbShards+1)
 
 	return eligibleAfterReshard, waitingAfterReshard, leavingNodes
 }

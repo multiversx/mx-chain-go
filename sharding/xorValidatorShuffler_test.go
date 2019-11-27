@@ -758,11 +758,11 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
 
 	args := ArgsUpdateNodes{
-		eligible: eligibleMap,
-		waiting:  waitingMap,
-		newNodes: newNodes,
-		leaving:  leavingNodes,
-		rand:     randomness,
+		Eligible: eligibleMap,
+		Waiting:  waitingMap,
+		NewNodes: newNodes,
+		Leaving:  leavingNodes,
+		Rand:     randomness,
 	}
 
 	eligible, waiting, _ := shuffler.UpdateNodeLists(args)

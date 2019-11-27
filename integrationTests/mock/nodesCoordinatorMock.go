@@ -78,7 +78,7 @@ func (ncm *NodesCoordinatorMock) GetValidatorsRewardsAddresses(
 	return addresses, nil
 }
 
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(map[uint32][]sharding.Validator) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(map[uint32][]sharding.Validator, map[uint32][]sharding.Validator) error {
 	return nil
 }
 

@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -149,10 +149,17 @@ func CreateMetaGenesisBlock(
 		return nil, err
 	}
 
+	eligible, waiting := args.NodesSetup.InitialNodesInfo()
+	allNodes := make(map[uint32][]*sharding.NodeInfo)
+
+	for shard := range eligible {
+		allNodes[shard] = append(eligible[shard], waiting[shard]...)
+	}
+
 	err = setStakingData(
 		txProcessor,
 		args.ShardCoordinator,
-		args.NodesSetup.InitialNodesInfo(),
+		allNodes,
 		args.Economics.StakeValue(),
 	)
 	if err != nil {
@@ -316,7 +323,7 @@ func setStakingData(
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+	for i := range initialNodeInfo {
 		nodeInfoList := initialNodeInfo[i]
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
@@ -335,26 +342,6 @@ func setStakingData(
 			if err != nil {
 				return err
 			}
-		}
-	}
-
-	nodeInfoList := initialNodeInfo[sharding.MetachainShardId]
-	for _, nodeInfo := range nodeInfoList {
-		tx := &transaction.Transaction{
-			Nonce:     0,
-			Value:     big.NewInt(0).Set(stakeValue),
-			RcvAddr:   vmFactory.StakingSCAddress,
-			SndAddr:   nodeInfo.Address(),
-			GasPrice:  0,
-			GasLimit:  0,
-			Data:      "stake@" + hex.EncodeToString(nodeInfo.PubKey()),
-			Signature: nil,
-			Challenge: nil,
-		}
-
-		err := txProcessor.ProcessTransaction(tx, 0)
-		if err != nil {
-			return err
 		}
 	}
 
