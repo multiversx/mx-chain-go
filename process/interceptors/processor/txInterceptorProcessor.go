@@ -44,7 +44,6 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 	// debugTx(interceptedTx, "validate")
 	errTxValidation := txip.txValidator.CheckTxValidity(interceptedTx)
 	if errTxValidation != nil {
-		log.Debug("Intercepted transaction", "error", errTxValidation)
 		return errTxValidation
 	}
 	log.Trace("Intercepted transaction", "valid", true)
