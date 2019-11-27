@@ -38,7 +38,7 @@ type validatorStatistics struct {
 	peerAdapter      state.AccountsAdapter
 	prevShardInfo    map[string]block.ShardData
 	mutPrevShardInfo sync.RWMutex
-	mediator shardMetaMediator
+	mediator         shardMetaMediator
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -80,7 +80,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		dataPool:         arguments.DataPool,
 		storageService:   arguments.StorageService,
 		marshalizer:      arguments.Marshalizer,
-		prevShardInfo:    make(map[string]block.ShardData, 0),
+		prevShardInfo:    make(map[string]block.ShardData),
 	}
 	vs.mediator = vs.createMediator()
 
@@ -230,7 +230,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 	}
 
 	err := p.mediator.loadPreviousShardHeaders(metaHeader, prevMetaHeader)
-	if err !=  nil {
+	if err != nil {
 		return err
 	}
 
@@ -484,11 +484,11 @@ func (p *validatorStatistics) loadPreviousShardHeadersMeta(header *block.MetaBlo
 
 		sdKey := p.buildShardDataKey(shardData)
 		p.prevShardInfo[sdKey] = block.ShardData{
-			ShardID: previousHeader.ShardId,
-			Nonce: previousHeader.Nonce,
-			Round: previousHeader.Round,
+			ShardID:      previousHeader.ShardId,
+			Nonce:        previousHeader.Nonce,
+			Round:        previousHeader.Round,
 			PrevRandSeed: previousHeader.PrevRandSeed,
-			PrevHash: previousHeader.PrevHash,
+			PrevHash:     previousHeader.PrevHash,
 		}
 	}
 	return nil
@@ -499,7 +499,7 @@ func (p *validatorStatistics) getMatchingPrevShardData(currentShardData block.Sh
 		if currentShardData.ShardID != prevShardData.ShardID {
 			continue
 		}
-		if currentShardData.Nonce == prevShardData.Nonce + 1 {
+		if currentShardData.Nonce == prevShardData.Nonce+1 {
 			return &prevShardData
 		}
 	}
