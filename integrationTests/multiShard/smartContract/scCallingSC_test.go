@@ -13,7 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -62,15 +65,18 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	// mint smart contract holders
 	firstSCOwner := []byte("12345678901234567890123456789000")
 	secondSCOwner := []byte("99945678901234567890123456789001")
+	delegateSCOwner := []byte("12345678901234567890123456789002")
 
 	mintPubKey(firstSCOwner, initialVal, nodes)
 	mintPubKey(secondSCOwner, initialVal, nodes)
+	mintPubKey(delegateSCOwner, initialVal, nodes)
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool("./first.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool("./second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
+	delegateSCAddress := putDeploySCToDataPool("./delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -82,6 +88,13 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		pubKey, _ := node.NodeKeys.Pk.ToByteArray()
 		txData := "main" + "@" + hex.EncodeToString(pubKey)
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
+	}
+
+	// make nodes delegate stake to delegateSCAddress
+	for _, node := range nodes {
+		pubKey, _ := node.NodeKeys.Pk.ToByteArray()
+		txData := "delegate" + "@" + hex.EncodeToString(pubKey)
+		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), delegateSCAddress, txData)
 	}
 
 	time.Sleep(time.Second)
@@ -105,6 +118,38 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "num_called", nil)
 		assert.Equal(t, numCalled.Uint64(), uint64(len(nodes)))
 	}
+
+	// one node calls to stake all the money from the delegation - that's how the contract is :D
+	node := nodes[0]
+	txData := "sendToStaking"
+	integrationTests.CreateAndSendTransaction(node, big.NewInt(100), delegateSCAddress, txData)
+
+	time.Sleep(time.Second)
+
+	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
+		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+	}
+
+	// verify system smart contract has the value
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+			continue
+		}
+		scQuery := &process.SCQuery{
+			ScAddress: factory2.StakingSCAddress,
+			FuncName:  "isStaked",
+			Arguments: [][]byte{delegateSCAddress},
+		}
+		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+		assert.NotNil(t, vmOutput)
+		assert.Equal(t, len(vmOutput.ReturnData), 1)
+
+		retData := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+		assert.Equal(t, uint64(1), retData.Uint64())
+	}
 }
 
 func putDeploySCToDataPool(
@@ -121,7 +166,7 @@ func putDeploySCToDataPool(
 
 	scAddressBytes, _ := blockChainHook.NewAddress(pubkey, nonce, factory.ArwenVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddressBytes))
-
+	fmt.Println(scAddressBytes)
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
 		Value:    transferOnDeploy,
@@ -161,3 +206,8 @@ func mintPubKey(
 		integrationTests.MintAddress(node.AccntState, pubkey, initialVal)
 	}
 }
+
+//[0 0 0 0 0 0 0 0 5 0 93 61 83 181 208 252 240 125 34 33 112 151 137 50 22 110 233 243 151 45 48 48]
+//resulting shard ID 0
+//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
+//[0 0 0 0 0 0 0 0 5 0 1 124 192 145 81 196 139 153 226 161 82 47 183 10 81 24 173 76 178 108 48 49]

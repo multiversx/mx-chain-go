@@ -513,7 +513,7 @@ func (sc *scProcessor) createSmartContractResult(
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = scAddress
 	result.Code = outAcc.Code
-	result.Data = sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
+	result.Data = string(outAcc.Data) + sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
 	result.TxHash = txHash
 
 	return result
