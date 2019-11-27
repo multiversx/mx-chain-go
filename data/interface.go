@@ -40,6 +40,7 @@ type HeaderHandler interface {
 	IsInterfaceNil() bool
 	ItemsInBody() uint32
 	ItemsInHeader() uint32
+	Clone() HeaderHandler
 }
 
 // BodyHandler interface for a block body

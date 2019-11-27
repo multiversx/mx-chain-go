@@ -218,7 +218,7 @@ func (sr *SubroundBlock) createHeader() (data.HeaderHandler, error) {
 		prevRandSeed = sr.Blockchain().GetCurrentBlockHeader().GetRandSeed()
 	}
 
-	randSeed, err := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), prevRandSeed)
+	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
 	if err != nil {
 		return nil, err
 	}

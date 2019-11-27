@@ -514,11 +514,6 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestBlockPorcessor_DisplayHeaderShouldWork(t *testing.T) {
-	lines := blproc.DisplayHeader(&block.Header{})
-	assert.Equal(t, 10, len(lines))
-}
-
 func TestBaseProcessor_SetLastNotarizedHeadersSliceNil(t *testing.T) {
 	t.Parallel()
 
