@@ -9,7 +9,7 @@ DEPLOYED_SC_ADDRESS=$(cat $TESTNETDIR/txgen/deployedSCAddress.txt)
 sendTransactions() {
   curl -d '{
     "value": 10,
-    "numOfTxs": 1000,
+    "numOfTxs": 100,
     "numOfShards": '$SHARDCOUNT',
     "gasPrice": 1,
     "gasLimit": 3000000,
@@ -20,9 +20,6 @@ sendTransactions() {
   }' \
     -H "Content-Type: application/json" -X POST http://localhost:$PORT_TXGEN/transaction/send-multiple
 }
-
-echo "Waiting 1800s..."
-sleep 1800
 
 while true
 do
