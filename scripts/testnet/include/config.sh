@@ -64,8 +64,17 @@ updateNodeConfig() {
   cp p2p.toml p2p_edit.toml
 
   updateTOMLValue p2p_edit.toml "InitialPeerList" "[\"$P2P_SEEDNODE_ADDRESS\"]"
+
   cp p2p_edit.toml p2p.toml
   rm p2p_edit.toml
+
+  cp nodesSetup.json nodesSetup_edit.json
+  
+  let startTime="$(date +%s) + $NODE_DELAY"
+  updateJSONValue nodesSetup_edit.json "startTime" "$startTime"
+
+  cp nodesSetup_edit.json nodesSetup.json
+  rm nodesSetup_edit.json
 
   echo "Updated configuration for Nodes."
 }
@@ -153,3 +162,12 @@ updateTOMLValue() {
   sed -i "s,$key = .*\$,$key = $escaped_value," $filename
 }
 
+updateJSONValue() {
+  local filename=$1
+  local key=$2
+  local value=$3
+
+  escaped_value=$(printf "%q" $value)
+
+  sed -i "s,\"$key\": .*\$,\"$key\": $escaped_value\,," $filename
+}

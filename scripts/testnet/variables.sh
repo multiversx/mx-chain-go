@@ -92,3 +92,9 @@ if [ "$TESTNETMODE" == "debug" ]; then
   USETMUX=1
   LOGLEVEL="*:DEBUG"
 fi
+
+if [ "$TESTNETMODE" == "ui" ]; then
+  NODETERMUI=1
+  USETMUX=1
+  LOGLEVEL="*:DEBUG"
+fi
