@@ -90,9 +90,9 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return process.ErrNilTransaction
 	}
 
-	log.Debug("About to process transaction")
+	log.Trace("About to process transaction")
 	json, err := tx.MarshalJSON()
-	log.Debug("Transaction", "JSON", string(json))
+	log.Trace("Transaction", "JSON", string(json))
 
 	adrSrc, adrDst, err := txProc.getAddresses(tx)
 	if err != nil {
@@ -193,9 +193,9 @@ func (txProc *txProcessor) processSCDeployment(
 	roundIndex uint64,
 ) error {
 
-	log.Debug("About to execute SmartContract deployment transaction")
+	log.Trace("About to execute SmartContract deployment transaction")
 	json, err := tx.MarshalJSON()
-	log.Debug("Transaction", "JSON", string(json))
+	log.Trace("Transaction", "JSON", string(json))
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, err := txProc.getAccountFromAddress(adrSrc)

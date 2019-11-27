@@ -47,7 +47,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 		log.Debug("Intercepted transaction", "error", errTxValidation)
 		return errTxValidation
 	}
-	log.Debug("Intercepted transaction", "valid", true)
+	log.Trace("Intercepted transaction", "valid", true)
 	return nil
 }
 
@@ -97,7 +97,7 @@ func debugTx(tx InterceptedTransactionHandler, verb string) {
 	}
 
 	data := fmt.Sprintf("Data: %s", tx.Transaction().GetData())
-	log.Debug("Intercepted transaction "+verb, "sender", sender)
-	log.Debug("Intercepted transaction "+verb, "receiver", receiver)
-	log.Debug("Intercepted transaction "+verb, "data", data)
+	log.Trace("Intercepted transaction "+verb, "sender", sender)
+	log.Trace("Intercepted transaction "+verb, "receiver", receiver)
+	log.Trace("Intercepted transaction "+verb, "data", data)
 }
