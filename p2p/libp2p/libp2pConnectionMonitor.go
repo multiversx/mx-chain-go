@@ -16,8 +16,8 @@ const (
 	watchdogTimeout = 5 * time.Minute
 )
 
-// DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() to often
-// when there are a lot of peers disconnecting and reconnection to initial nodes succeed
+// DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() too often
+// when there are a lot of peers disconnecting and reconnection to initial nodes succeeds
 var DurationBetweenReconnectAttempts = time.Second * 5
 
 type libp2pConnectionMonitor struct {

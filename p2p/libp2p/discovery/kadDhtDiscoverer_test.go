@@ -303,7 +303,7 @@ func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
 
 	if !testing.Short() {
 		//kick
-		kdd.KickWatchdog()
+		_ = kdd.KickWatchdog()
 		kdd.Pause()
 		assert.True(t, kdd.IsDiscoveryPaused())
 		time.Sleep(interval / 2)
@@ -312,5 +312,5 @@ func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
 		assert.False(t, kdd.IsDiscoveryPaused())
 	}
 
-	kdd.StopWatchdog()
+	_ = kdd.StopWatchdog()
 }

@@ -295,7 +295,7 @@ func (kdd *KadDhtDiscoverer) StopWatchdog() error {
 	return nil
 }
 
-// KickWatchdog stops the discovery watchdog
+// KickWatchdog extends the discovery resume timeout
 func (kdd *KadDhtDiscoverer) KickWatchdog() error {
 	kdd.mutKadDht.Lock()
 	defer kdd.mutKadDht.Unlock()

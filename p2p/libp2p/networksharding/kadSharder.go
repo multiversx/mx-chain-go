@@ -1,6 +1,7 @@
 package networksharding
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -10,6 +11,8 @@ import (
 const (
 	maxMaskBits  = 8
 	fullMaskBits = 0xff
+
+	minInShardConnRatio = 0.65 // the minimum in shard vs total connections ratio
 )
 
 // kadSharder KAD based sharder
@@ -71,8 +74,16 @@ func (ks *kadSharder) GetDistance(a, b sortingID) *big.Int {
 // SortList sort the provided peers list
 func (ks *kadSharder) SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool) {
 	sl := getSortingList(ks, peers, ref)
-	// for balance we just try to keep at least 1 connection ouside of shard
-	balanced := len(peers) > inShardCount(sl)
+	// for balance we should have between 1 and 20% connections outside of shard
+	peerCnt := len(peers)
+	inShardCnt := inShardCount(sl)
+	balanced := peerCnt > inShardCnt
+
+	if balanced {
+		minInShard := int(math.Floor(float64(peerCnt) * minInShardConnRatio))
+		balanced = inShardCnt >= minInShard
+	}
+
 	return sl.SortedPeers(), balanced
 }
 
