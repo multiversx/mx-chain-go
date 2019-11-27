@@ -499,8 +499,6 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
-	ownerNonce++
-
 	start := time.Now()
 
 	for i := 0; i < numRun; i++ {
