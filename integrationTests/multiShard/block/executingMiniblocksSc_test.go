@@ -34,6 +34,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	integrationTests.MinTxGasPrice = 0
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -43,15 +44,12 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodeShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	nodeShard0.EconomicsData.SetMinGasPrice(0)
 
 	nodeShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
-	nodeShard1.EconomicsData.SetMinGasPrice(0)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
 	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
-	nodeMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{nodeShard0, nodeShard1, nodeMeta}
 
@@ -136,6 +134,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	integrationTests.MinTxGasPrice = 0
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -149,7 +148,6 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		0,
 		advertiserAddr,
 	)
-	nodeProposerShard0.EconomicsData.SetMinGasPrice(0)
 
 	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(
 		maxShards,
@@ -157,7 +155,6 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		0,
 		advertiserAddr,
 	)
-	nodeValidatorShard0.EconomicsData.SetMinGasPrice(0)
 
 	nodeProposerShard1 := integrationTests.NewTestProcessorNode(
 		maxShards,
@@ -165,7 +162,6 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		1,
 		advertiserAddr,
 	)
-	nodeProposerShard1.EconomicsData.SetMinGasPrice(0)
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
@@ -176,7 +172,6 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		1,
 		advertiserAddr,
 	)
-	nodeValidatorShard1.EconomicsData.SetMinGasPrice(0)
 
 	nodeProposerMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
@@ -184,7 +179,6 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		0,
 		advertiserAddr,
 	)
-	nodeProposerMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodeValidatorMeta := integrationTests.NewTestProcessorNode(
 		maxShards,
@@ -192,7 +186,6 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		0,
 		advertiserAddr,
 	)
-	nodeValidatorMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{
 		nodeProposerShard0,
@@ -289,6 +282,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 		t.Skip("this is not a short test")
 	}
 
+	integrationTests.MinTxGasPrice = 0
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -298,23 +292,16 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodeProposerShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	nodeProposerShard0.EconomicsData.SetMinGasPrice(0)
 	nodeValidatorShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	nodeValidatorShard0.EconomicsData.SetMinGasPrice(0)
 
 	nodeProposerShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
-	nodeProposerShard1.EconomicsData.SetMinGasPrice(0)
-
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodeProposerShard1.LoadTxSignSkBytes(hardCodedSk)
 	nodeValidatorShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
-	nodeValidatorShard1.EconomicsData.SetMinGasPrice(0)
 
 	nodeProposerMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
-	nodeProposerMeta.EconomicsData.SetMinGasPrice(0)
 	nodeValidatorMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
-	nodeValidatorMeta.EconomicsData.SetMinGasPrice(0)
 
 	nodes := []*integrationTests.TestProcessorNode{
 		nodeProposerShard0,
@@ -410,7 +397,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	// create map of shard - testNodeProcessors for metachain and shard chain
+	// create map of shards - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
 		nodesPerShard,
@@ -423,7 +410,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	for _, nodes := range nodesMap {
 		integrationTests.DisplayAndStartNodes(nodes)
 		integrationTests.SetEconomicsParameters(nodes, integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
-		//set rewards = 0 so we can easily tests the balances taking into account only the tx fee
+		//set rewards = 0 so we can easily test the balances taking into account only the tx fee
 		for _, n := range nodes {
 			n.EconomicsData.SetRewards(big.NewInt(0))
 		}
@@ -471,15 +458,13 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		gasLimit,
 		gasPrice,
 	)
-	txNonce++
 
 	randomness := generateInitialRandomness(uint32(maxShards))
-	_, _, _, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
+	_, _, _, _ = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 	leaderPkBytes := nodeShard0.SpecialAddressHandler.LeaderAddress()
 	leaderAddress, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(leaderPkBytes)
 
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
+	_ = integrationTests.IncrementAndPrintRound(round)
 
 	// test sender account decreased its balance with gasPrice * gasLimit
 	accnt, err := nodeShard0.AccntState.GetExistingAccount(ownerAddr)

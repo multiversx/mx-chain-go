@@ -23,12 +23,12 @@ var minTxGasLimit = uint64(1000)
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
-func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTxs uint64) error {
+func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, numOfTxs uint64) error {
 	if atomic.LoadInt32(&n.currentSendingGoRoutines) >= maxGoRoutinesSendMessage {
 		return ErrSystemBusyGeneratingTransactions
 	}
 
-	err := n.generateBulkTransactionsChecks(noOfTxs)
+	err := n.generateBulkTransactionsChecks(numOfTxs)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(int(noOfTxs))
+	wg.Add(int(numOfTxs))
 
 	mutTransactions := sync.RWMutex{}
 	transactions := make([][]byte, 0)
@@ -52,7 +52,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return err
 	}
 
-	for nonce := newNonce; nonce < newNonce+noOfTxs; nonce++ {
+	for nonce := newNonce; nonce < newNonce+numOfTxs; nonce++ {
 		go func(crtNonce uint64) {
 			_, signedTxBuff, err := n.generateAndSignSingleTx(
 				crtNonce,
@@ -84,8 +84,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errFound
 	}
 
-	if len(transactions) != int(noOfTxs) {
-		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTxs))
+	if len(transactions) != int(numOfTxs) {
+		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), numOfTxs))
 	}
 
 	//the topic identifier is made of the current shard id and sender's shard id
@@ -115,8 +115,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	return nil
 }
 
-func (n *Node) generateBulkTransactionsChecks(noOfTx uint64) error {
-	if noOfTx == 0 {
+func (n *Node) generateBulkTransactionsChecks(numOfTxs uint64) error {
+	if numOfTxs == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
 	}
 	if n.txSignPubKey == nil {

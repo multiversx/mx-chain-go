@@ -61,38 +61,10 @@ func NewSmartContractProcessor(
 	txFeeHandler process.TransactionFeeHandler,
 	economicsFee process.FeeHandler,
 ) (*scProcessor, error) {
-	if check.IfNil(vmContainer) {
-		return nil, process.ErrNoVM
-	}
-	if check.IfNil(argsParser) {
-		return nil, process.ErrNilArgumentParser
-	}
-	if check.IfNil(hasher) {
-		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(accountsDB) {
-		return nil, process.ErrNilAccountsAdapter
-	}
-	if check.IfNil(tempAccounts) {
-		return nil, process.ErrNilTemporaryAccountsHandler
-	}
-	if check.IfNil(adrConv) {
-		return nil, process.ErrNilAddressConverter
-	}
-	if check.IfNil(coordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(scrForwarder) {
-		return nil, process.ErrNilIntermediateTransactionHandler
-	}
-	if check.IfNil(txFeeHandler) {
-		return nil, process.ErrNilUnsignedTxHandler
-	}
-	if check.IfNil(economicsFee) {
-		return nil, process.ErrNilEconomicsFeeHandler
+	err := checkArgumentsForNil(vmContainer, argsParser, hasher, marshalizer, accountsDB,
+		tempAccounts, adrConv, coordinator, scrForwarder, txFeeHandler, economicsFee)
+	if err != nil {
+		return nil, err
 	}
 
 	return &scProcessor{
@@ -108,6 +80,56 @@ func NewSmartContractProcessor(
 		txFeeHandler:     txFeeHandler,
 		economicsFee:     economicsFee,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
+}
+
+func checkArgumentsForNil(
+	vmContainer process.VirtualMachinesContainer,
+	argsParser process.ArgumentsParser,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	accountsDB state.AccountsAdapter,
+	tempAccounts process.TemporaryAccountsHandler,
+	adrConv state.AddressConverter,
+	coordinator sharding.Coordinator,
+	scrForwarder process.IntermediateTransactionHandler,
+	txFeeHandler process.TransactionFeeHandler,
+	economicsFee process.FeeHandler,
+) error {
+	if check.IfNil(vmContainer) {
+		return process.ErrNoVM
+	}
+	if check.IfNil(argsParser) {
+		return process.ErrNilArgumentParser
+	}
+	if check.IfNil(hasher) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(marshalizer) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(accountsDB) {
+		return process.ErrNilAccountsAdapter
+	}
+	if check.IfNil(tempAccounts) {
+		return process.ErrNilTemporaryAccountsHandler
+	}
+	if check.IfNil(adrConv) {
+		return process.ErrNilAddressConverter
+	}
+	if check.IfNil(coordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(scrForwarder) {
+		return process.ErrNilIntermediateTransactionHandler
+	}
+	if check.IfNil(txFeeHandler) {
+		return process.ErrNilUnsignedTxHandler
+	}
+	if check.IfNil(economicsFee) {
+		return process.ErrNilEconomicsFeeHandler
+	}
+
+	return nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
