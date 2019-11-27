@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,27 +42,14 @@ func TestConnectionsInNetworkSharding(t *testing.T) {
 	)
 
 	defer func() {
-		_ = advertiser.Close()
-		for _, nodes := range nodesMap {
-			for _, n := range nodes {
-				_ = n.Node.Stop()
-			}
-		}
+		stopNodes(advertiser, nodesMap)
 	}()
 
-	for _, nodes := range nodesMap {
-		for _, n := range nodes {
-			n.CreateTestInterceptors()
-		}
-	}
+	createTestInterceptorForEachNode(nodesMap)
 
 	time.Sleep(time.Second * 2)
 
-	for _, nodes := range nodesMap {
-		for _, n := range nodes {
-			_ = n.Node.Start()
-		}
-	}
+	startNodes(nodesMap)
 
 	t.Log("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(p2pBootstrapStepDelay)
@@ -83,6 +71,31 @@ func TestConnectionsInNetworkSharding(t *testing.T) {
 	}
 
 	testCounters(t, nodesMap, 1, 1, nbShards*2)
+}
+
+func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	_ = advertiser.Close()
+	for _, nodes := range nodesMap {
+		for _, n := range nodes {
+			_ = n.Node.Stop()
+		}
+	}
+}
+
+func startNodes(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	for _, nodes := range nodesMap {
+		for _, n := range nodes {
+			_ = n.Node.Start()
+		}
+	}
+}
+
+func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
+	for _, nodes := range nodesMap {
+		for _, n := range nodes {
+			n.CreateTestInterceptors()
+		}
+	}
 }
 
 func sendMessageOnGlobalTopic(t *testing.T, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
