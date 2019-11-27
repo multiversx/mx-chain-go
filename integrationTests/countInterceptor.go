@@ -31,7 +31,7 @@ func (ci *CountInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, _ fun
 // MessageCount returns the number of messages received on the provided topic
 func (ci *CountInterceptor) MessageCount(topic string) int {
 	ci.mutMessagesCount.RLock()
-	ci.mutMessagesCount.RUnlock()
+	defer ci.mutMessagesCount.RUnlock()
 
 	return ci.messagesCount[topic]
 }

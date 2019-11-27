@@ -563,31 +563,25 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	return netMes.connMonitor.SetSharder(kadSharder)
 }
 
-// GetPeerStats gets the current connected peer counts
-func (netMes *networkMessenger) GetPeerStats() *p2p.PeerStats {
+// GetPeerCounts gets the current connected peer counts
+func (netMes *networkMessenger) GetPeerCounts() *p2p.PeerCounts {
 	peers := netMes.ctxProvider.connHost.Network().Peers()
-	intra := 0
-	cross := 0
-	unknown := 0
+	peerCounts := &p2p.PeerCounts{}
 	crt := netMes.connMonitor.sharder.GetShard(netMes.ctxProvider.connHost.ID())
 
 	for _, p := range peers {
 		shard := netMes.connMonitor.sharder.GetShard(p)
 		switch shard {
 		case sharding.UnknownShardId:
-			unknown++
+			peerCounts.UnknownPeers++
 		case crt:
-			intra++
+			peerCounts.IntraShardPeers++
 		default:
-			cross++
+			peerCounts.CrossShardPeers++
 		}
 	}
 
-	return &p2p.PeerStats{
-		UnknownPeers:    unknown,
-		IntraShardPeers: intra,
-		CrossShardPeers: cross,
-	}
+	return peerCounts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
