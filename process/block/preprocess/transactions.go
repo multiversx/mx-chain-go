@@ -542,13 +542,11 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		}
 
 		if txs.isTxAlreadyProcessed(orderedTxHashes[index], &txs.txsForCurrBlock) {
-			log.Debug("Transaction already processed")
 			continue
 		}
 
 		currTxGasLimit := txs.economicsFee.ComputeGasLimit(orderedTxs[index])
 		if core.IsSmartContractAddress(orderedTxs[index].RcvAddr) {
-			log.Debug("This is a SC transaction")
 			currTxGasLimit = orderedTxs[index].GasLimit
 		}
 
@@ -573,7 +571,7 @@ func (txs *transactions) CreateAndProcessMiniBlock(
 		)
 
 		if err != nil {
-			log.Debug("bad tx",
+			log.Trace("bad tx",
 				"error", err.Error(),
 				"hash", orderedTxHashes[index],
 			)
