@@ -229,6 +229,7 @@ type ValidatorStatisticsProcessor interface {
 	RevertPeerStateToSnapshot(snapshot int) error
 	IsInterfaceNil() bool
 	Commit() ([]byte, error)
+	RootHash() ([]byte, error)
 }
 
 // HashAccesser interface provides functionality over hashable objects
@@ -419,7 +420,7 @@ type RewardsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorSettingsHandler
+// ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
 	UnBoundPeriod() uint64
 	StakeValue() *big.Int
