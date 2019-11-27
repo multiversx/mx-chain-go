@@ -340,7 +340,11 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	return tr.recreateFromDb(root, tr.db)
+	db := tr.getDbThatContainsHash(root)
+	if db == nil {
+		return tr.recreateFromDb(root, tr.db)
+	}
+	return tr.recreateFromDb(root, db)
 }
 
 // DeepClone returns a new trie with all nodes deeply copied
@@ -445,37 +449,71 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	return oldHashes
 }
 
-// Snapshot creates a new database in which the current state of the trie is saved.
-// If the maximum number of snapshots has been reached, the oldest snapshot is removed.
-func (tr *patriciaMerkleTrie) Snapshot() error {
+// Checkpoint adds the current state of the trie to the snapshot database
+func (tr *patriciaMerkleTrie) Checkpoint() error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
+
+	if tr.root.isDirty() {
+		return ErrTrieNotCommited
+	}
 
 	if tr.snapshotInProgress {
 		return ErrSnapshotInProgress
 	}
 	tr.snapshotInProgress = true
 
-	err := tr.root.commit(false, 0, tr.db, tr.db)
+	if len(tr.snapshots) == 0 {
+		_, err := tr.newSnapshotDb()
+		if err != nil {
+			tr.snapshotInProgress = false
+			return err
+		}
+	}
+
+	lastSnapshotId := len(tr.snapshots) - 1
+	err := tr.root.commit(true, 0, tr.db, tr.snapshots[lastSnapshotId])
 	if err != nil {
+		tr.snapshotInProgress = false
 		return err
 	}
+
+	keys := tr.pruningBuffer
+	tr.pruningBuffer = make([][]byte, 0)
+	tr.snapshotInProgress = false
+
+	for i := range keys {
+		err = tr.removeFromDb(keys[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Snapshot creates a new database in which the current state of the trie is saved.
+// If the maximum number of snapshots has been reached, the oldest snapshot is removed.
+func (tr *patriciaMerkleTrie) Snapshot() error {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if tr.root.isDirty() {
+		return ErrTrieNotCommited
+	}
+
+	if tr.snapshotInProgress {
+		return ErrSnapshotInProgress
+	}
+	tr.snapshotInProgress = true
 
 	rootHash := tr.root.getHash()
 
-	db, err := storageUnit.NewDB(
-		storageUnit.DBType(tr.snapshotDbCfg.Type),
-		path.Join(tr.snapshotDbCfg.FilePath, strconv.Itoa(tr.snapshotId)),
-		tr.snapshotDbCfg.BatchDelaySeconds,
-		tr.snapshotDbCfg.MaxBatchSize,
-		tr.snapshotDbCfg.MaxOpenFiles,
-	)
+	db, err := tr.newSnapshotDb()
 	if err != nil {
+		tr.snapshotInProgress = false
 		return err
 	}
-	tr.snapshotId++
-
-	tr.snapshots = append(tr.snapshots, db)
 
 	if len(tr.snapshots) > maxSnapshots {
 		dbUniqueId := strconv.Itoa(tr.snapshotId - len(tr.snapshots))
@@ -494,16 +532,19 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 		tr.snapshotDbCfg,
 	)
 	if err != nil {
+		tr.snapshotInProgress = false
 		return err
 	}
 
 	encRoot, err := tr.db.Get(rootHash)
 	if err != nil {
+		tr.snapshotInProgress = false
 		return err
 	}
 
 	newRoot, err := decodeNode(encRoot, tr.marshalizer, tr.hasher)
 	if err != nil {
+		tr.snapshotInProgress = false
 		return err
 	}
 
@@ -513,6 +554,24 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	go tr.snapshot(newTrie, db)
 
 	return nil
+}
+
+func (tr *patriciaMerkleTrie) newSnapshotDb() (data.DBWriteCacher, error) {
+	db, err := storageUnit.NewDB(
+		storageUnit.DBType(tr.snapshotDbCfg.Type),
+		path.Join(tr.snapshotDbCfg.FilePath, strconv.Itoa(tr.snapshotId)),
+		tr.snapshotDbCfg.BatchDelaySeconds,
+		tr.snapshotDbCfg.MaxBatchSize,
+		tr.snapshotDbCfg.MaxOpenFiles,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	tr.snapshotId++
+	tr.snapshots = append(tr.snapshots, db)
+
+	return db, nil
 }
 
 func removeDirectory(path string) {
@@ -607,6 +666,10 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 	size := uint64(0)
 	db := tr.getDbThatContainsHash(rootHash)
+	if db == nil {
+		return nil, ErrHashNotFound
+	}
+
 	newTr, err := tr.recreateFromDb(rootHash, db)
 	if err != nil {
 		return nil, err

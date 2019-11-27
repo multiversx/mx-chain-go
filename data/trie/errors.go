@@ -51,3 +51,9 @@ var ErrInvalidHash = errors.New("the received hash is invalid")
 
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
+
+// ErrTrieNotCommited signals that the trie is dirty
+var ErrTrieNotCommited = errors.New("trie is not commited")
+
+// ErrHashNotFound signals that the given hash was not found in db or snapshots
+var ErrHashNotFound = errors.New("hash not found")

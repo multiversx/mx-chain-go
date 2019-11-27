@@ -523,6 +523,7 @@ func TestPatriciaMerkleTrie_Snapshot(t *testing.T) {
 
 	tr := initTrie()
 
+	_ = tr.Commit()
 	err := tr.Snapshot()
 	assert.Nil(t, err)
 }
@@ -532,9 +533,19 @@ func TestPatriciaMerkleTrie_SnapshotWhileSnapshotShouldFail(t *testing.T) {
 
 	tr, _ := initTrieMultipleValues(1000)
 
+	_ = tr.Commit()
 	_ = tr.Snapshot()
 	err := tr.Snapshot()
 	assert.Equal(t, trie.ErrSnapshotInProgress, err)
+}
+
+func TestPatriciaMerkleTrie_SnapshotDirtyTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	err := tr.Snapshot()
+	assert.Equal(t, trie.ErrTrieNotCommited, err)
 }
 
 func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {

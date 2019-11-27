@@ -3,10 +3,14 @@ package trie
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -44,9 +48,27 @@ func getBnAndCollapsedBn(marshalizer marshal.Marshalizer, hasher hashing.Hasher)
 }
 
 func newEmptyTrie(marsh marshal.Marshalizer, hsh hashing.Hasher) *patriciaMerkleTrie {
-	cacheSize := 100
-	tr, _ := NewTrie(mock.NewMemDbMock(), marsh, hsh, mock.NewMemDbMock(), cacheSize, config.DBConfig{})
-	return tr
+	db := memorydb.New()
+	evictionWaitListSize := 100
+	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), marsh)
+
+	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
+	cfg := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDbSerial),
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
+	}
+
+	return &patriciaMerkleTrie{
+		db:                    db,
+		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshotDbCfg:         cfg,
+		dbEvictionWaitingList: evictionWaitList,
+		marshalizer:           marsh,
+		hasher:                hsh,
+	}
 }
 
 func initTrie() *patriciaMerkleTrie {
