@@ -119,5 +119,12 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(lastNotarized map[u
 			log.Debug("header cannot be removed", "error", err.Error(),
 				"nonce", hdrInfo.Nonce, "shardId", shardId)
 		}
+
+		storer = ssb.store.GetStorer(dataRetriever.MetaBlockUnit)
+		err = storer.Remove(hdrInfo.Hash)
+		if err != nil {
+			log.Debug("header cannot be removed", "error", err.Error(),
+				"hash", hdrInfo.Hash, "shardId", shardId)
+		}
 	}
 }

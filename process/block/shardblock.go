@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
@@ -754,22 +755,27 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", header.Nonce,
 		"validator root hash", core.ToB64(header.ValidatorStatsRootHash))
 
-	processedMiniBlock := make(map[string]map[string]struct{})
-	sp.mutProcessedMiniBlocks.Lock()
+	sp.mutProcessedMiniBlocks.RLock()
 	log.Debug("processed mini blocks on commit block")
 	for key, value := range sp.processedMiniBlocks {
 		log.Debug("processed",
 			"meta block hash", []byte(key))
-		processedMiniBlock[key] = value
 
 		for miniBlockHash := range value {
 			log.Debug("processed",
 				"mini block hash", []byte(miniBlockHash))
+
 		}
 	}
-	sp.mutProcessedMiniBlocks.Unlock()
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlock)
+	processedMiniBlockBytes, errNotCritical := json.Marshal(sp.processedMiniBlocks)
+	sp.mutProcessedMiniBlocks.RUnlock()
+
+	if errNotCritical != nil {
+		log.Debug("commit block",
+			"cannot marshal processed mini block map", errNotCritical.Error())
+	}
+	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlockBytes)
 
 	go sp.cleanTxsPools()
 

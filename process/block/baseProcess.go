@@ -1051,7 +1051,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	round uint64,
 	lastFinalHdrs []data.HeaderHandler,
 	lastFinalHashes [][]byte,
-	processedMiniBlock map[string]map[string]struct{},
+	processedMiniBlockBytes []byte,
 ) {
 	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
@@ -1094,11 +1094,11 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	}
 
 	bootData := bootstrapStorage.BootstrapData{
-		HeaderInfo:           headerInfo,
-		LastNotarizedHeaders: lastNotarizedHdrs,
-		LastFinals:           lastFinals,
-		HighestFinalNonce:    highestFinalNonce,
-		ProcessedMiniBlocks:  processedMiniBlock,
+		HeaderInfo:               headerInfo,
+		LastNotarizedHeaders:     lastNotarizedHdrs,
+		LastFinals:               lastFinals,
+		HighestFinalNonce:        highestFinalNonce,
+		ProcessedMiniBlocksBytes: processedMiniBlockBytes,
 	}
 
 	go func() {

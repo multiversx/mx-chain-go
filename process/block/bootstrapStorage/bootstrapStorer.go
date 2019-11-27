@@ -27,12 +27,12 @@ type BootstrapHeaderInfo struct {
 
 // BootstrapData is struct used to store information that are needed for bootstrap
 type BootstrapData struct {
-	HeaderInfo           BootstrapHeaderInfo
-	LastNotarizedHeaders []BootstrapHeaderInfo
-	LastFinals           []BootstrapHeaderInfo
-	ProcessedMiniBlocks  map[string]map[string]struct{}
-	HighestFinalNonce    uint64
-	LastRound            int64
+	HeaderInfo               BootstrapHeaderInfo
+	LastNotarizedHeaders     []BootstrapHeaderInfo
+	LastFinals               []BootstrapHeaderInfo
+	ProcessedMiniBlocksBytes []byte
+	HighestFinalNonce        uint64
+	LastRound                int64
 }
 
 type bootstrapStorer struct {
