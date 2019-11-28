@@ -42,7 +42,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			Rounder:                      &mock.RounderMock{},
-			BootstrapStorer: &mock.BoostrapStorerMock{
+			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
 				},
