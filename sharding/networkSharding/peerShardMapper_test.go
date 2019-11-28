@@ -245,6 +245,30 @@ func TestPeerShardMapper_ByIDNodesCoordinatorDoesntHaveItShouldReturnIFromTheFal
 	assert.Equal(t, shardId, recoveredShardId)
 }
 
+func TestPeerShardMapper_ByIDNodesCoordinatorDoesntHaveItShouldReturnIFromTheSecondFallbackMap(t *testing.T) {
+	t.Parallel()
+
+	shardId := uint32(445)
+	pk := []byte("dummy pk")
+	psm, _ := NewPeerShardMapper(
+		mock.NewCacherMock(),
+		mock.NewCacherMock(),
+		mock.NewCacherMock(),
+		&mock.NodesCoordinatorMock{
+			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
+				return nil, 0, errors.New("not found")
+			},
+		},
+	)
+	pid := p2p.PeerID("dummy peer ID")
+	psm.UpdatePeerIdPublicKey(pid, pk)
+	psm.UpdatePeerIdShardId(pid, shardId)
+
+	recoveredShardId := psm.ByID(pid)
+
+	assert.Equal(t, shardId, recoveredShardId)
+}
+
 func TestPeerShardMapper_ByIDWrongDataInPeerIdMapShouldErr(t *testing.T) {
 	t.Parallel()
 
