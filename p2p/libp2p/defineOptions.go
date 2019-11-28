@@ -1,9 +1,13 @@
 package libp2p
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
+
+var readTimeout = time.Second * 10
 
 // Option represents a functional configuration parameter that can operate
 //  over the networkMessenger struct.
@@ -32,6 +36,7 @@ func WithAuthentication(
 			networkShardingCollector,
 			signerVerifier,
 			marshalizer,
+			readTimeout,
 		)
 		if err != nil {
 			return err

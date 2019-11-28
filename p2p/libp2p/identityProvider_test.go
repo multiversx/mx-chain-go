@@ -51,6 +51,8 @@ func createStubMarshalizerForIdentityProvider() p2p.Marshalizer {
 	}
 }
 
+//------- NewIdentityProvider
+
 func TestNewIdentityProvider_NilHostShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -230,4 +232,198 @@ func TestIdentityProvider_ConnectedShouldWrite(t *testing.T) {
 	recovered := make([]byte, len(marshalizerOutput))
 	_, _ = stream.Read(recovered)
 	assert.Equal(t, marshalizerOutput, recovered)
+}
+
+//------- processReceivedData
+
+func TestIdentityProvider_ProcessReceivedDataUnmarshalFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("expected error")
+	host, _ := createStubHostForIdentityProvider()
+	ip, _ := libp2p.NewIdentityProvider(
+		host,
+		&mock.NetworkShardingCollectorStub{},
+		&mock.SignerVerifierStub{},
+		&mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errExpected
+			},
+		},
+		time.Second,
+	)
+
+	err := ip.ProcessReceivedData(make([]byte, 0))
+
+	assert.Equal(t, errExpected, err)
+}
+
+func TestIdentityProvider_ProcessReceivedDataMarshalFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("expected error")
+	host, _ := createStubHostForIdentityProvider()
+	ip, _ := libp2p.NewIdentityProvider(
+		host,
+		&mock.NetworkShardingCollectorStub{},
+		&mock.SignerVerifierStub{},
+		&mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
+				return make([]byte, 0), errExpected
+			},
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return nil
+			},
+		},
+		time.Second,
+	)
+
+	err := ip.ProcessReceivedData(make([]byte, 0))
+
+	assert.Equal(t, errExpected, err)
+}
+
+func TestIdentityProvider_ProcessReceivedDataSignerErrorsShouldError(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("expected error")
+	host, _ := createStubHostForIdentityProvider()
+	ip, _ := libp2p.NewIdentityProvider(
+		host,
+		&mock.NetworkShardingCollectorStub{},
+		&mock.SignerVerifierStub{
+			VerifyCalled: func(message []byte, sig []byte, pk []byte) error {
+				return errExpected
+			},
+		},
+		createStubMarshalizerForIdentityProvider(),
+		time.Second,
+	)
+
+	err := ip.ProcessReceivedData(make([]byte, 0))
+
+	assert.Equal(t, errExpected, err)
+}
+
+func TestIdentityProvider_ProcessReceivedDataShouldUpdateCollector(t *testing.T) {
+	t.Parallel()
+
+	updateWasCalled := false
+	host, _ := createStubHostForIdentityProvider()
+	ip, _ := libp2p.NewIdentityProvider(
+		host,
+		&mock.NetworkShardingCollectorStub{
+			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+				updateWasCalled = true
+			},
+		},
+		&mock.SignerVerifierStub{
+			VerifyCalled: func(message []byte, sig []byte, pk []byte) error {
+				return nil
+			},
+		},
+		createStubMarshalizerForIdentityProvider(),
+		time.Second,
+	)
+
+	err := ip.ProcessReceivedData(make([]byte, 0))
+
+	assert.Nil(t, err)
+	assert.True(t, updateWasCalled)
+}
+
+//------- handleStreams
+
+func TestIdentityProvider_HandleStreamsReceivedMessageShouldUpdateCollector(t *testing.T) {
+	t.Parallel()
+
+	updateWasCalled := false
+	host, stream := createStubHostForIdentityProvider()
+	ip, _ := libp2p.NewIdentityProvider(
+		host,
+		&mock.NetworkShardingCollectorStub{
+			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+				updateWasCalled = true
+			},
+		},
+		&mock.SignerVerifierStub{
+			VerifyCalled: func(message []byte, sig []byte, pk []byte) error {
+				return nil
+			},
+		},
+		createStubMarshalizerForIdentityProvider(),
+		time.Second,
+	)
+	_, _ = stream.Write([]byte("mock data"))
+
+	ip.HandleStreams(stream)
+
+	assert.True(t, updateWasCalled)
+}
+
+func TestIdentityProvider_HandleStreamsTimeoutShouldNotFailOrWrite(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not fail: %v", r))
+		}
+	}()
+
+	updateWasCalled := false
+	host, stream := createStubHostForIdentityProvider()
+	ip, _ := libp2p.NewIdentityProvider(
+		host,
+		&mock.NetworkShardingCollectorStub{
+			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+				updateWasCalled = true
+			},
+		},
+		&mock.SignerVerifierStub{
+			VerifyCalled: func(message []byte, sig []byte, pk []byte) error {
+				return nil
+			},
+		},
+		createStubMarshalizerForIdentityProvider(),
+		time.Second,
+	)
+
+	ip.HandleStreams(stream)
+
+	assert.False(t, updateWasCalled)
+}
+
+func TestIdentityProvider_HandleStreamsClosedStreamShouldNotFailOrWrite(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not fail: %v", r))
+		}
+	}()
+
+	updateWasCalled := false
+	host, stream := createStubHostForIdentityProvider()
+	ip, _ := libp2p.NewIdentityProvider(
+		host,
+		&mock.NetworkShardingCollectorStub{
+			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+				updateWasCalled = true
+			},
+		},
+		&mock.SignerVerifierStub{
+			VerifyCalled: func(message []byte, sig []byte, pk []byte) error {
+				return nil
+			},
+		},
+		createStubMarshalizerForIdentityProvider(),
+		time.Second,
+	)
+	_ = stream.Close()
+
+	ip.HandleStreams(stream)
+
+	assert.False(t, updateWasCalled)
 }
