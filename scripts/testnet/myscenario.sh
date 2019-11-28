@@ -26,6 +26,7 @@ do
   sendTransactions
   echo "Transaction batch emitted"
   sleep 600
-  local validation=$( curl -s "http://127.0.0.1:$PORT_TXGEN/validate/sc/$DEPLOYED_SC_ADDRESS")
+
+  local validation=$( curl -s "http://127.0.0.1:$PORT_TXGEN/validate/sc/$DEPLOYED_SC_ADDRESS" | jq -s | grep ': {' | wc -l )
   echo "Validation result: $validation errors"
 done
