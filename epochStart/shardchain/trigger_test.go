@@ -50,7 +50,8 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}
 			},
 		},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler:     &mock.RequestHandlerStub{},
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 	}
 }
 
@@ -173,6 +174,17 @@ func TestNewEpochStartTrigger_NilUint64ConverterShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilUint64Converter, err)
 }
 
+func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.EpochStartNotifier = nil
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.Equal(t, epochStart.ErrNilEpochStartNotifier, err)
+}
+
 func TestNewEpochStartTrigger_NilMetaBlockUnitShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -280,6 +292,7 @@ func TestTrigger_ProcessedAndRevert(t *testing.T) {
 	args := createMockShardEpochStartTriggerArguments()
 	args.Validity = 0
 	args.Finality = 0
+	args.EpochStartNotifier = &mock.EpochStartNotifierStub{NotifyAllCalled: func(hdr data.HeaderHandler) {}}
 	et, _ := NewEpochStartTrigger(args)
 
 	hash := []byte("hash")

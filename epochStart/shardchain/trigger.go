@@ -25,9 +25,10 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool       dataRetriever.PoolsHolder
-	Storage        dataRetriever.StorageService
-	RequestHandler epochStart.RequestHandler
+	DataPool           dataRetriever.PoolsHolder
+	Storage            dataRetriever.StorageService
+	RequestHandler     epochStart.RequestHandler
+	EpochStartNotifier epochStart.StartOfEpochNotifier
 
 	Epoch    uint32
 	Validity uint64
@@ -61,7 +62,8 @@ type trigger struct {
 	hasher          hashing.Hasher
 	headerValidator epochStart.HeaderValidator
 
-	requestHandler epochStart.RequestHandler
+	requestHandler     epochStart.RequestHandler
+	epochStartNotifier epochStart.StartOfEpochNotifier
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -95,6 +97,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	}
 	if check.IfNil(args.Uint64Converter) {
 		return nil, epochStart.ErrNilUint64Converter
+	}
+	if check.IfNil(args.EpochStartNotifier) {
+		return nil, epochStart.ErrNilEpochStartNotifier
 	}
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
@@ -130,6 +135,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		headerValidator:             args.HeaderValidator,
 		requestHandler:              args.RequestHandler,
 		epochMetaBlockHash:          nil,
+		epochStartNotifier:          args.EpochStartNotifier,
 	}
 	return newTrigger, nil
 }
@@ -443,6 +449,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
+
+	t.epochStartNotifier.NotifyAll(shardHdr)
 
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)

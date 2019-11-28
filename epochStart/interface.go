@@ -52,3 +52,9 @@ type RequestHandler interface {
 	RequestHeader(shardId uint32, hash []byte)
 	IsInterfaceNil() bool
 }
+
+// StartOfEpochNotifier defines what triggers should do for subscribed functions
+type StartOfEpochNotifier interface {
+	NotifyAll(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}
