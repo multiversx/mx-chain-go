@@ -2,6 +2,7 @@ package networksharding
 
 import (
 	"math/big"
+	"sort"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -32,4 +33,15 @@ func (sl *sortingList) Less(i int, j int) bool {
 // Swap swaps the elements with indexes i and j.
 func (sl *sortingList) Swap(i int, j int) {
 	sl.peers[i], sl.peers[j] = sl.peers[j], sl.peers[i]
+}
+
+// SortedPeers get the orted list of peers
+func (sl *sortingList) SortedPeers() []peer.ID {
+	sort.Sort(sl)
+	ret := make([]peer.ID, len(sl.peers))
+
+	for i, id := range sl.peers {
+		ret[i] = id.id
+	}
+	return ret
 }
