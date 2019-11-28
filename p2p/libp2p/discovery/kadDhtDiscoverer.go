@@ -1,24 +1,29 @@
 package discovery
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p-kbucket"
+	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
+	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
-	initReconnectMul = 20
+	initReconnectMul     = 20
+	peerDiscoveryTimeout = 5 * time.Second
+	noOfQueries          = 3
+
+	kadDhtName = "kad-dht discovery"
+
+	minWatchdogTimeout = time.Second
 )
-
-var peerDiscoveryTimeout = 10 * time.Second
-var noOfQueries = 1
-
-const kadDhtName = "kad-dht discovery"
 
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
@@ -33,6 +38,8 @@ type KadDhtDiscoverer struct {
 	randezVous       string
 	initialPeersList []string
 	initConns        bool // Initiate new connections
+	watchdogKick     chan struct{}
+	watchdogCancel   context.CancelFunc
 }
 
 // NewKadDhtPeerDiscoverer creates a new kad-dht discovery type implementation
@@ -73,11 +80,16 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
 
+	protos := []protocol.ID{
+		protocol.ID(fmt.Sprintf("/ipfs/kad/1.0.0/erd_%s", kdd.randezVous)),
+		protocol.ID("/ipfs/kad/1.0.0/erd"),
+	}
+
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h)
+	kademliaDHT, err := dht.New(ctx, h, opts.Protocols(protos...))
 	if err != nil {
 		return err
 	}
@@ -228,4 +240,73 @@ func (kdd *KadDhtDiscoverer) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+// StartWatchdog start the watchdog
+func (kdd *KadDhtDiscoverer) StartWatchdog(timeout time.Duration) error {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+
+	if kdd.contextProvider == nil {
+		return p2p.ErrNilContextProvider
+	}
+
+	if kdd.watchdogKick != nil {
+		return p2p.ErrWatchdogAlreadyStarted
+	}
+
+	if timeout < minWatchdogTimeout {
+		return p2p.ErrInvalidDurationProvided
+	}
+
+	kdd.watchdogKick = make(chan struct{})
+	ctx := kdd.contextProvider.Context()
+	wdCtx, wdCancel := context.WithCancel(ctx)
+	go func(kick <-chan struct{}) {
+		for {
+			select {
+			case <-time.After(timeout):
+				kdd.Resume()
+			case <-wdCtx.Done():
+				return
+			case <-kick:
+			}
+		}
+	}(kdd.watchdogKick)
+
+	kdd.watchdogCancel = wdCancel
+	return nil
+}
+
+// StopWatchdog stops the discovery watchdog
+func (kdd *KadDhtDiscoverer) StopWatchdog() error {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+
+	if kdd.watchdogCancel == nil {
+		return p2p.ErrWatchdogNotStarted
+	}
+
+	kdd.watchdogCancel()
+	kdd.watchdogCancel = nil
+
+	close(kdd.watchdogKick)
+	kdd.watchdogKick = nil
+	return nil
+}
+
+// KickWatchdog extends the discovery resume timeout
+func (kdd *KadDhtDiscoverer) KickWatchdog() error {
+	kdd.mutKadDht.Lock()
+	defer kdd.mutKadDht.Unlock()
+
+	if kdd.watchdogKick == nil {
+		return p2p.ErrWatchdogNotStarted
+	}
+
+	select {
+	case kdd.watchdogKick <- struct{}{}:
+	default:
+	}
+	return nil
 }

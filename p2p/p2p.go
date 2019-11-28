@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/mr-tron/base58/base58"
 )
@@ -59,8 +60,13 @@ type PeerDiscoverer interface {
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
-	Pause()  // pause the peer discovery
-	Resume() // resume the peer discovery
+	Pause()  // Pause the peer discovery
+	Resume() // Resume the peer discovery
+
+	StartWatchdog(time.Duration) error // StartWatchdog start a discovery resume watchdog
+	StopWatchdog() error               // StopWatchdog stops the watchdog
+	KickWatchdog() error               // KickWatchdog kicks the watchdog
+
 	IsInterfaceNil() bool
 }
 
