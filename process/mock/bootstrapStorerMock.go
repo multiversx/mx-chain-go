@@ -8,8 +8,8 @@ type BoostrapStorerMock struct {
 	GetHighestRoundCalled func() int64
 }
 
-func (btm *BoostrapStorerMock) Put(round int64, bootData bootstrapStorage.BootstrapData) error {
-	return btm.PutCalled(round, bootData)
+func (bsm *BoostrapStorerMock) Put(round int64, bootData bootstrapStorage.BootstrapData) error {
+	return bsm.PutCalled(round, bootData)
 }
 
 func (bsm *BoostrapStorerMock) Get(round int64) (bootstrapStorage.BootstrapData, error) {
@@ -25,8 +25,5 @@ func (bsm *BoostrapStorerMock) SaveLastRound(round int64) error {
 }
 
 func (bsm *BoostrapStorerMock) IsInterfaceNil() bool {
-	if bsm == nil {
-		return true
-	}
-	return false
+	return bsm == nil
 }

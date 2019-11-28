@@ -10,6 +10,6 @@ type storageBootstrapperHandler interface {
 	getHeader(hash []byte) (data.HeaderHandler, error)
 	getBlockBody(header data.HeaderHandler) (data.BodyHandler, error)
 	applyNotarizedBlocks(lastNotarized map[uint32]*sync.HdrInfo) error
-	cleanupNotarizedStorage(lastNotarized map[uint32]*sync.HdrInfo)
+	cleanupNotarizedStorage(hash []byte)
 	IsInterfaceNil() bool
 }

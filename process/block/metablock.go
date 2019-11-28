@@ -488,8 +488,10 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		syncMap.Store(shardHeader.GetShardID(), hdrHash)
 		headerNoncesPool.Merge(shardHeader.GetNonce(), syncMap)
 
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
+		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardHeader.GetNonce())
-		errNotCritical = mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		errNotCritical = storer.Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Debug("ShardHdrNonceHashDataUnit.Remove", "error", errNotCritical.Error())
 		}
@@ -938,8 +940,8 @@ func (mp *metaProcessor) CommitBlock(
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: sharding.MetachainShardId,
-		Nonce:   header.Nonce,
+		ShardId: header.GetShardID(),
+		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
 	mp.prepareDataForBootStorer(headerInfo, header.Round, nil, nil, nil)
@@ -957,8 +959,9 @@ func (mp *metaProcessor) CommitBlock(
 
 	return nil
 }
+
 // ApplyProcessedMiniBlocks will do nothing on meta processor
-func (mp *metaProcessor) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (mp *metaProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
 }
 
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {

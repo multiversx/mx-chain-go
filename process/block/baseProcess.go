@@ -1055,10 +1055,12 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	round uint64,
 	lastFinalHdrs []data.HeaderHandler,
 	lastFinalHashes [][]byte,
-	processedMiniBlock map[string]map[string]struct{},
+	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 ) {
 	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+
+	//TODO add end of epoch stuff
 
 	bp.mutNotarizedHdrs.RLock()
 	for shardId := range bp.notarizedHdrs {
@@ -1100,7 +1102,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 		LastNotarizedHeaders: lastNotarizedHdrs,
 		LastFinals:           lastFinals,
 		HighestFinalNonce:    highestFinalNonce,
-		ProcessedMiniBlocks:  processedMiniBlock,
+		ProcessedMiniBlocks:  processedMiniBlocks,
 	}
 
 	go func() {

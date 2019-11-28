@@ -745,19 +745,32 @@ func (sp *shardProcessor) CommitBlock(
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: header.ShardId,
-		Nonce:   header.Nonce,
+		ShardId: header.GetShardID(),
+		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
 
-	processedMiniBlock := make(map[string]map[string]struct{}, 0)
-	sp.mutProcessedMiniBlocks.Lock()
-	for key, value := range sp.processedMiniBlocks {
-		processedMiniBlock[key] = value
-	}
-	sp.mutProcessedMiniBlocks.Unlock()
+	log.Debug("validator info on block ",
+		"nonce", header.Nonce,
+		"validator root hash", core.ToB64(header.ValidatorStatsRootHash))
 
-	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlock)
+	sp.mutProcessedMiniBlocks.RLock()
+	log.Debug("processed mini blocks on commit block")
+	for metaBlockHash, miniBlocksHashes := range sp.processedMiniBlocks {
+		log.Debug("processed",
+			"meta block hash", []byte(metaBlockHash))
+
+		for miniBlockHash := range miniBlocksHashes {
+			log.Debug("processed",
+				"mini block hash", []byte(miniBlockHash))
+
+		}
+	}
+
+	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
+	sp.mutProcessedMiniBlocks.RUnlock()
+
+	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlocks)
 
 	go sp.cleanTxsPools()
 
@@ -788,10 +801,10 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 // ApplyProcessedMiniBlocks will apply processed mini blocks
-func (sp *shardProcessor) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
 	sp.mutProcessedMiniBlocks.Lock()
-	for key, value := range miniBlocks {
-		sp.processedMiniBlocks[key] = value
+	for metaHash, miniBlocksHashes := range processedMiniBlocks {
+		sp.processedMiniBlocks[metaHash] = miniBlocksHashes
 	}
 	sp.mutProcessedMiniBlocks.Unlock()
 }

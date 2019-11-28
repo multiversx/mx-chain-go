@@ -18,6 +18,11 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 // ErrNilBootStorer signals that an operation has been attempted to or with a nil storer implementation
 var ErrNilBootStorer = errors.New("nil boot storer")
 
+type MiniBlocksInMeta struct {
+	MetaHash         []byte
+	MiniBlocksHashes [][]byte
+}
+
 //BootstrapHeaderInfo is struct used to store information about a header
 type BootstrapHeaderInfo struct {
 	ShardId uint32
@@ -30,7 +35,7 @@ type BootstrapData struct {
 	HeaderInfo           BootstrapHeaderInfo
 	LastNotarizedHeaders []BootstrapHeaderInfo
 	LastFinals           []BootstrapHeaderInfo
-	ProcessedMiniBlocks  map[string]map[string]struct{}
+	ProcessedMiniBlocks  []MiniBlocksInMeta
 	HighestFinalNonce    uint64
 	LastRound            int64
 }
@@ -147,8 +152,5 @@ func (bs *bootstrapStorer) SaveLastRound(round int64) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bs *bootstrapStorer) IsInterfaceNil() bool {
-	if bs == nil {
-		return true
-	}
-	return false
+	return bs == nil
 }
