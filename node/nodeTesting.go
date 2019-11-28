@@ -85,7 +85,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	if len(transactions) != int(numOfTxs) {
-		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), numOfTxs))
+		return fmt.Errorf("generated only %d from required %d transactions", len(transactions), numOfTxs)
 	}
 
 	//the topic identifier is made of the current shard id and sender's shard id

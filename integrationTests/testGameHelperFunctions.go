@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var gasPriceForGameSC = uint64(0)
+
 // ScCallTxWithParams creates and sends a SC tx call or deploy with all major parameters provided
 func ScCallTxWithParams(
 	senderNode *TestProcessorNode,
@@ -61,7 +63,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
 			data:     scCode + "@" + hex.EncodeToString(factory.IELEVirtualMachine),
 			gasLimit: 100000,
-			gasPrice: uint64(0),
+			gasPrice: gasPriceForGameSC,
 		})
 	nodes[senderIdx].OwnAccount.Nonce++
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)
@@ -91,7 +93,7 @@ func PlayerJoinsGame(
 			sndAddr:  player.Address.Bytes(),
 			data:     fmt.Sprintf("joinGame@00%s", hex.EncodeToString(big.NewInt(0).SetInt64(int64(round)).Bytes())),
 			gasLimit: 5000,
-			gasPrice: uint64(0),
+			gasPrice: gasPriceForGameSC,
 		})
 	player.Nonce++
 	newBalance := big.NewInt(0)
@@ -123,7 +125,7 @@ func NodeCallsRewardAndSend(
 			sndAddr:  nodes[idxNodeOwner].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("rewardAndSendToWallet@%X@%s@%s", hex.EncodeToString(big.NewInt(0).SetInt64(int64(round)).Bytes()), hex.EncodeToString(winnerAddress), hex.EncodeToString(prize.Bytes())),
 			gasLimit: 30000,
-			gasPrice: uint64(0),
+			gasPrice: gasPriceForGameSC,
 		})
 	nodes[idxNodeOwner].OwnAccount.Nonce++
 
@@ -159,7 +161,7 @@ func NodeDoesWithdraw(
 			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
 			data:     fmt.Sprintf("withdraw@00%s", hex.EncodeToString(withdrawValue.Bytes())),
 			gasLimit: 5000,
-			gasPrice: uint64(0),
+			gasPrice: gasPriceForGameSC,
 		})
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
@@ -187,7 +189,7 @@ func NodeDoesTopUp(
 			sndAddr:  nodes[idxNode].OwnAccount.PkTxSignBytes,
 			data:     "topUp",
 			gasLimit: 5000,
-			gasPrice: uint64(0),
+			gasPrice: gasPriceForGameSC,
 		})
 	nodes[idxNode].OwnAccount.Nonce++
 	_, _ = nodes[idxNode].SendTransaction(txScCall)
