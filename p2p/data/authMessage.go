@@ -50,8 +50,6 @@ func authMessageCapnToGo(src capnp.AuthMessageCapn, dest *AuthMessage) {
 	dest.Sig = src.Sig()
 	dest.Pubkey = src.Pubkey()
 	dest.Timestamp = src.Timestamp()
-
-	return
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -68,7 +68,7 @@ func (ip *identityProvider) ListenClose(network.Network, multiaddr.Multiaddr) {}
 // Connected is called when a connection opened
 func (ip *identityProvider) Connected(net network.Network, conn network.Conn) {
 	go func() {
-		ctx, _ := context.WithTimeout(context.Background(), ip.receiveTimeout)
+		ctx := context.Background()
 		s, err := ip.host.NewStream(ctx, conn.RemotePeer(), authProtocolID)
 		if err != nil {
 			log.Debug("identity provider handleStreams", "error", err.Error())

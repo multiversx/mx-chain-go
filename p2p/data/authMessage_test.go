@@ -37,5 +37,6 @@ func testMarshalUnmarshal(t *testing.T, marshName string, marsh marshal.Marshali
 	objRecovered := &AuthMessage{}
 	err = marsh.Unmarshal(objRecovered, buff)
 
+	assert.Nil(t, err)
 	assert.Equal(t, objCopyForAssert, *objRecovered, fmt.Sprintf("for marshalizer %v", marshName))
 }
