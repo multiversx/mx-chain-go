@@ -1,5 +1,7 @@
 package mock
 
+import "time"
+
 type ReconnecterStub struct {
 	ReconnectToNetworkCalled func() <-chan struct{}
 	PauseCall                func()
@@ -20,3 +22,7 @@ func (rs *ReconnecterStub) IsInterfaceNil() bool {
 
 func (rs *ReconnecterStub) Pause()  { rs.PauseCall() }
 func (rs *ReconnecterStub) Resume() { rs.ResumeCall() }
+
+func (rs *ReconnecterStub) StartWatchdog(time.Duration) error { return nil }
+func (rs *ReconnecterStub) StopWatchdog() error               { return nil }
+func (rs *ReconnecterStub) KickWatchdog() error               { return nil }

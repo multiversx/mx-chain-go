@@ -93,3 +93,9 @@ var ErrNilSharder = errors.New("nil sharder")
 
 //ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
 var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")
+
+// ErrWatchdogAlreadyStarted signals that a peer discovery watchdog is already started
+var ErrWatchdogAlreadyStarted = errors.New("peer discovery watchdog is already started")
+
+// ErrWatchdogNotStarted signals that a peer discovery watchdog is not started
+var ErrWatchdogNotStarted = errors.New("peer discovery watchdog is not started")
