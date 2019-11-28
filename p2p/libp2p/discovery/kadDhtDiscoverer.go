@@ -109,12 +109,19 @@ func (kdd *KadDhtDiscoverer) startDHT() error {
 	ctx := kdd.contextProvider.Context()
 	h := kdd.contextProvider.Host()
 
-	kademliaDHT, err := dht.New(ctx, h, opts.Protocols(kdd.protocols()...))
+	ctxrun, cancel := context.WithCancel(ctx)
+	hd, err := NewHostDecorator(h, ctxrun, 3, time.Second)
 	if err != nil {
+		cancel()
 		return err
 	}
 
-	ctxrun, cancel := context.WithCancel(ctx)
+	kademliaDHT, err := dht.New(ctx, hd, opts.Protocols(kdd.protocols()...))
+	if err != nil {
+		cancel()
+		return err
+	}
+
 	go kdd.connectToInitialAndBootstrap(ctxrun)
 
 	kdd.kadDHT = kademliaDHT
