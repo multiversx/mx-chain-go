@@ -287,8 +287,8 @@ func (mbc *miniBlocksCompaction) computeMerge(
 	newGasSpentReceiver := mbc.gasSpentReceiver[dstIndex] + mbc.gasSpentReceiver[srcIndex]
 	senderGasLimitOK := newGasSpentSender <= mbc.economicsFee.MaxGasLimitPerBlock()
 	receiverGasLimitOK := newGasSpentReceiver <= mbc.economicsFee.MaxGasLimitPerBlock()
-	canBeFullyMerged := senderGasLimitOK && receiverGasLimitOK
 
+	canBeFullyMerged := senderGasLimitOK && receiverGasLimitOK
 	if canBeFullyMerged {
 		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, srcMiniBlock.TxHashes...)
 		mbc.gasSpentSender[dstIndex] += mbc.gasSpentSender[srcIndex]
@@ -299,7 +299,7 @@ func (mbc *miniBlocksCompaction) computeMerge(
 	mbGasSpentSender := mbc.gasSpentSender[dstIndex]
 	mbGasSpentReceiver := mbc.gasSpentReceiver[dstIndex]
 
-	txHashes := mbc.getMaxTxsForMerge(mbGasSpentSender, mbGasSpentReceiver, srcMiniBlock)
+	txHashes := mbc.getMaxTxsForMerge(&mbGasSpentSender, &mbGasSpentReceiver, srcMiniBlock)
 	if len(txHashes) > 0 {
 		dstMiniBlock.TxHashes = append(dstMiniBlock.TxHashes, txHashes...)
 		srcMiniBlock.TxHashes = mbc.removeTxHashesFromMiniBlock(srcMiniBlock, txHashes)
@@ -317,15 +317,16 @@ func (mbc *miniBlocksCompaction) computeMerge(
 }
 
 func (mbc *miniBlocksCompaction) getMaxTxsForMerge(
-	gasSpentSender uint64,
-	gasSpentReceiver uint64,
+	gasSpentSender *uint64,
+	gasSpentReceiver *uint64,
 	miniBlock *block.MiniBlock,
 ) [][]byte {
+
 	txHashes := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
 		txHandler, ok := mbc.mapHashToTx[string(txHash)]
 		if !ok {
-			break
+			continue
 		}
 
 		txGasSpentSender, txGasSpentReceiver, err := mbc.gasHandler.ComputeGasConsumedByTx(
@@ -334,19 +335,19 @@ func (mbc *miniBlocksCompaction) getMaxTxsForMerge(
 			txHandler,
 		)
 		if err != nil {
-			break
+			continue
 		}
 
-		gasSpentSender := gasSpentSender + txGasSpentSender
-		gasSpentReceiverShard := gasSpentReceiver + txGasSpentReceiver
-		if gasSpentSender > mbc.economicsFee.MaxGasLimitPerBlock() ||
-			gasSpentReceiverShard > mbc.economicsFee.MaxGasLimitPerBlock() {
-			break
+		newGasSpentSender := *gasSpentSender + txGasSpentSender
+		newGasSpentReceiver := *gasSpentReceiver + txGasSpentReceiver
+		if newGasSpentSender > mbc.economicsFee.MaxGasLimitPerBlock() ||
+			newGasSpentReceiver > mbc.economicsFee.MaxGasLimitPerBlock() {
+			continue
 		}
 
 		txHashes = append(txHashes, txHash)
-		gasSpentSender += txGasSpentSender
-		gasSpentReceiver += txGasSpentReceiver
+		*gasSpentSender += txGasSpentSender
+		*gasSpentReceiver += txGasSpentReceiver
 	}
 
 	return txHashes

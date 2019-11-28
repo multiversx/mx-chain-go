@@ -265,6 +265,7 @@ func TestNewSmartContractProcessor_ErrNilUnsignedTxHandlerMock(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.IntermediateTransactionHandlerMock{},
 		nil,
+		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
 	)
 
@@ -286,6 +287,7 @@ func TestNewSmartContractProcessor_ErrErrNilGasHandlerMock(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{},
 		nil,
 	)
 
