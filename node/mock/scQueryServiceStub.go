@@ -15,8 +15,5 @@ func (serviceStub *SCQueryServiceStub) ExecuteQuery(query *process.SCQuery) (*vm
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (serviceStub *SCQueryServiceStub) IsInterfaceNil() bool {
-	if serviceStub == nil {
-		return true
-	}
-	return false
+	return serviceStub == nil
 }
