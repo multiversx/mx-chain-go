@@ -11,8 +11,7 @@ byte firstScAddress[32] = {0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 93, 61, 83, 181, 208, 2
 
 void doSomething()
 {
-    const char *dataToTransfer = "callMe@01";
-    transferValue(firstScAddress, zero, dataToTransfer, sizeof(dataToTransfer));
+    transferValue(firstScAddress, zero, "callMe@01", sizeof("callMe@01"));
 }
 
 void _main(void)
