@@ -2,7 +2,8 @@ typedef unsigned char byte;
 typedef unsigned int i32;
 typedef unsigned long long i64;
 
-int transferValue(byte *destination, byte *sender, byte *value, byte *data, int length);
+void getCaller(byte *callerAddress);
+int transferValue(byte *destination, byte *value, byte *data, int length);
 
 byte sender[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 byte zero[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -11,9 +12,7 @@ byte firstScAddress[32] = {0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 93, 61, 83, 181, 208, 2
 void doSomething()
 {
     const char *dataToTransfer = "callMe@01";
-
-    getCaller(sender);
-    transferValue(firstScAddress, sender, zero, dataToTransfer, sizeof(dataToTransfer));
+    transferValue(firstScAddress, zero, dataToTransfer, sizeof(dataToTransfer));
 }
 
 void _main(void)
