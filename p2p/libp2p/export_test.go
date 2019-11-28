@@ -3,6 +3,7 @@ package libp2p
 import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/libp2p/go-libp2p-core/connmgr"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
@@ -32,4 +33,12 @@ func (ds *directSender) Counter() uint64 {
 
 func (mh *MutexHolder) Mutexes() *lrucache.LRUCache {
 	return mh.mutexes
+}
+
+func (ip *identityProvider) HandleStreams(s network.Stream) {
+	ip.handleStreams(s)
+}
+
+func (ip *identityProvider) ProcessReceivedData(recvBuff []byte) error {
+	return ip.processReceivedData(recvBuff)
 }

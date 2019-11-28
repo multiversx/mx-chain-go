@@ -88,10 +88,10 @@ var ErrTooManyGoroutines = errors.New(" number of goroutines exceeded")
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
 
-//ErrNilSharder signals that the provided sharder is nil
+// ErrNilSharder signals that the provided sharder is nil
 var ErrNilSharder = errors.New("nil sharder")
 
-//ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
+// ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
 var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")
 
 // ErrWatchdogAlreadyStarted signals that a peer discovery watchdog is already started
@@ -99,3 +99,12 @@ var ErrWatchdogAlreadyStarted = errors.New("peer discovery watchdog is already s
 
 // ErrWatchdogNotStarted signals that a peer discovery watchdog is not started
 var ErrWatchdogNotStarted = errors.New("peer discovery watchdog is not started")
+
+// ErrNilNetworkShardingCollector signals that the network sharding collector provided is nil
+var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
+
+// ErrNilSignerVerifier signals that the signer-verifier instance provided is nil
+var ErrNilSignerVerifier = errors.New("nil signer-verifier")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil marshalizer")

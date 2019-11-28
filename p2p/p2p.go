@@ -211,3 +211,25 @@ type PeerShardResolver interface {
 	ByID(pid PeerID) uint32 //ByID get the shard id of the given peer.ID
 	IsInterfaceNil() bool   //IsInterfaceNil returns true if there is no value under the interface
 }
+
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+// The interface assures that the collected data will be used by the p2p network sharding components
+type NetworkShardingCollector interface {
+	UpdatePeerIdPublicKey(pid PeerID, pk []byte)
+	IsInterfaceNil() bool
+}
+
+// SignerVerifier is used in higher level protocol authentication of 2 peers after the basic p2p connection has been made
+type SignerVerifier interface {
+	Sign(message []byte) ([]byte, error)
+	Verify(message []byte, sig []byte, pk []byte) error
+	PublicKey() []byte
+	IsInterfaceNil() bool
+}
+
+// Marshalizer defines the 2 basic operations: serialize (marshal) and deserialize (unmarshal)
+type Marshalizer interface {
+	Marshal(obj interface{}) ([]byte, error)
+	Unmarshal(obj interface{}, buff []byte) error
+	IsInterfaceNil() bool
+}
