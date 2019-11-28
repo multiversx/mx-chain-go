@@ -465,7 +465,7 @@ func (sc *scProcessor) processVMOutput(
 
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
-	sc.gasHandler.SetGasRefunded(totalGasRefund.Uint64(), txHash)
+	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining.Uint64(), txHash)
 	scrRefund, consumedFee, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err
