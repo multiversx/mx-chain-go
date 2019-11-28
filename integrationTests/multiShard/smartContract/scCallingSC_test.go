@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -25,6 +26,8 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	_ = logger.SetLogLevel("*:INFO,process/block/preprocess:TRACE")
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -187,8 +190,8 @@ func putDeploySCToDataPool(
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
 		}
-		identifier := node.ShardCoordinator.CommunicationIdentifier(shId)
-		node.ShardDataPool.Transactions().AddData(txHash, tx, identifier)
+		strCache := process.ShardCacherIdentifier(shId, shId)
+		node.ShardDataPool.Transactions().AddData(txHash, tx, strCache)
 	}
 
 	return scAddressBytes
