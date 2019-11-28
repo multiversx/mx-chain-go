@@ -258,11 +258,14 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
 }
 
-func TestStatusMetrics_ShouldDisplayMetrics(t *testing.T) {
+func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
 	value := "test-details-value"
 	statusMetricsProvider.SetStringValue(key, value)
+
+	p2pKey := "a_p2p_specific_key"
+	statusMetricsProvider.SetStringValue(p2pKey, "p2p value")
 
 	facade := mock.Facade{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -280,6 +283,38 @@ func TestStatusMetrics_ShouldDisplayMetrics(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
 	assert.True(t, keyAndValueFoundInResponse)
+
+	assert.False(t, strings.Contains(respStr, p2pKey))
+}
+
+func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := "test-details-key"
+	value := "test-details-value"
+	statusMetricsProvider.SetStringValue(key, value)
+
+	p2pKey := "a_p2p_specific_key"
+	p2pValue := "p2p value"
+	statusMetricsProvider.SetStringValue(p2pKey, p2pValue)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/p2pstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, p2pKey) && strings.Contains(respStr, p2pValue)
+	assert.True(t, keyAndValueFoundInResponse)
+
+	assert.False(t, strings.Contains(respStr, key))
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

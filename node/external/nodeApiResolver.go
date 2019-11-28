@@ -33,8 +33,5 @@ func (nar *NodeApiResolver) StatusMetrics() StatusMetricsHandler {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (nar *NodeApiResolver) IsInterfaceNil() bool {
-	if nar == nil {
-		return true
-	}
-	return false
+	return nar == nil
 }

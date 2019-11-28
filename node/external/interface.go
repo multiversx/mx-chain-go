@@ -8,6 +8,8 @@ type ScDataGetter interface {
 
 // StatusMetricsHandler is the interface that defines what a node details handler/provider should do
 type StatusMetricsHandler interface {
-	StatusMetricsMap() (map[string]interface{}, error)
+	StatusMetricsMap() map[string]interface{}
+	StatusMetricsMapWithoutP2P() map[string]interface{}
+	StatusP2pMetricsMap() map[string]interface{}
 	IsInterfaceNil() bool
 }

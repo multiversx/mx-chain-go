@@ -54,6 +54,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
+	router.GET("/p2pstatus", P2pStatusMetrics)
 }
 
 // Address returns the information about the address passed as parameter
@@ -102,7 +103,7 @@ func Statistics(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())})
 }
 
-// StatusMetrics returns the node statistics exported by an StatusMetricsHandler
+// StatusMetrics returns the node statistics exported by an StatusMetricsHandler without p2p statistics
 func StatusMetrics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
@@ -110,11 +111,20 @@ func StatusMetrics(c *gin.Context) {
 		return
 	}
 
-	details, err := ef.StatusMetrics().StatusMetricsMap()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	details := ef.StatusMetrics().StatusMetricsMapWithoutP2P()
+
+	c.JSON(http.StatusOK, gin.H{"details": details})
+}
+
+// P2pStatusMetrics returns the node's p2p statistics exported by an StatusMetricsHandler
+func P2pStatusMetrics(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
+
+	details := ef.StatusMetrics().StatusP2pMetricsMap()
 
 	c.JSON(http.StatusOK, gin.H{"details": details})
 }

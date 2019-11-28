@@ -198,12 +198,12 @@ func createMessenger(
 		for {
 			time.Sleep(durationBetweenPeersPrints)
 
-			peersCount := netMes.GetPeerCounts()
+			peersInfo := netMes.GetConnectedPeersInfo()
 			log.Debug("network connection status",
 				"connected peers", len(netMes.Peers()),
-				"intra shard", peersCount.IntraShardPeers,
-				"cross shard", peersCount.CrossShardPeers,
-				"unknown", peersCount.UnknownPeers,
+				"intra shard", len(peersInfo.IntraShardPeers),
+				"cross shard", len(peersInfo.CrossShardPeers),
+				"unknown", len(peersInfo.UnknownPeers),
 			)
 		}
 	}()
@@ -578,25 +578,31 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	return netMes.connMonitor.SetSharder(kadSharder)
 }
 
-// GetPeerCounts gets the current connected peer counts
-func (netMes *networkMessenger) GetPeerCounts() *p2p.PeerCounts {
+// GetConnectedPeersInfo gets the current connected peers information
+func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	peers := netMes.ctxProvider.connHost.Network().Peers()
-	peerCounts := &p2p.PeerCounts{}
+	peerInfo := &p2p.ConnectedPeersInfo{}
 	crt := netMes.connMonitor.sharder.GetShard(netMes.ctxProvider.connHost.ID())
 
 	for _, p := range peers {
 		shard := netMes.connMonitor.sharder.GetShard(p)
+		conns := netMes.ctxProvider.connHost.Network().ConnsToPeer(p)
+		connString := "[invalid connection string]"
+		if len(conns) > 0 {
+			connString = conns[0].RemoteMultiaddr().String() + "/p2p/" + p.Pretty()
+		}
+
 		switch shard {
 		case sharding.UnknownShardId:
-			peerCounts.UnknownPeers++
+			peerInfo.UnknownPeers = append(peerInfo.UnknownPeers, connString)
 		case crt:
-			peerCounts.IntraShardPeers++
+			peerInfo.IntraShardPeers = append(peerInfo.IntraShardPeers, connString)
 		default:
-			peerCounts.CrossShardPeers++
+			peerInfo.CrossShardPeers = append(peerInfo.CrossShardPeers, connString)
 		}
 	}
 
-	return peerCounts
+	return peerInfo
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

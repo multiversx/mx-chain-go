@@ -1,6 +1,7 @@
 package statusHandler
 
 import (
+	"strings"
 	"sync"
 )
 
@@ -95,12 +96,44 @@ func (nd *statusMetrics) Close() {
 }
 
 // StatusMetricsMap will return all metrics in a map
-func (nd *statusMetrics) StatusMetricsMap() (map[string]interface{}, error) {
+func (nd *statusMetrics) StatusMetricsMap() map[string]interface{} {
 	statusMetricsMap := make(map[string]interface{})
 	nd.nodeMetrics.Range(func(key, value interface{}) bool {
 		statusMetricsMap[key.(string)] = value
 		return true
 	})
 
-	return statusMetricsMap, nil
+	return statusMetricsMap
+}
+
+// StatusMetricsMapWithoutP2P will return the non-p2p metrics in a map
+func (nd *statusMetrics) StatusMetricsMapWithoutP2P() map[string]interface{} {
+	statusMetricsMap := make(map[string]interface{})
+	nd.nodeMetrics.Range(func(key, value interface{}) bool {
+		keyString := key.(string)
+		if strings.Contains(keyString, "_p2p_") {
+			return true
+		}
+
+		statusMetricsMap[key.(string)] = value
+		return true
+	})
+
+	return statusMetricsMap
+}
+
+// StatusP2pMetricsMap will return the p2p metrics in a map
+func (nd *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
+	statusMetricsMap := make(map[string]interface{})
+	nd.nodeMetrics.Range(func(key, value interface{}) bool {
+		keyString := key.(string)
+		if !strings.Contains(keyString, "_p2p_") {
+			return true
+		}
+
+		statusMetricsMap[key.(string)] = value
+		return true
+	})
+
+	return statusMetricsMap
 }
