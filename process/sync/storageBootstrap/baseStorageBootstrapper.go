@@ -248,18 +248,6 @@ func (st *storageBootstrapper) displayProcessedMiniBlocks(processedMiniBlocks ma
 	}
 }
 
-func (st *storageBootstrapper) getShardHeaderFromStorage(headerHash []byte) (data.HeaderHandler, error) {
-	header, err := process.GetShardHeaderFromStorage(headerHash, st.marshalizer, st.store)
-
-	return header, err
-}
-
-func (st *storageBootstrapper) getMetaHeaderFromStorage(hash []byte) (data.HeaderHandler, error) {
-	header, err := process.GetMetaHeaderFromStorage(hash, st.marshalizer, st.store)
-
-	return header, err
-}
-
 func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash []byte) error {
 	blockBody, err := st.bootstrapper.getBlockBody(header)
 	if err != nil {

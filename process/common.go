@@ -613,6 +613,7 @@ func NewForkInfo() *ForkInfo {
 	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
 }
 
+// ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta
 func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[string]struct{}) []bootstrapStorage.MiniBlocksInMeta {
 	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 
@@ -627,6 +628,7 @@ func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[str
 	return miniBlocksInMetaBlocks
 }
 
+// ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]map[string]struct{}
 func ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) map[string]map[string]struct{} {
 	processedMiniBlocks := make(map[string]map[string]struct{})
 

@@ -63,7 +63,7 @@ func (ssb *shardStorageBootstrapper) IsInterfaceNil() bool {
 }
 
 func (ssb *shardStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler, error) {
-	return ssb.getShardHeaderFromStorage(hash)
+	return process.GetShardHeaderFromStorage(hash, ssb.marshalizer, ssb.store)
 }
 
 func (ssb *shardStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {

@@ -1057,34 +1057,11 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	lastFinalHashes [][]byte,
 	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 ) {
-	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 
 	//TODO add end of epoch stuff
 
-	bp.mutNotarizedHdrs.RLock()
-	for shardId := range bp.notarizedHdrs {
-		hdr := bp.lastNotarizedHdrForShard(shardId)
-
-		hdrNonce := hdr.GetNonce()
-		if hdrNonce == 0 {
-			continue
-		}
-
-		hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
-		if err != nil {
-			continue
-		}
-
-		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: hdr.GetShardID(),
-			Nonce:   hdrNonce,
-			Hash:    hash,
-		}
-		lastNotarizedHdrs = append(lastNotarizedHdrs, headerInfo)
-	}
-	bp.mutNotarizedHdrs.RUnlock()
-
+	lastNotarizedHdrs := bp.getLastNotarizedHdrs()
 	highestFinalNonce := bp.forkDetector.GetHighestFinalBlockNonce()
 
 	for i := range lastFinalHdrs {
@@ -1112,6 +1089,35 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 				"error", err.Error())
 		}
 	}()
+}
+
+func (bp *baseProcessor) getLastNotarizedHdrs() []bootstrapStorage.BootstrapHeaderInfo {
+	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+
+	bp.mutNotarizedHdrs.RLock()
+	for shardId := range bp.notarizedHdrs {
+		hdr := bp.lastNotarizedHdrForShard(shardId)
+
+		hdrNonce := hdr.GetNonce()
+		if hdrNonce == 0 {
+			continue
+		}
+
+		hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
+		if err != nil {
+			continue
+		}
+
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: hdr.GetShardID(),
+			Nonce:   hdrNonce,
+			Hash:    hash,
+		}
+		lastNotarizedHdrs = append(lastNotarizedHdrs, headerInfo)
+	}
+	bp.mutNotarizedHdrs.RUnlock()
+
+	return lastNotarizedHdrs
 }
 
 func (bp *baseProcessor) commitAll() error {

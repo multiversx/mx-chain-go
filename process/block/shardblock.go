@@ -755,6 +755,7 @@ func (sp *shardProcessor) CommitBlock(
 		"validator root hash", core.ToB64(header.ValidatorStatsRootHash))
 
 	sp.mutProcessedMiniBlocks.RLock()
+	//TODO remove this
 	log.Debug("processed mini blocks on commit block")
 	for metaBlockHash, miniBlocksHashes := range sp.processedMiniBlocks {
 		log.Debug("processed",

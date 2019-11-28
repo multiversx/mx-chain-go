@@ -153,8 +153,8 @@
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
-        MaxBatchSize = 1
+        BatchDelaySeconds = 5
+        MaxBatchSize = 45000
         MaxOpenFiles = 10
 
 [PeerAccountsTrieStorage]
@@ -164,8 +164,8 @@
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
-        MaxBatchSize = 1
+        BatchDelaySeconds = 5
+        MaxBatchSize = 45000
         MaxOpenFiles = 10
 
 [BadBlocksCache]

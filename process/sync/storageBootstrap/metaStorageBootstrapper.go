@@ -70,7 +70,7 @@ func (msb *metaStorageBootstrapper) applyNotarizedBlocks(
 }
 
 func (msb *metaStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler, error) {
-	return msb.getMetaHeaderFromStorage(hash)
+	return process.GetMetaHeaderFromStorage(hash, msb.marshalizer, msb.store)
 }
 
 func (msb *metaStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
