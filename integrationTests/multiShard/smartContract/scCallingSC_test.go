@@ -73,11 +73,15 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	mintPubKey(delegateSCOwner, initialVal, nodes)
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./first.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
+	firstSCAddress := putDeploySCToDataPool("./testdata/first/first.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
-	secondSCAddress := putDeploySCToDataPool("./second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
+	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
-	delegateSCAddress := putDeploySCToDataPool("./delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
+	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
+
+	fmt.Println(firstSCAddress)
+	fmt.Println(secondSCAddress)
+	fmt.Println(delegateSCAddress)
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -86,8 +90,8 @@ func TestSCCallingInCrossShard(t *testing.T) {
 
 	// make smart contract call to shard 1 which will do in shard 0
 	for _, node := range nodes {
-		pubKey, _ := node.NodeKeys.Pk.ToByteArray()
-		txData := "main" + "@" + hex.EncodeToString(pubKey)
+		//pubKey, _ := node.NodeKeys.Pk.ToByteArray()
+		txData := "doSomething" //"main" + "@" + hex.EncodeToString(pubKey)
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
 	}
 
@@ -116,7 +120,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 			continue
 		}
 
-		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "num_called", nil)
+		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
 		assert.Equal(t, numCalled.Uint64(), uint64(len(nodes)))
 	}
 
