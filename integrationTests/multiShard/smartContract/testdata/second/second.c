@@ -11,7 +11,7 @@ byte firstScAddress[32] = {0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 93, 61, 83, 181, 208, 2
 
 void doSomething()
 {
-    transferValue(firstScAddress, zero, "callMe@01", sizeof("callMe@01"));
+    transferValue(firstScAddress, zero, "callMe@01", sizeof("callMe@01") - 1);
 }
 
 void _main(void)
