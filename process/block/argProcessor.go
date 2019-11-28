@@ -33,7 +33,7 @@ type ArgBaseProcessor struct {
 	TxCoordinator                process.TransactionCoordinator
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rounder                      consensus.Rounder
-	BootstrapStorer              process.BootStorer
+	BootStorer                   process.BootStorer
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

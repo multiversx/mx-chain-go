@@ -663,7 +663,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.Rounder) {
 		return process.ErrNilRounder
 	}
-	if check.IfNil(arguments.BootstrapStorer) {
+	if check.IfNil(arguments.BootStorer) {
 		return process.ErrNilStorage
 	}
 	if arguments.BlockChainHook == nil || arguments.BlockChainHook.IsInterfaceNil() {
@@ -1108,7 +1108,8 @@ func (bp *baseProcessor) prepareDataForBootStorer(
 	go func() {
 		err := bp.bootStorer.Put(int64(round), bootData)
 		if err != nil {
-			log.Debug("cannot save boot data in storage", "error", err.Error())
+			log.Warn("cannot save boot data in storage",
+				"error", err.Error())
 		}
 	}()
 }

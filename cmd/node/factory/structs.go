@@ -1831,7 +1831,7 @@ func newShardBlockProcessor(
 	statisticsProcessor process.ValidatorStatisticsProcessor,
 	bootStorer process.BootStorer,
 	gasSchedule map[string]map[string]uint64,
-	) (process.BlockProcessor, error) {
+) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
 		return nil, err
@@ -2010,23 +2010,23 @@ func newShardBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:              state.AccountsAdapter,
-		ForkDetector:          forkDetector,
-		Hasher:                core.Hasher,
-		Marshalizer:           core.Marshalizer,
-		Store:                 data.Store,
-		ShardCoordinator:      shardCoordinator,
-		NodesCoordinator:      nodesCoordinator,
-		SpecialAddressHandler: specialAddressHandler,
-		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          genesisBlocks,
-		RequestHandler:        requestHandler,
-		Core:                  coreServiceContainer,
-		BlockChainHook:        vmFactory.BlockChainHookImpl(),
-		TxCoordinator:         txCoordinator,
-		Rounder:               rounder,
+		Accounts:                     state.AccountsAdapter,
+		ForkDetector:                 forkDetector,
+		Hasher:                       core.Hasher,
+		Marshalizer:                  core.Marshalizer,
+		Store:                        data.Store,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		SpecialAddressHandler:        specialAddressHandler,
+		Uint64Converter:              core.Uint64ByteSliceConverter,
+		StartHeaders:                 genesisBlocks,
+		RequestHandler:               requestHandler,
+		Core:                         coreServiceContainer,
+		BlockChainHook:               vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                txCoordinator,
+		Rounder:                      rounder,
 		ValidatorStatisticsProcessor: statisticsProcessor,
-		BootstrapStorer:       bootStorer,
+		BootStorer:                   bootStorer,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2231,7 +2231,7 @@ func newMetaBlockProcessor(
 		TxCoordinator:                txCoordinator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		Rounder:                      rounder,
-		BootstrapStorer:              bootStorer,
+		BootStorer:                   bootStorer,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,
@@ -2261,7 +2261,7 @@ func newValidatorStatisticsProcessor(
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
-	var peerDataPool peer.DataPool =  processComponents.data.MetaDatapool
+	var peerDataPool peer.DataPool = processComponents.data.MetaDatapool
 	if processComponents.shardCoordinator.SelfId() < processComponents.shardCoordinator.NumberOfShards() {
 		peerDataPool = processComponents.data.Datapool
 	}

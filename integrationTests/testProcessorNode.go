@@ -673,7 +673,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockChainHook:               tpn.BlockchainHook,
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		Rounder:                      &mock.RounderMock{},
-		BootstrapStorer: &mock.BoostrapStorerMock{
+		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
 			},

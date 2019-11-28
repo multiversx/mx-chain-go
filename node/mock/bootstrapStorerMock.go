@@ -13,23 +13,17 @@ func (bsm *BoostrapStorerMock) Put(round int64, bootData bootstrapStorage.Bootst
 }
 
 func (bsm *BoostrapStorerMock) Get(round int64) (bootstrapStorage.BootstrapData, error) {
-	if bsm.GetCalled == nil {
-		return bootstrapStorage.BootstrapData{}, bootstrapStorage.ErrNilMarshalizer
-	}
 	return bsm.GetCalled(round)
 }
 
 func (bsm *BoostrapStorerMock) GetHighestRound() int64 {
-	if bsm.GetHighestRoundCalled == nil {
-		return 0
-	}
 	return bsm.GetHighestRoundCalled()
-}
-
-func (bsm *BoostrapStorerMock) IsInterfaceNil() bool {
-	return bsm == nil
 }
 
 func (bsm *BoostrapStorerMock) SaveLastRound(round int64) error {
 	return nil
+}
+
+func (bsm *BoostrapStorerMock) IsInterfaceNil() bool {
+	return bsm == nil
 }

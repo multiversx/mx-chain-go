@@ -505,7 +505,7 @@ func createNetNode(
 			TxCoordinator:                tc,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			Rounder:                      &mock.RounderMock{},
-			BootstrapStorer: &mock.BoostrapStorerMock{
+			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
 				},
@@ -893,7 +893,7 @@ func createMetaNetNode(
 			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:   &mock.TransactionCoordinatorMock{},
 			Rounder:         &mock.RounderMock{},
-			BootstrapStorer: &mock.BoostrapStorerMock{
+			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
 				},
