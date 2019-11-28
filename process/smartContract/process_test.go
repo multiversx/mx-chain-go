@@ -992,7 +992,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 
 	vmOutput := &vmcommon.VMOutput{
 		GasRefund:    big.NewInt(0),
-		GasRemaining: big.NewInt(0),
+		GasRemaining: 0,
 	}
 	_, _, err = sc.processVMOutput(vmOutput, tx, nil, 10)
 	assert.Nil(t, err)
@@ -1025,7 +1025,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	vmOutput := &vmcommon.VMOutput{
 		GasRefund:    big.NewInt(0),
-		GasRemaining: big.NewInt(0),
+		GasRemaining: 0,
 	}
 
 	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -1753,7 +1753,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	vmOutput := &vmcommon.VMOutput{
 		GasRefund:    big.NewInt(0),
-		GasRemaining: big.NewInt(0),
+		GasRemaining: 0,
 	}
 
 	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {

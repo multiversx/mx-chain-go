@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -26,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -154,7 +156,6 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 	return vm
 }
 
-/*
 func createAndAddIeleVM(
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook vmcommon.BlockchainHook,
@@ -162,7 +163,7 @@ func createAndAddIeleVM(
 	cryptoHook := hooks.NewVMCryptoHook()
 	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
 	_ = vmContainer.Add(factory.IELEVirtualMachine, ieleVM)
-}*/
+}
 
 func CreateVMAndBlockchainHook(
 	accnts state.AccountsAdapter,
@@ -191,7 +192,7 @@ func CreateVMAndBlockchainHook(
 	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, actualGasSchedule, args)
 	vmContainer, _ := vmFactory.Create()
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	//createAndAddIeleVM(vmContainer, blockChainHook)
+	createAndAddIeleVM(vmContainer, blockChainHook)
 
 	return vmContainer, blockChainHook
 }
