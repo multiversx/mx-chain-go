@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -240,6 +240,7 @@ func createProcessorsForMetaGenesisBlock(
 		args.AddrConv,
 		args.ShardCoordinator,
 		scForwarder,
+		&metachain.TransactionFeeHandler{},
 		&metachain.TransactionFeeHandler{},
 		gasHandler,
 	)

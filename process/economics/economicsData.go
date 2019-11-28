@@ -73,11 +73,6 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidRewardsValue
 	}
 
-	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
-	if err != nil {
-		return nil, process.ErrInvalidMaxGasLimitPerBlock
-	}
-
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
 		return nil, process.ErrInvalidMinimumGasPrice
@@ -99,13 +94,18 @@ func convertValues(economics *config.ConfigEconomics) (*EconomicsData, error) {
 		return nil, process.ErrInvalidUnboundPeriod
 	}
 
+	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidMaxGasLimitPerBlock
+	}
+
 	return &EconomicsData{
 		rewardsValue:        rewardsValue,
 		minGasPrice:         minGasPrice,
 		minGasLimit:         minGasLimit,
-		maxGasLimitPerBlock: maxGasLimitPerBlock,
 		stakeValue:          stakeValue,
 		unBoundPeriod:       unBoundPeriod,
+		maxGasLimitPerBlock: maxGasLimitPerBlock,
 	}, nil
 }
 

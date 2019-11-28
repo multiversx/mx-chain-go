@@ -427,6 +427,7 @@ func createNetNode(
 		shardCoordinator,
 		scForwarder,
 		rewardsHandler,
+		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
@@ -900,7 +901,7 @@ func createMetaNetNode(
 			Rounder:         &mock.RounderMock{},
 		},
 		DataPool:           dPool,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}

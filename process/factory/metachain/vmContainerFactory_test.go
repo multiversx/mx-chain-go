@@ -57,7 +57,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				BurnPercentage:      0.40,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock: "100000",
+				MaxGasLimitPerBlock: "10000000000",
 				MinGasPrice:         "10",
 				MinGasLimit:         "10",
 			},
