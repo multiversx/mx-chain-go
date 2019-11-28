@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -45,6 +45,7 @@ type scProcessor struct {
 	scrForwarder process.IntermediateTransactionHandler
 	txFeeHandler process.TransactionFeeHandler
 	economicsFee process.FeeHandler
+	gasHandler   process.GasHandler
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -60,39 +61,44 @@ func NewSmartContractProcessor(
 	scrForwarder process.IntermediateTransactionHandler,
 	txFeeHandler process.TransactionFeeHandler,
 	economicsFee process.FeeHandler,
+	gasHandler process.GasHandler,
 ) (*scProcessor, error) {
-	if vmContainer == nil || vmContainer.IsInterfaceNil() {
+
+	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
 	}
-	if argsParser == nil || argsParser.IsInterfaceNil() {
+	if check.IfNil(argsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if accountsDB == nil || accountsDB.IsInterfaceNil() {
+	if check.IfNil(accountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if tempAccounts == nil || tempAccounts.IsInterfaceNil() {
+	if check.IfNil(tempAccounts) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if adrConv == nil || adrConv.IsInterfaceNil() {
+	if check.IfNil(adrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
+	if check.IfNil(scrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	return &scProcessor{
@@ -107,6 +113,7 @@ func NewSmartContractProcessor(
 		scrForwarder:     scrForwarder,
 		txFeeHandler:     txFeeHandler,
 		economicsFee:     economicsFee,
+		gasHandler:       gasHandler,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
 }
 
@@ -458,6 +465,7 @@ func (sc *scProcessor) processVMOutput(
 
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
+	sc.gasHandler.SetGasRefunded(totalGasRefund.Uint64(), txHash)
 	scrRefund, consumedFee, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err
