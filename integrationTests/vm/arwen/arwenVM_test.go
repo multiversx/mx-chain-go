@@ -1,6 +1,7 @@
 package arwen
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -452,9 +453,26 @@ func TestWASMMetering(t *testing.T) {
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 1; i++ {
 		deployAndExecuteERC20WithBigInt(t, 1000, nil)
 	}
+}
+
+func generateRandomByteArray(size int) []byte {
+	r := make([]byte, size)
+	_, _ = rand.Read(r)
+	return r
+}
+
+func createTestAddresses(numAddresses uint64) [][]byte {
+	testAccounts := make([][]byte, numAddresses)
+
+	for i := uint64(0); i < numAddresses; i++ {
+		acc := generateRandomByteArray(32)
+		testAccounts[i] = append(testAccounts[i], acc...)
+	}
+
+	return testAccounts
 }
 
 func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[string]map[string]uint64) {
@@ -493,6 +511,9 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	bob := []byte("12345678901234567890123456789222")
 	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
 
+	testAddresses := createTestAddresses(20000)
+	fmt.Println("done")
+
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
 
@@ -503,8 +524,37 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 	start := time.Now()
 
+	for j := 0; j < 20; j++ {
+		start = time.Now()
+
+		for i := 0; i < 1000; i++ {
+			tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[j*1000+i])
+
+			err = txProc.ProcessTransaction(tx, round)
+			if err != nil {
+				assert.Nil(t, err)
+			}
+			assert.Nil(t, err)
+
+			aliceNonce++
+		}
+
+		elapsedTime := time.Since(start)
+		fmt.Printf("time elapsed to process 1000 ERC20 transfers %s \n", elapsedTime.String())
+
+		_, err = accnts.Commit()
+		assert.Nil(t, err)
+	}
+
+	elapsedTime := time.Since(start)
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	start = time.Now()
+
 	for i := 0; i < numRun; i++ {
-		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
+		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[i])
 
 		err = txProc.ProcessTransaction(tx, round)
 		if err != nil {
@@ -515,7 +565,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 		aliceNonce++
 	}
 
-	elapsedTime := time.Since(start)
+	elapsedTime = time.Since(start)
 	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
 
 	_, err = accnts.Commit()
