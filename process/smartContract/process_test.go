@@ -1570,12 +1570,8 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
-
-	_, _, err = sc.refundGasToSender(nil, tx, txHash, acntSrc)
-	assert.Nil(t, err)
-	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
-
-	_, _, err = sc.refundGasToSender(big.NewInt(0), tx, txHash, acntSrc)
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
+	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
 	assert.Equal(t, currBalance, acntSrc.(*state.Account).Balance.Uint64())
 }
@@ -1611,20 +1607,22 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.GasLimit = 10
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
-
-	sctx, consumed, err := sc.refundGasToSender(big.NewInt(10), tx, txHash, nil)
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
+	sctx, consumed, err := sc.createSCRForSender(vmOutput, tx, txHash, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0)))
 
 	acntSrc = nil
-	sctx, consumed, err = sc.refundGasToSender(big.NewInt(10), tx, txHash, acntSrc)
+	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
+	sctx, consumed, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
 	assert.NotNil(t, sctx)
 	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0)))
 
 	badAcc := &mock.AccountWrapMock{}
-	sctx, consumed, err = sc.refundGasToSender(big.NewInt(10), tx, txHash, badAcc)
+	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
+	sctx, consumed, err = sc.createSCRForSender(vmOutput, tx, txHash, badAcc)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, sctx)
 }
@@ -1663,7 +1661,8 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	currBalance := acntSrc.(*state.Account).Balance.Uint64()
 
 	refundGas := big.NewInt(10)
-	_, _, err = sc.refundGasToSender(refundGas, tx, txHash, acntSrc)
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
+	_, _, err = sc.createSCRForSender(vmOutput, tx, txHash, acntSrc)
 	assert.Nil(t, err)
 
 	totalRefund := refundGas.Uint64() * tx.GasPrice

@@ -453,9 +453,79 @@ func TestWASMMetering(t *testing.T) {
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 10; i++ {
 		deployAndExecuteERC20WithBigInt(t, 1000, nil)
 	}
+}
+
+func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[string]map[string]uint64) {
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(10000000000000)
+	round := uint64(444)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10000000000)
+	transferOnCalls := big.NewInt(5)
+
+	scCode, err := ioutil.ReadFile("./wrc20_arwen_c.wasm")
+	assert.Nil(t, err)
+
+	scCodeString := hex.EncodeToString(scCode)
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		transferOnCalls,
+		gasPrice,
+		gasLimit,
+		scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)+"@"+hex.EncodeToString(ownerBalance.Bytes()),
+	)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+	ownerNonce++
+
+	alice := []byte("12345678901234567890123456789111")
+	aliceNonce := uint64(0)
+	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
+
+	bob := []byte("12345678901234567890123456789222")
+	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
+
+	initAlice := big.NewInt(100000)
+	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
+
+	err = txProc.ProcessTransaction(tx, round)
+	assert.Nil(t, err)
+
+	ownerNonce++
+
+	start := time.Now()
+
+	for i := 0; i < numRun; i++ {
+		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
+
+		err = txProc.ProcessTransaction(tx, round)
+		if err != nil {
+			assert.Nil(t, err)
+		}
+		assert.Nil(t, err)
+
+		aliceNonce++
+	}
+
+	elapsedTime := time.Since(start)
+	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
+
+	_, err = accnts.Commit()
+	assert.Nil(t, err)
+
+	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
+	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "balanceOf", alice).Uint64())
+	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
+	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "balanceOf", bob).Uint64())
 }
 
 func generateRandomByteArray(size int) []byte {
@@ -475,7 +545,11 @@ func createTestAddresses(numAddresses uint64) [][]byte {
 	return testAccounts
 }
 
-func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[string]map[string]uint64) {
+func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
+	// Only a test to benchmark jurnalizing and getting data from trie
+	t.Skip()
+
+	numRun := 1000
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -488,7 +562,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
-	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	txProc, accnts, blockchainHook := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, nil)
 	scAddress, _ := blockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	tx := vm.CreateDeployTx(
@@ -570,9 +644,4 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
-
-	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
-	assert.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "balanceOf", alice).Uint64())
-	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
-	assert.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, accnts, scAddress, "balanceOf", bob).Uint64())
 }

@@ -187,7 +187,15 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
-	err := sc.argsParser.ParseData(tx.GetData())
+	dataToParse := tx.GetData()
+
+	scr, ok := tx.(*smartContractResult.SmartContractResult)
+	isSCRResultFromCrossShardCall := ok && len(scr.Data) > 0 && scr.Data[0] == '@'
+	if isSCRResultFromCrossShardCall {
+		dataToParse = "callBack" + tx.GetData()
+	}
+
+	err := sc.argsParser.ParseData(dataToParse)
 	if err != nil {
 		return err
 	}
@@ -432,7 +440,7 @@ func (sc *scProcessor) processVMOutput(
 		)
 
 		consumedFee := big.NewInt(0).SetUint64(tx.GetGasLimit() * tx.GetGasPrice())
-		scrIfError, err := sc.createSCRsWhenError(tx)
+		scrIfError, err := sc.createSCRsWhenError(tx, vmOutput.ReturnCode)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -477,9 +485,7 @@ func (sc *scProcessor) processVMOutput(
 		log.Debug("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
 	}
 
-	totalGasRefund := big.NewInt(0)
-	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, big.NewInt(0).SetUint64(vmOutput.GasRemaining))
-	scrRefund, consumedFee, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
+	scrRefund, consumedFee, err := sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -498,10 +504,16 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
+	//TODO: think about if merge is needed between the resulted SCRs and if whether it does not complicates stuff
+	// when smart contract processes in the second shard
+
 	return scrTxs, consumedFee, nil
 }
 
-func (sc *scProcessor) createSCRsWhenError(tx data.TransactionHandler) ([]data.TransactionHandler, error) {
+func (sc *scProcessor) createSCRsWhenError(
+	tx data.TransactionHandler,
+	returnCode vmcommon.ReturnCode,
+) ([]data.TransactionHandler, error) {
 	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
 	if err != nil {
 		return nil, err
@@ -513,7 +525,7 @@ func (sc *scProcessor) createSCRsWhenError(tx data.TransactionHandler) ([]data.T
 		RcvAddr: tx.GetRecvAddress(),
 		SndAddr: tx.GetSndAddress(),
 		Code:    nil,
-		Data:    tx.GetData(),
+		Data:    "@" + hex.EncodeToString([]byte(returnCode.String())) + "@" + hex.EncodeToString(txHash),
 		TxHash:  txHash,
 	}
 
@@ -541,7 +553,7 @@ func (sc *scProcessor) reloadLocalSndAccount(acntSnd state.AccountHandler) (stat
 
 func (sc *scProcessor) createSmartContractResult(
 	outAcc *vmcommon.OutputAccount,
-	scAddress []byte,
+	tx data.TransactionHandler,
 	txHash []byte,
 ) *smartContractResult.SmartContractResult {
 	result := &smartContractResult.SmartContractResult{}
@@ -549,9 +561,11 @@ func (sc *scProcessor) createSmartContractResult(
 	result.Value = outAcc.BalanceDelta
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
-	result.SndAddr = scAddress
+	result.SndAddr = tx.GetRecvAddress()
 	result.Code = outAcc.Code
 	result.Data = string(outAcc.Data) + sc.argsParser.CreateDataFromStorageUpdate(outAcc.StorageUpdates)
+	result.GasLimit = outAcc.GasLimit
+	result.GasPrice = tx.GetGasPrice()
 	result.TxHash = txHash
 
 	return result
@@ -565,25 +579,25 @@ func (sc *scProcessor) createSCRTransactions(
 	scResults := make([]data.TransactionHandler, 0)
 
 	for i := 0; i < len(outAccs); i++ {
-		scTx := sc.createSmartContractResult(outAccs[i], tx.GetRecvAddress(), txHash)
+		scTx := sc.createSmartContractResult(outAccs[i], tx, txHash)
 		scResults = append(scResults, scTx)
 	}
 
 	return scResults, nil
 }
 
+// createSCRForSender(vmOutput, tx, txHash, acntSnd)
 // give back the user the unused gas money
-func (sc *scProcessor) refundGasToSender(
-	gasRefund *big.Int,
+func (sc *scProcessor) createSCRForSender(
+	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	txHash []byte,
 	acntSnd state.AccountHandler,
 ) (*smartContractResult.SmartContractResult, *big.Int, error) {
+	gasRefund := big.NewInt(0).Add(vmOutput.GasRefund, big.NewInt(0).SetUint64(vmOutput.GasRemaining))
+
 	consumedFee := big.NewInt(0)
 	consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
-	if gasRefund == nil || gasRefund.Cmp(big.NewInt(0)) <= 0 {
-		return nil, consumedFee, nil
-	}
 
 	refundErd := big.NewInt(0)
 	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GetGasPrice())))
@@ -595,6 +609,13 @@ func (sc *scProcessor) refundGasToSender(
 	scTx.SndAddr = tx.GetRecvAddress()
 	scTx.Nonce = tx.GetNonce() + 1
 	scTx.TxHash = txHash
+	scTx.GasLimit = vmOutput.GasRemaining
+	scTx.GasPrice = tx.GetGasPrice()
+
+	scTx.Data = "@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String()))
+	for _, retData := range vmOutput.ReturnData {
+		scTx.Data += "@" + hex.EncodeToString(retData)
+	}
 
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
 		return scTx, consumedFee, nil
@@ -743,11 +764,6 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.AccountHandl
 	return acnt, nil
 }
 
-// GetAllSmartContractCallRootHash returns the roothash of the state of the SC executions for defined round
-func (sc *scProcessor) GetAllSmartContractCallRootHash(round uint64) []byte {
-	return []byte("roothash")
-}
-
 // saves VM output into state
 func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, round uint64, txHash []byte) error {
 	var err error
@@ -831,7 +847,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	case process.SCDeployment:
 		return process.ErrSCDeployFromSCRIsNotPermitted
 	case process.SCInvoking:
-		return sc.ExecuteSmartContractTransaction(scr, nil, dstAcc, 0)
+		return sc.ExecuteSmartContractTransaction(scr, nil, dstAcc, scr.Nonce)
 	}
 
 	return process.ErrWrongTransaction

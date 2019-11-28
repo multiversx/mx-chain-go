@@ -18,6 +18,8 @@ github.com/ElrondNetwork/elrond-vm-common v0.0.9 h1:Ff8vEJSKChRfmp+TVo7AgciRkMXj
 github.com/ElrondNetwork/elrond-vm-common v0.0.9/go.mod h1:VqCCN0cX0e4D/KDc7MGNV9ElrOsfnjuJnGvcODVjzbk=
 github.com/ElrondNetwork/elrond-vm-common v0.1.3 h1:b9KnmIDQx1Warrf2Hn9wtv5H2zMT0Qvq+bxulc++PUw=
 github.com/ElrondNetwork/elrond-vm-common v0.1.3/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
+github.com/ElrondNetwork/elrond-vm-common v0.1.4 h1:bBkALg70U/tLXXRhoTTWT50QN7DSyq4VuJd7aiVWuQA=
+github.com/ElrondNetwork/elrond-vm-common v0.1.4/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-util v0.1.0/go.mod h1:2dLgpzmy1PkmtSVWjM2rEPoQkKv/y7+F2vMsDCRtHmg=
 github.com/ElrondNetwork/go-ext-wasm v0.1.0 h1:aSXdg60JLQMSYdQbq0VtqpoyMdFYZqz09BcGiKwGY5U=
 github.com/ElrondNetwork/go-ext-wasm v0.1.0/go.mod h1:wlns4D0OzJP+q/cLweFz1rGpoZOG8LbGYX2jD31HCgw=
