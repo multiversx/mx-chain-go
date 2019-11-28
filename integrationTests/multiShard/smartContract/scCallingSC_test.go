@@ -16,9 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +24,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:INFO,process/block/preprocess:TRACE")
+	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -80,11 +77,11 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
-	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
+	//delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
 
 	fmt.Println(firstSCAddress)
 	fmt.Println(secondSCAddress)
-	fmt.Println(delegateSCAddress)
+	//fmt.Println(delegateSCAddress)
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -99,11 +96,11 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}
 
 	// make nodes delegate stake to delegateSCAddress
-	for _, node := range nodes {
-		pubKey, _ := node.NodeKeys.Pk.ToByteArray()
-		txData := "delegate" + "@" + hex.EncodeToString(pubKey)
-		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), delegateSCAddress, txData)
-	}
+	//for _, node := range nodes {
+	//	pubKey, _ := node.NodeKeys.Pk.ToByteArray()
+	//	txData := "delegate" + "@" + hex.EncodeToString(pubKey)
+	//	integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), delegateSCAddress, txData)
+	//}
 
 	time.Sleep(time.Second)
 
@@ -128,9 +125,9 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}
 
 	// one node calls to stake all the money from the delegation - that's how the contract is :D
-	node := nodes[0]
-	txData := "sendToStaking"
-	integrationTests.CreateAndSendTransaction(node, big.NewInt(100), delegateSCAddress, txData)
+	//node := nodes[0]
+	//txData := "sendToStaking"
+	//integrationTests.CreateAndSendTransaction(node, big.NewInt(100), delegateSCAddress, txData)
 
 	time.Sleep(time.Second)
 
@@ -142,7 +139,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}
 
 	// verify system smart contract has the value
-	for _, node := range nodes {
+	/*for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
 			continue
 		}
@@ -154,7 +151,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
 		assert.NotNil(t, vmOutput)
 		assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
-	}
+	}*/
 }
 
 func putDeploySCToDataPool(

@@ -425,6 +425,16 @@ func (sc *scProcessor) processVMOutput(
 			"return code", vmOutput.ReturnCode.String(),
 		)
 
+		consumedFee := big.NewInt(0).SetUint64(tx.GetGasLimit() * tx.GetGasPrice())
+		scrIfError, err := sc.createSCRsWhenError(tx)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if check.IfNil(acntSnd) {
+			return scrIfError, consumedFee, nil
+		}
+
 		stAcc, ok := acntSnd.(*state.Account)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
@@ -436,7 +446,7 @@ func (sc *scProcessor) processVMOutput(
 			return nil, nil, err
 		}
 
-		return nil, nil, nil
+		return scrIfError, consumedFee, nil
 	}
 
 	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, tx)
@@ -483,6 +493,28 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	return scrTxs, consumedFee, nil
+}
+
+func (sc *scProcessor) createSCRsWhenError(tx data.TransactionHandler) ([]data.TransactionHandler, error) {
+	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	scr := &smartContractResult.SmartContractResult{
+		Nonce:   tx.GetNonce(),
+		Value:   tx.GetValue(),
+		RcvAddr: tx.GetRecvAddress(),
+		SndAddr: tx.GetSndAddress(),
+		Code:    nil,
+		Data:    tx.GetData(),
+		TxHash:  txHash,
+	}
+
+	resultedScrs := make([]data.TransactionHandler, 0)
+	resultedScrs = append(resultedScrs, scr)
+
+	return resultedScrs, nil
 }
 
 // reloadLocalSndAccount will reload from current account state the sender account
