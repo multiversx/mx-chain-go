@@ -29,15 +29,6 @@ var ErrInputCallerAddrIsNil = errors.New("input called address for system smart 
 // ErrInputRecipientAddrIsNil signals that input recipient address for system smart contract is nil
 var ErrInputRecipientAddrIsNil = errors.New("input recipient address for system smart contract is nil")
 
-// ErrInputGasProvidedIsNil signals that input gas provided value is nil for system smart contracts
-var ErrInputGasProvidedIsNil = errors.New("input gas provided for system smart contract is nil")
-
-// ErrInputGasPriceIsNil signals that input gas price value is nil for system smart contracts
-var ErrInputGasPriceIsNil = errors.New("input gas price for system smart contract is nil")
-
-// ErrInputHeaderIsNil signals that input header for system smart contract is nil
-var ErrInputHeaderIsNil = errors.New("input header for system smart contract is nil")
-
 // ErrNilBlockchainHook signals that blockchain hook is nil
 var ErrNilBlockchainHook = errors.New("blockchain hook is nil")
 

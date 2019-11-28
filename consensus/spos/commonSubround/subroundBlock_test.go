@@ -660,7 +660,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	_ = sr.SendBlockHeader(header)
 
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
-	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
+	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 	expectedHeader := &block.Header{
 		Round:            uint64(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
@@ -689,7 +689,7 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	_ = sr.SendBlockHeader(header)
 
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
-	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
+	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 
 	expectedHeader := &block.Header{
 		Round:            uint64(sr.Rounder().Index()),
@@ -736,7 +736,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	_ = sr.SendBlockHeader(header)
 
 	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
-	newRand, _ := sr.RandomnessSingleSigner().Sign(sr.RandomnessPrivateKey(), oldRand)
+	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 	expectedHeader := &block.Header{
 		Round:            uint64(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
