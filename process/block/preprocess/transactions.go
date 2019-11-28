@@ -206,27 +206,6 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 	return txsRestored, nil
 }
 
-func (txs *transactions) getMapHashTxFromMiniBlock(
-	miniBlock *block.MiniBlock,
-) (map[string]data.TransactionHandler, error) {
-
-	mapHashTx := make(map[string]data.TransactionHandler)
-
-	txs.txsForCurrBlock.mutTxsForBlock.RLock()
-	defer txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
-
-	for _, txHash := range miniBlock.TxHashes {
-		txInfo := txs.txsForCurrBlock.txHashAndInfo[string(txHash)]
-		if txInfo == nil || txInfo.tx == nil {
-			return nil, process.ErrMissingTransaction
-		}
-
-		mapHashTx[string(txHash)] = txInfo.tx
-	}
-
-	return mapHashTx, nil
-}
-
 // ProcessBlockTransactions processes all the transaction from the block.Body, updates the state
 func (txs *transactions) ProcessBlockTransactions(
 	body block.Body,
