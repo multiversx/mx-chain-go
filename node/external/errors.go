@@ -17,8 +17,8 @@ var ErrNilStore = errors.New("nil data storage service")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrNilScDataGetter signals that a nil data getter has been provided
-var ErrNilScDataGetter = errors.New("nil SC data getter")
+// ErrNilSCQueryService signals that a nil SC query service has been provided
+var ErrNilSCQueryService = errors.New("nil SC query service")
 
 // ErrNilStatusMetrics signals that a nil status metrics was provided
 var ErrNilStatusMetrics = errors.New("nil status metrics handler")

@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"strconv"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -18,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var agarioFile = "../agarioV3.hex"
+var agarioFile = "../agar_v1_min.hex"
 var stepDelay = time.Second
 
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
@@ -27,14 +25,11 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
 
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
-
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
 	maxShards := uint32(1)
-	numOfNodes := 4
+	numOfNodes := 1
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
@@ -71,7 +66,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)
@@ -110,9 +105,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
-
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
 
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
@@ -155,7 +147,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)
@@ -194,9 +186,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
-
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
 
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
@@ -244,7 +233,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)
@@ -291,9 +280,6 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
 	defer p.Stop()
 
-	log := logger.DefaultLogger()
-	log.SetLevel(logger.LogDebug)
-
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -338,7 +324,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	nonce++
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
+	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(10000000)
@@ -427,7 +413,7 @@ func runMultipleRoundsOfTheGame(
 				nodes,
 				player,
 				topUpValue,
-				strconv.Itoa(currentRound),
+				int32(currentRound),
 				hardCodedScResultingAddress,
 			)
 		}
@@ -438,7 +424,7 @@ func runMultipleRoundsOfTheGame(
 		round, nonce = integrationTests.ProposeAndSyncBlocks(t, nodes, idxProposers, round, nonce)
 
 		for i := 0; i < numRewardedPlayers; i++ {
-			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], strconv.Itoa(currentRound), hardCodedScResultingAddress)
+			integrationTests.NodeCallsRewardAndSend(nodes, idxProposers[0], players[i], withdrawValues[i], int32(currentRound), hardCodedScResultingAddress)
 		}
 
 		// waiting to disseminate transactions

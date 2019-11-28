@@ -41,7 +41,6 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int) (s *DB, err err
 
 	dir := filepath.Dir(fPath)
 	parentFolder := filepath.Base(dir)
-	fmt.Println("Parent Folder: ", parentFolder)
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucket([]byte(parentFolder))

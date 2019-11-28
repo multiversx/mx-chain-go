@@ -12,7 +12,7 @@ import (
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
 	hdr               *block.Header
-	sigVerifier       *headerMultiSigVerifier
+	sigVerifier       *headerSigVerifier
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	hash              []byte
@@ -31,11 +31,13 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		return nil, err
 	}
 
-	sigVerifier := &headerMultiSigVerifier{
-		marshalizer:      arg.Marshalizer,
-		hasher:           arg.Hasher,
-		nodesCoordinator: arg.NodesCoordinator,
-		multiSigVerifier: arg.MultiSigVerifier,
+	sigVerifier := &headerSigVerifier{
+		marshalizer:       arg.Marshalizer,
+		hasher:            arg.Hasher,
+		nodesCoordinator:  arg.NodesCoordinator,
+		multiSigVerifier:  arg.MultiSigVerifier,
+		singleSigVerifier: arg.SingleSigVerifier,
+		keyGen:            arg.KeyGen,
 	}
 
 	inHdr := &InterceptedHeader{
@@ -46,6 +48,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 	//wire-up the "virtual" function
 	inHdr.sigVerifier.copyHeaderWithoutSig = inHdr.copyHeaderWithoutSig
+	inHdr.sigVerifier.copyHeaderWithoutLeaderSig = inHdr.copyHeaderWithoutLeaderSig
 	inHdr.processFields(arg.HdrBuff)
 
 	return inHdr, nil
@@ -71,6 +74,17 @@ func (inHdr *InterceptedHeader) copyHeaderWithoutSig(header data.HeaderHandler) 
 	headerCopy := *hdr
 	headerCopy.Signature = nil
 	headerCopy.PubKeysBitmap = nil
+	headerCopy.LeaderSignature = nil
+
+	return &headerCopy
+}
+
+func (inHdr *InterceptedHeader) copyHeaderWithoutLeaderSig(header data.HeaderHandler) data.HeaderHandler {
+	//it is virtually impossible here to have a wrong type assertion case
+	hdr := header.(*block.Header)
+
+	headerCopy := *hdr
+	headerCopy.LeaderSignature = nil
 
 	return &headerCopy
 }
@@ -86,6 +100,11 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
 	err := inHdr.integrity()
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.sigVerifier.verifyRandSeedAndLeaderSignature(inHdr.hdr)
 	if err != nil {
 		return err
 	}

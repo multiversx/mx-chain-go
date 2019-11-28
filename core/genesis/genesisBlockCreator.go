@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -26,7 +26,7 @@ import (
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("core/genesis")
 
 // CreateShardGenesisBlockFromInitialBalances creates the genesis block body from map of account balances
 func CreateShardGenesisBlockFromInitialBalances(
@@ -126,7 +126,7 @@ func CreateMetaGenesisBlock(
 		return nil, process.ErrNilUint64Converter
 	}
 	if args.MetaDatapool == nil || args.MetaDatapool.IsInterfaceNil() {
-		return nil, process.ErrNilMetaBlockPool
+		return nil, process.ErrNilMetaBlocksPool
 	}
 
 	txProcessor, systemSmartContracts, err := createProcessorsForMetaGenesisBlock(args)
@@ -234,6 +234,7 @@ func createProcessorsForMetaGenesisBlock(
 		args.AddrConv,
 		args.ShardCoordinator,
 		scForwarder,
+		&metachain.TransactionFeeHandler{},
 		&metachain.TransactionFeeHandler{},
 	)
 	if err != nil {
@@ -385,7 +386,7 @@ func setBalancesToTrie(
 	if err != nil {
 		errToLog := accounts.RevertToSnapshot(0)
 		if errToLog != nil {
-			log.Error(errToLog.Error())
+			log.Debug("error reverting to snapshot", "error", errToLog.Error())
 		}
 
 		return nil, err

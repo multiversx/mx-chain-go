@@ -16,6 +16,9 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
 
+// ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
+var ErrNilGasSchedule = errors.New("nil GasSchedule")
+
 // ErrNilAddressContainer signals that an operation has been attempted to or with a nil AddressContainer implementation
 var ErrNilAddressContainer = errors.New("nil AddressContainer")
 
@@ -220,8 +223,8 @@ var ErrNilTransactionPool = errors.New("nil transaction pool")
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 
-// ErrNilMetaBlockPool signals that a nil meta blocks pool was used
-var ErrNilMetaBlockPool = errors.New("nil meta block pool")
+// ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
+var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
 // ErrNilShardBlockPool signals that a nil shard blocks pool was used
 var ErrNilShardBlockPool = errors.New("nil shard block pool")
@@ -500,6 +503,18 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 
+// ErrHigherGasLimitRequiredInTx signals that a higher gas limit is required in tx
+var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
+
+// ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
+var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
+
+// ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
+var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
+
+// ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached signals that max gas limit per mini block in receiver shard has been reached
+var ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached = errors.New("max gas limit per mini block in receiver shard is reached")
+
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 
@@ -542,8 +557,26 @@ var ErrNilNodesSetup = errors.New("nil nodes setup")
 // ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
 var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 
+// ErrNilBlackListHandler signals that a nil black list handler was provided
+var ErrNilBlackListHandler = errors.New("nil black list handler")
+
+// ErrHeaderIsBlackListed signals that the header provided is black listed
+var ErrHeaderIsBlackListed = errors.New("header is black listed")
+
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
+
+// ErrMissingPrevShardData signals that a required shard data information is missing
+var ErrMissingPrevShardData = errors.New("shard data is missing")
+
+// ErrInvalidMetaPoolHolder signals that a required shard data information is missing
+var ErrInvalidMetaPoolHolder = errors.New("invalid meta pool holder")
+
+// ErrNilMediator signals that a mediator implementation is needed, but it is nil
+var ErrNilMediator = errors.New("nil mediator")
+
+// ErrMissingShardDataInStorage signals that some ShardData information is missing from storage
+var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")

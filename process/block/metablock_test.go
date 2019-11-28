@@ -40,9 +40,10 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:           mdp,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}
@@ -588,7 +589,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	arguments.Accounts = accounts
 	arguments.Store = store
 	arguments.ForkDetector = &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -690,7 +691,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	forkDetectorAddCalled := false
 	fd := &mock.ForkDetectorMock{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 			if header == hdr {
 				forkDetectorAddCalled = true
 				return nil
@@ -737,6 +738,9 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		}
 		cs.MaxSizeCalled = func() int {
 			return 1000
+		}
+		cs.KeysCalled = func() [][]byte {
+			return nil
 		}
 		return cs
 	}
@@ -1388,13 +1392,13 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	hdrHash := []byte("hdr_hash1")
 
 	store := &mock.ChainStorerMock{
-		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-			return buffHdr, nil
-		},
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
+				},
+				GetCalled: func(key []byte) ([]byte, error) {
+					return buffHdr, nil
 				},
 			}
 		},

@@ -59,6 +59,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -116,9 +117,11 @@ type keyPair struct {
 }
 
 type cryptoParams struct {
-	keyGen       crypto.KeyGenerator
-	keys         map[uint32][]*keyPair
-	singleSigner crypto.SingleSigner
+	keyGen            crypto.KeyGenerator
+	blockKeyGen       crypto.KeyGenerator
+	keys              map[uint32][]*keyPair
+	singleSigner      crypto.SingleSigner
+	blockSingleSigner crypto.SingleSigner
 }
 
 func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
@@ -140,6 +143,12 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
+	blockKeyGen := &mock.KeyGenMock{}
+	blockSingleSigner := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 
 	keysMap := make(map[uint32][]*keyPair)
 	keyPairs := make([]*keyPair, nodesPerShard)
@@ -161,9 +170,11 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 	keysMap[sharding.MetachainShardId] = keyPairs
 
 	params := &cryptoParams{
-		keys:         keysMap,
-		keyGen:       keyGen,
-		singleSigner: singleSigner,
+		keys:              keysMap,
+		keyGen:            keyGen,
+		blockKeyGen:       blockKeyGen,
+		singleSigner:      singleSigner,
+		blockSingleSigner: blockSingleSigner,
 	}
 
 	return params
@@ -331,12 +342,15 @@ func createNetNode(
 		testMarshalizer,
 		testHasher,
 		params.keyGen,
+		params.blockKeyGen,
 		params.singleSigner,
+		params.blockSingleSigner,
 		testMultiSig,
 		dPool,
 		testAddressConverter,
 		maxTxNonceDeltaAllowed,
 		createMockTxFeeHandler(),
+		timecache.NewTimeCache(time.Second),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -409,6 +423,7 @@ func createNetNode(
 		shardCoordinator,
 		scForwarder,
 		rewardsHandler,
+		&mock.FeeHandlerStub{},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
@@ -461,7 +476,7 @@ func createNetNode(
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
-				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 					return nil
 				},
 				GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -488,6 +503,7 @@ func createNetNode(
 			BlockChainHook:               blockChainHook,
 			TxCoordinator:                tc,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
+			Rounder:                      &mock.RounderMock{},
 		},
 		DataPool:        dPool,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -802,9 +818,12 @@ func createMetaNetNode(
 		accntAdapter,
 		testAddressConverter,
 		params.singleSigner,
+		params.blockSingleSigner,
 		params.keyGen,
+		params.blockKeyGen,
 		maxTxNonceDeltaAllowed,
 		feeHandler,
+		timecache.NewTimeCache(time.Second),
 	)
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
@@ -841,7 +860,7 @@ func createMetaNetNode(
 		ArgBaseProcessor: block.ArgBaseProcessor{
 			Accounts: accntAdapter,
 			ForkDetector: &mock.ForkDetectorMock{
-				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
+				AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte, isNotarizedShardStuck bool) error {
 					return nil
 				},
 				GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -867,9 +886,10 @@ func createMetaNetNode(
 			Core:            &mock.ServiceContainerMock{},
 			BlockChainHook:  &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:   &mock.TransactionCoordinatorMock{},
+			Rounder:         &mock.RounderMock{},
 		},
 		DataPool:           dPool,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}

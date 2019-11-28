@@ -2,15 +2,14 @@ package sharding
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
-var log = logger.DefaultLogger()
+var log = logger.GetOrCreate("sharding")
 
 // InitialBalance holds data from json and decoded data from genesis process
 type InitialBalance struct {
@@ -29,7 +28,7 @@ type Genesis struct {
 func NewGenesisConfig(genesisFilePath string) (*Genesis, error) {
 	genesis := &Genesis{}
 
-	err := core.LoadJsonFile(genesis, genesisFilePath, log)
+	err := core.LoadJsonFile(genesis, genesisFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +56,9 @@ func (g *Genesis) processConfig() error {
 
 		g.InitialBalances[i].balance, ok = new(big.Int).SetString(g.InitialBalances[i].Balance, 10)
 		if !ok {
-			log.Warn(fmt.Sprintf("error decoding balance %s for public key %s - setting to 0",
-				g.InitialBalances[i].Balance, g.InitialBalances[i].PubKey))
+			log.Debug("error decoding balance for public key - setting to 0",
+				"balance", g.InitialBalances[i].Balance,
+				"pubkey", g.InitialBalances[i].PubKey)
 			g.InitialBalances[i].balance = big.NewInt(0)
 		}
 	}

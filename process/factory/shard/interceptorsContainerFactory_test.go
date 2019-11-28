@@ -97,12 +97,15 @@ func TestNewInterceptorsContainerFactory_NilAccountsAdapter(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -121,12 +124,15 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -145,12 +151,15 @@ func TestNewInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -169,12 +178,15 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -193,12 +205,15 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -217,12 +232,15 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		nil,
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -241,12 +259,15 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -265,12 +286,15 @@ func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		nil,
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -289,12 +313,15 @@ func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) 
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
 		nil,
+		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -313,12 +340,15 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		nil,
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -337,12 +367,15 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		nil,
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -361,12 +394,15 @@ func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T)
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		nil,
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
@@ -385,16 +421,46 @@ func TestNewInterceptorsContainerFactory_NilTxFeeHandlerShouldErr(t *testing.T) 
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		nil,
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, err := shard.NewInterceptorsContainerFactory(
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		mock.NewNodesCoordinatorMock(),
+		&mock.TopicHandlerStub{},
+		createStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{},
+		maxTxNonceDeltaAllowed,
+		&mock.FeeHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilBlackListHandler, err)
 }
 
 func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
@@ -409,12 +475,15 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	assert.NotNil(t, icf)
@@ -435,12 +504,15 @@ func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *tes
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -461,12 +533,15 @@ func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *te
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -487,12 +562,15 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldEr
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -513,12 +591,15 @@ func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsSh
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -539,12 +620,15 @@ func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -565,12 +649,15 @@ func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -591,12 +678,15 @@ func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -617,12 +707,15 @@ func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t 
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -650,12 +743,15 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()
@@ -696,12 +792,15 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
 		&mock.SignerMock{},
 		mock.NewMultiSigner(),
 		createDataPools(),
 		&mock.AddressConverterMock{},
 		maxTxNonceDeltaAllowed,
 		&mock.FeeHandlerStub{},
+		&mock.BlackListHandlerStub{},
 	)
 
 	container, err := icf.Create()

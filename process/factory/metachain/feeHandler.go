@@ -1,9 +1,25 @@
 package metachain
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/process"
+)
 
 // TransactionFeeHandler is an empty struct which implements TransactionFeeHandler interface
 type TransactionFeeHandler struct {
+}
+
+func (t *TransactionFeeHandler) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
+	return 0
+}
+
+func (t *TransactionFeeHandler) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
+	return big.NewInt(0)
+}
+
+func (t *TransactionFeeHandler) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
+	return nil
 }
 
 // ProcessTransactionFee empty cost processing for metachain
