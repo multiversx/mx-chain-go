@@ -79,6 +79,7 @@ func (sfd *shardForkDetector) AddHeader(
 	}
 
 	sfd.append(&headerInfo{
+		epoch: header.GetEpoch(),
 		nonce: header.GetNonce(),
 		round: header.GetRound(),
 		hash:  headerHash,
