@@ -6,13 +6,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
-
-var log = logger.GetOrCreate("process/transaction")
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
@@ -89,10 +86,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 	if tx == nil || tx.IsInterfaceNil() {
 		return process.ErrNilTransaction
 	}
-
-	log.Trace("About to process transaction")
-	json, err := tx.MarshalJSON()
-	log.Trace("Transaction", "JSON", string(json))
 
 	adrSrc, adrDst, err := txProc.getAddresses(tx)
 	if err != nil {
@@ -192,10 +185,6 @@ func (txProc *txProcessor) processSCDeployment(
 	adrSrc state.AddressContainer,
 	roundIndex uint64,
 ) error {
-
-	log.Trace("About to execute SmartContract deployment transaction")
-	json, err := tx.MarshalJSON()
-	log.Trace("Transaction", "JSON", string(json))
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, err := txProc.getAccountFromAddress(adrSrc)
