@@ -127,6 +127,11 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 			continue
 		}
 
+		log.Debug("removing meta block from storage",
+			"shradId", metaBlock.GetShardID(),
+			"nonce", metaBlock.GetNonce(),
+			"hash", metaBlockHash)
+
 		nonceToByteSlice := ssb.uint64Converter.ToByteSlice(metaBlock.GetNonce())
 		err = ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit).Remove(nonceToByteSlice)
 		if err != nil {
@@ -144,12 +149,6 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 				"nonce", metaBlock.GetNonce(),
 				"hash", metaBlockHash,
 				"error", err.Error())
-			continue
 		}
-
-		log.Debug("meta block was removed from storage",
-			"shradId", metaBlock.GetShardID(),
-			"nonce", metaBlock.GetNonce(),
-			"hash", metaBlockHash)
 	}
 }

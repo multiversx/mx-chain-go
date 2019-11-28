@@ -100,6 +100,11 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 			continue
 		}
 
+		log.Debug("removing shard header from ShardHdrNonceHashDataUnit storage",
+			"shradId", shardHeader.GetShardID(),
+			"nonce", shardHeader.GetNonce(),
+			"hash", shardHeaderHash)
+
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
 		storer := msb.store.GetStorer(hdrNonceHashDataUnit)
 		nonceToByteSlice := msb.uint64Converter.ToByteSlice(shardHeader.GetNonce())
@@ -110,12 +115,6 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 				"nonce", shardHeader.GetNonce(),
 				"hash", shardHeaderHash,
 				"error", err.Error())
-			continue
 		}
-
-		log.Debug("shard header was removed from ShardHdrNonceHashDataUnit storage",
-			"shradId", shardHeader.GetShardID(),
-			"nonce", shardHeader.GetNonce(),
-			"hash", shardHeaderHash)
 	}
 }
