@@ -183,6 +183,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -201,6 +202,7 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
@@ -1400,8 +1402,8 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*TestKeyPair)
-	keyPairs := make([]*TestKeyPair, nodesPerShard)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		keyPairs := make([]*TestKeyPair, nodesPerShard)
 		for n := 0; n < nodesPerShard; n++ {
 			kp := &TestKeyPair{}
 			kp.Sk, kp.Pk = keyGen.GeneratePair()
@@ -1410,7 +1412,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 		keysMap[shardId] = keyPairs
 	}
 
-	keyPairs = make([]*TestKeyPair, nbMetaNodes)
+	keyPairs := make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
 		kp := &TestKeyPair{}
 		kp.Sk, kp.Pk = keyGen.GeneratePair()
