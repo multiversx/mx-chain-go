@@ -167,6 +167,7 @@ type Messenger interface {
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
+	GetPeerCounts() *PeerCounts
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -232,4 +233,11 @@ type Marshalizer interface {
 	Marshal(obj interface{}) ([]byte, error)
 	Unmarshal(obj interface{}, buff []byte) error
 	IsInterfaceNil() bool
+}
+
+// PeerCounts represents the DTO structure used to output the count metrics for connected peers
+type PeerCounts struct {
+	UnknownPeers    int
+	IntraShardPeers int
+	CrossShardPeers int
 }
