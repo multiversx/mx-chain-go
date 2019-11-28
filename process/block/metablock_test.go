@@ -52,7 +52,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			ResolversFinder: createMockResolversFinder(),
 		},
 		DataPool:           mdp,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}

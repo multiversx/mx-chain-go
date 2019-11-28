@@ -423,6 +423,7 @@ func createNetNode(
 		shardCoordinator,
 		scForwarder,
 		rewardsHandler,
+		&mock.FeeHandlerStub{},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
@@ -893,7 +894,7 @@ func createMetaNetNode(
 			ResolversFinder: createResolversFinder(),
 		},
 		DataPool:           dPool,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 	}
