@@ -291,6 +291,13 @@ func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo)
 	bfd.mutFork.Unlock()
 }
 
+// RestoreFinalCheckPointToGenesis will set final checkpoint to genesis
+func (bfd *baseForkDetector) RestoreFinalCheckPointToGenesis() {
+	bfd.mutFork.Lock()
+	bfd.fork.finalCheckpoint = &checkpointInfo{round: 0, nonce: 0}
+	bfd.mutFork.Unlock()
+}
+
 func (bfd *baseForkDetector) finalCheckpoint() *checkpointInfo {
 	bfd.mutFork.RLock()
 	finalCheckpoint := bfd.fork.finalCheckpoint

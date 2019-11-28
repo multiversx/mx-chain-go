@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -610,4 +611,32 @@ type ForkInfo struct {
 // NewForkInfo creates a new ForkInfo object
 func NewForkInfo() *ForkInfo {
 	return &ForkInfo{IsDetected: false, Nonce: math.MaxUint64, Round: math.MaxUint64, Hash: nil}
+}
+
+func ConvertProcessedMiniBlocksMapToSlice(processedMiniBlocks map[string]map[string]struct{}) []bootstrapStorage.MiniBlocksInMeta {
+	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
+
+	for metaHash, miniBlocksHashes := range processedMiniBlocks {
+		miniBlocksInMeta := bootstrapStorage.MiniBlocksInMeta{MetaHash: []byte(metaHash), MiniBlocksHashes: make([][]byte, 0)}
+		for miniBlockHash := range miniBlocksHashes {
+			miniBlocksInMeta.MiniBlocksHashes = append(miniBlocksInMeta.MiniBlocksHashes, []byte(miniBlockHash))
+		}
+		miniBlocksInMetaBlocks = append(miniBlocksInMetaBlocks, miniBlocksInMeta)
+	}
+
+	return miniBlocksInMetaBlocks
+}
+
+func ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) map[string]map[string]struct{} {
+	processedMiniBlocks := make(map[string]map[string]struct{})
+
+	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
+		miniBlocksHashes := make(map[string]struct{})
+		for _, miniBlockHash := range miniBlocksInMeta.MiniBlocksHashes {
+			miniBlocksHashes[string(miniBlockHash)] = struct{}{}
+		}
+		processedMiniBlocks[string(miniBlocksInMeta.MetaHash)] = miniBlocksHashes
+	}
+
+	return processedMiniBlocks
 }

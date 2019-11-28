@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -213,10 +214,12 @@ type BlockProcessor interface {
 	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) error
+	ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{})
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
+	RestoreLastNotarizedHrdsToGenesis()
 	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
 }
@@ -258,6 +261,7 @@ type ForkDetector interface {
 	ProbableHighestNonce() uint64
 	ResetProbableHighestNonce()
 	ResetFork()
+	RestoreFinalCheckPointToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	IsInterfaceNil() bool
 }
@@ -487,4 +491,19 @@ type SCQuery struct {
 	ScAddress []byte
 	FuncName  string
 	Arguments [][]byte
+}
+
+// BootStorer is the interface needed by bootstrapper to read/write data in storage
+type BootStorer interface {
+	SaveLastRound(round int64) error
+	Put(round int64, bootData bootstrapStorage.BootstrapData) error
+	Get(round int64) (bootstrapStorage.BootstrapData, error)
+	GetHighestRound() int64
+	IsInterfaceNil() bool
+}
+
+// BootstrapperFromStorage is the interface needed by boot component to load data from storage
+type BootstrapperFromStorage interface {
+	LoadFromStorage() error
+	IsInterfaceNil() bool
 }

@@ -58,6 +58,17 @@
         MaxBatchSize = 30
         MaxOpenFiles = 10
 
+[BootstrapStorage]
+    [BootstrapStorage.Cache]
+        Size = 1000
+        Type = "LRU"
+    [BootstrapStorage.DB]
+        FilePath = "BootstrapData"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 1
+        MaxOpenFiles = 10
+
 [PeerDataStorage]
     [PeerDataStorage.Cache]
         Size = 1000
