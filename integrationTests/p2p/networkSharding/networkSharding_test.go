@@ -13,8 +13,6 @@ import (
 var p2pBootstrapStepDelay = 2 * time.Second
 
 func TestConnectionsInNetworkSharding(t *testing.T) {
-	//TODO remove this skip
-	t.Skip("this test fails for the moment")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
