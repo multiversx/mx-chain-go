@@ -6,19 +6,19 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/logger"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+var log = logger.GetOrCreate("statusHandler/persister")
+
 const saveInterval = 10 * time.Second
 
 //StatusMetricsDbEntry is key used to save metrics in storage
 const StatusMetricsDbEntry = "status_metrics_db_entry"
-
-var log = logger.DefaultLogger()
 
 // PersistentStatusHandler is a status handler that will save metrics in storage
 type PersistentStatusHandler struct {
@@ -107,13 +107,15 @@ func (psh *PersistentStatusHandler) saveMetricsInDb() {
 
 	statusMetricsBytes, err := psh.marshalizer.Marshal(&metricsMap)
 	if err != nil {
-		log.Info("cannot marshal metrics map", err)
+		log.Debug("cannot marshal metrics map",
+			"error", err)
 		return
 	}
 
 	err = psh.store.Put([]byte(StatusMetricsDbEntry), statusMetricsBytes)
 	if err != nil {
-		log.Info("cannot save metrics map in storage", err)
+		log.Debug("cannot save metrics map in storage",
+			"error", err)
 		return
 	}
 }

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"io"
 	"net/http"
 
@@ -79,7 +80,8 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 
 		writer, ok := presenterStatusHandler.(io.Writer)
 		if ok {
-			err = log.ChangePrinterHookWriter(writer)
+			logger.ClearLogObservers()
+			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
 			if err != nil {
 				return nil, err
 			}
