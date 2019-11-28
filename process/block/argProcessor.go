@@ -49,7 +49,7 @@ type ArgShardProcessor struct {
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
 	DataPool           dataRetriever.MetaPoolsHolder
-	SCDataGetter       external.ScDataGetter
+	SCDataGetter       external.SCQueryService
 	PeerChangesHandler process.PeerChangesHandler
 	SCToProtocol       process.SmartContractToProtocolHandler
 }

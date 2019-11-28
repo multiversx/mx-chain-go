@@ -18,9 +18,8 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 			CallerAddr:  []byte("tralala1"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
-			GasPrice:    big.NewInt(0),
-			GasProvided: big.NewInt(0),
-			Header:      &vmcommon.SCCallHeader{},
+			GasPrice:    0,
+			GasProvided: 0,
 		},
 		RecipientAddr: []byte("tralala2"),
 		Function:      "something",
@@ -205,7 +204,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
-	arguments.Arguments = []*big.Int{stakerAddress, slashValue}
+	arguments.Arguments = [][]byte{stakerAddress.Bytes(), slashValue.Bytes()}
 	arguments.CallValue = big.NewInt(100)
 
 	retCode := stakingSmartContract.Execute(arguments)
@@ -265,8 +264,7 @@ func TestStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unStake"
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(200)}
-	arguments.Header = &vmcommon.SCCallHeader{Number: big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(200).Bytes()}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedExpectedRegData)
 
@@ -300,7 +298,7 @@ func TestStakingSC_ExecuteUnStake(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unStake"
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(200)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(200).Bytes()}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedExpectedRegData)
 
@@ -326,7 +324,7 @@ func TestStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = []byte("data")
 	arguments.Function = "unBound"
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(200)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(200).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -355,7 +353,7 @@ func TestStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = []byte("data")
 	arguments.Function = "unBound"
-	arguments.Arguments = []*big.Int{big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -387,7 +385,7 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = []byte("data")
 	arguments.Function = "finalizeUnStake"
-	arguments.Arguments = []*big.Int{blsPubKey}
+	arguments.Arguments = [][]byte{blsPubKey.Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -479,7 +477,7 @@ func TestStakingSC_ExecuteSlashUnmarhsalErr(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "slash"
 	arguments.CallerAddr = []byte("data")
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(100).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -504,7 +502,7 @@ func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "slash"
 	arguments.CallerAddr = []byte("data")
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(100).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -529,7 +527,7 @@ func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "slash"
 	arguments.CallerAddr = []byte("data")
-	arguments.Arguments = []*big.Int{big.NewInt(100), big.NewInt(100)}
+	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(100).Bytes()}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -621,8 +619,7 @@ func TestStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	stakeValue := big.NewInt(100)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
-	callerAddress := big.NewInt(0).SetBytes(arguments.CallerAddr)
-	arguments.Arguments = []*big.Int{callerAddress}
+	arguments.Arguments = [][]byte{arguments.CallerAddr}
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, &mock.CryptoHookStub{})
 	stakingSmartContract, _ := NewStakingSmartContract(stakeValue, 0, eei)
 	err := stakingSmartContract.Execute(arguments)
@@ -652,9 +649,8 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedStakedData)
 	stakingSmartContract.eei.SetStorage([]byte(ownerKey), arguments.CallerAddr)
 
-	callerAddress := big.NewInt(0).SetBytes(arguments.CallerAddr)
 	slashValue := big.NewInt(70)
-	arguments.Arguments = []*big.Int{callerAddress, slashValue}
+	arguments.Arguments = [][]byte{arguments.CallerAddr, slashValue.Bytes()}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
@@ -666,7 +662,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	expectedStake := big.NewInt(0).Sub(stakeValue, slashValue)
 	assert.Equal(t, expectedStake, registrationData.StakeValue)
 
-	arguments.Arguments = []*big.Int{callerAddress, slashValue}
+	arguments.Arguments = [][]byte{arguments.CallerAddr, slashValue.Bytes()}
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
