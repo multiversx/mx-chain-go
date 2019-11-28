@@ -214,9 +214,6 @@ var ErrNilHeadersStorage = errors.New("nil headers storage")
 // ErrNilHeadersNonceHashStorage signals that a nil header nonce hash storage has been provided
 var ErrNilHeadersNonceHashStorage = errors.New("nil headers nonce hash storage")
 
-// ErrNilBlockBodyStorage signals that a nil block body storage has been provided
-var ErrNilBlockBodyStorage = errors.New("nil block body storage")
-
 // ErrNilTransactionPool signals that a nil transaction pool was used
 var ErrNilTransactionPool = errors.New("nil transaction pool")
 
@@ -361,9 +358,6 @@ var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
 // ErrInvalidDataInput signals that the data input is invalid for parsing
 var ErrInvalidDataInput = errors.New("data input is invalid to create key, value storage output")
 
-// ErrNoRewardTransactionInMessage signals that message does not contain required data
-var ErrNoRewardTransactionInMessage = errors.New("no reward transactions in message")
-
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
@@ -372,9 +366,6 @@ var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
 
 // ErrNilUTxStorage signals that unsigned transaction storage is nil
 var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
-
-// ErrNilRewardsTxStorage signals that rewards transaction storage is nil
-var ErrNilRewardsTxStorage = errors.New("reward transactions storage is nil")
 
 // ErrNilScAddress signals that a nil smart contract address has been provided
 var ErrNilScAddress = errors.New("nil SC address")
@@ -427,9 +418,6 @@ var ErrNilInterceptedDataProcessor = errors.New("nil intercepted data processor"
 // ErrNilInterceptorThrottler signals that a nil interceptor throttler was provided
 var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
 
-// ErrInterceptedDataTypeNotDefined signals that the required data type has not been defined
-var ErrInterceptedDataTypeNotDefined = errors.New("intercepted data type is not defined")
-
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
@@ -475,9 +463,6 @@ var ErrNilTxValidator = errors.New("nil transaction validator")
 // ErrNilHdrValidator signals that a nil header validator has been provided
 var ErrNilHdrValidator = errors.New("nil header validator")
 
-// ErrTxNotValid signals that a tx is not valid
-var ErrTxNotValid = errors.New("transaction is not valid")
-
 // ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
 // processed on the current shard
 var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")
@@ -503,17 +488,8 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 
-// ErrHigherGasLimitRequiredInTx signals that a higher gas limit is required in tx
-var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
-
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
-
-// ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
-var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
-
-// ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached signals that max gas limit per mini block in receiver shard has been reached
-var ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached = errors.New("max gas limit per mini block in receiver shard is reached")
 
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
@@ -583,3 +559,6 @@ var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")
 
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
+
+// ErrNotEnoughGas signals that not enough gas has been provided
+var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")

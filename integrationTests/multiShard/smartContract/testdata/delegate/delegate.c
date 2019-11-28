@@ -28,7 +28,7 @@ void delegate()
 void sendToStaking()
 {
     getCallValue(callValue);
-    transferValue(stakingSc, callValue, data, 72);
+    transferValue(999999, stakingSc, callValue, data, 72);
 }
 
 void _main(void)

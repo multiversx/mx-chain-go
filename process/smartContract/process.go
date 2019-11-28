@@ -344,9 +344,15 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 	if err != nil {
 		return nil, err
 	}
+
 	vmInput.CallValue = tx.GetValue()
 	vmInput.GasPrice = tx.GetGasPrice()
 	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
+
+	if tx.GetGasLimit() < moveBalanceGasConsume {
+		return nil, process.ErrNotEnoughGas
+	}
+
 	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
 
 	return vmInput, nil
