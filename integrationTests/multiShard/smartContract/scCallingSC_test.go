@@ -121,7 +121,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		}
 
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "numCalled", nil)
-		assert.Equal(t, numCalled.Uint64(), uint64(len(nodes)))
+		assert.Equal(t, uint64(len(nodes)), numCalled.Uint64())
 	}
 
 	// one node calls to stake all the money from the delegation - that's how the contract is :D
