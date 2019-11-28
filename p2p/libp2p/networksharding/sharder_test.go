@@ -38,13 +38,13 @@ func checkDistance(s Sharder, t *testing.T) {
 }
 
 func checkOrdering(s Sharder, t *testing.T) {
-	l1 := s.SortList([]peer.ID{nodeB, nodeC, nodeD, nodeE, nodeF}, nodeA)
-	l2 := s.SortList([]peer.ID{nodeB, nodeE, nodeF, nodeD, nodeC}, nodeA)
+	l1, _ := s.SortList([]peer.ID{nodeB, nodeC, nodeD, nodeE, nodeF}, nodeA)
+	l2, _ := s.SortList([]peer.ID{nodeB, nodeE, nodeF, nodeD, nodeC}, nodeA)
 
 	assert.Equal(t, len(l1), len(l2), "The two lists should have the seame size")
 	assert.Equal(t, l1, l2, "The two lists should be the same")
 
-	l3 := s.SortList(l1, nodeA)
+	l3, _ := s.SortList(l1, nodeA)
 
 	assert.Equal(t, len(l1), len(l3), "The two lists should have the seame size")
 	assert.Equal(t, l1, l3, "The two lists should be the same")

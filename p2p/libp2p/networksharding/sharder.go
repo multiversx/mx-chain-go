@@ -3,7 +3,6 @@ package networksharding
 import (
 	"crypto/sha256"
 	"math/big"
-	"sort"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -15,7 +14,7 @@ type Sharder interface {
 	// GetDistance get the distance between a and b
 	GetDistance(a, b sortingID) *big.Int
 	// SortList sort the provided peers list
-	SortList(peers []peer.ID, ref peer.ID) []peer.ID
+	SortList(peers []peer.ID, ref peer.ID) ([]peer.ID, bool)
 	IsInterfaceNil() bool
 }
 
@@ -24,7 +23,7 @@ func keyFromID(id peer.ID) []byte {
 	return key[:]
 }
 
-func sortList(s Sharder, peers []peer.ID, ref peer.ID) []peer.ID {
+func getSortingList(s Sharder, peers []peer.ID, ref peer.ID) *sortingList {
 	sl := sortingList{
 		ref: sortingID{
 			id:       ref,
@@ -44,14 +43,10 @@ func sortList(s Sharder, peers []peer.ID, ref peer.ID) []peer.ID {
 		}
 		sl.peers[i].distance = s.GetDistance(sl.peers[i], sl.ref)
 	}
+	return &sl
+}
 
-	sort.Sort(&sl)
-
-	ret := make([]peer.ID, len(peers))
-
-	for i, id := range sl.peers {
-		ret[i] = id.id
-	}
-
-	return ret
+func sortList(s Sharder, peers []peer.ID, ref peer.ID) []peer.ID {
+	sl := getSortingList(s, peers, ref)
+	return sl.SortedPeers()
 }
