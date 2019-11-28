@@ -326,7 +326,7 @@ func (mbc *miniBlocksCompaction) getMaxTxsForMerge(
 	for _, txHash := range miniBlock.TxHashes {
 		txHandler, ok := mbc.mapHashToTx[string(txHash)]
 		if !ok {
-			continue
+			break
 		}
 
 		txGasSpentSender, txGasSpentReceiver, err := mbc.gasHandler.ComputeGasConsumedByTx(
@@ -335,14 +335,14 @@ func (mbc *miniBlocksCompaction) getMaxTxsForMerge(
 			txHandler,
 		)
 		if err != nil {
-			continue
+			break
 		}
 
 		newGasSpentSender := *gasSpentSender + txGasSpentSender
 		newGasSpentReceiver := *gasSpentReceiver + txGasSpentReceiver
 		if newGasSpentSender > mbc.economicsFee.MaxGasLimitPerBlock() ||
 			newGasSpentReceiver > mbc.economicsFee.MaxGasLimitPerBlock() {
-			continue
+			break
 		}
 
 		txHashes = append(txHashes, txHash)
