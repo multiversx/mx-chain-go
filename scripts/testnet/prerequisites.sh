@@ -3,8 +3,21 @@
 export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 
-# TODO adapt for Ubuntu (and systems other than Fedora)
-sudo dnf install -y git golang gcc lsof jq
+export DISTRIBUTION=$(cat /etc/os-release | grep "^ID=" | sed 's/ID=//')
+
+export REQUIRED_PACKAGES="git golang gcc lsof jq"
+
+if [[ "$DISTRIBUTION" =~ ^(fedora|centos|rhel)$ ]]; then
+  export PACKAGE_MANAGER="dnf"
+  echo "Using DNF to install required packages: $REQUIRED_PACKAGES"
+fi
+
+if [[ "$DISTRIBUTION" =~ ^(ubuntu|debian)$ ]]; then
+  export PACKAGE_MANAGER="apt-get"
+  echo "Using APT to install required packages: $REQUIRED_PACKAGES"
+fi
+
+sudo $PACKAGE_MANAGER install -y $REQUIRED_PACKAGES
 
 cd $(dirname $ELRONDDIR)
 git clone https://github.com/ElrondNetwork/elrond-deploy-go.git
