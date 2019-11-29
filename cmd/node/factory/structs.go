@@ -55,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -158,6 +159,7 @@ type Process struct {
 	ForkDetector          process.ForkDetector
 	BlockProcessor        process.BlockProcessor
 	BlackListHandler      process.BlackListHandler
+	BootStorer            process.BootStorer
 }
 
 type coreComponentsFactoryArgs struct {
@@ -561,14 +563,20 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	bootStr := args.data.Store.GetStorer(dataRetriever.BootstrapUnit)
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(args.core.Marshalizer, bootStr)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessor, err := newBlockProcessor(
 		args,
 		resolversFinder,
 		forkDetector,
 		genesisBlocks,
 		rounder,
+		bootStorer,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -580,6 +588,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		ForkDetector:          forkDetector,
 		BlockProcessor:        blockProcessor,
 		BlackListHandler:      blackListHandler,
+		BootStorer:            bootStorer,
 	}, nil
 }
 
@@ -781,9 +790,9 @@ func createShardDataStoreFromConfig(
 	var rewardTxUnit *storageUnit.Unit
 	var metaHdrHashNonceUnit *storageUnit.Unit
 	var shardHdrHashNonceUnit *storageUnit.Unit
+	var bootstrapUnit *storageUnit.Unit
 	var heartbeatStorageUnit *storageUnit.Unit
 	var statusMetricsStorageUnit *storageUnit.Unit
-
 	var err error
 
 	defer func() {
@@ -815,6 +824,9 @@ func createShardDataStoreFromConfig(
 			}
 			if shardHdrHashNonceUnit != nil {
 				_ = shardHdrHashNonceUnit.DestroyUnit()
+			}
+			if bootstrapUnit != nil {
+				_ = bootstrapUnit.DestroyUnit()
 			}
 			if heartbeatStorageUnit != nil {
 				_ = heartbeatStorageUnit.DestroyUnit()
@@ -908,6 +920,14 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
+	bootstrapUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.BootstrapStorage.Cache),
+		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
+		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	statusMetricsStorageUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.StatusMetricsStorage.Cache),
 		getDBFromConfig(config.StatusMetricsStorage.DB, uniqueID),
@@ -928,6 +948,7 @@ func createShardDataStoreFromConfig(
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardCoordinator.SelfId())
 	store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnit)
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
+	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
@@ -941,6 +962,7 @@ func createMetaChainDataStoreFromConfig(
 	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
 	var txUnit, miniBlockUnit, unsignedTxUnit *storageUnit.Unit
 	var shardHdrHashNonceUnits []*storageUnit.Unit
+	var bootstrapUnit *storageUnit.Unit
 	var heartbeatStorageUnit *storageUnit.Unit
 	var statusMetricsStorageUnit *storageUnit.Unit
 
@@ -977,6 +999,9 @@ func createMetaChainDataStoreFromConfig(
 			}
 			if miniBlockUnit != nil {
 				_ = miniBlockUnit.DestroyUnit()
+			}
+			if bootstrapUnit != nil {
+				_ = bootstrapUnit.DestroyUnit()
 			}
 			if heartbeatStorageUnit != nil {
 				_ = heartbeatStorageUnit.DestroyUnit()
@@ -1073,6 +1098,14 @@ func createMetaChainDataStoreFromConfig(
 		return nil, err
 	}
 
+	bootstrapUnit, err = storageUnit.NewStorageUnitFromConf(
+		getCacherFromConfig(config.BootstrapStorage.Cache),
+		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
+		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
+
 	statusMetricsStorageUnit, err = storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.StatusMetricsStorage.Cache),
 		getDBFromConfig(config.StatusMetricsStorage.DB, uniqueID),
@@ -1095,6 +1128,7 @@ func createMetaChainDataStoreFromConfig(
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
 	}
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
+	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 
 	return store, err
@@ -1705,6 +1739,7 @@ func newBlockProcessor(
 	forkDetector process.ForkDetector,
 	genesisBlocks map[uint32]data.HeaderHandler,
 	rounder consensus.Rounder,
+	bootStorer process.BootStorer,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1757,6 +1792,7 @@ func newBlockProcessor(
 			processArgs.economicsData,
 			rounder,
 			validatorStatisticsProcessor,
+			bootStorer,
 			processArgs.gasSchedule,
 		)
 	}
@@ -1776,6 +1812,7 @@ func newBlockProcessor(
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
 			rounder,
+			bootStorer,
 		)
 	}
 
@@ -1796,6 +1833,7 @@ func newShardBlockProcessor(
 	economics *economics.EconomicsData,
 	rounder consensus.Rounder,
 	statisticsProcessor process.ValidatorStatisticsProcessor,
+	bootStorer process.BootStorer,
 	gasSchedule map[string]map[string]uint64,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
@@ -1992,6 +2030,7 @@ func newShardBlockProcessor(
 		TxCoordinator:                txCoordinator,
 		Rounder:                      rounder,
 		ValidatorStatisticsProcessor: statisticsProcessor,
+		BootStorer:                   bootStorer,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2026,6 +2065,7 @@ func newMetaBlockProcessor(
 	economics *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
+	bootStorer process.BootStorer,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2195,6 +2235,7 @@ func newMetaBlockProcessor(
 		TxCoordinator:                txCoordinator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		Rounder:                      rounder,
+		BootStorer:                   bootStorer,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,
@@ -2224,7 +2265,7 @@ func newValidatorStatisticsProcessor(
 	initialNodes := processComponents.nodesConfig.InitialNodes
 	storageService := processComponents.data.Store
 
-	var peerDataPool peer.DataPool =  processComponents.data.MetaDatapool
+	var peerDataPool peer.DataPool = processComponents.data.MetaDatapool
 	if processComponents.shardCoordinator.SelfId() < processComponents.shardCoordinator.NumberOfShards() {
 		peerDataPool = processComponents.data.Datapool
 	}

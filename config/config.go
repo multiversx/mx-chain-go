@@ -67,6 +67,7 @@ type Config struct {
 	StatusMetricsStorage       StorageConfig
 
 	ShardDataStorage StorageConfig
+	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 	PeerDataStorage  StorageConfig
 
