@@ -428,6 +428,7 @@ type ValidatorSettingsHandler interface {
 
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
+	MaxGasLimitPerBlock() uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
@@ -487,4 +488,20 @@ type SCQuery struct {
 	ScAddress []byte
 	FuncName  string
 	Arguments [][]byte
+}
+
+// GasHandler is able to perform some gas calculation
+type GasHandler interface {
+	Init()
+	SetGasConsumed(gasConsumed uint64, hash []byte)
+	SetGasRefunded(gasRefunded uint64, hash []byte)
+	GasConsumed(hash []byte) uint64
+	GasRefunded(hash []byte) uint64
+	TotalGasConsumed() uint64
+	TotalGasRefunded() uint64
+	RemoveGasConsumed(hashes [][]byte)
+	RemoveGasRefunded(hashes [][]byte)
+	ComputeGasConsumedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
+	ComputeGasConsumedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
+	IsInterfaceNil() bool
 }

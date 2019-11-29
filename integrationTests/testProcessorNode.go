@@ -74,11 +74,11 @@ var TestKeyGenForAccounts = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519(
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
-// MinTxGasPrice minimum gas price required by a transaction
+// MinTxGasPrice defines minimum gas price required by a transaction
 //TODO refactor all tests to pass with a non zero value
 var MinTxGasPrice = uint64(0)
 
-// MinTxGasLimit minimum gas limit required by a transaction
+// MinTxGasLimit defines minimum gas limit required by a transaction
 var MinTxGasLimit = uint64(4)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
@@ -141,6 +141,7 @@ type TestProcessorNode struct {
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	MiniBlocksCompacter    process.MiniBlocksCompacter
+	GasHandler             process.GasHandler
 
 	ForkDetector       process.ForkDetector
 	BlockProcessor     process.BlockProcessor
@@ -498,6 +499,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
@@ -510,6 +512,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScrForwarder,
 		rewardsHandler,
 		tpn.EconomicsData,
+		tpn.GasHandler,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
@@ -526,7 +529,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 	)
 
-	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator)
+	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -544,6 +547,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		internalTxProducer,
 		tpn.EconomicsData,
 		tpn.MiniBlocksCompacter,
+		tpn.GasHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -554,6 +558,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
+		tpn.GasHandler,
 	)
 }
 
@@ -586,6 +591,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
@@ -598,6 +604,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ScrForwarder,
 		&metaProcess.TransactionFeeHandler{},
 		tpn.EconomicsData,
+		tpn.GasHandler,
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
@@ -610,7 +617,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		txTypeHandler,
 	)
 
-	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator)
+	tpn.MiniBlocksCompacter, _ = preprocess.NewMiniBlocksCompaction(tpn.EconomicsData, tpn.ShardCoordinator, tpn.GasHandler)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -623,6 +630,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.TxProcessor,
 		tpn.EconomicsData.EconomicsData,
 		tpn.MiniBlocksCompacter,
+		tpn.GasHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -633,6 +641,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.RequestHandler,
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
+		tpn.GasHandler,
 	)
 }
 
