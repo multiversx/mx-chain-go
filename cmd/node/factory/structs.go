@@ -708,7 +708,7 @@ func newEpochStartTrigger(
 			Storage:         args.data.Store,
 			RequestHandler:  requestHandler,
 			Epoch:           args.startEpochNum,
-			Validity:        process.MetaBlockFinality,
+			Validity:        process.MetaBlockValidity,
 			Finality:        process.MetaBlockFinality,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
