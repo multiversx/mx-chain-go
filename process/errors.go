@@ -334,9 +334,6 @@ var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
 // ErrNilVMOutput signals that vmoutput is nil
 var ErrNilVMOutput = errors.New("nil vm output")
 
-// ErrNilBalanceFromSC signals that balance is nil
-var ErrNilBalanceFromSC = errors.New("output balance from VM is nil")
-
 // ErrNilValueFromRewardTransaction signals that the transfered value is nil
 var ErrNilValueFromRewardTransaction = errors.New("transferred value is nil in reward transaction")
 
@@ -490,6 +487,9 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
+
+// ErrHigherGasLimitRequiredInTx signals that a higher gas limit was required in tx
+var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
 
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")

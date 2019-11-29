@@ -268,6 +268,7 @@ func TestNewSmartContractProcessor_ErrNilUnsignedTxHandlerMock(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		nil,
 		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{},
 		&mock.GasHandlerMock{},
 	)
 
@@ -290,6 +291,7 @@ func TestNewSmartContractProcessor_ErrErrNilGasHandlerMock(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{},
 		nil,
 	)
 
@@ -2349,6 +2351,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 				return process.SCDeployment, nil
 			},
 		},
+		&mock.GasHandlerMock{},
 	)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)
@@ -2413,6 +2416,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 				return process.SCInvoking, nil
 			},
 		},
+		&mock.GasHandlerMock{},
 	)
 	assert.NotNil(t, sc)
 	assert.Nil(t, err)

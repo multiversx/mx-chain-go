@@ -240,6 +240,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerMock{},
 		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		nil,

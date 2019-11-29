@@ -598,9 +598,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
-	scProcessor, _ := smartContract.NewSmartContractProcessor(
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
-	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
 		TestHasher,

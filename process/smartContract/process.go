@@ -46,7 +46,7 @@ type scProcessor struct {
 	txFeeHandler  process.TransactionFeeHandler
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
-	gasHandler   process.GasHandler
+	gasHandler    process.GasHandler
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -511,7 +511,7 @@ func (sc *scProcessor) processVMOutput(
 		log.Debug("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
 	}
 
-	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining.Uint64(), txHash)
+	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 	scrRefund, consumedFee, err := sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err

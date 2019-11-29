@@ -152,6 +152,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.shardCoordinator,
 		ppcm.accounts,
 		ppcm.requestHandler.RequestUnsignedTransactions,
+		ppcm.gasHandler,
 	)
 
 	return scrPreprocessor, err
