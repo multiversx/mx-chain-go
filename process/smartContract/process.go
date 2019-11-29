@@ -849,29 +849,52 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return process.ErrNilSmartContractResult
 	}
 
+	var err error
+	defer func() {
+		if err != nil {
+			consumedFee := big.NewInt(0).SetUint64(scr.GetGasLimit() * scr.GetGasPrice())
+			scrIfError, err := sc.createSCRsWhenError(scr, vmcommon.FunctionWrongSignature)
+			if err != nil {
+				log.Error("error when creating scr when error")
+			}
+
+			err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
+			if err != nil {
+				log.Error("error when adding intermediate transaction scrIfError")
+			}
+
+			sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+		}
+	}()
+
 	dstAcc, err := sc.getAccountFromAddress(scr.RcvAddr)
 	if err != nil {
-		return err
+		return nil
 	}
 	if dstAcc == nil || dstAcc.IsInterfaceNil() {
-		return process.ErrNilSCDestAccount
+		err = process.ErrNilSCDestAccount
+		return nil
 	}
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	switch txType {
 	case process.MoveBalance:
-		return sc.processSimpleSCR(scr, dstAcc)
+		err = sc.processSimpleSCR(scr, dstAcc)
+		return nil
 	case process.SCDeployment:
-		return process.ErrSCDeployFromSCRIsNotPermitted
+		err = process.ErrSCDeployFromSCRIsNotPermitted
+		return nil
 	case process.SCInvoking:
-		return sc.ExecuteSmartContractTransaction(scr, nil, dstAcc, scr.Nonce)
+		err = sc.ExecuteSmartContractTransaction(scr, nil, dstAcc, scr.Nonce)
+		return nil
 	}
 
-	return process.ErrWrongTransaction
+	err = process.ErrWrongTransaction
+	return nil
 }
 
 func (sc *scProcessor) processSimpleSCR(
@@ -908,7 +931,7 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	if scr.Value == nil {
-		return process.ErrNilBalanceFromSC
+		return nil
 	}
 
 	operation := big.NewInt(0)
