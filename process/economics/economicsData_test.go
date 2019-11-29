@@ -52,8 +52,9 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			BurnPercentage:      0.8,
 		},
 		FeeSettings: config.FeeSettings{
-			MinGasPrice: "18446744073709551615",
-			MinGasLimit: "500",
+			MaxGasLimitPerBlock: "100000",
+			MinGasPrice:         "18446744073709551615",
+			MinGasLimit:         "500",
 		},
 		ValidatorSettings: config.ValidatorSettings{
 			StakeValue:    "500000000",
@@ -88,6 +89,30 @@ func TestNewEconomicsData_InvalidRewardsValueShouldErr(t *testing.T) {
 		_, err := economics.NewEconomicsData(economicsConfig)
 		assert.Equal(t, process.ErrInvalidRewardsValue, err)
 	}
+}
+
+func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
+	t.Parallel()
+
+	economicsConfig := createDummyEconomicsConfig()
+	badGasLimitPerBlock := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+		"10000000000000000000000000000000000000000000000000000000000000",
+	}
+
+	for _, gasLimitPerBlock := range badGasLimitPerBlock {
+		economicsConfig.FeeSettings.MaxGasLimitPerBlock = gasLimitPerBlock
+		_, err := economics.NewEconomicsData(economicsConfig)
+		assert.Equal(t, process.ErrInvalidMaxGasLimitPerBlock, err)
+	}
+
 }
 
 func TestNewEconomicsData_InvalidMinGasPriceShouldErr(t *testing.T) {
@@ -333,12 +358,36 @@ func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInsufficientGasLimitInTx, err)
 }
 
+func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	maxGasLimitPerBlock := minGasLimit
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	tx := &transaction.Transaction{
+		GasPrice: minGasPrice,
+		GasLimit: minGasLimit + 1,
+		Data:     "1",
+	}
+
+	err := economicsData.CheckValidityTxValues(tx)
+
+	assert.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+}
+
 func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
 	t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
+	maxGasLimitPerBlock := minGasLimit
 	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
 	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
@@ -357,7 +406,9 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
+	maxGasLimitPerBlock := minGasLimit + 1
 	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
 	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)

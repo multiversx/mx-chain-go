@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -16,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -43,6 +44,8 @@ type scProcessor struct {
 
 	scrForwarder process.IntermediateTransactionHandler
 	txFeeHandler process.TransactionFeeHandler
+	economicsFee process.FeeHandler
+	gasHandler   process.GasHandler
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -57,36 +60,45 @@ func NewSmartContractProcessor(
 	coordinator sharding.Coordinator,
 	scrForwarder process.IntermediateTransactionHandler,
 	txFeeHandler process.TransactionFeeHandler,
+	economicsFee process.FeeHandler,
+	gasHandler process.GasHandler,
 ) (*scProcessor, error) {
-	if vmContainer == nil || vmContainer.IsInterfaceNil() {
+
+	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
 	}
-	if argsParser == nil || argsParser.IsInterfaceNil() {
+	if check.IfNil(argsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if accountsDB == nil || accountsDB.IsInterfaceNil() {
+	if check.IfNil(accountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if tempAccounts == nil || tempAccounts.IsInterfaceNil() {
+	if check.IfNil(tempAccounts) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if adrConv == nil || adrConv.IsInterfaceNil() {
+	if check.IfNil(adrConv) {
 		return nil, process.ErrNilAddressConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if scrForwarder == nil || scrForwarder.IsInterfaceNil() {
+	if check.IfNil(scrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if txFeeHandler == nil || txFeeHandler.IsInterfaceNil() {
+	if check.IfNil(txFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
+	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	return &scProcessor{
@@ -100,38 +112,9 @@ func NewSmartContractProcessor(
 		shardCoordinator: coordinator,
 		scrForwarder:     scrForwarder,
 		txFeeHandler:     txFeeHandler,
+		economicsFee:     economicsFee,
+		gasHandler:       gasHandler,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
-}
-
-// ComputeTransactionType calculates the type of the transaction
-func (sc *scProcessor) ComputeTransactionType(tx *transaction.Transaction) (process.TransactionType, error) {
-	err := sc.checkTxValidity(tx)
-	if err != nil {
-		return 0, err
-	}
-
-	isEmptyAddress := sc.isDestAddressEmpty(tx)
-	if isEmptyAddress {
-		if len(tx.Data) > 0 {
-			return process.SCDeployment, nil
-		}
-		return 0, process.ErrWrongTransaction
-	}
-
-	acntDst, err := sc.getAccountFromAddress(tx.RcvAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	if acntDst == nil || acntDst.IsInterfaceNil() {
-		return process.MoveBalance, nil
-	}
-
-	if !acntDst.IsInterfaceNil() && len(acntDst.GetCode()) > 0 {
-		return process.SCInvoking, nil
-	}
-
-	return process.MoveBalance, nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
@@ -190,7 +173,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
-	// VM is formally verified and the output is correct
 	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		return err
@@ -228,10 +210,9 @@ func (sc *scProcessor) prepareSmartContractCall(tx *transaction.Transaction, acn
 	return nil
 }
 
-func (sc *scProcessor) getVMTypeFromArguments(arg *big.Int) ([]byte, error) {
+func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
 	// first parsed argument after the code in case of vmDeploy is the actual vmType
 	vmAppendedType := make([]byte, core.VMTypeLen)
-	vmType := arg.Bytes()
 	vmArgLen := len(vmType)
 	if vmArgLen > core.VMTypeLen {
 		return nil, process.ErrVMTypeLengthInvalid
@@ -366,17 +347,9 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 		return nil, err
 	}
 	vmInput.CallValue = tx.Value
-	vmInput.GasPrice = big.NewInt(int64(tx.GasPrice))
-	vmInput.GasProvided = big.NewInt(int64(tx.GasLimit))
-
-	//TODO: change this when we know for what they are used.
-	scCallHeader := &vmcommon.SCCallHeader{}
-	scCallHeader.GasLimit = big.NewInt(0)
-	scCallHeader.Number = big.NewInt(0)
-	scCallHeader.Timestamp = big.NewInt(0)
-	scCallHeader.Beneficiary = big.NewInt(0)
-
-	vmInput.Header = scCallHeader
+	vmInput.GasPrice = tx.GasPrice
+	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
+	vmInput.GasProvided = tx.GasLimit - moveBalanceGasConsume
 
 	return vmInput, nil
 }
@@ -389,6 +362,11 @@ func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd sta
 	}
 
 	err := acntSnd.SetNonceWithJournal(acntSnd.GetNonce() + 1)
+	if err != nil {
+		return err
+	}
+
+	err = sc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -478,8 +456,16 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
+	totalGasConsumed := tx.GasLimit - vmOutput.GasRemaining.Uint64()
+	log.Debug("total gas consumed", "value", totalGasConsumed, "hash", txHash)
+
+	if vmOutput.GasRefund.Uint64() > 0 {
+		log.Debug("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
+	}
+
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
+	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining.Uint64(), txHash)
 	scrRefund, consumedFee, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err
@@ -734,17 +720,18 @@ func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, rou
 	sc.mutSCState.Lock()
 	defer sc.mutSCState.Unlock()
 
-	if _, ok := sc.mapExecState[round]; !ok {
-		sc.mapExecState[round] = scExecutionState{
-			allLogs:       make(map[string][]*vmcommon.LogEntry),
-			allReturnData: make(map[string][]*big.Int),
-			returnCodes:   make(map[string]vmcommon.ReturnCode)}
-	}
+	/*
+		if _, ok := sc.mapExecState[round]; !ok {
+			sc.mapExecState[round] = scExecutionState{
+				allLogs:       make(map[string][]*vmcommon.LogEntry),
+				allReturnData: make(map[string][]*big.Int),
+				returnCodes:   make(map[string]vmcommon.ReturnCode)}
+		}*/
 
-	tmpCurrScState := sc.mapExecState[round]
+	//tmpCurrScState := sc.mapExecState[round]
 	defer func() {
 		if err != nil {
-			sc.mapExecState[round] = tmpCurrScState
+			//sc.mapExecState[round] = tmpCurrScState
 		}
 	}()
 
@@ -767,20 +754,20 @@ func (sc *scProcessor) saveSCOutputToCurrentState(output *vmcommon.VMOutput, rou
 }
 
 // saves return data into account state
-func (sc *scProcessor) saveReturnData(returnData []*big.Int, round uint64, txHash []byte) error {
-	sc.mapExecState[round].allReturnData[string(txHash)] = returnData
+func (sc *scProcessor) saveReturnData(returnData [][]byte, round uint64, txHash []byte) error {
+	//sc.mapExecState[round].allReturnData[string(txHash)] = returnData
 	return nil
 }
 
 // saves smart contract return code into account state
 func (sc *scProcessor) saveReturnCode(returnCode vmcommon.ReturnCode, round uint64, txHash []byte) error {
-	sc.mapExecState[round].returnCodes[string(txHash)] = returnCode
+	//sc.mapExecState[round].returnCodes[string(txHash)] = returnCode
 	return nil
 }
 
 // save vm output logs into accounts
 func (sc *scProcessor) saveLogsIntoState(logs []*vmcommon.LogEntry, round uint64, txHash []byte) error {
-	sc.mapExecState[round].allLogs[string(txHash)] = logs
+	//sc.mapExecState[round].allLogs[string(txHash)] = logs
 	return nil
 }
 

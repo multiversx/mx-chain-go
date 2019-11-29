@@ -16,6 +16,9 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
 
+// ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
+var ErrNilGasSchedule = errors.New("nil GasSchedule")
+
 // ErrNilAddressContainer signals that an operation has been attempted to or with a nil AddressContainer implementation
 var ErrNilAddressContainer = errors.New("nil AddressContainer")
 
@@ -406,6 +409,9 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
 
+// ErrNilGasHandler signals that gas handler is nil
+var ErrNilGasHandler = errors.New("nil gas handler")
+
 // ErrUnknownBlockType signals that block type is not correct
 var ErrUnknownBlockType = errors.New("block type is unknown")
 
@@ -499,6 +505,21 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
+
+// ErrHigherGasLimitRequiredInTx signals that a higher gas limit is required in tx
+var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
+
+// ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
+var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
+
+// ErrMaxGasLimitPerMiniBlockInSenderShardIsReached signals that max gas limit per mini block in sender shard has been reached
+var ErrMaxGasLimitPerMiniBlockInSenderShardIsReached = errors.New("max gas limit per mini block in sender shard is reached")
+
+// ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached signals that max gas limit per mini block in receiver shard has been reached
+var ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached = errors.New("max gas limit per mini block in receiver shard is reached")
+
+// ErrMaxGasLimitPerBlockInSelfShardIsReached signals that max gas limit per block in self shard has been reached
+var ErrMaxGasLimitPerBlockInSelfShardIsReached = errors.New("max gas limit per block in self shard is reached")
 
 // ErrInvalidMinimumGasPrice signals that an invalid gas price has been read from config file
 var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")

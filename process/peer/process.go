@@ -210,6 +210,13 @@ func (p *validatorStatistics) checkForMissedBlocks(
 	prevRandSeed []byte,
 	shardId uint32,
 ) error {
+	if currentHeaderRound-previousHeaderRound <= 1 {
+func (p *validatorStatistics) checkForMissedBlocks(
+	currentHeaderRound,
+	previousHeaderRound uint64,
+	prevRandSeed []byte,
+	shardId uint32,
+) error {
 	if currentHeaderRound-previousHeaderRound < 1 {
 		return nil
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -68,6 +69,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		rounder:                       arguments.Rounder,
+		bootStorer:                    arguments.BootStorer,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 	}
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -271,21 +273,8 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	for _, metaHeader := range processedMetaHdrs {
-		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
-		if err != nil {
-			return err
-		}
-
-		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
-			err = process.ErrValidatorStatsRootHashDoesNotMatch
-			return err
-		}
-	}
-
-	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()
-	if !bytes.Equal(vRootHash, header.GetValidatorStatsRootHash()) {
-		err = process.ErrValidatorStatsRootHashDoesNotMatch
+	err = sp.checkValidatorStatisticsRootHash(header, processedMetaHdrs)
+	if err != nil {
 		return err
 	}
 
@@ -755,6 +744,35 @@ func (sp *shardProcessor) CommitBlock(
 		headerMeta.GetNonce(),
 	)
 
+	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: header.GetShardID(),
+		Nonce:   header.GetNonce(),
+		Hash:    headerHash,
+	}
+
+	log.Debug("validator info on block ",
+		"nonce", header.Nonce,
+		"validator root hash", core.ToB64(header.ValidatorStatsRootHash))
+
+	sp.mutProcessedMiniBlocks.RLock()
+	//TODO remove this
+	log.Debug("processed mini blocks on commit block")
+	for metaBlockHash, miniBlocksHashes := range sp.processedMiniBlocks {
+		log.Debug("processed",
+			"meta block hash", []byte(metaBlockHash))
+
+		for miniBlockHash := range miniBlocksHashes {
+			log.Debug("processed",
+				"mini block hash", []byte(miniBlockHash))
+
+		}
+	}
+
+	processedMiniBlocks := process.ConvertProcessedMiniBlocksMapToSlice(sp.processedMiniBlocks)
+	sp.mutProcessedMiniBlocks.RUnlock()
+
+	sp.prepareDataForBootStorer(headerInfo, header.Round, finalHeaders, finalHeadersHashes, processedMiniBlocks)
+
 	go sp.cleanTxsPools()
 
 	// write data to log
@@ -781,6 +799,15 @@ func (sp *shardProcessor) CommitBlock(
 	go sp.cleanupPools(headersNoncesPool, headersPool, sp.dataPool.MetaBlocks())
 
 	return nil
+}
+
+// ApplyProcessedMiniBlocks will apply processed mini blocks
+func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
+	sp.mutProcessedMiniBlocks.Lock()
+	for metaHash, miniBlocksHashes := range processedMiniBlocks {
+		sp.processedMiniBlocks[metaHash] = miniBlocksHashes
+	}
+	sp.mutProcessedMiniBlocks.Unlock()
 }
 
 func (sp *shardProcessor) cleanTxsPools() {
@@ -819,10 +846,6 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 		}
 
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
-	}
-
-	if len(ownShIdHdrs) == 0 {
-		ownShIdHdrs = append(ownShIdHdrs, &block.Header{})
 	}
 
 	process.SortHeadersByNonce(ownShIdHdrs)
@@ -1778,5 +1801,25 @@ func (sp *shardProcessor) updatePeerStateForFinalMetaHeaders(finalHeaders []data
 			return err
 		}
 	}
+	return nil
+}
+
+func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.Header, processedMetaHdrs []data.HeaderHandler) error {
+	for _, metaHeader := range processedMetaHdrs {
+		rootHash, err := sp.validatorStatisticsProcessor.UpdatePeerState(metaHeader)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(rootHash, metaHeader.GetValidatorStatsRootHash()) {
+			return process.ErrValidatorStatsRootHashDoesNotMatch
+		}
+	}
+
+	vRootHash, _ := sp.validatorStatisticsProcessor.RootHash()
+	if !bytes.Equal(vRootHash, currentHeader.GetValidatorStatsRootHash()) {
+		return process.ErrValidatorStatsRootHashDoesNotMatch
+	}
+
 	return nil
 }

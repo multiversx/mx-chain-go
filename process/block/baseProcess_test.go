@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -356,22 +357,27 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 	)
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
-			Accounts:              &mock.AccountsStub{},
-			ForkDetector:          &mock.ForkDetectorMock{},
-			Hasher:                &mock.HasherStub{},
-			Marshalizer:           &mock.MarshalizerMock{},
-			Store:                 initStore(),
-			ShardCoordinator:      shardCoordinator,
-			NodesCoordinator:      nodesCoordinator,
-			SpecialAddressHandler: specialAddressHandler,
-			Uint64Converter:       &mock.Uint64ByteSliceConverterMock{},
-			StartHeaders:          createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
-			RequestHandler:        &mock.RequestHandlerMock{},
-			Core:                  &mock.ServiceContainerMock{},
-			BlockChainHook:        &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:   	   &mock.TransactionCoordinatorMock{},
+			Accounts:                     &mock.AccountsStub{},
+			ForkDetector:                 &mock.ForkDetectorMock{},
+			Hasher:                       &mock.HasherStub{},
+			Marshalizer:                  &mock.MarshalizerMock{},
+			Store:                        initStore(),
+			ShardCoordinator:             shardCoordinator,
+			NodesCoordinator:             nodesCoordinator,
+			SpecialAddressHandler:        specialAddressHandler,
+			Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
+			StartHeaders:                 createGenesisBlocks(mock.NewOneShardCoordinatorMock()),
+			RequestHandler:               &mock.RequestHandlerMock{},
+			Core:                         &mock.ServiceContainerMock{},
+			BlockChainHook:               &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:                &mock.TransactionCoordinatorMock{},
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 			Rounder:                      &mock.RounderMock{},
+			BootStorer: &mock.BoostrapStorerMock{
+				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+					return nil
+				},
+			},
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -506,11 +512,6 @@ func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	}
 	_, err := bp.ComputeHeaderHash(hdr)
 	assert.Nil(t, err)
-}
-
-func TestBlockPorcessor_DisplayHeaderShouldWork(t *testing.T) {
-	lines := blproc.DisplayHeader(&block.Header{})
-	assert.Equal(t, 10, len(lines))
 }
 
 func TestBaseProcessor_SetLastNotarizedHeadersSliceNil(t *testing.T) {
