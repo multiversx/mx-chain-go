@@ -36,7 +36,7 @@ func TestAtArgumentParser_GetArguments(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, parser)
 
-	err = parser.ParseData("aaaa@a@b@c")
+	err = parser.ParseData("aaaa@aa@bb@bc")
 	assert.Nil(t, err)
 
 	args, err := parser.GetArguments()

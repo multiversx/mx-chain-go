@@ -132,3 +132,6 @@ var ErrInvalidValue = errors.New("invalid value")
 
 // ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
+
+// ErrNilBootStorer signals that a nil boot storer was provided
+var ErrNilBootStorer = errors.New("nil boot storer")
