@@ -4042,7 +4042,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(nil)
 
 	assert.NotNil(t, hdrs)
-	assert.Equal(t, uint64(0), hdrs[0].GetNonce())
+	assert.Equal(t, 0, len(hdrs))
 }
 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHdr(t *testing.T) {
@@ -4101,7 +4101,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
 
 	assert.NotNil(t, hdrs)
-	assert.Equal(t, uint64(0), hdrs[0].GetNonce())
+	assert.Equal(t, 0, len(hdrs))
 }
 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrButNotStored(t *testing.T) {
