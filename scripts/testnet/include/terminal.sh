@@ -49,8 +49,9 @@ showTerminalSession() {
     if [ $TERMWRAPPER == "none" ]
     then
       echo "No terminal emulator found. The tmux session will continue to run in background, and can be attached to manually."
+    else
+      executeCommandInTerminalEmulator "tmux attach-session -t $session_name" $keepopen
     fi
-    executeCommandInTerminalEmulator "tmux attach-session -t $session_name" $keepopen
   fi
 }
 
