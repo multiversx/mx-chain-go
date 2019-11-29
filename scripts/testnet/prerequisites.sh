@@ -22,21 +22,24 @@ fi
 sudo $PACKAGE_MANAGER install -y $REQUIRED_PACKAGES
 
 if [[ "$DISTRIBUTION" =~ ^(ubuntu|debian)$ ]]; then
-  echo "Installing Go..."
-  GO_LATEST=$(curl -sS https://golang.org/VERSION?m=text) 
-  wget https://dl.google.com/go/$GO_LATEST.linux-amd64.tar.gz
-  sudo tar -C /usr/local -xzf $GO_LATEST.linux-amd64.tar.gz
-  rm $GO_LATEST.linux-amd64.tar.gz
 
-  export GOROOT="/usr/local/go"
-  export GOBIN="$HOME/go/bin"
-  export PATH=$PATH:$GOROOT/bin:$GOBIN
-  mkdir -p $GOBIN
+  if ! [ -x "$(command -v go)" ]; then
+    echo "Installing Go..."
+    GO_LATEST=$(curl -sS https://golang.org/VERSION?m=text) 
+    wget https://dl.google.com/go/$GO_LATEST.linux-amd64.tar.gz
+    sudo tar -C /usr/local -xzf $GO_LATEST.linux-amd64.tar.gz
+    rm $GO_LATEST.linux-amd64.tar.gz
 
-  echo "export GOROOT=/usr/local/go" >> ~/.profile
-  echo "export GOBIN=$HOME/go/bin" >> ~/.profile
-  echo "export PATH=$PATH:$GOROOT/bin:$GOBIN" >> ~/.profile
-  source ~/.profile 
+    export GOROOT="/usr/local/go"
+    export GOBIN="$HOME/go/bin"
+    export PATH=$PATH:$GOROOT/bin:$GOBIN
+    mkdir -p $GOBIN
+
+    echo "export GOROOT=/usr/local/go" >> ~/.profile
+    echo "export GOBIN=$HOME/go/bin" >> ~/.profile
+    echo "export PATH=$PATH:$GOROOT/bin:$GOBIN" >> ~/.profile
+    source ~/.profile 
+  fi
 fi
 
 
