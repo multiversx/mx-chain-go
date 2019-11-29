@@ -127,7 +127,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		}
 	}
 
-	if registrationData.Staked == true {
+	if registrationData.Staked {
 		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.UserError
 	}

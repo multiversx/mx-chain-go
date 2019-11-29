@@ -1723,6 +1723,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	sctx, consumed, err = sc.createSCRForSender(vmOutput, tx, txHash, badAcc)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, sctx)
+	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0)))
 }
 
 func TestScProcessor_RefundGasToSender(t *testing.T) {

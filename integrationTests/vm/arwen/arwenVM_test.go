@@ -592,8 +592,6 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
-	ownerNonce++
-
 	start := time.Now()
 
 	for j := 0; j < 20; j++ {
@@ -618,8 +616,6 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 		assert.Nil(t, err)
 	}
 
-	elapsedTime := time.Since(start)
-
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
@@ -637,7 +633,7 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 		aliceNonce++
 	}
 
-	elapsedTime = time.Since(start)
+	elapsedTime := time.Since(start)
 	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
 
 	_, err = accnts.Commit()
