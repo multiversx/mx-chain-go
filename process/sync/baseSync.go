@@ -104,7 +104,7 @@ type baseBootstrap struct {
 	syncStarter           syncStarter
 	bootStorer            process.BootStorer
 	storageBootstrapper   process.BootstrapperFromStorage
-	requestedItemsHandler process.RequestedItemsHandler
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -342,7 +342,7 @@ func checkBootstrapNilParameters(
 	store dataRetriever.StorageService,
 	blackListHandler process.BlackListHandler,
 	watcher process.NetworkConnectionWatcher,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) error {
 	if check.IfNil(blkc) {
 		return process.ErrNilBlockChain
@@ -381,7 +381,7 @@ func checkBootstrapNilParameters(
 		return process.ErrNilNetworkWatcher
 	}
 	if check.IfNil(requestedItemsHandler) {
-		return process.ErrNilRequestedItemsHandler
+		return dataRetriever.ErrNilRequestedItemsHandler
 	}
 
 	return nil

@@ -513,7 +513,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -528,7 +528,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			InitCalled: func() {
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -729,7 +729,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -749,7 +749,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 				return totalGasConsumed
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -1901,7 +1901,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -1913,7 +1913,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2451,7 +2451,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2463,7 +2463,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2559,7 +2559,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2571,7 +2571,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2648,7 +2648,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{
+		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return false
 			},
@@ -2726,7 +2726,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -3029,7 +3029,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 				return 0
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -3041,7 +3041,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -3223,7 +3223,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -3235,7 +3235,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()

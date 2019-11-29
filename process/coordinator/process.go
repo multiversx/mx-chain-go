@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -36,7 +37,7 @@ type transactionCoordinator struct {
 
 	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
 	gasHandler            process.GasHandler
-	requestedItemsHandler process.RequestedItemsHandler
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -48,7 +49,7 @@ func NewTransactionCoordinator(
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
 	gasHandler process.GasHandler,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*transactionCoordinator, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -73,7 +74,7 @@ func NewTransactionCoordinator(
 		return nil, process.ErrNilGasHandler
 	}
 	if check.IfNil(requestedItemsHandler) {
-		return nil, process.ErrNilRequestedItemsHandler
+		return nil, dataRetriever.ErrNilRequestedItemsHandler
 	}
 
 	tc := &transactionCoordinator{

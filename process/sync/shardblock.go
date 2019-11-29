@@ -54,7 +54,7 @@ func NewShardBootstrap(
 	networkWatcher process.NetworkConnectionWatcher,
 	bootStorer process.BootStorer,
 	storageBootstrapper process.BootstrapperFromStorage,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*ShardBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {

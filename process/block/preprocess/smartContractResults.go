@@ -41,7 +41,7 @@ func NewSmartContractResultPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -72,7 +72,7 @@ func NewSmartContractResultPreprocessor(
 		return nil, process.ErrNilGasHandler
 	}
 	if check.IfNil(requestedItemsHandler) {
-		return nil, process.ErrNilRequestedItemsHandler
+		return nil, dataRetriever.ErrNilRequestedItemsHandler
 	}
 
 	bpp := &basePreProcess{

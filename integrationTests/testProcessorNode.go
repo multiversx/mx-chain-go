@@ -154,7 +154,7 @@ type TestProcessorNode struct {
 	Rounder               *mock.RounderMock
 	BootstrapStorer       *mock.BoostrapStorerMock
 	StorageBootstrapper   *mock.StorageBootstrapperMock
-	RequestedItemsHandler process.RequestedItemsHandler
+	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 
 	MultiSigner crypto.MultiSigner
 
@@ -255,8 +255,8 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
-	tpn.initResolvers()
 	tpn.initRequestedItemsHandler()
+	tpn.initResolvers()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.GenesisBlocks = CreateGenesisBlocks(
@@ -420,6 +420,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
+			tpn.RequestedItemsHandler,
 			factory.ShardHeadersForMetachainTopic,
 			factory.MetachainBlocksTopic,
 			factory.TransactionTopic,
@@ -442,6 +443,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewShardResolverRequestHandler(
 			tpn.ResolverFinder,
+			tpn.RequestedItemsHandler,
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
 			factory.RewardsTransactionTopic,
@@ -696,8 +698,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				return nil
 			},
 		},
-		RequestedItemsHandler: tpn.RequestedItemsHandler,
-		ResolversFinder:       tpn.ResolverFinder,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

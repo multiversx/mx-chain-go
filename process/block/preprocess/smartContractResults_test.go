@@ -37,7 +37,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -59,7 +59,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -81,7 +81,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -103,7 +103,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *tes
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -125,7 +125,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testin
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -147,7 +147,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *tes
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -169,7 +169,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testi
 		nil,
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -190,7 +190,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *te
 		&mock.AccountsStub{},
 		nil,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -212,7 +212,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 		&mock.AccountsStub{},
 		requestTransaction,
 		nil,
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -238,7 +238,7 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestedItemsHan
 	)
 
 	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilRequestedItemsHandler, err)
+	assert.Equal(t, dataRetriever.ErrNilRequestedItemsHandler, err)
 }
 
 func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
@@ -256,7 +256,7 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -282,7 +282,7 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	shardId := uint32(1)
@@ -316,7 +316,7 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{
+		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return false
 			},
@@ -356,7 +356,7 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{
+		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return false
 			},
@@ -409,7 +409,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	//add 3 tx hashes on requested list
@@ -477,7 +477,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	mb := &block.MiniBlock{
@@ -516,7 +516,7 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) 
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
@@ -540,7 +540,7 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	body := make(block.Body, 0)
@@ -577,7 +577,7 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	err := txs.IsDataPrepared(1, haveTime)
@@ -601,7 +601,7 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	go func() {
@@ -630,7 +630,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorage(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	body := make(block.Body, 0)
@@ -666,7 +666,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *te
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	body := make(block.Body, 0)
@@ -708,7 +708,7 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	body := make(block.Body, 0)
@@ -777,7 +777,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	body := make(block.Body, 0)
@@ -815,7 +815,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	body := make(block.Body, 0)
@@ -883,7 +883,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	body := make(block.Body, 0)
@@ -922,7 +922,7 @@ func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *t
 		&mock.AccountsStub{},
 		requestTransaction,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	body := make(block.Body, 0)

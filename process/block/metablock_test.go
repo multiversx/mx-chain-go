@@ -47,15 +47,6 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 					return nil
 				},
 			},
-			RequestedItemsHandler: &mock.RequestedItemsHandlerMock{
-				HasCalled: func(key string) bool {
-					return false
-				},
-				AddCalled: func(key string) error {
-					return nil
-				},
-			},
-			ResolversFinder: createMockResolversFinder(),
 		},
 		DataPool:           mdp,
 		SCDataGetter:       &mock.ScQueryMock{},

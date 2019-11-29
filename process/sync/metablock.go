@@ -46,7 +46,7 @@ func NewMetaBootstrap(
 	networkWatcher process.NetworkConnectionWatcher,
 	bootStorer process.BootStorer,
 	storageBootstrapper process.BootstrapperFromStorage,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*MetaBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {

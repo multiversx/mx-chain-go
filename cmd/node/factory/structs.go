@@ -162,7 +162,6 @@ type Process struct {
 	BlockProcessor        process.BlockProcessor
 	BlackListHandler      process.BlackListHandler
 	BootStorer            process.BootStorer
-	RequestedItemsHandler process.RequestedItemsHandler
 }
 
 type coreComponentsFactoryArgs struct {
@@ -466,7 +465,7 @@ type processComponentsFactoryArgs struct {
 	state                 *State
 	network               *Network
 	coreServiceContainer  serviceContainer.Core
-	requestedItemsHandler process.RequestedItemsHandler
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -485,7 +484,7 @@ func NewProcessComponentsFactoryArgs(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:        coreComponents,
@@ -595,7 +594,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockProcessor:        blockProcessor,
 		BlackListHandler:      blackListHandler,
 		BootStorer:            bootStorer,
-		RequestedItemsHandler: args.requestedItemsHandler,
 	}, nil
 }
 
@@ -1838,7 +1836,7 @@ func newShardBlockProcessor(
 	statisticsProcessor process.ValidatorStatisticsProcessor,
 	bootStorer process.BootStorer,
 	gasSchedule map[string]map[string]uint64,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (process.BlockProcessor, error) {
 	argsParser, err := smartContract.NewAtArgumentParser()
 	if err != nil {
@@ -1928,6 +1926,7 @@ func newShardBlockProcessor(
 
 	requestHandler, err := requestHandlers.NewShardResolverRequestHandler(
 		resolversFinder,
+		requestedItemsHandler,
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.RewardsTransactionTopic,
@@ -2045,8 +2044,6 @@ func newShardBlockProcessor(
 		Rounder:                      rounder,
 		ValidatorStatisticsProcessor: statisticsProcessor,
 		BootStorer:                   bootStorer,
-		RequestedItemsHandler:        requestedItemsHandler,
-		ResolversFinder:              resolversFinder,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -2082,7 +2079,7 @@ func newMetaBlockProcessor(
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
 	bootStorer process.BootStorer,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2156,6 +2153,7 @@ func newMetaBlockProcessor(
 
 	requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 		resolversFinder,
+		requestedItemsHandler,
 		factory.ShardHeadersForMetachainTopic,
 		factory.MetachainBlocksTopic,
 		factory.TransactionTopic,
@@ -2263,8 +2261,6 @@ func newMetaBlockProcessor(
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		Rounder:                      rounder,
 		BootStorer:                   bootStorer,
-		RequestedItemsHandler:        requestedItemsHandler,
-		ResolversFinder:              resolversFinder,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:   argumentsBaseProcessor,

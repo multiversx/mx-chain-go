@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -54,16 +53,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
-	resolver, err := arguments.ResolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlocksResolver, ok := resolver.(dataRetriever.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	base := &baseProcessor{
 		accounts:                      arguments.Accounts,
 		blockSizeThrottler:            blockSizeThrottler,
@@ -82,8 +71,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		rounder:                       arguments.Rounder,
 		bootStorer:                    arguments.BootStorer,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
-		requestedItemsHandler:         arguments.RequestedItemsHandler,
-		miniBlocksResolver:            miniBlocksResolver,
 	}
 
 	err = base.setLastNotarizedHeadersSlice(arguments.StartHeaders)
@@ -103,7 +90,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
 
-	sp.onRequestBlockBodyOfHeader = sp.getBlockBody
+	sp.onRequestBlockBodyOfHeader = sp.getBlockBodyFromPool
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
@@ -150,13 +137,7 @@ func (sp *shardProcessor) ProcessBlock(
 				"for shard", headerHandler.GetShardID(),
 			)
 
-			if !sp.requestedItemsHandler.Has(string(headerHandler.GetPrevHash())) {
-				go sp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
-				errNotCritical := sp.requestedItemsHandler.Add(string(headerHandler.GetPrevHash()))
-				if errNotCritical != nil {
-					log.Trace("add requested item with error", errNotCritical.Error())
-				}
-			}
+			go sp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
 		}
 
 		return err
@@ -386,15 +367,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	}
 
 	if nextBlocksVerified < sp.metaBlockFinality {
-		key := fmt.Sprintf("%d-%d", lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
-		if !sp.requestedItemsHandler.Has(key) {
-			go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
-			errNotCritical := sp.requestedItemsHandler.Add(key)
-			if errNotCritical != nil {
-				log.Trace("add requested item with error", errNotCritical.Error())
-			}
-		}
-
+		go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
 		return process.ErrHeaderNotFinal
 	}
 
@@ -898,13 +871,7 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 
 		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			if !sp.requestedItemsHandler.Has(string(shardInfo.HeaderHash)) {
-				go sp.onRequestHeaderHandler(shardInfo.ShardID, shardInfo.HeaderHash)
-				errNotCritical := sp.requestedItemsHandler.Add(string(shardInfo.HeaderHash))
-				if errNotCritical != nil {
-					log.Trace("add requested item with error", errNotCritical.Error())
-				}
-			}
+			go sp.onRequestHeaderHandler(shardInfo.ShardID, shardInfo.HeaderHash)
 
 			log.Debug("requested missing shard header",
 				"hash", shardInfo.HeaderHash,
@@ -1245,13 +1212,7 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32,
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for _, hash := range missingHeadersHashes {
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: nil, usedInBlock: true}
-		if !sp.requestedItemsHandler.Has(string(hash)) {
-			go sp.onRequestHeaderHandler(sharding.MetachainShardId, hash)
-			errNotCritical := sp.requestedItemsHandler.Add(string(hash))
-			if errNotCritical != nil {
-				log.Trace("add requested item with error", errNotCritical.Error())
-			}
-		}
+		go sp.onRequestHeaderHandler(sharding.MetachainShardId, hash)
 	}
 
 	if sp.hdrsForCurrBlock.missingHdrs == 0 {
@@ -1863,20 +1824,30 @@ func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.
 	return nil
 }
 
-func (sp *shardProcessor) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+func (sp *shardProcessor) getBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	miniBlockPool := sp.dataPool.MiniBlocks()
+	if miniBlockPool == nil {
+		return nil, process.ErrNilMiniBlockPool
+	}
+
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	miniBlocks := make(block.MiniBlockSlice, 0)
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
-	}
+		obj, ok := miniBlockPool.Get(header.MiniBlockHeaders[i].Hash)
+		if !ok {
+			continue
+		}
 
-	miniBlocks, missingMiniBlocksHashes := sp.miniBlocksResolver.GetMiniBlocks(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		return nil, process.ErrMissingBody
+		miniBlock, ok := obj.(*block.MiniBlock)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
 	return block.Body(miniBlocks), nil

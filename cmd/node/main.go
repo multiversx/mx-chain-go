@@ -773,6 +773,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return err
@@ -1136,6 +1137,7 @@ func createNode(
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1180,7 +1182,7 @@ func createNode(
 		node.WithIndexer(indexer),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
-		node.WithRequestedItemsHandler(process.RequestedItemsHandler),
+		node.WithRequestedItemsHandler(requestedItemsHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

@@ -373,8 +373,10 @@ func createNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	requestedItemsHandler := timecache.NewTimeCache(time.Second * 4)
 	requestHandler, _ := requestHandlers.NewShardResolverRequestHandler(
 		resolversFinder,
+		requestedItemsHandler,
 		factory.TransactionTopic,
 		factory.UnsignedTransactionTopic,
 		factory.RewardsTransactionTopic,
@@ -452,7 +454,6 @@ func createNetNode(
 
 	gasHandler, _ := preprocess.NewGasComputation(feeHandlerMock)
 	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator, gasHandler)
-	requestedItemsHandler := timecache.NewTimeCache(time.Second * 4)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
@@ -525,7 +526,6 @@ func createNetNode(
 					return nil
 				},
 			},
-			ResolversFinder: createResolversFinder(),
 		},
 		DataPool:        dPool,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -865,9 +865,10 @@ func createMetaNetNode(
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolvers, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
-
+	requestedItemsHandler := timecache.NewTimeCache(time.Second * 4)
 	requestHandler, _ := requestHandlers.NewMetaResolverRequestHandler(
 		resolvers,
+		requestedItemsHandler,
 		factory.ShardHeadersForMetachainTopic,
 		factory.MetachainBlocksTopic,
 		factory.TransactionTopic,
@@ -914,7 +915,6 @@ func createMetaNetNode(
 					return nil
 				},
 			},
-			ResolversFinder: createResolversFinder(),
 		},
 		DataPool:           dPool,
 		SCDataGetter:       &mock.ScQueryMock{},
@@ -1061,23 +1061,4 @@ func createVMAndBlockchainHook(
 	vm.GasForOperation = uint64(opGas)
 
 	return vm, blockChainHook
-}
-
-func createResolversFinder() *mock.ResolversFinderStub {
-	return &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
-				return &mock.MiniBlocksResolverMock{
-					GetMiniBlocksCalled: func(hashes [][]byte) (dataBlock.MiniBlockSlice, [][]byte) {
-						return make(dataBlock.MiniBlockSlice, 0), make([][]byte, 0)
-					},
-					GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (dataBlock.MiniBlockSlice, [][]byte) {
-						return make(dataBlock.MiniBlockSlice, 0), make([][]byte, 0)
-					},
-				}, nil
-			}
-
-			return nil, nil
-		},
-	}
 }

@@ -81,7 +81,6 @@ type baseProcessor struct {
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 
 	appStatusHandler           core.AppStatusHandler
-	requestedItemsHandler      process.RequestedItemsHandler
 	miniBlocksResolver         dataRetriever.MiniBlocksResolver
 	onRequestBlockBodyOfHeader func(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
@@ -556,15 +555,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			break
 		}
 
-		key := fmt.Sprintf("%d-%d", shardId, nonce)
-		if !bp.requestedItemsHandler.Has(key) {
-			requested++
-			go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
-			errNotCritical := bp.requestedItemsHandler.Add(key)
-			if errNotCritical != nil {
-				log.Trace("add requested item with error", errNotCritical.Error())
-			}
-		}
+		requested++
+		go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
 	}
 
 	return nil
@@ -852,16 +844,8 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
-			key := fmt.Sprintf("%d-%d", shardId, i)
-			if !bp.requestedItemsHandler.Has(key) {
-				requestedHeaders++
-				go bp.onRequestHeaderHandlerByNonce(shardId, i)
-				errNotCritical := bp.requestedItemsHandler.Add(key)
-				if errNotCritical != nil {
-					log.Trace("add requested item with error", errNotCritical.Error())
-				}
-			}
-
+			requestedHeaders++
+			go bp.onRequestHeaderHandlerByNonce(shardId, i)
 			continue
 		}
 

@@ -54,7 +54,7 @@ func NewTransactionPreprocessor(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -91,7 +91,7 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilGasHandler
 	}
 	if check.IfNil(requestedItemsHandler) {
-		return nil, process.ErrNilRequestedItemsHandler
+		return nil, dataRetriever.ErrNilRequestedItemsHandler
 	}
 
 	bpp := basePreProcess{

@@ -41,7 +41,7 @@ func NewRewardTxPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -75,7 +75,7 @@ func NewRewardTxPreprocessor(
 		return nil, process.ErrNilGasHandler
 	}
 	if check.IfNil(requestedItemsHandler) {
-		return nil, process.ErrNilRequestedItemsHandler
+		return nil, dataRetriever.ErrNilRequestedItemsHandler
 	}
 
 	bpp := &basePreProcess{

@@ -108,7 +108,7 @@ type Node struct {
 	indexer               indexer.Indexer
 	blackListHandler      process.BlackListHandler
 	bootStorer            process.BootStorer
-	requestedItemsHandler process.RequestedItemsHandler
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

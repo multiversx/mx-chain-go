@@ -30,7 +30,7 @@ type preProcessorsContainerFactory struct {
 	economicsFee          process.FeeHandler
 	miniBlocksCompacter   process.MiniBlocksCompacter
 	gasHandler            process.GasHandler
-	requestedItemsHandler process.RequestedItemsHandler
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -51,7 +51,7 @@ func NewPreProcessorsContainerFactory(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
-	requestedItemsHandler process.RequestedItemsHandler,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -103,7 +103,7 @@ func NewPreProcessorsContainerFactory(
 		return nil, process.ErrNilGasHandler
 	}
 	if check.IfNil(requestedItemsHandler) {
-		return nil, process.ErrNilRequestedItemsHandler
+		return nil, dataRetriever.ErrNilRequestedItemsHandler
 	}
 
 	return &preProcessorsContainerFactory{

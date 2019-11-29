@@ -378,15 +378,6 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
-			RequestedItemsHandler: &mock.RequestedItemsHandlerMock{
-				HasCalled: func(key string) bool {
-					return false
-				},
-				AddCalled: func(key string) error {
-					return nil
-				},
-			},
-			ResolversFinder: createMockResolversFinder(),
 		},
 		DataPool:        initDataPool([]byte("")),
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

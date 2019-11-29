@@ -42,7 +42,7 @@ type basePreProcess struct {
 	marshalizer           marshal.Marshalizer
 	shardCoordinator      sharding.Coordinator
 	gasHandler            process.GasHandler
-	requestedItemsHandler process.RequestedItemsHandler
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {

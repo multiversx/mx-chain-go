@@ -524,10 +524,3 @@ type BootstrapperFromStorage interface {
 	LoadFromStorage() error
 	IsInterfaceNil() bool
 }
-
-// RequestedItemsHandler can determine if a certain key has or not been requested
-type RequestedItemsHandler interface {
-	Add(key string) error
-	Has(key string) bool
-	IsInterfaceNil() bool
-}

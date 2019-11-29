@@ -1,7 +1,6 @@
 package block
 
 import (
-	"strings"
 	"sync"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -79,30 +77,6 @@ func NewShardProcessorEmptyWith3shards(tdp dataRetriever.PoolsHolder, genesisBlo
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
-				},
-			},
-			RequestedItemsHandler: &mock.RequestedItemsHandlerMock{
-				HasCalled: func(key string) bool {
-					return false
-				},
-				AddCalled: func(key string) error {
-					return nil
-				},
-			},
-			ResolversFinder: &mock.ResolversFinderStub{
-				IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
-					if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
-						return &mock.MiniBlocksResolverMock{
-							GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-								return make(block.MiniBlockSlice, 0), make([][]byte, 0)
-							},
-							GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-								return make(block.MiniBlockSlice, 0), make([][]byte, 0)
-							},
-						}, nil
-					}
-
-					return nil, nil
 				},
 			},
 		},

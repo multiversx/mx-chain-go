@@ -233,7 +233,7 @@ func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -251,7 +251,7 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -269,7 +269,7 @@ func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -287,7 +287,7 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -305,7 +305,7 @@ func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
 		nil,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -323,7 +323,7 @@ func TestNewTransactionCoordinator_NilInterProcessor(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		nil,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -341,7 +341,7 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		nil,
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -363,7 +363,7 @@ func TestNewTransactionCoordinator_NilRequestedItemsHandler(t *testing.T) {
 	)
 
 	assert.Nil(t, tc)
-	assert.Equal(t, process.ErrNilRequestedItemsHandler, err)
+	assert.Equal(t, dataRetriever.ErrNilRequestedItemsHandler, err)
 }
 
 func TestNewTransactionCoordinator_OK(t *testing.T) {
@@ -377,7 +377,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -395,7 +395,7 @@ func TestTransactionCoordinator_SeparateBodyNil(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -415,7 +415,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -457,7 +457,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -550,7 +550,7 @@ func createPreProcessorContainerWithDataPool(
 			RemoveGasRefundedCalled: func(hashes [][]byte) {
 			},
 		},
-		&mock.RequestedItemsHandlerMock{
+		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return false
 			},
@@ -583,7 +583,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 				return totalGasConsumed
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -609,7 +609,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -650,7 +650,7 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -673,7 +673,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 		createPreProcessorContainer(),
 		interimContainer,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -727,7 +727,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -777,7 +777,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -805,7 +805,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{
+		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return false
 			},
@@ -876,7 +876,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 				return 0
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -892,7 +892,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 				return totalGasConsumed
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -981,7 +981,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 				return totalGasConsumed
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -993,7 +993,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1019,7 +1019,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1050,7 +1050,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 				return totalGasConsumed
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1083,7 +1083,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1128,7 +1128,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1200,7 +1200,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 			}),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1268,7 +1268,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 			}),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1328,7 +1328,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 				return 0, 0, nil
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1373,7 +1373,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1401,7 +1401,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1436,7 +1436,7 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1514,7 +1514,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{
+		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return false
 			},
@@ -1533,7 +1533,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	tc.receivedMiniBlock(miniBlockHash)
@@ -1559,7 +1559,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1597,7 +1597,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1642,7 +1642,7 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1695,7 +1695,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			},
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1707,7 +1707,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1752,7 +1752,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1823,7 +1823,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1835,7 +1835,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{
+		&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return false
 			},
@@ -1968,7 +1968,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 				return 0
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1984,7 +1984,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 				return 0
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2100,7 +2100,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			RemoveGasConsumedCalled: func(hashes [][]byte) {
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2120,7 +2120,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 				totalGasConsumed = gasConsumed
 			},
 		},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2163,7 +2163,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.PreProcessorContainerMock{},
 		container,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2212,7 +2212,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		container,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2303,7 +2303,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 			},
 		},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2347,7 +2347,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 			},
 		},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerMock{},
+		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)

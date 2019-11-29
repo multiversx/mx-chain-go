@@ -445,7 +445,7 @@ func WithBootStorer(bootStorer process.BootStorer) Option {
 }
 
 // WithRequestedItemsHandler sets up a requested items handler for the Node
-func WithRequestedItemsHandler(requestedItemsHandler process.RequestedItemsHandler) Option {
+func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItemsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(requestedItemsHandler) {
 			return ErrNilRequestedItemsHandler
