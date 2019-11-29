@@ -467,6 +467,7 @@ type processComponentsFactoryArgs struct {
 	state                *State
 	network              *Network
 	coreServiceContainer serviceContainer.Core
+	epochStartNotifier   EpochStartNotifier
 	epochStart           *config.EpochStartConfig
 	startEpochNum        uint32
 }
@@ -486,6 +487,7 @@ func NewProcessComponentsFactoryArgs(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
+	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
 ) *processComponentsFactoryArgs {
@@ -503,6 +505,7 @@ func NewProcessComponentsFactoryArgs(
 		state:                state,
 		network:              network,
 		coreServiceContainer: coreServiceContainer,
+		epochStartNotifier:   epochStartNotifier,
 		epochStart:           epochStart,
 		startEpochNum:        startEpochNum,
 	}
@@ -700,16 +703,17 @@ func newEpochStartTrigger(
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:     args.core.Marshalizer,
-			Hasher:          args.core.Hasher,
-			HeaderValidator: headerValidator,
-			Uint64Converter: args.core.Uint64ByteSliceConverter,
-			DataPool:        args.data.Datapool,
-			Storage:         args.data.Store,
-			RequestHandler:  requestHandler,
-			Epoch:           args.startEpochNum,
-			Validity:        process.MetaBlockValidity,
-			Finality:        process.MetaBlockFinality,
+			Marshalizer:        args.core.Marshalizer,
+			Hasher:             args.core.Hasher,
+			HeaderValidator:    headerValidator,
+			Uint64Converter:    args.core.Uint64ByteSliceConverter,
+			DataPool:           args.data.Datapool,
+			Storage:            args.data.Store,
+			RequestHandler:     requestHandler,
+			Epoch:              args.startEpochNum,
+			EpochStartNotifier: args.epochStartNotifier,
+			Validity:           process.MetaBlockValidity,
+			Finality:           process.MetaBlockFinality,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
@@ -721,9 +725,10 @@ func newEpochStartTrigger(
 
 	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
 		argEpochStart := &metachainEpochStart.ArgsNewMetaEpochStartTrigger{
-			GenesisTime: time.Unix(args.nodesConfig.StartTime, 0),
-			Settings:    args.epochStart,
-			Epoch:       args.startEpochNum,
+			GenesisTime:        time.Unix(args.nodesConfig.StartTime, 0),
+			Settings:           args.epochStart,
+			Epoch:              args.startEpochNum,
+			EpochStartNotifier: args.epochStartNotifier,
 		}
 		epochStartTrigger, err := metachainEpochStart.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

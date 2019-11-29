@@ -370,7 +370,8 @@ func createConsensusOnlyNode(
 		syncer)
 
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		GenesisTime: time.Unix(startTime, 0),
+		GenesisTime:        time.Unix(startTime, 0),
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		Settings: &config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 1,
 			RoundsPerEpoch:         3,

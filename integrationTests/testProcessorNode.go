@@ -666,7 +666,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				MinRoundsBetweenEpochs: 1000,
 				RoundsPerEpoch:         10000,
 			},
-			Epoch: 0,
+			Epoch:              0,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -699,16 +700,17 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 	} else {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:     TestMarshalizer,
-			Hasher:          TestHasher,
-			HeaderValidator: headerValidator,
-			Uint64Converter: TestUint64Converter,
-			DataPool:        tpn.ShardDataPool,
-			Storage:         tpn.Storage,
-			RequestHandler:  tpn.RequestHandler,
-			Epoch:           0,
-			Validity:        1,
-			Finality:        1,
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			HeaderValidator:    headerValidator,
+			Uint64Converter:    TestUint64Converter,
+			DataPool:           tpn.ShardDataPool,
+			Storage:            tpn.Storage,
+			RequestHandler:     tpn.RequestHandler,
+			Epoch:              0,
+			Validity:           1,
+			Finality:           1,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
