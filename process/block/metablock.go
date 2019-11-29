@@ -95,7 +95,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		core:           arguments.Core,
 		baseProcessor:  base,
 		dataPool:       arguments.DataPool,
-		headersCounter: NewHeaderCounter(arguments.Store, arguments.Marshalizer),
+		headersCounter: NewHeaderCounter(),
 		scDataGetter:   arguments.SCDataGetter,
 		peerChanges:    arguments.PeerChangesHandler,
 		scToProtocol:   arguments.SCToProtocol,
@@ -285,6 +285,11 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+// SetNumProcessedObj will set the num of processed headers
+func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
+	mp.headersCounter.shardMBHeadersTotalProcessed = numObj
 }
 
 func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock) error {

@@ -22,13 +22,11 @@ type transactionCounter struct {
 
 // NewTransactionCounter returns a new object that keeps track of how many transactions
 // were executed in total, and in the current block
-func NewTransactionCounter(store dataRetriever.StorageService, marshalizer marshal.Marshalizer) *transactionCounter {
-	totalTxs := getNumObjFromStorage(store, marshalizer, core.MetricNumProcessedTxs)
-
+func NewTransactionCounter() *transactionCounter {
 	return &transactionCounter{
 		mutex:           sync.RWMutex{},
 		currentBlockTxs: 0,
-		totalTxs:        totalTxs,
+		totalTxs:        0,
 	}
 }
 

@@ -43,6 +43,7 @@ type storageBootstrapper struct {
 	bootstrapRoundIndex  uint64
 	bootstrapper         storageBootstrapperHandler
 	headerNonceHashStore storage.Storer
+	highestNonce         uint64
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -107,7 +108,14 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
+	st.highestNonce = headerInfo.HeaderInfo.Nonce
+
 	return nil
+}
+
+// GetHighestBlockNonce will return nonce of last block loaded from storage
+func (st *storageBootstrapper) GetHighestBlockNonce() uint64 {
+	return st.highestNonce
 }
 
 func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.BootstrapData) error {

@@ -9,11 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 )
 
 func getMetricsFromMetaHeader(
@@ -195,28 +193,4 @@ func calculateRoundDuration(
 	diffRounds := currentBlockRound - lastBlockRound
 
 	return diffTimeStamp / diffRounds
-}
-
-func getNumObjFromStorage(store dataRetriever.StorageService, marshalizer marshal.Marshalizer, metricName string) uint64 {
-	if store == nil || marshalizer == nil {
-		return 0
-	}
-
-	dataBytes, err := store.Get(dataRetriever.StatusMetricsUnit, []byte(persister.StatusMetricsDbEntry))
-	if err != nil {
-		return 0
-	}
-
-	var dataFromDb map[string]interface{}
-	err = marshalizer.Unmarshal(&dataFromDb, dataBytes)
-	if err != nil {
-		return 0
-	}
-
-	numObj, ok := dataFromDb[metricName].(float64)
-	if !ok {
-		return 0
-	}
-
-	return uint64(numObj)
 }

@@ -563,7 +563,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, serversConfigurationFile.Name, usePrometheus.Name, ctx, coreComponents.Marshalizer, coreComponents.Uint64ByteSliceConverter)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err

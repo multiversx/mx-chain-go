@@ -85,7 +85,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		core:            arguments.Core,
 		baseProcessor:   base,
 		dataPool:        arguments.DataPool,
-		txCounter:       NewTransactionCounter(arguments.Store, arguments.Marshalizer),
+		txCounter:       NewTransactionCounter(),
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
 	sp.chRcvAllMetaHdrs = make(chan bool)
@@ -278,6 +278,11 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+// SetNumProcessedObj will set the num of processed transactions
+func (sp *shardProcessor) SetNumProcessedObj(numObj uint64) {
+	sp.txCounter.totalTxs = numObj
 }
 
 func (sp *shardProcessor) setMetaConsensusData(finalizedMetaBlocks []data.HeaderHandler) error {

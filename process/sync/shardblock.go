@@ -233,6 +233,9 @@ func (boot *ShardBootstrap) StartSync() {
 		log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),
 		)
+	} else {
+		numTxs, _ := updateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, boot.storageBootstrapper.GetHighestBlockNonce())
+		boot.blkExecutor.SetNumProcessedObj(numTxs)
 	}
 
 	go boot.syncBlocks()

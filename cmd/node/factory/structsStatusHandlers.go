@@ -1,11 +1,12 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"io"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -26,16 +27,18 @@ type ArgStatusHandlers struct {
 	PrometheusUserName           string
 	Ctx                          *cli.Context
 	Marshalizer                  marshal.Marshalizer
+	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 }
 
 // StatusHandlersInfo is a struct
 type statusHandlersInfo struct {
-	PrometheusJoinUrl string
-	UsePrometheus     bool
-	UseTermUI         bool
-	StatusHandler     core.AppStatusHandler
-	StatusMetrics     external.StatusMetricsHandler
-	PersistentHandler *persister.PersistentStatusHandler
+	PrometheusJoinUrl        string
+	UsePrometheus            bool
+	UseTermUI                bool
+	StatusHandler            core.AppStatusHandler
+	StatusMetrics            external.StatusMetricsHandler
+	PersistentHandler        *persister.PersistentStatusHandler
+	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 // NewStatusHandlersFactoryArgs will return arguments for status handlers
@@ -45,6 +48,7 @@ func NewStatusHandlersFactoryArgs(
 	prometheusUserName string,
 	ctx *cli.Context,
 	marshalizer marshal.Marshalizer,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) *ArgStatusHandlers {
 	return &ArgStatusHandlers{
 		LogViewName:                  logViewName,
@@ -52,6 +56,7 @@ func NewStatusHandlersFactoryArgs(
 		PrometheusUserName:           prometheusUserName,
 		Ctx:                          ctx,
 		Marshalizer:                  marshalizer,
+		Uint64ByteSliceConverter:     uint64ByteSliceConverter,
 	}
 }
 
@@ -100,7 +105,7 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	statusMetrics := statusHandler.NewStatusMetrics()
 	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
-	persistentHandler, err := persister.NewPersistentStatusHandler(arguments.Marshalizer)
+	persistentHandler, err := persister.NewPersistentStatusHandler(arguments.Marshalizer, arguments.Uint64ByteSliceConverter)
 	if err != nil {
 		return nil, err
 	}
@@ -133,33 +138,7 @@ func (shi *statusHandlersInfo) UpdateStorerAndMetricsForPersistentHandler(store 
 		return err
 	}
 
-	uint64Metrics, stringMetrics := shi.PersistentHandler.LoadMetricsFromDb()
-	shi.saveUint64Metrics(uint64Metrics)
-	shi.saveStringMetrics(stringMetrics)
-
-	shi.PersistentHandler.StartStoreMetricsInStorage()
-
 	return nil
-}
-
-func (shi *statusHandlersInfo) saveUint64Metrics(metrics map[string]uint64) {
-	if metrics == nil {
-		return
-	}
-
-	for key, value := range metrics {
-		shi.StatusHandler.SetUInt64Value(key, value)
-	}
-}
-
-func (shi *statusHandlersInfo) saveStringMetrics(metrics map[string]string) {
-	if metrics == nil {
-		return
-	}
-
-	for key, value := range metrics {
-		shi.StatusHandler.SetStringValue(key, value)
-	}
 }
 
 func getPrometheusJoinURLIfAvailable(ctx *cli.Context, serversConfigurationFileName string, userPrometheusName string) (string, bool) {
