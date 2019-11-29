@@ -129,3 +129,6 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilBootStorer signals that a nil boot storer was provided
+var ErrNilBootStorer = errors.New("nil boot storer")

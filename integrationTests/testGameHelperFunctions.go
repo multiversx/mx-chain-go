@@ -53,6 +53,7 @@ func ScCallTxWithParams(
 // DeployScTx creates and sends a SC tx
 func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 	fmt.Println("Deploying SC...")
+	data := scCode + "@" + hex.EncodeToString(factory.IELEVirtualMachine)
 	txDeploy := generateTx(
 		nodes[senderIdx].OwnAccount.SkTxSign,
 		nodes[senderIdx].OwnAccount.SingleSigner,
@@ -61,9 +62,9 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			value:    big.NewInt(0),
 			rcvAddr:  make([]byte, 32),
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
-			data:     scCode + "@" + hex.EncodeToString(factory.IELEVirtualMachine),
-			gasLimit: 100000,
-			gasPrice: gasPriceForGameSC,
+			data:     data,
+			gasLimit: MaxGasLimitPerBlock - MinTxGasLimit - uint64(len(data)),
+			gasPrice: MinTxGasPrice,
 		})
 	nodes[senderIdx].OwnAccount.Nonce++
 	_, _ = nodes[senderIdx].SendTransaction(txDeploy)

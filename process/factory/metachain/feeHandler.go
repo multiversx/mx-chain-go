@@ -10,6 +10,10 @@ import (
 type TransactionFeeHandler struct {
 }
 
+func (t *TransactionFeeHandler) MaxGasLimitPerBlock() uint64 {
+	return 1500000000
+}
+
 func (t *TransactionFeeHandler) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
 	return 0
 }

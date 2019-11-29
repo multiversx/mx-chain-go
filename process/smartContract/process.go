@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -45,6 +45,7 @@ type scProcessor struct {
 	scrForwarder process.IntermediateTransactionHandler
 	txFeeHandler process.TransactionFeeHandler
 	economicsFee process.FeeHandler
+	gasHandler   process.GasHandler
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -60,9 +61,10 @@ func NewSmartContractProcessor(
 	scrForwarder process.IntermediateTransactionHandler,
 	txFeeHandler process.TransactionFeeHandler,
 	economicsFee process.FeeHandler,
+	gasHandler process.GasHandler,
 ) (*scProcessor, error) {
 	err := checkArgumentsForNil(vmContainer, argsParser, hasher, marshalizer, accountsDB,
-		tempAccounts, adrConv, coordinator, scrForwarder, txFeeHandler, economicsFee)
+		tempAccounts, adrConv, coordinator, scrForwarder, txFeeHandler, economicsFee, gasHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +81,7 @@ func NewSmartContractProcessor(
 		scrForwarder:     scrForwarder,
 		txFeeHandler:     txFeeHandler,
 		economicsFee:     economicsFee,
+		gasHandler:       gasHandler,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
 }
 
@@ -94,6 +97,7 @@ func checkArgumentsForNil(
 	scrForwarder process.IntermediateTransactionHandler,
 	txFeeHandler process.TransactionFeeHandler,
 	economicsFee process.FeeHandler,
+	gasHandler process.GasHandler,
 ) error {
 	if check.IfNil(vmContainer) {
 		return process.ErrNoVM
@@ -127,6 +131,9 @@ func checkArgumentsForNil(
 	}
 	if check.IfNil(economicsFee) {
 		return process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	return nil
@@ -480,6 +487,7 @@ func (sc *scProcessor) processVMOutput(
 
 	totalGasRefund := big.NewInt(0)
 	totalGasRefund = totalGasRefund.Add(vmOutput.GasRefund, vmOutput.GasRemaining)
+	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining.Uint64(), txHash)
 	scrRefund, consumedFee, err := sc.refundGasToSender(totalGasRefund, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err
