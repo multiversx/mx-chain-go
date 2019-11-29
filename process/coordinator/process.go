@@ -34,7 +34,8 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
+	onRequestMiniBlock func(shardId uint32, mbHash []byte)
+	gasHandler         process.GasHandler
 	requestedItemsHandler process.RequestedItemsHandler
 }
 
@@ -46,6 +47,7 @@ func NewTransactionCoordinator(
 	requestHandler process.RequestHandler,
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
+	gasHandler process.GasHandler,
 	requestedItemsHandler process.RequestedItemsHandler,
 ) (*transactionCoordinator, error) {
 
@@ -67,6 +69,9 @@ func NewTransactionCoordinator(
 	if check.IfNil(preProcessors) {
 		return nil, process.ErrNilPreProcessorsContainer
 	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
+	}
 	if check.IfNil(requestedItemsHandler) {
 		return nil, process.ErrNilRequestedItemsHandler
 	}
@@ -74,6 +79,7 @@ func NewTransactionCoordinator(
 	tc := &transactionCoordinator{
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
+		gasHandler:       gasHandler,
 	}
 
 	tc.miniBlockPool = miniBlockPool
@@ -373,11 +379,12 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksHashes map[string]struct{},
-	maxTxRemaining uint32,
-	maxMbRemaining uint32,
+	maxTxSpaceRemained uint32,
+	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool) {
+
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
@@ -422,7 +429,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		// overflow would happen if processing would continue
-		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxRemaining
+		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxSpaceRemained
 		if txOverFlow {
 			return miniBlocks, nrTxAdded, false
 		}
@@ -442,7 +449,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMiniBlocksProcessed++
 
-		mbOverFlow := uint32(len(miniBlocks)) >= maxMbRemaining
+		mbOverFlow := uint32(len(miniBlocks)) >= maxMbSpaceRemained
 		if mbOverFlow {
 			return miniBlocks, nrTxAdded, false
 		}
@@ -517,6 +524,8 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process
 func (tc *transactionCoordinator) CreateBlockStarted() {
+	tc.gasHandler.Init()
+
 	tc.mutPreProcessor.RLock()
 	for _, value := range tc.txPreProcessors {
 		value.CreateBlockStarted()
@@ -705,6 +714,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
+
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
 		log.Debug("ProcessMiniBlock", "error", err.Error())

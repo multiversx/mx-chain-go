@@ -25,6 +25,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -46,6 +47,7 @@ func TestNewRewardTxPreprocessor_NilStoreShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -67,6 +69,7 @@ func TestNewRewardTxPreprocessor_NilHasherShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -88,6 +91,7 @@ func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -109,6 +113,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -130,6 +135,7 @@ func TestNewRewardTxPreprocessor_NilRewardProducerShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -151,6 +157,7 @@ func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -172,6 +179,7 @@ func TestNewRewardTxPreprocessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -193,11 +201,34 @@ func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		nil,
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
+}
+
+func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	rtp, err := NewRewardTxPreprocessor(
+		tdp.RewardTransactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		func(shardID uint32, txHashes [][]byte) {},
+		nil,
+		&mock.RequestedItemsHandlerMock{},
+	)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
 func TestNewRewardTxPreprocessor_NilRequestedItemsHandlerShouldErr(t *testing.T) {
@@ -214,6 +245,7 @@ func TestNewRewardTxPreprocessor_NilRequestedItemsHandlerShouldErr(t *testing.T)
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		nil,
 	)
 
@@ -235,6 +267,7 @@ func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -258,6 +291,7 @@ func TestRewardTxPreprocessor_AddComputedRewardMiniBlocksShouldAddMiniBlock(t *t
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -298,6 +332,7 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -333,6 +368,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -363,6 +399,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -398,6 +435,7 @@ func TestRewardTxPreprocessor_SaveTxBlockToStorageShouldWork(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -442,6 +480,7 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -488,6 +527,7 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -518,6 +558,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -561,6 +602,7 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -583,6 +625,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -626,6 +669,7 @@ func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -649,6 +693,7 @@ func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
+	totalGasConsumed := uint64(0)
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -674,6 +719,19 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
+				totalGasConsumed += gasConsumed
+			},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
+				totalGasConsumed = 0
+			},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -685,6 +743,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
+	totalGasConsumed := uint64(0)
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -710,6 +769,14 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{
+			InitCalled: func() {
+				totalGasConsumed = 0
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -732,6 +799,7 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 

@@ -38,9 +38,10 @@ type txsForBlock struct {
 }
 
 type basePreProcess struct {
-	hasher                hashing.Hasher
-	marshalizer           marshal.Marshalizer
-	shardCoordinator      sharding.Coordinator
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.Coordinator
+	gasHandler       process.GasHandler
 	requestedItemsHandler process.RequestedItemsHandler
 }
 

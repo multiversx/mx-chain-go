@@ -433,6 +433,17 @@ func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
 	}
 }
 
+// WithBootStorer sets up a boot storer for the Node
+func WithBootStorer(bootStorer process.BootStorer) Option {
+	return func(n *Node) error {
+		if check.IfNil(bootStorer) {
+			return ErrNilBootStorer
+		}
+		n.bootStorer = bootStorer
+		return nil
+	}
+}
+
 // WithRequestedItemsHandler sets up a requested items handler for the Node
 func WithRequestedItemsHandler(requestedItemsHandler process.RequestedItemsHandler) Option {
 	return func(n *Node) error {

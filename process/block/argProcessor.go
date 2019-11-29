@@ -33,6 +33,7 @@ type ArgBaseProcessor struct {
 	TxCoordinator                process.TransactionCoordinator
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rounder                      consensus.Rounder
+	BootStorer                   process.BootStorer
 	RequestedItemsHandler        process.RequestedItemsHandler
 	ResolversFinder              dataRetriever.ResolversFinder
 }

@@ -28,6 +28,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -54,6 +55,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -80,6 +82,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -106,6 +109,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -132,6 +136,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -158,6 +163,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -184,6 +190,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -210,6 +217,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -236,6 +244,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -262,6 +271,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -288,6 +298,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -314,6 +325,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -340,6 +352,7 @@ func TestNewPreProcessorsContainerFactory_NilInternalTransactionProducer(t *test
 		nil,
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -366,6 +379,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		nil,
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -392,10 +406,38 @@ func TestNewPreProcessorsContainerFactory_NilMiniBlocksCompacter(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		nil,
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilMiniBlocksCompacter, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		mock.NewPoolsHolderMock(),
+		&mock.AddressConverterMock{},
+		&mock.AccountsStub{},
+		&mock.RequestHandlerMock{},
+		&mock.TxProcessorMock{},
+		&mock.SCProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.FeeHandlerStub{},
+		&mock.MiniBlocksCompacterMock{},
+		nil,
+		&mock.RequestedItemsHandlerMock{},
+	)
+
+	assert.Equal(t, process.ErrNilGasHandler, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -418,6 +460,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestedItemsHandler(t *testing.T)
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		nil,
 	)
 
@@ -444,6 +487,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -474,6 +518,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -514,6 +559,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -563,6 +609,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 

@@ -838,6 +838,29 @@ func TestWithTxFeeHandler_NilTxFeeHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, ErrNilTxFeeHandler, err)
 }
 
+func TestWithTxFeeHandler_NilBootStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBootStorer(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilBootStorer, err)
+}
+
+func TestWithTxFeeHandler_OkStorerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	bootStorer := &mock.BoostrapStorerMock{}
+	opt := WithBootStorer(bootStorer)
+	err := opt(node)
+
+	assert.Nil(t, err)
+}
+
 func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 

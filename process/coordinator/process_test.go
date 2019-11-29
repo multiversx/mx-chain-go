@@ -31,10 +31,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const MaxGasLimitPerBlock = uint64(100000)
+
 func FeeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 0
+		},
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return MaxGasLimitPerBlock
 		},
 	}
 }
@@ -227,6 +232,7 @@ func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -244,6 +250,7 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -261,6 +268,7 @@ func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -278,6 +286,7 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 		nil,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -285,7 +294,7 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
-func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
+func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
 	t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
@@ -295,6 +304,7 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		nil,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -302,7 +312,7 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 	assert.Equal(t, process.ErrNilPreProcessorsContainer, err)
 }
 
-func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
+func TestNewTransactionCoordinator_NilInterProcessor(t *testing.T) {
 	t.Parallel()
 
 	tc, err := NewTransactionCoordinator(
@@ -312,11 +322,29 @@ func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		nil,
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, tc)
 	assert.Equal(t, process.ErrNilIntermediateProcessorContainer, err)
+}
+
+func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerMock{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		nil,
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
 func TestNewTransactionCoordinator_NilRequestedItemsHandler(t *testing.T) {
@@ -346,6 +374,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 
@@ -363,6 +392,7 @@ func TestTransactionCoordinator_SeparateBodyNil(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -382,6 +412,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -423,6 +454,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
@@ -447,7 +479,12 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 	return container
 }
 
-func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder) process.PreProcessorsContainer {
+func createPreProcessorContainerWithDataPool(
+	dataPool dataRetriever.PoolsHolder,
+	feeHandler process.FeeHandler,
+) process.PreProcessorsContainer {
+
+	totalGasConsumed := uint64(0)
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
@@ -468,6 +505,49 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
+				totalGasConsumed += gasConsumed
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				tx, ok := txHandler.(*transaction.Transaction)
+				if !ok {
+					return 0, 0, process.ErrWrongTypeAssertion
+				}
+
+				txGasLimitConsumption := feeHandler.ComputeGasLimit(tx)
+				if tx.GasLimit < txGasLimitConsumption {
+					return 0, 0, process.ErrInsufficientGasLimitInTx
+				}
+
+				if core.IsSmartContractAddress(tx.RcvAddr) {
+					if txSenderShardId != txReceiverShardId {
+						gasConsumedByTxInSenderShard := txGasLimitConsumption
+						gasConsumedByTxInReceiverShard := tx.GasLimit - txGasLimitConsumption
+
+						return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
+					}
+
+					return tx.GasLimit, tx.GasLimit, nil
+				}
+
+				return txGasLimitConsumption, txGasLimitConsumption, nil
+			},
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			GasRefundedCalled: func(hash []byte) uint64 {
+				return 0
+			},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
+			},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
+			},
+		},
 		&mock.RequestedItemsHandlerMock{
 			HasCalled: func(key string) bool {
 				return false
@@ -485,6 +565,7 @@ func createPreProcessorContainerWithDataPool(dataPool dataRetriever.PoolsHolder)
 func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 	t.Parallel()
 
+	totalGasConsumed := uint64(0)
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
@@ -492,6 +573,14 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			InitCalled: func() {
+				totalGasConsumed = uint64(0)
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -517,6 +606,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -557,6 +647,7 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -579,6 +670,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		interimContainer,
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -632,6 +724,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -681,6 +774,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -708,6 +802,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 		&mock.RequestHandlerMock{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{
 			HasCalled: func(key string) bool {
 				return false
@@ -743,6 +838,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		return hdrPool
 	}
 
+	totalGasConsumed := uint64(0)
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
@@ -763,6 +859,21 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
+				totalGasConsumed += gasConsumed
+			},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			TotalGasRefundedCalled: func() uint64 {
+				return 0
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
@@ -774,6 +885,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -827,6 +943,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		},
 	}
 
+	totalGasConsumed := uint64(0)
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
@@ -857,6 +974,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
@@ -868,6 +990,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -891,8 +1014,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -910,14 +1034,20 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *testing.T) {
 	t.Parallel()
+	totalGasConsumed := uint64(0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -948,8 +1078,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -992,8 +1123,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1013,7 +1145,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
 	numTxsToAdd := 100
-	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
+	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	addedTxs := make([]*transaction.Transaction, 0)
@@ -1037,6 +1169,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMiniblocksShouldApplyGasLimit(t *testing.T) {
 	t.Parallel()
 
+	allTxs := 100
+	numTxsToAdd := 20
+	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
+	numMiniBlocks := allTxs / numTxsToAdd
+
 	nrShards := uint32(5)
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
 	tdp := initDataPool([]byte("tx_hash1"))
@@ -1049,8 +1186,18 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(
+			tdp,
+			&mock.FeeHandlerStub{
+				MaxGasLimitPerBlockCalled: func() uint64 {
+					return MaxGasLimitPerBlock
+				},
+				ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+					return gasLimit / uint64(numMiniBlocks)
+				},
+			}),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1069,15 +1216,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	dstShardId := uint32(1)
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
-	numTxsToAdd := 5
-	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
-
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	addedTxs := make([]*transaction.Transaction, 0)
 
-	allTxs := 100
 	for i := 0; i < allTxs; i++ {
-		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
+		newTx := &transaction.Transaction{GasLimit: gasLimit + gasLimit/uint64(numMiniBlocks), GasPrice: uint64(i), RcvAddr: scAddress}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(txHash, newTx, strCache)
@@ -1088,11 +1231,16 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
-	assert.Equal(t, allTxs/numTxsToAdd, len(mbs))
+	assert.Equal(t, numMiniBlocks, len(mbs))
 }
 
 func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.T) {
 	t.Parallel()
+
+	numTxsPerBulk := 100
+	numTxsToAdd := 20
+	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
+	numMiniBlocks := uint64(numTxsPerBulk / numTxsToAdd)
 
 	nrShards := uint32(5)
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: nrShards})
@@ -1106,8 +1254,18 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(
+			tdp,
+			&mock.FeeHandlerStub{
+				MaxGasLimitPerBlockCalled: func() uint64 {
+					return MaxGasLimitPerBlock
+				},
+				ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+					return 0
+				},
+			}),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1130,13 +1288,8 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	shardCacherIdentifiers = append(shardCacherIdentifiers, process.ShardCacherIdentifier(0, 3))
 	shardCacherIdentifiers = append(shardCacherIdentifiers, process.ShardCacherIdentifier(0, 4))
 
-	// set the gas limit to be enough only for 5 txs in a miniblock so the rest should be split and compressed
-	numTxsToAdd := 20
-	gasLimit := process.MaxGasLimitPerMiniBlock / uint64(numTxsToAdd)
-
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 
-	numTxsPerBulk := 100
 	for _, shardCacher := range shardCacherIdentifiers {
 		for i := 0; i < numTxsPerBulk; i++ {
 			newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
@@ -1148,7 +1301,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, 10, haveTime)
 
-	assert.Equal(t, nrShards, uint32(len(mbs)))
+	assert.Equal(t, numMiniBlocks, uint64(len(mbs)))
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
@@ -1166,8 +1319,13 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByTxCalled: func(txSndShId uint32, txRcvShId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1210,8 +1368,9 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1237,8 +1396,9 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1271,8 +1431,9 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 		&mock.AccountsStub{},
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1350,6 +1511,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{
 			HasCalled: func(key string) bool {
 				return false
@@ -1368,6 +1530,7 @@ func TestTransactionCoordinator_receivedMiniBlockRequestTxs(t *testing.T) {
 		requestHandler,
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1391,8 +1554,9 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 		initAccountsMock(),
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1428,8 +1592,9 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 		initAccountsMock(),
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1472,8 +1637,9 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 		initAccountsMock(),
 		dataPool.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(dataPool),
+		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1518,6 +1684,15 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return 0
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
@@ -1529,6 +1704,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1571,8 +1747,9 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 		initAccountsMock(),
 		dataPool.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(dataPool),
+		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1643,6 +1820,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
@@ -1654,6 +1832,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		requestHandler,
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{
 			HasCalled: func(key string) bool {
 				return false
@@ -1697,8 +1876,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	txHash2 := []byte("tx hash 2")
 	txHash3 := []byte("tx hash 3")
 
-	senderShardId := uint32(1)
-	receiverShardId := uint32(2)
+	senderShardId := uint32(0)
+	receiverShardId := uint32(1)
 
 	miniBlock := block.MiniBlock{
 		SenderShardID:   senderShardId,
@@ -1738,6 +1917,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			return 0
 		},
 	}
+
+	totalGasConsumed := uint64(0)
+
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		initStore(),
@@ -1769,6 +1951,21 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
+				totalGasConsumed += gasConsumed
+			},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return 0
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			TotalGasRefundedCalled: func() uint64 {
+				return 0
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
@@ -1780,6 +1977,11 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return 0
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1812,8 +2014,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	txHash2 := []byte("tx hash 2 - this will cause the tx processor to err")
 	txHash3 := []byte("tx hash 3")
 
-	senderShardId := uint32(1)
-	receiverShardId := uint32(2)
+	senderShardId := uint32(0)
+	receiverShardId := uint32(1)
 
 	miniBlock := block.MiniBlock{
 		SenderShardID:   senderShardId,
@@ -1879,10 +2081,28 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
 		MiniBlocksCompacterMock(),
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return 0
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			TotalGasRefundedCalled: func() uint64 {
+				return 0
+			},
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {},
+			RemoveGasRefundedCalled: func(hashes [][]byte) {
+			},
+			RemoveGasConsumedCalled: func(hashes [][]byte) {
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	container, _ := preFactory.Create()
 
+	totalGasConsumed := uint64(0)
 	tc, err := NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
@@ -1890,6 +2110,14 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
+				totalGasConsumed = gasConsumed
+			},
+		},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1932,6 +2160,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		container,
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -1980,6 +2209,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		container,
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -2054,7 +2284,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 		initAccountsMock(),
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{
 			KeysCalled: func() []block.Type {
 				return []block.Type{block.SmartContractResultBlock}
@@ -2070,6 +2300,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 				return nil, errors.New("invalid handler type")
 			},
 		},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
@@ -2096,7 +2327,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 		initAccountsMock(),
 		tdp.MiniBlocks(),
 		&mock.RequestHandlerMock{},
-		createPreProcessorContainerWithDataPool(tdp),
+		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{
 			KeysCalled: func() []block.Type {
 				return []block.Type{block.SmartContractResultBlock}
@@ -2113,6 +2344,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 				return nil, errors.New("invalid handler type")
 			},
 		},
+		&mock.GasHandlerMock{},
 		&mock.RequestedItemsHandlerMock{},
 	)
 	assert.Nil(t, err)
