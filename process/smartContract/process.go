@@ -37,6 +37,7 @@ type scProcessor struct {
 	shardCoordinator sharding.Coordinator
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
+	isCallBack       bool
 
 	mutSCState   sync.Mutex
 	mapExecState map[uint64]scExecutionState
@@ -187,12 +188,14 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
+	sc.isCallBack = false
 	dataToParse := tx.GetData()
 
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
 	isSCRResultFromCrossShardCall := ok && len(scr.Data) > 0 && scr.Data[0] == '@'
 	if isSCRResultFromCrossShardCall {
 		dataToParse = "callBack" + tx.GetData()
+		sc.isCallBack = true
 	}
 
 	err := sc.argsParser.ParseData(dataToParse)
@@ -519,11 +522,16 @@ func (sc *scProcessor) createSCRsWhenError(
 		return nil, err
 	}
 
+	rcvAddress := tx.GetSndAddress()
+	if sc.isCallBack {
+		rcvAddress = tx.GetRecvAddress()
+	}
+
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:   tx.GetNonce(),
 		Value:   tx.GetValue(),
-		RcvAddr: tx.GetRecvAddress(),
-		SndAddr: tx.GetSndAddress(),
+		RcvAddr: rcvAddress,
+		SndAddr: tx.GetRecvAddress(),
 		Code:    nil,
 		Data:    "@" + hex.EncodeToString([]byte(returnCode.String())) + "@" + hex.EncodeToString(txHash),
 		TxHash:  txHash,
@@ -603,9 +611,14 @@ func (sc *scProcessor) createSCRForSender(
 	refundErd = refundErd.Mul(gasRefund, big.NewInt(int64(tx.GetGasPrice())))
 	consumedFee = consumedFee.Sub(consumedFee, refundErd)
 
+	rcvAddress := tx.GetSndAddress()
+	if sc.isCallBack {
+		rcvAddress = tx.GetRecvAddress()
+	}
+
 	scTx := &smartContractResult.SmartContractResult{}
 	scTx.Value = refundErd
-	scTx.RcvAddr = tx.GetSndAddress()
+	scTx.RcvAddr = rcvAddress
 	scTx.SndAddr = tx.GetRecvAddress()
 	scTx.Nonce = tx.GetNonce() + 1
 	scTx.TxHash = txHash
