@@ -14,5 +14,5 @@ fi
 
 echo "$RESULT" | jq
 
-validation_errors=$(echo "$RESULT" | jq | grep ': {' | wc -l)
+validation_errors=$(echo "'"$RESULT"'" | jq | grep ': {' | wc -l)
 echo "Validation result: $validation_errors errors"
