@@ -54,7 +54,7 @@ echo "Waiting for the Proxy to start ($PROXY_DELAY s)..."
 sleep $PROXY_DELAY
 
 # Phase 6: start the TxGen, with or without regenerating the accounts
-if [ -n "$REGENERATE_ACCOUNTS" ]
+if [ -n "$TXGEN_REGENERATE_ACCOUNTS" ]
 then
   echo "Starting TxGen with account generation..."
   startTxGen_NewAccounts

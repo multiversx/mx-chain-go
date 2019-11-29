@@ -88,7 +88,8 @@ export NUMACCOUNTS="250"
 # Whether txgen should regenerate its accounts when starting, or not.
 # Recommended value is 1, but 0 is useful to run the txgen a second time, to
 # continue a testing session on the same accounts.
-export REGENERATE_ACCOUNTS=1
+export TXGEN_REGENERATE_ACCOUNTS=1
+export TXGEN_ERC20_MODE=1
 
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0

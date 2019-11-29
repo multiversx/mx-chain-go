@@ -6,7 +6,7 @@ startSeednode() {
   setTerminalLayout "even-horizontal"
 
   setWorkdirForNextCommands "$TESTNETDIR/seednode"
-  runCommandInTerminal "./seednode -port $PORT_SEEDNODE" $1 h
+  runCommandInTerminal "./seednode -port $PORT_SEEDNODE" $1 v
 }
 
 stopSeednode() {
