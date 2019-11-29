@@ -438,6 +438,11 @@ func (h *Header) GetTxCount() uint32 {
 	return h.TxCount
 }
 
+// SetShardID sets header shard ID
+func (h *Header) SetShardID(shId uint32) {
+	h.ShardId = shId
+}
+
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n

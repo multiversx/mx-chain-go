@@ -219,7 +219,6 @@ type BlockProcessor interface {
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler)
-	SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32)
 	IsInterfaceNil() bool
 }
 
@@ -364,14 +363,17 @@ type VirtualMachinesContainerFactory interface {
 
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
+	Update(round uint64)
 	ReceivedHeader(header data.HeaderHandler)
 	IsEpochStart() bool
 	Epoch() uint32
 	EpochStartRound() uint64
-	Processed()
+	SetProcessed(header data.HeaderHandler)
 	Revert()
 	EpochStartMetaHdrHash() []byte
 	IsInterfaceNil() bool
+	SetFinalityAttestingRound(round uint64)
+	EpochFinalityAttestingRound() uint64
 }
 
 // PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks

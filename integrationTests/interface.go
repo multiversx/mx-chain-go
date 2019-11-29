@@ -17,7 +17,7 @@ type TestBootstrapper interface {
 // in tests as it simplifies the reproduction of test scenarios
 type TestEpochStartTrigger interface {
 	epochStart.TriggerHandler
-	GetRoundsPerEpoch() int64
+	GetRoundsPerEpoch() uint64
 	SetTrigger(triggerHandler epochStart.TriggerHandler)
-	SetRoundsPerEpoch(roundsPerEpoch int64)
+	SetRoundsPerEpoch(roundsPerEpoch uint64)
 }

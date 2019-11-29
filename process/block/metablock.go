@@ -228,6 +228,8 @@ func (mp *metaProcessor) ProcessBlock(
 		go mp.checkAndRequestIfShardHeadersMissing(header.Round)
 	}()
 
+	mp.epochStartTrigger.Update(header.GetRound())
+
 	err = mp.checkEpochCorrectness(header, chainHandler)
 	if err != nil {
 		return err
@@ -312,8 +314,11 @@ func (mp *metaProcessor) checkEpochCorrectness(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	if mp.epochStartTrigger.IsEpochStart() &&
-		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 {
+	isEpochIncorrect = mp.epochStartTrigger.IsEpochStart() &&
+		mp.epochStartTrigger.EpochStartRound() <= headerHandler.GetRound() &&
+		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1
+
+	if isEpochIncorrect {
 		return process.ErrEpochDoesNotMatch
 	}
 
@@ -379,11 +384,6 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 	}
 
 	return miniBlockShardsHashes, nil
-}
-
-// SetConsensusData - sets the reward addresses for the current consensus group
-func (mp *metaProcessor) SetConsensusData(randomness []byte, round uint64, epoch uint32, shardId uint32) {
-	// nothing to do
 }
 
 func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
@@ -556,6 +556,10 @@ func (mp *metaProcessor) CreateBlockBody(initialHdrData data.HeaderHandler, have
 	)
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeMaxItems()
+
+	mp.epochStartTrigger.Update(initialHdrData.GetRound())
+	initialHdrData.SetEpoch(mp.epochStartTrigger.Epoch())
+
 	mp.blockChainHook.SetCurrentHeader(initialHdrData)
 
 	miniBlocks, err := mp.createMiniBlocks(mp.blockSizeThrottler.MaxItemsToAdd(), initialHdrData.GetRound(), haveTime)
@@ -921,6 +925,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	mp.commitEpochStart(header, chainHandler)
+
 	err = chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
@@ -943,13 +949,10 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	if header.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.Processed()
-	}
-
 	log.Info("meta block has been committed successfully",
 		"nonce", header.Nonce,
 		"round", header.Round,
+		"epoch", header.Epoch,
 		"hash", headerHash)
 
 	errNotCritical = mp.removeBlockInfoFromPool(header)
@@ -1003,6 +1006,17 @@ func (mp *metaProcessor) CommitBlock(
 	go mp.cleanupPools(headersNoncesPool, metaBlocksPool, mp.dataPool.ShardHeaders())
 
 	return nil
+}
+
+func (mp *metaProcessor) commitEpochStart(header data.HeaderHandler, chainHandler data.ChainHandler) {
+	if header.IsStartOfEpochBlock() {
+		mp.epochStartTrigger.SetProcessed(header)
+	} else {
+		currentHeader := chainHandler.GetCurrentBlockHeader()
+		if currentHeader != nil && currentHeader.IsStartOfEpochBlock() {
+			mp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
+		}
+	}
 }
 
 // RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
@@ -1365,7 +1379,7 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 	mp.setLastHdrForShard(shardHeader.GetShardID(), shardHeader)
 
 	isShardHeaderWithOldEpochAndBadRound := shardHeader.Epoch < mp.epochStartTrigger.Epoch() &&
-		shardHeader.Round > mp.epochStartTrigger.EpochStartRound()+uint64(mp.shardBlockFinality)
+		shardHeader.Round > mp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod
 
 	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) || isShardHeaderWithOldEpochAndBadRound {
 		shardHeaderPool.Remove(shardHeaderHash)
@@ -1557,6 +1571,7 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 		return err
 	}
 
+	metaHdr.Epoch = mp.epochStartTrigger.Epoch()
 	metaHdr.ShardInfo = shardInfo
 	metaHdr.PeerInfo = peerInfo
 	metaHdr.RootHash = mp.getRootHash()
