@@ -865,6 +865,28 @@ func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestMetaProcessor_ApplyBodyToHeaderShouldSetEpochStart(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments()
+	arguments.Accounts = &mock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 0
+		},
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("root"), nil
+		},
+	}
+	arguments.DataPool = initMetaDataPool()
+	arguments.Store = initStore()
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	metaBlk := &block.MetaBlock{TimeStamp: 12345}
+	bodyHandler := block.Body{&block.MiniBlock{Type: 0}}
+	err := mp.ApplyBodyToHeader(metaBlk, bodyHandler)
+	assert.Nil(t, err)
+}
+
 func TestMetaProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
 	t.Parallel()
 
@@ -2519,5 +2541,206 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		},
 	}
 	err = mp.ProcessBlock(blkc, headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_CreateEpochStartFromMetaBlockEpochIsNotStarted(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments()
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool {
+			return false
+		},
+	}
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	round := uint64(10)
+
+	metaHdr := &block.MetaBlock{Round: round}
+	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	assert.Nil(t, err)
+
+	emptyEpochStart := block.EpochStart{}
+	assert.Equal(t, emptyEpochStart, *epStart)
+}
+
+func TestMetaProcessor_CreateEpochStartFromMetaBlockHashComputeIssueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("err computing hash")
+
+	arguments := createMockMetaArguments()
+	arguments.Marshalizer = &mock.MarshalizerStub{
+		// trigger an error on the Marshal method called from core's ComputeHash
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
+			return nil, expectedErr
+		},
+	}
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+	}
+
+	mp, err := blproc.NewMetaProcessor(arguments)
+	assert.Nil(t, err)
+	round := uint64(10)
+
+	metaHdr := &block.MetaBlock{Round: round}
+
+	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	assert.Nil(t, epStart)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments()
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+	}
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	hdr := arguments.StartHeaders[0].(*block.Header)
+	hdr.MetaBlockHashes = [][]byte{hash1, hash2}
+	hdr.Nonce = 1
+	arguments.StartHeaders[0] = hdr
+
+	dPool := initMetaDataPool()
+	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	dPool.ShardHeadersCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+			return &block.Header{
+				PrevHash:         []byte("hash1"),
+				Nonce:            1,
+				Round:            1,
+				PrevRandSeed:     []byte("roothash"),
+				MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
+				MetaBlockHashes:  [][]byte{[]byte("hash1"), []byte("hash2")},
+			}, true
+		}
+		cs.LenCalled = func() int {
+			return 0
+		}
+		cs.RemoveCalled = func(key []byte) {}
+		cs.KeysCalled = func() [][]byte {
+			return [][]byte{[]byte("hdr1"), []byte("hdr2")}
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
+		}
+		return cs
+	}
+	arguments.DataPool = dPool
+	arguments.PendingMiniBlocks = &mock.PendingMiniBlocksHandlerStub{
+		PendingMiniBlockHeadersCalled: func(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error) {
+			var hdrs []block.ShardMiniBlockHeader
+			hdrs = append(hdrs, block.ShardMiniBlockHeader{
+				Hash:            hash1,
+				ReceiverShardID: 0,
+				SenderShardID:   1,
+				TxCount:         2,
+			})
+
+			return hdrs, nil
+		},
+	}
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	round := uint64(10)
+
+	metaHdr := &block.MetaBlock{Round: round}
+
+	epStart, err := mp.CreateEpochStartForMetablock(metaHdr)
+	assert.Nil(t, err)
+	assert.NotNil(t, epStart)
+	assert.Equal(t, hash1, epStart.LastFinalizedHeaders[0].LastFinishedMetaBlock)
+	assert.Equal(t, hash2, epStart.LastFinalizedHeaders[0].FirstPendingMetaBlock)
+}
+
+func TestShardProcessor_getLastFinalizedMetaHashForShardMetaHashNotFoundShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments()
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool {
+			return false
+		},
+	}
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	round := uint64(10)
+
+	shardHdr := &block.Header{Round: round}
+	last, lastFinal, err := mp.GetLastFinalizedMetaHashForShard(shardHdr)
+	assert.Nil(t, last)
+	assert.Nil(t, lastFinal)
+	assert.Equal(t, process.ErrLastFinalizedMetaHashForShardNotFound, err)
+}
+
+func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments()
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool {
+			return false
+		},
+	}
+
+	dPool := initMetaDataPool()
+	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	dPool.ShardHeadersCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+		cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+			return &block.Header{
+				PrevHash:         []byte("hash1"),
+				Nonce:            2,
+				Round:            2,
+				PrevRandSeed:     []byte("roothash"),
+				MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
+				MetaBlockHashes:  [][]byte{[]byte("hash1"), []byte("hash2")},
+			}, true
+		}
+		cs.LenCalled = func() int {
+			return 0
+		}
+		cs.RemoveCalled = func(key []byte) {}
+		cs.KeysCalled = func() [][]byte {
+			return [][]byte{[]byte("hdr1"), []byte("hdr2")}
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
+		}
+		return cs
+	}
+
+	arguments.DataPool = dPool
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	round := uint64(10)
+	nonce := uint64(1)
+
+	shardHdr := &block.Header{
+		Round:           round,
+		Nonce:           nonce,
+		MetaBlockHashes: [][]byte{[]byte("mb_hash1")},
+	}
+	last, lastFinal, err := mp.GetLastFinalizedMetaHashForShard(shardHdr)
+	assert.NotNil(t, last)
+	assert.NotNil(t, lastFinal)
 	assert.Nil(t, err)
 }
