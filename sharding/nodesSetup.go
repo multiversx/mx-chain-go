@@ -144,7 +144,10 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 		}
 	}
 
-	ns.nrOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes) / ns.MinNodesPerShard
+	hystMeta := uint32(float32(ns.MetaChainMinNodes) * ns.Hysteresis)
+	hystShard := uint32(float32(ns.MinNodesPerShard) * ns.Hysteresis)
+
+	ns.nrOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes - hystMeta) / (ns.MinNodesPerShard + hystShard)
 }
 
 func (ns *NodesSetup) processShardAssignment() {
