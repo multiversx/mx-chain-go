@@ -3,7 +3,7 @@ source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 generateConfig() {
   echo "Generating configuration using values from scripts/variables.sh..."
 
-  cd $TESTNETDIR/filegen
+  pushd $TESTNETDIR/filegen
   ./filegen \
     -mint-value $MINT_VALUE                               \
     -num-of-shards $SHARDCOUNT                            \
@@ -14,10 +14,11 @@ generateConfig() {
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
     -consensus-type $CONSENSUS_TYPE
+  popd
 }
 
 copyConfig() {
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
 
   cp ./filegen/genesis.json ./node/config
   cp ./filegen/nodesSetup.json ./node/config
@@ -28,15 +29,17 @@ copyConfig() {
   cp ./filegen/initialNodesSk.pem ./node/config
   cp ./filegen/initialNodesSkPlain.txt ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
+  popd
 }
 
 copySeednodeConfig() {
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
   cp $SEEDNODEDIR/config/p2p.toml ./seednode/config
+  popd
 }
 
 updateSeednodeConfig() {
-  cd $TESTNETDIR/seednode/config
+  pushd $TESTNETDIR/seednode/config
   cp p2p.toml p2p_edit.toml
 
   updateTOMLValue p2p_edit.toml "Port" $PORT_SEEDNODE
@@ -45,10 +48,11 @@ updateSeednodeConfig() {
   rm p2p_edit.toml
 
   echo "Updated configuration for the Seednode."
+  popd
 }
 
 copyNodeConfig() {
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
   cp $NODEDIR/config/config.toml ./node/config
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/prefs.toml ./node/config
@@ -58,10 +62,11 @@ copyNodeConfig() {
 
 
   echo "Configuration files copied from the Node to the working directories of the executables."
+  popd
 }
 
 updateNodeConfig() {
-  cd $TESTNETDIR/node/config
+  pushd $TESTNETDIR/node/config
   cp p2p.toml p2p_edit.toml
 
   updateTOMLValue p2p_edit.toml "InitialPeerList" "[\"$P2P_SEEDNODE_ADDRESS\"]"
@@ -78,10 +83,11 @@ updateNodeConfig() {
   rm nodesSetup_edit.json
 
   echo "Updated configuration for Nodes."
+  popd
 }
 
 copyProxyConfig() {
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
 
   cp $PROXYDIR/config/config.toml ./proxy/config/
 
@@ -89,10 +95,11 @@ copyProxyConfig() {
   cp ./node/config/initialBalancesSk.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."
+  popd
 }
 
 updateProxyConfig() {
-  cd $TESTNETDIR/proxy/config
+  pushd $TESTNETDIR/proxy/config
   cp config.toml config_edit.toml
 
   # Truncate config.toml before the [[Observers]] list
@@ -105,10 +112,11 @@ updateProxyConfig() {
   rm config_edit.toml
 
   echo "Updated configuration for the Proxy."
+  popd
 }
 
 copyTxGenConfig() {
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
 
   cp $TXGENDIR/config/config.toml ./txgen/config/
 
@@ -119,10 +127,11 @@ copyTxGenConfig() {
   cp ./node/config/initialBalancesSk.pem ./txgen/config
 
   echo "Copied configuration for the TxGen."
+  popd
 }
 
 updateTxGenConfig() {
-  cd $TESTNETDIR/txgen/config
+  pushd $TESTNETDIR/txgen/config
   cp config.toml config_edit.toml
 
   updateTOMLValue config_edit.toml "ServerPort" $PORT_TXGEN
@@ -132,6 +141,7 @@ updateTxGenConfig() {
   rm config_edit.toml
 
   echo "Updated configuration for the TxGen."
+  popd
 }
 
 

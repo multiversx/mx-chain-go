@@ -26,51 +26,61 @@ prepareFolders_PrivateRepos() {
 
 buildConfigGenerator() {
   echo "Building Configuration Generator..."
-  cd $CONFIGGENERATORDIR
+  pushd $CONFIGGENERATORDIR
   go build .
+  popd
 
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
   cp $CONFIGGENERATOR ./filegen/
   echo "Configuration Generator built..."
+  popd
 }
 
 
 buildNode() {
   echo "Building Node executable..."
-  cd $NODEDIR
+  pushd $NODEDIR
   go build .
+  popd
 
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
   cp $NODE ./node/
   echo "Node executable built."
+  popd
 }
 
 buildSeednode() {
   echo "Building Seednode executable..."
-  cd $SEEDNODEDIR
+  pushd $SEEDNODEDIR
   go build .
+  popd
 
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
   cp $SEEDNODE ./seednode/
   echo "Seednode executable built."
+  popd
 }
 
 buildProxy() {
   echo "Building Proxy executable..."
-  cd $PROXYDIR
+  pushd $PROXYDIR
   go build .
+  popd
 
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
   cp $PROXY ./proxy/
   echo "Proxy executable built."
+  popd
 }
 
 buildTxGen() {
   echo "Building TxGen executable..."
-  cd $TXGENDIR
+  pushd $TXGENDIR
   go build .
+  popd
 
-  cd $TESTNETDIR
+  pushd $TESTNETDIR
   cp $TXGEN ./txgen/
   echo "TxGen executable built."
+  popd
 }
