@@ -1720,10 +1720,9 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 
 	badAcc := &mock.AccountWrapMock{}
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	sctx, consumed, err = sc.createSCRForSender(vmOutput, tx, txHash, badAcc)
+	sctx, _, err = sc.createSCRForSender(vmOutput, tx, txHash, badAcc)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, sctx)
-	assert.Equal(t, 0, consumed.Cmp(big.NewInt(0)))
 }
 
 func TestScProcessor_RefundGasToSender(t *testing.T) {
