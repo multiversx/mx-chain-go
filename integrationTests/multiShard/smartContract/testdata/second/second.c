@@ -12,6 +12,9 @@ void doSomething()
     transferValue(999999, firstScAddress, zero, "callMe@01", sizeof("callMe@01") - 1);
 }
 
+void callBack() {
+}
+
 void _main(void)
 {
 }

@@ -13,6 +13,9 @@ void init()
     int64storageStore(counterKey, 0);
 }
 
+void callBack() {
+}
+
 void callMe()
 {
     i64 counter = int64storageLoad(counterKey);

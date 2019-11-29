@@ -31,6 +31,9 @@ void sendToStaking()
     transferValue(999999, stakingSc, callValue, data, 72);
 }
 
+void callBack() {
+}
+
 void _main(void)
 {
 }

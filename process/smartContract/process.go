@@ -875,21 +875,25 @@ func (sc *scProcessor) processSimpleSCR(
 		return process.ErrWrongTypeAssertion
 	}
 
-	storageUpdates, err := sc.argsParser.GetStorageUpdates(scr.Data)
-	for i := 0; i < len(storageUpdates); i++ {
-		stAcc.DataTrieTracker().SaveKeyValue(storageUpdates[i].Offset, storageUpdates[i].Data)
-	}
-
 	if len(scr.Data) > 0 {
+		storageUpdates, err := sc.argsParser.GetStorageUpdates(scr.Data)
+		if err != nil {
+			return err
+		}
+
+		for i := 0; i < len(storageUpdates); i++ {
+			stAcc.DataTrieTracker().SaveKeyValue(storageUpdates[i].Offset, storageUpdates[i].Data)
+		}
+
 		//SC with data variables
-		err := sc.accounts.SaveDataTrie(stAcc)
+		err = sc.accounts.SaveDataTrie(stAcc)
 		if err != nil {
 			return err
 		}
 	}
 
 	if len(scr.Code) > 0 {
-		err = sc.accounts.PutCode(stAcc, scr.Code)
+		err := sc.accounts.PutCode(stAcc, scr.Code)
 		if err != nil {
 			return err
 		}
@@ -901,7 +905,7 @@ func (sc *scProcessor) processSimpleSCR(
 
 	operation := big.NewInt(0)
 	operation = operation.Add(scr.Value, stAcc.Balance)
-	err = stAcc.SetBalanceWithJournal(operation)
+	err := stAcc.SetBalanceWithJournal(operation)
 	if err != nil {
 		return err
 	}
