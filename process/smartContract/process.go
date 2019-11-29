@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -46,6 +46,7 @@ type scProcessor struct {
 	txFeeHandler  process.TransactionFeeHandler
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
+	gasHandler   process.GasHandler
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -62,6 +63,7 @@ func NewSmartContractProcessor(
 	txFeeHandler process.TransactionFeeHandler,
 	economicsFee process.FeeHandler,
 	txTypeHandler process.TxTypeHandler,
+	gasHandler process.GasHandler,
 ) (*scProcessor, error) {
 	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
@@ -99,6 +101,9 @@ func NewSmartContractProcessor(
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
+	}
 
 	return &scProcessor{
 		vmContainer:      vmContainer,
@@ -113,6 +118,7 @@ func NewSmartContractProcessor(
 		txFeeHandler:     txFeeHandler,
 		economicsFee:     economicsFee,
 		txTypeHandler:    txTypeHandler,
+		gasHandler:       gasHandler,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
 }
 
@@ -250,46 +256,55 @@ func (sc *scProcessor) DeploySmartContract(
 
 	err := sc.checkTxValidity(tx)
 	if err != nil {
+		log.Debug("Transaction invalid", "error", err.Error())
 		return err
 	}
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
+		log.Debug("Transaction wrong", "error", process.ErrWrongTransaction.Error())
 		return process.ErrWrongTransaction
 	}
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
+		log.Debug("Transaction error", "error", err.Error())
 		return err
 	}
 
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {
+		log.Debug("Transaction error", "error", err.Error())
 		return err
 	}
 
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
+		log.Debug("VM error", "error", err.Error())
 		return err
 	}
 
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
 	if err != nil {
+		log.Debug("VM error", "error", err.Error())
 		return err
 	}
 
 	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
+		log.Debug("Processing error", "error", err.Error())
 		return err
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
+		log.Debug("Processing error", "error", err.Error())
 		return err
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 
+	log.Trace("SmartContract deployed")
 	return nil
 }
 
@@ -496,6 +511,7 @@ func (sc *scProcessor) processVMOutput(
 		log.Debug("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
 	}
 
+	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining.Uint64(), txHash)
 	scrRefund, consumedFee, err := sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
 	if err != nil {
 		return nil, nil, err

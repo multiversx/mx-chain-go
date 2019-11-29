@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -224,6 +225,11 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
+	gasHandler, err := preprocess.NewGasComputation(args.Economics)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
 	if err != nil {
 		return nil, nil, err
@@ -242,6 +248,7 @@ func createProcessorsForMetaGenesisBlock(
 		&metachain.TransactionFeeHandler{},
 		&metachain.TransactionFeeHandler{},
 		txTypeHandler,
+		gasHandler,
 	)
 	if err != nil {
 		return nil, nil, err

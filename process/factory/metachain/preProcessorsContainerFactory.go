@@ -25,6 +25,7 @@ type preProcessorsContainerFactory struct {
 	requestHandler      process.RequestHandler
 	economicsFee        process.FeeHandler
 	miniBlocksCompacter process.MiniBlocksCompacter
+	gasHandler          process.GasHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -40,6 +41,7 @@ func NewPreProcessorsContainerFactory(
 	scResultProcessor process.SmartContractResultProcessor,
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
+	gasHandler process.GasHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -75,6 +77,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(scResultProcessor) {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:    shardCoordinator,
@@ -88,6 +93,7 @@ func NewPreProcessorsContainerFactory(
 		economicsFee:        economicsFee,
 		miniBlocksCompacter: miniBlocksCompacter,
 		scResultProcessor:   scResultProcessor,
+		gasHandler:          gasHandler,
 	}, nil
 }
 
@@ -130,6 +136,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.requestHandler.RequestTransaction,
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
+		ppcm.gasHandler,
 	)
 
 	return txPreprocessor, err

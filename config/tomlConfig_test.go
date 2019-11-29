@@ -157,7 +157,7 @@ func TestTomlEconomicsParser(t *testing.T) {
     LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
     BurnPercentage =  ` + fmt.Sprintf("%.6f", burnPercentage) + `
 [FeeSettings]
-    MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
+	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"
     MinGasLimit = "` + minGasLimit + `"
 `
