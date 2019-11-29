@@ -28,9 +28,14 @@ if [[ "$DISTRIBUTION" =~ ^(ubuntu|debian)$ ]]; then
   sudo tar -C /usr/local -xzf $GO_LATEST.linux-amd64.tar.gz
   rm $GO_LATEST.linux-amd64.tar.gz
 
-  echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.profile
-  mkdir -p "$HOME/go"
-  echo "export GOPATH=$HOME/go" >> ~/.profile
+  export GOROOT="/usr/local/go"
+  export GOBIN="$HOME/go/bin"
+  export PATH=$PATH:$GOROOT/bin:$GOBIN
+  mkdir -p $GOBIN
+
+  echo "export GOROOT=/usr/local/go" >> ~/.profile
+  echo "export GOBIN=$HOME/go/bin" >> ~/.profile
+  echo "export PATH=$PATH:$GOROOT/bin:$GOBIN" >> ~/.profile
   source ~/.profile 
 fi
 
