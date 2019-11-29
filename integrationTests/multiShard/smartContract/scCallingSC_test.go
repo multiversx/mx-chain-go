@@ -90,7 +90,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 
 	// make smart contract call to shard 1 which will do in shard 0
 	for _, node := range nodes {
-		txData := "_main"
+		txData := "doSomething"
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
 	}
 
