@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/stretchr/testify/assert"
 )
 
 // NewTestProcessorNodeWithCustomNodesCoordinator returns a new TestProcessorNode instance with custom NodesCoordinator
@@ -135,11 +134,7 @@ func ProposeBlockWithConsensusSignature(
 		fmt.Println("Error getting the validators public keys: ", err)
 	}
 
-	// set the consensus reward addresses
-	for _, node := range nodesMap[shardId] {
-		node.BlockProcessor.SetConsensusData(randomness, round, 0, shardId)
-	}
-
+	// set some randomness
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
@@ -252,51 +247,4 @@ func SyncAllShardsWithRoundBlock(
 		SyncBlock(t, nodeList, []int{indexProposers[shard]}, round)
 	}
 	time.Sleep(2 * time.Second)
-}
-
-// VerifyNodesHaveHeaders verifies that each node has the corresponding header
-func VerifyNodesHaveHeaders(
-	t *testing.T,
-	headers map[uint32]data.HeaderHandler,
-	nodesMap map[uint32][]*TestProcessorNode,
-) {
-	var v interface{}
-	var ok bool
-
-	// all nodes in metachain have the block headers in pool as interceptor validates them
-	for shHeader, header := range headers {
-		headerHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, header)
-
-		for _, metaNode := range nodesMap[sharding.MetachainShardId] {
-			if shHeader == sharding.MetachainShardId {
-				v, ok = metaNode.MetaDataPool.MetaBlocks().Get(headerHash)
-			} else {
-				v, ok = metaNode.MetaDataPool.ShardHeaders().Get(headerHash)
-			}
-
-			assert.True(t, ok)
-			assert.Equal(t, header, v)
-		}
-
-		// all nodes in shards need to have their own shard headers and metachain headers
-		for sh, nodesList := range nodesMap {
-			if sh == sharding.MetachainShardId {
-				continue
-			}
-
-			if sh != shHeader && shHeader != sharding.MetachainShardId {
-				continue
-			}
-
-			for _, node := range nodesList {
-				if shHeader == sharding.MetachainShardId {
-					v, ok = node.ShardDataPool.MetaBlocks().Get(headerHash)
-				} else {
-					v, ok = node.ShardDataPool.Headers().Get(headerHash)
-				}
-				assert.True(t, ok)
-				assert.Equal(t, header, v)
-			}
-		}
-	}
 }

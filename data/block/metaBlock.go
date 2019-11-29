@@ -537,6 +537,10 @@ func (m *MetaBlock) GetTxCount() uint32 {
 	return m.TxCount
 }
 
+// SetShardID sets header shard ID
+func (m *MetaBlock) SetShardID(shId uint32) {
+}
+
 // SetNonce sets header nonce
 func (m *MetaBlock) SetNonce(n uint64) {
 	m.Nonce = n

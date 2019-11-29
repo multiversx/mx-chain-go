@@ -63,6 +63,7 @@ type EpochStartConfig struct {
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
+	MiniBlockHeadersStorage    StorageConfig
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
@@ -93,11 +94,12 @@ type Config struct {
 	ShardHeadersDataPool          CacheConfig
 	MetaHeaderNoncesDataPool      CacheConfig
 
-	Logger         LoggerConfig
-	Address        AddressConfig
-	Hasher         TypeConfig
-	MultisigHasher TypeConfig
-	Marshalizer    TypeConfig
+	EpochStartConfig EpochStartConfig
+	Logger           LoggerConfig
+	Address          AddressConfig
+	Hasher           TypeConfig
+	MultisigHasher   TypeConfig
+	Marshalizer      TypeConfig
 
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
@@ -106,8 +108,6 @@ type Config struct {
 	Explorer        ExplorerConfig
 
 	NTPConfig NTPConfig
-
-	EpochStart EpochStartConfig
 }
 
 // NodeConfig will hold basic p2p settings

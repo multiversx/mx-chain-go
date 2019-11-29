@@ -5,9 +5,6 @@ import "errors"
 // ErrNilArgsNewMetaEpochStartTrigger signals that nil arguments were provided
 var ErrNilArgsNewMetaEpochStartTrigger = errors.New("nil arguments for meta start of epoch trigger")
 
-// ErrNilRounder signals that nil round was provided
-var ErrNilRounder = errors.New("nil rounder")
-
 // ErrNilEpochStartSettings signals that nil start of epoch settings has been provided
 var ErrNilEpochStartSettings = errors.New("nil start of epoch settings")
 
@@ -19,6 +16,9 @@ var ErrNilSyncTimer = errors.New("nil sync timer")
 
 // ErrNilArgsNewShardEpochStartTrigger signals that nil arguments for shard epoch trigger has been provided
 var ErrNilArgsNewShardEpochStartTrigger = errors.New("nil arguments for shard start of epoch trigger")
+
+// ErrNilEpochStartNotifier signals that nil epoch start notifier has been provided
+var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
 
 // ErrNotEnoughRoundsBetweenEpochs signals that not enough rounds has passed since last epoch start
 var ErrNotEnoughRoundsBetweenEpochs = errors.New("tried to force start of epoch before passing of enough rounds")

@@ -9,14 +9,16 @@ import (
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
-	ForceEpochStart(round int64) error
+	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
 	ReceivedHeader(header data.HeaderHandler)
-	Update(round int64)
+	Update(round uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
-	Processed()
+	SetProcessed(header data.HeaderHandler)
+	SetFinalityAttestingRound(round uint64)
+	EpochFinalityAttestingRound() uint64
 	Revert()
 	IsInterfaceNil() bool
 }
@@ -48,5 +50,11 @@ type HeaderValidator interface {
 type RequestHandler interface {
 	RequestHeaderByNonce(shardId uint32, nonce uint64)
 	RequestHeader(shardId uint32, hash []byte)
+	IsInterfaceNil() bool
+}
+
+// StartOfEpochNotifier defines what triggers should do for subscribed functions
+type StartOfEpochNotifier interface {
+	NotifyAll(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }

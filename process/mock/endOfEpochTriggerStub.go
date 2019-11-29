@@ -3,13 +3,20 @@ package mock
 import "github.com/ElrondNetwork/elrond-go/data"
 
 type EpochStartTriggerStub struct {
-	ForceEpochStartCalled func(round int64) error
+	ForceEpochStartCalled func(round uint64) error
 	IsEpochStartCalled    func() bool
 	EpochCalled           func() uint32
 	ReceivedHeaderCalled  func(handler data.HeaderHandler)
-	UpdateCalled          func(round int64)
-	ProcessedCalled       func()
+	UpdateCalled          func(round uint64)
+	ProcessedCalled       func(header data.HeaderHandler)
 	EpochStartRoundCalled func() uint64
+}
+
+func (e *EpochStartTriggerStub) SetFinalityAttestingRound(round uint64) {
+}
+
+func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {
+	return 0
 }
 
 func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
@@ -26,19 +33,19 @@ func (e *EpochStartTriggerStub) EpochStartRound() uint64 {
 	return 0
 }
 
-func (e *EpochStartTriggerStub) Update(round int64) {
+func (e *EpochStartTriggerStub) Update(round uint64) {
 	if e.UpdateCalled != nil {
 		e.UpdateCalled(round)
 	}
 }
 
-func (e *EpochStartTriggerStub) Processed() {
+func (e *EpochStartTriggerStub) SetProcessed(header data.HeaderHandler) {
 	if e.ProcessedCalled != nil {
-		e.ProcessedCalled()
+		e.ProcessedCalled(header)
 	}
 }
 
-func (e *EpochStartTriggerStub) ForceEpochStart(round int64) error {
+func (e *EpochStartTriggerStub) ForceEpochStart(round uint64) error {
 	if e.ForceEpochStartCalled != nil {
 		return e.ForceEpochStartCalled(round)
 	}

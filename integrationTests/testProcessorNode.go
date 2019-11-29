@@ -661,13 +661,13 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
 
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			Rounder:     argumentsBase.Rounder,
 			GenesisTime: argumentsBase.Rounder.TimeStamp(),
 			Settings: &config.EpochStartConfig{
 				MinRoundsBetweenEpochs: 1000,
 				RoundsPerEpoch:         10000,
 			},
-			Epoch: 0,
+			Epoch:              0,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		}
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
@@ -700,16 +700,17 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 	} else {
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:     TestMarshalizer,
-			Hasher:          TestHasher,
-			HeaderValidator: headerValidator,
-			Uint64Converter: TestUint64Converter,
-			DataPool:        tpn.ShardDataPool,
-			Storage:         tpn.Storage,
-			RequestHandler:  tpn.RequestHandler,
-			Epoch:           0,
-			Validity:        1,
-			Finality:        1,
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			HeaderValidator:    headerValidator,
+			Uint64Converter:    TestUint64Converter,
+			DataPool:           tpn.ShardDataPool,
+			Storage:            tpn.Storage,
+			RequestHandler:     tpn.RequestHandler,
+			Epoch:              0,
+			Validity:           1,
+			Finality:           1,
+			EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -861,7 +862,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader := tpn.BlockProcessor.CreateNewHeader()
 
-	blockHeader.SetEpoch(tpn.EpochStartTrigger.Epoch())
+	blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
 	blockHeader.SetRound(round)
 	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})

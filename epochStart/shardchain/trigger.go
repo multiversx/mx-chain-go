@@ -25,9 +25,10 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool       dataRetriever.PoolsHolder
-	Storage        dataRetriever.StorageService
-	RequestHandler epochStart.RequestHandler
+	DataPool           dataRetriever.PoolsHolder
+	Storage            dataRetriever.StorageService
+	RequestHandler     epochStart.RequestHandler
+	EpochStartNotifier epochStart.StartOfEpochNotifier
 
 	Epoch    uint32
 	Validity uint64
@@ -35,13 +36,14 @@ type ArgsShardEpochStartTrigger struct {
 }
 
 type trigger struct {
-	epoch              uint32
-	currentRoundIndex  int64
-	epochStartRound    uint64
-	epochMetaBlockHash []byte
-	isEpochStart       bool
-	finality           uint64
-	validity           uint64
+	epoch                       uint32
+	currentRoundIndex           int64
+	epochStartRound             uint64
+	epochMetaBlockHash          []byte
+	isEpochStart                bool
+	finality                    uint64
+	validity                    uint64
+	epochFinalityAttestingRound uint64
 
 	newEpochHdrReceived bool
 
@@ -60,7 +62,8 @@ type trigger struct {
 	hasher          hashing.Hasher
 	headerValidator epochStart.HeaderValidator
 
-	requestHandler epochStart.RequestHandler
+	requestHandler     epochStart.RequestHandler
+	epochStartNotifier epochStart.StartOfEpochNotifier
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -95,6 +98,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.Uint64Converter) {
 		return nil, epochStart.ErrNilUint64Converter
 	}
+	if check.IfNil(args.EpochStartNotifier) {
+		return nil, epochStart.ErrNilEpochStartNotifier
+	}
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
@@ -107,27 +113,29 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	}
 
 	newTrigger := &trigger{
-		epoch:               args.Epoch,
-		currentRoundIndex:   0,
-		epochStartRound:     0,
-		isEpochStart:        false,
-		validity:            args.Validity,
-		finality:            args.Finality,
-		newEpochHdrReceived: false,
-		mutTrigger:          sync.RWMutex{},
-		mapHashHdr:          make(map[string]*block.MetaBlock),
-		mapNonceHashes:      make(map[uint64][]string),
-		mapEpochStartHdrs:   make(map[string]*block.MetaBlock),
-		metaHdrPool:         args.DataPool.MetaBlocks(),
-		metaHdrNonces:       args.DataPool.HeadersNonces(),
-		metaHdrStorage:      metaHdrStorage,
-		metaNonceHdrStorage: metaHdrNoncesStorage,
-		uint64Converter:     args.Uint64Converter,
-		marshalizer:         args.Marshalizer,
-		hasher:              args.Hasher,
-		headerValidator:     args.HeaderValidator,
-		requestHandler:      args.RequestHandler,
-		epochMetaBlockHash:  nil,
+		epoch:                       args.Epoch,
+		currentRoundIndex:           0,
+		epochStartRound:             0,
+		epochFinalityAttestingRound: 0,
+		isEpochStart:                false,
+		validity:                    args.Validity,
+		finality:                    args.Finality,
+		newEpochHdrReceived:         false,
+		mutTrigger:                  sync.RWMutex{},
+		mapHashHdr:                  make(map[string]*block.MetaBlock),
+		mapNonceHashes:              make(map[uint64][]string),
+		mapEpochStartHdrs:           make(map[string]*block.MetaBlock),
+		metaHdrPool:                 args.DataPool.MetaBlocks(),
+		metaHdrNonces:               args.DataPool.HeadersNonces(),
+		metaHdrStorage:              metaHdrStorage,
+		metaNonceHdrStorage:         metaHdrNoncesStorage,
+		uint64Converter:             args.Uint64Converter,
+		marshalizer:                 args.Marshalizer,
+		hasher:                      args.Hasher,
+		headerValidator:             args.HeaderValidator,
+		requestHandler:              args.RequestHandler,
+		epochMetaBlockHash:          nil,
+		epochStartNotifier:          args.EpochStartNotifier,
 	}
 	return newTrigger, nil
 }
@@ -156,8 +164,16 @@ func (t *trigger) EpochStartRound() uint64 {
 	return t.epochStartRound
 }
 
+// EpochFinalityAttestingRound returns the round when epoch start block was finalized
+func (t *trigger) EpochFinalityAttestingRound() uint64 {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	return t.epochFinalityAttestingRound
+}
+
 // ForceEpochStart sets the conditions for start of epoch to true in case of edge cases
-func (t *trigger) ForceEpochStart(round int64) error {
+func (t *trigger) ForceEpochStart(round uint64) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -213,11 +229,12 @@ func (t *trigger) updateTriggerFromMeta(metaHdr *block.MetaBlock, hdrHash []byte
 	}
 
 	for hash, meta := range t.mapEpochStartHdrs {
-		canActivateEpochStart := t.checkIfTriggerCanBeActivated(hash, meta)
-		if canActivateEpochStart && t.epoch != meta.Epoch {
+		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(hash, meta)
+		if canActivateEpochStart && t.epoch+1 == meta.Epoch {
 			t.epoch = meta.Epoch
 			t.isEpochStart = true
 			t.epochStartRound = meta.Round
+			t.epochFinalityAttestingRound = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(hash)
 			break
 		}
@@ -242,8 +259,9 @@ func (t *trigger) isMetaBlockValid(hash string, metaHdr *block.MetaBlock) bool {
 	return true
 }
 
-func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) bool {
+func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) (bool, uint64) {
 	nextBlocksVerified := uint64(0)
+	finalityAttestingRound := metaHdr.Round
 	currHdr := metaHdr
 	for nonce := metaHdr.Nonce + 1; nonce <= metaHdr.Nonce+t.finality; nonce++ {
 		currHash, err := core.CalculateHash(t.marshalizer, t.hasher, currHdr)
@@ -262,6 +280,8 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) bool {
 		}
 
 		currHdr = neededHdr
+
+		finalityAttestingRound = currHdr.GetRound()
 		nextBlocksVerified += 1
 	}
 
@@ -269,21 +289,21 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) bool {
 		for nonce := currHdr.Nonce + 1; nonce <= currHdr.Nonce+t.finality; nonce++ {
 			go t.requestHandler.RequestHeaderByNonce(sharding.MetachainShardId, nonce)
 		}
-		return false
+		return false, 0
 	}
 
-	return true
+	return true, finalityAttestingRound
 }
 
 // call only if mutex is locked before
-func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaBlock) bool {
+func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaBlock) (bool, uint64) {
 	isMetaHdrValid := t.isMetaBlockValid(hash, metaHdr)
 	if !isMetaHdrValid {
-		return isMetaHdrValid
+		return false, 0
 	}
 
-	isMetaHdrFinal := t.isMetaBlockFinal(hash, metaHdr)
-	return isMetaHdrFinal
+	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
+	return isMetaHdrFinal, finalityAttestingRound
 }
 
 // call only if mutex is locked before
@@ -412,17 +432,25 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 	return t.getHeaderWithNonceAndHash(nonce, neededHash)
 }
 
-// Update updates the end-of-epoch trigger
-func (t *trigger) Update(round int64) {
-}
-
-// Processed sets start of epoch to false and cleans underlying structure
-func (t *trigger) Processed() {
+// SetProcessed sets start of epoch to false and cleans underlying structure
+func (t *trigger) SetProcessed(header data.HeaderHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	shardHdr, ok := header.(*block.Header)
+	if !ok {
+		return
+	}
+
+	if !shardHdr.IsStartOfEpochBlock() {
+		return
+	}
+
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
+	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
+
+	t.epochStartNotifier.NotifyAll(shardHdr)
 
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)
@@ -444,6 +472,14 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	defer t.mutTrigger.RUnlock()
 
 	return t.epochMetaBlockHash
+}
+
+// Update updates the end-of-epoch trigger
+func (t *trigger) Update(round uint64) {
+}
+
+// SetFinalityAttestingRound sets the round which finalized the start of epoch block
+func (t *trigger) SetFinalityAttestingRound(round uint64) {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

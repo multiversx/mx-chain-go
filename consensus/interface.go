@@ -43,15 +43,6 @@ type ChronologyHandler interface {
 	RemoveAllSubrounds()
 	// StartRounds starts rounds in a sequential manner, one after the other
 	StartRounds()
-	Epoch() uint32
-	IsInterfaceNil() bool
-}
-
-// EpochStartHandler defines that actions which should be handled by an start of epoch implementation
-type EpochStartHandler interface {
-	IsEpochStart() bool
-	Update(round int64)
-	Epoch() uint32
 	IsInterfaceNil() bool
 }
 
