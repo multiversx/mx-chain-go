@@ -194,6 +194,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
+	err := sc.processSCPayment(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
 	sc.isCallBack = false
 	dataToParse := tx.GetData()
 
@@ -204,12 +209,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 		sc.isCallBack = true
 	}
 
-	err := sc.argsParser.ParseData(dataToParse)
-	if err != nil {
-		return err
-	}
-
-	err = sc.processSCPayment(tx, acntSnd)
+	err = sc.argsParser.ParseData(dataToParse)
 	if err != nil {
 		return err
 	}
