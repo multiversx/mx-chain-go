@@ -14,17 +14,17 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator    sharding.Coordinator
-	store               dataRetriever.StorageService
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	dataPool            dataRetriever.MetaPoolsHolder
-	txProcessor         process.TransactionProcessor
-	accounts            state.AccountsAdapter
-	requestHandler      process.RequestHandler
-	economicsFee        process.FeeHandler
-	miniBlocksCompacter process.MiniBlocksCompacter
-	gasHandler          process.GasHandler
+	shardCoordinator      sharding.Coordinator
+	store                 dataRetriever.StorageService
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	dataPool              dataRetriever.MetaPoolsHolder
+	txProcessor           process.TransactionProcessor
+	accounts              state.AccountsAdapter
+	requestHandler        process.RequestHandler
+	economicsFee          process.FeeHandler
+	miniBlocksCompacter   process.MiniBlocksCompacter
+	gasHandler            process.GasHandler
 	requestedItemsHandler process.RequestedItemsHandler
 }
 
@@ -82,17 +82,17 @@ func NewPreProcessorsContainerFactory(
 	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:    shardCoordinator,
-		store:               store,
-		marshalizer:         marshalizer,
-		hasher:              hasher,
-		dataPool:            dataPool,
-		txProcessor:         txProcessor,
-		accounts:            accounts,
-		requestHandler:      requestHandler,
-		economicsFee:        economicsFee,
-		miniBlocksCompacter: miniBlocksCompacter,
-		gasHandler:          gasHandler,
+		shardCoordinator:      shardCoordinator,
+		store:                 store,
+		marshalizer:           marshalizer,
+		hasher:                hasher,
+		dataPool:              dataPool,
+		txProcessor:           txProcessor,
+		accounts:              accounts,
+		requestHandler:        requestHandler,
+		economicsFee:          economicsFee,
+		miniBlocksCompacter:   miniBlocksCompacter,
+		gasHandler:            gasHandler,
 		requestedItemsHandler: requestedItemsHandler,
 	}, nil
 }

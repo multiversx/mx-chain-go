@@ -131,8 +131,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		RequestedItemsHandler:        tpn.RequestedItemsHandler,
-		ResolversFinder:              tpn.ResolverFinder,
+		RequestedItemsHandler: tpn.RequestedItemsHandler,
+		ResolversFinder:       tpn.ResolverFinder,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

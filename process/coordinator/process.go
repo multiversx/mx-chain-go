@@ -34,8 +34,8 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock func(shardId uint32, mbHash []byte)
-	gasHandler         process.GasHandler
+	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
+	gasHandler            process.GasHandler
 	requestedItemsHandler process.RequestedItemsHandler
 }
 

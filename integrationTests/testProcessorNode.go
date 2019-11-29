@@ -147,13 +147,13 @@ type TestProcessorNode struct {
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	GasHandler             process.GasHandler
 
-	ForkDetector        process.ForkDetector
-	BlockProcessor      process.BlockProcessor
-	BroadcastMessenger  consensus.BroadcastMessenger
-	Bootstrapper        TestBootstrapper
-	Rounder             *mock.RounderMock
-	BootstrapStorer     *mock.BoostrapStorerMock
-	StorageBootstrapper *mock.StorageBootstrapperMock
+	ForkDetector          process.ForkDetector
+	BlockProcessor        process.BlockProcessor
+	BroadcastMessenger    consensus.BroadcastMessenger
+	Bootstrapper          TestBootstrapper
+	Rounder               *mock.RounderMock
+	BootstrapStorer       *mock.BoostrapStorerMock
+	StorageBootstrapper   *mock.StorageBootstrapperMock
 	RequestedItemsHandler process.RequestedItemsHandler
 
 	MultiSigner crypto.MultiSigner
@@ -696,8 +696,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				return nil
 			},
 		},
-		RequestedItemsHandler:        tpn.RequestedItemsHandler,
-		ResolversFinder:              tpn.ResolverFinder,
+		RequestedItemsHandler: tpn.RequestedItemsHandler,
+		ResolversFinder:       tpn.ResolverFinder,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

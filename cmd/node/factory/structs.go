@@ -452,20 +452,20 @@ func NetworkComponentsFactory(p2pConfig *config.P2PConfig, log logger.Logger, co
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents       *coreComponentsFactoryArgs
-	genesisConfig        *sharding.Genesis
-	economicsData        *economics.EconomicsData
-	nodesConfig          *sharding.NodesSetup
-	gasSchedule          map[string]map[string]uint64
-	syncer               ntp.SyncTimer
-	shardCoordinator     sharding.Coordinator
-	nodesCoordinator     sharding.NodesCoordinator
-	data                 *Data
-	core                 *Core
-	crypto               *Crypto
-	state                *State
-	network              *Network
-	coreServiceContainer serviceContainer.Core
+	coreComponents        *coreComponentsFactoryArgs
+	genesisConfig         *sharding.Genesis
+	economicsData         *economics.EconomicsData
+	nodesConfig           *sharding.NodesSetup
+	gasSchedule           map[string]map[string]uint64
+	syncer                ntp.SyncTimer
+	shardCoordinator      sharding.Coordinator
+	nodesCoordinator      sharding.NodesCoordinator
+	data                  *Data
+	core                  *Core
+	crypto                *Crypto
+	state                 *State
+	network               *Network
+	coreServiceContainer  serviceContainer.Core
 	requestedItemsHandler process.RequestedItemsHandler
 }
 
@@ -488,20 +488,20 @@ func NewProcessComponentsFactoryArgs(
 	requestedItemsHandler process.RequestedItemsHandler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
-		coreComponents:       coreComponents,
-		genesisConfig:        genesisConfig,
-		economicsData:        economicsData,
-		nodesConfig:          nodesConfig,
-		gasSchedule:          gasSchedule,
-		syncer:               syncer,
-		shardCoordinator:     shardCoordinator,
-		nodesCoordinator:     nodesCoordinator,
-		data:                 data,
-		core:                 core,
-		crypto:               crypto,
-		state:                state,
-		network:              network,
-		coreServiceContainer: coreServiceContainer,
+		coreComponents:        coreComponents,
+		genesisConfig:         genesisConfig,
+		economicsData:         economicsData,
+		nodesConfig:           nodesConfig,
+		gasSchedule:           gasSchedule,
+		syncer:                syncer,
+		shardCoordinator:      shardCoordinator,
+		nodesCoordinator:      nodesCoordinator,
+		data:                  data,
+		core:                  core,
+		crypto:                crypto,
+		state:                 state,
+		network:               network,
+		coreServiceContainer:  coreServiceContainer,
 		requestedItemsHandler: requestedItemsHandler,
 	}
 }
@@ -2045,8 +2045,8 @@ func newShardBlockProcessor(
 		Rounder:                      rounder,
 		ValidatorStatisticsProcessor: statisticsProcessor,
 		BootStorer:                   bootStorer,
-		RequestedItemsHandler: requestedItemsHandler,
-		ResolversFinder:       resolversFinder,
+		RequestedItemsHandler:        requestedItemsHandler,
+		ResolversFinder:              resolversFinder,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,

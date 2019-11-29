@@ -14,22 +14,22 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator    sharding.Coordinator
-	store               dataRetriever.StorageService
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	dataPool            dataRetriever.PoolsHolder
-	addrConverter       state.AddressConverter
-	txProcessor         process.TransactionProcessor
-	scProcessor         process.SmartContractProcessor
-	scResultProcessor   process.SmartContractResultProcessor
-	rewardsTxProcessor  process.RewardTransactionProcessor
-	accounts            state.AccountsAdapter
-	requestHandler      process.RequestHandler
-	rewardsProducer     process.InternalTransactionProducer
-	economicsFee        process.FeeHandler
-	miniBlocksCompacter process.MiniBlocksCompacter
-	gasHandler          process.GasHandler
+	shardCoordinator      sharding.Coordinator
+	store                 dataRetriever.StorageService
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	dataPool              dataRetriever.PoolsHolder
+	addrConverter         state.AddressConverter
+	txProcessor           process.TransactionProcessor
+	scProcessor           process.SmartContractProcessor
+	scResultProcessor     process.SmartContractResultProcessor
+	rewardsTxProcessor    process.RewardTransactionProcessor
+	accounts              state.AccountsAdapter
+	requestHandler        process.RequestHandler
+	rewardsProducer       process.InternalTransactionProducer
+	economicsFee          process.FeeHandler
+	miniBlocksCompacter   process.MiniBlocksCompacter
+	gasHandler            process.GasHandler
 	requestedItemsHandler process.RequestedItemsHandler
 }
 
@@ -107,22 +107,22 @@ func NewPreProcessorsContainerFactory(
 	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:    shardCoordinator,
-		store:               store,
-		marshalizer:         marshalizer,
-		hasher:              hasher,
-		dataPool:            dataPool,
-		addrConverter:       addrConverter,
-		txProcessor:         txProcessor,
-		accounts:            accounts,
-		scProcessor:         scProcessor,
-		scResultProcessor:   scResultProcessor,
-		rewardsTxProcessor:  rewardsTxProcessor,
-		requestHandler:      requestHandler,
-		rewardsProducer:     rewardsProducer,
-		economicsFee:        economicsFee,
-		miniBlocksCompacter: miniBlocksCompacter,
-		gasHandler:          gasHandler,
+		shardCoordinator:      shardCoordinator,
+		store:                 store,
+		marshalizer:           marshalizer,
+		hasher:                hasher,
+		dataPool:              dataPool,
+		addrConverter:         addrConverter,
+		txProcessor:           txProcessor,
+		accounts:              accounts,
+		scProcessor:           scProcessor,
+		scResultProcessor:     scResultProcessor,
+		rewardsTxProcessor:    rewardsTxProcessor,
+		requestHandler:        requestHandler,
+		rewardsProducer:       rewardsProducer,
+		economicsFee:          economicsFee,
+		miniBlocksCompacter:   miniBlocksCompacter,
+		gasHandler:            gasHandler,
 		requestedItemsHandler: requestedItemsHandler,
 	}, nil
 }

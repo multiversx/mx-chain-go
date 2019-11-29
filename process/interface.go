@@ -510,7 +510,6 @@ type GasHandler interface {
 	IsInterfaceNil() bool
 }
 
-
 // BootStorer is the interface needed by bootstrapper to read/write data in storage
 type BootStorer interface {
 	SaveLastRound(round int64) error

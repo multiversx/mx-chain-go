@@ -341,6 +341,7 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		nil,
+		&mock.RequestedItemsHandlerMock{},
 	)
 
 	assert.Nil(t, tc)
@@ -357,6 +358,7 @@ func TestNewTransactionCoordinator_NilRequestedItemsHandler(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 		nil,
 	)
 

@@ -525,7 +525,7 @@ func createNetNode(
 					return nil
 				},
 			},
-			ResolversFinder:              createResolversFinder(),
+			ResolversFinder: createResolversFinder(),
 		},
 		DataPool:        dPool,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},

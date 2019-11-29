@@ -98,12 +98,12 @@ type baseBootstrap struct {
 	networkWatcher    process.NetworkConnectionWatcher
 	getHeaderFromPool func([]byte) (data.HeaderHandler, error)
 
-	headerStore          storage.Storer
-	headerNonceHashStore storage.Storer
-	hdrRes               dataRetriever.HeaderResolver
-	syncStarter          syncStarter
-	bootStorer           process.BootStorer
-	storageBootstrapper  process.BootstrapperFromStorage
+	headerStore           storage.Storer
+	headerNonceHashStore  storage.Storer
+	hdrRes                dataRetriever.HeaderResolver
+	syncStarter           syncStarter
+	bootStorer            process.BootStorer
+	storageBootstrapper   process.BootstrapperFromStorage
 	requestedItemsHandler process.RequestedItemsHandler
 }
 

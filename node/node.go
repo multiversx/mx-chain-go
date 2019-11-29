@@ -105,9 +105,9 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer          indexer.Indexer
-	blackListHandler process.BlackListHandler
-	bootStorer       process.BootStorer
+	indexer               indexer.Indexer
+	blackListHandler      process.BlackListHandler
+	bootStorer            process.BootStorer
 	requestedItemsHandler process.RequestedItemsHandler
 }
 

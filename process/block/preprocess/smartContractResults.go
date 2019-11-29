@@ -76,10 +76,10 @@ func NewSmartContractResultPreprocessor(
 	}
 
 	bpp := &basePreProcess{
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		shardCoordinator: shardCoordinator,
-		gasHandler:       gasHandler,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		shardCoordinator:      shardCoordinator,
+		gasHandler:            gasHandler,
 		requestedItemsHandler: requestedItemsHandler,
 	}
 
