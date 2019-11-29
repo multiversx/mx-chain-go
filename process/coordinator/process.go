@@ -402,7 +402,10 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		if miniVal == nil {
 			if !tc.requestedItemsHandler.Has(key) {
 				go tc.onRequestMiniBlock(senderShardId, []byte(key))
-				tc.requestedItemsHandler.Add(key)
+				errNotCritical := tc.requestedItemsHandler.Add(key)
+				if errNotCritical != nil {
+					log.Trace("add requested item with error", errNotCritical.Error())
+				}
 			}
 
 			continue
@@ -663,7 +666,10 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 		if obj == nil {
 			if !tc.requestedItemsHandler.Has(key) {
 				go tc.onRequestMiniBlock(senderShardId, []byte(key))
-				tc.requestedItemsHandler.Add(key)
+				errNotCritical := tc.requestedItemsHandler.Add(key)
+				if errNotCritical != nil {
+					log.Trace("add requested item with error", errNotCritical.Error())
+				}
 			}
 		}
 	}

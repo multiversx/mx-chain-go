@@ -90,6 +90,9 @@ const minConnectedPeers = 0
 // TimeSpanForBadHeaders is the expiry time for an added block header hash
 var TimeSpanForBadHeaders = time.Second * 30
 
+// roundDuration defines the duration of the round
+const roundDuration = time.Duration(5 * time.Second)
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -1123,12 +1126,5 @@ func (tpn *TestProcessorNode) initRounder() {
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
-	tpn.RequestedItemsHandler = &mock.RequestedItemsHandlerMock{
-		HasCalled: func(key string) bool {
-			return false
-		},
-		AddCalled: func(key string) error {
-			return nil
-		},
-	}
+	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
 }

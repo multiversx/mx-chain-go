@@ -412,7 +412,10 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	}
 
 	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
-	boot.requestedItemsHandler.Add(key)
+	errNotCritical := boot.requestedItemsHandler.Add(key)
+	if errNotCritical != nil {
+		log.Trace("add requested item with error", errNotCritical.Error())
+	}
 
 	log.Debug("requested header from network",
 		"nonce", nonce,
@@ -431,7 +434,10 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 		return
 	}
 
-	boot.requestedItemsHandler.Add(string(hash))
+	errNotCritical := boot.requestedItemsHandler.Add(string(hash))
+	if errNotCritical != nil {
+		log.Trace("add requested item with error", errNotCritical.Error())
+	}
 
 	log.Debug("requested header from network",
 		"hash", hash,

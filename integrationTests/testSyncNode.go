@@ -83,7 +83,6 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
-	tpn.RequestedItemsHandler = &mock.RequestedItemsHandlerMock{}
 }
 
 func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
@@ -120,15 +119,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		Rounder:                      &mock.RounderMock{},
-		RequestedItemsHandler: &mock.RequestedItemsHandlerMock{
-			HasCalled: func(key string) bool {
-				return false
-			},
-			AddCalled: func(key string) error {
-				return nil
-			},
-		},
-		ResolversFinder: tpn.ResolverFinder,
+		RequestedItemsHandler:        tpn.RequestedItemsHandler,
+		ResolversFinder:              tpn.ResolverFinder,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {

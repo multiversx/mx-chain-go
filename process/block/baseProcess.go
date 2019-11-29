@@ -78,9 +78,10 @@ type baseProcessor struct {
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 
-	appStatusHandler      core.AppStatusHandler
-	requestedItemsHandler process.RequestedItemsHandler
-	miniBlocksResolver    dataRetriever.MiniBlocksResolver
+	appStatusHandler           core.AppStatusHandler
+	requestedItemsHandler      process.RequestedItemsHandler
+	miniBlocksResolver         dataRetriever.MiniBlocksResolver
+	onRequestBlockBodyOfHeader func(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
 
 func checkForNils(
@@ -545,7 +546,10 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		if !bp.requestedItemsHandler.Has(key) {
 			requested++
 			go bp.onRequestHeaderHandlerByNonce(shardId, nonce)
-			bp.requestedItemsHandler.Add(key)
+			errNotCritical := bp.requestedItemsHandler.Add(key)
+			if errNotCritical != nil {
+				log.Trace("add requested item with error", errNotCritical.Error())
+			}
 		}
 	}
 
@@ -835,7 +839,10 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 			if !bp.requestedItemsHandler.Has(key) {
 				requestedHeaders++
 				go bp.onRequestHeaderHandlerByNonce(shardId, i)
-				bp.requestedItemsHandler.Add(key)
+				errNotCritical := bp.requestedItemsHandler.Add(key)
+				if errNotCritical != nil {
+					log.Trace("add requested item with error", errNotCritical.Error())
+				}
 			}
 
 			continue
@@ -871,7 +878,7 @@ func (bp *baseProcessor) cleanupPools(
 	notarizedHeadersPool storage.Cacher,
 ) {
 	bp.removeHeadersBehindNonceFromPools(
-		bp.getBlockBody,
+		true,
 		headersPool,
 		headersNoncesPool,
 		bp.shardCoordinator.SelfId(),
@@ -884,7 +891,7 @@ func (bp *baseProcessor) cleanupPools(
 		}
 
 		bp.removeHeadersBehindNonceFromPools(
-			nil,
+			false,
 			notarizedHeadersPool,
 			headersNoncesPool,
 			shardId,
@@ -895,7 +902,7 @@ func (bp *baseProcessor) cleanupPools(
 }
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
-	getBlockBody func(headerHandler data.HeaderHandler) (data.BodyHandler, error),
+	shouldRemoveBlockBody bool,
 	cacher storage.Cacher,
 	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 	shardId uint32,
@@ -925,9 +932,11 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 			continue
 		}
 
-		errNotCritical := bp.removeBlockBodyOfHeader(getBlockBody, hdr)
-		if errNotCritical != nil {
-			log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
+		if shouldRemoveBlockBody {
+			errNotCritical := bp.removeBlockBodyOfHeader(hdr)
+			if errNotCritical != nil {
+				log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
+			}
 		}
 
 		cacher.Remove(key)
@@ -940,16 +949,12 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 	}
 }
 
-func (bp *baseProcessor) removeBlockBodyOfHeader(
-	getBlockBody func(headerHandler data.HeaderHandler) (data.BodyHandler, error),
-	headerHandler data.HeaderHandler,
-) error {
-
-	if getBlockBody == nil {
-		return process.ErrNilMethodHandler
+func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandler) error {
+	if bp.onRequestBlockBodyOfHeader == nil {
+		return process.ErrNilRequestBlockBodyOfHeader
 	}
 
-	bodyHandler, err := getBlockBody(headerHandler)
+	bodyHandler, err := bp.onRequestBlockBodyOfHeader(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -965,25 +970,6 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.Header)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
-	}
-
-	miniBlocks, missingMiniBlocksHashes := bp.miniBlocksResolver.GetMiniBlocks(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		return nil, process.ErrMissingBody
-	}
-
-	return block.Body(miniBlocks), nil
 }
 
 func (bp *baseProcessor) removeHeaderFromPools(

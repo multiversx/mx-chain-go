@@ -424,7 +424,7 @@ func createConsensusOnlyNode(
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerMock{
+		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{
 			HasCalled: func(key string) bool {
 				return false
 			},

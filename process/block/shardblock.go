@@ -100,6 +100,9 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		txCounter:       NewTransactionCounter(),
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
+
+	sp.onRequestBlockBodyOfHeader = sp.getBlockBody
+
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
 	transactionPool := sp.dataPool.Transactions()
@@ -147,7 +150,10 @@ func (sp *shardProcessor) ProcessBlock(
 
 			if !sp.requestedItemsHandler.Has(string(headerHandler.GetPrevHash())) {
 				go sp.onRequestHeaderHandler(headerHandler.GetShardID(), headerHandler.GetPrevHash())
-				sp.requestedItemsHandler.Add(string(headerHandler.GetPrevHash()))
+				errNotCritical := sp.requestedItemsHandler.Add(string(headerHandler.GetPrevHash()))
+				if errNotCritical != nil {
+					log.Trace("add requested item with error", errNotCritical.Error())
+				}
 			}
 		}
 
@@ -382,7 +388,10 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		key := fmt.Sprintf("%d-%d", lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
 		if !sp.requestedItemsHandler.Has(key) {
 			go sp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
-			sp.requestedItemsHandler.Add(key)
+			errNotCritical := sp.requestedItemsHandler.Add(key)
+			if errNotCritical != nil {
+				log.Trace("add requested item with error", errNotCritical.Error())
+			}
 		}
 
 		return process.ErrHeaderNotFinal
@@ -856,7 +865,10 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 		if err != nil {
 			if !sp.requestedItemsHandler.Has(string(shardInfo.HeaderHash)) {
 				go sp.onRequestHeaderHandler(shardInfo.ShardID, shardInfo.HeaderHash)
-				sp.requestedItemsHandler.Add(string(shardInfo.HeaderHash))
+				errNotCritical := sp.requestedItemsHandler.Add(string(shardInfo.HeaderHash))
+				if errNotCritical != nil {
+					log.Trace("add requested item with error", errNotCritical.Error())
+				}
 			}
 
 			log.Debug("requested missing shard header",
@@ -1200,7 +1212,10 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32,
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: nil, usedInBlock: true}
 		if !sp.requestedItemsHandler.Has(string(hash)) {
 			go sp.onRequestHeaderHandler(sharding.MetachainShardId, hash)
-			sp.requestedItemsHandler.Add(string(hash))
+			errNotCritical := sp.requestedItemsHandler.Add(string(hash))
+			if errNotCritical != nil {
+				log.Trace("add requested item with error", errNotCritical.Error())
+			}
 		}
 	}
 
@@ -1811,4 +1826,23 @@ func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.
 	}
 
 	return nil
+}
+
+func (sp *shardProcessor) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	header, ok := headerHandler.(*block.Header)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	for i := 0; i < len(header.MiniBlockHeaders); i++ {
+		hashes[i] = header.MiniBlockHeaders[i].Hash
+	}
+
+	miniBlocks, missingMiniBlocksHashes := sp.miniBlocksResolver.GetMiniBlocks(hashes)
+	if len(missingMiniBlocksHashes) > 0 {
+		return nil, process.ErrMissingBody
+	}
+
+	return block.Body(miniBlocks), nil
 }

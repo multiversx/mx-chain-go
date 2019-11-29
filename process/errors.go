@@ -584,5 +584,5 @@ var ErrNilMediator = errors.New("nil mediator")
 // ErrMissingShardDataInStorage signals that some ShardData information is missing from storage
 var ErrMissingShardDataInStorage = errors.New("missing shard data in storage")
 
-// ErrNilMethodHandler signals that a method handler is nil
-var ErrNilMethodHandler = errors.New("method handler is nil")
+// ErrNilRequestBlockBodyOfHeader signals that a nil request block body of header func was provided
+var ErrNilRequestBlockBodyOfHeader = errors.New("request block body of header handler is nil")

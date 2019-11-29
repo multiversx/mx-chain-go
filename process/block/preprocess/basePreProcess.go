@@ -221,7 +221,10 @@ func (bpp *basePreProcess) getNotRequestedTxHashes(txHashes [][]byte) [][]byte {
 	for _, txHash := range txHashes {
 		if !bpp.requestedItemsHandler.Has(string(txHash)) {
 			notRequestedTxHashes = append(notRequestedTxHashes, txHash)
-			bpp.requestedItemsHandler.Add(string(txHash))
+			errNotCritical := bpp.requestedItemsHandler.Add(string(txHash))
+			if errNotCritical != nil {
+				log.Trace("add requested item with error", errNotCritical.Error())
+			}
 		}
 	}
 
