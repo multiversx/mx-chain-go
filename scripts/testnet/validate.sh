@@ -12,7 +12,7 @@ else
   RESULT=$(curl -s "http://127.0.0.1:$PORT_TXGEN/validate/sc/$DEPLOYED_SC_ADDRESS")
 fi
 
-echo $RESULT | jq
+echo $($RESULT | jq)
 
 validation_errors=$(echo "$RESULT" | jq | grep ': {' | wc -l)
 echo "Validation result: $validation_errors errors"
