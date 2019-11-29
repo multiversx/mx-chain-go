@@ -180,29 +180,14 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	// make nodes delegate stake to delegateSCAddress
-	for _, node := range nodes {
-		txData := "delegate@64"
-		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), delegateSCAddress, txData)
-	}
+	// one node calls to stake all the money from the delegation - that's how the contract is :D
+	node := nodes[0]
+	txData := "sendToStaking"
+	integrationTests.CreateAndSendTransaction(node, node.EconomicsData.StakeValue(), delegateSCAddress, txData)
 
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
-	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
-
-	// one node calls to stake all the money from the delegation - that's how the contract is :D
-	node := nodes[0]
-	txData := "sendToStaking"
-	integrationTests.CreateAndSendTransaction(node, big.NewInt(100), delegateSCAddress, txData)
-
-	time.Sleep(time.Second)
-
 	for i := 0; i < nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)

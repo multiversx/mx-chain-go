@@ -1969,7 +1969,9 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	t.Parallel()
 
 	accError := errors.New("account get error")
+	called := false
 	accountsDB := &mock.AccountsStub{GetAccountWithJournalCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		called = true
 		return nil, accError
 	}}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
@@ -1993,7 +1995,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
 	err = sc.ProcessSmartContractResult(&scr)
-	assert.Equal(t, accError, err)
+	assert.True(t, called)
 }
 
 func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
@@ -2024,7 +2026,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	}
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
 	err = sc.ProcessSmartContractResult(&scr)
-	assert.Equal(t, process.ErrNilSCDestAccount, err)
+	assert.Nil(t, err)
 }
 
 func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
@@ -2054,7 +2056,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
 	err = sc.ProcessSmartContractResult(&scr)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Nil(t, err)
 }
 
 func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
@@ -2091,7 +2093,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address")}
 	err = sc.ProcessSmartContractResult(&scr)
-	assert.Equal(t, process.ErrNilBalanceFromSC, err)
+	assert.Nil(t, err)
 }
 
 func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
@@ -2245,7 +2247,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 		Value:   big.NewInt(15),
 	}
 	err = sc.ProcessSmartContractResult(&scr)
-	assert.Equal(t, process.ErrSCDeployFromSCRIsNotPermitted, err)
+	assert.Nil(t, err)
 }
 
 func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
@@ -2309,6 +2311,6 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 		Value:   big.NewInt(15),
 	}
 	err = sc.ProcessSmartContractResult(&scr)
-	assert.Equal(t, process.ErrNilVMOutput, err)
+	assert.Nil(t, err)
 	assert.True(t, executeCalled)
 }

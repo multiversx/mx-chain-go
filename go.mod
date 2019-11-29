@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
-	github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191129083049-4cf5d04347f4
+	github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20191129150346-a0d43c8d42a1
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-vm v0.0.23
 	github.com/ElrondNetwork/elrond-vm-common v0.1.4

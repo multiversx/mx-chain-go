@@ -726,6 +726,10 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		// update the values according to SC output
 		updatedBalance := big.NewInt(0)
 		updatedBalance = updatedBalance.Add(stAcc.Balance, outAcc.BalanceDelta)
+		if updatedBalance.Cmp(big.NewInt(0)) < 0 {
+			return process.ErrOverallBalanceChangeFromSC
+		}
+
 		err = stAcc.SetBalanceWithJournal(updatedBalance)
 		if err != nil {
 			return err

@@ -3,6 +3,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -150,6 +151,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
+	fmt.Println(">>>>>>>> setStorage key: ", args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, data)
 
 	return vmcommon.Ok
@@ -282,7 +284,12 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 }
 
 func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	data := r.eei.GetStorage(args.CallerAddr)
+	if len(args.Arguments) < 1 {
+		return vmcommon.UserError
+	}
+
+	fmt.Println(">>>>>>>> getStorage key: ", args.Arguments[0])
+	data := r.eei.GetStorage(args.Arguments[0])
 	registrationData := StakingData{}
 	if data != nil {
 		err := json.Unmarshal(data, &registrationData)
