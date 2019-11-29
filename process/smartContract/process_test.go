@@ -2,7 +2,6 @@ package smartContract
 
 import (
 	"bytes"
-	"crypto/rand"
 	"math/big"
 	"testing"
 
@@ -15,13 +14,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
-
-func generateRandomByteSlice(size int) []byte {
-	buff := make([]byte, size)
-	_, _ = rand.Reader.Read(buff)
-
-	return buff
-}
 
 func generateEmptyByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -348,12 +340,14 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
+	called := false
 	tmpError := errors.New("error")
 	argParser.ParseDataCalled = func(data string) error {
+		called = true
 		return tmpError
 	}
-	err = sc.DeploySmartContract(tx, acntSrc, 10)
-	assert.Equal(t, tmpError, err)
+	_ = sc.DeploySmartContract(tx, acntSrc, 10)
+	assert.True(t, called)
 }
 
 func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
@@ -389,7 +383,9 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 
 	tmpError := errors.New("error")
 	vm := &mock.VMExecutionHandlerStub{}
+	called := false
 	vm.RunSmartContractCreateCalled = func(input *vmcommon.ContractCreateInput) (output *vmcommon.VMOutput, e error) {
+		called = true
 		return nil, tmpError
 	}
 
@@ -402,8 +398,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 		return [][]byte{vmArg}, nil
 	}
 
-	err = sc.DeploySmartContract(tx, acntSrc, 10)
-	assert.Equal(t, tmpError, err)
+	_ = sc.DeploySmartContract(tx, acntSrc, 10)
+	assert.True(t, called)
 }
 
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
@@ -595,11 +591,13 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 
 	acntDst.SetCode([]byte("code"))
 	tmpError := errors.New("error")
+	called := false
 	argParser.ParseDataCalled = func(data string) error {
+		called = true
 		return tmpError
 	}
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
-	assert.Equal(t, tmpError, err)
+	assert.True(t, called)
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
@@ -635,7 +633,9 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	acntDst.SetCode([]byte("code"))
 	tmpError := errors.New("error")
 	vm := &mock.VMExecutionHandlerStub{}
+	called := false
 	vm.RunSmartContractCallCalled = func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+		called = true
 		return nil, tmpError
 	}
 	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
@@ -643,7 +643,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	}
 
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
-	assert.Equal(t, tmpError, err)
+	assert.True(t, called)
 }
 
 func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
@@ -1049,7 +1049,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 
 	vmOutput := &vmcommon.VMOutput{
 		GasRefund:    big.NewInt(0),
-		GasRemaining: big.NewInt(0),
+		GasRemaining: 0,
 	}
 	_, _, err = sc.processVMOutput(vmOutput, tx, nil, 10)
 	assert.Nil(t, err)
@@ -1084,7 +1084,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	vmOutput := &vmcommon.VMOutput{
 		GasRefund:    big.NewInt(0),
-		GasRemaining: big.NewInt(0),
+		GasRemaining: 0,
 	}
 
 	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -1814,7 +1814,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	vmOutput := &vmcommon.VMOutput{
 		GasRefund:    big.NewInt(0),
-		GasRemaining: big.NewInt(0),
+		GasRemaining: 0,
 	}
 
 	accntState.GetAccountWithJournalCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
