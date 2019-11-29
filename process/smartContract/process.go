@@ -133,7 +133,7 @@ func checkArgumentsForNil(
 		return process.ErrNilEconomicsFeeHandler
 	}
 	if check.IfNil(gasHandler) {
-		return nil, process.ErrNilGasHandler
+		return process.ErrNilGasHandler
 	}
 
 	return nil
