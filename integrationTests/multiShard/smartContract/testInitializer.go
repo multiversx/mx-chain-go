@@ -79,6 +79,7 @@ var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 var opGas = int64(1)
 
 const maxTxNonceDeltaAllowed = 8000
+const mxaGasLimitPerBlock = uint64(100000)
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -301,6 +302,9 @@ func createMockTxFeeHandler() process.FeeHandler {
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return mxaGasLimitPerBlock
+		},
 	}
 }
 
@@ -425,9 +429,14 @@ func createNetNode(
 		scForwarder,
 		rewardsHandler,
 		&mock.FeeHandlerStub{},
+		&mock.GasHandlerMock{
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+		},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
+
+	feeHandlerMock := createMockTxFeeHandler()
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
@@ -438,10 +447,11 @@ func createNetNode(
 		scProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		createMockTxFeeHandler(),
+		feeHandlerMock,
 	)
 
-	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator)
+	gasHandler, _ := preprocess.NewGasComputation(feeHandlerMock)
+	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator, gasHandler)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
@@ -459,6 +469,7 @@ func createNetNode(
 		internalTxProducer,
 		createMockTxFeeHandler(),
 		miniBlocksCompacter,
+		gasHandler,
 	)
 	container, _ := fact.Create()
 
@@ -469,6 +480,7 @@ func createNetNode(
 		requestHandler,
 		container,
 		interimProcContainer,
+		gasHandler,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
