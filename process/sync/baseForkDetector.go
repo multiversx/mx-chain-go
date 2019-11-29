@@ -461,6 +461,7 @@ func (bfd *baseForkDetector) computeForkInfo(
 		currentForkRound = process.MinForkRound
 	} else {
 		if headerInfo.epoch < lastForkEpoch {
+			log.Debug("computeForkInfo: epoch change fork choice")
 			return lastForkHash, lastForkRound, lastForkEpoch
 		}
 	}
@@ -491,10 +492,12 @@ func (bfd *baseForkDetector) shouldSignalFork(
 
 	if lastForkRound != process.MinForkRound {
 		if headerInfo.epoch > lastForkEpoch {
+			log.Debug("shouldSignalFork epoch change false")
 			return false
 		}
 
 		if headerInfo.epoch < lastForkEpoch {
+			log.Debug("shouldSignalFork epoch change true")
 			return true
 		}
 	}
