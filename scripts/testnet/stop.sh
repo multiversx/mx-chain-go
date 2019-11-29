@@ -11,8 +11,11 @@ fi
 source "$ELRONDTESTNETSCRIPTSDIR/include/nodes.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 
-stopTxGen
-stopProxy
+if [ $PRIVATE_REPOS -eq 1 ]; then
+  stopTxGen
+  stopProxy
+fi
+
 stopValidators
 stopObservers
 stopSeednode

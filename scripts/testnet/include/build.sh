@@ -15,6 +15,15 @@ prepareFolders() {
   [ -d ./txgen/config ] || mkdir -p ./txgen/config
 }
 
+prepareFolders_PrivateRepos() {
+  [ -d $TESTNETDIR ] || mkdir -p $TESTNETDIR
+  cd $TESTNETDIR
+  [ -d proxy ] || mkdir -p proxy
+  [ -d ./proxy/config ] || mkdir -p ./proxy/config
+  [ -d txgen ] || mkdir -p txgen
+  [ -d ./txgen/config ] || mkdir -p ./txgen/config
+}
+
 buildConfigGenerator() {
   echo "Building Configuration Generator..."
   cd $CONFIGGENERATORDIR

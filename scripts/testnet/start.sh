@@ -17,8 +17,7 @@ prepareFolders
 buildConfigGenerator
 buildSeednode
 buildNode
-buildProxy
-buildTxGen
+
 
 # Phase 2: generate configuration
 generateConfig
@@ -29,11 +28,6 @@ updateSeednodeConfig
 
 copyNodeConfig
 updateNodeConfig
-
-copyProxyConfig
-updateProxyConfig
-copyTxGenConfig
-updateTxGenConfig
 
 # Phase 3: start the Seednode
 startSeednode
@@ -48,17 +42,28 @@ showTerminalSession "elrond-nodes"
 echo "Waiting for the Nodes to start ($NODE_DELAY s)..."
 sleep $NODE_DELAY
 
-# Phase 5: start the Proxy
-startProxy
-echo "Waiting for the Proxy to start ($PROXY_DELAY s)..."
-sleep $PROXY_DELAY
+if [ $PRIVATE_REPOS -eq 1 ]; then
+  # Phase 5: build the Proxy and TxGen
+  prepareFolders_PrivateRepos
+  buildProxy
+  buildTxGen
+  copyProxyConfig
+  updateProxyConfig
+  copyTxGenConfig
+  updateTxGenConfig
 
-# Phase 6: start the TxGen, with or without regenerating the accounts
-if [ -n "$TXGEN_REGENERATE_ACCOUNTS" ]
-then
-  echo "Starting TxGen with account generation..."
-  startTxGen_NewAccounts
-else
-  echo "Starting TxGen with existing accounts..."
-  startTxGen_ExistingAccounts
+  # Phase 6: start the Proxy
+  startProxy
+  echo "Waiting for the Proxy to start ($PROXY_DELAY s)..."
+  sleep $PROXY_DELAY
+
+  # Phase 7: start the TxGen, with or without regenerating the accounts
+  if [ -n "$TXGEN_REGENERATE_ACCOUNTS" ]
+  then
+    echo "Starting TxGen with account generation..."
+    startTxGen_NewAccounts
+  else
+    echo "Starting TxGen with existing accounts..."
+    startTxGen_ExistingAccounts
+  fi
 fi

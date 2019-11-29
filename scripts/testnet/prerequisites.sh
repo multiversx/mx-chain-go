@@ -45,8 +45,11 @@ fi
 
 cd $(dirname $ELRONDDIR)
 git clone https://github.com/ElrondNetwork/elrond-deploy-go.git
-git clone https://github.com/ElrondNetwork/elrond-proxy-go.git
 
-git clone https://github.com/ElrondNetwork/elrond-txgen-go.git
-cd elrond-txgen-go
-git checkout EN-5018/adapt-for-sc-arwen
+if [ $PRIVATE_REPOS -eq 1 ]; then
+  git clone https://github.com/ElrondNetwork/elrond-proxy-go.git
+
+  git clone https://github.com/ElrondNetwork/elrond-txgen-go.git
+  cd elrond-txgen-go
+  git checkout EN-5018/adapt-for-sc-arwen
+fi
