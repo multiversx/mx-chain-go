@@ -35,6 +35,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const MaxGasLimitPerBlock = uint64(100000)
+
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
 
@@ -468,11 +470,27 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 0
+			},
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
+		},
 		&mock.MiniBlocksCompacterMock{
 			ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
 				return miniBlocks, nil
 			},
+		},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return 0
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
 	container, _ := factory.Create()
@@ -484,6 +502,10 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			InitCalled: func() {
+			},
+		},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -662,15 +684,32 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
 		&mock.IntermediateTransactionHandlerMock{},
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 0
+			},
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
+		},
 		&mock.MiniBlocksCompacterMock{
 			ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
 				return miniBlocks, nil
 			},
 		},
+		&mock.GasHandlerMock{
+			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return 0
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+		},
 	)
 	container, _ := factory.Create()
 
+	totalGasConsumed := uint64(0)
 	tc, _ := coordinator.NewTransactionCoordinator(
 		mock.NewMultiShardsCoordinatorMock(3),
 		accounts,
@@ -678,6 +717,14 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			InitCalled: func() {
+				totalGasConsumed = 0
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -1828,6 +1875,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -1838,6 +1886,7 @@ func TestShardProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2374,6 +2423,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2384,6 +2434,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2478,6 +2529,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2488,6 +2540,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2563,6 +2616,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		requestHandler,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2632,6 +2686,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		requestHandler,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2891,6 +2946,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		},
 	}
 
+	totalGasConsumed := uint64(0)
 	factory, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		initStore(),
@@ -2909,10 +2965,28 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
 		},
 		&mock.MiniBlocksCompacterMock{
 			CompactCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAndTxs map[string]data.TransactionHandler) block.MiniBlockSlice {
 				return miniBlocks
+			},
+		},
+		&mock.GasHandlerMock{
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
+				totalGasConsumed += gasConsumed
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			TotalGasRefundedCalled: func() uint64 {
+				return 0
 			},
 		},
 	)
@@ -2925,6 +2999,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -3105,6 +3180,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.FeeHandlerStub{},
 		&mock.MiniBlocksCompacterMock{},
+		&mock.GasHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -3115,6 +3191,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.RequestHandlerMock{},
 		container,
 		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
