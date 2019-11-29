@@ -412,6 +412,15 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	return nil
 }
 
+func (sc *scProcessor) computeTransactionHash(tx data.TransactionHandler) ([]byte, error) {
+	scr, ok := tx.(*smartContractResult.SmartContractResult)
+	if ok {
+		return scr.TxHash, nil
+	}
+
+	return core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+}
+
 func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
@@ -425,11 +434,10 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
-	txBytes, err := sc.marshalizer.Marshal(tx)
+	txHash, err := sc.computeTransactionHash(tx)
 	if err != nil {
 		return nil, nil, err
 	}
-	txHash := sc.hasher.Compute(string(txBytes))
 
 	err = sc.saveSCOutputToCurrentState(vmOutput, round, txHash)
 	if err != nil {
@@ -692,7 +700,7 @@ func (sc *scProcessor) processSCOutputAccounts(outputAccounts []*vmcommon.Output
 		}
 
 		// change nonce only if there is a change
-		if outAcc.Nonce != acc.GetNonce() {
+		if outAcc.Nonce != acc.GetNonce() && outAcc.Nonce != 0 {
 			if outAcc.Nonce < acc.GetNonce() {
 				return process.ErrWrongNonceInVMOutput
 			}
@@ -878,7 +886,7 @@ func (sc *scProcessor) processSimpleSCR(
 	if len(scr.Data) > 0 {
 		storageUpdates, err := sc.argsParser.GetStorageUpdates(scr.Data)
 		if err != nil {
-			return err
+			log.Debug("storage updates could not be parsed")
 		}
 
 		for i := 0; i < len(storageUpdates); i++ {
