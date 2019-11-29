@@ -18,6 +18,7 @@ sendTransactions() {
 while true
 do
   sendTransactions
+  echo ""
   echo "Transaction batch emitted"
   sleep 60
 
