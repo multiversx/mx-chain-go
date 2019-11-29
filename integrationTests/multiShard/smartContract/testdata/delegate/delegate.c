@@ -8,7 +8,7 @@ int int64storageStore(byte *key, i64 value);
 i64 int64storageLoad(byte *key);
 i64 int64getArgument(int argumentIndex);
 int getCallValue(byte *result);
-int transferValue(byte *destination, byte *value, byte *data, int length);
+int transferValue(i64 gasLimit, byte *destination, byte *value, byte *data, int length);
 int getArgument(int argumentIndex, byte *argument);
 
 byte totalStakeKey[32] = {42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42};
