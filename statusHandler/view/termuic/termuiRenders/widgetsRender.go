@@ -206,7 +206,7 @@ func (wr *WidgetsRender) prepareChainInfo() {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
 	}
 
-	rows[1] = []string{fmt.Sprintf("%s", remainingTimeMessage)}
+	rows[1] = []string{fmt.Sprintf("Epoch Number: %d - %s", wr.presenter.GetEpochNumber(), remainingTimeMessage)}
 
 	shardId := wr.presenter.GetShardId()
 	if shardId == uint64(sharding.MetachainShardId) {

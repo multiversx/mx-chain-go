@@ -810,7 +810,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.specialAddressHandler.IsCurrentNodeInConsensus(),
 		display.DisplayByteSlice(headerHash),
 		highestFinalBlockNonce,
-		headerMeta.GetNonce(),
+		headerMeta,
 	)
 
 	go sp.cleanTxsPools()

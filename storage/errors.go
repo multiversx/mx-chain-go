@@ -39,3 +39,9 @@ var ErrDuplicateKeyToAdd = errors.New("the key can not be added as it already ex
 
 // ErrEmptyKey is raised when a key is empty
 var ErrEmptyKey = errors.New("key is empty")
+
+// ErrInvalidNumberOfPersisters signals that an invalid number of persisters has been provided
+var ErrInvalidNumberOfPersisters = errors.New("invalid number of active persisters")
+
+// ErrNilEpochStartNotifier signals that a nil epoch start notifier has been provided
+var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")

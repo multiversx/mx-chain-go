@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"path/filepath"
@@ -79,6 +80,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/btcsuite/btcd/btcec"
@@ -287,10 +289,11 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 }
 
 type dataComponentsFactoryArgs struct {
-	config           *config.Config
-	shardCoordinator sharding.Coordinator
-	core             *Core
-	uniqueID         string
+	config             *config.Config
+	shardCoordinator   sharding.Coordinator
+	core               *Core
+	uniqueID           string
+	epochStartNotifier EpochStartNotifier
 }
 
 // NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
@@ -299,12 +302,14 @@ func NewDataComponentsFactoryArgs(
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	uniqueID string,
+	epochStartNotifier EpochStartNotifier,
 ) *dataComponentsFactoryArgs {
 	return &dataComponentsFactoryArgs{
-		config:           config,
-		shardCoordinator: shardCoordinator,
-		core:             core,
-		uniqueID:         uniqueID,
+		config:             config,
+		shardCoordinator:   shardCoordinator,
+		core:               core,
+		uniqueID:           uniqueID,
+		epochStartNotifier: epochStartNotifier,
 	}
 }
 
@@ -317,7 +322,7 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
-	store, err := createDataStoreFromConfig(args.config, args.shardCoordinator, args.uniqueID)
+	store, err := createDataStoreFromConfig(args.config, args.shardCoordinator, args.uniqueID, args.epochStartNotifier)
 	if err != nil {
 		return nil, errors.New("could not create local data store: " + err.Error())
 	}
@@ -905,12 +910,13 @@ func createDataStoreFromConfig(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
 	uniqueID string,
+	epochStartNotifier EpochStartNotifier,
 ) (dataRetriever.StorageService, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID)
+		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID, epochStartNotifier)
 	}
 	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return createMetaChainDataStoreFromConfig(config, shardCoordinator, uniqueID)
+		return createMetaChainDataStoreFromConfig(config, shardCoordinator, uniqueID, epochStartNotifier)
 	}
 	return nil, errors.New("can not create data store")
 }
@@ -919,17 +925,18 @@ func createShardDataStoreFromConfig(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
 	uniqueID string,
+	epochStartNotifier EpochStartNotifier,
 ) (dataRetriever.StorageService, error) {
 
-	var headerUnit *storageUnit.Unit
-	var peerBlockUnit *storageUnit.Unit
-	var miniBlockUnit *storageUnit.Unit
-	var txUnit *storageUnit.Unit
-	var metachainHeaderUnit *storageUnit.Unit
-	var unsignedTxUnit *storageUnit.Unit
-	var rewardTxUnit *storageUnit.Unit
-	var metaHdrHashNonceUnit *storageUnit.Unit
-	var shardHdrHashNonceUnit *storageUnit.Unit
+	var headerUnit *pruning.PruningStorer
+	var peerBlockUnit *pruning.PruningStorer
+	var miniBlockUnit *pruning.PruningStorer
+	var txUnit *pruning.PruningStorer
+	var metachainHeaderUnit *pruning.PruningStorer
+	var unsignedTxUnit *pruning.PruningStorer
+	var rewardTxUnit *pruning.PruningStorer
+	var metaHdrHashNonceUnit *pruning.PruningStorer
+	var shardHdrHashNonceUnit *pruning.PruningStorer
 	var err error
 
 	defer func() {
@@ -965,85 +972,128 @@ func createShardDataStoreFromConfig(
 		}
 	}()
 
-	txUnit, err = storageUnit.NewStorageUnitFromConf(
+	fullArchiveMode := config.StoragePruning.FullArchive
+	numOfEpochsToKeep := uint32(config.StoragePruning.NumOfEpochsToKeep)
+
+	txUnit, err = pruning.NewPruningStorer(
+		"txUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.TxStorage.Cache),
 		getDBFromConfig(config.TxStorage.DB, uniqueID),
-		getBloomFromConfig(config.TxStorage.Bloom))
+		getBloomFromConfig(config.TxStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	unsignedTxUnit, err = storageUnit.NewStorageUnitFromConf(
+	unsignedTxUnit, err = pruning.NewPruningStorer(
+		"unsignedTxUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
 		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
-		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
+		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	rewardTxUnit, err = storageUnit.NewStorageUnitFromConf(
+	rewardTxUnit, err = pruning.NewPruningStorer(
+		"rewardTxUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.RewardTxStorage.Cache),
 		getDBFromConfig(config.RewardTxStorage.DB, uniqueID),
-		getBloomFromConfig(config.RewardTxStorage.Bloom))
+		getBloomFromConfig(config.RewardTxStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlockUnit, err = storageUnit.NewStorageUnitFromConf(
+	miniBlockUnit, err = pruning.NewPruningStorer(
+		"miniBlockUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.MiniBlocksStorage.Cache),
 		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
+		getBloomFromConfig(config.MiniBlocksStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	peerBlockUnit, err = storageUnit.NewStorageUnitFromConf(
+	peerBlockUnit, err = pruning.NewPruningStorer(
+		"peerBlockUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
 		getDBFromConfig(config.PeerBlockBodyStorage.DB, uniqueID),
-		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom))
+		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	headerUnit, err = storageUnit.NewStorageUnitFromConf(
+	headerUnit, err = pruning.NewPruningStorer(
+		"headerUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.BlockHeaderStorage.Cache),
 		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
-		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
+		getBloomFromConfig(config.BlockHeaderStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	metachainHeaderUnit, err = storageUnit.NewStorageUnitFromConf(
+	metachainHeaderUnit, err = pruning.NewPruningStorer(
+		"metachainHeaderUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.MetaBlockStorage.Cache),
 		getDBFromConfig(config.MetaBlockStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaBlockStorage.Bloom))
+		getBloomFromConfig(config.MetaBlockStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	metaHdrHashNonceUnit, err = storageUnit.NewStorageUnitFromConf(
+	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(
+		"metaHdrHashNonceUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
 		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
 		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
-	)
+		numOfEpochsToKeep,
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	shardHdrHashNonceUnit, err = storageUnit.NewShardedStorageUnitFromConf(
+	shardHdrHashNonceUnit, err = pruning.NewShardedPruningStorer(
+		"shardHrHashNonceUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
 		getDBFromConfig(config.ShardHdrNonceHashStorage.DB, uniqueID),
 		getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
+		numOfEpochsToKeep,
 		shardCoordinator.SelfId(),
-	)
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+	heartbeatStorageUnit, err := pruning.NewPruningStorer(
+		"heartbeatStorageUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
 		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
-		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
+		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier)
+
 	if err != nil {
 		return nil, err
 	}
@@ -1068,15 +1118,24 @@ func createMetaChainDataStoreFromConfig(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
 	uniqueID string,
+	epochStartNotifier pruning.EpochStartNotifier,
 ) (dataRetriever.StorageService, error) {
-	var peerDataUnit, shardDataUnit, metaBlockUnit, headerUnit, metaHdrHashNonceUnit *storageUnit.Unit
-	var txUnit, miniBlockUnit, unsignedTxUnit, miniBlockHeadersUnit *storageUnit.Unit
-	var shardHdrHashNonceUnits []*storageUnit.Unit
+	var shardDataUnit *pruning.PruningStorer
+	var metaBlockUnit *pruning.PruningStorer
+	var headerUnit *pruning.PruningStorer
+	var txUnit *pruning.PruningStorer
+	var peerDataUnit *pruning.PruningStorer
+	var metaHdrHashNonceUnit *pruning.PruningStorer
+	var miniBlockUnit *pruning.PruningStorer
+	var unsignedTxUnit *pruning.PruningStorer
+	var miniBlockHeadersUnit *pruning.PruningStorer
+	var shardHdrHashNonceUnits []*pruning.PruningStorer
 	var err error
 
 	defer func() {
 		// cleanup
 		if err != nil {
+			log.Error("create meta store", "error", err.Error())
 			if peerDataUnit != nil {
 				_ = peerDataUnit.DestroyUnit()
 			}
@@ -1112,96 +1171,143 @@ func createMetaChainDataStoreFromConfig(
 		}
 	}()
 
-	metaBlockUnit, err = storageUnit.NewStorageUnitFromConf(
+	fullArchiveMode := config.StoragePruning.FullArchive
+	numOfEpochsToKeep := uint32(config.StoragePruning.NumOfEpochsToKeep)
+
+	metaBlockUnit, err = pruning.NewPruningStorer(
+		"metaBlockUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.MetaBlockStorage.Cache),
 		getDBFromConfig(config.MetaBlockStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaBlockStorage.Bloom))
+		getBloomFromConfig(config.MetaBlockStorage.Bloom),
+		numOfEpochsToKeep,
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	shardDataUnit, err = storageUnit.NewStorageUnitFromConf(
+	shardDataUnit, err = pruning.NewPruningStorer(
+		"shardDataUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.ShardDataStorage.Cache),
 		getDBFromConfig(config.ShardDataStorage.DB, uniqueID),
-		getBloomFromConfig(config.ShardDataStorage.Bloom))
+		getBloomFromConfig(config.ShardDataStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	peerDataUnit, err = storageUnit.NewStorageUnitFromConf(
+	peerDataUnit, err = pruning.NewPruningStorer(
+		"peerDataUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.PeerDataStorage.Cache),
 		getDBFromConfig(config.PeerDataStorage.DB, uniqueID),
-		getBloomFromConfig(config.PeerDataStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	headerUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.BlockHeaderStorage.Cache),
-		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
-		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-
-	metaHdrHashNonceUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
-		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
+		getBloomFromConfig(config.PeerDataStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	shardHdrHashNonceUnits = make([]*storageUnit.Unit, shardCoordinator.NumberOfShards())
+	headerUnit, err = pruning.NewPruningStorer(
+		"headerUnit",
+		fullArchiveMode,
+		getCacherFromConfig(config.BlockHeaderStorage.Cache),
+		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
+		getBloomFromConfig(config.BlockHeaderStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(
+		"metaHdrHashNonceUnit",
+		fullArchiveMode,
+		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
+		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
+		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	shardHdrHashNonceUnits = make([]*pruning.PruningStorer, shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		shardHdrHashNonceUnits[i], err = storageUnit.NewShardedStorageUnitFromConf(
+		shardHdrHashNonceUnits[i], err = pruning.NewShardedPruningStorer(
+			fmt.Sprintf("shardHdrHasNonceUnits%d", i),
+			fullArchiveMode,
 			getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
 			getDBFromConfig(config.ShardHdrNonceHashStorage.DB, uniqueID),
 			getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
+			uint32(config.StoragePruning.NumOfEpochsToKeep),
 			i,
+			epochStartNotifier,
 		)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
+	heartbeatStorageUnit, err := pruning.NewPruningStorer(
+		"heartbeatStorageUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
 		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
-		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
+		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	txUnit, err = storageUnit.NewStorageUnitFromConf(
+	txUnit, err = pruning.NewPruningStorer(
+		"txUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.TxStorage.Cache),
 		getDBFromConfig(config.TxStorage.DB, uniqueID),
-		getBloomFromConfig(config.TxStorage.Bloom))
+		getBloomFromConfig(config.TxStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	unsignedTxUnit, err = storageUnit.NewStorageUnitFromConf(
+	unsignedTxUnit, err = pruning.NewPruningStorer(
+		"unsignedTxUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
 		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
-		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom))
+		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlockUnit, err = storageUnit.NewStorageUnitFromConf(
+	miniBlockUnit, err = pruning.NewPruningStorer(
+		"miniBlockUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.MiniBlocksStorage.Cache),
 		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
+		getBloomFromConfig(config.MiniBlocksStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlockHeadersUnit, err = storageUnit.NewStorageUnitFromConf(
+	miniBlockHeadersUnit, err = pruning.NewPruningStorer(
+		"miniBlockHeadersUnit",
+		fullArchiveMode,
 		getCacherFromConfig(config.MiniBlockHeadersStorage.Cache),
 		getDBFromConfig(config.MiniBlockHeadersStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlockHeadersStorage.Bloom))
+		getBloomFromConfig(config.MiniBlockHeadersStorage.Bloom),
+		uint32(config.StoragePruning.NumOfEpochsToKeep),
+		epochStartNotifier)
 	if err != nil {
 		return nil, err
 	}

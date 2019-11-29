@@ -14,6 +14,14 @@
    # Length should be less than 128 characters (bytes)
    NodeDisplayName = ""
 
+[StoragePruning]
+   # If this flag is set to true, the node won't delete any database between epochs
+   FullArchive = false
+
+   # NumOfEpochsToKeep - if the flag above is set to false, this will set the number of epochs to keep in the storage.
+   # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
+   NumOfEpochsToKeep = 2
+
 [Explorer]
    Enabled = false
    IndexerURL = "http://localhost:9200"

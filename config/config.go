@@ -106,6 +106,7 @@ type Config struct {
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	Explorer        ExplorerConfig
+	StoragePruning  StoragePruningConfig
 
 	NTPConfig NTPConfig
 }
@@ -115,6 +116,12 @@ type NodeConfig struct {
 	Port            int
 	Seed            string
 	TargetPeerCount int
+}
+
+// StoragePruningConfig will hold settings relates to storage pruning
+type StoragePruningConfig struct {
+	FullArchive       bool
+	NumOfEpochsToKeep uint64
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
