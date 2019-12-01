@@ -3,13 +3,14 @@ package sharding_test
 import (
 	"encoding/binary"
 	"fmt"
+	"math/big"
+	"strconv"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"strconv"
-	"testing"
 )
 
 func convertBigIntToBytes(value *big.Int) []byte {

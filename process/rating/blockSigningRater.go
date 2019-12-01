@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"sort"
 )
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
@@ -29,6 +30,8 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 	for key := range ratingsData.RatingOptions() {
 		ratingOptionKeys = append(ratingOptionKeys, key)
 	}
+
+	sort.Strings(ratingOptionKeys)
 
 	return &BlockSigningRater{
 		ratingOptions:    ratingsData.RatingOptions(),

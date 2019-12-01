@@ -538,7 +538,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-
+	log.Trace("creating economics data components")
 	economicsData, err := economics.NewEconomicsData(economicsConfig)
 	if err != nil {
 		return err
@@ -716,12 +716,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
-	if err != nil {
-		return err
 	}
 
 	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)

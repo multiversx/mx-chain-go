@@ -211,35 +211,9 @@ func (p *validatorStatistics) checkForMissedBlocks(
 	shardId uint32,
 ) error {
 	if currentHeaderRound-previousHeaderRound <= 1 {
-func (p *validatorStatistics) checkForMissedBlocks(
-	currentHeaderRound,
-	previousHeaderRound uint64,
-	prevRandSeed []byte,
-	shardId uint32,
-) error {
-	if currentHeaderRound-previousHeaderRound < 1 {
 		return nil
 	}
 
-	err := p.increaseRatingForFinalBlock(prevRandSeed, previousHeaderRound, shardId)
-	if err != nil {
-		return err
-	}
-
-	if currentHeaderRound-previousHeaderRound <= 1 {
-		return nil
-	}
-
-	err = p.decreaseRatingsForMissedBlocks(previousHeaderRound, currentHeaderRound, prevRandSeed, shardId)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *validatorStatistics) decreaseRatingsForMissedBlocks(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardId uint32) error {
-	log.Debug("Decreasing Ratings for Missed Blocks", "prevRound", previousHeaderRound, "currentRound", currentHeaderRound)
 	proposerDecreaseOption := p.rater.GetRatingOptionKeys()[2]
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
 		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
@@ -258,7 +232,8 @@ func (p *validatorStatistics) decreaseRatingsForMissedBlocks(previousHeaderRound
 		}
 
 		newRating := p.rater.ComputeRating(proposerDecreaseOption, leaderPeerAcc.GetRating())
-		log.Debug("Setting new rating", "address", consensusGroup[0].Address(), "rating", newRating, "ratingOption", proposerDecreaseOption)
+		//log.Debug("Setting new rating", "address", consensusGroup[0].Address(), "rating", newRating, "ratingOption",
+		//	proposerDecreaseOption)
 		err = leaderPeerAcc.SetRatingWithJournal(newRating)
 
 		if err != nil {
@@ -266,43 +241,7 @@ func (p *validatorStatistics) decreaseRatingsForMissedBlocks(previousHeaderRound
 		}
 
 	}
-	return nil
-}
 
-func (p *validatorStatistics) increaseRatingForFinalBlock(prevRandSeed []byte, previousHeaderRound uint64, shardId uint32) error {
-	log.Debug("Increasing Ratings for Final Block")
-	consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, previousHeaderRound, shardId)
-	if err != nil {
-		return err
-	}
-	lenValidators := len(consensusGroup)
-	for i := 0; i < lenValidators; i++ {
-		address := consensusGroup[i].Address()
-		peerAcc, err := p.getPeerAccount(address)
-		if err != nil {
-			return err
-		}
-
-		isLeader := i == 0
-		ratingOption := ""
-		if isLeader {
-			ratingOption = p.rater.GetRatingOptionKeys()[0]
-		} else {
-			ratingOption = p.rater.GetRatingOptionKeys()[1]
-		}
-
-		if err != nil {
-			return err
-		}
-
-		newRating := p.rater.ComputeRating(ratingOption, peerAcc.GetRating())
-		log.Debug("Setting new rating", "address", address, "rating", newRating, "ratingOption", ratingOption)
-		err = peerAcc.SetRatingWithJournal(newRating)
-
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -452,11 +391,22 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 		}
 
 		isLeader := i == 0
+		ratingOption := ""
 		if isLeader {
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
+			ratingOption = p.rater.GetRatingOptionKeys()[0]
 		} else {
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
+			ratingOption = p.rater.GetRatingOptionKeys()[1]
 		}
+
+		if err != nil {
+			return err
+		}
+
+		newRating := p.rater.ComputeRating(ratingOption, peerAcc.GetRating())
+		//log.Debug("Setting new rating", "address", address, "rating", newRating, "ratingOption", ratingOption)
+		err = peerAcc.SetRatingWithJournal(newRating)
 
 		if err != nil {
 			return err
@@ -640,6 +590,6 @@ func (vs *validatorStatistics) getRating(s string) uint32 {
 		log.Debug("Error getting peer account", "error", err)
 	}
 
-	log.Debug("Got rating for peer", "pk:", core.ToHex([]byte(s)), "rating: ", peer.GetRating())
+	//log.Debug("Got rating for peer", "pk:", core.ToHex([]byte(s)), "rating: ", peer.GetRating())
 	return peer.GetRating()
 }
