@@ -9,7 +9,6 @@ import (
 func Test_SOL_002(t *testing.T) {
 	context := setupTestContext(t)
 
-	// TODO: find why constructors with parameters do not work with SOLL compiler.
 	context.deploySC("./erc20sol002/0-0-2.wasm", "")
 
 	// Initial tokens and allowances
