@@ -50,7 +50,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	verifyInitialBalance(t, nodes, initialVal)

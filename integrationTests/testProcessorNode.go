@@ -84,7 +84,7 @@ var MinTxGasPrice = uint64(10)
 var MinTxGasLimit = uint64(1000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(100000)
+const MaxGasLimitPerBlock = uint64(10000000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -1077,7 +1077,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2000
+			return time.Second * 2
 		},
 	)
 	if err != nil {
