@@ -42,7 +42,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 	if errTxValidation != nil {
 		return errTxValidation
 	}
-
+	log.Trace("Intercepted transaction", "valid", true)
 	return nil
 }
 
@@ -59,6 +59,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
 		interceptedTx.Transaction(),
 		cacherIdentifier,
 	)
+
 	return nil
 }
 
