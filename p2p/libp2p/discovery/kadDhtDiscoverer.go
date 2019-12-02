@@ -160,13 +160,16 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 		go func() {
 			i := 1
 			for {
-				if kdd.initConns {
+				kdd.mutKadDht.RLock()
+				dht := kdd.kadDHT
+				initConns := kdd.initConns
+				kdd.mutKadDht.RUnlock()
+
+				if initConns {
 					var err error = nil
-					kdd.mutKadDht.RLock()
-					if kdd.kadDHT != nil {
-						err = kdd.kadDHT.BootstrapOnce(ctx, cfg)
+					if dht != nil {
+						err = dht.BootstrapOnce(ctx, cfg)
 					}
-					kdd.mutKadDht.RUnlock()
 					if err == kbucket.ErrLookupFailure {
 						<-kdd.ReconnectToNetwork()
 					}
@@ -218,15 +221,17 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 				//could not connect, wait and try next one
 				startIndex++
 				startIndex = startIndex % len(initialPeersList)
-
-				time.Sleep(intervalBetweenAttempts)
-
-				continue
+				select {
+				case <-ctx.Done():
+					break
+				case <-time.After(intervalBetweenAttempts):
+					continue
+				}
 			}
+			break
 
-			chanDone <- struct{}{}
-			return
 		}
+		chanDone <- struct{}{}
 	}()
 
 	return chanDone
