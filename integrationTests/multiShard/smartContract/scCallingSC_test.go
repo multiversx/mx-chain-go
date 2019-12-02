@@ -3,7 +3,6 @@ package smartContract
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -149,7 +148,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -158,17 +157,12 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	nonce++
 
 	// mint smart contract holders
-	firstSCOwner := []byte("12345678901234567890123456789000")
-	secondSCOwner := []byte("99945678901234567890123456789001")
 	delegateSCOwner := []byte("12345678901234567890123456789002")
 
-	mintPubKey(firstSCOwner, initialVal, nodes)
-	mintPubKey(secondSCOwner, initialVal, nodes)
 	mintPubKey(delegateSCOwner, initialVal, nodes)
 
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
-	fmt.Println(delegateSCAddress)
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
