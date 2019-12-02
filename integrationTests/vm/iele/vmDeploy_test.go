@@ -37,8 +37,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 	}
 
 	// tx is not processed due to the invalid sc code
-	err := txProc.ProcessTransaction(tx, round)
-	assert.NotNil(t, err)
+	_ = txProc.ProcessTransaction(tx, round)
 
 	scAddressBytes, _ := blockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
