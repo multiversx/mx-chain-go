@@ -6,6 +6,8 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -27,11 +29,40 @@ type TestWalletAccount struct {
 	Balance *big.Int
 }
 
-// CreateTestWalletAccount creates an wallett account in a selected shard
+// CreateTestWalletAccount creates an wallet account in a selected shard
 func CreateTestWalletAccount(coordinator sharding.Coordinator, shardId uint32) *TestWalletAccount {
 	testWalletAccount := &TestWalletAccount{}
 	testWalletAccount.initCrypto(coordinator, shardId)
 	return testWalletAccount
+}
+
+// CreateTestWalletAccountWithKeygenAndSingleSigner creates a wallet account in a selected shard
+func CreateTestWalletAccountWithKeygenAndSingleSigner(
+	coordinator sharding.Coordinator,
+	shardId uint32,
+	blockSingleSigner crypto.SingleSigner,
+	keyGenBlockSign crypto.KeyGenerator,
+) *TestWalletAccount {
+
+	twa := &TestWalletAccount{}
+
+	twa.SingleSigner = &singlesig.SchnorrSigner{}
+	sk, pk, _ := GenerateSkAndPkInShard(coordinator, shardId)
+
+	pkBuff, _ := pk.ToByteArray()
+	fmt.Printf("Found pk: %s in shard %d\n", hex.EncodeToString(pkBuff), shardId)
+
+	twa.SkTxSign = sk
+	twa.PkTxSign = pk
+	twa.PkTxSignBytes, _ = pk.ToByteArray()
+
+	twa.KeygenTxSign = signing.NewKeyGenerator(kyber.NewBlakeSHA256Ed25519())
+	twa.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(twa.PkTxSignBytes)
+
+	twa.KeygenBlockSign = keyGenBlockSign
+	twa.BlockSingleSigner = blockSingleSigner
+
+	return twa
 }
 
 // initCrypto initializes the crypto for the account
