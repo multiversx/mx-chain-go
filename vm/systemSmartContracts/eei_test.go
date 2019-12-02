@@ -92,7 +92,7 @@ func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 	assert.Equal(t, 0, len(vmOutput.DeletedAccounts))
 	assert.Equal(t, 0, len(vmOutput.TouchedAccounts))
 	assert.Equal(t, uint64(0), vmOutput.GasRefund.Uint64())
-	assert.Equal(t, uint64(0), vmOutput.GasRemaining.Uint64())
+	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
 
 func TestVmContext_SelfDestruct(t *testing.T) {
