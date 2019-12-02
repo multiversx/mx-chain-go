@@ -925,6 +925,7 @@ func createMetaNetNode(
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
 				},
+			},
 		},
 		DataPool:           dPool,
 		SCDataGetter:       &mock.ScQueryMock{},
@@ -933,7 +934,6 @@ func createMetaNetNode(
 		PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
-
 	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
 
 	tn.blkProcessor = blkProc
