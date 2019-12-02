@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -189,6 +190,9 @@ func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
 func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	hdr := bh.blockChain.GetCurrentBlockHeader()
 
+	if check.IfNil(hdr) {
+		return nil, process.ErrNilBlockHeader
+	}
 	if nonce > hdr.GetNonce() {
 		return nil, process.ErrInvalidNonceRequest
 	}
