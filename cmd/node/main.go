@@ -20,6 +20,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -297,7 +301,20 @@ var coreServiceContainer serviceContainer.Core
 // windows:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-var appVersion = core.UnVersionedAppString
+var appVersion = constants.UnVersionedAppString
+
+// EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
+type EpochStartSubscriber interface {
+	RegisterHandler(handler epochStart.EpochStartHandler)
+	UnregisterHandler(handler epochStart.EpochStartHandler)
+}
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	EpochStartSubscriber
+	NotifyAll(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}
 
 func main() {
 	_ = display.SetDisplayByteSlice(display.ToHexShort)
@@ -495,7 +512,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var shardId = "metachain"
-	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+	if shardCoordinator.SelfId() != constants.MetachainShardId {
 		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
 	}
 
@@ -531,6 +548,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	nodesCoordinator, err := createNodesCoordinator(
 		nodesConfig,
 		generalConfig.GeneralSettings,
+		epochStartNotifier,
 		pubKey,
 		coreComponents.Hasher)
 	if err != nil {
@@ -752,7 +770,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		softwareVersionChecker.StartCheckSoftwareVersion()
 	}
 
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
@@ -938,11 +956,11 @@ func createShardCoordinator(
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log logger.Logger,
-) (sharding.Coordinator, core.NodeType, error) {
+) (sharding.Coordinator, constants.NodeType, error) {
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
-	nodeType := core.NodeTypeValidator
+	nodeType := constants.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
-		nodeType = core.NodeTypeObserver
+		nodeType = constants.NodeTypeObserver
 		log.Info("starting as observer node")
 
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
@@ -952,7 +970,7 @@ func createShardCoordinator(
 	}
 
 	var shardName string
-	if selfShardId == sharding.MetachainShardId {
+	if selfShardId == constants.MetachainShardId {
 		shardName = metachainShardName
 	} else {
 		shardName = fmt.Sprintf("%d", selfShardId)
@@ -970,6 +988,7 @@ func createShardCoordinator(
 func createNodesCoordinator(
 	nodesConfig *sharding.NodesSetup,
 	settingsConfig config.GeneralSettingsConfig,
+	epochStartSubscriber EpochStartSubscriber,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
 ) (sharding.NodesCoordinator, error) {
@@ -1014,6 +1033,7 @@ func createNodesCoordinator(
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
 		Hasher:                  hasher,
 		Shuffler:                nodeShuffler,
+		EpochStartSubscriber:    epochStartSubscriber,
 		ShardId:                 shardId,
 		NbShards:                nbShards,
 		EligibleNodes:           eligibleValidators,
@@ -1053,7 +1073,7 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
 	}
 	if destShard == metachainShardName {
-		return sharding.MetachainShardId, nil
+		return constants.MetachainShardId, nil
 	}
 
 	val, err := strconv.ParseUint(destShard, 10, 32)
@@ -1095,7 +1115,7 @@ func createElasticIndexer(
 }
 
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		return nodesConfig.MetaChainConsensusGroupSize, nil
 	}
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1116,7 +1136,7 @@ func createNode(
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	core *factory.Core,
+	coreData *factory.Core,
 	state *factory.State,
 	data *factory.Data,
 	crypto *factory.Crypto,
@@ -1133,8 +1153,8 @@ func createNode(
 
 	nd, err := node.NewNode(
 		node.WithMessenger(network.NetMessenger),
-		node.WithHasher(core.Hasher),
-		node.WithMarshalizer(core.Marshalizer),
+		node.WithHasher(coreData.Hasher),
+		node.WithMarshalizer(coreData.Marshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
 		node.WithAddressConverter(state.AddressConverter),
@@ -1149,7 +1169,7 @@ func createNode(
 		node.WithRounder(process.Rounder),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithNodesCoordinator(nodesCoordinator),
-		node.WithUint64ByteSliceConverter(core.Uint64ByteSliceConverter),
+		node.WithUint64ByteSliceConverter(coreData.Uint64ByteSliceConverter),
 		node.WithSingleSigner(crypto.SingleSigner),
 		node.WithMultiSigner(crypto.MultiSigner),
 		node.WithKeyGen(keyGen),
@@ -1165,7 +1185,7 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
-		node.WithAppStatusHandler(core.StatusHandler),
+		node.WithAppStatusHandler(coreData.StatusHandler),
 		node.WithIndexer(indexer),
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithBlackListHandler(process.BlackListHandler),
@@ -1192,7 +1212,7 @@ func createNode(
 			return nil, err
 		}
 	}
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
@@ -1230,7 +1250,7 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 		}
 		return nil
 	}
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		coreServiceContainer, err = serviceContainer.NewServiceContainer(
 			serviceContainer.WithIndexer(dbIndexer),
 			serviceContainer.WithTPSBenchmark(tpsBenchmark))
@@ -1291,7 +1311,7 @@ func createApiResolver(
 		Uint64Converter:  uint64Converter,
 	}
 
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
 		if err != nil {
 			return nil, err

@@ -4,6 +4,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -229,7 +231,7 @@ func (boot *MetaBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[
 }
 
 func (boot *MetaBootstrap) isMetaBlockValid(nonce uint64) (*block.MetaBlock, bool) {
-	headerHandler, _, err := boot.getHeader(sharding.MetachainShardId, nonce)
+	headerHandler, _, err := boot.getHeader(constants.MetachainShardId, nonce)
 	if err != nil {
 		log.Debug("getHeader", "error", err.Error())
 		return nil, false

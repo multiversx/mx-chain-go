@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/constants"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -69,7 +70,7 @@ func (sh *SpecialAddressHandlerMock) SetMetaConsensusData(randomness []byte, rou
 		sh.metaConsensusData = make([]*data.ConsensusRewardData, 0)
 	}
 
-	addresses, err := sh.NodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, sharding.MetachainShardId)
+	addresses, err := sh.NodesCoordinator.GetValidatorsRewardsAddresses(randomness, round, constants.MetachainShardId)
 	if err != nil {
 		return err
 	}

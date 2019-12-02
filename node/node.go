@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	nodeCmdFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -376,7 +378,7 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 		return n.createShardBootstrapper(rounder)
 	}
 
-	if n.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if n.shardCoordinator.SelfId() == constants.MetachainShardId {
 		return n.createMetaChainBootstrapper(rounder)
 	}
 
@@ -471,7 +473,7 @@ func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shard
 		return ErrNilMessenger
 	}
 
-	n.consensusTopic = core.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	n.consensusTopic = constants.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 	if n.messenger.HasTopicValidator(n.consensusTopic) {
 		return ErrValidatorAlreadySet
 	}
@@ -641,7 +643,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	//the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 
-	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
+	packets, err := dataPacker.PackDataInChunks(transactions, constants.MaxBulkTransactionSize)
 	if err != nil {
 		return err
 	}

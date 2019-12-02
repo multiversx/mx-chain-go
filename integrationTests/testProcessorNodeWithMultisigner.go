@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -56,7 +58,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		fmt.Println("Error generating multisigner")
 	}
 	accountShardId := nodeShardId
-	if nodeShardId == sharding.MetachainShardId {
+	if nodeShardId == constants.MetachainShardId {
 		accountShardId = 0
 	}
 
@@ -81,7 +83,7 @@ func CreateNodesWithNodesCoordinator(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	waitingMap := make(map[uint32][]sharding.Validator)
 	nodesMap := make(map[uint32][]*TestProcessorNode)
-
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	nodeShuffler := &mock.NodeShufflerMock{}
 
 	for shardId, validatorList := range validatorsMap {
@@ -90,6 +92,7 @@ func CreateNodesWithNodesCoordinator(
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
+			EpochStartSubscriber:    epochStartSubscriber,
 			ShardId:                 shardId,
 			NbShards:                uint32(nbShards),
 			EligibleNodes:           validatorsMap,

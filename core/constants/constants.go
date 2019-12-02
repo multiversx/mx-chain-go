@@ -1,4 +1,4 @@
-package core
+package constants
 
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag
@@ -13,8 +13,8 @@ const NodeTypeObserver NodeType = "observer"
 // NodeTypeValidator signals that a node is running as validator node
 const NodeTypeValidator NodeType = "validator"
 
-// pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
-const pkPrefixSize = 12
+// PkPrefixSize specifies the max numbers of chars to be displayed from one publc key
+const PkPrefixSize = 12
 
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 //TODO convert this const into a var and read it from config when this code moves to another binary
@@ -185,3 +185,6 @@ const MetricCommunityPercentage = "erd_metric_community_percentage"
 
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
 const MetricDenominationCoefficient = "erc_metric_denomination_coefficient"
+
+// MetachainShardId will be used to identify a shard ID as metachain
+const MetachainShardId = uint32(0xFFFFFFFF)

@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -23,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -4341,8 +4342,8 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetFinalNotarizedMetaHeaderFr
 	lastNotarized := bs.InitNotarizedMap()
 	finalNotarized := bs.InitNotarizedMap()
 
-	bs.SetNotarizedMap(lastNotarized, sharding.MetachainShardId, 1, []byte("A"))
-	bs.SetNotarizedMap(finalNotarized, sharding.MetachainShardId, 1, []byte("A"))
+	bs.SetNotarizedMap(lastNotarized, constants.MetachainShardId, 1, []byte("A"))
+	bs.SetNotarizedMap(finalNotarized, constants.MetachainShardId, 1, []byte("A"))
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
@@ -4444,8 +4445,8 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedMetaHeaderFro
 	lastNotarized := bs.InitNotarizedMap()
 	finalNotarized := bs.InitNotarizedMap()
 
-	bs.SetNotarizedMap(lastNotarized, sharding.MetachainShardId, 1, []byte("A"))
-	bs.SetNotarizedMap(finalNotarized, sharding.MetachainShardId, 2, []byte("B"))
+	bs.SetNotarizedMap(lastNotarized, constants.MetachainShardId, 1, []byte("A"))
+	bs.SetNotarizedMap(finalNotarized, constants.MetachainShardId, 2, []byte("B"))
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
@@ -4548,8 +4549,8 @@ func TestBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 	lastNotarized := bs.InitNotarizedMap()
 	finalNotarized := bs.InitNotarizedMap()
 
-	bs.SetNotarizedMap(lastNotarized, sharding.MetachainShardId, 1, hash)
-	bs.SetNotarizedMap(finalNotarized, sharding.MetachainShardId, 1, hash)
+	bs.SetNotarizedMap(lastNotarized, constants.MetachainShardId, 1, hash)
+	bs.SetNotarizedMap(finalNotarized, constants.MetachainShardId, 1, hash)
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 

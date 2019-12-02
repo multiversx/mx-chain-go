@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -265,7 +267,7 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 		kp.sk, kp.pk = keyGen.GeneratePair()
 		keyPairs[n] = kp
 	}
-	keysMap[sharding.MetachainShardId] = keyPairs
+	keysMap[constants.MetachainShardId] = keyPairs
 
 	params := &cryptoParams{
 		keys:         keysMap,
@@ -474,12 +476,14 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
+		epochStartSubscriber := &mock.EpochStartNotifierStub{}
 
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
 			Hasher:                  createHasher(consensusType),
 			Shuffler:                nodeShuffler,
+			EpochStartSubscriber:    epochStartSubscriber,
 			NbShards:                1,
 			EligibleNodes:           eligibleMap,
 			WaitingNodes:            make(map[uint32][]sharding.Validator),

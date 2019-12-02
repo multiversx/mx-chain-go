@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -63,7 +65,7 @@ func TestAppStatusPolling_Poll_TestNumOfConnectedAddressesCalled(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = asp.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetInt64Value(core.MetricNumConnectedPeers, int64(10))
+		appStatusHandler.SetInt64Value(constants.MetricNumConnectedPeers, int64(10))
 	})
 	assert.Nil(t, err)
 

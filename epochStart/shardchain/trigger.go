@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -13,9 +15,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	NotifyAll(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}
 
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
@@ -28,7 +35,7 @@ type ArgsShardEpochStartTrigger struct {
 	DataPool           dataRetriever.PoolsHolder
 	Storage            dataRetriever.StorageService
 	RequestHandler     epochStart.RequestHandler
-	EpochStartNotifier epochStart.StartOfEpochNotifier
+	EpochStartNotifier EpochStartNotifier
 
 	Epoch    uint32
 	Validity uint64
@@ -63,7 +70,7 @@ type trigger struct {
 	headerValidator epochStart.HeaderValidator
 
 	requestHandler     epochStart.RequestHandler
-	epochStartNotifier epochStart.StartOfEpochNotifier
+	epochStartNotifier EpochStartNotifier
 }
 
 // NewEpochStartTrigger creates a trigger to signal start of epoch
@@ -287,7 +294,7 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) (bool,
 
 	if nextBlocksVerified < t.finality {
 		for nonce := currHdr.Nonce + 1; nonce <= currHdr.Nonce+t.finality; nonce++ {
-			go t.requestHandler.RequestHeaderByNonce(sharding.MetachainShardId, nonce)
+			go t.requestHandler.RequestHeaderByNonce(constants.MetachainShardId, nonce)
 		}
 		return false, 0
 	}
@@ -369,7 +376,7 @@ func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*b
 		return metaHdr, nil
 	}
 
-	go t.requestHandler.RequestHeader(sharding.MetachainShardId, neededHash)
+	go t.requestHandler.RequestHeader(constants.MetachainShardId, neededHash)
 
 	return nil, epochStart.ErrMetaHdrNotFound
 }
@@ -390,7 +397,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash [
 func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
 	shIdMap, ok := t.metaHdrNonces.Get(nonce)
 	if ok {
-		hdrHash, ok := shIdMap.Load(sharding.MetachainShardId)
+		hdrHash, ok := shIdMap.Load(constants.MetachainShardId)
 		if ok {
 			dataHdr, _ := t.metaHdrPool.Peek(hdrHash)
 			hdrWithNonce, ok := dataHdr.(*block.MetaBlock)
@@ -419,7 +426,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
 	dataHdr, err := t.metaNonceHdrStorage.Get(nonceToByteSlice)
 	if err != nil || len(dataHdr) == 0 {
-		go t.requestHandler.RequestHeaderByNonce(sharding.MetachainShardId, nonce)
+		go t.requestHandler.RequestHeaderByNonce(constants.MetachainShardId, nonce)
 		return nil, err
 	}
 

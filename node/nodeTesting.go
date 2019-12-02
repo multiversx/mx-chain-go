@@ -7,7 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -88,7 +89,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	//the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 
-	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
+	packets, err := dataPacker.PackDataInChunks(transactions, constants.MaxBulkTransactionSize)
 	if err != nil {
 		return err
 	}

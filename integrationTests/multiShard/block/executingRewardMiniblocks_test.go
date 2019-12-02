@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -163,7 +164,7 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 		_, _, consensusNodes, randomness = integrationTests.AllShardsProposeBlock(round, nonce, randomness, nodesMap)
 
 		for shardId, consensusGroup := range consensusNodes {
-			if shardId == sharding.MetachainShardId {
+			if shardId == constants.MetachainShardId {
 				continue
 			}
 
@@ -202,7 +203,7 @@ func generateIntraShardTransactions(
 	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
 
 	for shardId, nodes := range nodesMap {
-		if shardId == sharding.MetachainShardId {
+		if shardId == constants.MetachainShardId {
 			continue
 		}
 
@@ -255,13 +256,13 @@ func generateInitialRandomness(nbShards uint32) map[uint32][]byte {
 		randomness[i] = []byte("root hash")
 	}
 
-	randomness[sharding.MetachainShardId] = []byte("root hash")
+	randomness[constants.MetachainShardId] = []byte("root hash")
 
 	return randomness
 }
 
 func getTransactionsFromHeaderInShard(t *testing.T, headers map[uint32]data.HeaderHandler, shardId uint32) uint32 {
-	if shardId == sharding.MetachainShardId {
+	if shardId == constants.MetachainShardId {
 		return 0
 	}
 

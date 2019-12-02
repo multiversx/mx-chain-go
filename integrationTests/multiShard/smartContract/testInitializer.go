@@ -14,6 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -167,7 +169,7 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 		kp.sk, kp.pk = keyGen.GeneratePair()
 		keyPairs[n] = kp
 	}
-	keysMap[sharding.MetachainShardId] = keyPairs
+	keysMap[constants.MetachainShardId] = keyPairs
 
 	params := &cryptoParams{
 		keys:              keysMap,
@@ -618,11 +620,14 @@ func createNodes(
 			}
 
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
+			epochStartSubscriber := &mock.EpochStartNotifierStub{}
+
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 				ShardConsensusGroupSize: 1,
 				MetaConsensusGroupSize:  1,
 				Hasher:                  testHasher,
 				Shuffler:                nodeShuffler,
+				EpochStartSubscriber:    epochStartSubscriber,
 				ShardId:                 uint32(shardId),
 				NbShards:                uint32(numOfShards),
 				EligibleNodes:           validatorsMap,
@@ -696,13 +701,15 @@ func createNodes(
 
 	metaNodes := make([]*testNode, numMetaChainNodes)
 	for i := 0; i < numMetaChainNodes; i++ {
-		shardCoordinatorMeta, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), sharding.MetachainShardId)
+		shardCoordinatorMeta, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), constants.MetachainShardId)
+		epochStartSubscriber := &mock.EpochStartNotifierStub{}
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: 1,
 			MetaConsensusGroupSize:  1,
 			Hasher:                  testHasher,
 			Shuffler:                nodeShuffler,
-			ShardId:                 sharding.MetachainShardId,
+			EpochStartSubscriber:    epochStartSubscriber,
+			ShardId:                 constants.MetachainShardId,
 			NbShards:                uint32(numOfShards),
 			EligibleNodes:           validatorsMap,
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
@@ -721,7 +728,7 @@ func createNodes(
 		)
 	}
 
-	nodes[sharding.MetachainShardId] = metaNodes
+	nodes[constants.MetachainShardId] = metaNodes
 
 	return nodes
 }
@@ -796,7 +803,7 @@ func createMetaNetNode(
 	tn := testNode{}
 
 	tn.messenger = createMessengerWithKadDht(context.Background(), initialAddr)
-	keyPair := params.keys[sharding.MetachainShardId][keysIndex]
+	keyPair := params.keys[constants.MetachainShardId][keysIndex]
 	pkBuff, _ := keyPair.pk.ToByteArray()
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
@@ -917,7 +924,7 @@ func createMetaNetNode(
 	}
 	blkProc, _ := block.NewMetaProcessor(arguments)
 
-	_ = tn.blkc.SetGenesisHeader(genesisBlocks[sharding.MetachainShardId])
+	_ = tn.blkc.SetGenesisHeader(genesisBlocks[constants.MetachainShardId])
 
 	tn.blkProcessor = blkProc
 
@@ -959,7 +966,7 @@ func createMetaNetNode(
 	tn.sk = keyPair.sk
 	tn.pk = keyPair.pk
 	tn.accntState = accntAdapter
-	tn.shardId = sharding.MetachainShardId
+	tn.shardId = constants.MetachainShardId
 
 	dPool.MetaBlocks().RegisterHandler(func(key []byte) {
 		atomic.AddInt32(&tn.metachainHdrRecv, 1)
@@ -981,7 +988,7 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 		genesisBlocks[shardId] = createGenesisBlock(shardId)
 	}
 
-	genesisBlocks[sharding.MetachainShardId] = createGenesisMetaBlock()
+	genesisBlocks[constants.MetachainShardId] = createGenesisMetaBlock()
 
 	return genesisBlocks
 }

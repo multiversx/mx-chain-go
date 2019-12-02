@@ -7,6 +7,8 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +45,7 @@ func generateValidatorMap(
 		validatorsMap[i] = generateValidatorList(nodesPerShard)
 	}
 
-	validatorsMap[MetachainShardId] = generateValidatorList(nodesPerShard)
+	validatorsMap[constants.MetachainShardId] = generateValidatorList(nodesPerShard)
 
 	return validatorsMap
 }

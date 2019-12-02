@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -113,6 +115,14 @@ var ErrCreateForkDetector = errors.New("could not create fork detector")
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
+
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	RegisterHandler(handler epochStart.EpochStartHandler)
+	UnregisterHandler(handler epochStart.EpochStartHandler)
+	NotifyAll(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}
 
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
@@ -328,7 +338,7 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
 	}
-	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if args.shardCoordinator.SelfId() == constants.MetachainShardId {
 		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
 		if err != nil {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
@@ -462,7 +472,7 @@ type processComponentsFactoryArgs struct {
 	shardCoordinator     sharding.Coordinator
 	nodesCoordinator     sharding.NodesCoordinator
 	data                 *Data
-	core                 *Core
+	coreData             *Core
 	crypto               *Crypto
 	state                *State
 	network              *Network
@@ -482,7 +492,7 @@ func NewProcessComponentsFactoryArgs(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	core *Core,
+	coreData *Core,
 	crypto *Crypto,
 	state *State,
 	network *Network,
@@ -500,7 +510,7 @@ func NewProcessComponentsFactoryArgs(
 		shardCoordinator:     shardCoordinator,
 		nodesCoordinator:     nodesCoordinator,
 		data:                 data,
-		core:                 core,
+		coreData:             coreData,
 		crypto:               crypto,
 		state:                state,
 		network:              network,
@@ -525,7 +535,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	interceptorContainerFactory, resolversContainerFactory, blackListHandler, err := newInterceptorAndResolverContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
-		args.data, args.core,
+		args.data,
+		args.coreData,
 		args.crypto,
 		args.state,
 		args.network,
@@ -567,7 +578,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
-		args.core,
+		args.coreData,
 		args.state,
 		args.data,
 		args.shardCoordinator,
@@ -614,7 +625,7 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		return errors.New("genesis block does not exists")
 	}
 
-	genesisBlockHash, err := core.CalculateHash(args.core.Marshalizer, args.core.Hasher, genesisBlock)
+	genesisBlockHash, err := core.CalculateHash(args.coreData.Marshalizer, args.coreData.Hasher, genesisBlock)
 	if err != nil {
 		return err
 	}
@@ -626,12 +637,12 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 
 	args.data.Blkc.SetGenesisHeaderHash(genesisBlockHash)
 
-	marshalizedBlock, err := args.core.Marshalizer.Marshal(genesisBlock)
+	marshalizedBlock, err := args.coreData.Marshalizer.Marshal(genesisBlock)
 	if err != nil {
 		return err
 	}
 
-	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if args.shardCoordinator.SelfId() == constants.MetachainShardId {
 		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
@@ -668,7 +679,7 @@ func newRequestHandler(
 		return requestHandler, nil
 	}
 
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 			resolversFinder,
 			factory.ShardHeadersForMetachainTopic,
@@ -694,8 +705,8 @@ func newEpochStartTrigger(
 ) (epochStart.TriggerHandler, error) {
 	if args.shardCoordinator.SelfId() < args.shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
-			Hasher:      args.core.Hasher,
-			Marshalizer: args.core.Marshalizer,
+			Hasher:      args.coreData.Hasher,
+			Marshalizer: args.coreData.Marshalizer,
 		}
 		headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 		if err != nil {
@@ -703,10 +714,10 @@ func newEpochStartTrigger(
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:        args.core.Marshalizer,
-			Hasher:             args.core.Hasher,
+			Marshalizer:        args.coreData.Marshalizer,
+			Hasher:             args.coreData.Hasher,
 			HeaderValidator:    headerValidator,
-			Uint64Converter:    args.core.Uint64ByteSliceConverter,
+			Uint64Converter:    args.coreData.Uint64ByteSliceConverter,
 			DataPool:           args.data.Datapool,
 			Storage:            args.data.Store,
 			RequestHandler:     requestHandler,
@@ -723,7 +734,7 @@ func newEpochStartTrigger(
 		return epochStartTrigger, nil
 	}
 
-	if args.shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if args.shardCoordinator.SelfId() == constants.MetachainShardId {
 		argEpochStart := &metachainEpochStart.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:           args.epochStart,
@@ -885,7 +896,7 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 
 		return blockChain, nil
 	}
-	if coordinator.SelfId() == sharding.MetachainShardId {
+	if coordinator.SelfId() == constants.MetachainShardId {
 		blockChain, err := blockchain.NewMetaChain(badBlockCache)
 		if err != nil {
 			return nil, err
@@ -909,7 +920,7 @@ func createDataStoreFromConfig(
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		return createMetaChainDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
 	return nil, errors.New("can not create data store")
@@ -1463,7 +1474,7 @@ func newInterceptorAndResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	core *Core,
+	coreData *Core,
 	crypto *Crypto,
 	state *State,
 	network *Network,
@@ -1475,19 +1486,19 @@ func newInterceptorAndResolverContainerFactory(
 			shardCoordinator,
 			nodesCoordinator,
 			data,
-			core,
+			coreData,
 			crypto,
 			state,
 			network,
 			economics,
 		)
 	}
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		return newMetaInterceptorAndResolverContainerFactory(
 			shardCoordinator,
 			nodesCoordinator,
 			data,
-			core,
+			coreData,
 			crypto,
 			network,
 			state,
@@ -1692,11 +1703,11 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		Economics:                economics,
 	}
 
-	if shardCoordinator.SelfId() != sharding.MetachainShardId {
+	if shardCoordinator.SelfId() != constants.MetachainShardId {
 		newShardCoordinator, newAccounts, err := createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
-			sharding.MetachainShardId,
+			constants.MetachainShardId,
 		)
 		if err != nil {
 			return nil, err
@@ -1721,7 +1732,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	log.Debug("MetaGenesisBlock created",
 		"roothash", genesisBlock.GetRootHash(),
 	)
-	genesisBlocks[sharding.MetachainShardId] = genesisBlock
+	genesisBlocks[constants.MetachainShardId] = genesisBlock
 
 	return genesisBlocks, nil
 }
@@ -1817,7 +1828,7 @@ func newForkDetector(
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return processSync.NewShardForkDetector(rounder, headerBlackList)
 	}
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		return processSync.NewMetaForkDetector(rounder, headerBlackList)
 	}
 
@@ -1870,7 +1881,7 @@ func newBlockProcessor(
 			processArgs.nodesCoordinator,
 			specialAddressHolder,
 			processArgs.data,
-			processArgs.core,
+			processArgs.coreData,
 			processArgs.state,
 			forkDetector,
 			genesisBlocks,
@@ -1880,7 +1891,7 @@ func newBlockProcessor(
 			epochStartTrigger,
 		)
 	}
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
+	if shardCoordinator.SelfId() == constants.MetachainShardId {
 		validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
 		if err != nil {
 			return nil, err
@@ -1892,7 +1903,7 @@ func newBlockProcessor(
 			processArgs.nodesCoordinator,
 			specialAddressHolder,
 			processArgs.data,
-			processArgs.core,
+			processArgs.coreData,
 			processArgs.state,
 			forkDetector,
 			genesisBlocks,
@@ -2371,7 +2382,7 @@ func newValidatorStatisticsProcessor(
 		ShardCoordinator: processComponents.shardCoordinator,
 		DataPool:         processComponents.data.MetaDatapool,
 		StorageService:   storageService,
-		Marshalizer:      processComponents.core.Marshalizer,
+		Marshalizer:      processComponents.coreData.Marshalizer,
 		Economics:        processComponents.economicsData,
 	}
 

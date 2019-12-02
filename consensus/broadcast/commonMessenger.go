@@ -2,7 +2,7 @@ package broadcast
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/constants"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -35,7 +35,7 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 		return err
 	}
 
-	consensusTopic := core.ConsensusTopic +
+	consensusTopic := constants.ConsensusTopic +
 		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
 
 	go cm.messenger.Broadcast(consensusTopic, buff)
@@ -86,7 +86,7 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	for topic, v := range transactions {
 		txs += len(v)
 		// forward txs to the destination shards in packets
-		packets, err := dataPacker.PackDataInChunks(v, core.MaxBulkTransactionSize)
+		packets, err := dataPacker.PackDataInChunks(v, constants.MaxBulkTransactionSize)
 		if err != nil {
 			return err
 		}

@@ -6,9 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
-// MetachainShardId will be used to identify a shard ID as metachain
-const MetachainShardId = uint32(0xFFFFFFFF)
-
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
 	NumberOfShards() uint32

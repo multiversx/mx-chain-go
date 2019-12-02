@@ -6,6 +6,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -290,7 +292,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 }
 
 func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderHandler) error {
-	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != sharding.MetachainShardId {
+	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != constants.MetachainShardId {
 		return process.ErrShardIdMissmatch
 	}
 
@@ -301,7 +303,7 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 		}
 	}
 
-	if shardId == sharding.MetachainShardId {
+	if shardId == constants.MetachainShardId {
 		_, ok := hdr.(*block.MetaBlock)
 		if !ok {
 			return process.ErrWrongTypeAssertion
@@ -445,11 +447,11 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		bp.notarizedHdrs[i] = append(bp.notarizedHdrs[i], hdr)
 	}
 
-	hdr, ok := startHeaders[sharding.MetachainShardId].(*block.MetaBlock)
+	hdr, ok := startHeaders[constants.MetachainShardId].(*block.MetaBlock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
-	bp.notarizedHdrs[sharding.MetachainShardId] = append(bp.notarizedHdrs[sharding.MetachainShardId], hdr)
+	bp.notarizedHdrs[constants.MetachainShardId] = append(bp.notarizedHdrs[constants.MetachainShardId], hdr)
 
 	return nil
 }
@@ -708,7 +710,7 @@ func (bp *baseProcessor) getMaxMiniBlocksSpaceRemained(
 	miniBlocksAddedInBlock uint32,
 ) int32 {
 	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
-	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
+	mbSpaceRemainedInCache := int32(constants.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
 	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 	return maxMbSpaceRemained

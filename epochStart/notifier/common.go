@@ -1,14 +1,12 @@
 package notifier
 
-import "github.com/ElrondNetwork/elrond-go/data"
-
-// SubscribeFunctionHandler defines what a struct which contain a handler function for epoch start should do
-type SubscribeFunctionHandler interface {
-	EpochStartAction(hdr data.HeaderHandler)
-}
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+)
 
 // MakeHandlerForEpochStart will return a struct which will satisfy the above interface
-func MakeHandlerForEpochStart(funcForSubscription func(hdr data.HeaderHandler)) SubscribeFunctionHandler {
+func MakeHandlerForEpochStart(funcForSubscription func(hdr data.HeaderHandler)) epochStart.EpochStartHandler {
 	handler := handlerStruct{subscribedFunc: funcForSubscription}
 	return &handler
 }

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/logger"
 )
@@ -66,7 +68,7 @@ func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 		svc.mostRecentSoftwareVersion = tagVersion
 	}
 
-	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
+	svc.statusHandler.SetStringValue(constants.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
 }
 
 func readJSONFromUrl(url string) (string, error) {

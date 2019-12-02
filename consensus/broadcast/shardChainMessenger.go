@@ -3,6 +3,7 @@ package broadcast
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core/constants"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -120,7 +121,7 @@ func (scm *shardChainMessenger) BroadcastShardHeader(header data.HeaderHandler) 
 	}
 
 	shardHeaderForMetachainTopic := factory.ShardHeadersForMetachainTopic +
-		scm.shardCoordinator.CommunicationIdentifier(sharding.MetachainShardId)
+		scm.shardCoordinator.CommunicationIdentifier(constants.MetachainShardId)
 
 	go scm.messenger.Broadcast(shardHeaderForMetachainTopic, msgHeader)
 

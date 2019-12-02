@@ -3,7 +3,8 @@ package presenter
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ func TestPresenterStatusHandler_GetCpuLoadPercent(t *testing.T) {
 
 	cpuPercentLoad := uint64(90)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCpuLoadPercent, cpuPercentLoad)
+	presenterStatusHandler.SetUInt64Value(constants.MetricCpuLoadPercent, cpuPercentLoad)
 	result := presenterStatusHandler.GetCpuLoadPercent()
 
 	assert.Equal(t, cpuPercentLoad, result)
@@ -23,7 +24,7 @@ func TestPresenterStatusHandler_GetMemLoadPercent(t *testing.T) {
 
 	memPercentLoad := uint64(80)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memPercentLoad)
+	presenterStatusHandler.SetUInt64Value(constants.MetricMemLoadPercent, memPercentLoad)
 	result := presenterStatusHandler.GetMemLoadPercent()
 
 	assert.Equal(t, memPercentLoad, result)
@@ -34,7 +35,7 @@ func TestPresenterStatusHandler_GetTotalMem(t *testing.T) {
 
 	totalMem := uint64(8000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricMemTotal, totalMem)
+	presenterStatusHandler.SetUInt64Value(constants.MetricMemTotal, totalMem)
 	result := presenterStatusHandler.GetTotalMem()
 
 	assert.Equal(t, totalMem, result)
@@ -45,7 +46,7 @@ func TestPresenterStatusHandler_GetMemUsedByNode(t *testing.T) {
 
 	memUsedByNode := uint64(500)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, memUsedByNode)
+	presenterStatusHandler.SetUInt64Value(constants.MetricMemUsedGolang, memUsedByNode)
 	result := presenterStatusHandler.GetMemUsedByNode()
 
 	assert.Equal(t, memUsedByNode, result)
@@ -56,7 +57,7 @@ func TestPresenterStatusHandler_GetNetworkRecvPercent(t *testing.T) {
 
 	networkRecvPercent := uint64(10)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNetworkRecvPercent, networkRecvPercent)
+	presenterStatusHandler.SetUInt64Value(constants.MetricNetworkRecvPercent, networkRecvPercent)
 	result := presenterStatusHandler.GetNetworkRecvPercent()
 
 	assert.Equal(t, networkRecvPercent, result)
@@ -67,7 +68,7 @@ func TestPresenterStatusHandler_GetNetworkRecvBps(t *testing.T) {
 
 	networkRecvBps := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNetworkRecvBps, networkRecvBps)
+	presenterStatusHandler.SetUInt64Value(constants.MetricNetworkRecvBps, networkRecvBps)
 	result := presenterStatusHandler.GetNetworkRecvBps()
 
 	assert.Equal(t, networkRecvBps, result)
@@ -78,7 +79,7 @@ func TestPresenterStatusHandler_GetNetworkRecvBpsPeak(t *testing.T) {
 
 	networkRecvBpsPeak := uint64(2000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNetworkRecvBpsPeak, networkRecvBpsPeak)
+	presenterStatusHandler.SetUInt64Value(constants.MetricNetworkRecvBpsPeak, networkRecvBpsPeak)
 	result := presenterStatusHandler.GetNetworkRecvBpsPeak()
 
 	assert.Equal(t, networkRecvBpsPeak, result)
@@ -89,7 +90,7 @@ func TestPresenterStatusHandler_GetNetworkSentPercent(t *testing.T) {
 
 	networkSentPercent := uint64(10)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, networkSentPercent)
+	presenterStatusHandler.SetUInt64Value(constants.MetricNetworkSentPercent, networkSentPercent)
 	result := presenterStatusHandler.GetNetworkSentPercent()
 
 	assert.Equal(t, networkSentPercent, result)
@@ -100,7 +101,7 @@ func TestPresenterStatusHandler_GetNetworkSentBps(t *testing.T) {
 
 	networkSentBps := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNetworkSentBps, networkSentBps)
+	presenterStatusHandler.SetUInt64Value(constants.MetricNetworkSentBps, networkSentBps)
 	result := presenterStatusHandler.GetNetworkSentBps()
 
 	assert.Equal(t, networkSentBps, result)
@@ -111,7 +112,7 @@ func TestPresenterStatusHandler_GetNetworkSentBpsPeak(t *testing.T) {
 
 	networkSentBpsPeak := uint64(2000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, networkSentBpsPeak)
+	presenterStatusHandler.SetUInt64Value(constants.MetricNetworkSentBpsPeak, networkSentBpsPeak)
 	result := presenterStatusHandler.GetNetworkSentBpsPeak()
 
 	assert.Equal(t, networkSentBpsPeak, result)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -114,7 +116,7 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 	if sr.BootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "")
+	sr.appStatusHandler.SetStringValue(constants.MetricConsensusRoundState, "")
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
 	if err != nil {
@@ -136,9 +138,9 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 	msg := ""
 	if leader == sr.SelfPubKey() {
-		sr.appStatusHandler.Increment(core.MetricCountLeader)
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "proposed")
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "proposer")
+		sr.appStatusHandler.Increment(constants.MetricCountLeader)
+		sr.appStatusHandler.SetStringValue(constants.MetricConsensusRoundState, "proposed")
+		sr.appStatusHandler.SetStringValue(constants.MetricConsensusState, "proposer")
 		msg = " (my turn)"
 	}
 
@@ -160,13 +162,13 @@ func (sr *SubroundStartRound) initCurrentRound() bool {
 
 		sr.RoundCanceled = true
 
-		sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "not in consensus group")
+		sr.appStatusHandler.SetStringValue(constants.MetricConsensusState, "not in consensus group")
 
 		return false
 	}
 
-	sr.appStatusHandler.Increment(core.MetricCountConsensus)
-	sr.appStatusHandler.SetStringValue(core.MetricConsensusState, "participant")
+	sr.appStatusHandler.Increment(constants.MetricCountConsensus)
+	sr.appStatusHandler.SetStringValue(constants.MetricConsensusState, "participant")
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
 	if err != nil {

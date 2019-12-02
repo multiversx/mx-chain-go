@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -33,11 +35,11 @@ func getMetricsFromMetaHeader(
 		headerSize = uint64(len(marshalizedHeader))
 	}
 
-	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(header.TxCount))
-	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, totalHeadersProcessed)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, uint64(headersCountInPool))
+	appStatusHandler.SetUInt64Value(constants.MetricHeaderSize, headerSize)
+	appStatusHandler.SetUInt64Value(constants.MetricNumTxInBlock, uint64(header.TxCount))
+	appStatusHandler.SetUInt64Value(constants.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
+	appStatusHandler.SetUInt64Value(constants.MetricNumShardHeadersProcessed, totalHeadersProcessed)
+	appStatusHandler.SetUInt64Value(constants.MetricNumShardHeadersFromPool, uint64(headersCountInPool))
 }
 
 func getMetricsFromBlockBody(
@@ -56,9 +58,9 @@ func getMetricsFromBlockBody(
 			miniblocksSize += uint64(len(marshalizedBlock))
 		}
 	}
-	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
-	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(mbLen))
-	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, miniblocksSize)
+	appStatusHandler.SetUInt64Value(constants.MetricNumTxInBlock, uint64(totalTxCount))
+	appStatusHandler.SetUInt64Value(constants.MetricNumMiniBlocks, uint64(mbLen))
+	appStatusHandler.SetUInt64Value(constants.MetricMiniBlocksSize, miniblocksSize)
 }
 
 func getMetricsFromHeader(
@@ -74,9 +76,9 @@ func getMetricsFromHeader(
 		headerSize = uint64(len(marshalizedHeader))
 	}
 
-	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, numTxWithDst)
-	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, uint64(totalTx))
+	appStatusHandler.SetUInt64Value(constants.MetricHeaderSize, headerSize)
+	appStatusHandler.SetUInt64Value(constants.MetricTxPoolLoad, numTxWithDst)
+	appStatusHandler.SetUInt64Value(constants.MetricNumProcessedTxs, uint64(totalTx))
 }
 
 func saveMetricsForACommittedBlock(
@@ -87,11 +89,11 @@ func saveMetricsForACommittedBlock(
 	headerMetaNonce uint64,
 ) {
 	if isInConsensus {
-		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
+		appStatusHandler.Increment(constants.MetricCountConsensusAcceptedBlocks)
 	}
-	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
-	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
-	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMetaNonce))
+	appStatusHandler.SetStringValue(constants.MetricCurrentBlockHash, currentBlockHash)
+	appStatusHandler.SetUInt64Value(constants.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
+	appStatusHandler.SetStringValue(constants.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", headerMetaNonce))
 }
 
 func saveMetachainCommitBlockMetrics(
@@ -101,9 +103,9 @@ func saveMetachainCommitBlockMetrics(
 	nodesCoordinator sharding.NodesCoordinator,
 
 ) {
-	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
+	appStatusHandler.SetStringValue(constants.MetricCurrentBlockHash, display.DisplayByteSlice(headerHash))
 
-	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, sharding.MetachainShardId)
+	pubKeys, err := nodesCoordinator.GetValidatorsPublicKeys(header.PrevRandSeed, header.Round, constants.MetachainShardId)
 	if err != nil {
 		log.Debug("cannot get validators public keys", "error", err.Error())
 	}
@@ -130,7 +132,7 @@ func countNotarizedHeaders(
 		return
 	}
 
-	appStatusHandler.AddUint64(core.MetricCountConsensusAcceptedBlocks, uint64(numBlockHeaders))
+	appStatusHandler.AddUint64(constants.MetricCountConsensusAcceptedBlocks, uint64(numBlockHeaders))
 }
 
 func saveRoundInfoInElastic(

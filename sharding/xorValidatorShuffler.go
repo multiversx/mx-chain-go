@@ -3,6 +3,8 @@ package sharding
 import (
 	"sort"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core/constants"
 )
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -331,7 +333,7 @@ func distributeValidators(
 	for i, v := range shuffledValidators {
 		shardId = uint32(i) % nbShardsPlusMeta
 		if shardId == nbShardsPlusMeta-1 {
-			shardId = MetachainShardId
+			shardId = constants.MetachainShardId
 		}
 		destLists[shardId] = append(destLists[shardId], v)
 	}

@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -26,14 +28,14 @@ func TestPrometheusStatusHandler_TestIfMetricsAreInitialized(t *testing.T) {
 	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
 
 	// check if nonce metric for example was initialized
-	_, err := promStatusHandler.GetPrometheusMetricByKey(core.MetricNumConnectedPeers)
+	_, err := promStatusHandler.GetPrometheusMetricByKey(constants.MetricNumConnectedPeers)
 	assert.Nil(t, err)
 }
 
 func TestPrometheusStatusHandler_TestIncrement(t *testing.T) {
 	t.Parallel()
 
-	var metricKey = core.MetricNonce
+	var metricKey = constants.MetricNonce
 
 	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
 
@@ -52,7 +54,7 @@ func TestPrometheusStatusHandler_TestIncrement(t *testing.T) {
 func TestPrometheusStatusHandler_TestDecrement(t *testing.T) {
 	t.Parallel()
 
-	var metricKey = core.MetricNonce
+	var metricKey = constants.MetricNonce
 
 	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
 
@@ -71,7 +73,7 @@ func TestPrometheusStatusHandler_TestDecrement(t *testing.T) {
 func TestPrometheusStatusHandler_TestSetInt64Value(t *testing.T) {
 	t.Parallel()
 
-	var metricKey = core.MetricCurrentRound
+	var metricKey = constants.MetricCurrentRound
 
 	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
 
@@ -89,7 +91,7 @@ func TestPrometheusStatusHandler_TestSetInt64Value(t *testing.T) {
 func TestPrometheusStatusHandler_TestSetUInt64Value(t *testing.T) {
 	t.Parallel()
 
-	var metricKey = core.MetricCurrentRound
+	var metricKey = constants.MetricCurrentRound
 
 	promStatusHandler := statusHandler.NewPrometheusStatusHandler()
 
@@ -116,7 +118,7 @@ func BenchmarkPrometheusStatusHandler_Increment(b *testing.B) {
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
-		promStatusHandler.Increment(core.MetricIsSyncing)
+		promStatusHandler.Increment(constants.MetricIsSyncing)
 	}
 	promStatusHandler.Close()
 }
@@ -133,7 +135,7 @@ func BenchmarkPrometheusStatusHandler_Decrement(b *testing.B) {
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
-		promStatusHandler.Decrement(core.MetricIsSyncing)
+		promStatusHandler.Decrement(constants.MetricIsSyncing)
 	}
 	promStatusHandler.Close()
 }
@@ -151,7 +153,7 @@ func BenchmarkPrometheusStatusHandler_SetInt64Value(b *testing.B) {
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
-		promStatusHandler.SetInt64Value(core.MetricIsSyncing, int64(10))
+		promStatusHandler.SetInt64Value(constants.MetricIsSyncing, int64(10))
 	}
 	promStatusHandler.Close()
 }
@@ -168,7 +170,7 @@ func BenchmarkPrometheusStatusHandler_SetUInt64Value(b *testing.B) {
 	assert.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
-		promStatusHandler.SetUInt64Value(core.MetricIsSyncing, uint64(10))
+		promStatusHandler.SetUInt64Value(constants.MetricIsSyncing, uint64(10))
 	}
 	promStatusHandler.Close()
 }

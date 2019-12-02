@@ -11,13 +11,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	NotifyAll(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
 	GenesisTime        time.Time
 	Settings           *config.EpochStartConfig
 	Epoch              uint32
 	EpochStartRound    uint64
-	EpochStartNotifier epochStart.StartOfEpochNotifier
+	EpochStartNotifier EpochStartNotifier
 }
 
 type trigger struct {
@@ -32,7 +38,7 @@ type trigger struct {
 	epochStartMetaHash          []byte
 	epochStartTime              time.Time
 	mutTrigger                  sync.RWMutex
-	epochStartNotifier          epochStart.StartOfEpochNotifier
+	epochStartNotifier          EpochStartNotifier
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch

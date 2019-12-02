@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -145,7 +147,7 @@ func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 			return hdrShardId + 2
 		},
 		SelfIdCalled: func() uint32 {
-			return sharding.MetachainShardId
+			return constants.MetachainShardId
 		},
 	}
 

@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -182,7 +183,7 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 	nodes []*integrationTests.TestProcessorNode,
 ) {
 	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != sharding.MetachainShardId {
+		if node.ShardCoordinator.SelfId() != constants.MetachainShardId {
 			continue
 		}
 

@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -499,7 +501,7 @@ func (boot *baseBootstrap) ShouldSync() bool {
 	} else {
 		result = uint64(1)
 	}
-	boot.statusHandler.SetUInt64Value(core.MetricIsSyncing, result)
+	boot.statusHandler.SetUInt64Value(constants.MetricIsSyncing, result)
 
 	return !isNodeSynchronized
 }
@@ -698,7 +700,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	if boot.forkInfo.IsDetected {
-		boot.statusHandler.Increment(core.MetricNumTimesInForkChoice)
+		boot.statusHandler.Increment(constants.MetricNumTimesInForkChoice)
 
 		if boot.isForcedFork() {
 			log.Debug("fork has been forced")
@@ -819,7 +821,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		boot.statusHandler.Decrement(core.MetricCountConsensusAcceptedBlocks)
+		boot.statusHandler.Decrement(constants.MetricCountConsensusAcceptedBlocks)
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {

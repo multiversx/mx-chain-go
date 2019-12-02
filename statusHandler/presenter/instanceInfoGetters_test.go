@@ -4,7 +4,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +14,7 @@ func TestPresenterStatusHandler_GetAppVersion(t *testing.T) {
 
 	appVersion := "version001"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricAppVersion, appVersion)
+	presenterStatusHandler.SetStringValue(constants.MetricAppVersion, appVersion)
 	result := presenterStatusHandler.GetAppVersion()
 
 	assert.Equal(t, appVersion, result)
@@ -24,7 +25,7 @@ func TestPresenterStatusHandler_GetNodeType(t *testing.T) {
 
 	nodeType := "validator"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricNodeType, nodeType)
+	presenterStatusHandler.SetStringValue(constants.MetricNodeType, nodeType)
 	result := presenterStatusHandler.GetNodeType()
 
 	assert.Equal(t, nodeType, result)
@@ -35,7 +36,7 @@ func TestPresenterStatusHandler_GetPublicKeyTxSign(t *testing.T) {
 
 	publicKey := "publicKeyTxSign"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, publicKey)
+	presenterStatusHandler.SetStringValue(constants.MetricPublicKeyTxSign, publicKey)
 	result := presenterStatusHandler.GetPublicKeyTxSign()
 
 	assert.Equal(t, publicKey, result)
@@ -46,7 +47,7 @@ func TestPresenterStatusHandler_GetPublicKeyBlockSign(t *testing.T) {
 
 	publicKeyBlock := "publicKeyBlockSign"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, publicKeyBlock)
+	presenterStatusHandler.SetStringValue(constants.MetricPublicKeyBlockSign, publicKeyBlock)
 	result := presenterStatusHandler.GetPublicKeyBlockSign()
 
 	assert.Equal(t, publicKeyBlock, result)
@@ -57,7 +58,7 @@ func TestPresenterStatusHandler_GetShardId(t *testing.T) {
 
 	shardId := uint64(1)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	presenterStatusHandler.SetUInt64Value(constants.MetricShardId, shardId)
 	result := presenterStatusHandler.GetShardId()
 
 	assert.Equal(t, shardId, result)
@@ -68,7 +69,7 @@ func TestPresenterStatusHandler_GetCountConsensus(t *testing.T) {
 
 	countConsensus := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensus, countConsensus)
+	presenterStatusHandler.SetUInt64Value(constants.MetricCountConsensus, countConsensus)
 	result := presenterStatusHandler.GetCountConsensus()
 
 	assert.Equal(t, countConsensus, result)
@@ -79,7 +80,7 @@ func TestPresenterStatusHandler_GetCountLeader(t *testing.T) {
 
 	countLeader := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountLeader, countLeader)
+	presenterStatusHandler.SetUInt64Value(constants.MetricCountLeader, countLeader)
 	result := presenterStatusHandler.GetCountLeader()
 
 	assert.Equal(t, countLeader, result)
@@ -90,7 +91,7 @@ func TestPresenterStatusHandler_GetCountAcceptedBlocks(t *testing.T) {
 
 	countAcceptedBlocks := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, countAcceptedBlocks)
+	presenterStatusHandler.SetUInt64Value(constants.MetricCountAcceptedBlocks, countAcceptedBlocks)
 	result := presenterStatusHandler.GetCountAcceptedBlocks()
 
 	assert.Equal(t, countAcceptedBlocks, result)
@@ -103,8 +104,8 @@ func TestPresenterStatusHandler_CheckSoftwareVersionNeedUpdate(t *testing.T) {
 	softwareVersion := "v21"
 
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricAppVersion, appVersion)
-	presenterStatusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, softwareVersion)
+	presenterStatusHandler.SetStringValue(constants.MetricAppVersion, appVersion)
+	presenterStatusHandler.SetStringValue(constants.MetricLatestTagSoftwareVersion, softwareVersion)
 	needUpdate, latestSoftwareVersion := presenterStatusHandler.CheckSoftwareVersion()
 
 	assert.Equal(t, true, needUpdate)
@@ -118,8 +119,8 @@ func TestPresenterStatusHandler_CheckSoftwareVersion(t *testing.T) {
 	softwareVersion := "v21"
 
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricAppVersion, appVersion)
-	presenterStatusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, softwareVersion)
+	presenterStatusHandler.SetStringValue(constants.MetricAppVersion, appVersion)
+	presenterStatusHandler.SetStringValue(constants.MetricLatestTagSoftwareVersion, softwareVersion)
 	needUpdate, latestSoftwareVersion := presenterStatusHandler.CheckSoftwareVersion()
 
 	assert.Equal(t, false, needUpdate)
@@ -131,7 +132,7 @@ func TestPresenterStatusHandler_GetCountConsensusAcceptedBlocks(t *testing.T) {
 
 	countConsensusAcceptedBlocks := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, countConsensusAcceptedBlocks)
+	presenterStatusHandler.SetUInt64Value(constants.MetricCountConsensusAcceptedBlocks, countConsensusAcceptedBlocks)
 	result := presenterStatusHandler.GetCountConsensusAcceptedBlocks()
 
 	assert.Equal(t, countConsensusAcceptedBlocks, result)
@@ -144,7 +145,7 @@ func TestPresenterStatusHandler_GetNodeNameShouldReturnDefaultName(t *testing.T)
 	nodeName := ""
 	expectedName := "noname"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricNodeDisplayName, nodeName)
+	presenterStatusHandler.SetStringValue(constants.MetricNodeDisplayName, nodeName)
 	result := presenterStatusHandler.GetNodeName()
 
 	assert.Equal(t, expectedName, result)
@@ -155,7 +156,7 @@ func TestPresenterStatusHandler_GetNodeName(t *testing.T) {
 
 	nodeName := "node"
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricNodeDisplayName, nodeName)
+	presenterStatusHandler.SetStringValue(constants.MetricNodeDisplayName, nodeName)
 	result := presenterStatusHandler.GetNodeName()
 
 	assert.Equal(t, nodeName, result)
@@ -169,9 +170,9 @@ func TestPresenterStatusHandler_CalculateRewardsTotal(t *testing.T) {
 	numSignedBlocks := uint64(50)
 
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
-	presenterStatusHandler.SetStringValue(core.MetricDenominationCoefficient, "0.0001")
+	presenterStatusHandler.SetStringValue(constants.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetUInt64Value(constants.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
+	presenterStatusHandler.SetStringValue(constants.MetricDenominationCoefficient, "0.0001")
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
 	expectedDifValue := "5" + presenterStatusHandler.GetZeros()
 
@@ -188,9 +189,9 @@ func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
 	presenterStatusHandler := NewPresenterStatusHandler()
 	totalRewardsOld, _ := big.NewFloat(0).SetString(rewardsValue)
 	presenterStatusHandler.totalRewardsOld = big.NewFloat(0).Set(totalRewardsOld)
-	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
-	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
-	presenterStatusHandler.SetStringValue(core.MetricDenominationCoefficient, "0.0001")
+	presenterStatusHandler.SetStringValue(constants.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetUInt64Value(constants.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
+	presenterStatusHandler.SetStringValue(constants.MetricDenominationCoefficient, "0.0001")
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
 	expectedDiffValue := "4000" + presenterStatusHandler.GetZeros()
 
@@ -218,13 +219,13 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) 
 	rewardsValue := "10000"
 
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, consensusGroupSize)
-	presenterStatusHandler.SetUInt64Value(core.MetricNumValidators, numValidators)
-	presenterStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, totalBlocks)
-	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
-	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, totalRounds)
-	presenterStatusHandler.SetUInt64Value(core.MetricRoundTime, roundTime)
-	presenterStatusHandler.SetStringValue(core.MetricDenominationCoefficient, "0.0001")
+	presenterStatusHandler.SetUInt64Value(constants.MetricConsensusGroupSize, consensusGroupSize)
+	presenterStatusHandler.SetUInt64Value(constants.MetricNumValidators, numValidators)
+	presenterStatusHandler.SetUInt64Value(constants.MetricProbableHighestNonce, totalBlocks)
+	presenterStatusHandler.SetStringValue(constants.MetricRewardsValue, rewardsValue)
+	presenterStatusHandler.SetUInt64Value(constants.MetricCurrentRound, totalRounds)
+	presenterStatusHandler.SetUInt64Value(constants.MetricRoundTime, roundTime)
+	presenterStatusHandler.SetStringValue(constants.MetricDenominationCoefficient, "0.0001")
 	expectedValue := "300" + presenterStatusHandler.GetZeros()
 
 	result := presenterStatusHandler.CalculateRewardsPerHour()

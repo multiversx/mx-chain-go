@@ -6,10 +6,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var stepDelay = time.Second
@@ -43,7 +44,7 @@ func setupSyncNodesOneShardAndMeta(
 	for i := 0; i < numNodesMeta; i++ {
 		metaNode := integrationTests.NewTestSyncNode(
 			maxShards,
-			sharding.MetachainShardId,
+			constants.MetachainShardId,
 			shardId,
 			advertiserAddr,
 		)

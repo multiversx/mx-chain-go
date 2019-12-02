@@ -5,9 +5,10 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/data/block/capnp"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/glycerine/go-capnproto"
+	capn "github.com/glycerine/go-capnproto"
 )
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
@@ -469,7 +470,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 
 // GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
-	return sharding.MetachainShardId
+	return constants.MetachainShardId
 }
 
 // GetNonce return header nonce

@@ -53,8 +53,7 @@ type RequestHandler interface {
 	IsInterfaceNil() bool
 }
 
-// StartOfEpochNotifier defines what triggers should do for subscribed functions
-type StartOfEpochNotifier interface {
-	NotifyAll(hdr data.HeaderHandler)
-	IsInterfaceNil() bool
+// EpochStartHandler defines the action taken on epoch start event
+type EpochStartHandler interface {
+	EpochStartAction(hdr data.HeaderHandler)
 }

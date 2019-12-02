@@ -2,58 +2,59 @@ package presenter
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/constants"
 )
 
 var maxSpeedHistorySaved = 1000
 
 // GetNonce will return current nonce of node
 func (psh *PresenterStatusHandler) GetNonce() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricNonce)
+	return psh.getFromCacheAsUint64(constants.MetricNonce)
 }
 
 // GetIsSyncing will return state of the node
 func (psh *PresenterStatusHandler) GetIsSyncing() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricIsSyncing)
+	return psh.getFromCacheAsUint64(constants.MetricIsSyncing)
 }
 
 // GetTxPoolLoad will return how many transactions are in the pool
 func (psh *PresenterStatusHandler) GetTxPoolLoad() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricTxPoolLoad)
+	return psh.getFromCacheAsUint64(constants.MetricTxPoolLoad)
 }
 
 // GetProbableHighestNonce will return the highest nonce of blockchain
 func (psh *PresenterStatusHandler) GetProbableHighestNonce() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricProbableHighestNonce)
+	return psh.getFromCacheAsUint64(constants.MetricProbableHighestNonce)
 }
 
 // GetSynchronizedRound will return number of synchronized round
 func (psh *PresenterStatusHandler) GetSynchronizedRound() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricSynchronizedRound)
+	return psh.getFromCacheAsUint64(constants.MetricSynchronizedRound)
 }
 
 // GetRoundTime will return duration of a round
 func (psh *PresenterStatusHandler) GetRoundTime() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricRoundTime)
+	return psh.getFromCacheAsUint64(constants.MetricRoundTime)
 }
 
 // GetLiveValidatorNodes will return how many validator nodes are in blockchain
 func (psh *PresenterStatusHandler) GetLiveValidatorNodes() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricLiveValidatorNodes)
+	return psh.getFromCacheAsUint64(constants.MetricLiveValidatorNodes)
 }
 
 // GetConnectedNodes will return how many nodes are connected
 func (psh *PresenterStatusHandler) GetConnectedNodes() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricConnectedNodes)
+	return psh.getFromCacheAsUint64(constants.MetricConnectedNodes)
 }
 
 // GetNumConnectedPeers will return how many peers are connected
 func (psh *PresenterStatusHandler) GetNumConnectedPeers() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricNumConnectedPeers)
+	return psh.getFromCacheAsUint64(constants.MetricNumConnectedPeers)
 }
 
 // GetCurrentRound will return current round of node
 func (psh *PresenterStatusHandler) GetCurrentRound() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricCurrentRound)
+	return psh.getFromCacheAsUint64(constants.MetricCurrentRound)
 }
 
 // CalculateTimeToSynchronize will calculate and return an estimation of
@@ -107,15 +108,15 @@ func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed() uint64 {
 
 // GetNumTxProcessed will return number of processed transactions since node starts
 func (psh *PresenterStatusHandler) GetNumTxProcessed() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricNumProcessedTxs)
+	return psh.getFromCacheAsUint64(constants.MetricNumProcessedTxs)
 }
 
 // GetNumShardHeadersInPool will return number of shard headers that are in pool
 func (psh *PresenterStatusHandler) GetNumShardHeadersInPool() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricNumShardHeadersFromPool)
+	return psh.getFromCacheAsUint64(constants.MetricNumShardHeadersFromPool)
 }
 
 // GetNumShardHeadersProcessed will return number of shard header processed until now
 func (psh *PresenterStatusHandler) GetNumShardHeadersProcessed() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricNumShardHeadersProcessed)
+	return psh.getFromCacheAsUint64(constants.MetricNumShardHeadersProcessed)
 }

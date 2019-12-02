@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -168,8 +170,8 @@ func (chr *chronology) initRound() {
 
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
-		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRound, uint64(chr.rounder.Index()))
-		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, uint64(chr.rounder.TimeStamp().Unix()))
+		chr.appStatusHandler.SetUInt64Value(constants.MetricCurrentRound, uint64(chr.rounder.Index()))
+		chr.appStatusHandler.SetUInt64Value(constants.MetricCurrentRoundTimestamp, uint64(chr.rounder.TimeStamp().Unix()))
 	}
 
 	chr.mutSubrounds.RUnlock()

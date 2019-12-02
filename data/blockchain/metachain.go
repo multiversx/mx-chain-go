@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/constants"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -100,8 +101,8 @@ func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 		return ErrWrongTypeInSet
 	}
 
-	mc.appStatusHandler.SetUInt64Value(core.MetricNonce, currHead.Nonce)
-	mc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, currHead.Round)
+	mc.appStatusHandler.SetUInt64Value(constants.MetricNonce, currHead.Nonce)
+	mc.appStatusHandler.SetUInt64Value(constants.MetricSynchronizedRound, currHead.Round)
 
 	mc.CurrentBlock = currHead
 

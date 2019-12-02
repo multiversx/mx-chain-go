@@ -3,25 +3,35 @@ package notifier
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// EpochStartNotifier defines which actions should be done for handling new epoch's events
+type EpochStartNotifier interface {
+	RegisterHandler(handler epochStart.EpochStartHandler)
+	UnregisterHandler(handler epochStart.EpochStartHandler)
+	NotifyAll(hdr data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
 // epochStartSubscriptionHandler will handle subscription of function and notifying them
 type epochStartSubscriptionHandler struct {
-	epochStartHandlers   []SubscribeFunctionHandler
+	epochStartHandlers   []epochStart.EpochStartHandler
 	mutEpochStartHandler sync.RWMutex
 }
 
 // NewEpochStartSubscriptionHandler returns a new instance of epochStartSubscriptionHandler
 func NewEpochStartSubscriptionHandler() *epochStartSubscriptionHandler {
 	return &epochStartSubscriptionHandler{
-		epochStartHandlers:   make([]SubscribeFunctionHandler, 0),
+		epochStartHandlers:   make([]epochStart.EpochStartHandler, 0),
 		mutEpochStartHandler: sync.RWMutex{},
 	}
 }
 
 // RegisterHandler will subscribe a function so it will be called when NotifyAll method is called
-func (essh *epochStartSubscriptionHandler) RegisterHandler(handler SubscribeFunctionHandler) {
+func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.EpochStartHandler) {
 	if handler != nil {
 		essh.mutEpochStartHandler.Lock()
 		essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
@@ -30,7 +40,7 @@ func (essh *epochStartSubscriptionHandler) RegisterHandler(handler SubscribeFunc
 }
 
 // UnregisterHandler will unsubscribe a function from the slice
-func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister SubscribeFunctionHandler) {
+func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister epochStart.EpochStartHandler) {
 	if handlerToUnregister != nil {
 		essh.mutEpochStartHandler.RLock()
 		for idx, handler := range essh.epochStartHandlers {

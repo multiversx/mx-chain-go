@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -222,7 +224,7 @@ func (boot *ShardBootstrap) removeBlockBody(
 func (boot *ShardBootstrap) getNonceWithLastNotarized(nonce uint64) (uint64, map[uint32]*HdrInfo, map[uint32]*HdrInfo) {
 	ni := notarizedInfo{}
 	ni.reset()
-	shardId := sharding.MetachainShardId
+	shardId := constants.MetachainShardId
 	for currentNonce := nonce; currentNonce > 0; currentNonce-- {
 		header, ok := boot.isHeaderValid(currentNonce)
 		if !ok {
@@ -289,7 +291,7 @@ func (boot *ShardBootstrap) getMinNotarizedMetaBlockNonceInHeader(
 ) (uint64, error) {
 
 	minNonce := uint64(math.MaxUint64)
-	shardId := sharding.MetachainShardId
+	shardId := constants.MetachainShardId
 	for _, metaBlockHash := range header.MetaBlockHashes {
 		metaBlock, err := process.GetMetaHeaderFromStorage(metaBlockHash, boot.marshalizer, boot.store)
 		if err != nil {
@@ -321,7 +323,7 @@ func (boot *ShardBootstrap) getMinNotarizedMetaBlockNonceInHeader(
 }
 
 func (boot *ShardBootstrap) areNotarizedMetaBlocksFound(ni *notarizedInfo, notarizedNonce uint64) bool {
-	shardId := sharding.MetachainShardId
+	shardId := constants.MetachainShardId
 	if notarizedNonce == 0 {
 		return false
 	}
@@ -351,26 +353,26 @@ func (boot *ShardBootstrap) applyNotarizedBlocks(
 	finalNotarized map[uint32]*HdrInfo,
 	lastNotarized map[uint32]*HdrInfo,
 ) error {
-	if finalNotarized[sharding.MetachainShardId] == nil || lastNotarized[sharding.MetachainShardId] == nil {
+	if finalNotarized[constants.MetachainShardId] == nil || lastNotarized[constants.MetachainShardId] == nil {
 		return ErrNilNotarizedHeader
 	}
-	if finalNotarized[sharding.MetachainShardId].Hash == nil || lastNotarized[sharding.MetachainShardId].Hash == nil {
+	if finalNotarized[constants.MetachainShardId].Hash == nil || lastNotarized[constants.MetachainShardId].Hash == nil {
 		return ErrNilHash
 	}
 
-	metaBlock, err := process.GetMetaHeaderFromStorage(finalNotarized[sharding.MetachainShardId].Hash, boot.marshalizer, boot.store)
+	metaBlock, err := process.GetMetaHeaderFromStorage(finalNotarized[constants.MetachainShardId].Hash, boot.marshalizer, boot.store)
 	if err != nil {
 		return err
 	}
 
-	boot.blkExecutor.AddLastNotarizedHdr(sharding.MetachainShardId, metaBlock)
+	boot.blkExecutor.AddLastNotarizedHdr(constants.MetachainShardId, metaBlock)
 
-	metaBlock, err = process.GetMetaHeaderFromStorage(lastNotarized[sharding.MetachainShardId].Hash, boot.marshalizer, boot.store)
+	metaBlock, err = process.GetMetaHeaderFromStorage(lastNotarized[constants.MetachainShardId].Hash, boot.marshalizer, boot.store)
 	if err != nil {
 		return err
 	}
 
-	boot.blkExecutor.AddLastNotarizedHdr(sharding.MetachainShardId, metaBlock)
+	boot.blkExecutor.AddLastNotarizedHdr(constants.MetachainShardId, metaBlock)
 
 	return nil
 }
@@ -378,11 +380,11 @@ func (boot *ShardBootstrap) applyNotarizedBlocks(
 func (boot *ShardBootstrap) cleanupNotarizedStorage(lastNotarized map[uint32]*HdrInfo) {
 	highestNonceInStorer := boot.computeHighestNonce(dataRetriever.MetaHdrNonceHashDataUnit)
 
-	if lastNotarized[sharding.MetachainShardId] == nil {
+	if lastNotarized[constants.MetachainShardId] == nil {
 		return
 	}
 
-	for nonce := lastNotarized[sharding.MetachainShardId].Nonce + 1; nonce <= highestNonceInStorer; nonce++ {
+	for nonce := lastNotarized[constants.MetachainShardId].Nonce + 1; nonce <= highestNonceInStorer; nonce++ {
 		errNotCritical := boot.removeBlockHeader(nonce, dataRetriever.MetaBlockUnit, dataRetriever.MetaHdrNonceHashDataUnit)
 		if errNotCritical != nil {
 			log.Debug("remove notarized block header",

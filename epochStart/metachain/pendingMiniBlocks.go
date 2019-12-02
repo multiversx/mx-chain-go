@@ -3,12 +3,13 @@ package metachain
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/constants"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -94,7 +95,7 @@ func (p *pendingMiniBlockHeaders) getAllCrossShardMiniBlocks(metaHdr *block.Meta
 	crossShard := make(map[string]block.ShardMiniBlockHeader)
 
 	for _, miniBlockHeader := range metaHdr.MiniBlockHeaders {
-		if miniBlockHeader.ReceiverShardID != sharding.MetachainShardId {
+		if miniBlockHeader.ReceiverShardID != constants.MetachainShardId {
 			continue
 		}
 
@@ -112,7 +113,7 @@ func (p *pendingMiniBlockHeaders) getAllCrossShardMiniBlocks(metaHdr *block.Meta
 			if mbHeader.SenderShardID == mbHeader.ReceiverShardID {
 				continue
 			}
-			if mbHeader.ReceiverShardID == sharding.MetachainShardId {
+			if mbHeader.ReceiverShardID == constants.MetachainShardId {
 				continue
 			}
 
