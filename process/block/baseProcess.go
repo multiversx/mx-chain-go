@@ -314,7 +314,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		log.Debug("block hash does not match",
+		log.Trace("block hash does not match",
 			"shard", currHdr.GetShardID(),
 			"local prev hash", prevHeaderHash,
 			"received block with prev hash", currHdr.GetPrevHash(),
@@ -323,7 +323,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		log.Debug("random seed does not match",
+		log.Trace("random seed does not match",
 			"shard", currHdr.GetShardID(),
 			"local rand seed", prevHdr.GetRandSeed(),
 			"received block with rand seed", currHdr.GetPrevRandSeed(),

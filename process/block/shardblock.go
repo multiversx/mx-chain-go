@@ -260,7 +260,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(body, header.Round, haveTime)
+	elapsedTime := time.Now().Sub(startTime).Seconds()
+	log.Debug("elapsed time to process block transaction",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
@@ -275,7 +280,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	startTime = time.Now()
 	err = sp.checkValidatorStatisticsRootHash(header, processedMetaHdrs)
+	elapsedTime = time.Now().Sub(startTime).Seconds()
+	log.Debug("elapsed time to check validator statistics root hash",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return err
 	}
@@ -1529,7 +1539,12 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, process.ErrNilTransactionPool
 	}
 
+	startTime := time.Now()
 	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
+	elapsedTime := time.Now().Sub(startTime).Seconds()
+	log.Debug("elapsed time to create mbs to me",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
@@ -1544,7 +1559,12 @@ func (sp *shardProcessor) createMiniBlocks(
 		return nil, err
 	}
 
+	startTime = time.Now()
 	err = sp.updatePeerStateForFinalMetaHeaders(processedMetaHdrs)
+	elapsedTime = time.Now().Sub(startTime).Seconds()
+	log.Debug("elapsed time to update peer state",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1564,11 +1584,16 @@ func (sp *shardProcessor) createMiniBlocks(
 		uint32(len(destMeMiniBlocks))+nbHdrs,
 		uint32(len(miniBlocks)))
 
+	startTime = time.Now()
 	mbFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(
 		uint32(maxTxSpaceRemained),
 		uint32(maxMbSpaceRemained),
 		round,
 		haveTime)
+	elapsedTime = time.Now().Sub(startTime).Seconds()
+	log.Debug("elapsed time to create mbs from me",
+		"time [s]", elapsedTime,
+	)
 
 	if len(mbFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbFromMe...)
