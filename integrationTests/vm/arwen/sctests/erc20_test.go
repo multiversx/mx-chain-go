@@ -64,9 +64,8 @@ func Test_C_001(t *testing.T) {
 	context.deploySC("./erc20c/wrc20_arwen.wasm", formatHexNumber(42000))
 
 	// Assertion
-	// TODO: Check why totalSupply isn't 42000 (following assertions fail).
-	// assert.Equal(t, uint64(42000), context.querySCInt("totalSupply", [][]byte{}))
-	//assert.Equal(t, uint64(42000), context.querySCInt("balanceOf", [][]byte{context.Owner.Address}))
+	assert.Equal(t, uint64(42000), context.querySCInt("totalSupply", [][]byte{}))
+	assert.Equal(t, uint64(42000), context.querySCInt("balanceOf", [][]byte{context.Owner.Address}))
 
 	// Minting
 	context.executeSC(&context.Owner, "transferToken@"+context.Alice.AddressHex()+"@"+formatHexNumber(1000))

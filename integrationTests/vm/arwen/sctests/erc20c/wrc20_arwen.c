@@ -85,7 +85,7 @@ void init() {
 
   getCaller(sender);
   bigInt totalSupply = bigIntNew(0);
-  bigIntGetSignedArgument(0, totalSupply);
+  bigIntGetUnsignedArgument(0, totalSupply);
 
   // set total supply
   computeTotalSupplyKey(currentKey);
