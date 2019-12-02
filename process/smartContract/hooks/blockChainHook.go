@@ -189,6 +189,10 @@ func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
 func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	hdr := bh.blockChain.GetCurrentBlockHeader()
 
+	if hdr == nil {
+		return nil, process.ErrNilBlockHeader
+	}
+
 	if nonce > hdr.GetNonce() {
 		return nil, process.ErrInvalidNonceRequest
 	}
