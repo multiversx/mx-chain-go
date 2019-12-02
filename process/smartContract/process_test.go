@@ -917,6 +917,45 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	assert.Equal(t, tmpError, err)
 }
 
+func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {
+	t.Parallel()
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	sc, err := NewSmartContractProcessor(
+		vm,
+		argParser,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.TemporaryAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 1000
+			},
+		},
+		&mock.GasHandlerMock{},
+	)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = "data"
+	tx.Value = big.NewInt(45)
+	tx.GasLimit = 100
+
+	vmInput, err := sc.CreateVMInput(tx)
+	assert.Nil(t, vmInput)
+	assert.Equal(t, process.ErrNotEnoughGas, err)
+}
+
 func TestScProcessor_CreateVMInput(t *testing.T) {
 	t.Parallel()
 
