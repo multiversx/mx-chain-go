@@ -32,3 +32,10 @@ func Test_Empty_C_NoPanic(t *testing.T) {
 	context.deploySC("./emptyC/empty.wasm", "")
 	context.executeSC(&context.Owner, "thisDoesNotExist")
 }
+
+func Test_Corrupt_NoPanic(t *testing.T) {
+	context := setupTestContext(t)
+
+	context.deploySC("./corrupt/corrupt.wasm", "")
+	context.executeSC(&context.Owner, "thisDoesNotExist")
+}
