@@ -34,6 +34,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	mingGasPrice := integrationTests.MinTxGasPrice
 	integrationTests.MinTxGasPrice = 0
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
@@ -121,6 +122,8 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	expectedSC := integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxNodeShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
 	integrationTests.CheckScBalanceOf(t, nodeWithSc, nodeWithCaller, expectedSC, hardCodedScResultingAddress)
 	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
+
+	integrationTests.MinTxGasPrice = mingGasPrice
 }
 
 // TestShouldProcessBlocksInMultiShardArchitectureWithScTxsJoinAndRewardProposersAndValidators tests the following scenario:
@@ -134,6 +137,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	mingGasPrice := integrationTests.MinTxGasPrice
 	integrationTests.MinTxGasPrice = 0
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
@@ -269,6 +273,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, big.NewInt(0), hardCodedScResultingAddress)
 	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, big.NewInt(0))
 	integrationTests.CheckRootHashes(t, nodes, idxProposers)
+
+	integrationTests.MinTxGasPrice = mingGasPrice
 }
 
 // TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators tests the following scenario:
@@ -282,6 +288,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 		t.Skip("this is not a short test")
 	}
 
+	mingGasPrice := integrationTests.MinTxGasPrice
 	integrationTests.MinTxGasPrice = 0
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
@@ -380,6 +387,8 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 
 	integrationTests.CheckScTopUp(t, nodeWithSc, topUpValue, hardCodedScResultingAddress)
 	integrationTests.CheckSenderBalanceOkAfterTopUp(t, nodeWithCaller, initialVal, topUpValue)
+
+	integrationTests.MinTxGasPrice = mingGasPrice
 }
 
 // TestShouldSubtractTheCorrectTxFee uses the mock VM as it's gas model is predictable
