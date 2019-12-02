@@ -63,42 +63,10 @@ func NewSmartContractProcessor(
 	economicsFee process.FeeHandler,
 	gasHandler process.GasHandler,
 ) (*scProcessor, error) {
-
-	if check.IfNil(vmContainer) {
-		return nil, process.ErrNoVM
-	}
-	if check.IfNil(argsParser) {
-		return nil, process.ErrNilArgumentParser
-	}
-	if check.IfNil(hasher) {
-		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(accountsDB) {
-		return nil, process.ErrNilAccountsAdapter
-	}
-	if check.IfNil(tempAccounts) {
-		return nil, process.ErrNilTemporaryAccountsHandler
-	}
-	if check.IfNil(adrConv) {
-		return nil, process.ErrNilAddressConverter
-	}
-	if check.IfNil(coordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(scrForwarder) {
-		return nil, process.ErrNilIntermediateTransactionHandler
-	}
-	if check.IfNil(txFeeHandler) {
-		return nil, process.ErrNilUnsignedTxHandler
-	}
-	if check.IfNil(economicsFee) {
-		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(gasHandler) {
-		return nil, process.ErrNilGasHandler
+	err := checkArgumentsForNil(vmContainer, argsParser, hasher, marshalizer, accountsDB,
+		tempAccounts, adrConv, coordinator, scrForwarder, txFeeHandler, economicsFee, gasHandler)
+	if err != nil {
+		return nil, err
 	}
 
 	return &scProcessor{
@@ -115,6 +83,60 @@ func NewSmartContractProcessor(
 		economicsFee:     economicsFee,
 		gasHandler:       gasHandler,
 		mapExecState:     make(map[uint64]scExecutionState)}, nil
+}
+
+func checkArgumentsForNil(
+	vmContainer process.VirtualMachinesContainer,
+	argsParser process.ArgumentsParser,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	accountsDB state.AccountsAdapter,
+	tempAccounts process.TemporaryAccountsHandler,
+	adrConv state.AddressConverter,
+	coordinator sharding.Coordinator,
+	scrForwarder process.IntermediateTransactionHandler,
+	txFeeHandler process.TransactionFeeHandler,
+	economicsFee process.FeeHandler,
+	gasHandler process.GasHandler,
+) error {
+	if check.IfNil(vmContainer) {
+		return process.ErrNoVM
+	}
+	if check.IfNil(argsParser) {
+		return process.ErrNilArgumentParser
+	}
+	if check.IfNil(hasher) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(marshalizer) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(accountsDB) {
+		return process.ErrNilAccountsAdapter
+	}
+	if check.IfNil(tempAccounts) {
+		return process.ErrNilTemporaryAccountsHandler
+	}
+	if check.IfNil(adrConv) {
+		return process.ErrNilAddressConverter
+	}
+	if check.IfNil(coordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(scrForwarder) {
+		return process.ErrNilIntermediateTransactionHandler
+	}
+	if check.IfNil(txFeeHandler) {
+		return process.ErrNilUnsignedTxHandler
+	}
+	if check.IfNil(economicsFee) {
+		return process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(gasHandler) {
+		return process.ErrNilGasHandler
+	}
+
+	return nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx *transaction.Transaction) error {
@@ -462,7 +484,7 @@ func (sc *scProcessor) createVMInput(tx *transaction.Transaction) (*vmcommon.VMI
 // taking money from sender, as VM might not have access to him because of state sharding
 func (sc *scProcessor) processSCPayment(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		// transaction was already done at sender shard
+		// transaction was already processed at sender shard
 		return nil
 	}
 
