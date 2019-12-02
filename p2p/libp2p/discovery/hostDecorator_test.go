@@ -7,14 +7,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
-	"github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,115 +69,6 @@ func TestDecoratorConstructor(t *testing.T) {
 	}
 }
 
-func TestDecoratorCallRelay(t *testing.T) {
-	ctx := context.Background()
-
-	callCounters := struct {
-		EventBusCalled              int
-		IDCalled                    int
-		PeerstoreCalled             int
-		AddrsCalled                 int
-		NetworkCalled               int
-		MuxCalled                   int
-		ConnectCalled               int
-		SetStreamHandlerCalled      int
-		SetStreamHandlerMatchCalled int
-		RemoveStreamHandlerCalled   int
-		NewStreamCalled             int
-		CloseCalled                 int
-		ConnManagerCalled           int
-	}{}
-
-	hst := &mock.ConnectableHostStub{
-		EventBusCalled: func() event.Bus {
-			callCounters.EventBusCalled++
-			return nil
-		},
-		IDCalled: func() peer.ID {
-			callCounters.IDCalled++
-			return peer.ID("")
-		},
-		PeerstoreCalled: func() peerstore.Peerstore {
-			callCounters.PeerstoreCalled++
-			return nil
-		},
-		AddrsCalled: func() []multiaddr.Multiaddr {
-			callCounters.AddrsCalled++
-			return nil
-		},
-		NetworkCalled: func() network.Network {
-			callCounters.NetworkCalled++
-			return nil
-		},
-		MuxCalled: func() protocol.Switch {
-			callCounters.MuxCalled++
-			return nil
-		},
-		ConnectCalled: func(context.Context, peer.AddrInfo) error {
-			callCounters.ConnectCalled++
-			return nil
-		},
-		SetStreamHandlerCalled: func(protocol.ID, network.StreamHandler) {
-			callCounters.SetStreamHandlerCalled++
-		},
-		SetStreamHandlerMatchCalled: func(protocol.ID, func(string) bool, network.StreamHandler) {
-			callCounters.SetStreamHandlerMatchCalled++
-		},
-		RemoveStreamHandlerCalled: func(protocol.ID) {
-			callCounters.RemoveStreamHandlerCalled++
-		},
-		NewStreamCalled: func(context.Context, peer.ID, ...protocol.ID) (network.Stream, error) {
-			callCounters.NewStreamCalled++
-			return nil, nil
-		},
-		CloseCalled: func() error {
-			callCounters.CloseCalled++
-			return nil
-		},
-		ConnManagerCalled: func() connmgr.ConnManager {
-			callCounters.ConnManagerCalled++
-			return nil
-		},
-	}
-
-	d, err := NewHostDecorator(hst, ctx, hardCPSLimitLow, 0)
-	assert.NotNil(t, d)
-	assert.Nil(t, err)
-
-	tcs := []struct {
-		counter *int
-		call    func()
-		name    string
-	}{
-		{counter: &callCounters.EventBusCalled, call: func() { d.EventBus() }, name: "EventBus"},
-		{counter: &callCounters.IDCalled, call: func() { d.ID() }, name: "ID"},
-		{counter: &callCounters.PeerstoreCalled, call: func() { d.Peerstore() }, name: "Peerstore"},
-		{counter: &callCounters.AddrsCalled, call: func() { d.Addrs() }, name: "Addrs"},
-		{counter: &callCounters.NetworkCalled, call: func() { d.Network() }, name: "Network"},
-		{counter: &callCounters.MuxCalled, call: func() { d.Mux() }, name: "Mux"},
-		{counter: &callCounters.ConnectCalled, call: func() { d.Connect(ctx, peer.AddrInfo{}) }, name: "Connect"},
-		{counter: &callCounters.SetStreamHandlerCalled, call: func() { d.SetStreamHandler("", nil) }, name: "SetStreamHandler"},
-		{counter: &callCounters.SetStreamHandlerMatchCalled,
-			call: func() { d.SetStreamHandlerMatch("", func(string) bool { return true }, nil) },
-			name: "SetStreamHandlerMatch"},
-		{counter: &callCounters.RemoveStreamHandlerCalled,
-			call: func() { d.RemoveStreamHandler("") },
-			name: "RemoveStreamHandler"},
-		{counter: &callCounters.NewStreamCalled, call: func() { d.NewStream(ctx, "") }, name: "NewStream"},
-		{counter: &callCounters.CloseCalled, call: func() { d.Close() }, name: "Close"},
-		{counter: &callCounters.ConnManagerCalled, call: func() { d.ConnManager() }, name: "ConnManager"},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, *tc.counter, 0)
-			tc.call()
-			assert.Equal(t, *tc.counter, 1)
-		})
-	}
-
-}
-
 func TestLimiting(t *testing.T) {
 
 	connCount := 0
@@ -206,7 +91,7 @@ func TestLimiting(t *testing.T) {
 	assert.NotNil(t, dec)
 
 	for i := 0; i < 100; i++ {
-		go dec.Connect(ctx, peer.AddrInfo{})
+		go func() { _ = dec.Connect(ctx, peer.AddrInfo{}) }()
 	}
 	time.Sleep(time.Second)
 	dur := time.Since(start)
@@ -216,7 +101,7 @@ func TestLimiting(t *testing.T) {
 	mtx.Unlock()
 
 	assert.True(t, avgConns < float64(testCPSVal))
-	go dec.Connect(ctx, peer.AddrInfo{})
+	go func() { _ = dec.Connect(ctx, peer.AddrInfo{}) }()
 	cancelCtx()
 }
 
