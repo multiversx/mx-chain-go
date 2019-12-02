@@ -198,7 +198,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		vmOutput.OutputAccounts = append(vmOutput.OutputAccounts, outAcc)
 	}
 
-	vmOutput.GasRemaining = big.NewInt(0)
+	vmOutput.GasRemaining = 0
 	vmOutput.GasRefund = big.NewInt(0)
 
 	if len(host.output) > 0 {
