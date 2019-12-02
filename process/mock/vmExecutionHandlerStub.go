@@ -35,7 +35,7 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCreate(input *vmcommon.Contrac
 	if vm.RunSmartContractCreateCalled == nil {
 		return &vmcommon.VMOutput{
 			GasRefund:    big.NewInt(0),
-			GasRemaining: big.NewInt(0),
+			GasRemaining: 0,
 		}, nil
 	}
 
@@ -47,7 +47,7 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractC
 	if vm.RunSmartContractCallCalled == nil {
 		return &vmcommon.VMOutput{
 			GasRefund:    big.NewInt(0),
-			GasRemaining: big.NewInt(0),
+			GasRemaining: 0,
 		}, nil
 	}
 

@@ -34,7 +34,6 @@ type rewardsHandler struct {
 	accumulatedFees   *big.Int
 	rewardTxsForBlock map[string]*rewardTx.RewardTx
 	economicsRewards  process.RewardsHandler
-	rewardValue       *big.Int
 }
 
 // NewRewardTxHandler constructor for the reward transaction handler
@@ -73,8 +72,6 @@ func NewRewardTxHandler(
 		return nil, process.ErrNilEconomicsRewardsHandler
 	}
 
-	rewardValue := economicsRewards.RewardsValue()
-
 	rtxh := &rewardsHandler{
 		address:          address,
 		shardCoordinator: shardCoordinator,
@@ -84,7 +81,6 @@ func NewRewardTxHandler(
 		store:            store,
 		rewardTxPool:     rewardTxPool,
 		economicsRewards: economicsRewards,
-		rewardValue:      rewardValue,
 	}
 
 	rtxh.accumulatedFees = big.NewInt(0)
@@ -349,11 +345,16 @@ func (rtxh *rewardsHandler) createRewardFromFees() []data.TransactionHandler {
 // createProtocolRewards creates the protocol reward transactions
 func (rtxh *rewardsHandler) createProtocolRewards() []data.TransactionHandler {
 	consensusRewardData := rtxh.address.ConsensusShardRewardData()
-
 	consensusRewardTxs := make([]data.TransactionHandler, 0)
+
+	isRewardValueZero := rtxh.economicsRewards.RewardsValue().Cmp(big.NewInt(0)) == 0
+	if isRewardValueZero {
+		return consensusRewardTxs
+	}
+
 	for _, address := range consensusRewardData.Addresses {
 		rTx := &rewardTx.RewardTx{}
-		rTx.Value = rtxh.rewardValue
+		rTx.Value = rtxh.economicsRewards.RewardsValue()
 		rTx.RcvAddr = []byte(address)
 		rTx.ShardId = rtxh.shardCoordinator.SelfId()
 		rTx.Epoch = consensusRewardData.Epoch
@@ -370,6 +371,11 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 	metaRewardsData := rtxh.address.ConsensusMetaRewardData()
 	consensusRewardTxs := make([]data.TransactionHandler, 0)
 
+	isRewardValueZero := rtxh.economicsRewards.RewardsValue().Cmp(big.NewInt(0)) == 0
+	if isRewardValueZero {
+		return consensusRewardTxs
+	}
+
 	for _, metaConsensusSet := range metaRewardsData {
 		for _, address := range metaConsensusSet.Addresses {
 			shardId, err := rtxh.address.ShardIdForAddress([]byte(address))
@@ -383,7 +389,7 @@ func (rtxh *rewardsHandler) createProtocolRewardsForMeta() []data.TransactionHan
 			}
 
 			rTx := &rewardTx.RewardTx{}
-			rTx.Value = rtxh.rewardValue
+			rTx.Value = rtxh.economicsRewards.RewardsValue()
 			rTx.RcvAddr = []byte(address)
 			rTx.ShardId = rtxh.shardCoordinator.SelfId()
 			rTx.Epoch = metaConsensusSet.Epoch
