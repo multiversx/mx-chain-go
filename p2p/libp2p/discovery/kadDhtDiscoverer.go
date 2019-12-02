@@ -92,7 +92,7 @@ func (kdd *KadDhtDiscoverer) UpdateRandezVous(s string) error {
 
 	err := kdd.stopDHT()
 	if err != nil {
-		log.Warn("Error wile stopDHT, ignore", "err", err)
+		log.Debug("Error wile stopping kad-dht discovery, skip", "error", err)
 	}
 	kdd.randezVous = s
 	return kdd.startDHT()
