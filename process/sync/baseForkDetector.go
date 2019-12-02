@@ -65,7 +65,14 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	if bfd.blackListHandler.Has(string(header.GetPrevHash()), true) {
 		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
 		// which is bound to a previous black listed header.
-		bfd.blackListHandler.Add(string(headerHash), true)
+		err := bfd.blackListHandler.Add(string(headerHash), true)
+		if err != nil {
+			log.Trace("add requested item with error",
+				"error", err.Error(),
+				"key", headerHash)
+
+		}
+
 		return process.ErrHeaderIsBlackListed
 	}
 	if roundDif < 0 {
