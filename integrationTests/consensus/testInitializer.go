@@ -188,6 +188,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	return store
 }
 
@@ -425,6 +426,7 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),
+		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 	)
 
 	if err != nil {
@@ -492,7 +494,6 @@ func createNodes(
 		testNode.pk = kp.pk
 		testNode.blkProcessor = blkProcessor
 		testNode.blkc = blkc
-
 		nodesList[i] = testNode
 	}
 	nodes[0] = nodesList
