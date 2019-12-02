@@ -1730,10 +1730,14 @@ func (sp *shardProcessor) addProcessedMiniBlock(metaBlockHash []byte, miniBlockH
 
 func (sp *shardProcessor) removeProcessedMiniBlock(miniBlockHash []byte) {
 	sp.mutProcessedMiniBlocks.Lock()
-	for _, miniBlocksProcessed := range sp.processedMiniBlocks {
+	for metaHash, miniBlocksProcessed := range sp.processedMiniBlocks {
 		_, isProcessed := miniBlocksProcessed[string(miniBlockHash)]
 		if isProcessed {
 			delete(miniBlocksProcessed, string(miniBlockHash))
+		}
+
+		if len(miniBlocksProcessed) == 0 {
+			delete(sp.processedMiniBlocks, metaHash)
 		}
 	}
 	sp.mutProcessedMiniBlocks.Unlock()
