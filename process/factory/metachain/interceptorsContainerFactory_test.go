@@ -689,7 +689,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsShardHeadersForMetachain := noOfShards
 	numInterceptorsTransactionsForMetachain := noOfShards + 1
 	numInterceptorsMiniBlocksForMetachain := noOfShards + 1
-	numInterceptorsUnsignedTxsForMetachain := noOfShards + 1
+	numInterceptorsUnsignedTxsForMetachain := noOfShards
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain
 

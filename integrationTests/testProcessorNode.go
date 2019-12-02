@@ -1077,7 +1077,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2
+			return time.Second * 2000
 		},
 	)
 	if err != nil {

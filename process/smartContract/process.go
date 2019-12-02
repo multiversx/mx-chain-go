@@ -141,40 +141,6 @@ func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
 	return isEmptyAddress
 }
 
-func (sc *scProcessor) computeTransactionHash(tx data.TransactionHandler) ([]byte, error) {
-	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	if ok {
-		return scr.TxHash, nil
-	}
-
-	return core.CalculateHash(sc.marshalizer, sc.hasher, tx)
-}
-
-func (sc *scProcessor) createSCRsWhenError(
-	tx data.TransactionHandler,
-	returnCode vmcommon.ReturnCode,
-) ([]data.TransactionHandler, error) {
-	txHash, err := sc.computeTransactionHash(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	scr := &smartContractResult.SmartContractResult{
-		Nonce:   tx.GetNonce(),
-		Value:   tx.GetValue(),
-		RcvAddr: tx.GetSndAddress(),
-		SndAddr: tx.GetRecvAddress(),
-		Code:    nil,
-		Data:    "@" + hex.EncodeToString([]byte(returnCode.String())) + "@" + hex.EncodeToString(txHash),
-		TxHash:  txHash,
-	}
-
-	resultedScrs := make([]data.TransactionHandler, 0)
-	resultedScrs = append(resultedScrs, scr)
-
-	return resultedScrs, nil
-}
-
 // ExecuteSmartContractTransaction processes the transaction, call the VM and processes the SC call output
 func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
@@ -253,19 +219,17 @@ func (sc *scProcessor) processIfError(
 		return err
 	}
 
-	if check.IfNil(acntSnd) {
-		return nil
-	}
+	if !check.IfNil(acntSnd) {
+		stAcc, ok := acntSnd.(*state.Account)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
 
-	stAcc, ok := acntSnd.(*state.Account)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	totalCost := big.NewInt(0)
-	err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
-	if err != nil {
-		return err
+		totalCost := big.NewInt(0)
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
+		if err != nil {
+			return err
+		}
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
@@ -279,11 +243,6 @@ func (sc *scProcessor) processIfError(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
-	err := sc.processSCPayment(tx, acntSnd)
-	if err != nil {
-		return err
-	}
-
 	sc.isCallBack = false
 	dataToParse := tx.GetData()
 
@@ -294,7 +253,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 		sc.isCallBack = true
 	}
 
-	err = sc.argsParser.ParseData(dataToParse)
+	err := sc.argsParser.ParseData(dataToParse)
 	if err != nil {
 		return err
 	}
@@ -951,18 +910,10 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	var err error
 	defer func() {
 		if err != nil {
-			consumedFee := big.NewInt(0).SetUint64(scr.GetGasLimit() * scr.GetGasPrice())
-			scrIfError, err := sc.createSCRsWhenError(scr, vmcommon.FunctionWrongSignature)
+			err = sc.processIfError(nil, scr, vmcommon.UserError)
 			if err != nil {
-				log.Error("error when creating scr when error")
+				log.Debug("error while processing error in smart contract processor")
 			}
-
-			err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
-			if err != nil {
-				log.Error("error when adding intermediate transaction scrIfError")
-			}
-
-			sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 		}
 	}()
 

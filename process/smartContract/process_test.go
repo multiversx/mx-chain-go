@@ -966,6 +966,7 @@ func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {
 				return 1000
 			},
 		},
+		&mock.TxTypeHandlerMock{},
 		&mock.GasHandlerMock{},
 	)
 	assert.NotNil(t, sc)
