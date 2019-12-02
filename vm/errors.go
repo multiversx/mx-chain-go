@@ -46,3 +46,6 @@ var ErrNilEconomicsData = errors.New("nil economics data")
 
 // ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
 var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")
+
+// ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
+var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")

@@ -85,14 +85,13 @@ func (ns *NodesSetup) processConfig() error {
 	ns.nrOfMetaChainNodes = 0
 	for i := 0; i < len(ns.InitialNodes); i++ {
 		ns.InitialNodes[i].pubKey, err = hex.DecodeString(ns.InitialNodes[i].PubKey)
-		ns.InitialNodes[i].address, err = hex.DecodeString(ns.InitialNodes[i].Address)
-
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
 		if ns.InitialNodes[i].PubKey == "" || err != nil {
 			ns.InitialNodes[i].pubKey = nil
 			return ErrCouldNotParsePubKey
 		}
 
+		ns.InitialNodes[i].address, err = hex.DecodeString(ns.InitialNodes[i].Address)
 		// decoder treats empty string as correct, it is not allowed to have empty string as address
 		if ns.InitialNodes[i].Address == "" || err != nil {
 			ns.InitialNodes[i].address = nil

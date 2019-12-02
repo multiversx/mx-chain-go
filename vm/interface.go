@@ -9,7 +9,6 @@ import (
 // SystemSmartContract interface defines the function a system smart contract should have
 type SystemSmartContract interface {
 	Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
-	ValueOf(key interface{}) interface{}
 	IsInterfaceNil() bool
 }
 

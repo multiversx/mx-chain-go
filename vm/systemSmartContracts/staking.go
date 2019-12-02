@@ -279,11 +279,6 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	return vmcommon.Ok
 }
 
-// ValueOf returns the value of a selected key
-func (r *stakingSC) ValueOf(key interface{}) interface{} {
-	return nil
-}
-
 // IsInterfaceNil verifies if the underlying object is nil or not
 func (r *stakingSC) IsInterfaceNil() bool {
 	if r == nil {
