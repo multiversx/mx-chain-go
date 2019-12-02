@@ -58,6 +58,17 @@
         MaxBatchSize = 30
         MaxOpenFiles = 10
 
+[BootstrapStorage]
+    [BootstrapStorage.Cache]
+        Size = 1000
+        Type = "LRU"
+    [BootstrapStorage.DB]
+        FilePath = "BootstrapData"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 30
+        MaxBatchSize = 1
+        MaxOpenFiles = 10
+
 [PeerDataStorage]
     [PeerDataStorage.Cache]
         Size = 1000
@@ -142,7 +153,7 @@
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
+        BatchDelaySeconds = 5
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 
@@ -153,7 +164,7 @@
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie"
         Type = "LvlDBSerial"
-        BatchDelaySeconds = 15
+        BatchDelaySeconds = 5
         MaxBatchSize = 45000
         MaxOpenFiles = 10
 

@@ -43,6 +43,46 @@ func LoadTomlFile(dest interface{}, relativePath string) error {
 	return toml.NewDecoder(f).Decode(dest)
 }
 
+// LoadTomlFileToMap opens and decodes a toml file as a map[string]interface{}
+func LoadTomlFileToMap(relativePath string) (map[string]interface{}, error) {
+	f, err := OpenFile(relativePath)
+	if err != nil {
+		return nil, err
+	}
+
+	fileinfo, err := f.Stat()
+	if err != nil {
+		log.Error("cannot stat file:", err.Error())
+		return nil, err
+	}
+
+	filesize := fileinfo.Size()
+	buffer := make([]byte, filesize)
+
+	_, err = f.Read(buffer)
+	if err != nil {
+		log.Error("cannot read from file:", err.Error())
+		return nil, err
+	}
+
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			log.Error("cannot close file: ", err.Error())
+		}
+	}()
+
+	loadedTree, err := toml.Load(string(buffer))
+	if err != nil {
+		log.Error("cannot interpret file contents as toml:", err.Error())
+		return nil, err
+	}
+
+	loadedMap := loadedTree.ToMap()
+
+	return loadedMap, nil
+}
+
 // LoadJsonFile method to open and decode json file
 func LoadJsonFile(dest interface{}, relativePath string) error {
 	f, err := OpenFile(relativePath)

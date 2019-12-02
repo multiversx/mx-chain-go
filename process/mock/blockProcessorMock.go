@@ -25,6 +25,14 @@ type BlockProcessorMock struct {
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
+func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+
+}
+
+func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
+
+}
+
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
