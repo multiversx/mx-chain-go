@@ -62,10 +62,10 @@ func TestMetaForkDetector_AddHeaderUnsignedBlockShouldErr(t *testing.T) {
 
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -86,7 +86,7 @@ func TestMetaForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 	hash := make([]byte, 0)
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -108,7 +108,7 @@ func TestMetaForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 	hash2 := []byte("hash2")
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -130,7 +130,7 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *test
 	hash1 := []byte("hash1")
 	rounderMock := &mock.RounderMock{RoundIndex: 73}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -146,7 +146,7 @@ func TestMetaForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 	hdr2 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -167,10 +167,10 @@ func TestMetaForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) {
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})

@@ -54,7 +54,6 @@ func NewTransactionPreprocessor(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -90,16 +89,12 @@ func NewTransactionPreprocessor(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
 
 	bpp := basePreProcess{
-		hasher:                hasher,
-		marshalizer:           marshalizer,
-		shardCoordinator:      shardCoordinator,
-		gasHandler:            gasHandler,
-		requestedItemsHandler: requestedItemsHandler,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	txs := transactions{
@@ -340,10 +335,7 @@ func (txs *transactions) RequestBlockTransactions(body block.Body) int {
 	for senderShardID, mbsTxHashes := range missingTxsForShards {
 		for _, mbTxHashes := range mbsTxHashes {
 			requestedTxs += len(mbTxHashes.txHashes)
-			notRequestedTxHashes := txs.getNotRequestedTxHashes(mbTxHashes.txHashes)
-			if len(notRequestedTxHashes) > 0 {
-				txs.onRequestTransaction(senderShardID, notRequestedTxHashes)
-			}
+			txs.onRequestTransaction(senderShardID, mbTxHashes.txHashes)
 		}
 	}
 
@@ -404,10 +396,8 @@ func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBl
 	}
 
 	missingTxsForMiniBlock := txs.computeMissingTxsForMiniBlock(miniBlock)
-
-	notRequestedTxHashes := txs.getNotRequestedTxHashes(missingTxsForMiniBlock)
-	if len(notRequestedTxHashes) > 0 {
-		txs.onRequestTransaction(miniBlock.SenderShardID, notRequestedTxHashes)
+	if len(missingTxsForMiniBlock) > 0 {
+		txs.onRequestTransaction(miniBlock.SenderShardID, missingTxsForMiniBlock)
 	}
 
 	return len(missingTxsForMiniBlock)

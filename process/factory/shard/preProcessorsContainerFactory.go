@@ -14,23 +14,22 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator      sharding.Coordinator
-	store                 dataRetriever.StorageService
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
-	dataPool              dataRetriever.PoolsHolder
-	addrConverter         state.AddressConverter
-	txProcessor           process.TransactionProcessor
-	scProcessor           process.SmartContractProcessor
-	scResultProcessor     process.SmartContractResultProcessor
-	rewardsTxProcessor    process.RewardTransactionProcessor
-	accounts              state.AccountsAdapter
-	requestHandler        process.RequestHandler
-	rewardsProducer       process.InternalTransactionProducer
-	economicsFee          process.FeeHandler
-	miniBlocksCompacter   process.MiniBlocksCompacter
-	gasHandler            process.GasHandler
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	shardCoordinator    sharding.Coordinator
+	store               dataRetriever.StorageService
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	dataPool            dataRetriever.PoolsHolder
+	addrConverter       state.AddressConverter
+	txProcessor         process.TransactionProcessor
+	scProcessor         process.SmartContractProcessor
+	scResultProcessor   process.SmartContractResultProcessor
+	rewardsTxProcessor  process.RewardTransactionProcessor
+	accounts            state.AccountsAdapter
+	requestHandler      process.RequestHandler
+	rewardsProducer     process.InternalTransactionProducer
+	economicsFee        process.FeeHandler
+	miniBlocksCompacter process.MiniBlocksCompacter
+	gasHandler          process.GasHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -51,7 +50,6 @@ func NewPreProcessorsContainerFactory(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -102,28 +100,24 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:      shardCoordinator,
-		store:                 store,
-		marshalizer:           marshalizer,
-		hasher:                hasher,
-		dataPool:              dataPool,
-		addrConverter:         addrConverter,
-		txProcessor:           txProcessor,
-		accounts:              accounts,
-		scProcessor:           scProcessor,
-		scResultProcessor:     scResultProcessor,
-		rewardsTxProcessor:    rewardsTxProcessor,
-		requestHandler:        requestHandler,
-		rewardsProducer:       rewardsProducer,
-		economicsFee:          economicsFee,
-		miniBlocksCompacter:   miniBlocksCompacter,
-		gasHandler:            gasHandler,
-		requestedItemsHandler: requestedItemsHandler,
+		shardCoordinator:    shardCoordinator,
+		store:               store,
+		marshalizer:         marshalizer,
+		hasher:              hasher,
+		dataPool:            dataPool,
+		addrConverter:       addrConverter,
+		txProcessor:         txProcessor,
+		accounts:            accounts,
+		scProcessor:         scProcessor,
+		scResultProcessor:   scResultProcessor,
+		rewardsTxProcessor:  rewardsTxProcessor,
+		requestHandler:      requestHandler,
+		rewardsProducer:     rewardsProducer,
+		economicsFee:        economicsFee,
+		miniBlocksCompacter: miniBlocksCompacter,
+		gasHandler:          gasHandler,
 	}, nil
 }
 
@@ -177,7 +171,6 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
 		ppcm.gasHandler,
-		ppcm.requestedItemsHandler,
 	)
 
 	return txPreprocessor, err
@@ -194,7 +187,6 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.accounts,
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
-		ppcm.requestedItemsHandler,
 	)
 
 	return scrPreprocessor, err
@@ -212,7 +204,6 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.accounts,
 		ppcm.requestHandler.RequestRewardTransactions,
 		ppcm.gasHandler,
-		ppcm.requestedItemsHandler,
 	)
 
 	return rewardTxPreprocessor, err

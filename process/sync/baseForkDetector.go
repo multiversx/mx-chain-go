@@ -62,10 +62,10 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
 
-	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
+	if bfd.blackListHandler.Has(string(header.GetPrevHash()), true) {
 		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
 		// which is bound to a previous black listed header.
-		bfd.blackListHandler.Add(string(headerHash))
+		bfd.blackListHandler.Add(string(headerHash), true)
 		return process.ErrHeaderIsBlackListed
 	}
 	if roundDif < 0 {

@@ -361,7 +361,14 @@ func TestResolverRequestHandler_RequestTransactionErrorWhenGettingCrossShardReso
 				return nil, errExpected
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+		},
 		"txTopic",
 		"topic",
 		"topic",
@@ -392,7 +399,14 @@ func TestResolverRequestHandler_RequestTransactionWrongResolverShouldNotPanic(t 
 				return wrongTxResolver, nil
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+		},
 		"txTopic",
 		"topic",
 		"topic",
@@ -422,7 +436,15 @@ func TestResolverRequestHandler_RequestTransactionShouldRequestTransactions(t *t
 				return txResolver, nil
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+			SweepCalled: func() {},
+		},
 		"txTopic",
 		"topic",
 		"topic",
@@ -468,7 +490,15 @@ func TestResolverRequestHandler_RequestTransactionErrorsOnRequestShouldNotPanic(
 				return txResolver, nil
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+			SweepCalled: func() {},
+		},
 		"txTopic",
 		"topic",
 		"topic",
@@ -508,7 +538,14 @@ func TestResolverRequestHandler_RequestMiniBlockErrorWhenGettingCrossShardResolv
 				return nil, errExpected
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+		},
 		"txTopic",
 		"topic",
 		"topic",
@@ -544,7 +581,14 @@ func TestResolverRequestHandler_RequestMiniBlockErrorsOnRequestShouldNotPanic(t 
 				return mbResolver, nil
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+		},
 		"txTopic",
 		"topic",
 		"topic",
@@ -574,7 +618,14 @@ func TestResolverRequestHandler_RequestMiniBlockShouldCallRequestOnResolver(t *t
 				return mbResolver, nil
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+		},
 		"txTopic",
 		"topic",
 		"topic",
@@ -609,10 +660,10 @@ func TestResolverRequestHandler_RequestHeaderShouldCallRequestOnResolver(t *test
 			},
 		},
 		&mock.RequestedItemsHandlerStub{
-			HasCalled: func(key string) bool {
+			HasCalled: func(key string, withSweep bool) bool {
 				return false
 			},
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -651,10 +702,10 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardFinderReturnsErrorShoul
 			},
 		},
 		&mock.RequestedItemsHandlerStub{
-			HasCalled: func(key string) bool {
+			HasCalled: func(key string, withSweep bool) bool {
 				return false
 			},
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -694,10 +745,10 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardFinderReturnsAWrongReso
 			},
 		},
 		&mock.RequestedItemsHandlerStub{
-			HasCalled: func(key string) bool {
+			HasCalled: func(key string, withSweep bool) bool {
 				return false
 			},
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -737,10 +788,10 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardResolverFailsShouldNotP
 			},
 		},
 		&mock.RequestedItemsHandlerStub{
-			HasCalled: func(key string) bool {
+			HasCalled: func(key string, withSweep bool) bool {
 				return false
 			},
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -774,10 +825,10 @@ func TestResolverRequestHandler_RequestHeaderByNonceShardShouldRequest(t *testin
 			},
 		},
 		&mock.RequestedItemsHandlerStub{
-			HasCalled: func(key string) bool {
+			HasCalled: func(key string, withSweep bool) bool {
 				return false
 			},
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -813,10 +864,10 @@ func TestResolverRequestHandler_RequestHeaderByNonceMetaShouldRequest(t *testing
 			},
 		},
 		&mock.RequestedItemsHandlerStub{
-			HasCalled: func(key string) bool {
+			HasCalled: func(key string, withSweep bool) bool {
 				return false
 			},
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -852,7 +903,14 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardResolverShou
 				return nil, errExpected
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+		},
 		"txTopic",
 		"scrtopic",
 		"topic",
@@ -883,7 +941,14 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 				return wrongTxResolver, nil
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+		},
 		"txTopic",
 		"scrtopic",
 		"topic",
@@ -913,7 +978,15 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 				return txResolver, nil
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+			SweepCalled: func() {},
+		},
 		"txTopic",
 		"scrtopic",
 		"topic",
@@ -959,7 +1032,15 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 				return txResolver, nil
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
+		&mock.RequestedItemsHandlerStub{
+			HasCalled: func(key string, withSweep bool) bool {
+				return false
+			},
+			AddCalled: func(key string, withSweep bool) error {
+				return nil
+			},
+			SweepCalled: func() {},
+		},
 		"txTopic",
 		"scrtopic",
 		"topic",

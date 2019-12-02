@@ -140,8 +140,9 @@ func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 }
 
 func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string) {
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes)
 	log.Trace("requesting transactions from network",
-		"num txs", len(hashes),
+		"num txs", len(unrequestedHashes),
 		"topic", topic,
 		"shard", destShardID,
 	)
@@ -162,7 +163,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	go func() {
 		dataSplit := &partitioning.DataSplit{}
-		sliceBatches, err := dataSplit.SplitDataInChunks(hashes, rrh.maxTxsToRequest)
+		sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
 		if err != nil {
 			log.Debug("requesting transactions", "error", err.Error())
 			return
@@ -189,6 +190,12 @@ func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32,
 
 // RequestMiniBlock method asks for miniblocks from the connected peers
 func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
+	if rrh.requestedItemsHandler.Has(string(miniblockHash), true) {
+		log.Trace("item already requested",
+			"key", miniblockHash)
+		return
+	}
+
 	log.Trace("requesting miniblock from network",
 		"hash", miniblockHash,
 		"shard", destShardID,
@@ -207,12 +214,20 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 	err = resolver.RequestDataFromHash(miniblockHash)
 	if err != nil {
 		log.Debug(err.Error())
+		return
+	}
+
+	err = rrh.requestedItemsHandler.Add(string(miniblockHash), true)
+	if err != nil {
+		log.Trace("add requested item with error",
+			"error", err.Error(),
+			"key", miniblockHash)
 	}
 }
 
 // RequestHeader method asks for header from the connected peers
 func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte) {
-	if rrh.requestedItemsHandler.Has(string(hash)) {
+	if rrh.requestedItemsHandler.Has(string(hash), true) {
 		log.Trace("item already requested",
 			"key", hash)
 		return
@@ -255,7 +270,7 @@ func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte
 		return
 	}
 
-	err = rrh.requestedItemsHandler.Add(string(hash))
+	err = rrh.requestedItemsHandler.Add(string(hash), true)
 	if err != nil {
 		log.Trace("add requested item with error",
 			"error", err.Error(),
@@ -266,7 +281,7 @@ func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte
 // RequestHeaderByNonce method asks for transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
 	key := fmt.Sprintf("%d-%d", destShardID, nonce)
-	if rrh.requestedItemsHandler.Has(key) {
+	if rrh.requestedItemsHandler.Has(key, true) {
 		log.Trace("item already requested",
 			"key", key)
 		return
@@ -306,7 +321,7 @@ func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 		return
 	}
 
-	err = rrh.requestedItemsHandler.Add(key)
+	err = rrh.requestedItemsHandler.Add(key, true)
 	if err != nil {
 		log.Trace("add requested item with error",
 			"error", err.Error(),
@@ -320,4 +335,26 @@ func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 		return true
 	}
 	return false
+}
+
+func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byte {
+	unrequestedHashes := make([][]byte, 0)
+
+	for _, hash := range hashes {
+		if !rrh.requestedItemsHandler.Has(string(hash), false) {
+			unrequestedHashes = append(unrequestedHashes, hash)
+			err := rrh.requestedItemsHandler.Add(string(hash), false)
+			if err != nil {
+				log.Trace("add requested item with error",
+					"error", err.Error(),
+					"key", hash)
+			}
+		}
+	}
+
+	if len(unrequestedHashes) > 0 {
+		rrh.requestedItemsHandler.Sweep()
+	}
+
+	return unrequestedHashes
 }

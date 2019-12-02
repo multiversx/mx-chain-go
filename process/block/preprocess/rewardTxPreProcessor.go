@@ -41,7 +41,6 @@ func NewRewardTxPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -74,16 +73,12 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
 
 	bpp := &basePreProcess{
-		hasher:                hasher,
-		marshalizer:           marshalizer,
-		shardCoordinator:      shardCoordinator,
-		gasHandler:            gasHandler,
-		requestedItemsHandler: requestedItemsHandler,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -330,10 +325,7 @@ func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body block.Body) int {
 	for senderShardID, mbsRewardTxHashes := range missingRewardTxsForShards {
 		for _, mbRewardTxHashes := range mbsRewardTxHashes {
 			requestedRewardTxs += len(mbRewardTxHashes.txHashes)
-			notRequestedTxHashes := rtp.getNotRequestedTxHashes(mbRewardTxHashes.txHashes)
-			if len(notRequestedTxHashes) > 0 {
-				rtp.onRequestRewardTx(senderShardID, notRequestedTxHashes)
-			}
+			rtp.onRequestRewardTx(senderShardID, mbRewardTxHashes.txHashes)
 		}
 	}
 
@@ -403,10 +395,8 @@ func (rtp *rewardTxPreprocessor) RequestTransactionsForMiniBlock(miniBlock *bloc
 	}
 
 	missingRewardTxsForMiniBlock := rtp.computeMissingRewardTxsForMiniBlock(miniBlock)
-
-	notRequestedTxHashes := rtp.getNotRequestedTxHashes(missingRewardTxsForMiniBlock)
-	if len(notRequestedTxHashes) > 0 {
-		rtp.onRequestRewardTx(miniBlock.SenderShardID, notRequestedTxHashes)
+	if len(missingRewardTxsForMiniBlock) > 0 {
+		rtp.onRequestRewardTx(miniBlock.SenderShardID, missingRewardTxsForMiniBlock)
 	}
 
 	return len(missingRewardTxsForMiniBlock)

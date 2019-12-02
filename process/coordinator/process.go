@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -35,9 +34,8 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
-	gasHandler            process.GasHandler
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	onRequestMiniBlock func(shardId uint32, mbHash []byte)
+	gasHandler         process.GasHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -49,7 +47,6 @@ func NewTransactionCoordinator(
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
 	gasHandler process.GasHandler,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*transactionCoordinator, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -73,9 +70,6 @@ func NewTransactionCoordinator(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
 
 	tc := &transactionCoordinator{
 		shardCoordinator: shardCoordinator,
@@ -87,7 +81,6 @@ func NewTransactionCoordinator(
 	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock)
 
 	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
-	tc.requestedItemsHandler = requestedItemsHandler
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
@@ -408,14 +401,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		miniVal, _ := tc.miniBlockPool.Peek([]byte(key))
 		if miniVal == nil {
-			if !tc.requestedItemsHandler.Has(key) {
-				go tc.onRequestMiniBlock(senderShardId, []byte(key))
-				errNotCritical := tc.requestedItemsHandler.Add(key)
-				if errNotCritical != nil {
-					log.Trace("add requested item with error", errNotCritical.Error())
-				}
-			}
-
+			go tc.onRequestMiniBlock(senderShardId, []byte(key))
 			continue
 		}
 
@@ -674,13 +660,7 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 	for key, senderShardId := range crossMiniBlockHashes {
 		obj, _ := tc.miniBlockPool.Peek([]byte(key))
 		if obj == nil {
-			if !tc.requestedItemsHandler.Has(key) {
-				go tc.onRequestMiniBlock(senderShardId, []byte(key))
-				errNotCritical := tc.requestedItemsHandler.Add(key)
-				if errNotCritical != nil {
-					log.Trace("add requested item with error", errNotCritical.Error())
-				}
-			}
+			go tc.onRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
 }

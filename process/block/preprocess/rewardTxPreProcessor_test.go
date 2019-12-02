@@ -26,7 +26,6 @@ func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -48,7 +47,6 @@ func TestNewRewardTxPreprocessor_NilStoreShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -70,7 +68,6 @@ func TestNewRewardTxPreprocessor_NilHasherShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -92,7 +89,6 @@ func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -114,7 +110,6 @@ func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -136,7 +131,6 @@ func TestNewRewardTxPreprocessor_NilRewardProducerShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -158,7 +152,6 @@ func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -180,7 +173,6 @@ func TestNewRewardTxPreprocessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		nil,
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -202,7 +194,6 @@ func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		nil,
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -224,33 +215,10 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		nil,
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilGasHandler, err)
-}
-
-func TestNewRewardTxPreprocessor_NilRequestedItemsHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool()
-	rtp, err := NewRewardTxPreprocessor(
-		tdp.RewardTransactions(),
-		&mock.ChainStorerMock{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-		func(shardID uint32, txHashes [][]byte) {},
-		&mock.GasHandlerMock{},
-		nil,
-	)
-
-	assert.Nil(t, rtp)
-	assert.Equal(t, dataRetriever.ErrNilRequestedItemsHandler, err)
 }
 
 func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
@@ -268,7 +236,6 @@ func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rtp)
@@ -292,7 +259,6 @@ func TestRewardTxPreprocessor_AddComputedRewardMiniBlocksShouldAddMiniBlock(t *t
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	assert.NotNil(t, rtp)
@@ -333,7 +299,6 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -369,7 +334,6 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -400,7 +364,6 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -436,7 +399,6 @@ func TestRewardTxPreprocessor_SaveTxBlockToStorageShouldWork(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -481,7 +443,6 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -528,7 +489,6 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -559,7 +519,6 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -603,7 +562,6 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	err := rtp.IsDataPrepared(1, haveTime)
@@ -626,7 +584,6 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	go func() {
@@ -670,7 +627,6 @@ func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -732,7 +688,6 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksTxForMiniBlockNotFoundSh
 			RemoveGasRefundedCalled: func(hashes [][]byte) {
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, 0, haveTimeTrue)
@@ -777,7 +732,6 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 				return totalGasConsumed
 			},
 		},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(1, 1, 0, haveTimeTrue)
@@ -800,7 +754,6 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 		&mock.AccountsStub{},
 		func(shardID uint32, txHashes [][]byte) {},
 		&mock.GasHandlerMock{},
-		&mock.RequestedItemsHandlerStub{},
 	)
 
 	rtp.CreateBlockStarted()

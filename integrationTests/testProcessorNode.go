@@ -561,7 +561,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
-		tpn.RequestedItemsHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -573,7 +572,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
 		tpn.GasHandler,
-		tpn.RequestedItemsHandler,
 	)
 }
 
@@ -646,7 +644,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.EconomicsData.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,
-		tpn.RequestedItemsHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -658,7 +655,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.PreProcessorsContainer,
 		tpn.InterimProcContainer,
 		tpn.GasHandler,
-		tpn.RequestedItemsHandler,
 	)
 }
 

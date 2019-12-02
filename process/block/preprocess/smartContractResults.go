@@ -41,7 +41,6 @@ func NewSmartContractResultPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -71,16 +70,12 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
 
 	bpp := &basePreProcess{
-		hasher:                hasher,
-		marshalizer:           marshalizer,
-		shardCoordinator:      shardCoordinator,
-		gasHandler:            gasHandler,
-		requestedItemsHandler: requestedItemsHandler,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		shardCoordinator: shardCoordinator,
+		gasHandler:       gasHandler,
 	}
 
 	scr := &smartContractResults{
@@ -303,10 +298,7 @@ func (scr *smartContractResults) RequestBlockTransactions(body block.Body) int {
 	for senderShardID, mbsTxHashes := range missingSCResultsForShards {
 		for _, mbTxHashes := range mbsTxHashes {
 			requestedSCResults += len(mbTxHashes.txHashes)
-			notRequestedTxHashes := scr.getNotRequestedTxHashes(mbTxHashes.txHashes)
-			if len(notRequestedTxHashes) > 0 {
-				scr.onRequestSmartContractResult(senderShardID, notRequestedTxHashes)
-			}
+			scr.onRequestSmartContractResult(senderShardID, mbTxHashes.txHashes)
 		}
 	}
 
@@ -374,10 +366,8 @@ func (scr *smartContractResults) RequestTransactionsForMiniBlock(miniBlock *bloc
 	}
 
 	missingScrsForMiniBlock := scr.computeMissingScrsForMiniBlock(miniBlock)
-
-	notRequestedTxHashes := scr.getNotRequestedTxHashes(missingScrsForMiniBlock)
-	if len(notRequestedTxHashes) > 0 {
-		scr.onRequestSmartContractResult(miniBlock.SenderShardID, notRequestedTxHashes)
+	if len(missingScrsForMiniBlock) > 0 {
+		scr.onRequestSmartContractResult(miniBlock.SenderShardID, missingScrsForMiniBlock)
 	}
 
 	return len(missingScrsForMiniBlock)

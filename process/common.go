@@ -591,7 +591,7 @@ func IsInProperRound(index int64) bool {
 
 // AddHeaderToBlackList adds a hash to black list handler. Logs if the operation did not succeed
 func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
-	err := blackListHandler.Add(string(hash))
+	err := blackListHandler.Add(string(hash), true)
 	if err != nil {
 		log.Trace("blackListHandler.Add", "error", err.Error())
 	}

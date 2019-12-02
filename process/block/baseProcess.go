@@ -81,7 +81,6 @@ type baseProcessor struct {
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 
 	appStatusHandler           core.AppStatusHandler
-	miniBlocksResolver         dataRetriever.MiniBlocksResolver
 	onRequestBlockBodyOfHeader func(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
 

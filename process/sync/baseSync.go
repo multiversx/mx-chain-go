@@ -418,7 +418,7 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	maxNonce := core.MinUint64(nonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 	for currentNonce := nonce; currentNonce <= maxNonce; currentNonce++ {
 		key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), currentNonce)
-		if boot.requestedItemsHandler.Has(key) {
+		if boot.requestedItemsHandler.Has(key, false) {
 			continue
 		}
 
@@ -430,9 +430,9 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 				continue
 			}
 
-			errNotCritical := boot.requestedItemsHandler.Add(key)
-			if errNotCritical != nil {
-				log.Trace("add requested item with error", errNotCritical.Error())
+			err = boot.requestedItemsHandler.Add(key, false)
+			if err != nil {
+				log.Trace("add requested item with error", err.Error())
 			}
 
 			nbRequestedHdrs++
@@ -440,6 +440,8 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 	}
 
 	if nbRequestedHdrs > 0 {
+		boot.requestedItemsHandler.Sweep()
+
 		log.Debug("requested in advance headers",
 			"num headers", nbRequestedHdrs,
 			"from nonce", nonce,

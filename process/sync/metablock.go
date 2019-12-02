@@ -106,6 +106,9 @@ func NewMetaBootstrap(
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.syncStarter = &boot
 
+	//TODO: ResolversFinder should be replaced with RequestHandler after it would be refactored and RequestedItemsHandler
+	//should be then removed from MetaBootstrap
+
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
 	if err != nil {
@@ -190,9 +193,9 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	}
 
 	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
-	errNotCritical := boot.requestedItemsHandler.Add(key)
-	if errNotCritical != nil {
-		log.Trace("add requested item with error", errNotCritical.Error())
+	err = boot.requestedItemsHandler.Add(key, true)
+	if err != nil {
+		log.Trace("add requested item with error", err.Error())
 	}
 
 	log.Debug("requested header from network",
@@ -212,9 +215,9 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 		return
 	}
 
-	errNotCritical := boot.requestedItemsHandler.Add(string(hash))
-	if errNotCritical != nil {
-		log.Trace("add requested item with error", errNotCritical.Error())
+	err = boot.requestedItemsHandler.Add(string(hash), true)
+	if err != nil {
+		log.Trace("add requested item with error", err.Error())
 	}
 
 	log.Debug("requested header from network",

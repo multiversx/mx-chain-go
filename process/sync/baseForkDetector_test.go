@@ -43,7 +43,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testi
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -57,7 +57,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -71,7 +71,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 
 	rounderMock := &mock.RounderMock{RoundIndex: 0}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -84,7 +84,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *test
 
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -97,7 +97,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrRandomSeedIsNotValid(t *te
 
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -110,7 +110,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrBlockIsNotSigned(t *testin
 
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -123,7 +123,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldWork(t *testing.T) {
 
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -140,10 +140,10 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	hash2 := []byte("hash2")
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -173,10 +173,10 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceShouldReturnFalse(
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -207,10 +207,10 @@ func TestBasicForkDetector_CheckForkOnlyReceivedHeadersShouldReturnFalse(t *test
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -241,10 +241,10 @@ func TestBasicForkDetector_CheckForkOnlyOneShardHeaderOnANonceReceivedAndProcess
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -275,10 +275,10 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalse(t *test
 
 	rounderMock := &mock.RounderMock{RoundIndex: 99}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -307,7 +307,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenLowe
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -352,7 +352,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnFalseWhenEqua
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -397,7 +397,7 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -463,7 +463,7 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldReturnTrueWhenEqual
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -507,7 +507,7 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -572,7 +572,7 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -624,11 +624,11 @@ func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 	hash3 := []byte("hash3")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
-			return false
-		},
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
+		},
+		HasCalled: func(key string, withSweep bool) bool {
+			return false
 		},
 	})
 	_ = bfd.AddHeader(hdr1, hash1, process.BHReceived, nil, nil, false)
@@ -660,7 +660,7 @@ func TestBasicForkDetector_RemoveInvalidReceivedHeadersShouldWork(t *testing.T) 
 	hash3 := []byte("hash3")
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -697,10 +697,10 @@ func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *t
 	hash1 := []byte("hash1")
 	rounderMock := &mock.RounderMock{RoundIndex: 2}
 	bfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -718,10 +718,10 @@ func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
+		AddCalled: func(key string, withSweep bool) error {
 			return nil
 		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -756,7 +756,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -959,7 +959,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededDifferencesNotEnoughShouldNo
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})
@@ -984,7 +984,7 @@ func TestBaseForkDetector_ActivateForcedForkIfNeededShouldActivate(t *testing.T)
 
 	rounderMock := &mock.RounderMock{}
 	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	})

@@ -472,7 +472,6 @@ func createNetNode(
 		createMockTxFeeHandler(),
 		miniBlocksCompacter,
 		gasHandler,
-		requestedItemsHandler,
 	)
 	container, _ := fact.Create()
 
@@ -484,7 +483,6 @@ func createNetNode(
 		container,
 		interimProcContainer,
 		gasHandler,
-		requestedItemsHandler,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)

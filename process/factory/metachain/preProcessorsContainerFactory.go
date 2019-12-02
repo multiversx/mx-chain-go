@@ -14,18 +14,17 @@ import (
 )
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator      sharding.Coordinator
-	store                 dataRetriever.StorageService
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
-	dataPool              dataRetriever.MetaPoolsHolder
-	txProcessor           process.TransactionProcessor
-	accounts              state.AccountsAdapter
-	requestHandler        process.RequestHandler
-	economicsFee          process.FeeHandler
-	miniBlocksCompacter   process.MiniBlocksCompacter
-	gasHandler            process.GasHandler
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	shardCoordinator    sharding.Coordinator
+	store               dataRetriever.StorageService
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	dataPool            dataRetriever.MetaPoolsHolder
+	txProcessor         process.TransactionProcessor
+	accounts            state.AccountsAdapter
+	requestHandler      process.RequestHandler
+	economicsFee        process.FeeHandler
+	miniBlocksCompacter process.MiniBlocksCompacter
+	gasHandler          process.GasHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -41,7 +40,6 @@ func NewPreProcessorsContainerFactory(
 	economicsFee process.FeeHandler,
 	miniBlocksCompacter process.MiniBlocksCompacter,
 	gasHandler process.GasHandler,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -77,23 +75,19 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
 
 	return &preProcessorsContainerFactory{
-		shardCoordinator:      shardCoordinator,
-		store:                 store,
-		marshalizer:           marshalizer,
-		hasher:                hasher,
-		dataPool:              dataPool,
-		txProcessor:           txProcessor,
-		accounts:              accounts,
-		requestHandler:        requestHandler,
-		economicsFee:          economicsFee,
-		miniBlocksCompacter:   miniBlocksCompacter,
-		gasHandler:            gasHandler,
-		requestedItemsHandler: requestedItemsHandler,
+		shardCoordinator:    shardCoordinator,
+		store:               store,
+		marshalizer:         marshalizer,
+		hasher:              hasher,
+		dataPool:            dataPool,
+		txProcessor:         txProcessor,
+		accounts:            accounts,
+		requestHandler:      requestHandler,
+		economicsFee:        economicsFee,
+		miniBlocksCompacter: miniBlocksCompacter,
+		gasHandler:          gasHandler,
 	}, nil
 }
 
@@ -127,7 +121,6 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.economicsFee,
 		ppcm.miniBlocksCompacter,
 		ppcm.gasHandler,
-		ppcm.requestedItemsHandler,
 	)
 
 	return txPreprocessor, err

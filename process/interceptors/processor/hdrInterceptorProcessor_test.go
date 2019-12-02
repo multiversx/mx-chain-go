@@ -111,7 +111,7 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 		},
 	}
 	arg.BlackList = &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return true
 		},
 	}
@@ -143,7 +143,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 		},
 	}
 	arg.BlackList = &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
 		},
 	}

@@ -119,6 +119,9 @@ func NewShardBootstrap(
 	base.syncStarter = &boot
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
+	//TODO: ResolversFinder should be replaced with RequestHandler after it would be refactored and RequestedItemsHandler
+	//should be then removed from ShardBootstrap
+
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
 	if err != nil {
@@ -262,7 +265,10 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	}
 
 	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
-	boot.requestedItemsHandler.Add(key)
+	err = boot.requestedItemsHandler.Add(key, true)
+	if err != nil {
+		log.Trace("add requested item with error", err.Error())
+	}
 
 	log.Debug("requested header from network",
 		"nonce", nonce,
@@ -281,7 +287,10 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 		return
 	}
 
-	boot.requestedItemsHandler.Add(string(hash))
+	err = boot.requestedItemsHandler.Add(string(hash), true)
+	if err != nil {
+		log.Trace("add requested item with error", err.Error())
+	}
 
 	log.Debug("requested header from network",
 		"hash", hash,
@@ -348,7 +357,14 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	}
 
 	for _, hash := range hashes {
-		boot.requestedItemsHandler.Add(string(hash))
+		err = boot.requestedItemsHandler.Add(string(hash), false)
+		if err != nil {
+			log.Trace("add requested item with error", err.Error())
+		}
+	}
+
+	if len(hashes) > 0 {
+		boot.requestedItemsHandler.Sweep()
 	}
 
 	log.Debug("requested mini blocks from network",
@@ -468,7 +484,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 
 	hashes := make([][]byte, 0)
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
+		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash), false) {
 			continue
 		}
 
@@ -484,8 +500,13 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		}
 
 		for _, hash := range missingMiniBlocksHashes {
-			boot.requestedItemsHandler.Add(string(hash))
+			err = boot.requestedItemsHandler.Add(string(hash), false)
+			if err != nil {
+				log.Trace("add requested item with error", err.Error())
+			}
 		}
+
+		boot.requestedItemsHandler.Sweep()
 
 		log.Trace("requested in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),

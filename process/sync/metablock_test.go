@@ -855,7 +855,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -1471,11 +1471,11 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
 	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			return nil
-		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
+		},
+		AddCalled: func(key string, withSweep bool) error {
+			return nil
 		},
 	})
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1547,11 +1547,11 @@ func TestMetaBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceive
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
 	forkDetector, _ := sync.NewMetaForkDetector(rounder, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			return nil
-		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
+		},
+		AddCalled: func(key string, withSweep bool) error {
+			return nil
 		},
 	})
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -2127,7 +2127,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -2300,7 +2300,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},

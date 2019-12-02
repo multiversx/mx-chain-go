@@ -38,11 +38,10 @@ type txsForBlock struct {
 }
 
 type basePreProcess struct {
-	hasher                hashing.Hasher
-	marshalizer           marshal.Marshalizer
-	shardCoordinator      sharding.Coordinator
-	gasHandler            process.GasHandler
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.Coordinator
+	gasHandler       process.GasHandler
 }
 
 func (bpp *basePreProcess) removeDataFromPools(body block.Body, miniBlockPool storage.Cacher, txPool dataRetriever.ShardedDataCacherNotifier, mbType block.Type) error {
@@ -214,20 +213,4 @@ func (bpp *basePreProcess) isTxAlreadyProcessed(txHash []byte, forBlock *txsForB
 	forBlock.mutTxsForBlock.RUnlock()
 
 	return txAlreadyProcessed
-}
-
-func (bpp *basePreProcess) getNotRequestedTxHashes(txHashes [][]byte) [][]byte {
-	notRequestedTxHashes := make([][]byte, 0)
-
-	for _, txHash := range txHashes {
-		if !bpp.requestedItemsHandler.Has(string(txHash)) {
-			notRequestedTxHashes = append(notRequestedTxHashes, txHash)
-			errNotCritical := bpp.requestedItemsHandler.Add(string(txHash))
-			if errNotCritical != nil {
-				log.Trace("add requested item with error", errNotCritical.Error())
-			}
-		}
-	}
-
-	return notRequestedTxHashes
 }

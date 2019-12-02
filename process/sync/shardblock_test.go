@@ -1145,7 +1145,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -1250,9 +1250,10 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
+			SweepCalled: func() {},
 		},
 	)
 
@@ -1444,7 +1445,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -1932,11 +1933,11 @@ func TestBootstrap_ShouldSyncShouldReturnTrueWhenForkIsDetectedAndItReceivesTheS
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
 	forkDetector, _ := sync.NewShardForkDetector(rounder, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			return nil
-		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
+		},
+		AddCalled: func(key string, withSweep bool) error {
+			return nil
 		},
 	})
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -2015,11 +2016,11 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenForkIsDetectedAndItReceivesThe
 	rounder := &mock.RounderMock{}
 	rounder.RoundIndex = 2
 	forkDetector, _ := sync.NewShardForkDetector(rounder, &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			return nil
-		},
-		HasCalled: func(key string) bool {
+		HasCalled: func(key string, withSweep bool) bool {
 			return false
+		},
+		AddCalled: func(key string, withSweep bool) error {
+			return nil
 		},
 	})
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -2652,7 +2653,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -2825,7 +2826,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 		shardCoordinator,
 		account,
 		&mock.BlackListHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
 		},
@@ -3360,9 +3361,10 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		&mock.BoostrapStorerMock{},
 		&mock.StorageBootstrapperMock{},
 		&mock.RequestedItemsHandlerStub{
-			AddCalled: func(key string) error {
+			AddCalled: func(key string, withSweep bool) error {
 				return nil
 			},
+			SweepCalled: func() {},
 		},
 	)
 

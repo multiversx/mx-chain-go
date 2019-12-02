@@ -1991,7 +1991,6 @@ func newShardBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
-		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2010,7 +2009,6 @@ func newShardBlockProcessor(
 		preProcContainer,
 		interimProcContainer,
 		gasHandler,
-		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2198,7 +2196,6 @@ func newMetaBlockProcessor(
 		economics,
 		miniBlocksCompacter,
 		gasHandler,
-		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2217,7 +2214,6 @@ func newMetaBlockProcessor(
 		preProcContainer,
 		interimProcContainer,
 		gasHandler,
-		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
