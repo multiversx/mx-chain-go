@@ -80,7 +80,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		dataPool:         arguments.DataPool,
 		storageService:   arguments.StorageService,
 		marshalizer:      arguments.Marshalizer,
-		prevShardInfo:    make(map[string]block.ShardData, 0),
+		prevShardInfo:    make(map[string]block.ShardData),
 	}
 	vs.mediator = vs.createMediator()
 
