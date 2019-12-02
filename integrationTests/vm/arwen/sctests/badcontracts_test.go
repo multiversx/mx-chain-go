@@ -25,3 +25,10 @@ func Test_Bad_C_NoPanic(t *testing.T) {
 	context.executeSC(&context.Owner, "badGetBlockHash2")
 	context.executeSC(&context.Owner, "badGetBlockHash3")
 }
+
+func Test_Empty_C_NoPanic(t *testing.T) {
+	context := setupTestContext(t)
+
+	context.deploySC("./emptyC/empty.wasm", "")
+	context.executeSC(&context.Owner, "thisDoesNotExist")
+}
