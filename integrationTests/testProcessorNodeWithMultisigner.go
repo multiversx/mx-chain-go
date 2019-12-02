@@ -26,6 +26,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	nodesCoordinator sharding.NodesCoordinator,
 	cp *CryptoParams,
 	keyIndex int,
+	ownAccount *TestWalletAccount,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -59,7 +60,11 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		accountShardId = 0
 	}
 
-	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, accountShardId)
+	if ownAccount == nil {
+		tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, accountShardId)
+	} else {
+		tpn.OwnAccount = ownAccount
+	}
 	tpn.initDataPools()
 	tpn.initTestNode()
 
@@ -104,6 +109,59 @@ func CreateNodesWithNodesCoordinator(
 				nodesCoordinator,
 				cp,
 				i,
+				nil,
+			)
+		}
+		nodesMap[shardId] = nodesList
+	}
+
+	return nodesMap
+}
+
+// CreateNodesWithNodesCoordinatorKeygenAndSingleSigner returns a map with nodes per shard each using a real nodes coordinator
+// and a given single signer for blocks and a given key gen for blocks
+func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
+	nodesPerShard int,
+	nbMetaNodes int,
+	nbShards int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	seedAddress string,
+	singleSigner crypto.SingleSigner,
+	keyGenForBlocks crypto.KeyGenerator,
+) map[uint32][]*TestProcessorNode {
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
+	nodesMap := make(map[uint32][]*TestProcessorNode)
+	for shardId, validatorList := range validatorsMap {
+		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
+			ShardConsensusGroupSize: shardConsensusGroupSize,
+			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Hasher:                  TestHasher,
+			ShardId:                 shardId,
+			NbShards:                uint32(nbShards),
+			Nodes:                   validatorsMap,
+			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
+		}
+		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+
+		if err != nil {
+			fmt.Println("Error creating node coordinator")
+		}
+
+		nodesList := make([]*TestProcessorNode, len(validatorList))
+		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
+		for i := range validatorList {
+			ownAccount := CreateTestWalletAccountWithKeygenAndSingleSigner(shardCoordinator, shardId, singleSigner, keyGenForBlocks)
+			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
+				uint32(nbShards),
+				shardId,
+				seedAddress,
+				nodesCoordinator,
+				cp,
+				i,
+				ownAccount,
 			)
 		}
 		nodesMap[shardId] = nodesList
@@ -190,6 +248,7 @@ func DoConsensusSigningOnBlock(
 	sig, _ := msigProposer.AggregateSigs(bitmap)
 	blockHeader.SetSignature(sig)
 	blockHeader.SetPubKeysBitmap(bitmap)
+	blockHeader.SetLeaderSignature([]byte("leader sign"))
 
 	return blockHeader
 }

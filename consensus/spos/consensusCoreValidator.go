@@ -41,10 +41,10 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container.NodesCoordinator() == nil || container.NodesCoordinator().IsInterfaceNil() {
 		return ErrNilValidatorGroupSelector
 	}
-	if container.RandomnessPrivateKey() == nil || container.RandomnessPrivateKey().IsInterfaceNil() {
+	if container.PrivateKey() == nil || container.PrivateKey().IsInterfaceNil() {
 		return ErrNilBlsPrivateKey
 	}
-	if container.RandomnessSingleSigner() == nil || container.RandomnessSingleSigner().IsInterfaceNil() {
+	if container.SingleSigner() == nil || container.SingleSigner().IsInterfaceNil() {
 		return ErrNilBlsSingleSigner
 	}
 

@@ -45,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -78,6 +79,7 @@ var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
 var opGas = int64(1)
 
 const maxTxNonceDeltaAllowed = 8000
+const mxaGasLimitPerBlock = uint64(100000)
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -300,6 +302,9 @@ func createMockTxFeeHandler() process.FeeHandler {
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return mxaGasLimitPerBlock
+		},
 	}
 }
 
@@ -423,9 +428,15 @@ func createNetNode(
 		shardCoordinator,
 		scForwarder,
 		rewardsHandler,
+		&mock.FeeHandlerStub{},
+		&mock.GasHandlerMock{
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+		},
 	)
 
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accntAdapter)
+
+	feeHandlerMock := createMockTxFeeHandler()
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accntAdapter,
@@ -436,10 +447,11 @@ func createNetNode(
 		scProcessor,
 		rewardsHandler,
 		txTypeHandler,
-		createMockTxFeeHandler(),
+		feeHandlerMock,
 	)
 
-	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator)
+	gasHandler, _ := preprocess.NewGasComputation(feeHandlerMock)
+	miniBlocksCompacter, _ := preprocess.NewMiniBlocksCompaction(createMockTxFeeHandler(), shardCoordinator, gasHandler)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
@@ -457,6 +469,7 @@ func createNetNode(
 		internalTxProducer,
 		createMockTxFeeHandler(),
 		miniBlocksCompacter,
+		gasHandler,
 	)
 	container, _ := fact.Create()
 
@@ -467,6 +480,7 @@ func createNetNode(
 		requestHandler,
 		container,
 		interimProcContainer,
+		gasHandler,
 	)
 
 	genesisBlocks := createGenesisBlocks(shardCoordinator)
@@ -511,6 +525,11 @@ func createNetNode(
 			EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 			HeaderValidator:              headerValidator,
 			Rounder:                      &mock.RounderMock{},
+			BootStorer: &mock.BoostrapStorerMock{
+				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+					return nil
+				},
+			},
 		},
 		DataPool:        dPool,
 		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
@@ -902,9 +921,13 @@ func createMetaNetNode(
 			Rounder:           &mock.RounderMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
 			HeaderValidator:   headerValidator,
+			BootStorer: &mock.BoostrapStorerMock{
+				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+					return nil
+				},
 		},
 		DataPool:           dPool,
-		SCDataGetter:       &mock.ScDataGetterMock{},
+		SCDataGetter:       &mock.ScQueryMock{},
 		SCToProtocol:       &mock.SCToProtocolStub{},
 		PeerChangesHandler: &mock.PeerChangesHandler{},
 		PendingMiniBlocks:  &mock.PendingMiniBlocksHandlerStub{},

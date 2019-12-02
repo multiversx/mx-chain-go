@@ -35,6 +35,7 @@ type ArgBaseProcessor struct {
 	EpochStartTrigger            process.EpochStartTriggerHandler
 	HeaderValidator              process.HeaderConstructionValidator
 	Rounder                      consensus.Rounder
+	BootStorer                   process.BootStorer
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -51,7 +52,7 @@ type ArgMetaProcessor struct {
 	ArgBaseProcessor
 	DataPool           dataRetriever.MetaPoolsHolder
 	PendingMiniBlocks  process.PendingMiniBlocksHandler
-	SCDataGetter       external.ScDataGetter
+	SCDataGetter       external.SCQueryService
 	PeerChangesHandler process.PeerChangesHandler
 	SCToProtocol       process.SmartContractToProtocolHandler
 }
