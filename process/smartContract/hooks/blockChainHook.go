@@ -186,26 +186,18 @@ func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
 }
 
 // GetBlockhash returns the header hash for a requested nonce delta
-func (bh *BlockChainHookImpl) GetBlockhash(offset *big.Int) ([]byte, error) {
-	if offset.Cmp(big.NewInt(0)) > 0 {
-		return nil, process.ErrInvalidNonceRequest
-	}
-
+func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	hdr := bh.blockChain.GetCurrentBlockHeader()
 
-	requestedNonce := big.NewInt(0).SetUint64(hdr.GetNonce())
-	requestedNonce.Sub(requestedNonce, offset)
-
-	if requestedNonce.Cmp(big.NewInt(0)) < 0 {
+	if nonce > hdr.GetNonce() {
 		return nil, process.ErrInvalidNonceRequest
 	}
-
-	if offset.Cmp(big.NewInt(0)) == 0 {
+	if nonce == hdr.GetNonce() {
 		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
 
 	_, hash, err := process.GetHeaderFromStorageWithNonce(
-		requestedNonce.Uint64(),
+		nonce,
 		bh.shardCoordinator.SelfId(),
 		bh.storageService,
 		bh.uint64Converter,
@@ -315,11 +307,6 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 
 	if len(vmType) != core.VMTypeLen {
 		return nil, ErrVMTypeLengthIsNotCorrect
-	}
-
-	_, err := bh.getShardAccountFromAddressBytes(creatorAddress)
-	if err != nil {
-		return nil, err
 	}
 
 	base := hashFromAddressAndNonce(creatorAddress, creatorNonce)

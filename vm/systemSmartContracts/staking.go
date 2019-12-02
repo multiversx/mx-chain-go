@@ -3,6 +3,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -68,6 +69,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.slash(args)
 	case "get":
 		return r.get(args)
+	case "isStaked":
+		return r.isStaked(args)
 	}
 
 	return vmcommon.UserError
@@ -124,7 +127,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		}
 	}
 
-	if registrationData.Staked == true {
+	if registrationData.Staked {
 		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.UserError
 	}
@@ -148,6 +151,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
+	fmt.Println(">>>>>>>> setStorage key: ", args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, data)
 
 	return vmcommon.Ok
@@ -277,6 +281,32 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	r.eei.SetStorage(args.CallerAddr, data)
 
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 1 {
+		return vmcommon.UserError
+	}
+
+	fmt.Println(">>>>>>>> getStorage key: ", args.Arguments[0])
+	data := r.eei.GetStorage(args.Arguments[0])
+	registrationData := StakingData{}
+	if data != nil {
+		err := json.Unmarshal(data, &registrationData)
+		if err != nil {
+			log.Debug("unmarshal error on staking SC stake function",
+				"error", err.Error(),
+			)
+			return vmcommon.UserError
+		}
+	}
+
+	if registrationData.Staked == true {
+		log.Debug("account already staked, re-staking is invalid")
+		return vmcommon.Ok
+	}
+
+	return vmcommon.UserError
 }
 
 // ValueOf returns the value of a selected key

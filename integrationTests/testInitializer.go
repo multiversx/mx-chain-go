@@ -183,6 +183,7 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -201,6 +202,8 @@ func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageServ
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
+
 	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
 		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
@@ -829,9 +832,10 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	time.Sleep(p2pBootstrapStepDelay)
 }
 
-// SetEconomicsParameters will set minGasPrice and minGasLimits to provided nodes
-func SetEconomicsParameters(nodes []*TestProcessorNode, minGasPrice uint64, minGasLimit uint64) {
+// SetEconomicsParameters will set maxGasLimitPerBlock, minGasPrice and minGasLimits to provided nodes
+func SetEconomicsParameters(nodes []*TestProcessorNode, maxGasLimitPerBlock uint64, minGasPrice uint64, minGasLimit uint64) {
 	for _, n := range nodes {
+		n.EconomicsData.SetMaxGasLimitPerBlock(maxGasLimitPerBlock)
 		n.EconomicsData.SetMinGasPrice(minGasPrice)
 		n.EconomicsData.SetMinGasLimit(minGasLimit)
 	}
@@ -872,7 +876,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*5 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
 	}
 
 	txBuff, _ := TestMarshalizer.Marshal(tx)

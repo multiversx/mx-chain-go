@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -36,6 +37,12 @@ func NewTestSyncNode(
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
 		NodesCoordinator: nodesCoordinator,
+		BootstrapStorer: &mock.BoostrapStorerMock{
+			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+				return nil
+			},
+		},
+		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -118,6 +125,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChainHook:               &mock.BlockChainHookHandlerMock{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorMock{},
 		Rounder:                      &mock.RounderMock{},
+		BootStorer: &mock.BoostrapStorerMock{
+			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
+				return nil
+			},
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == sharding.MetachainShardId {
@@ -168,9 +180,10 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.ResolverFinder,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		1,
 		tpn.BlackListHandler,
 		tpn.Messenger,
+		tpn.BootstrapStorer,
+		tpn.StorageBootstrapper,
 	)
 	if err != nil {
 		return nil, err
@@ -195,9 +208,10 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.ResolverFinder,
 		tpn.ShardCoordinator,
 		tpn.AccntState,
-		1,
 		tpn.BlackListHandler,
 		tpn.Messenger,
+		tpn.BootstrapStorer,
+		tpn.StorageBootstrapper,
 	)
 
 	if err != nil {

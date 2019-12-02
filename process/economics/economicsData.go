@@ -44,6 +44,10 @@ func NewEconomicsData(economics *config.ConfigEconomics) (*EconomicsData, error)
 		return nil, err
 	}
 
+	if data.maxGasLimitPerBlock < data.minGasLimit {
+		return nil, process.ErrInvalidMaxGasLimitPerBlock
+	}
+
 	return &EconomicsData{
 		rewardsValue:        data.rewardsValue,
 		communityPercentage: economics.RewardsSettings.CommunityPercentage,
@@ -169,6 +173,10 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 	requiredGasLimit := ed.ComputeGasLimit(tx)
 	if requiredGasLimit > tx.GetGasLimit() {
 		return process.ErrInsufficientGasLimitInTx
+	}
+
+	if requiredGasLimit > ed.maxGasLimitPerBlock {
+		return process.ErrHigherGasLimitRequiredInTx
 	}
 
 	return nil
