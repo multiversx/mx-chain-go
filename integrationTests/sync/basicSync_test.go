@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -39,7 +37,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 
 	metachainNode := integrationTests.NewTestSyncNode(
 		maxShards,
-		constants.MetachainShardId,
+		core.MetachainShardId,
 		shardId,
 		advertiserAddr,
 	)

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -4342,8 +4342,8 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetFinalNotarizedMetaHeaderFr
 	lastNotarized := bs.InitNotarizedMap()
 	finalNotarized := bs.InitNotarizedMap()
 
-	bs.SetNotarizedMap(lastNotarized, constants.MetachainShardId, 1, []byte("A"))
-	bs.SetNotarizedMap(finalNotarized, constants.MetachainShardId, 1, []byte("A"))
+	bs.SetNotarizedMap(lastNotarized, core.MetachainShardId, 1, []byte("A"))
+	bs.SetNotarizedMap(finalNotarized, core.MetachainShardId, 1, []byte("A"))
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
@@ -4445,8 +4445,8 @@ func TestBootstrap_ApplyNotarizedBlockShouldErrWhenGetLastNotarizedMetaHeaderFro
 	lastNotarized := bs.InitNotarizedMap()
 	finalNotarized := bs.InitNotarizedMap()
 
-	bs.SetNotarizedMap(lastNotarized, constants.MetachainShardId, 1, []byte("A"))
-	bs.SetNotarizedMap(finalNotarized, constants.MetachainShardId, 2, []byte("B"))
+	bs.SetNotarizedMap(lastNotarized, core.MetachainShardId, 1, []byte("A"))
+	bs.SetNotarizedMap(finalNotarized, core.MetachainShardId, 2, []byte("B"))
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 
@@ -4549,8 +4549,8 @@ func TestBootstrap_ApplyNotarizedBlockShouldWork(t *testing.T) {
 	lastNotarized := bs.InitNotarizedMap()
 	finalNotarized := bs.InitNotarizedMap()
 
-	bs.SetNotarizedMap(lastNotarized, constants.MetachainShardId, 1, hash)
-	bs.SetNotarizedMap(finalNotarized, constants.MetachainShardId, 1, hash)
+	bs.SetNotarizedMap(lastNotarized, core.MetachainShardId, 1, hash)
+	bs.SetNotarizedMap(finalNotarized, core.MetachainShardId, 1, hash)
 
 	err := bs.ApplyNotarizedBlocks(finalNotarized, lastNotarized)
 

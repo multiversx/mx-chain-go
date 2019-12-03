@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -64,7 +64,7 @@ func TestNode_SendBulkTransactionsAllTransactionsShouldBeSentCorrectly(t *testin
 	//wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
 	for _, n := range nodes {
 		nodeShardId := n.ShardCoordinator.SelfId()
-		if nodeShardId != constants.MetachainShardId {
+		if nodeShardId != core.MetachainShardId {
 			txPoolRegister(n, &mutGeneratedTxHashes)
 		}
 	}

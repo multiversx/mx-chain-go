@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
@@ -140,7 +138,7 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 
 	for id := uint32(0); id < ns.MetaChainMinNodes; id++ {
 		if ns.InitialNodes[id].pubKey != nil {
-			ns.InitialNodes[id].assignedShard = constants.MetachainShardId
+			ns.InitialNodes[id].assignedShard = core.MetachainShardId
 			ns.InitialNodes[id].eligible = true
 			ns.nrOfMetaChainNodes++
 		}
@@ -172,7 +170,7 @@ func (ns *NodesSetup) processShardAssignment() {
 	for i := countSetNodes; i < ns.nrOfNodes; i++ {
 		currentShard = (currentShard + 1) % (ns.nrOfShards + 1)
 		if currentShard == ns.nrOfShards {
-			currentShard = constants.MetachainShardId
+			currentShard = core.MetachainShardId
 		}
 
 		ns.InitialNodes[i].assignedShard = currentShard

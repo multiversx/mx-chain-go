@@ -1,7 +1,7 @@
 package interceptedBlocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -82,7 +82,7 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 	inHdr.hash = inHdr.hasher.Compute(string(txBuff))
 
 	isHeaderForCurrentShard := inHdr.shardCoordinator.SelfId() == inHdr.HeaderHandler().GetShardID()
-	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == constants.MetachainShardId
+	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == core.MetachainShardId
 	inHdr.isForCurrentShard = isHeaderForCurrentShard || isMetachainShardCoordinator
 }
 

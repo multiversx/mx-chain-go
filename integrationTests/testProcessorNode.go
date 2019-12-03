@@ -9,8 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -222,7 +220,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	}
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-	if tpn.ShardCoordinator.SelfId() != constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		tpn.ShardDataPool = dPool
 	} else {
 		tpn.initDataPools()
@@ -275,7 +273,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.MetaDataPool = CreateTestMetaDataPool()
 	} else {
 		tpn.ShardDataPool = CreateTestShardDataPool(nil)
@@ -283,7 +281,7 @@ func (tpn *TestProcessorNode) initDataPools() {
 }
 
 func (tpn *TestProcessorNode) initStorage() {
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.Storage = CreateMetaStore(tpn.ShardCoordinator)
 	} else {
 		tpn.Storage = CreateShardStore(tpn.ShardCoordinator.NumberOfShards())
@@ -291,7 +289,7 @@ func (tpn *TestProcessorNode) initStorage() {
 }
 
 func (tpn *TestProcessorNode) initChainHandler() {
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.BlockChain = CreateMetaChain()
 	} else {
 		tpn.BlockChain = CreateShardChain()
@@ -334,7 +332,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
 
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		interceptorContainerFactory, _ := metaProcess.NewInterceptorsContainerFactory(
 			tpn.ShardCoordinator,
 			tpn.NodesCoordinator,
@@ -390,7 +388,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		resolversContainerFactory, _ := metafactoryDataRetriever.NewResolversContainerFactory(
 			tpn.ShardCoordinator,
 			tpn.Messenger,
@@ -439,7 +437,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 }
 
 func (tpn *TestProcessorNode) initInnerProcessors() {
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.initMetaInnerProcessors()
 		return
 	}
@@ -660,7 +658,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Rounder:                      &mock.RounderMock{},
 	}
 
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime: argumentsBase.Rounder.TimeStamp(),
@@ -777,7 +775,7 @@ func (tpn *TestProcessorNode) initNode() {
 		fmt.Printf("Error creating node: %s\n", err.Error())
 	}
 
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		err = tpn.Node.ApplyOptions(
 			node.WithMetaDataPool(tpn.MetaDataPool),
 		)
@@ -815,7 +813,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		atomic.AddInt32(&tpn.CounterHdrRecv, 1)
 	}
 
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.MetaDataPool.ShardHeaders().RegisterHandler(hdrHandlers)
 		tpn.MetaDataPool.MetaBlocks().RegisterHandler(metaHandlers)
 	} else {
@@ -1038,7 +1036,7 @@ func (tpn *TestProcessorNode) GetMetaHeader(nonce uint64) (*dataBlock.MetaBlock,
 
 // SyncNode tries to process and commit a block already stored in data pool with provided nonce
 func (tpn *TestProcessorNode) SyncNode(nonce uint64) error {
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		return tpn.syncMetaNode(nonce)
 	} else {
 		return tpn.syncShardNode(nonce)

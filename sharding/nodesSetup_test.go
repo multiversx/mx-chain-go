@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -393,7 +393,7 @@ func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 
 func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
-	metaId := constants.MetachainShardId
+	metaId := core.MetachainShardId
 	eligiblePK, waitingPK, err := ns.InitialNodesInfoForShard(metaId)
 
 	assert.NotNil(t, ns)
@@ -435,7 +435,7 @@ func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 
 func TestNodesSetup_MetaPublicKeyGoodMeta(t *testing.T) {
 	ns := createNodesSetupTwoShard6NodesMeta()
-	metaId := constants.MetachainShardId
+	metaId := core.MetachainShardId
 	publicKey, err := hex.DecodeString(PubKeys[0])
 
 	selfId, err := ns.GetShardIDForPubKey(publicKey)

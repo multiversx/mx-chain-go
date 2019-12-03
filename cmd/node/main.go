@@ -20,8 +20,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -301,7 +299,7 @@ var coreServiceContainer serviceContainer.Core
 // windows:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-var appVersion = constants.UnVersionedAppString
+var appVersion = core.UnVersionedAppString
 
 // EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
 type EpochStartSubscriber interface {
@@ -512,7 +510,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var shardId = "metachain"
-	if shardCoordinator.SelfId() != constants.MetachainShardId {
+	if shardCoordinator.SelfId() != core.MetachainShardId {
 		shardId = fmt.Sprintf("%d", shardCoordinator.SelfId())
 	}
 
@@ -770,7 +768,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		softwareVersionChecker.StartCheckSoftwareVersion()
 	}
 
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator)
 	}
 
@@ -956,11 +954,11 @@ func createShardCoordinator(
 	pubKey crypto.PublicKey,
 	settingsConfig config.GeneralSettingsConfig,
 	log logger.Logger,
-) (sharding.Coordinator, constants.NodeType, error) {
+) (sharding.Coordinator, core.NodeType, error) {
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
-	nodeType := constants.NodeTypeValidator
+	nodeType := core.NodeTypeValidator
 	if err == sharding.ErrPublicKeyNotFoundInGenesis {
-		nodeType = constants.NodeTypeObserver
+		nodeType = core.NodeTypeObserver
 		log.Info("starting as observer node")
 
 		selfShardId, err = processDestinationShardAsObserver(settingsConfig)
@@ -970,7 +968,7 @@ func createShardCoordinator(
 	}
 
 	var shardName string
-	if selfShardId == constants.MetachainShardId {
+	if selfShardId == core.MetachainShardId {
 		shardName = metachainShardName
 	} else {
 		shardName = fmt.Sprintf("%d", selfShardId)
@@ -1073,7 +1071,7 @@ func processDestinationShardAsObserver(settingsConfig config.GeneralSettingsConf
 		return 0, errors.New("option DestinationShardAsObserver is not set in config.toml")
 	}
 	if destShard == metachainShardName {
-		return constants.MetachainShardId, nil
+		return core.MetachainShardId, nil
 	}
 
 	val, err := strconv.ParseUint(destShard, 10, 32)
@@ -1115,7 +1113,7 @@ func createElasticIndexer(
 }
 
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return nodesConfig.MetaChainConsensusGroupSize, nil
 	}
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1212,7 +1210,7 @@ func createNode(
 			return nil, err
 		}
 	}
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		err = nd.ApplyOptions(node.WithMetaDataPool(data.MetaDatapool))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
@@ -1250,7 +1248,7 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 		}
 		return nil
 	}
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		coreServiceContainer, err = serviceContainer.NewServiceContainer(
 			serviceContainer.WithIndexer(dbIndexer),
 			serviceContainer.WithTPSBenchmark(tpsBenchmark))
@@ -1311,7 +1309,7 @@ func createApiResolver(
 		Uint64Converter:  uint64Converter,
 	}
 
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics)
 		if err != nil {
 			return nil, err

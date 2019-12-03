@@ -3,7 +3,7 @@ package statusHandler
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -31,11 +31,11 @@ func (psh *PrometheusStatusHandler) addMetric(name string, help string) {
 func (psh *PrometheusStatusHandler) InitMetrics() {
 	psh.InitMetricsMap()
 
-	psh.addMetric(constants.MetricSynchronizedRound, "The round where the synchronized blockchain is")
-	psh.addMetric(constants.MetricNonce, "The nonce for the node")
-	psh.addMetric(constants.MetricCurrentRound, "The current round where the node is")
-	psh.addMetric(constants.MetricNumConnectedPeers, "The current number of peers connected")
-	psh.addMetric(constants.MetricIsSyncing, "The synchronization state. If it's in process of syncing will be 1"+
+	psh.addMetric(core.MetricSynchronizedRound, "The round where the synchronized blockchain is")
+	psh.addMetric(core.MetricNonce, "The nonce for the node")
+	psh.addMetric(core.MetricCurrentRound, "The current round where the node is")
+	psh.addMetric(core.MetricNumConnectedPeers, "The current number of peers connected")
+	psh.addMetric(core.MetricIsSyncing, "The synchronization state. If it's in process of syncing will be 1"+
 		" and if it's synchronized will be 0")
 
 	psh.prometheusGaugeMetrics.Range(func(key, value interface{}) bool {

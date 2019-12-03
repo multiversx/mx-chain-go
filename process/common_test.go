@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -920,7 +920,7 @@ func TestGetMetaHeaderWithNonceShouldErrNilUint64Converter(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := constants.MetachainShardId
+	shardId := core.MetachainShardId
 
 	hdr := &block.MetaBlock{Nonce: nonce}
 	cacher := &mock.CacherStub{
@@ -1246,7 +1246,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHashForHeaderNonceWhenLoa
 func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := constants.MetachainShardId
+	shardId := core.MetachainShardId
 
 	cacher := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1280,7 +1280,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrMissingHeader(t *testing.T) {
 func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := constants.MetachainShardId
+	shardId := core.MetachainShardId
 
 	cacher := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1314,7 +1314,7 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T)
 func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 	hash := []byte("X")
 	nonce := uint64(1)
-	shardId := constants.MetachainShardId
+	shardId := core.MetachainShardId
 
 	hdr := &block.MetaBlock{Nonce: nonce}
 	cacher := &mock.CacherStub{
@@ -1882,7 +1882,7 @@ func TestGetHeaderFromStorageWithNonceShouldWorkForMeta(t *testing.T) {
 
 	header, headerHash, err := process.GetHeaderFromStorageWithNonce(
 		nonce,
-		constants.MetachainShardId,
+		core.MetachainShardId,
 		storageService,
 		uint64Converter,
 		marshalizer)

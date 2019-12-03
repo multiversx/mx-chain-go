@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
@@ -177,7 +177,7 @@ func TestMetaBlock_GetShard(t *testing.T) {
 
 	m := block.MetaBlock{}
 
-	assert.Equal(t, constants.MetachainShardId, m.GetShardID())
+	assert.Equal(t, core.MetachainShardId, m.GetShardID())
 }
 
 func TestMetaBlock_GetNonce(t *testing.T) {

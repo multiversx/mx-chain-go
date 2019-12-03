@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -424,7 +422,7 @@ func (mp *metaProcessor) indexBlock(
 		go mp.core.Indexer().UpdateTPS(tpsBenchmark)
 	}
 
-	publicKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), constants.MetachainShardId)
+	publicKeys, err := mp.nodesCoordinator.GetValidatorsPublicKeys(metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId)
 	if err != nil {
 		return
 	}
@@ -432,7 +430,7 @@ func (mp *metaProcessor) indexBlock(
 	signersIndexes := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys)
 	go mp.core.Indexer().SaveMetaBlock(metaBlock, signersIndexes)
 
-	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, constants.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 }
 
 // removeBlockInfoFromPool removes the block info from associated pools
@@ -679,7 +677,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		if len(miniBlocks) >= constants.MaxMiniBlocksInBlock {
+		if len(miniBlocks) >= core.MaxMiniBlocksInBlock {
 			log.Debug("max number of mini blocks allowed to be added in one shard block has been reached",
 				"num miniblocks", len(miniBlocks),
 			)
@@ -1122,7 +1120,7 @@ func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
 		crossCheckBlockHeight += fmt.Sprintf("%d: %d, ", i, heightValue)
 	}
 
-	mp.appStatusHandler.SetStringValue(constants.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
+	mp.appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, crossCheckBlockHeight)
 }
 
 func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error {

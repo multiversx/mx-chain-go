@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -338,7 +336,7 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
 		}
 	}
-	if args.shardCoordinator.SelfId() == constants.MetachainShardId {
+	if args.shardCoordinator.SelfId() == core.MetachainShardId {
 		metaDatapool, err = createMetaDataPoolFromConfig(args.config, args.core.Uint64ByteSliceConverter)
 		if err != nil {
 			return nil, errors.New("could not create shard data pools: " + err.Error())
@@ -642,7 +640,7 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		return err
 	}
 
-	if args.shardCoordinator.SelfId() == constants.MetachainShardId {
+	if args.shardCoordinator.SelfId() == core.MetachainShardId {
 		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
@@ -679,7 +677,7 @@ func newRequestHandler(
 		return requestHandler, nil
 	}
 
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		requestHandler, err := requestHandlers.NewMetaResolverRequestHandler(
 			resolversFinder,
 			factory.ShardHeadersForMetachainTopic,
@@ -734,7 +732,7 @@ func newEpochStartTrigger(
 		return epochStartTrigger, nil
 	}
 
-	if args.shardCoordinator.SelfId() == constants.MetachainShardId {
+	if args.shardCoordinator.SelfId() == core.MetachainShardId {
 		argEpochStart := &metachainEpochStart.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:           args.epochStart,
@@ -896,7 +894,7 @@ func createBlockChainFromConfig(config *config.Config, coordinator sharding.Coor
 
 		return blockChain, nil
 	}
-	if coordinator.SelfId() == constants.MetachainShardId {
+	if coordinator.SelfId() == core.MetachainShardId {
 		blockChain, err := blockchain.NewMetaChain(badBlockCache)
 		if err != nil {
 			return nil, err
@@ -920,7 +918,7 @@ func createDataStoreFromConfig(
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return createShardDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return createMetaChainDataStoreFromConfig(config, shardCoordinator, uniqueID)
 	}
 	return nil, errors.New("can not create data store")
@@ -1493,7 +1491,7 @@ func newInterceptorAndResolverContainerFactory(
 			economics,
 		)
 	}
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return newMetaInterceptorAndResolverContainerFactory(
 			shardCoordinator,
 			nodesCoordinator,
@@ -1703,11 +1701,11 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		Economics:                economics,
 	}
 
-	if shardCoordinator.SelfId() != constants.MetachainShardId {
+	if shardCoordinator.SelfId() != core.MetachainShardId {
 		newShardCoordinator, newAccounts, err := createInMemoryShardCoordinatorAndAccount(
 			coreComponents,
 			shardCoordinator.NumberOfShards(),
-			constants.MetachainShardId,
+			core.MetachainShardId,
 		)
 		if err != nil {
 			return nil, err
@@ -1732,7 +1730,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	log.Debug("MetaGenesisBlock created",
 		"roothash", genesisBlock.GetRootHash(),
 	)
-	genesisBlocks[constants.MetachainShardId] = genesisBlock
+	genesisBlocks[core.MetachainShardId] = genesisBlock
 
 	return genesisBlocks, nil
 }
@@ -1828,7 +1826,7 @@ func newForkDetector(
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return processSync.NewShardForkDetector(rounder, headerBlackList)
 	}
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return processSync.NewMetaForkDetector(rounder, headerBlackList)
 	}
 
@@ -1891,7 +1889,7 @@ func newBlockProcessor(
 			epochStartTrigger,
 		)
 	}
-	if shardCoordinator.SelfId() == constants.MetachainShardId {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
 		validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
 		if err != nil {
 			return nil, err

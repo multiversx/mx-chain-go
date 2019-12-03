@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -20,7 +18,7 @@ const millisecondsInSecond = 1000
 func InitMetrics(
 	appStatusHandler core.AppStatusHandler,
 	pubKey crypto.PublicKey,
-	nodeType constants.NodeType,
+	nodeType core.NodeType,
 	shardCoordinator sharding.Coordinator,
 	nodesConfig *sharding.NodesSetup,
 	version string,
@@ -32,41 +30,41 @@ func InitMetrics(
 	initUint := uint64(0)
 	initString := ""
 
-	appStatusHandler.SetStringValue(constants.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
-	appStatusHandler.SetUInt64Value(constants.MetricShardId, shardId)
-	appStatusHandler.SetStringValue(constants.MetricNodeType, string(nodeType))
-	appStatusHandler.SetUInt64Value(constants.MetricRoundTime, roundDuration/millisecondsInSecond)
-	appStatusHandler.SetStringValue(constants.MetricAppVersion, version)
-	appStatusHandler.SetUInt64Value(constants.MetricCountConsensus, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricCountLeader, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricCountAcceptedBlocks, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricNumTxInBlock, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricNumMiniBlocks, initUint)
-	appStatusHandler.SetStringValue(constants.MetricConsensusState, initString)
-	appStatusHandler.SetStringValue(constants.MetricConsensusRoundState, initString)
-	appStatusHandler.SetStringValue(constants.MetricCrossCheckBlockHeight, "0")
-	appStatusHandler.SetUInt64Value(constants.MetricIsSyncing, isSyncing)
-	appStatusHandler.SetStringValue(constants.MetricCurrentBlockHash, initString)
-	appStatusHandler.SetUInt64Value(constants.MetricNumProcessedTxs, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricCurrentRoundTimestamp, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricHeaderSize, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricMiniBlocksSize, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricNumShardHeadersFromPool, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricNumShardHeadersProcessed, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricNumTimesInForkChoice, initUint)
-	appStatusHandler.SetStringValue(constants.MetricPublicKeyTxSign, initString)
-	appStatusHandler.SetUInt64Value(constants.MetricHighestFinalBlockInShard, initUint)
-	appStatusHandler.SetUInt64Value(constants.MetricCountConsensusAcceptedBlocks, initUint)
-	appStatusHandler.SetStringValue(constants.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
-	appStatusHandler.SetStringValue(constants.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
-	appStatusHandler.SetStringValue(constants.MetricCommunityPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.CommunityPercentage))
-	appStatusHandler.SetStringValue(constants.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
+	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
+	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
+	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/millisecondsInSecond)
+	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountLeader, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, initUint)
+	appStatusHandler.SetStringValue(core.MetricConsensusState, initString)
+	appStatusHandler.SetStringValue(core.MetricConsensusRoundState, initString)
+	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, "0")
+	appStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
+	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, initString)
+	appStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricHeaderSize, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricMiniBlocksSize, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
+	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
+	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
+	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
+	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
+	appStatusHandler.SetStringValue(core.MetricCommunityPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.CommunityPercentage))
+	appStatusHandler.SetStringValue(core.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
 
 	var consensusGroupSize uint32
 	switch {
 	case shardCoordinator.SelfId() < shardCoordinator.NumberOfShards():
 		consensusGroupSize = nodesConfig.ConsensusGroupSize
-	case shardCoordinator.SelfId() == constants.MetachainShardId:
+	case shardCoordinator.SelfId() == core.MetachainShardId:
 		consensusGroupSize = nodesConfig.MetaChainConsensusGroupSize
 	default:
 		consensusGroupSize = 0
@@ -75,14 +73,14 @@ func InitMetrics(
 	validatorsNodes, _ := nodesConfig.InitialNodesInfo()
 	numValidators := len(validatorsNodes[shardCoordinator.SelfId()])
 
-	appStatusHandler.SetUInt64Value(constants.MetricNumValidators, uint64(numValidators))
-	appStatusHandler.SetUInt64Value(constants.MetricConsensusGroupSize, uint64(consensusGroupSize))
+	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
+	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
 }
 
 // SaveCurrentNodeNameAndPubKey will save metric in status handler with nodeName and transaction sign public key
 func SaveCurrentNodeNameAndPubKey(ash core.AppStatusHandler, txSignPk string, nodeName string) {
-	ash.SetStringValue(constants.MetricPublicKeyTxSign, txSignPk)
-	ash.SetStringValue(constants.MetricNodeDisplayName, nodeName)
+	ash.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
+	ash.SetStringValue(core.MetricNodeDisplayName, nodeName)
 }
 
 // StartStatusPolling will start save information in status handler about network
@@ -124,7 +122,7 @@ func registerPollConnectedPeers(
 
 	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
 		numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
-		appStatusHandler.SetUInt64Value(constants.MetricNumConnectedPeers, numOfConnectedPeers)
+		appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
@@ -142,7 +140,7 @@ func registerPollProbableHighestNonce(
 
 	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
 		probableHigherNonce := processComponents.ForkDetector.ProbableHighestNonce()
-		appStatusHandler.SetUInt64Value(constants.MetricProbableHighestNonce, probableHigherNonce)
+		appStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHigherNonce)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(probableHighestNonceHandlerFunc)

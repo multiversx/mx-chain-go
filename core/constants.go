@@ -1,4 +1,4 @@
-package constants
+package core
 
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag

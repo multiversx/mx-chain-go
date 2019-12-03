@@ -7,8 +7,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -72,7 +70,7 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if arguments.NbShards < 1 {
 		return ErrInvalidNumberOfShards
 	}
-	if arguments.ShardId >= arguments.NbShards && arguments.ShardId != constants.MetachainShardId {
+	if arguments.ShardId >= arguments.NbShards && arguments.ShardId != core.MetachainShardId {
 		return ErrInvalidShardId
 	}
 	if arguments.Hasher == nil {
@@ -97,7 +95,7 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		return ErrNilInputNodesMap
 	}
 
-	nodesList, ok := eligible[constants.MetachainShardId]
+	nodesList, ok := eligible[core.MetachainShardId]
 	if ok && len(nodesList) < ihgs.metaConsensusGroupSize {
 		return ErrSmallMetachainEligibleListSize
 	}
@@ -143,7 +141,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 		return nil, ErrNilRandomness
 	}
 
-	if shardId >= ihgs.nbShards && shardId != constants.MetachainShardId {
+	if shardId >= ihgs.nbShards && shardId != core.MetachainShardId {
 		return nil, ErrInvalidShardId
 	}
 
@@ -232,7 +230,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsRewardsAddresses(
 // GetSelectedPublicKeys returns the stringified public keys of the marked validators in the selection bitmap
 // TODO: This function needs to be revised when the requirements are clarified
 func (ihgs *indexHashedNodesCoordinator) GetSelectedPublicKeys(selection []byte, shardId uint32) (publicKeys []string, err error) {
-	if shardId >= ihgs.nbShards && shardId != constants.MetachainShardId {
+	if shardId >= ihgs.nbShards && shardId != core.MetachainShardId {
 		return nil, ErrInvalidShardId
 	}
 
@@ -382,7 +380,7 @@ func (ihgs *indexHashedNodesCoordinator) validatorIsInList(v Validator, list []V
 }
 
 func (ihgs *indexHashedNodesCoordinator) consensusGroupSize(shardId uint32) int {
-	if shardId == constants.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		return ihgs.metaConsensusGroupSize
 	}
 

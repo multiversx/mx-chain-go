@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -106,7 +106,7 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 		genesisBlocks[ShardID] = createGenesisBlock(ShardID)
 	}
 
-	genesisBlocks[constants.MetachainShardId] = createGenesisMetaBlock()
+	genesisBlocks[core.MetachainShardId] = createGenesisMetaBlock()
 
 	return genesisBlocks
 }
@@ -513,7 +513,7 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("aaa")
-	ShardID := constants.MetachainShardId
+	ShardID := core.MetachainShardId
 
 	mdp := initMetaDataPool()
 	accounts := &mock.AccountsStub{}

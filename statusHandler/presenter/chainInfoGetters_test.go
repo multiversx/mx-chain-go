@@ -4,8 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +13,7 @@ func TestPresenterStatusHandler_GetNonce(t *testing.T) {
 
 	nonce := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricNonce, nonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, nonce)
 	result := presenterStatusHandler.GetNonce()
 
 	assert.Equal(t, nonce, result)
@@ -26,7 +24,7 @@ func TestPresenterStatusHandler_GetIsSyncing(t *testing.T) {
 
 	isSyncing := uint64(1)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricIsSyncing, isSyncing)
+	presenterStatusHandler.SetUInt64Value(core.MetricIsSyncing, isSyncing)
 	result := presenterStatusHandler.GetIsSyncing()
 
 	assert.Equal(t, isSyncing, result)
@@ -37,7 +35,7 @@ func TestPresenterStatusHandler_GetTxPoolLoad(t *testing.T) {
 
 	txPoolLoad := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricTxPoolLoad, txPoolLoad)
+	presenterStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, txPoolLoad)
 	result := presenterStatusHandler.GetTxPoolLoad()
 
 	assert.Equal(t, txPoolLoad, result)
@@ -48,7 +46,7 @@ func TestPresenterStatusHandler_GetProbableHighestNonce(t *testing.T) {
 
 	probableHighestNonce := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricProbableHighestNonce, probableHighestNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHighestNonce)
 	result := presenterStatusHandler.GetProbableHighestNonce()
 
 	assert.Equal(t, probableHighestNonce, result)
@@ -59,7 +57,7 @@ func TestPresenterStatusHandler_GetSynchronizedRound(t *testing.T) {
 
 	synchronizedRound := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricSynchronizedRound, synchronizedRound)
+	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, synchronizedRound)
 	result := presenterStatusHandler.GetSynchronizedRound()
 
 	assert.Equal(t, synchronizedRound, result)
@@ -70,7 +68,7 @@ func TestPresenterStatusHandler_GetRoundTime(t *testing.T) {
 
 	roundTime := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricRoundTime, roundTime)
+	presenterStatusHandler.SetUInt64Value(core.MetricRoundTime, roundTime)
 	result := presenterStatusHandler.GetRoundTime()
 
 	assert.Equal(t, roundTime, result)
@@ -81,7 +79,7 @@ func TestPresenterStatusHandler_GetLiveValidatorNodes(t *testing.T) {
 
 	numLiveValidatorNodes := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricLiveValidatorNodes, numLiveValidatorNodes)
+	presenterStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, numLiveValidatorNodes)
 	result := presenterStatusHandler.GetLiveValidatorNodes()
 
 	assert.Equal(t, numLiveValidatorNodes, result)
@@ -92,7 +90,7 @@ func TestPresenterStatusHandler_GetConnectedNodes(t *testing.T) {
 
 	numConnectedNodes := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricConnectedNodes, numConnectedNodes)
+	presenterStatusHandler.SetUInt64Value(core.MetricConnectedNodes, numConnectedNodes)
 	result := presenterStatusHandler.GetConnectedNodes()
 
 	assert.Equal(t, numConnectedNodes, result)
@@ -103,7 +101,7 @@ func TestPresenterStatusHandler_GetNumConnectedPeers(t *testing.T) {
 
 	numConnectedPeers := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricNumConnectedPeers, numConnectedPeers)
+	presenterStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numConnectedPeers)
 	result := presenterStatusHandler.GetNumConnectedPeers()
 
 	assert.Equal(t, numConnectedPeers, result)
@@ -114,7 +112,7 @@ func TestPresenterStatusHandler_GetCurrentRound(t *testing.T) {
 
 	currentRound := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricCurrentRound, currentRound)
+	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, currentRound)
 	result := presenterStatusHandler.GetCurrentRound()
 
 	assert.Equal(t, currentRound, result)
@@ -129,8 +127,8 @@ func TestPresenterStatusHandler_CalculateTimeToSynchronize(t *testing.T) {
 	presenterStatusHandler := NewPresenterStatusHandler()
 
 	time.Sleep(time.Second)
-	presenterStatusHandler.SetUInt64Value(constants.MetricNonce, currentBlockNonce)
-	presenterStatusHandler.SetUInt64Value(constants.MetricProbableHighestNonce, probableHighestNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, currentBlockNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHighestNonce)
 	presenterStatusHandler.synchronizationSpeedHistory = append(presenterStatusHandler.synchronizationSpeedHistory, synchronizationSpeed)
 	synchronizationEstimation := presenterStatusHandler.CalculateTimeToSynchronize()
 
@@ -148,9 +146,9 @@ func TestPresenterStatusHandler_CalculateSynchronizationSpeed(t *testing.T) {
 	initialNonce := uint64(10)
 	currentNonce := uint64(20)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricNonce, initialNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, initialNonce)
 	syncSpeed := presenterStatusHandler.CalculateSynchronizationSpeed()
-	presenterStatusHandler.SetUInt64Value(constants.MetricNonce, currentNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricNonce, currentNonce)
 	syncSpeed = presenterStatusHandler.CalculateSynchronizationSpeed()
 
 	expectedSpeed := currentNonce - initialNonce
@@ -162,7 +160,7 @@ func TestPresenterStatusHandler_GetNumTxProcessed(t *testing.T) {
 
 	numTxProcessed := uint64(1000)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricNumProcessedTxs, numTxProcessed)
+	presenterStatusHandler.SetUInt64Value(core.MetricNumProcessedTxs, numTxProcessed)
 	result := presenterStatusHandler.GetNumTxProcessed()
 
 	assert.Equal(t, numTxProcessed, result)
@@ -173,7 +171,7 @@ func TestPresenterStatusHandler_GetNumShardHeadersInPool(t *testing.T) {
 
 	numShardHeadersInPool := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricNumShardHeadersFromPool, numShardHeadersInPool)
+	presenterStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, numShardHeadersInPool)
 	result := presenterStatusHandler.GetNumShardHeadersInPool()
 
 	assert.Equal(t, numShardHeadersInPool, result)
@@ -184,7 +182,7 @@ func TestNewPresenterStatusHandler_GetNumShardHeadersProcessed(t *testing.T) {
 
 	numShardHeadersProcessed := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(constants.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
+	presenterStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
 	result := presenterStatusHandler.GetNumShardHeadersProcessed()
 
 	assert.Equal(t, numShardHeadersProcessed, result)

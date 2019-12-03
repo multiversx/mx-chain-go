@@ -1,7 +1,7 @@
 package requestHandlers
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -198,7 +198,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte) {
 	//TODO: Refactor this class and create specific methods for requesting shard or meta data
 	var baseTopic string
-	if destShardID == constants.MetachainShardId {
+	if destShardID == core.MetachainShardId {
 		baseTopic = rrh.metaHdrRequestTopic
 	} else {
 		baseTopic = rrh.shardHdrRequestTopic
@@ -213,7 +213,7 @@ func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte
 	var resolver dataRetriever.Resolver
 	var err error
 
-	if destShardID == constants.MetachainShardId {
+	if destShardID == core.MetachainShardId {
 		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
 	} else {
 		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)

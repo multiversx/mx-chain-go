@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -94,7 +94,7 @@ func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
 		buffHeader, _ := TestMarshalizer.Marshal(header)
 		headerHash := TestHasher.Compute(string(buffHeader))
 
-		if shardId == constants.MetachainShardId {
+		if shardId == core.MetachainShardId {
 			metablockStorer := tpn.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 			_ = metablockStorer.Put(headerHash, buffHeader)
 		} else {
@@ -133,7 +133,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		Rounder:                      &mock.RounderMock{},
 	}
 
-	if tpn.ShardCoordinator.SelfId() == constants.MetachainShardId {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector

@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -44,7 +44,7 @@ func setupSyncNodesOneShardAndMeta(
 	for i := 0; i < numNodesMeta; i++ {
 		metaNode := integrationTests.NewTestSyncNode(
 			maxShards,
-			constants.MetachainShardId,
+			core.MetachainShardId,
 			shardId,
 			advertiserAddr,
 		)

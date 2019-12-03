@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -48,12 +48,12 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsList[v], _ = sharding.NewValidator(
 			big.NewInt(10),
 			1,
-			[]byte(fmt.Sprintf("pubKey%d%d", constants.MetachainShardId, v)),
-			[]byte(fmt.Sprintf("address%d%d", constants.MetachainShardId, v)),
+			[]byte(fmt.Sprintf("pubKey%d%d", core.MetachainShardId, v)),
+			[]byte(fmt.Sprintf("address%d%d", core.MetachainShardId, v)),
 		)
 	}
 
-	validatorsMap[constants.MetachainShardId] = validatorsList
+	validatorsMap[core.MetachainShardId] = validatorsList
 
 	return &NodesCoordinatorMock{
 		ShardConsensusSize: 1,
@@ -163,7 +163,7 @@ func (ncm *NodesCoordinatorMock) ComputeValidatorsGroup(
 		return ncm.ComputeValidatorsGroupCalled(randomess, round, shardId)
 	}
 
-	if ncm.ShardId == constants.MetachainShardId {
+	if ncm.ShardId == core.MetachainShardId {
 		consensusSize = ncm.MetaConsensusSize
 	} else {
 		consensusSize = ncm.ShardConsensusSize

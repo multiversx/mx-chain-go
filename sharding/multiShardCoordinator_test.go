@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -239,10 +239,10 @@ func TestCommunicationIdentifierBetweenShards(t *testing.T) {
 func TestCommunicationIdentifierBetweenShards_Metachain(t *testing.T) {
 	//print some shard identifiers and check that they match the current defined pattern
 
-	assert.Equal(t, "_0_META", sharding.CommunicationIdentifierBetweenShards(0, constants.MetachainShardId))
-	assert.Equal(t, "_1_META", sharding.CommunicationIdentifierBetweenShards(constants.MetachainShardId, 1))
+	assert.Equal(t, "_0_META", sharding.CommunicationIdentifierBetweenShards(0, core.MetachainShardId))
+	assert.Equal(t, "_1_META", sharding.CommunicationIdentifierBetweenShards(core.MetachainShardId, 1))
 	assert.Equal(t, "_META", sharding.CommunicationIdentifierBetweenShards(
-		constants.MetachainShardId,
-		constants.MetachainShardId,
+		core.MetachainShardId,
+		core.MetachainShardId,
 	))
 }

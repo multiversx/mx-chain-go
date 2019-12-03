@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/mock"
@@ -40,7 +40,7 @@ func TestAppStatusFacade_IncrementShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = constants.MetricSynchronizedRound
+	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -65,7 +65,7 @@ func TestAppStatusFacade_DecrementShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = constants.MetricSynchronizedRound
+	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -90,7 +90,7 @@ func TestAppStatusFacade_SetInt64ValueShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = constants.MetricSynchronizedRound
+	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{
@@ -115,7 +115,7 @@ func TestAppStatusFacade_SetUint64ValueShouldPass(t *testing.T) {
 	t.Parallel()
 
 	chanDone := make(chan bool, 1)
-	var metricKey = constants.MetricSynchronizedRound
+	var metricKey = core.MetricSynchronizedRound
 
 	// we create a new facade which contains a stub handler in order to test
 	appStatusHandlerStub := mock.AppStatusHandlerStub{

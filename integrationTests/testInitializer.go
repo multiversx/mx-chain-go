@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -256,7 +256,7 @@ func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32
 		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
 	}
 
-	genesisBlocks[constants.MetachainShardId] = CreateSimpleGenesisMetaBlock()
+	genesisBlocks[core.MetachainShardId] = CreateSimpleGenesisMetaBlock()
 
 	return genesisBlocks
 }
@@ -321,7 +321,7 @@ func CreateGenesisBlocks(
 		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
 	}
 
-	genesisBlocks[constants.MetachainShardId] = CreateGenesisMetaBlock(
+	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(
 		accounts,
 		addrConv,
 		nodesSetup,
@@ -367,10 +367,10 @@ func CreateGenesisMetaBlock(
 		Economics:                economics,
 	}
 
-	if shardCoordinator.SelfId() != constants.MetachainShardId {
+	if shardCoordinator.SelfId() != core.MetachainShardId {
 		newShardCoordinator, _ := sharding.NewMultiShardCoordinator(
 			shardCoordinator.NumberOfShards(),
-			constants.MetachainShardId,
+			core.MetachainShardId,
 		)
 
 		newStore := CreateMetaStore(newShardCoordinator)
@@ -574,7 +574,7 @@ func GenerateRandomSlice(size int) []byte {
 // MintAllNodes will take each shard node (n) and will mint all nodes that have their pk managed by the iterating node n
 func MintAllNodes(nodes []*TestProcessorNode, value *big.Int) {
 	for idx, n := range nodes {
-		if n.ShardCoordinator.SelfId() == constants.MetachainShardId {
+		if n.ShardCoordinator.SelfId() == core.MetachainShardId {
 			continue
 		}
 
@@ -800,7 +800,7 @@ func CreateNodes(
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNode(uint32(numOfShards), constants.MetachainShardId, 0, serviceID)
+		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -983,7 +983,7 @@ func GenerateSkAndPkInShard(
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 
-	if shardId == constants.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		// for metachain generate in shard 0
 		shardId = 0
 	}
@@ -1028,7 +1028,7 @@ func CreateAndSendTransactions(
 	valueToTransfer *big.Int,
 ) {
 	for shardId := range nodes {
-		if shardId == constants.MetachainShardId {
+		if shardId == core.MetachainShardId {
 			continue
 		}
 
@@ -1412,7 +1412,7 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 		kp.Sk, kp.Pk = keyGen.GeneratePair()
 		keyPairs[n] = kp
 	}
-	keysMap[constants.MetachainShardId] = keyPairs
+	keysMap[core.MetachainShardId] = keyPairs
 
 	params := &CryptoParams{
 		Keys:         keysMap,

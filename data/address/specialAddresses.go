@@ -3,7 +3,7 @@ package address
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -107,12 +107,12 @@ func (sp *specialAddresses) SetMetaConsensusData(randomness []byte, round uint64
 	rewardAddresses, err := sp.nodesCoordinator.GetValidatorsRewardsAddresses(
 		randomness,
 		round,
-		constants.MetachainShardId,
+		core.MetachainShardId,
 	)
 	if err != nil {
 		return err
 	}
-	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, constants.MetachainShardId)
+	pubKeys, err := sp.nodesCoordinator.GetValidatorsPublicKeys(randomness, round, core.MetachainShardId)
 	if err != nil {
 		return err
 	}

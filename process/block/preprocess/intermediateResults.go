@@ -5,8 +5,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -82,7 +80,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 	}
-	miniBlocks[constants.MetachainShardId] = &block.MiniBlock{}
+	miniBlocks[core.MetachainShardId] = &block.MiniBlock{}
 
 	irp.currTxs.Clean()
 	irp.mutInterResultsForBlock.Lock()

@@ -3,8 +3,6 @@ package metrics
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
@@ -50,10 +48,10 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	}()
 
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(constants.MetricMemLoadPercent, memStats.MemPercentUsage())
-		appStatusHandler.SetUInt64Value(constants.MetricMemTotal, memStats.TotalMemory())
-		appStatusHandler.SetUInt64Value(constants.MetricMemUsedGolang, memStats.MemoryUsedByGolang())
-		appStatusHandler.SetUInt64Value(constants.MetricMemUsedSystem, memStats.MemoryUsedBySystem())
+		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
+		appStatusHandler.SetUInt64Value(core.MetricMemTotal, memStats.TotalMemory())
+		appStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, memStats.MemoryUsedByGolang())
+		appStatusHandler.SetUInt64Value(core.MetricMemUsedSystem, memStats.MemoryUsedBySystem())
 	})
 }
 
@@ -66,13 +64,13 @@ func registeNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPol
 	}()
 
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(constants.MetricNetworkRecvBps, netStats.BpsRecv())
-		appStatusHandler.SetUInt64Value(constants.MetricNetworkRecvBpsPeak, netStats.BpsRecvPeak())
-		appStatusHandler.SetUInt64Value(constants.MetricNetworkRecvPercent, netStats.PercentRecv())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBps, netStats.BpsRecv())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBpsPeak, netStats.BpsRecvPeak())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvPercent, netStats.PercentRecv())
 
-		appStatusHandler.SetUInt64Value(constants.MetricNetworkSentBps, netStats.BpsSent())
-		appStatusHandler.SetUInt64Value(constants.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
-		appStatusHandler.SetUInt64Value(constants.MetricNetworkSentPercent, netStats.PercentSent())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBps, netStats.BpsSent())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
 	})
 }
 
@@ -89,6 +87,6 @@ func registerCpuStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	}()
 
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(constants.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
+		appStatusHandler.SetUInt64Value(core.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
 	})
 }

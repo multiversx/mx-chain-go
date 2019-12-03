@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -294,7 +292,7 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr *block.MetaBlock) (bool,
 
 	if nextBlocksVerified < t.finality {
 		for nonce := currHdr.Nonce + 1; nonce <= currHdr.Nonce+t.finality; nonce++ {
-			go t.requestHandler.RequestHeaderByNonce(constants.MetachainShardId, nonce)
+			go t.requestHandler.RequestHeaderByNonce(core.MetachainShardId, nonce)
 		}
 		return false, 0
 	}
@@ -376,7 +374,7 @@ func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (*b
 		return metaHdr, nil
 	}
 
-	go t.requestHandler.RequestHeader(constants.MetachainShardId, neededHash)
+	go t.requestHandler.RequestHeader(core.MetachainShardId, neededHash)
 
 	return nil, epochStart.ErrMetaHdrNotFound
 }
@@ -397,7 +395,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash [
 func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
 	shIdMap, ok := t.metaHdrNonces.Get(nonce)
 	if ok {
-		hdrHash, ok := shIdMap.Load(constants.MetachainShardId)
+		hdrHash, ok := shIdMap.Load(core.MetachainShardId)
 		if ok {
 			dataHdr, _ := t.metaHdrPool.Peek(hdrHash)
 			hdrWithNonce, ok := dataHdr.(*block.MetaBlock)
@@ -426,7 +424,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
 	dataHdr, err := t.metaNonceHdrStorage.Get(nonceToByteSlice)
 	if err != nil || len(dataHdr) == 0 {
-		go t.requestHandler.RequestHeaderByNonce(constants.MetachainShardId, nonce)
+		go t.requestHandler.RequestHeaderByNonce(core.MetachainShardId, nonce)
 		return nil, err
 	}
 

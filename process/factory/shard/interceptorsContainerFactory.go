@@ -1,8 +1,8 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/constants"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -255,7 +255,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 	}
 
 	//tx interceptor for metachain topic
-	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(constants.MetachainShardId)
+	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneTxInterceptor(identifierTx)
 	if err != nil {
@@ -322,7 +322,7 @@ func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]st
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	identifierTx := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(constants.MetachainShardId)
+	identifierTx := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneUnsignedTxInterceptor(identifierTx)
 	if err != nil {
@@ -390,7 +390,7 @@ func (icf *interceptorsContainerFactory) generateRewardTxInterceptors() ([]strin
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(constants.MetachainShardId)
+	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneRewardTxInterceptor(identifierTx)
 	if err != nil {
@@ -503,7 +503,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 		interceptorsSlice[int(idx)] = interceptor
 	}
 
-	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(constants.MetachainShardId)
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	interceptor, err := icf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {

@@ -6,8 +6,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -292,7 +290,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 }
 
 func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderHandler) error {
-	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != constants.MetachainShardId {
+	if shardId >= bp.shardCoordinator.NumberOfShards() && shardId != core.MetachainShardId {
 		return process.ErrShardIdMissmatch
 	}
 
@@ -303,7 +301,7 @@ func (bp *baseProcessor) checkHeaderTypeCorrect(shardId uint32, hdr data.HeaderH
 		}
 	}
 
-	if shardId == constants.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		_, ok := hdr.(*block.MetaBlock)
 		if !ok {
 			return process.ErrWrongTypeAssertion
@@ -447,11 +445,11 @@ func (bp *baseProcessor) setLastNotarizedHeadersSlice(startHeaders map[uint32]da
 		bp.notarizedHdrs[i] = append(bp.notarizedHdrs[i], hdr)
 	}
 
-	hdr, ok := startHeaders[constants.MetachainShardId].(*block.MetaBlock)
+	hdr, ok := startHeaders[core.MetachainShardId].(*block.MetaBlock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
-	bp.notarizedHdrs[constants.MetachainShardId] = append(bp.notarizedHdrs[constants.MetachainShardId], hdr)
+	bp.notarizedHdrs[core.MetachainShardId] = append(bp.notarizedHdrs[core.MetachainShardId], hdr)
 
 	return nil
 }
@@ -710,7 +708,7 @@ func (bp *baseProcessor) getMaxMiniBlocksSpaceRemained(
 	miniBlocksAddedInBlock uint32,
 ) int32 {
 	mbSpaceRemainedInBlock := int32(maxItemsInBlock) - int32(itemsAddedInBlock)
-	mbSpaceRemainedInCache := int32(constants.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
+	mbSpaceRemainedInCache := int32(core.MaxMiniBlocksInBlock) - int32(miniBlocksAddedInBlock)
 	maxMbSpaceRemained := core.MinInt32(mbSpaceRemainedInBlock, mbSpaceRemainedInCache)
 
 	return maxMbSpaceRemained

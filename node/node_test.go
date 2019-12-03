@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -1595,7 +1595,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	t.Parallel()
 
-	metricKey := constants.MetricCurrentRound
+	metricKey := core.MetricCurrentRound
 	incrementCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade
@@ -1621,7 +1621,7 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	t.Parallel()
 
-	metricKey := constants.MetricCurrentRound
+	metricKey := core.MetricCurrentRound
 	decrementCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade
@@ -1647,7 +1647,7 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	t.Parallel()
 
-	metricKey := constants.MetricCurrentRound
+	metricKey := core.MetricCurrentRound
 	setInt64ValueCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade
@@ -1673,7 +1673,7 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	t.Parallel()
 
-	metricKey := constants.MetricCurrentRound
+	metricKey := core.MetricCurrentRound
 	setUInt64ValueCalled := make(chan bool, 1)
 
 	// create a prometheus status handler which will be passed to the facade

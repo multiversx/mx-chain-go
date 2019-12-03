@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -69,7 +69,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain have the block header in pool as interceptor validates it
-	for _, metaNode := range nodesMap[constants.MetachainShardId] {
+	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		v, ok := metaNode.MetaDataPool.ShardHeaders().Get(headerHash)
 		assert.True(t, ok)
 		assert.Equal(t, header, v)
@@ -129,14 +129,14 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	nonce := uint64(1)
 
 	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(
-		constants.MetachainShardId,
+		core.MetachainShardId,
 		nodesMap,
 		round,
 		nonce,
 		randomness,
 	)
 
-	nodesMap[constants.MetachainShardId][0].BroadcastBlock(body, header)
+	nodesMap[core.MetachainShardId][0].BroadcastBlock(body, header)
 
 	time.Sleep(broadcastDelay)
 
@@ -144,7 +144,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
 
 	// all nodes in metachain do not have the block in pool as interceptor does not validate it with a wrong consensus
-	for _, metaNode := range nodesMap[constants.MetachainShardId] {
+	for _, metaNode := range nodesMap[core.MetachainShardId] {
 		v, ok := metaNode.MetaDataPool.MetaBlocks().Get(headerHash)
 		assert.True(t, ok)
 		assert.Equal(t, header, v)

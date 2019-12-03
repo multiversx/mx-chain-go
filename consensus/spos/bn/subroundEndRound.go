@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/display"
@@ -132,8 +130,8 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
-	sr.appStatusHandler.Increment(constants.MetricCountAcceptedBlocks)
-	sr.appStatusHandler.SetStringValue(constants.MetricConsensusRoundState,
+	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
+	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Now().Sub(sr.Rounder().TimeStamp()).Seconds()))
 }
 

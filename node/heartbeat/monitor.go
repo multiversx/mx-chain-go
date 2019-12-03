@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/logger"
 
@@ -310,8 +308,8 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
-	m.appStatusHandler.SetUInt64Value(constants.MetricLiveValidatorNodes, uint64(counterActiveValidators))
-	m.appStatusHandler.SetUInt64Value(constants.MetricConnectedNodes, uint64(counterConnectedNodes))
+	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
+	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
 
 // GetHeartbeats returns the heartbeat status

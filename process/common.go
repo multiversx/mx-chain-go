@@ -4,7 +4,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -268,7 +268,7 @@ func GetMetaHeaderFromPoolWithNonce(
 	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
 ) (*block.MetaBlock, []byte, error) {
 
-	obj, hash, err := getHeaderFromPoolWithNonce(nonce, constants.MetachainShardId, cacher, uint64SyncMapCacher)
+	obj, hash, err := getHeaderFromPoolWithNonce(nonce, core.MetachainShardId, cacher, uint64SyncMapCacher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -290,7 +290,7 @@ func GetHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (data.HeaderHandler, []byte, error) {
 
-	if shardId == constants.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		return GetMetaHeaderFromStorageWithNonce(nonce, storageService, uint64Converter, marshalizer)
 	}
 	return GetShardHeaderFromStorageWithNonce(nonce, shardId, storageService, uint64Converter, marshalizer)

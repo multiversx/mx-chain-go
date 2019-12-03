@@ -4,8 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -259,7 +257,7 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	return sp.requestMissingFinalityAttestingHeaders(
-		constants.MetachainShardId,
+		core.MetachainShardId,
 		sp.metaBlockFinality,
 		sp.getMetaHeaderFromPoolWithNonce,
 		sp.dataPool.MetaBlocks())

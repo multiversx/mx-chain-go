@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +80,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	syncMetaNode := integrationTests.NewTestSyncNode(
 		maxShards,
-		constants.MetachainShardId,
+		core.MetachainShardId,
 		shardId,
 		advertiserAddr,
 	)

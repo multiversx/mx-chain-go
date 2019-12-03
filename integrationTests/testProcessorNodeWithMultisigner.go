@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/constants"
-
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -58,7 +56,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		fmt.Println("Error generating multisigner")
 	}
 	accountShardId := nodeShardId
-	if nodeShardId == constants.MetachainShardId {
+	if nodeShardId == core.MetachainShardId {
 		accountShardId = 0
 	}
 

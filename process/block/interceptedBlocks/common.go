@@ -3,7 +3,6 @@ package interceptedBlocks
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/constants"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -165,7 +164,7 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 
 func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordinator) error {
 	for _, sd := range shardInfo {
-		if sd.ShardID >= coordinator.NumberOfShards() && sd.ShardID != constants.MetachainShardId {
+		if sd.ShardID >= coordinator.NumberOfShards() && sd.ShardID != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 
@@ -181,9 +180,9 @@ func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordi
 func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error {
 	for _, smbh := range sd.ShardMiniBlockHeaders {
 		isWrongSenderShardId := smbh.SenderShardID >= coordinator.NumberOfShards() &&
-			smbh.SenderShardID != constants.MetachainShardId
+			smbh.SenderShardID != core.MetachainShardId
 		isWrongDestinationShardId := smbh.ReceiverShardID >= coordinator.NumberOfShards() &&
-			smbh.ReceiverShardID != constants.MetachainShardId
+			smbh.ReceiverShardID != core.MetachainShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
@@ -196,9 +195,9 @@ func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error 
 func checkMiniblocks(miniblocks []block.MiniBlockHeader, coordinator sharding.Coordinator) error {
 	for _, miniblock := range miniblocks {
 		isWrongSenderShardId := miniblock.SenderShardID >= coordinator.NumberOfShards() &&
-			miniblock.SenderShardID != constants.MetachainShardId
+			miniblock.SenderShardID != core.MetachainShardId
 		isWrongDestinationShardId := miniblock.ReceiverShardID >= coordinator.NumberOfShards() &&
-			miniblock.ReceiverShardID != constants.MetachainShardId
+			miniblock.ReceiverShardID != core.MetachainShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
