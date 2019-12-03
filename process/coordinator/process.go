@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -34,6 +35,7 @@ type transactionCoordinator struct {
 	requestedTxs    map[block.Type]int
 
 	onRequestMiniBlock func(shardId uint32, mbHash []byte)
+	gasHandler         process.GasHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -44,29 +46,35 @@ func NewTransactionCoordinator(
 	requestHandler process.RequestHandler,
 	preProcessors process.PreProcessorsContainer,
 	interProcessors process.IntermediateProcessorContainer,
+	gasHandler process.GasHandler,
 ) (*transactionCoordinator, error) {
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if miniBlockPool == nil || miniBlockPool.IsInterfaceNil() {
+	if check.IfNil(miniBlockPool) {
 		return nil, process.ErrNilMiniBlockPool
 	}
-	if requestHandler == nil || requestHandler.IsInterfaceNil() {
+	if check.IfNil(requestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
-	if interProcessors == nil || interProcessors.IsInterfaceNil() {
+	if check.IfNil(interProcessors) {
 		return nil, process.ErrNilIntermediateProcessorContainer
 	}
-	if preProcessors == nil || preProcessors.IsInterfaceNil() {
+	if check.IfNil(preProcessors) {
 		return nil, process.ErrNilPreProcessorsContainer
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
 	}
 
 	tc := &transactionCoordinator{
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
+		gasHandler:       gasHandler,
 	}
 
 	tc.miniBlockPool = miniBlockPool
@@ -365,11 +373,12 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksHashes map[string]struct{},
-	maxTxRemaining uint32,
-	maxMbRemaining uint32,
+	maxTxSpaceRemained uint32,
+	maxMbSpaceRemained uint32,
 	round uint64,
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, bool) {
+
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
@@ -407,7 +416,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		// overflow would happen if processing would continue
-		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxRemaining
+		txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > maxTxSpaceRemained
 		if txOverFlow {
 			return miniBlocks, nrTxAdded, false
 		}
@@ -427,7 +436,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMiniBlocksProcessed++
 
-		mbOverFlow := uint32(len(miniBlocks)) >= maxMbRemaining
+		mbOverFlow := uint32(len(miniBlocks)) >= maxMbSpaceRemained
 		if mbOverFlow {
 			return miniBlocks, nrTxAdded, false
 		}
@@ -502,6 +511,8 @@ func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBl
 
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process
 func (tc *transactionCoordinator) CreateBlockStarted() {
+	tc.gasHandler.Init()
+
 	tc.mutPreProcessor.RLock()
 	for _, value := range tc.txPreProcessors {
 		value.CreateBlockStarted()
@@ -684,9 +695,11 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
+
 	err := preproc.ProcessMiniBlock(miniBlock, haveTime, round)
 	if err != nil {
 		log.Debug("ProcessMiniBlock", "error", err.Error())
+
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
 			// TODO: evaluate if reloading the trie from disk will might solve the problem

@@ -55,10 +55,6 @@ const MinItemsInBlock = 15000
 // committed block nonce, after which, node is considered himself not synced
 const NonceDifferenceWhenSynced = 0
 
-// MaxGasLimitPerMiniBlock defines the maximum gas limit which could be consumed by a miniblock
-//TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
-const MaxGasLimitPerMiniBlock = uint64(100000)
-
 // MaxRequestsWithTimeoutAllowed defines the maximum allowed number of requests with timeout,
 // before a special action to be applied
 const MaxRequestsWithTimeoutAllowed = 5
