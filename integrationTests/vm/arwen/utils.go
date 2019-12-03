@@ -63,24 +63,26 @@ func setupTestContext(t *testing.T) testContext {
 }
 
 func (context *testContext) initAccounts() {
+	initialNonce := uint64(1)
+
 	context.Owner = testParticipant{}
 	context.Owner.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'}
-	context.Owner.Nonce = uint64(1)
+	context.Owner.Nonce = initialNonce
 	context.Owner.Balance = big.NewInt(math.MaxInt64)
 
 	context.Alice = testParticipant{}
 	context.Alice.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'}
-	context.Alice.Nonce = uint64(1)
+	context.Alice.Nonce = initialNonce
 	context.Alice.Balance = big.NewInt(math.MaxInt64)
 
 	context.Bob = testParticipant{}
 	context.Bob.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b', 'b'}
-	context.Bob.Nonce = uint64(1)
+	context.Bob.Nonce = initialNonce
 	context.Bob.Balance = big.NewInt(math.MaxInt64)
 
 	context.Carol = testParticipant{}
 	context.Carol.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c'}
-	context.Carol.Nonce = uint64(1)
+	context.Carol.Nonce = initialNonce
 	context.Carol.Balance = big.NewInt(math.MaxInt64)
 
 	context.Accounts = vm.CreateInMemoryShardAccountsDB()
