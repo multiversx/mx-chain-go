@@ -121,7 +121,11 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 	}
 
 	owner.Nonce++
-	_, _ = context.Accounts.Commit()
+
+	_, err = context.Accounts.Commit()
+	if err != nil {
+		assert.FailNow(context.T, err.Error())
+	}
 }
 
 func getSCCode(fileName string) string {
@@ -151,7 +155,11 @@ func (context *testContext) executeSCWithValue(sender *testParticipant, txData s
 	}
 
 	sender.Nonce++
-	_, _ = context.Accounts.Commit()
+
+	_, err = context.Accounts.Commit()
+	if err != nil {
+		assert.FailNow(context.T, err.Error())
+	}
 }
 
 func (context *testContext) querySCInt(function string, args [][]byte) uint64 {
