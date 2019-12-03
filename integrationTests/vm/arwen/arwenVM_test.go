@@ -592,10 +592,8 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 	err = txProc.ProcessTransaction(tx, round)
 	assert.Nil(t, err)
 
-	start := time.Now()
-
 	for j := 0; j < 20; j++ {
-		start = time.Now()
+		start := time.Now()
 
 		for i := 0; i < 1000; i++ {
 			tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[j*1000+i])
@@ -619,7 +617,7 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
 
-	start = time.Now()
+	start := time.Now()
 
 	for i := 0; i < numRun; i++ {
 		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[i])

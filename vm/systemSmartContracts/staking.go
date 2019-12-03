@@ -171,7 +171,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked == false {
+	if !registrationData.Staked {
 		log.Error("unStake is not possible for address with is already unStaked")
 		return vmcommon.UserError
 	}
@@ -298,7 +298,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		}
 	}
 
-	if registrationData.Staked == true {
+	if registrationData.Staked {
 		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.Ok
 	}
