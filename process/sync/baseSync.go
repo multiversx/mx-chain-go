@@ -564,23 +564,24 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	startTime := time.Now()
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
-	if err != nil {
-		return err
-	}
-	elapsedTime := time.Now().Sub(startTime).Seconds()
+	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
 	)
-
-	startTime = time.Now()
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 	if err != nil {
 		return err
 	}
-	elapsedTime = time.Now().Sub(startTime).Seconds()
+
+	startTime = time.Now()
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
+	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
 	)
+	if err != nil {
+		return err
+	}
+
 	log.Debug("block has been synced successfully",
 		"nonce", hdr.GetNonce(),
 	)

@@ -262,7 +262,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(body, header.Round, haveTime)
-	elapsedTime := time.Now().Sub(startTime).Seconds()
+	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
 	)
@@ -282,7 +282,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	startTime = time.Now()
 	err = sp.checkValidatorStatisticsRootHash(header, processedMetaHdrs)
-	elapsedTime = time.Now().Sub(startTime).Seconds()
+	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to check validator statistics root hash",
 		"time [s]", elapsedTime,
 	)
@@ -1541,7 +1541,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	startTime := time.Now()
 	destMeMiniBlocks, nbTxs, nbHdrs, err := sp.createAndProcessCrossMiniBlocksDstMe(maxItemsInBlock, round, haveTime)
-	elapsedTime := time.Now().Sub(startTime).Seconds()
+	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me",
 		"time [s]", elapsedTime,
 	)
@@ -1561,7 +1561,7 @@ func (sp *shardProcessor) createMiniBlocks(
 
 	startTime = time.Now()
 	err = sp.updatePeerStateForFinalMetaHeaders(processedMetaHdrs)
-	elapsedTime = time.Now().Sub(startTime).Seconds()
+	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to update peer state",
 		"time [s]", elapsedTime,
 	)
@@ -1590,7 +1590,7 @@ func (sp *shardProcessor) createMiniBlocks(
 		uint32(maxMbSpaceRemained),
 		round,
 		haveTime)
-	elapsedTime = time.Now().Sub(startTime).Seconds()
+	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me",
 		"time [s]", elapsedTime,
 	)
