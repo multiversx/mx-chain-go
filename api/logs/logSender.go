@@ -103,11 +103,17 @@ func (ls *logSender) waitForPatternMessage() error {
 }
 
 func (ls *logSender) monitorConnection() {
+	var err error
+	var mt int
+
+	defer func() {
+		_ = ls.writer.Close()
+	}()
+
 	for {
-		mt, _, err := ls.conn.ReadMessage()
-		ls.log.Info("message type", "value", mt)
+		mt, _, err = ls.conn.ReadMessage()
+		ls.log.Trace("message type", "value", mt)
 		if mt == websocket.CloseMessage || mt == disconnectMessage {
-			_ = ls.writer.Close()
 			return
 		}
 		if err != nil {
