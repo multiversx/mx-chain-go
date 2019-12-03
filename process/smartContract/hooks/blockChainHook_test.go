@@ -466,28 +466,6 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	assert.Nil(t, scAddress)
 }
 
-func TestBlockChainHookImpl_NewAddressShardIdIncorrect(t *testing.T) {
-	t.Parallel()
-
-	adrConv := mock.NewAddressConverterFake(32, "")
-	acnts := &mock.AccountsStub{}
-	testErr := errors.New("testErr")
-	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return nil, testErr
-	}
-	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
-	args.Accounts = acnts
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	address := []byte("012345678901234567890123456789ff")
-	nonce := uint64(10)
-
-	scAddress, err := bh.NewAddress(address, nonce, []byte("00"))
-	assert.Equal(t, testErr, err)
-	assert.Nil(t, scAddress)
-}
-
 func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	t.Parallel()
 
