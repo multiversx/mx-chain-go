@@ -135,11 +135,11 @@ func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./cpucalculate_arwen.wasm", b.N, 8000, nil)
+	runWASMVMBenchmark(b, "./testdata/misc/cpucalculate_arwen.wasm", b.N, 8000, nil)
 }
 
 func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./stringconcat_arwen.wasm", b.N, 10000, nil)
+	runWASMVMBenchmark(b, "./testdata/misc/stringconcat_arwen.wasm", b.N, 10000, nil)
 }
 
 func runWASMVMBenchmark(
@@ -224,9 +224,9 @@ func TestGasModel(t *testing.T) {
 	fmt.Println("FIBONNACI 32 ")
 	runWASMVMBenchmark(t, "./testdata/fibonacci/fib_arwen.wasm", 1, 32, gasSchedule)
 	fmt.Println("CPUCALCULATE 8000 ")
-	runWASMVMBenchmark(t, "./cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
+	runWASMVMBenchmark(t, "./testdata/misc/cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
 	fmt.Println("STRINGCONCAT 1000 ")
-	runWASMVMBenchmark(t, "./stringconcat_arwen.wasm", 1, 10000, gasSchedule)
+	runWASMVMBenchmark(t, "./testdata/misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
 	fmt.Println("ERC20 ")
 	deployWithTransferAndExecuteERC20(t, 2, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
@@ -384,7 +384,7 @@ func TestWASMMetering(t *testing.T) {
 	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
-	fileSC := "./cpucalculate_arwen.wasm"
+	fileSC := "./testdata/misc/cpucalculate_arwen.wasm"
 	scCode, err := ioutil.ReadFile(fileSC)
 	assert.Nil(t, err)
 
