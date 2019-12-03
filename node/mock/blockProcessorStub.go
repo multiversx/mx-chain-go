@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/complexStructures"
 	"math/big"
 	"time"
 
@@ -52,12 +53,12 @@ func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*bi
 // RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
 func (blProcMock *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
 	if blProcMock.RevertStateToBlockCalled != nil {
-		return blProcMock.RevertStateToBlock(header)
+		return blProcMock.RevertStateToBlockCalled(header)
 	}
 	return nil
 }
 
-// CreateTxBlockBody mocks the creation of a transaction block body
+// CreateBlockBody mocks the creation of a transaction block body
 func (blProcMock *BlockProcessorStub) CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return blProcMock.CreateBlockBodyCalled(initialHdrData, haveTime)
 }
@@ -95,7 +96,7 @@ func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 
-func (bpm *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks map[string]map[string]struct{}) {
+func (blProcMock *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *complexStructures.ProcessedMiniBlocks) {
 
 }
 

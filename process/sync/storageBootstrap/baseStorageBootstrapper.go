@@ -2,6 +2,7 @@ package storageBootstrap
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/complexStructures"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -92,8 +93,9 @@ func (st *storageBootstrapper) loadBlocks() error {
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	processedMiniBlocks := process.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
-	st.displayProcessedMiniBlocks(processedMiniBlocks)
+	processedMiniBlocks := complexStructures.NewProcessedMiniBlocks()
+	processedMiniBlocks.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
+	processedMiniBlocks.DisplayProcessedMiniBlocks()
 
 	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
 
@@ -233,19 +235,6 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 		"shradId", headerInfo.ShardId,
 		"nonce", headerInfo.Nonce,
 		"hash", headerInfo.Hash)
-}
-
-func (st *storageBootstrapper) displayProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
-	log.Debug("processed mini blocks applied")
-
-	for metaBlockHash, miniBlocksHashes := range processedMiniBlocks {
-		log.Debug("processed",
-			"meta hash", []byte(metaBlockHash))
-		for miniBlockHash := range miniBlocksHashes {
-			log.Debug("processed",
-				"mini block hash", []byte(miniBlockHash))
-		}
-	}
 }
 
 func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash []byte) error {
