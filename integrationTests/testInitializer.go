@@ -905,7 +905,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*5 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
 	txBuff, _ := TestMarshalizer.Marshal(tx)

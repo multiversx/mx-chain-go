@@ -183,9 +183,12 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		}
 		if outAcc.Nonce > 0 {
 			outAccs[addr].Nonce = outAcc.Nonce
-		} else {
-			outAccs[addr].Nonce, _ = host.blockChainHook.GetNonce(outAcc.Address)
 		}
+		if len(outAcc.Data) > 0 {
+			outAccs[addr].Data = outAcc.Data
+		}
+
+		outAccs[addr].GasLimit = outAcc.GasLimit
 	}
 
 	// add self destructed contracts

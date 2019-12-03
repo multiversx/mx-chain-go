@@ -104,6 +104,10 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
 		}}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
 
 	argsParser, _ := smartContract.NewAtArgumentParser()
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
@@ -118,15 +122,11 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.FeeHandlerStub{},
+		txTypeHandler,
 		&mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		oneShardCoordinator,
-		accnts)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
@@ -206,6 +206,11 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	blockChainHook *hooks.BlockChainHookImpl,
 ) process.TransactionProcessor {
 	argsParser, _ := smartContract.NewAtArgumentParser()
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(
+		addrConv,
+		oneShardCoordinator,
+		accnts)
+
 	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		vmContainer,
 		argsParser,
@@ -218,15 +223,11 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.UnsignedTxHandlerMock{},
 		&mock.FeeHandlerStub{},
+		txTypeHandler,
 		&mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		oneShardCoordinator,
-		accnts)
 
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
