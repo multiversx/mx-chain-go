@@ -22,6 +22,10 @@
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
    NumOfEpochsToKeep = 2
 
+   # NumOfActivePersisters - if the FullArchive flag is set to false, this will set the number of persisters to keep
+   # active at a moment. This has to be smaller or equal to the NumOfEpochsToKeep flag
+   NumOfActivePersisters = 2
+
 [Explorer]
    Enabled = false
    IndexerURL = "http://localhost:9200"

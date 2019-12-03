@@ -4,8 +4,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -21,57 +24,45 @@ var log = logger.GetOrCreate("storage/pruning")
 // DefaultEpochDirectoryName represents the naming pattern for epoch directories
 const DefaultEpochDirectoryName = "Epoch"
 
+type persisterData struct {
+	persister storage.Persister
+	path      string
+}
+
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older persisters
 type PruningStorer struct {
 	lock                  sync.RWMutex
 	fullArchive           bool
 	batcher               storage.Batcher
-	persisters            []storage.Persister
+	persisters            []*persisterData
+	closedPersistersPaths []string
 	cacher                storage.Cacher
 	bloomFilter           storage.BloomFilter
-	dbConf                storageUnit.DBConfig
+	dbPath                string
+	persisterFactory      DbFactoryHandler
+	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
 	identifier            string
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
-func NewPruningStorer(
-	identifier string,
-	fullArchive bool,
-	cacheConf storageUnit.CacheConfig,
-	dbConf storageUnit.DBConfig,
-	bloomFilterConf storageUnit.BloomConfig,
-	numOfActivePersisters uint32,
-	notifier EpochStartNotifier,
-) (*PruningStorer, error) {
-	return initPruningStorer(identifier, fullArchive, cacheConf, dbConf, bloomFilterConf, numOfActivePersisters, "", notifier)
+func NewPruningStorer(args *PruningStorerArgs) (*PruningStorer, error) {
+	return initPruningStorer(args, "")
 }
 
 // NewShardedPruningStorer will return a new instance of PruningStorer with sharded directories' naming scheme
 func NewShardedPruningStorer(
-	identifier string,
-	fullArchive bool,
-	cacheConf storageUnit.CacheConfig,
-	dbConf storageUnit.DBConfig,
-	bloomFilterConf storageUnit.BloomConfig,
-	numOfActivePersisters uint32,
+	args *PruningStorerArgs,
 	shardId uint32,
-	notifier EpochStartNotifier,
 ) (*PruningStorer, error) {
 	shardIdStr := fmt.Sprintf("%d", shardId)
-	return initPruningStorer(identifier, fullArchive, cacheConf, dbConf, bloomFilterConf, numOfActivePersisters, shardIdStr, notifier)
+	return initPruningStorer(args, shardIdStr)
 }
 
 // initPruningStorer will create a PruningStorer with or without sharded directories' naming scheme
 func initPruningStorer(
-	identifier string,
-	fullArchive bool,
-	cacheConf storageUnit.CacheConfig,
-	dbConf storageUnit.DBConfig,
-	bloomFilterConf storageUnit.BloomConfig,
-	numOfActivePersisters uint32,
-	shardId string,
-	epochStartNotifier EpochStartNotifier,
+	args *PruningStorerArgs,
+	shardIdStr string,
 ) (*PruningStorer, error) {
 	var cache storage.Cacher
 	var db storage.Persister
@@ -84,89 +75,99 @@ func initPruningStorer(
 		}
 	}()
 
-	if numOfActivePersisters < 1 {
+	if args.NumOfActivePersisters < 1 {
 		return nil, storage.ErrInvalidNumberOfPersisters
 	}
-	if check.IfNil(epochStartNotifier) {
+	if check.IfNil(args.Notifier) {
 		return nil, storage.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.PersisterFactory) {
+		return nil, storage.ErrNilPersisterFactory
+	}
 
-	cache, err = storageUnit.NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
+	cache, err = storageUnit.NewCache(args.CacheConf.Type, args.CacheConf.Size, args.CacheConf.Shards)
 	if err != nil {
 		return nil, err
 	}
 
-	filePath := dbConf.FilePath
-	if len(shardId) > 0 {
-		filePath = filePath + shardId
+	filePath := args.DbPath
+	if len(shardIdStr) > 0 {
+		filePath = filePath + shardIdStr
 	}
-	db, err = storageUnit.NewDB(dbConf.Type, filePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
-	if err != nil {
-		return nil, err
-	}
+	db, err = args.PersisterFactory.Create(filePath)
 
-	var persisters []storage.Persister
-	persisters = append(persisters, db)
+	var persisters []*persisterData
+	persisters = append(persisters, &persisterData{
+		persister: db,
+		path:      filePath,
+	})
 
-	if reflect.DeepEqual(bloomFilterConf, storageUnit.BloomConfig{}) {
+	if reflect.DeepEqual(args.BloomFilterConf, storageUnit.BloomConfig{}) {
 		pdb := &PruningStorer{
-			identifier:            identifier,
-			fullArchive:           fullArchive,
+			identifier:            args.Identifier,
+			fullArchive:           args.FullArchive,
 			persisters:            persisters,
+			persisterFactory:      args.PersisterFactory,
+			closedPersistersPaths: make([]string, 0),
 			cacher:                cache,
 			bloomFilter:           nil,
-			dbConf:                dbConf,
-			numOfActivePersisters: numOfActivePersisters,
+			dbPath:                filePath,
+			numOfEpochsToKeep:     args.NumOfEpochsToKeep,
+			numOfActivePersisters: args.NumOfActivePersisters,
 		}
-		err = pdb.persisters[0].Init()
+		err = pdb.persisters[0].persister.Init()
 		if err != nil {
 			return nil, err
 		}
 
-		pdb.registerHandler(epochStartNotifier)
+		pdb.registerHandler(args.Notifier)
 
 		return pdb, nil
 	}
 
-	bf, err = storageUnit.NewBloomFilter(bloomFilterConf)
+	bf, err = storageUnit.NewBloomFilter(args.BloomFilterConf)
 	if err != nil {
 		return nil, err
 	}
 
 	pdb := &PruningStorer{
-		identifier:            identifier,
+		identifier:            args.Identifier,
+		fullArchive:           args.FullArchive,
 		persisters:            persisters,
+		persisterFactory:      args.PersisterFactory,
+		closedPersistersPaths: make([]string, 0),
 		cacher:                cache,
 		bloomFilter:           bf,
-		dbConf:                dbConf,
-		numOfActivePersisters: numOfActivePersisters,
+		dbPath:                filePath,
+		numOfEpochsToKeep:     args.NumOfEpochsToKeep,
+		numOfActivePersisters: args.NumOfActivePersisters,
 	}
 
-	err = pdb.persisters[0].Init()
+	err = pdb.persisters[0].persister.Init()
 	if err != nil {
 		return nil, err
 	}
 
-	pdb.registerHandler(epochStartNotifier)
+	pdb.registerHandler(args.Notifier)
 
 	return pdb, nil
 }
 
 // Put adds data to both cache and persistence medium and updates the bloom filter
-func (pd *PruningStorer) Put(key, data []byte) error {
-	pd.lock.Lock()
-	defer pd.lock.Unlock()
+func (ps *PruningStorer) Put(key, data []byte) error {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
 
-	pd.cacher.Put(key, data)
+	ps.cacher.Put(key, data)
 
-	err := pd.persisters[0].Put(key, data)
+	err := ps.persisters[0].persister.Put(key, data)
 	if err != nil {
-		pd.cacher.Remove(key)
+		ps.cacher.Remove(key)
 		return err
 	}
 
-	if pd.bloomFilter != nil {
-		pd.bloomFilter.Add(key)
+	if ps.bloomFilter != nil {
+		ps.bloomFilter.Add(key)
 	}
 
 	return err
@@ -176,57 +177,98 @@ func (pd *PruningStorer) Put(key, data []byte) error {
 // for the key in bloom filter first and if found
 // it further searches it in the associated databases.
 // In case it is found in the database, the cache is updated with the value as well.
-func (pd *PruningStorer) Get(key []byte) ([]byte, error) {
-	pd.lock.Lock()
-	defer pd.lock.Unlock()
+func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
 
-	v, ok := pd.cacher.Get(key)
+	v, ok := ps.cacher.Get(key)
 	var err error
 
 	if !ok {
 		// not found in cache
 		// search it in second persistence medium
 		found := false
-		for _, persister := range pd.persisters {
-			log.Info("pr db", "num persisters", len(pd.persisters))
-			if pd.bloomFilter == nil || pd.bloomFilter.MayContain(key) == true {
-				v, err = persister.Get(key)
+		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.persisters))); idx++ {
+			log.Info("pr db", "num persisters", len(ps.persisters))
+			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) == true {
+				v, err = ps.persisters[idx].persister.Get(key)
 
 				if err != nil {
-					log.Debug(pd.identifier+" pruning db - get",
+					log.Debug(ps.identifier+" pruning db - get",
 						"error", err.Error())
 					continue
 				}
 
 				found = true
 				// if found in persistence unit, add it in cache
-				pd.cacher.Put(key, v)
+				ps.cacher.Put(key, v)
 				break
 			}
 		}
+		if !found && len(ps.closedPersistersPaths) > 0 {
+			res, err := ps.getFromClosedPersisters(key)
+			if err != nil {
+				log.Debug("get from closed persisters", "error", err.Error())
+			} else {
+				ps.cacher.Put(key, res)
+				return res, nil
+			}
+		}
 		if !found {
-			return nil, errors.New(fmt.Sprintf("%s: key %s not found", pd.identifier, base64.StdEncoding.EncodeToString(key)))
+			return nil, errors.New(fmt.Sprintf("%s: key %s not found", ps.identifier, base64.StdEncoding.EncodeToString(key)))
 		}
 	}
 
+	log.Info("!!FOUND!!", "shardHrHashNonceUnit", v)
 	return v.([]byte), nil
+}
+
+func (ps *PruningStorer) getFromClosedPersisters(key []byte) ([]byte, error) {
+	for _, path := range ps.closedPersistersPaths {
+		persister, err := ps.persisterFactory.Create(path)
+		if err != nil {
+			log.Debug("open old persister", "error", err.Error())
+			continue
+		}
+
+		err = persister.Init()
+		if err != nil {
+			log.Debug("init old persister", "error", err.Error())
+			continue
+		}
+
+		res, errToRet := persister.Get(key)
+
+		err = persister.Close()
+		if err != nil {
+			log.Debug("close old persister", "error", err.Error())
+		}
+
+		if errToRet == nil {
+			return res, nil
+		}
+
+		log.Debug("get from old persister", "error", errToRet.Error())
+	}
+
+	return nil, errors.New("key not found")
 }
 
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the bloom filter
 // and if present it checks the db
-func (pd *PruningStorer) Has(key []byte) error {
-	pd.lock.RLock()
-	defer pd.lock.RUnlock()
+func (ps *PruningStorer) Has(key []byte) error {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
 
-	has := pd.cacher.Has(key)
+	has := ps.cacher.Has(key)
 	if has {
 		return nil
 	}
 
-	if pd.bloomFilter == nil || pd.bloomFilter.MayContain(key) == true {
-		for _, persister := range pd.persisters {
-			if persister.Has(key) != nil {
+	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) == true {
+		for _, persister := range ps.persisters {
+			if persister.persister.Has(key) != nil {
 				continue
 			}
 
@@ -238,35 +280,35 @@ func (pd *PruningStorer) Has(key []byte) error {
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium
-func (pd *PruningStorer) Remove(key []byte) error {
-	pd.lock.Lock()
-	defer pd.lock.Unlock()
+func (ps *PruningStorer) Remove(key []byte) error {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
 
-	pd.cacher.Remove(key)
-	return pd.persisters[0].Remove(key)
+	ps.cacher.Remove(key)
+	return ps.persisters[0].persister.Remove(key)
 }
 
 // ClearCache cleans up the entire cache
-func (pd *PruningStorer) ClearCache() {
-	pd.cacher.Clear()
+func (ps *PruningStorer) ClearCache() {
+	ps.cacher.Clear()
 }
 
 // DestroyUnit cleans up the bloom filter, the cache, and the dbs
-func (pd *PruningStorer) DestroyUnit() error {
-	pd.lock.Lock()
-	defer pd.lock.Unlock()
+func (ps *PruningStorer) DestroyUnit() error {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
 
-	if pd.bloomFilter != nil {
-		pd.bloomFilter.Clear()
+	if ps.bloomFilter != nil {
+		ps.bloomFilter.Clear()
 	}
 
-	pd.cacher.Clear()
+	ps.cacher.Clear()
 
 	var err error
 	numOfPersistersRemoved := 0
-	totalNumOfPersisters := len(pd.persisters)
-	for _, persister := range pd.persisters {
-		err = persister.Destroy()
+	totalNumOfPersisters := len(ps.persisters)
+	for _, persister := range ps.persisters {
+		err = persister.persister.Destroy()
 		if err != nil {
 			log.Debug("pruning db: destroy",
 				"error", err.Error())
@@ -281,13 +323,13 @@ func (pd *PruningStorer) DestroyUnit() error {
 			totalNumOfPersisters,
 		))
 	}
-	return pd.persisters[0].Destroy()
+	return ps.persisters[0].persister.Destroy()
 }
 
 // registerHandler will register a new function to the epoch start notifier
-func (pd *PruningStorer) registerHandler(handler EpochStartNotifier) {
+func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 	subscribeHandler := notifier.MakeHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		err := pd.changeEpoch(hdr.GetEpoch())
+		err := ps.changeEpoch(hdr.GetEpoch())
 		if err != nil {
 			log.Warn("change epoch in storer", "error", err.Error())
 		}
@@ -297,49 +339,102 @@ func (pd *PruningStorer) registerHandler(handler EpochStartNotifier) {
 }
 
 // changeEpoch will handle creating a new persister and removing of the older ones
-func (pd *PruningStorer) changeEpoch(epoch uint32) error {
-	filePath := pd.getNewFilePath(epoch)
-	db, err := storageUnit.NewDB(pd.dbConf.Type, filePath, pd.dbConf.BatchDelaySeconds, pd.dbConf.MaxBatchSize, pd.dbConf.MaxOpenFiles)
+func (ps *PruningStorer) changeEpoch(epoch uint32) error {
+	filePath := ps.getNewFilePath(epoch)
+	db, err := ps.persisterFactory.Create(filePath)
+	if err != nil {
+		log.Warn("change epoch error", "error - "+ps.identifier, err.Error())
+		return err
+	}
+
+	ps.lock.Lock()
+	singleItemPersisters := []*persisterData{
+		{
+			persister: db,
+			path:      filePath,
+		},
+	}
+	ps.persisters = append(singleItemPersisters, ps.persisters...)
+	err = ps.persisters[0].persister.Init()
 	if err != nil {
 		return err
 	}
 
-	pd.lock.Lock()
-	singleItemPersisters := []storage.Persister{db}
-	pd.persisters = append(singleItemPersisters, pd.persisters...)
-	err = pd.persisters[0].Init()
-	if err != nil {
-		return err
+	// recent persisters have to he closed for both scenarios: full archive or not
+	if ps.numOfActivePersisters < uint32(len(ps.persisters)) {
+		err = ps.persisters[ps.numOfActivePersisters].persister.Close()
+		if err != nil {
+			return err
+		}
+		ps.closedPersistersPaths = append(ps.closedPersistersPaths, ps.persisters[ps.numOfActivePersisters].path)
 	}
 
-	if !pd.fullArchive {
-		// remove the older persisters
-		for idx := pd.numOfActivePersisters; idx < uint32(len(pd.persisters)); idx++ {
-			err = pd.persisters[int(idx)].Destroy()
+	// if not is not full archive, destroy old persisters
+	if !ps.fullArchive {
+		if ps.numOfEpochsToKeep < uint32(len(ps.persisters)) {
+			err = ps.persisters[ps.numOfEpochsToKeep].persister.DestroyClosed()
 			if err != nil {
-				log.Debug("pruning db: remove old dbs",
-					"error", err.Error())
-			} else {
-				//essh.epochStartHandlers = append(essh.epochStartHandlers[:idx], essh.epochStartHandlers[idx+1:]...)
-				pd.persisters = append(pd.persisters[:idx], pd.persisters[idx+1:]...)
+				return err
 			}
+			//	removeDirectoryIfEmpty(ps.persisters[ps.numOfEpochsToKeep].path)
+			ps.persisters = append(ps.persisters[:ps.numOfEpochsToKeep], ps.persisters[ps.numOfEpochsToKeep+1:]...)
 		}
 	}
 
-	pd.lock.Unlock()
+	ps.lock.Unlock()
 
 	return nil
 }
 
 // getNewFilePath will return the file path for the new epoch. It uses regex to change the default path
-func (pd *PruningStorer) getNewFilePath(epoch uint32) string {
+func (ps *PruningStorer) getNewFilePath(epoch uint32) string {
 	// using a regex to match the epoch directory name as placeholder followed by at least one digit
 	rg := regexp.MustCompile("Epoch_\\d+")
 	newEpochDirectoryName := fmt.Sprintf("%s_%d", DefaultEpochDirectoryName, epoch)
-	return rg.ReplaceAllString(pd.dbConf.FilePath, newEpochDirectoryName)
+	return rg.ReplaceAllString(ps.dbPath, newEpochDirectoryName)
+}
+
+func removeDirectoryIfEmpty(path string) {
+	elementsSplitBySeparator := strings.Split(path, string(os.PathSeparator))
+	// the structure is this way :
+	// workspace/db/Epoch_X/Shard_Y/DbName
+	// we need to remove the last 3 if everything is empty
+
+	epochDirectory := ""
+	for idx := 0; idx < len(elementsSplitBySeparator)-2; idx++ {
+		epochDirectory += elementsSplitBySeparator[idx] + string(os.PathSeparator)
+	}
+
+	shardDirectory := epochDirectory + elementsSplitBySeparator[len(elementsSplitBySeparator)-2]
+	if isDirectoryEmpty(shardDirectory) {
+		err := os.RemoveAll(shardDirectory)
+		if err != nil {
+			log.Debug("delete old db directory", "error", err.Error())
+		}
+
+		err = os.RemoveAll(epochDirectory)
+		if err != nil {
+			log.Debug("delete old db directory", "error", err.Error())
+		}
+	}
+}
+
+func isDirectoryEmpty(name string) bool {
+	f, err := os.Open(name)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1) // Or f.Readdir(1)
+	if err == io.EOF {
+		return true
+	}
+
+	return false // Either not empty or error, suits both cases
 }
 
 // IsInterfaceNil -
-func (pd *PruningStorer) IsInterfaceNil() bool {
-	return pd == nil
+func (ps *PruningStorer) IsInterfaceNil() bool {
+	return ps == nil
 }

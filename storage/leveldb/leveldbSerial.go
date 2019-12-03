@@ -258,6 +258,24 @@ func (s *SerialDB) Destroy() error {
 	return err
 }
 
+// DestroyClosed removes the already closed storage medium stored data
+func (s *SerialDB) DestroyClosed() error {
+	s.mutBatch.Lock()
+	s.batch.Reset()
+	s.sizeBatch = 0
+	s.mutBatch.Unlock()
+
+	s.cancel()
+
+	s.mutClosed.Lock()
+	s.closed = true
+	s.mutClosed.Unlock()
+
+	err := os.RemoveAll(s.path)
+
+	return err
+}
+
 func (s *SerialDB) processLoop(ctx context.Context) {
 	ct, _ := context.WithCancel(ctx)
 

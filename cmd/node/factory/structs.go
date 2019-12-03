@@ -6,10 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -79,6 +79,7 @@ import (
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -852,6 +853,7 @@ func getTrie(
 	uniqueID string,
 ) (data.Trie, error) {
 
+	uniqueID = strings.Replace(uniqueID, "Epoch_0", "Static", 1)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(cfg.Cache),
 		getDBFromConfig(cfg.DB, uniqueID),
@@ -937,6 +939,7 @@ func createShardDataStoreFromConfig(
 	var rewardTxUnit *pruning.PruningStorer
 	var metaHdrHashNonceUnit *pruning.PruningStorer
 	var shardHdrHashNonceUnit *pruning.PruningStorer
+	//	var heartbeatStorageUnit storageUnit.Unit
 	var err error
 
 	defer func() {
@@ -969,131 +972,176 @@ func createShardDataStoreFromConfig(
 			if shardHdrHashNonceUnit != nil {
 				_ = shardHdrHashNonceUnit.DestroyUnit()
 			}
+			//if heartbeatStorageUnit != nil {
+			//	_ = heartbeatStorageUnit.DestroyUnit()
+			//}
 		}
 	}()
 
 	fullArchiveMode := config.StoragePruning.FullArchive
 	numOfEpochsToKeep := uint32(config.StoragePruning.NumOfEpochsToKeep)
+	numOfActivePersisters := uint32(config.StoragePruning.NumOfActivePersisters)
 
-	txUnit, err = pruning.NewPruningStorer(
-		"txUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.TxStorage.Cache),
-		getDBFromConfig(config.TxStorage.DB, uniqueID),
-		getBloomFromConfig(config.TxStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
+	txUnitStorerArgs := &pruning.PruningStorerArgs{
+		Identifier:            "txUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.TxStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.TxStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.TxStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.TxStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	txUnit, err = pruning.NewPruningStorer(txUnitStorerArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	unsignedTxUnit, err = pruning.NewPruningStorer(
-		"unsignedTxUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
-		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
-		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
+	unsignedTxUnitStorerArgs := &pruning.PruningStorerArgs{
+		Identifier:            "unsignedTxUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.UnsignedTransactionStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.UnsignedTransactionStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.UnsignedTransactionStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	unsignedTxUnit, err = pruning.NewPruningStorer(unsignedTxUnitStorerArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	rewardTxUnit, err = pruning.NewPruningStorer(
-		"rewardTxUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.RewardTxStorage.Cache),
-		getDBFromConfig(config.RewardTxStorage.DB, uniqueID),
-		getBloomFromConfig(config.RewardTxStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
+	rewardTxUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "rewardTxUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.RewardTxStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.RewardTxStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.RewardTxStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.RewardTxStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	rewardTxUnit, err = pruning.NewPruningStorer(rewardTxUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlockUnit, err = pruning.NewPruningStorer(
-		"miniBlockUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.MiniBlocksStorage.Cache),
-		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlocksStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier,
-	)
+	miniBlockUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "miniBlockUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.MiniBlocksStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.MiniBlocksStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.MiniBlocksStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.MiniBlocksStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	miniBlockUnit, err = pruning.NewPruningStorer(miniBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	peerBlockUnit, err = pruning.NewPruningStorer(
-		"peerBlockUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
-		getDBFromConfig(config.PeerBlockBodyStorage.DB, uniqueID),
-		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
+	peerBlockUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "peerBlockUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.PeerBlockBodyStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.PeerBlockBodyStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.PeerBlockBodyStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	peerBlockUnit, err = pruning.NewPruningStorer(peerBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	headerUnit, err = pruning.NewPruningStorer(
-		"headerUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.BlockHeaderStorage.Cache),
-		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
-		getBloomFromConfig(config.BlockHeaderStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
+	headerUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "headerUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.BlockHeaderStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.BlockHeaderStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.BlockHeaderStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.BlockHeaderStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	headerUnit, err = pruning.NewPruningStorer(headerUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	metachainHeaderUnit, err = pruning.NewPruningStorer(
-		"metachainHeaderUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.MetaBlockStorage.Cache),
-		getDBFromConfig(config.MetaBlockStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaBlockStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
+	metaChainHeaderUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "metachainHeaderUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.MetaBlockStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.MetaBlockStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.MetaBlockStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.MetaBlockStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	metachainHeaderUnit, err = pruning.NewPruningStorer(metaChainHeaderUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(
-		"metaHdrHashNonceUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
-		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
+	metaHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "metaHdrHashNonceUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.MetaHdrNonceHashStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.MetaHdrNonceHashStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(metaHdrHashNonceUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	shardHdrHashNonceUnit, err = pruning.NewShardedPruningStorer(
-		"shardHrHashNonceUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
-		getDBFromConfig(config.ShardHdrNonceHashStorage.DB, uniqueID),
-		getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
-		numOfEpochsToKeep,
-		shardCoordinator.SelfId(),
-		epochStartNotifier)
+	shardHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "shardHrHashNonceUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.ShardHdrNonceHashStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.ShardHdrNonceHashStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	shardHdrHashNonceUnit, err = pruning.NewShardedPruningStorer(shardHdrHashNonceUnitArgs, shardCoordinator.SelfId())
 	if err != nil {
 		return nil, err
 	}
 
-	heartbeatStorageUnit, err := pruning.NewPruningStorer(
-		"heartbeatStorageUnit",
-		fullArchiveMode,
+	//heartbeatStorageUnitArgs := &pruning.PruningStorerArgs{
+	//	Identifier:            "heartbeatStorageUnit",
+	//	FullArchive:           fullArchiveMode,
+	//	CacheConf:             getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
+	//	DbPath:                filepath.Join(uniqueID, config.Heartbeat.HeartbeatStorage.DB.FilePath),
+	//	PersisterFactory:      storageFactory.NewPersisterFactory(config.Heartbeat.HeartbeatStorage.DB),
+	//	BloomFilterConf:       getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom),
+	//	NumOfEpochsToKeep:     numOfEpochsToKeep,
+	//	NumOfActivePersisters: numOfActivePersisters,
+	//	Notifier:              epochStartNotifier,
+	//}
+	heartbeatUniqueID := strings.Replace(uniqueID, "Epoch_0", "Static", 1)
+	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
-		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
-		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
-
+		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, heartbeatUniqueID),
+		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -1130,6 +1178,7 @@ func createMetaChainDataStoreFromConfig(
 	var unsignedTxUnit *pruning.PruningStorer
 	var miniBlockHeadersUnit *pruning.PruningStorer
 	var shardHdrHashNonceUnits []*pruning.PruningStorer
+	//var heartbeatStorageUnit *pruning.PruningStorer
 	var err error
 
 	defer func() {
@@ -1173,141 +1222,192 @@ func createMetaChainDataStoreFromConfig(
 
 	fullArchiveMode := config.StoragePruning.FullArchive
 	numOfEpochsToKeep := uint32(config.StoragePruning.NumOfEpochsToKeep)
+	numOfActivePersisters := uint32(config.StoragePruning.NumOfActivePersisters)
 
-	metaBlockUnit, err = pruning.NewPruningStorer(
-		"metaBlockUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.MetaBlockStorage.Cache),
-		getDBFromConfig(config.MetaBlockStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaBlockStorage.Bloom),
-		numOfEpochsToKeep,
-		epochStartNotifier)
+	metaBlockUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "metaBlockUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.MetaBlockStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.MetaBlockStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.MetaBlockStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.MetaBlockStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	metaBlockUnit, err = pruning.NewPruningStorer(metaBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	shardDataUnit, err = pruning.NewPruningStorer(
-		"shardDataUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.ShardDataStorage.Cache),
-		getDBFromConfig(config.ShardDataStorage.DB, uniqueID),
-		getBloomFromConfig(config.ShardDataStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier)
+	shardDataUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "shardDataUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.ShardDataStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.ShardDataStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.ShardDataStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.ShardDataStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	shardDataUnit, err = pruning.NewPruningStorer(shardDataUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	peerDataUnit, err = pruning.NewPruningStorer(
-		"peerDataUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.PeerDataStorage.Cache),
-		getDBFromConfig(config.PeerDataStorage.DB, uniqueID),
-		getBloomFromConfig(config.PeerDataStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier,
-	)
+	peerDataUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "peerDataUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.PeerDataStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.PeerDataStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.PeerDataStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.PeerDataStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	peerDataUnit, err = pruning.NewPruningStorer(peerDataUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	headerUnit, err = pruning.NewPruningStorer(
-		"headerUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.BlockHeaderStorage.Cache),
-		getDBFromConfig(config.BlockHeaderStorage.DB, uniqueID),
-		getBloomFromConfig(config.BlockHeaderStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier)
+	headerUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "headerUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.BlockHeaderStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.BlockHeaderStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.BlockHeaderStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.BlockHeaderStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	headerUnit, err = pruning.NewPruningStorer(headerUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(
-		"metaHdrHashNonceUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
-		getDBFromConfig(config.MetaHdrNonceHashStorage.DB, uniqueID),
-		getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier)
+	metaHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "metaHdrHashNonceUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.MetaHdrNonceHashStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.MetaHdrNonceHashStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.MetaHdrNonceHashStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.MetaHdrNonceHashStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(metaHdrHashNonceUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
 	shardHdrHashNonceUnits = make([]*pruning.PruningStorer, shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		shardHdrHashNonceUnits[i], err = pruning.NewShardedPruningStorer(
-			fmt.Sprintf("shardHdrHasNonceUnits%d", i),
-			fullArchiveMode,
-			getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
-			getDBFromConfig(config.ShardHdrNonceHashStorage.DB, uniqueID),
-			getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
-			uint32(config.StoragePruning.NumOfEpochsToKeep),
-			i,
-			epochStartNotifier,
-		)
+		shardHdrHashNonceUnitArgs := &pruning.PruningStorerArgs{
+			Identifier:            "shardHdrHashNonceUnit",
+			FullArchive:           fullArchiveMode,
+			CacheConf:             getCacherFromConfig(config.ShardHdrNonceHashStorage.Cache),
+			DbPath:                filepath.Join(uniqueID, config.ShardHdrNonceHashStorage.DB.FilePath),
+			PersisterFactory:      storageFactory.NewPersisterFactory(config.ShardHdrNonceHashStorage.DB),
+			BloomFilterConf:       getBloomFromConfig(config.ShardHdrNonceHashStorage.Bloom),
+			NumOfEpochsToKeep:     numOfEpochsToKeep,
+			NumOfActivePersisters: numOfActivePersisters,
+			Notifier:              epochStartNotifier,
+		}
+		shardHdrHashNonceUnits[i], err = pruning.NewShardedPruningStorer(shardHdrHashNonceUnitArgs, i)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	heartbeatStorageUnit, err := pruning.NewPruningStorer(
-		"heartbeatStorageUnit",
-		fullArchiveMode,
+	//heartbeatStorageUnitArgs := &pruning.PruningStorerArgs{
+	//	Identifier:            "heartbeatStorageUnit",
+	//	FullArchive:           fullArchiveMode,
+	//	CacheConf:             getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
+	//	DbPath:                filepath.Join(uniqueID, config.Heartbeat.HeartbeatStorage.DB.FilePath),
+	//	PersisterFactory:      storageFactory.NewPersisterFactory(config.Heartbeat.HeartbeatStorage.DB),
+	//	BloomFilterConf:       getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom),
+	//	NumOfEpochsToKeep:     numOfEpochsToKeep,
+	//	NumOfActivePersisters: numOfActivePersisters,
+	//	Notifier:              epochStartNotifier,
+	//}
+	//heartbeatStorageUnit, err = pruning.NewPruningStorer(heartbeatStorageUnitArgs)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	heartbeatUniqueID := strings.Replace(uniqueID, "Epoch_0", "Static", 1)
+	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
-		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, uniqueID),
-		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier)
+		getDBFromConfig(config.Heartbeat.HeartbeatStorage.DB, heartbeatUniqueID),
+		getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
 
-	txUnit, err = pruning.NewPruningStorer(
-		"txUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.TxStorage.Cache),
-		getDBFromConfig(config.TxStorage.DB, uniqueID),
-		getBloomFromConfig(config.TxStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier)
+	txUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "txUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.TxStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.TxStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.TxStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.TxStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	txUnit, err = pruning.NewPruningStorer(txUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	unsignedTxUnit, err = pruning.NewPruningStorer(
-		"unsignedTxUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
-		getDBFromConfig(config.UnsignedTransactionStorage.DB, uniqueID),
-		getBloomFromConfig(config.UnsignedTransactionStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier)
+	unsignedTxUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "unsignedTxUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.UnsignedTransactionStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.UnsignedTransactionStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.UnsignedTransactionStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.UnsignedTransactionStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	unsignedTxUnit, err = pruning.NewPruningStorer(unsignedTxUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlockUnit, err = pruning.NewPruningStorer(
-		"miniBlockUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.MiniBlocksStorage.Cache),
-		getDBFromConfig(config.MiniBlocksStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlocksStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier)
+	miniBlockUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "miniBlockUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.MiniBlocksStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.MiniBlocksStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.MiniBlocksStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.MiniBlocksStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	miniBlockUnit, err = pruning.NewPruningStorer(miniBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlockHeadersUnit, err = pruning.NewPruningStorer(
-		"miniBlockHeadersUnit",
-		fullArchiveMode,
-		getCacherFromConfig(config.MiniBlockHeadersStorage.Cache),
-		getDBFromConfig(config.MiniBlockHeadersStorage.DB, uniqueID),
-		getBloomFromConfig(config.MiniBlockHeadersStorage.Bloom),
-		uint32(config.StoragePruning.NumOfEpochsToKeep),
-		epochStartNotifier)
+	miniBlockHeadersUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "miniBlockHeadersUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.MiniBlockHeadersStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.MiniBlockHeadersStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.MiniBlockHeadersStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.MiniBlockHeadersStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	miniBlockHeadersUnit, err = pruning.NewPruningStorer(miniBlockHeadersUnitArgs)
 	if err != nil {
 		return nil, err
 	}

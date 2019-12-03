@@ -16,6 +16,8 @@ type Persister interface {
 	Remove(key []byte) error
 	// Destroy removes the persistence medium stored data
 	Destroy() error
+	// DestroyClosed removes the already closed persistence medium stored data
+	DestroyClosed() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

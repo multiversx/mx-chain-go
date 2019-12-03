@@ -45,3 +45,6 @@ var ErrInvalidNumberOfPersisters = errors.New("invalid number of active persiste
 
 // ErrNilEpochStartNotifier signals that a nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
+
+// ErrNilPersisterFactory signals that a nil persister factory has been provided
+var ErrNilPersisterFactory = errors.New("nil persister factory")

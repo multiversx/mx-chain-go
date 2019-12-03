@@ -120,8 +120,9 @@ type NodeConfig struct {
 
 // StoragePruningConfig will hold settings relates to storage pruning
 type StoragePruningConfig struct {
-	FullArchive       bool
-	NumOfEpochsToKeep uint64
+	FullArchive           bool
+	NumOfEpochsToKeep     uint64
+	NumOfActivePersisters uint64
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings

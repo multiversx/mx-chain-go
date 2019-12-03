@@ -290,6 +290,12 @@ VERSION:
 		Value: uint64(2),
 	}
 
+	numActivePersisters = cli.Uint64Flag{
+		Name:  "num-active-persisters",
+		Usage: "This represents the number of persisters which are kept open at a moment",
+		Value: uint64(2),
+	}
+
 	rm *statistics.ResourceMonitor
 )
 
@@ -351,6 +357,7 @@ func main() {
 		destinationShardAsObserver,
 		isNodefullArchive,
 		numEpochsToSave,
+		numActivePersisters,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -544,6 +551,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	if ctx.IsSet(numEpochsToSave.Name) {
 		generalConfig.StoragePruning.NumOfEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+		generalConfig.StoragePruning.NumOfActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
