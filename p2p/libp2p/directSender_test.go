@@ -205,7 +205,6 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
 	)
 
 	id, _ := createLibP2PCredentialsDirectSender()
-
 	msg := &pubsub_pb.Message{}
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
