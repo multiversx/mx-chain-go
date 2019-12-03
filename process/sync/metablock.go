@@ -192,8 +192,10 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 		return
 	}
 
+	boot.requestedItemsHandler.Sweep()
+
 	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
-	err = boot.requestedItemsHandler.Add(key, true)
+	err = boot.requestedItemsHandler.Add(key)
 	if err != nil {
 		log.Trace("add requested item with error", err.Error())
 	}
@@ -215,7 +217,9 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 		return
 	}
 
-	err = boot.requestedItemsHandler.Add(string(hash), true)
+	boot.requestedItemsHandler.Sweep()
+
+	err = boot.requestedItemsHandler.Add(string(hash))
 	if err != nil {
 		log.Trace("add requested item with error", err.Error())
 	}

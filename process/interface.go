@@ -475,8 +475,8 @@ type MiniBlocksCompacter interface {
 
 // BlackListHandler can determine if a certain key is or not blacklisted
 type BlackListHandler interface {
-	Add(key string, withSweep bool) error
-	Has(key string, withSweep bool) bool
+	Add(key string) error
+	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
 }

@@ -264,8 +264,10 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 		return
 	}
 
+	boot.requestedItemsHandler.Sweep()
+
 	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
-	err = boot.requestedItemsHandler.Add(key, true)
+	err = boot.requestedItemsHandler.Add(key)
 	if err != nil {
 		log.Trace("add requested item with error", err.Error())
 	}
@@ -287,7 +289,9 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 		return
 	}
 
-	err = boot.requestedItemsHandler.Add(string(hash), true)
+	boot.requestedItemsHandler.Sweep()
+
+	err = boot.requestedItemsHandler.Add(string(hash))
 	if err != nil {
 		log.Trace("add requested item with error", err.Error())
 	}
@@ -356,15 +360,13 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 		return
 	}
 
+	boot.requestedItemsHandler.Sweep()
+
 	for _, hash := range hashes {
-		err = boot.requestedItemsHandler.Add(string(hash), false)
+		err = boot.requestedItemsHandler.Add(string(hash))
 		if err != nil {
 			log.Trace("add requested item with error", err.Error())
 		}
-	}
-
-	if len(hashes) > 0 {
-		boot.requestedItemsHandler.Sweep()
 	}
 
 	log.Debug("requested mini blocks from network",
@@ -482,9 +484,11 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		return
 	}
 
+	boot.requestedItemsHandler.Sweep()
+
 	hashes := make([][]byte, 0)
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash), false) {
+		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
 			continue
 		}
 
@@ -500,13 +504,11 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		}
 
 		for _, hash := range missingMiniBlocksHashes {
-			err = boot.requestedItemsHandler.Add(string(hash), false)
+			err = boot.requestedItemsHandler.Add(string(hash))
 			if err != nil {
 				log.Trace("add requested item with error", err.Error())
 			}
 		}
-
-		boot.requestedItemsHandler.Sweep()
 
 		log.Trace("requested in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),

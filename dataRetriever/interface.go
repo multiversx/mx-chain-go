@@ -263,8 +263,8 @@ type DataPacker interface {
 
 // RequestedItemsHandler can determine if a certain key has or not been requested
 type RequestedItemsHandler interface {
-	Add(key string, withSweep bool) error
-	Has(key string, withSweep bool) bool
+	Add(key string) error
+	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
 }
