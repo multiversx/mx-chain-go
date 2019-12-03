@@ -90,7 +90,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		txsPoolsCleaner: arguments.TxsPoolsCleaner,
 	}
 
-	sp.onRequestBlockBodyOfHeader = sp.getBlockBodyFromPool
+	sp.baseProcessor.requestBlockBodyHandler = &sp
 
 	sp.chRcvAllMetaHdrs = make(chan bool)
 
@@ -1853,7 +1853,7 @@ func (sp *shardProcessor) checkValidatorStatisticsRootHash(currentHeader *block.
 	return nil
 }
 
-func (sp *shardProcessor) getBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	miniBlockPool := sp.dataPool.MiniBlocks()
 	if miniBlockPool == nil {
 		return nil, process.ErrNilMiniBlockPool

@@ -525,3 +525,8 @@ type BootstrapperFromStorage interface {
 	LoadFromStorage() error
 	IsInterfaceNil() bool
 }
+
+// RequestBlockBodyHandler is the interface needed by process block
+type RequestBlockBodyHandler interface {
+	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+}

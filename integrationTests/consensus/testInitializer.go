@@ -426,15 +426,7 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{
-			HasCalled: func(key string) bool {
-				return false
-			},
-			AddCalled: func(key string) error {
-				return nil
-			},
-			SweepCalled: func() {},
-		}),
+		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 	)
 
 	if err != nil {

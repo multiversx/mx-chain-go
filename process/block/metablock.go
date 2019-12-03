@@ -101,7 +101,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		scToProtocol:   arguments.SCToProtocol,
 	}
 
-	mp.onRequestBlockBodyOfHeader = mp.getBlockBodyFromPool
+	mp.baseProcessor.requestBlockBodyHandler = &mp
 
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
@@ -1672,7 +1672,7 @@ func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
 	return shardHeader, shardHeaderHash, err
 }
 
-func (mp *metaProcessor) getBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	miniBlockPool := mp.dataPool.MiniBlocks()
 	if miniBlockPool == nil {
 		return nil, process.ErrNilMiniBlockPool

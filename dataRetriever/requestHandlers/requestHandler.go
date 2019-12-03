@@ -2,6 +2,7 @@ package requestHandlers
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -21,6 +22,7 @@ type resolverRequestHandler struct {
 	metaHdrRequestTopic   string
 	isMetaChain           bool
 	maxTxsToRequest       int
+	sweepTime             time.Time
 }
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
@@ -78,6 +80,8 @@ func NewShardResolverRequestHandler(
 		isMetaChain:           false,
 		maxTxsToRequest:       maxTxsToRequest,
 	}
+
+	rrh.sweepTime = time.Now()
 
 	return rrh, nil
 }
@@ -190,7 +194,7 @@ func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32,
 
 // RequestMiniBlock method asks for miniblocks from the connected peers
 func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
-	rrh.requestedItemsHandler.Sweep()
+	rrh.sweepIfNeeded()
 
 	if rrh.requestedItemsHandler.Has(string(miniblockHash)) {
 		log.Trace("item already requested",
@@ -229,7 +233,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 
 // RequestHeader method asks for header from the connected peers
 func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte) {
-	rrh.requestedItemsHandler.Sweep()
+	rrh.sweepIfNeeded()
 
 	if rrh.requestedItemsHandler.Has(string(hash)) {
 		log.Trace("item already requested",
@@ -284,7 +288,7 @@ func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte
 
 // RequestHeaderByNonce method asks for transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
-	rrh.requestedItemsHandler.Sweep()
+	rrh.sweepIfNeeded()
 
 	key := fmt.Sprintf("%d-%d", destShardID, nonce)
 	if rrh.requestedItemsHandler.Has(key) {
@@ -346,7 +350,7 @@ func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byte {
 	unrequestedHashes := make([][]byte, 0)
 
-	rrh.requestedItemsHandler.Sweep()
+	rrh.sweepIfNeeded()
 
 	for _, hash := range hashes {
 		if !rrh.requestedItemsHandler.Has(string(hash)) {
@@ -361,4 +365,13 @@ func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byt
 	}
 
 	return unrequestedHashes
+}
+
+func (rrh *resolverRequestHandler) sweepIfNeeded() {
+	if time.Since(rrh.sweepTime) <= time.Second {
+		return
+	}
+
+	rrh.sweepTime = time.Now()
+	rrh.requestedItemsHandler.Sweep()
 }

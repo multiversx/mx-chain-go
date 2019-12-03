@@ -114,10 +114,6 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 		HasCalled: func(key string) bool {
 			return true
 		},
-		AddCalled: func(key string) error {
-			return nil
-		},
-		SweepCalled: func() {},
 	}
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
@@ -146,15 +142,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 			return expectedErr
 		},
 	}
-	arg.BlackList = &mock.BlackListHandlerStub{
-		HasCalled: func(key string) bool {
-			return false
-		},
-		AddCalled: func(key string) error {
-			return nil
-		},
-		SweepCalled: func() {},
-	}
+	arg.BlackList = &mock.BlackListHandlerStub{}
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {

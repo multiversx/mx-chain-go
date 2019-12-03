@@ -68,6 +68,7 @@ type baseProcessor struct {
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	rounder                      consensus.Rounder
 	bootStorer                   process.BootStorer
+	requestBlockBodyHandler      process.RequestBlockBodyHandler
 
 	hdrsForCurrBlock hdrForBlock
 
@@ -80,8 +81,7 @@ type baseProcessor struct {
 	onRequestHeaderHandlerByNonce func(shardId uint32, nonce uint64)
 	onRequestHeaderHandler        func(shardId uint32, hash []byte)
 
-	appStatusHandler           core.AppStatusHandler
-	onRequestBlockBodyOfHeader func(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+	appStatusHandler core.AppStatusHandler
 }
 
 func checkForNils(
@@ -950,11 +950,7 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 }
 
 func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandler) error {
-	if bp.onRequestBlockBodyOfHeader == nil {
-		return process.ErrNilRequestBlockBodyOfHeader
-	}
-
-	bodyHandler, err := bp.onRequestBlockBodyOfHeader(headerHandler)
+	bodyHandler, err := bp.requestBlockBodyHandler.GetBlockBodyFromPool(headerHandler)
 	if err != nil {
 		return err
 	}

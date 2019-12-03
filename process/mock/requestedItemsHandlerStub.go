@@ -7,10 +7,18 @@ type RequestedItemsHandlerStub struct {
 }
 
 func (rihs *RequestedItemsHandlerStub) Add(key string) error {
+	if rihs.AddCalled == nil {
+		return nil
+	}
+
 	return rihs.AddCalled(key)
 }
 
 func (rihs *RequestedItemsHandlerStub) Has(key string) bool {
+	if rihs.HasCalled == nil {
+		return false
+	}
+
 	return rihs.HasCalled(key)
 }
 
