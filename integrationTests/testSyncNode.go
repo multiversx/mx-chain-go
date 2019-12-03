@@ -73,6 +73,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	)
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
+	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
 	tpn.initBlockProcessorWithSync()
@@ -184,6 +185,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		tpn.Messenger,
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
+		tpn.RequestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -212,6 +214,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		tpn.Messenger,
 		tpn.BootstrapStorer,
 		tpn.StorageBootstrapper,
+		tpn.RequestedItemsHandler,
 	)
 
 	if err != nil {
