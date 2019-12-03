@@ -44,6 +44,7 @@ type validatorStatistics struct {
 	mutPrevShardInfo sync.RWMutex
 	mediator         shardMetaMediator
 	rater            sharding.Rater
+	initialNodes     []*sharding.InitialNode
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -104,10 +105,12 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		ratingReaderSetter.SetRatingReader(rr)
 		defaultRatingValue = rater.GetStartRating()
 	} else {
-		log.Debug("No ratingReader has been set!!!")
+		log.Warn("No ratingReader has been set!!!")
 	}
 
-	err := vs.saveInitialState(arguments.InitialNodes, arguments.StakeValue, defaultRatingValue)
+	vs.initialNodes = arguments.InitialNodes
+
+	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, defaultRatingValue)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +163,7 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 		return nil, err
 	}
 
-	err = p.updateValidatorInfo(consensusGroup, header.GetShardID())
+	err = p.updateValidatorInfo(consensusGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -189,6 +192,11 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 	err = p.updateShardDataPeerState(header, previousHeader)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, node := range p.initialNodes {
+		address, _ := p.adrConv.CreateAddressFromHex(node.Address)
+		log.Debug("Ratings", "pk", node.Address, "tempRating", p.getTempRating(string(address.Bytes())))
 	}
 
 	return p.peerAdapter.RootHash()
@@ -231,10 +239,8 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		newRating := p.rater.ComputeRating(proposerDecreaseOption, leaderPeerAcc.GetRating())
-		//log.Debug("Setting new rating", "address", consensusGroup[0].Address(), "rating", newRating, "ratingOption",
-		//	proposerDecreaseOption)
-		err = leaderPeerAcc.SetRatingWithJournal(newRating)
+		newRating := p.rater.ComputeRating(proposerDecreaseOption, leaderPeerAcc.GetTempRating())
+		err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
 
 		if err != nil {
 			return err
@@ -278,7 +284,7 @@ func (p *validatorStatistics) updateShardDataPeerState(header, previousHeader da
 			return shardInfoErr
 		}
 
-		shardInfoErr = p.updateValidatorInfo(shardConsensus, h.ShardID)
+		shardInfoErr = p.updateValidatorInfo(shardConsensus)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -378,10 +384,15 @@ func (p *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
+	err = peerAccount.SetTempRatingWithJournal(startRating)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, shardId uint32) error {
+func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		address := validatorList[i].Address()
@@ -404,9 +415,8 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 			return err
 		}
 
-		newRating := p.rater.ComputeRating(ratingOption, peerAcc.GetRating())
-		//log.Debug("Setting new rating", "address", address, "rating", newRating, "ratingOption", ratingOption)
-		err = peerAcc.SetRatingWithJournal(newRating)
+		newRating := p.rater.ComputeRating(ratingOption, peerAcc.GetTempRating())
+		err = peerAcc.SetTempRatingWithJournal(newRating)
 
 		if err != nil {
 			return err
@@ -592,4 +602,14 @@ func (vs *validatorStatistics) getRating(s string) uint32 {
 
 	//log.Debug("Got rating for peer", "pk:", core.ToHex([]byte(s)), "rating: ", peer.GetRating())
 	return peer.GetRating()
+}
+
+func (vs *validatorStatistics) getTempRating(s string) uint32 {
+	peer, err := vs.getPeerAccount([]byte(s))
+
+	if err != nil {
+		log.Debug("Error getting peer account", "error", err)
+	}
+
+	return peer.GetTempRating()
 }

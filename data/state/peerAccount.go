@@ -44,9 +44,10 @@ type PeerAccount struct {
 
 	CodeHash []byte
 
-	Rating   uint32
-	RootHash []byte
-	Nonce    uint64
+	Rating     uint32
+	TempRating uint32
+	RootHash   []byte
+	Nonce      uint64
 
 	addressContainer AddressContainer
 	code             []byte
@@ -384,6 +385,24 @@ func (a *PeerAccount) SetRatingWithJournal(rating uint32) error {
 
 	a.accountTracker.Journalize(entry)
 	a.Rating = rating
+
+	return a.accountTracker.SaveAccount(a)
+}
+
+// GetTempRating gets the rating
+func (a *PeerAccount) GetTempRating() uint32 {
+	return a.TempRating
+}
+
+// SetTempRatingWithJournal sets the account's tempRating, saving the old state before changing
+func (a *PeerAccount) SetTempRatingWithJournal(rating uint32) error {
+	entry, err := NewPeerJournalEntryTempRating(a, a.TempRating)
+	if err != nil {
+		return err
+	}
+
+	a.accountTracker.Journalize(entry)
+	a.TempRating = rating
 
 	return a.accountTracker.SaveAccount(a)
 }
