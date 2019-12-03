@@ -189,7 +189,6 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
 	msg.TopicIDs = []string{"topic"}
-
 	msgId := string(msg.GetFrom()) + string(msg.GetSeqno())
 	ds.SeenMessages().Add(msgId)
 
