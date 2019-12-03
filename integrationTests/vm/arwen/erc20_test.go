@@ -72,10 +72,19 @@ func Test_C_001(t *testing.T) {
 	context.executeSC(&context.Owner, "transferToken@"+context.Bob.AddressHex()+"@"+formatHexNumber(1000))
 
 	// Regular transfers
-	context.executeSC(&context.Alice, "transferToken@"+context.Bob.AddressHex()+"@00c8") // because SC sees "c8" as a negative number and signals an error
+	context.executeSC(&context.Alice, "transferToken@"+context.Bob.AddressHex()+"@"+formatHexNumber(200))
 	context.executeSC(&context.Bob, "transferToken@"+context.Alice.AddressHex()+"@"+formatHexNumber(400))
 
 	// Assertion
 	assert.Equal(t, uint64(1200), context.querySCInt("balanceOf", [][]byte{context.Alice.Address}))
 	assert.Equal(t, uint64(800), context.querySCInt("balanceOf", [][]byte{context.Bob.Address}))
+
+	// Approve and transfer
+	context.executeSC(&context.Alice, "approve@"+context.Bob.AddressHex()+"@"+formatHexNumber(500))
+	context.executeSC(&context.Bob, "approve@"+context.Alice.AddressHex()+"@"+formatHexNumber(500))
+	context.executeSC(&context.Alice, "transferFrom@"+context.Alice.AddressHex()+"@"+context.Bob.AddressHex()+"@"+formatHexNumber(10))
+	context.executeSC(&context.Bob, "transferFrom@"+context.Bob.AddressHex()+"@"+context.Alice.AddressHex()+"@"+formatHexNumber(30))
+
+	assert.Equal(t, uint64(1220), context.querySCInt("balanceOf", [][]byte{context.Alice.Address}))
+	assert.Equal(t, uint64(780), context.querySCInt("balanceOf", [][]byte{context.Bob.Address}))
 }

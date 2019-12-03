@@ -1,5 +1,6 @@
 #include "elrond/context.h"
 #include "elrond/bigInt.h"
+#include "elrond/debug.h"
 
 // global data used in functions, will be statically allocated to WebAssembly memory
 byte sender[32]        = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -257,17 +258,19 @@ void transferFrom() {
   bigInt amount = bigIntNew(0);
   bigIntGetUnsignedArgument(2, amount);
   if (bigIntCmp(amount, bigIntNew(0)) < 0) {
+    myDebugPrintString("amount is negative");
     signalError();
     return;
   }
 
   // load allowance
-  computeAllowanceKey(currentKey, sender, caller);
+  computeAllowanceKey(currentKey, sender, recipient);
   bigInt allowance = bigIntNew(0);
   bigIntStorageLoad(currentKey, allowance);
 
   // amount should not exceed allowance
   if (bigIntCmp(amount, allowance) > 0) {
+    myDebugPrintString("amount > allowance");
     signalError();
     return;
   }
@@ -283,6 +286,7 @@ void transferFrom() {
 
   // check if enough funds
   if (bigIntCmp(amount, senderBalance) > 0) {
+    myDebugPrintString("amount > senderBalance");
     signalError();
     return;
   }
