@@ -1,4 +1,4 @@
-package sctests
+package arwen
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 func Test_SOL_002(t *testing.T) {
 	context := setupTestContext(t)
 
-	context.deploySC("./erc20sol002/0-0-2.wasm", "")
+	context.deploySC("./testdata/erc20sol002/0-0-2.wasm", "")
 
 	// Initial tokens and allowances
 	context.executeSC(&context.Owner, "transfer(address,uint256)@"+context.Alice.AddressHex()+"@"+formatHexNumber(1000))
@@ -39,7 +39,7 @@ func Test_SOL_002(t *testing.T) {
 func Test_SOL_003(t *testing.T) {
 	context := setupTestContext(t)
 
-	context.deploySC("./erc20sol003/0-0-3.wasm", "")
+	context.deploySC("./testdata/erc20sol003/0-0-3.wasm", "")
 
 	// Minting
 	context.executeSC(&context.Owner, "transfer(address,uint256)@"+context.Alice.AddressHex()+"@"+formatHexNumber(1000))
@@ -61,7 +61,7 @@ func Test_SOL_003(t *testing.T) {
 func Test_C_001(t *testing.T) {
 	context := setupTestContext(t)
 
-	context.deploySC("./erc20c/wrc20_arwen.wasm", formatHexNumber(42000))
+	context.deploySC("./testdata/erc20c/wrc20_arwen.wasm", formatHexNumber(42000))
 
 	// Assertion
 	assert.Equal(t, uint64(42000), context.querySCInt("totalSupply", [][]byte{}))

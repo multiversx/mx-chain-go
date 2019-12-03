@@ -1,4 +1,4 @@
-package sctests
+package arwen
 
 import (
 	"encoding/hex"
@@ -50,7 +50,7 @@ func setupTestContext(t *testing.T) testContext {
 
 	context.initAccounts()
 
-	gasSchedule, err := core.LoadGasScheduleConfig("./../gasSchedule.toml")
+	gasSchedule, err := core.LoadGasScheduleConfig("./gasSchedule.toml")
 	assert.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
