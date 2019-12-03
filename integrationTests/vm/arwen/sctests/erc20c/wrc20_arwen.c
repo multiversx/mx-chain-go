@@ -168,7 +168,7 @@ void transferToken() {
 
   // 2nd argument: amount (should not be negative)
   bigInt amount = bigIntNew(0);
-  bigIntGetSignedArgument(1, amount);
+  bigIntGetUnsignedArgument(1, amount);
   if (bigIntCmp(amount, bigIntNew(0)) < 0) {
     signalError();
     return;
@@ -219,7 +219,7 @@ void approve() {
 
   // 2nd argument: amount (should not be negative)
   bigInt amount = bigIntNew(0);
-  bigIntGetSignedArgument(1, amount);
+  bigIntGetUnsignedArgument(1, amount);
   if (bigIntCmp(amount, bigIntNew(0)) < 0) {
     signalError();
     return;
@@ -255,7 +255,7 @@ void transferFrom() {
 
   // 3rd argument: amount
   bigInt amount = bigIntNew(0);
-  bigIntGetSignedArgument(2, amount);
+  bigIntGetUnsignedArgument(2, amount);
   if (bigIntCmp(amount, bigIntNew(0)) < 0) {
     signalError();
     return;
