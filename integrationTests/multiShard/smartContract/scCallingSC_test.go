@@ -3,7 +3,6 @@ package smartContract
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -27,7 +26,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:INFO,process/smartcontract:DEBUG")
+	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -58,7 +57,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -69,20 +68,15 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	// mint smart contract holders
 	firstSCOwner := []byte("12345678901234567890123456789000")
 	secondSCOwner := []byte("99945678901234567890123456789001")
-	delegateSCOwner := []byte("12345678901234567890123456789002")
 
 	mintPubKey(firstSCOwner, initialVal, nodes)
 	mintPubKey(secondSCOwner, initialVal, nodes)
-	mintPubKey(delegateSCOwner, initialVal, nodes)
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool("./testdata/first/first.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
-
-	fmt.Println(firstSCAddress)
-	fmt.Println(secondSCAddress)
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -154,7 +148,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -163,17 +157,12 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	nonce++
 
 	// mint smart contract holders
-	firstSCOwner := []byte("12345678901234567890123456789000")
-	secondSCOwner := []byte("99945678901234567890123456789001")
 	delegateSCOwner := []byte("12345678901234567890123456789002")
 
-	mintPubKey(firstSCOwner, initialVal, nodes)
-	mintPubKey(secondSCOwner, initialVal, nodes)
 	mintPubKey(delegateSCOwner, initialVal, nodes)
 
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
-	fmt.Println(delegateSCAddress)
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 	integrationTests.SyncBlock(t, nodes, idxProposers, round)
@@ -225,8 +214,7 @@ func putDeploySCToDataPool(
 	blockChainHook := nodes[0].BlockchainHook
 
 	scAddressBytes, _ := blockChainHook.NewAddress(pubkey, nonce, factory.ArwenVirtualMachine)
-	fmt.Println(hex.EncodeToString(scAddressBytes))
-	fmt.Println(scAddressBytes)
+
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
 		Value:    transferOnDeploy,
@@ -240,7 +228,7 @@ func putDeploySCToDataPool(
 
 	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(pubkey)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
-	fmt.Printf("resulting shard ID %d \n", shId)
+
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
@@ -266,8 +254,3 @@ func mintPubKey(
 		integrationTests.MintAddress(node.AccntState, pubkey, initialVal)
 	}
 }
-
-//[0 0 0 0 0 0 0 0 5 0 93 61 83 181 208 252 240 125 34 33 112 151 137 50 22 110 233 243 151 45 48 48]
-//resulting shard ID 0
-//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
-//[0 0 0 0 0 0 0 0 5 0 1 124 192 145 81 196 139 153 226 161 82 47 183 10 81 24 173 76 178 108 48 49]

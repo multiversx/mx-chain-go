@@ -863,6 +863,35 @@ func GenerateAndDisseminateTxs(
 	}
 }
 
+// CreateSendersWithInitialBalances creates a map of 1 sender per shard with an initial balance
+func CreateSendersWithInitialBalances(
+	nodesMap map[uint32][]*TestProcessorNode,
+	mintValue *big.Int,
+) map[uint32][]crypto.PrivateKey {
+
+	sendersPrivateKeys := make(map[uint32][]crypto.PrivateKey)
+	for shardId, nodes := range nodesMap {
+		if shardId == sharding.MetachainShardId {
+			continue
+		}
+
+		sendersPrivateKeys[shardId], _ = CreateSendersAndReceiversInShard(
+			nodes[0],
+			1,
+		)
+
+		fmt.Println("Minting sender addresses...")
+		CreateMintingForSenders(
+			nodes,
+			shardId,
+			sendersPrivateKeys[shardId],
+			mintValue,
+		)
+	}
+
+	return sendersPrivateKeys
+}
+
 func CreateAndSendTransaction(
 	node *TestProcessorNode,
 	txValue *big.Int,
@@ -876,7 +905,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
 	txBuff, _ := TestMarshalizer.Marshal(tx)

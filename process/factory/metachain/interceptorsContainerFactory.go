@@ -415,15 +415,6 @@ func (icf *interceptorsContainerFactory) generateUnsignedTxsInterceptors() ([]st
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	identifierTx := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
-
-	interceptor, err := icf.createOneUnsignedTxInterceptor(identifierTx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	keys = append(keys, identifierTx)
-	interceptorSlice = append(interceptorSlice, interceptor)
 	return keys, interceptorSlice, nil
 }
 

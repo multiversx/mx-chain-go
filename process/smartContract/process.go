@@ -65,6 +65,7 @@ func NewSmartContractProcessor(
 	txTypeHandler process.TxTypeHandler,
 	gasHandler process.GasHandler,
 ) (*scProcessor, error) {
+
 	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
 	}
@@ -158,34 +159,82 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return process.ErrNilSCDestAccount
 	}
 
-	err := sc.prepareSmartContractCall(tx, acntSnd)
+	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		return err
+	}
+
+	defer func() {
+		if err != nil {
+			err = sc.processIfError(acntSnd, tx, vmcommon.UserError)
+			if err != nil {
+				log.Debug("error while processing error in smart contract processor")
+			}
+		}
+	}()
+
+	err = sc.prepareSmartContractCall(tx, acntSnd)
+	if err != nil {
+		return nil
 	}
 
 	vmInput, err := sc.createVMCallInput(tx)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	vm, err := sc.getVMFromRecvAddress(tx)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
+		return nil
+	}
+
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+
+	return nil
+}
+
+func (sc *scProcessor) processIfError(
+	acntSnd state.AccountHandler,
+	tx data.TransactionHandler,
+	returnCode vmcommon.ReturnCode,
+) error {
+	consumedFee := big.NewInt(0).SetUint64(tx.GetGasLimit() * tx.GetGasPrice())
+	scrIfError, err := sc.createSCRsWhenError(tx, returnCode)
+	if err != nil {
 		return err
+	}
+
+	if !check.IfNil(acntSnd) {
+		stAcc, ok := acntSnd.(*state.Account)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		totalCost := big.NewInt(0)
+		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
+	if err != nil {
+		return nil
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
@@ -194,11 +243,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
-	err := sc.processSCPayment(tx, acntSnd)
-	if err != nil {
-		return err
-	}
-
 	sc.isCallBack = false
 	dataToParse := tx.GetData()
 
@@ -209,7 +253,7 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 		sc.isCallBack = true
 	}
 
-	err = sc.argsParser.ParseData(dataToParse)
+	err := sc.argsParser.ParseData(dataToParse)
 	if err != nil {
 		return err
 	}
@@ -266,40 +310,54 @@ func (sc *scProcessor) DeploySmartContract(
 		return process.ErrWrongTransaction
 	}
 
+	err = sc.processSCPayment(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			err = sc.processIfError(acntSnd, tx, vmcommon.UserError)
+			if err != nil {
+				log.Debug("error while processing error in smart contract processor")
+			}
+		}
+	}()
+
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
 		log.Debug("Transaction error", "error", err.Error())
-		return err
+		return nil
 	}
 
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {
 		log.Debug("Transaction error", "error", err.Error())
-		return err
+		return nil
 	}
 
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
-		return err
+		return nil
 	}
 
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
-		return err
+		return nil
 	}
 
 	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd, round)
 	if err != nil {
 		log.Debug("Processing error", "error", err.Error())
-		return err
+		return nil
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
 		log.Debug("Processing error", "error", err.Error())
-		return err
+		return nil
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
@@ -387,7 +445,7 @@ func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMIn
 // taking money from sender, as VM might not have access to him because of state sharding
 func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
 	if acntSnd == nil || acntSnd.IsInterfaceNil() {
-		// transaction was already done at sender shard
+		// transaction was already processed at sender shard
 		return nil
 	}
 
@@ -465,28 +523,8 @@ func (sc *scProcessor) processVMOutput(
 			"return code", vmOutput.ReturnCode.String(),
 		)
 
-		consumedFee := big.NewInt(0).SetUint64(tx.GetGasLimit() * tx.GetGasPrice())
-		scrIfError, err := sc.createSCRsWhenError(tx, vmOutput.ReturnCode)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if check.IfNil(acntSnd) {
-			return scrIfError, consumedFee, nil
-		}
-
-		stAcc, ok := acntSnd.(*state.Account)
-		if !ok {
-			return nil, nil, process.ErrWrongTypeAssertion
-		}
-
-		totalCost := big.NewInt(0)
-		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return scrIfError, consumedFee, nil
+		err := sc.processIfError(acntSnd, tx, vmOutput.ReturnCode)
+		return nil, nil, err
 	}
 
 	err = sc.processSCOutputAccounts(vmOutput.OutputAccounts, tx)
@@ -872,18 +910,10 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	var err error
 	defer func() {
 		if err != nil {
-			consumedFee := big.NewInt(0).SetUint64(scr.GetGasLimit() * scr.GetGasPrice())
-			scrIfError, err := sc.createSCRsWhenError(scr, vmcommon.FunctionWrongSignature)
+			err = sc.processIfError(nil, scr, vmcommon.UserError)
 			if err != nil {
-				log.Error("error when creating scr when error")
+				log.Debug("error while processing error in smart contract processor")
 			}
-
-			err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
-			if err != nil {
-				log.Error("error when adding intermediate transaction scrIfError")
-			}
-
-			sc.txFeeHandler.ProcessTransactionFee(consumedFee)
 		}
 	}()
 

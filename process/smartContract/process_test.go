@@ -354,12 +354,14 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
+	called := false
 	tmpError := errors.New("error")
 	argParser.ParseDataCalled = func(data string) error {
+		called = true
 		return tmpError
 	}
-	err = sc.DeploySmartContract(tx, acntSrc, 10)
-	assert.Equal(t, tmpError, err)
+	_ = sc.DeploySmartContract(tx, acntSrc, 10)
+	assert.True(t, called)
 }
 
 func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
@@ -396,7 +398,9 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 
 	tmpError := errors.New("error")
 	vm := &mock.VMExecutionHandlerStub{}
+	called := false
 	vm.RunSmartContractCreateCalled = func(input *vmcommon.ContractCreateInput) (output *vmcommon.VMOutput, e error) {
+		called = true
 		return nil, tmpError
 	}
 
@@ -409,8 +413,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 		return [][]byte{vmArg}, nil
 	}
 
-	err = sc.DeploySmartContract(tx, acntSrc, 10)
-	assert.Equal(t, tmpError, err)
+	_ = sc.DeploySmartContract(tx, acntSrc, 10)
+	assert.True(t, called)
 }
 
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
@@ -607,11 +611,13 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 
 	acntDst.SetCode([]byte("code"))
 	tmpError := errors.New("error")
+	called := false
 	argParser.ParseDataCalled = func(data string) error {
+		called = true
 		return tmpError
 	}
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
-	assert.Equal(t, tmpError, err)
+	assert.True(t, called)
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
@@ -648,7 +654,9 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	acntDst.SetCode([]byte("code"))
 	tmpError := errors.New("error")
 	vm := &mock.VMExecutionHandlerStub{}
+	called := false
 	vm.RunSmartContractCallCalled = func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+		called = true
 		return nil, tmpError
 	}
 	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
@@ -656,7 +664,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	}
 
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst, 10)
-	assert.Equal(t, tmpError, err)
+	assert.True(t, called)
 }
 
 func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
@@ -935,6 +943,46 @@ func TestScProcessor_CreateVMInputWrongArgument(t *testing.T) {
 	vmInput, err := sc.CreateVMInput(tx)
 	assert.Nil(t, vmInput)
 	assert.Equal(t, tmpError, err)
+}
+
+func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {
+	t.Parallel()
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	sc, err := NewSmartContractProcessor(
+		vm,
+		argParser,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsStub{},
+		&mock.TemporaryAccountsHandlerMock{},
+		&mock.AddressConverterMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.UnsignedTxHandlerMock{},
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 1000
+			},
+		},
+		&mock.TxTypeHandlerMock{},
+		&mock.GasHandlerMock{},
+	)
+	assert.NotNil(t, sc)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = "data"
+	tx.Value = big.NewInt(45)
+	tx.GasLimit = 100
+
+	vmInput, err := sc.CreateVMInput(tx)
+	assert.Nil(t, vmInput)
+	assert.Equal(t, process.ErrNotEnoughGas, err)
 }
 
 func TestScProcessor_CreateVMInput(t *testing.T) {

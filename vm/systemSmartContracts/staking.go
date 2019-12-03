@@ -3,7 +3,6 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/logger"
@@ -151,7 +150,6 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	fmt.Println(">>>>>>>> setStorage key: ", args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, data)
 
 	return vmcommon.Ok
@@ -173,7 +171,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked == false {
+	if !registrationData.Staked {
 		log.Error("unStake is not possible for address with is already unStaked")
 		return vmcommon.UserError
 	}
@@ -288,7 +286,6 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 
-	fmt.Println(">>>>>>>> getStorage key: ", args.Arguments[0])
 	data := r.eei.GetStorage(args.Arguments[0])
 	registrationData := StakingData{}
 	if data != nil {
@@ -301,7 +298,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		}
 	}
 
-	if registrationData.Staked == true {
+	if registrationData.Staked {
 		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.Ok
 	}
