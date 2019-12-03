@@ -264,7 +264,7 @@ void transferFrom() {
   }
 
   // load allowance
-  computeAllowanceKey(currentKey, sender, recipient);
+  computeAllowanceKey(currentKey, sender, caller);
   bigInt allowance = bigIntNew(0);
   bigIntStorageLoad(currentKey, allowance);
 

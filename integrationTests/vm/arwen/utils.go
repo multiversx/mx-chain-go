@@ -26,6 +26,7 @@ type testContext struct {
 	Owner testParticipant
 	Alice testParticipant
 	Bob   testParticipant
+	Carol testParticipant
 
 	ScAddress    []byte
 	Accounts     *state.AccountsDB
@@ -76,10 +77,16 @@ func (context *testContext) initAccounts() {
 	context.Bob.Nonce = uint64(1)
 	context.Bob.Balance = big.NewInt(math.MaxInt64)
 
+	context.Carol = testParticipant{}
+	context.Carol.Address = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'c'}
+	context.Carol.Nonce = uint64(1)
+	context.Carol.Balance = big.NewInt(math.MaxInt64)
+
 	context.Accounts = vm.CreateInMemoryShardAccountsDB()
 	context.createAccount(&context.Owner)
 	context.createAccount(&context.Alice)
 	context.createAccount(&context.Bob)
+	context.createAccount(&context.Carol)
 }
 
 func (context *testContext) createAccount(participant *testParticipant) {
