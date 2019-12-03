@@ -412,10 +412,7 @@ func (pjer *PeerJournalEntryTempRating) Revert() (AccountHandler, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pjer *PeerJournalEntryTempRating) IsInterfaceNil() bool {
-	if pjer == nil {
-		return true
-	}
-	return false
+	return pjer == nil
 }
 
 // PeerJournalEntryUnStakedNonce is used to revert a unstaked nonce change

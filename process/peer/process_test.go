@@ -65,7 +65,7 @@ func createMockRater() *mock.RaterMock {
 	increaseValidator := "increaseValidator"
 	decreaseValidator := "decreaseValidator"
 
-	optionList := make(map[string]int32, 0)
+	optionList := make(map[string]int32)
 	optionList[increaseLeader] = 2
 	optionList[decreaseLeader] = -4
 	optionList[increaseValidator] = 1
@@ -818,7 +818,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
 
-
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(1, 0, []byte("prev"), 0)
 	assert.Nil(t, err)
@@ -851,7 +850,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 	arguments.ShardCoordinator = shardCoordinatorMock
 	arguments.AdrConv = &mock.AddressConverterMock{}
 	arguments.PeerAdapter = getAccountsMock()
-
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
@@ -918,7 +916,6 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 	}
 	arguments.PeerAdapter = peerAdapter
 
-
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.CheckForMissedBlocks(2, 0, []byte("prev"), 0)
 	assert.Equal(t, decreaseErr, err)
@@ -960,7 +957,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	_ = validatorStatistics.CheckForMissedBlocks(uint64(currentHeaderRound), uint64(previousHeaderRound), []byte("prev"), 0)
-	assert.Equal(t, currentHeaderRound - previousHeaderRound - 1, decreaseCount)
+	assert.Equal(t, currentHeaderRound-previousHeaderRound-1, decreaseCount)
 }
 
 func TestValidatorStatisticsProcessor_GetMatchingPrevShardDataEmptySDReturnsNil(t *testing.T) {
@@ -1068,8 +1065,6 @@ func TestValidatorStatisticsProcessor_LoadPreviousShardHeadersMeta(t *testing.T)
 	}
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-
-
 
 	err := validatorStatistics.LoadPreviousShardHeadersMeta(currentHeader, &block.MetaBlock{})
 	assert.Nil(t, err)
