@@ -17,7 +17,7 @@ func TestNewEpochStartSubscriptionHandler(t *testing.T) {
 	assert.False(t, essh.IsInterfaceNil())
 }
 
-func TestEpochStartSubscribtionHandler_RegisterHandlerNilHandlerShouldNotAdd(t *testing.T) {
+func TestEpochStartSubscriptionHandler_RegisterHandlerNilHandlerShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
@@ -29,7 +29,7 @@ func TestEpochStartSubscribtionHandler_RegisterHandlerNilHandlerShouldNotAdd(t *
 	mutHandlers.RUnlock()
 }
 
-func TestEpochStartSubscribtionHandler_RegisterHandlerOkHandlerShouldAdd(t *testing.T) {
+func TestEpochStartSubscriptionHandler_RegisterHandlerOkHandlerShouldAdd(t *testing.T) {
 	t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
@@ -43,7 +43,7 @@ func TestEpochStartSubscribtionHandler_RegisterHandlerOkHandlerShouldAdd(t *test
 	mutHandlers.RUnlock()
 }
 
-func TestEpochStartSubscribtionHandler_UnregisterHandlerNilHandlerShouldDoNothing(t *testing.T) {
+func TestEpochStartSubscriptionHandler_UnregisterHandlerNilHandlerShouldDoNothing(t *testing.T) {
 	t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()
@@ -61,7 +61,7 @@ func TestEpochStartSubscribtionHandler_UnregisterHandlerNilHandlerShouldDoNothin
 	mutHandlers.RUnlock()
 }
 
-func TestEpochStartSubscribtionHandler_UnregisterHandlerOklHandlerShouldRemove(t *testing.T) {
+func TestEpochStartSubscriptionHandler_UnregisterHandlerOklHandlerShouldRemove(t *testing.T) {
 	t.Parallel()
 
 	essh := notifier.NewEpochStartSubscriptionHandler()

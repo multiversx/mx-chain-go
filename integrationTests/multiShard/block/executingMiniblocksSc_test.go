@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +40,6 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	nodeShard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
 	nodeShard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 1, advertiserAddr)
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
-	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000001006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
 	nodeShard1.LoadTxSignSkBytes(hardCodedSk)
 	nodeMeta := integrationTests.NewTestProcessorNode(maxShards, sharding.MetachainShardId, 0, advertiserAddr)
 
@@ -74,6 +74,11 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	withdrawValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
+	hardCodedScResultingAddress, _ := nodeShard1.BlockchainHook.NewAddress(
+		nodes[idxNodeShard1].OwnAccount.Address.Bytes(),
+		nodes[idxNodeShard1].OwnAccount.Nonce,
+		factory.IELEVirtualMachine,
+	)
 	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode))
 
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
@@ -206,7 +211,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 
 	initialVal := big.NewInt(10000000)
 	topUpValue := big.NewInt(500)
-	withdrawValue := big.NewInt(10)
+	rewardValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode))
@@ -217,7 +222,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		nodes,
 		nodes[idxProposerShard0].OwnAccount,
 		topUpValue,
-		"aaaa",
+		100,
 		hardCodedScResultingAddress,
 	)
 
@@ -237,8 +242,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		nodes,
 		idxProposerShard1,
 		nodes[idxProposerShard0].OwnAccount,
-		withdrawValue,
-		"aaaa",
+		rewardValue,
+		100,
 		hardCodedScResultingAddress,
 	)
 
@@ -249,8 +254,8 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 		idxValidators, idxProposers = idxProposers, idxValidators
 	}
 
-	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, withdrawValue, hardCodedScResultingAddress)
-	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, withdrawValue)
+	_ = integrationTests.CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(t, nodes, idxProposerShard1, topUpValue, big.NewInt(0), hardCodedScResultingAddress)
+	integrationTests.CheckSenderBalanceOkAfterTopUpAndWithdraw(t, nodeWithCaller, initialVal, topUpValue, big.NewInt(0))
 	integrationTests.CheckRootHashes(t, nodes, idxProposers)
 }
 
@@ -330,7 +335,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 		nodes,
 		nodes[idxProposerShard0].OwnAccount,
 		topUpValue,
-		"aaaa",
+		100,
 		hardCodedScResultingAddress,
 	)
 

@@ -39,6 +39,9 @@ const ShardBlockFinality = 1
 // MetaBlockFinality defines the block finality which is used in meta-chain
 const MetaBlockFinality = 1
 
+// MetaBlockValidity defines the block validity which is when checking a metablock
+const MetaBlockValidity = 1
+
 // EpochChangeGracePeriod defines the allowed round numbers till the shard has to change the epoch
 const EpochChangeGracePeriod = 1
 
@@ -57,10 +60,6 @@ const MinItemsInBlock = 15000
 // NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
 // committed block nonce, after which, node is considered himself not synced
 const NonceDifferenceWhenSynced = 0
-
-// MaxGasLimitPerMiniBlock defines the maximum gas limit which could be consumed by a miniblock
-//TODO - calculate exactly in case of the VM, for every VM to have a similar constant, operations / seconds
-const MaxGasLimitPerMiniBlock = uint64(100000)
 
 // MaxRequestsWithTimeoutAllowed defines the maximum allowed number of requests with timeout,
 // before a special action to be applied
