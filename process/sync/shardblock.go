@@ -269,7 +269,7 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
 	err = boot.requestedItemsHandler.Add(key)
 	if err != nil {
-		log.Trace("add requested item with error", err.Error())
+		log.Trace("add requested item with error", "error", err.Error())
 	}
 
 	log.Debug("requested header from network",
@@ -293,7 +293,7 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 
 	err = boot.requestedItemsHandler.Add(string(hash))
 	if err != nil {
-		log.Trace("add requested item with error", err.Error())
+		log.Trace("add requested item with error", "error", err.Error())
 	}
 
 	log.Debug("requested header from network",
@@ -365,7 +365,7 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	for _, hash := range hashes {
 		err = boot.requestedItemsHandler.Add(string(hash))
 		if err != nil {
-			log.Trace("add requested item with error", err.Error())
+			log.Trace("add requested item with error", "error", err.Error())
 		}
 	}
 
@@ -506,7 +506,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		for _, hash := range missingMiniBlocksHashes {
 			err = boot.requestedItemsHandler.Add(string(hash))
 			if err != nil {
-				log.Trace("add requested item with error", err.Error())
+				log.Trace("add requested item with error", "error", err.Error())
 			}
 		}
 

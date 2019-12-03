@@ -434,7 +434,7 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(
 
 			err = boot.requestedItemsHandler.Add(key)
 			if err != nil {
-				log.Trace("add requested item with error", err.Error())
+				log.Trace("add requested item with error", "error", err.Error())
 			}
 
 			nbRequestedHdrs++
