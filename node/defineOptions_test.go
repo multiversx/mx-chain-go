@@ -873,3 +873,27 @@ func TestWithTxFeeHandler_OkHandlerShouldWork(t *testing.T) {
 	assert.True(t, node.feeHandler == txFeeHandler)
 	assert.Nil(t, err)
 }
+
+func TestWithRequestedItemsHandler_NilRequestedItemsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithRequestedItemsHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilRequestedItemsHandler, err)
+}
+
+func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	requestedItemsHeanlder := &mock.RequestedItemsHandlerStub{}
+	opt := WithRequestedItemsHandler(requestedItemsHeanlder)
+	err := opt(node)
+
+	assert.True(t, node.requestedItemsHandler == requestedItemsHeanlder)
+	assert.Nil(t, err)
+}

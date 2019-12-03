@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -45,6 +46,7 @@ func NewMetaBootstrap(
 	networkWatcher process.NetworkConnectionWatcher,
 	bootStorer process.BootStorer,
 	storageBootstrapper process.BootstrapperFromStorage,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*MetaBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -70,28 +72,30 @@ func NewMetaBootstrap(
 		store,
 		blackListHandler,
 		networkWatcher,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base := &baseBootstrap{
-		blkc:                blkc,
-		blkExecutor:         blkExecutor,
-		store:               store,
-		headers:             poolsHolder.MetaBlocks(),
-		headersNonces:       poolsHolder.HeadersNonces(),
-		rounder:             rounder,
-		waitTime:            waitTime,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		forkDetector:        forkDetector,
-		shardCoordinator:    shardCoordinator,
-		accounts:            accounts,
-		blackListHandler:    blackListHandler,
-		networkWatcher:      networkWatcher,
-		bootStorer:          bootStorer,
-		storageBootstrapper: storageBootstrapper,
+		blkc:                  blkc,
+		blkExecutor:           blkExecutor,
+		store:                 store,
+		headers:               poolsHolder.MetaBlocks(),
+		headersNonces:         poolsHolder.HeadersNonces(),
+		rounder:               rounder,
+		waitTime:              waitTime,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		forkDetector:          forkDetector,
+		shardCoordinator:      shardCoordinator,
+		accounts:              accounts,
+		blackListHandler:      blackListHandler,
+		networkWatcher:        networkWatcher,
+		bootStorer:            bootStorer,
+		storageBootstrapper:   storageBootstrapper,
+		requestedItemsHandler: requestedItemsHandler,
 	}
 
 	boot := MetaBootstrap{
@@ -101,6 +105,9 @@ func NewMetaBootstrap(
 	base.blockBootstrapper = &boot
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.syncStarter = &boot
+
+	//TODO: ResolversFinder should be replaced with RequestHandler after it would be refactored and RequestedItemsHandler
+	//should be then removed from MetaBootstrap
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
@@ -180,14 +187,17 @@ func (boot *MetaBootstrap) SyncBlock() error {
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
-
-	log.Debug("requested header from network",
-		"nonce", nonce,
-		"highest probable nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
+	err = boot.requestedItemsHandler.Add(key)
+	if err != nil {
+		log.Trace("add requested item with error", "error", err.Error())
 	}
 
 	log.Debug("requested header from network",
@@ -204,6 +214,14 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	err := boot.hdrRes.RequestDataFromHash(hash)
 	if err != nil {
 		log.Debug("RequestDataFromHash", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	err = boot.requestedItemsHandler.Add(string(hash))
+	if err != nil {
+		log.Trace("add requested item with error", "error", err.Error())
 	}
 
 	log.Debug("requested header from network",

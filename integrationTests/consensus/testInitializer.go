@@ -426,6 +426,7 @@ func createConsensusOnlyNode(
 		node.WithConsensusType(consensusType),
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 	)
 
 	if err != nil {

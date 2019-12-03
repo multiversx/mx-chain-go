@@ -96,6 +96,9 @@ const OpGasValueForMockVm = uint64(50)
 // TimeSpanForBadHeaders is the expiry time for an added block header hash
 var TimeSpanForBadHeaders = time.Second * 30
 
+// roundDuration defines the duration of the round
+const roundDuration = time.Duration(5 * time.Second)
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -149,13 +152,14 @@ type TestProcessorNode struct {
 	MiniBlocksCompacter    process.MiniBlocksCompacter
 	GasHandler             process.GasHandler
 
-	ForkDetector        process.ForkDetector
-	BlockProcessor      process.BlockProcessor
-	BroadcastMessenger  consensus.BroadcastMessenger
-	Bootstrapper        TestBootstrapper
-	Rounder             *mock.RounderMock
-	BootstrapStorer     *mock.BoostrapStorerMock
-	StorageBootstrapper *mock.StorageBootstrapperMock
+	ForkDetector          process.ForkDetector
+	BlockProcessor        process.BlockProcessor
+	BroadcastMessenger    consensus.BroadcastMessenger
+	Bootstrapper          TestBootstrapper
+	Rounder               *mock.RounderMock
+	BootstrapStorer       *mock.BoostrapStorerMock
+	StorageBootstrapper   *mock.StorageBootstrapperMock
+	RequestedItemsHandler dataRetriever.RequestedItemsHandler
 
 	MultiSigner crypto.MultiSigner
 
@@ -259,6 +263,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initInterceptors()
+	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData.MaxGasLimitPerBlock())
@@ -423,6 +428,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewMetaResolverRequestHandler(
 			tpn.ResolverFinder,
+			tpn.RequestedItemsHandler,
 			factory.ShardHeadersForMetachainTopic,
 			factory.MetachainBlocksTopic,
 			factory.TransactionTopic,
@@ -445,6 +451,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		tpn.ResolverFinder, _ = containers.NewResolversFinder(tpn.ResolversContainer, tpn.ShardCoordinator)
 		tpn.RequestHandler, _ = requestHandlers.NewShardResolverRequestHandler(
 			tpn.ResolverFinder,
+			tpn.RequestedItemsHandler,
 			factory.TransactionTopic,
 			factory.UnsignedTransactionTopic,
 			factory.RewardsTransactionTopic,
@@ -1154,4 +1161,8 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 
 func (tpn *TestProcessorNode) initRounder() {
 	tpn.Rounder = &mock.RounderMock{}
+}
+
+func (tpn *TestProcessorNode) initRequestedItemsHandler() {
+	tpn.RequestedItemsHandler = timecache.NewTimeCache(roundDuration)
 }
