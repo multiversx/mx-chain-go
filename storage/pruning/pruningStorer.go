@@ -378,7 +378,8 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 				log.Error("error destroy", "error", err.Error(), "id", ps.identifier)
 				return err
 			}
-			//	removeDirectoryIfEmpty(ps.persisters[ps.numOfEpochsToKeep].path)
+			removeDirectoryIfEmpty(ps.persisters[ps.numOfEpochsToKeep].path)
+			ps.cleanClosedPersisters(ps.persisters[ps.numOfEpochsToKeep].path)
 			ps.persisters = append(ps.persisters[:ps.numOfEpochsToKeep], ps.persisters[ps.numOfEpochsToKeep+1:]...)
 		}
 	}
@@ -415,6 +416,14 @@ func removeDirectoryIfEmpty(path string) {
 		err = os.RemoveAll(epochDirectory)
 		if err != nil {
 			log.Debug("delete old db directory", "error", err.Error())
+		}
+	}
+}
+
+func (ps *PruningStorer) cleanClosedPersisters(path string) {
+	for idx, persPath := range ps.closedPersistersPaths {
+		if persPath == path {
+			ps.closedPersistersPaths = append(ps.closedPersistersPaths[:idx], ps.closedPersistersPaths[idx+1:]...)
 		}
 	}
 }
