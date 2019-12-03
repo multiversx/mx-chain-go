@@ -200,12 +200,11 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 		BalanceDelta: big.NewInt(0),
 	}
 
-	gasRemaining := input.GasProvided - vm.GasForOperation
 	return &vmcommon.VMOutput{
 		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount, senderOutputAccount},
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
-		GasRemaining:    gasRemaining,
+		GasRemaining:    input.GasProvided - vm.GasForOperation,
 		Logs:            make([]*vmcommon.LogEntry, 0),
 		ReturnCode:      vmcommon.Ok,
 		ReturnData:      [][]byte{},
@@ -249,12 +248,11 @@ func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallI
 		BalanceDelta: value,
 	}
 
-	gasRemaining := input.GasProvided - vm.GasForOperation
 	return &vmcommon.VMOutput{
 		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount, senderOutputAccount},
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
-		GasRemaining:    gasRemaining,
+		GasRemaining:    input.GasProvided - vm.GasForOperation,
 		Logs:            make([]*vmcommon.LogEntry, 0),
 		ReturnCode:      vmcommon.Ok,
 		ReturnData:      [][]byte{},
@@ -280,12 +278,11 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 		StorageUpdates: make([]*vmcommon.StorageUpdate, 0),
 	}
 
-	gasRemaining := input.GasProvided - vm.GasForOperation
 	return &vmcommon.VMOutput{
 		OutputAccounts:  []*vmcommon.OutputAccount{scOutputAccount},
 		DeletedAccounts: make([][]byte, 0),
 		GasRefund:       big.NewInt(0),
-		GasRemaining:    gasRemaining,
+		GasRemaining:    input.GasProvided - vm.GasForOperation,
 		Logs:            make([]*vmcommon.LogEntry, 0),
 		ReturnCode:      vmcommon.Ok,
 		ReturnData:      [][]byte{currentValueBuff},
