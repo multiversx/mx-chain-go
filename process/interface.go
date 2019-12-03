@@ -129,8 +129,8 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx *transaction.Transaction, acntSrc, acntDst state.AccountHandler, round uint64) error
-	DeploySmartContract(tx *transaction.Transaction, acntSrc state.AccountHandler, round uint64) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler, round uint64) error
+	DeploySmartContract(tx data.TransactionHandler, acntSrc state.AccountHandler, round uint64) error
 	IsInterfaceNil() bool
 }
 

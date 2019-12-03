@@ -1899,6 +1899,11 @@ func newShardBlockProcessor(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
 	gasHandler, err := preprocess.NewGasComputation(economics)
 	if err != nil {
 		return nil, err
@@ -1916,6 +1921,7 @@ func newShardBlockProcessor(
 		scForwarder,
 		rewardsTxHandler,
 		economics,
+		txTypeHandler,
 		gasHandler,
 	)
 	if err != nil {
@@ -1942,11 +1948,6 @@ func newShardBlockProcessor(
 		shardCoordinator,
 		rewardsTxInterim,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2122,6 +2123,11 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
 	gasHandler, err := preprocess.NewGasComputation(economics)
 	if err != nil {
 		return nil, err
@@ -2139,6 +2145,7 @@ func newMetaBlockProcessor(
 		scForwarder,
 		&metachain.TransactionFeeHandler{},
 		economics,
+		txTypeHandler,
 		gasHandler,
 	)
 	if err != nil {
@@ -2154,11 +2161,6 @@ func newMetaBlockProcessor(
 		factory.MiniBlocksTopic,
 		MaxTxsToRequest,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	txTypeHandler, err := coordinator.NewTxTypeHandler(state.AddressConverter, shardCoordinator, state.AccountsAdapter)
 	if err != nil {
 		return nil, err
 	}
@@ -2188,6 +2190,7 @@ func newMetaBlockProcessor(
 		state.AccountsAdapter,
 		requestHandler,
 		transactionProcessor,
+		scProcessor,
 		economics,
 		miniBlocksCompacter,
 		gasHandler,

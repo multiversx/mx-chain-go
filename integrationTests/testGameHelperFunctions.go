@@ -63,7 +63,7 @@ func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string) {
 			rcvAddr:  make([]byte, 32),
 			sndAddr:  nodes[senderIdx].OwnAccount.PkTxSignBytes,
 			data:     data,
-			gasLimit: MaxGasLimitPerBlock - MinTxGasLimit - uint64(len(data)),
+			gasLimit: MaxGasLimitPerBlock - 1,
 			gasPrice: MinTxGasPrice,
 		})
 	nodes[senderIdx].OwnAccount.Nonce++

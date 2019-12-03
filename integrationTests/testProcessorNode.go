@@ -84,7 +84,7 @@ var MinTxGasPrice = uint64(10)
 var MinTxGasLimit = uint64(1000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(100000)
+const MaxGasLimitPerBlock = uint64(10000000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -517,6 +517,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	_ = tpn.VMContainer.Add(procFactory.InternalTestingVM, mockVM)
 
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
@@ -530,10 +531,9 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ScrForwarder,
 		rewardsHandler,
 		tpn.EconomicsData,
+		txTypeHandler,
 		tpn.GasHandler,
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
@@ -610,9 +610,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.addMockVm(tpn.BlockchainHook)
 
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser, _ = smartContract.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
-	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(
+	scProcessor, _ := smartContract.NewSmartContractProcessor(
 		tpn.VMContainer,
 		tpn.ArgsParser,
 		TestHasher,
@@ -624,11 +625,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ScrForwarder,
 		&metaProcess.TransactionFeeHandler{},
 		tpn.EconomicsData,
+		txTypeHandler,
 		tpn.GasHandler,
 	)
-
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
-
+	tpn.ScProcessor = scProcessor
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
 		tpn.AccntState,
 		TestAddressConverter,
@@ -648,6 +648,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.AccntState,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
+		scProcessor,
 		tpn.EconomicsData.EconomicsData,
 		tpn.MiniBlocksCompacter,
 		tpn.GasHandler,

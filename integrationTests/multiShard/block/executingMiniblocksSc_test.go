@@ -79,7 +79,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(10000000000)
 	topUpValue := big.NewInt(500)
 	withdrawValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
