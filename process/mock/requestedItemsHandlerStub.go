@@ -15,6 +15,10 @@ func (rihs *RequestedItemsHandlerStub) Has(key string) bool {
 }
 
 func (rihs *RequestedItemsHandlerStub) Sweep() {
+	if rihs.SweepCalled == nil {
+		return
+	}
+
 	rihs.SweepCalled()
 }
 
