@@ -398,10 +398,51 @@ func (s *stakingAuctionSC) unBound(args *vmcommon.ContractCallInput) vmcommon.Re
 }
 
 func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	registrationData, err := s.getRegistrationData(args.CallerAddr)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	if len(registrationData.RewardAddress) == 0 {
+		return vmcommon.UserError
+	}
+
+	zero := big.NewInt(0)
+	claimable := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.BlockedStake)
+	if claimable.Cmp(zero) <= 0 {
+		return vmcommon.UserError
+	}
+
+	registrationData.TotalStakeValue.Set(registrationData.BlockedStake)
+	err = s.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		log.Debug("cannot save registration data change")
+		return vmcommon.UserError
+	}
+
+	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
+	err = s.eei.Transfer(args.CallerAddr, ownerAddress, claimable, nil)
+	if err != nil {
+		log.Debug("transfer error on finalizeUnStake function",
+			"error", err.Error(),
+		)
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
 func (s *stakingAuctionSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
+	if !bytes.Equal(ownerAddress, args.CallerAddr) {
+		log.Debug("slash function called by not the owners address")
+		return vmcommon.UserError
+	}
+
+	if len(args.Arguments) != 2 {
+		log.Debug("slash function called by wrong number of arguments")
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
