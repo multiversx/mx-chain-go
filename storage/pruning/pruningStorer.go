@@ -189,7 +189,6 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		// search it in second persistence medium
 		found := false
 		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.persisters))); idx++ {
-			log.Info("pr db", "num persisters", len(ps.persisters))
 			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) == true {
 				v, err = ps.persisters[idx].persister.Get(key)
 
@@ -219,7 +218,6 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		}
 	}
 
-	log.Info("!!FOUND!!", "shardHrHashNonceUnit", v)
 	return v.([]byte), nil
 }
 
@@ -340,6 +338,9 @@ func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
 
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(epoch uint32) error {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+
 	filePath := ps.getNewFilePath(epoch)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
@@ -347,7 +348,6 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 		return err
 	}
 
-	ps.lock.Lock()
 	singleItemPersisters := []*persisterData{
 		{
 			persister: db,
@@ -364,6 +364,7 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 	if ps.numOfActivePersisters < uint32(len(ps.persisters)) {
 		err = ps.persisters[ps.numOfActivePersisters].persister.Close()
 		if err != nil {
+			log.Error("error closing pers", "error", err.Error(), "id", ps.identifier)
 			return err
 		}
 		ps.closedPersistersPaths = append(ps.closedPersistersPaths, ps.persisters[ps.numOfActivePersisters].path)
@@ -374,14 +375,13 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 		if ps.numOfEpochsToKeep < uint32(len(ps.persisters)) {
 			err = ps.persisters[ps.numOfEpochsToKeep].persister.DestroyClosed()
 			if err != nil {
+				log.Error("error destroy", "error", err.Error(), "id", ps.identifier)
 				return err
 			}
 			//	removeDirectoryIfEmpty(ps.persisters[ps.numOfEpochsToKeep].path)
 			ps.persisters = append(ps.persisters[:ps.numOfEpochsToKeep], ps.persisters[ps.numOfEpochsToKeep+1:]...)
 		}
 	}
-
-	ps.lock.Unlock()
 
 	return nil
 }

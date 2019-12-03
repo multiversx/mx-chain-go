@@ -951,8 +951,7 @@ func createShardDataStoreFromConfig(
 	var rewardTxUnit *pruning.PruningStorer
 	var metaHdrHashNonceUnit *pruning.PruningStorer
 	var shardHdrHashNonceUnit *pruning.PruningStorer
-	//	var heartbeatStorageUnit storageUnit.Unit
-	var bootstrapUnit *storageUnit.Unit
+	var bootstrapUnit *pruning.PruningStorer
 	var err error
 
 	defer func() {
@@ -1159,10 +1158,18 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
-	bootstrapUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.BootstrapStorage.Cache),
-		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
-		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	bootstrapUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "bootstrapUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.BootstrapStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.BootstrapStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.BootstrapStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.BootstrapStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	bootstrapUnit, err = pruning.NewPruningStorer(bootstrapUnitArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1200,7 +1207,7 @@ func createMetaChainDataStoreFromConfig(
 	var unsignedTxUnit *pruning.PruningStorer
 	var miniBlockHeadersUnit *pruning.PruningStorer
 	var shardHdrHashNonceUnits []*pruning.PruningStorer
-	//var heartbeatStorageUnit *pruning.PruningStorer
+	var bootstrapUnit *pruning.PruningStorer
 	var err error
 
 	defer func() {
@@ -1437,10 +1444,18 @@ func createMetaChainDataStoreFromConfig(
 		return nil, err
 	}
 
-	bootstrapUnit, err = storageUnit.NewStorageUnitFromConf(
-		getCacherFromConfig(config.BootstrapStorage.Cache),
-		getDBFromConfig(config.BootstrapStorage.DB, uniqueID),
-		getBloomFromConfig(config.BootstrapStorage.Bloom))
+	bootstrapUnitArgs := &pruning.PruningStorerArgs{
+		Identifier:            "bootstrapUnit",
+		FullArchive:           fullArchiveMode,
+		CacheConf:             getCacherFromConfig(config.BootstrapStorage.Cache),
+		DbPath:                filepath.Join(uniqueID, config.BootstrapStorage.DB.FilePath),
+		PersisterFactory:      storageFactory.NewPersisterFactory(config.BootstrapStorage.DB),
+		BloomFilterConf:       getBloomFromConfig(config.BootstrapStorage.Bloom),
+		NumOfEpochsToKeep:     numOfEpochsToKeep,
+		NumOfActivePersisters: numOfActivePersisters,
+		Notifier:              epochStartNotifier,
+	}
+	bootstrapUnit, err = pruning.NewPruningStorer(bootstrapUnitArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -2352,23 +2367,23 @@ func newShardBlockProcessor(
 	}
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Accounts:              state.AccountsAdapter,
-		ForkDetector:          forkDetector,
-		Hasher:                core.Hasher,
-		Marshalizer:           core.Marshalizer,
-		Store:                 data.Store,
-		ShardCoordinator:      shardCoordinator,
-		NodesCoordinator:      nodesCoordinator,
-		SpecialAddressHandler: specialAddressHandler,
-		Uint64Converter:       core.Uint64ByteSliceConverter,
-		StartHeaders:          genesisBlocks,
-		RequestHandler:        requestHandler,
-		Core:                  coreServiceContainer,
-		BlockChainHook:        vmFactory.BlockChainHookImpl(),
-		TxCoordinator:         txCoordinator,
-		Rounder:               rounder,
-		EpochStartTrigger:     epochStartTrigger,
-		HeaderValidator:       headerValidator,
+		Accounts:                     state.AccountsAdapter,
+		ForkDetector:                 forkDetector,
+		Hasher:                       core.Hasher,
+		Marshalizer:                  core.Marshalizer,
+		Store:                        data.Store,
+		ShardCoordinator:             shardCoordinator,
+		NodesCoordinator:             nodesCoordinator,
+		SpecialAddressHandler:        specialAddressHandler,
+		Uint64Converter:              core.Uint64ByteSliceConverter,
+		StartHeaders:                 genesisBlocks,
+		RequestHandler:               requestHandler,
+		Core:                         coreServiceContainer,
+		BlockChainHook:               vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                txCoordinator,
+		Rounder:                      rounder,
+		EpochStartTrigger:            epochStartTrigger,
+		HeaderValidator:              headerValidator,
 		ValidatorStatisticsProcessor: statisticsProcessor,
 		BootStorer:                   bootStorer,
 	}

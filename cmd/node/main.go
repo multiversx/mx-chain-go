@@ -656,7 +656,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
 
 	log.Trace("creating data components")
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder)
 	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, shardCoordinator, coreComponents, uniqueDBFolder, epochStartNotifier)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
