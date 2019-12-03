@@ -3,13 +3,13 @@ package systemVM
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,6 +18,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	_ = logger.SetLogLevel("*:INFO,*:DEBUG")
 
 	numOfShards := 2
 	nodesPerShard := 3
@@ -48,15 +50,10 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	verifyInitialBalance(t, nodes, initialVal)
-
-	for _, node := range nodes {
-		roothash, _ := node.AccntState.RootHash()
-		fmt.Printf("shardID: %d roothash: %s \n", node.ShardCoordinator.SelfId(), hex.EncodeToString(roothash))
-	}
 
 	round := uint64(0)
 	nonce := uint64(0)
