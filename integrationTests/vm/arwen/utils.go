@@ -90,7 +90,10 @@ func (context *testContext) initAccounts() {
 }
 
 func (context *testContext) createAccount(participant *testParticipant) {
-	_ = vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.Balance)
+	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.Balance)
+	if err != nil {
+		assert.FailNow(context.T, err.Error())
+	}
 }
 
 func (context *testContext) deploySC(wasmPath string, parametersString string) {

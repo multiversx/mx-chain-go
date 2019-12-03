@@ -186,7 +186,7 @@ func runWASMVMBenchmark(
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(10000000000))
+	_, _ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(10000000000))
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
@@ -269,10 +269,10 @@ func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
+	_, _ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
 
 	bob := []byte("12345678901234567890123456789222")
-	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
+	_, _ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
 
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTopUpTx(aliceNonce, initAlice, scAddress, alice)
@@ -352,7 +352,7 @@ func TestWASMNamespacing(t *testing.T) {
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
 	aliceInitialBalance := uint64(3000)
-	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
+	_, _ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
 
 	testingValue := uint64(15)
 
@@ -414,7 +414,7 @@ func TestWASMMetering(t *testing.T) {
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
 	aliceInitialBalance := uint64(3000)
-	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
+	_, _ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
 
 	testingValue := uint64(15)
 
@@ -489,10 +489,10 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
+	_, _ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
 
 	bob := []byte("12345678901234567890123456789222")
-	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
+	_, _ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
 
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
@@ -578,10 +578,10 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	_ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
+	_, _ = vm.CreateAccount(accnts, alice, aliceNonce, big.NewInt(1000000))
 
 	bob := []byte("12345678901234567890123456789222")
-	_ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
+	_, _ = vm.CreateAccount(accnts, bob, 0, big.NewInt(1000000))
 
 	testAddresses := createTestAddresses(20000)
 	fmt.Println("done")
