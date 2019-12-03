@@ -58,6 +58,7 @@ func setupTestContext(t *testing.T) testContext {
 	context.TxProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
 	context.ScAddress, _ = blockChainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
 	context.QueryService, _ = smartContract.NewSCQueryService(vmContainer, math.MaxInt32)
+
 	return context
 }
 
@@ -131,6 +132,7 @@ func (context *testContext) deploySC(wasmPath string, parametersString string) {
 func getSCCode(fileName string) string {
 	code, _ := ioutil.ReadFile(fileName)
 	codeEncoded := hex.EncodeToString(code)
+
 	return codeEncoded
 }
 
@@ -165,6 +167,7 @@ func (context *testContext) executeSCWithValue(sender *testParticipant, txData s
 func (context *testContext) querySCInt(function string, args [][]byte) uint64 {
 	bytes := context.querySC(function, args)
 	result := big.NewInt(0).SetBytes(bytes).Uint64()
+
 	return result
 }
 
@@ -187,5 +190,6 @@ func (context *testContext) querySC(function string, args [][]byte) []byte {
 func formatHexNumber(number uint64) string {
 	bytes := big.NewInt(0).SetUint64(number).Bytes()
 	str := hex.EncodeToString(bytes)
+
 	return str
 }
