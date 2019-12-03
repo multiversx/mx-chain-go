@@ -52,19 +52,36 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestNodeApiResolver_StatusMetricsMapShouldBeCalled(t *testing.T) {
+func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
 		&mock.ScDataGetterStub{},
 		&mock.StatusMetricsStub{
-			StatusMetricsMapCalled: func() map[string]interface{} {
+			StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
 				wasCalled = true
 				return nil
 			},
 		})
-	_ = nar.StatusMetrics().StatusMetricsMap()
+	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
+
+	assert.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	nar, _ := external.NewNodeApiResolver(
+		&mock.ScDataGetterStub{},
+		&mock.StatusMetricsStub{
+			StatusP2pMetricsMapCalled: func() map[string]interface{} {
+				wasCalled = true
+				return nil
+			},
+		})
+	_ = nar.StatusMetrics().StatusP2pMetricsMap()
 
 	assert.True(t, wasCalled)
 }

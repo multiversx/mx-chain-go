@@ -283,7 +283,6 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
 	assert.True(t, keyAndValueFoundInResponse)
-
 	assert.False(t, strings.Contains(respStr, p2pKey))
 }
 

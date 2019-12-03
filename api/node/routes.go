@@ -116,7 +116,7 @@ func StatusMetrics(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"details": details})
 }
 
-// P2pStatusMetrics returns the node's p2p statistics exported by an StatusMetricsHandler
+// P2pStatusMetrics returns the node's p2p statistics exported by a StatusMetricsHandler
 func P2pStatusMetrics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
