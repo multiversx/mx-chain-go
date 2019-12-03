@@ -248,7 +248,7 @@ func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := ioutil.ReadFile("./wrc20_arwen.wasm")
+	scCode, err := ioutil.ReadFile("./testdata/erc20c-v1/wrc20_arwen.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -467,7 +467,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := ioutil.ReadFile("./wrc20_arwen_c.wasm")
+	scCode, err := ioutil.ReadFile("./testdata/erc20c-v1/wrc20_arwen_c.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -556,7 +556,7 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := ioutil.ReadFile("./wrc20_arwen_c.wasm")
+	scCode, err := ioutil.ReadFile("./testdata/erc20c-v1/wrc20_arwen_c.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
