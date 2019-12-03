@@ -2,7 +2,6 @@ package sync
 
 import (
 	"math"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -26,13 +25,7 @@ import (
 type ShardBootstrap struct {
 	*baseBootstrap
 
-	miniBlocks storage.Cacher
-
-	chRcvMiniBlocks  chan bool
-	mutRcvMiniBlocks sync.Mutex
-
-	resolversFinder    dataRetriever.ResolversFinder
-	miniBlocksResolver dataRetriever.MiniBlocksResolver
+	resolversFinder dataRetriever.ResolversFinder
 }
 
 // NewShardBootstrap creates a new Bootstrap object
@@ -103,17 +96,17 @@ func NewShardBootstrap(
 		networkWatcher:      networkWatcher,
 		bootStorer:          bootStorer,
 		storageBootstrapper: storageBootstrapper,
+		miniBlocks:          poolsHolder.MiniBlocks(),
 	}
 
 	boot := ShardBootstrap{
 		baseBootstrap: base,
-		miniBlocks:    poolsHolder.MiniBlocks(),
 	}
 
 	base.blockBootstrapper = &boot
-	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.syncStarter = &boot
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
+	base.getHeaderFromPool = boot.getShardHeaderFromPool
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
@@ -199,31 +192,6 @@ func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
 	}
 
 	boot.processReceivedHeader(header, headerHash)
-}
-
-// setRequestedMiniBlocks method sets the body hash requested by the sync mechanism
-func (boot *ShardBootstrap) setRequestedMiniBlocks(hashes [][]byte) {
-	boot.requestedHashes.SetHashes(hashes)
-}
-
-// receivedBody method is a call back function which is called when a new body is added
-// in the block bodies pool
-func (boot *ShardBootstrap) receivedBodyHash(hash []byte) {
-	boot.mutRcvMiniBlocks.Lock()
-	if len(boot.requestedHashes.ExpectedData()) == 0 {
-		boot.mutRcvMiniBlocks.Unlock()
-		return
-	}
-
-	boot.requestedHashes.SetReceivedHash(hash)
-	if boot.requestedHashes.ReceivedAll() {
-		log.Debug("received all the requested mini blocks from network")
-		boot.setRequestedMiniBlocks(nil)
-		boot.mutRcvMiniBlocks.Unlock()
-		boot.chRcvMiniBlocks <- true
-	} else {
-		boot.mutRcvMiniBlocks.Unlock()
-	}
 }
 
 // StartSync method will start SyncBlocks as a go routine
@@ -331,55 +299,6 @@ func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (d
 	}
 
 	return hdr, nil
-}
-
-// requestMiniBlocks method requests a block body from network when it is not found in the pool
-func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
-	boot.setRequestedMiniBlocks(hashes)
-	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes)
-	if err != nil {
-		log.Debug("RequestDataFromHashArray", "error", err.Error())
-	}
-
-	log.Debug("requested mini blocks from network",
-		"num miniblocks", len(hashes),
-	)
-}
-
-// getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,
-// and if not it will be requested from network
-// the func returns interface{} as to match the next implementations for block body fetchers
-// that will be added. The block executor should decide by parsing the header block body type value
-// what kind of block body received.
-func (boot *ShardBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		_ = process.EmptyChannel(boot.chRcvMiniBlocks)
-		boot.requestMiniBlocks(missingMiniBlocksHashes)
-		err := boot.waitForMiniBlocks()
-		if err != nil {
-			return nil, err
-		}
-
-		receivedMiniBlocks, unreceivedMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(missingMiniBlocksHashes)
-		if len(unreceivedMiniBlocksHashes) > 0 {
-			return nil, process.ErrMissingBody
-		}
-
-		miniBlocks = append(miniBlocks, receivedMiniBlocks...)
-	}
-
-	return miniBlocks, nil
-}
-
-// waitForMiniBlocks method wait for body with the requested nonce to be received
-func (boot *ShardBootstrap) waitForMiniBlocks() error {
-	select {
-	case <-boot.chRcvMiniBlocks:
-		return nil
-	case <-time.After(boot.waitTime):
-		return process.ErrTimeIsOut
-	}
 }
 
 func (boot *ShardBootstrap) getPrevHeader(
