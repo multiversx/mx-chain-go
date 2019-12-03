@@ -26,7 +26,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, err := ioutil.ReadFile("./fib_arwen.wasm")
+	scCode, err := ioutil.ReadFile("./testdata/fibonacci/fib_arwen.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -72,7 +72,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, err := ioutil.ReadFile("./fib_arwen.wasm")
+	scCode, err := ioutil.ReadFile("./testdata/fibonacci/fib_arwen.wasm")
 	assert.Nil(t, err)
 	scCodeString := hex.EncodeToString(scCode)
 
@@ -131,7 +131,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 }
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./fib_arwen.wasm", b.N, 32, nil)
+	runWASMVMBenchmark(b, "./testdata/fibonacci/fib_arwen.wasm", b.N, 32, nil)
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
@@ -222,7 +222,7 @@ func TestGasModel(t *testing.T) {
 	}
 	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
 	fmt.Println("FIBONNACI 32 ")
-	runWASMVMBenchmark(t, "./fib_arwen.wasm", 1, 32, gasSchedule)
+	runWASMVMBenchmark(t, "./testdata/fibonacci/fib_arwen.wasm", 1, 32, gasSchedule)
 	fmt.Println("CPUCALCULATE 8000 ")
 	runWASMVMBenchmark(t, "./cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
 	fmt.Println("STRINGCONCAT 1000 ")
@@ -322,7 +322,7 @@ func TestWASMNamespacing(t *testing.T) {
 	// the namespace 'env' to 'ethereum'. If WASM namespacing is done correctly
 	// by Arwen, then this SC should have no problem to call imported functions
 	// (as if it were run by Ethereuem).
-	fileSC := "./fib_ewasmified.wasm"
+	fileSC := "./testdata/fibonacci/fib_ewasmified.wasm"
 	scCode, err := ioutil.ReadFile(fileSC)
 	assert.Nil(t, err)
 
