@@ -28,17 +28,13 @@ func NewTimeCache(span time.Duration) *TimeCache {
 
 // Add will store the key in the time cache
 // Double adding the key is not permitted by the time cache. Also, add will trigger sweeping.
-func (tc *TimeCache) Add(key string, withSweep bool) error {
+func (tc *TimeCache) Add(key string) error {
 	if len(key) == 0 {
 		return storage.ErrEmptyKey
 	}
 
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
-
-	if withSweep {
-		tc.sweep()
-	}
 
 	_, ok := tc.data[key]
 	if ok {
@@ -50,7 +46,12 @@ func (tc *TimeCache) Add(key string, withSweep bool) error {
 	return nil
 }
 
-func (tc *TimeCache) sweep() {
+// Sweep starts from the oldest element and will search each element if it is still valid to be kept. Sweep ends when
+// it finds an element that is still valid
+func (tc *TimeCache) Sweep() {
+	tc.mut.Lock()
+	defer tc.mut.Unlock()
+
 	for {
 		if len(tc.keys) == 0 {
 			return
@@ -74,23 +75,10 @@ func (tc *TimeCache) sweep() {
 	}
 }
 
-// Sweep starts from the oldest element and will search each element if it is still valid to be kept. Sweep ends when
-// it finds an element that is still valid
-func (tc *TimeCache) Sweep() {
-	tc.mut.Lock()
-	defer tc.mut.Unlock()
-
-	tc.sweep()
-}
-
 // Has returns if the key is still found in the time cache
-func (tc *TimeCache) Has(key string, withSweep bool) bool {
+func (tc *TimeCache) Has(key string) bool {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
-
-	if withSweep {
-		tc.sweep()
-	}
 
 	_, ok := tc.data[key]
 

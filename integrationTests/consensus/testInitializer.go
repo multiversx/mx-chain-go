@@ -427,12 +427,13 @@ func createConsensusOnlyNode(
 		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{
-			HasCalled: func(key string, withSweep bool) bool {
+			HasCalled: func(key string) bool {
 				return false
 			},
-			AddCalled: func(key string, withSweep bool) error {
+			AddCalled: func(key string) error {
 				return nil
 			},
+			SweepCalled: func() {},
 		}),
 	)
 

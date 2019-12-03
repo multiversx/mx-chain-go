@@ -190,7 +190,9 @@ func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardId uint32,
 
 // RequestMiniBlock method asks for miniblocks from the connected peers
 func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
-	if rrh.requestedItemsHandler.Has(string(miniblockHash), true) {
+	rrh.requestedItemsHandler.Sweep()
+
+	if rrh.requestedItemsHandler.Has(string(miniblockHash)) {
 		log.Trace("item already requested",
 			"key", miniblockHash)
 		return
@@ -217,7 +219,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	err = rrh.requestedItemsHandler.Add(string(miniblockHash), true)
+	err = rrh.requestedItemsHandler.Add(string(miniblockHash))
 	if err != nil {
 		log.Trace("add requested item with error",
 			"error", err.Error(),
@@ -227,7 +229,9 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 
 // RequestHeader method asks for header from the connected peers
 func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte) {
-	if rrh.requestedItemsHandler.Has(string(hash), true) {
+	rrh.requestedItemsHandler.Sweep()
+
+	if rrh.requestedItemsHandler.Has(string(hash)) {
 		log.Trace("item already requested",
 			"key", hash)
 		return
@@ -270,7 +274,7 @@ func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte
 		return
 	}
 
-	err = rrh.requestedItemsHandler.Add(string(hash), true)
+	err = rrh.requestedItemsHandler.Add(string(hash))
 	if err != nil {
 		log.Trace("add requested item with error",
 			"error", err.Error(),
@@ -280,8 +284,10 @@ func (rrh *resolverRequestHandler) RequestHeader(destShardID uint32, hash []byte
 
 // RequestHeaderByNonce method asks for transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonce uint64) {
+	rrh.requestedItemsHandler.Sweep()
+
 	key := fmt.Sprintf("%d-%d", destShardID, nonce)
-	if rrh.requestedItemsHandler.Has(key, true) {
+	if rrh.requestedItemsHandler.Has(key) {
 		log.Trace("item already requested",
 			"key", key)
 		return
@@ -321,7 +327,7 @@ func (rrh *resolverRequestHandler) RequestHeaderByNonce(destShardID uint32, nonc
 		return
 	}
 
-	err = rrh.requestedItemsHandler.Add(key, true)
+	err = rrh.requestedItemsHandler.Add(key)
 	if err != nil {
 		log.Trace("add requested item with error",
 			"error", err.Error(),
@@ -340,20 +346,18 @@ func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byte {
 	unrequestedHashes := make([][]byte, 0)
 
+	rrh.requestedItemsHandler.Sweep()
+
 	for _, hash := range hashes {
-		if !rrh.requestedItemsHandler.Has(string(hash), false) {
+		if !rrh.requestedItemsHandler.Has(string(hash)) {
 			unrequestedHashes = append(unrequestedHashes, hash)
-			err := rrh.requestedItemsHandler.Add(string(hash), false)
+			err := rrh.requestedItemsHandler.Add(string(hash))
 			if err != nil {
 				log.Trace("add requested item with error",
 					"error", err.Error(),
 					"key", hash)
 			}
 		}
-	}
-
-	if len(unrequestedHashes) > 0 {
-		rrh.requestedItemsHandler.Sweep()
 	}
 
 	return unrequestedHashes
