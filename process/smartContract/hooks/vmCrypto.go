@@ -28,7 +28,11 @@ func (vmch *VMCryptoHook) Keccak256(data []byte) ([]byte, error) {
 // Ripemd160 is a legacy hash and should not be used for new applications
 func (vmch *VMCryptoHook) Ripemd160(data []byte) ([]byte, error) {
 	hash := ripemd160.New()
-	hash.Write(data)
+	_, err := hash.Write(data)
+	if err != nil {
+		return nil, err
+	}
+
 	result := hash.Sum(nil)
 	return result, nil
 }
