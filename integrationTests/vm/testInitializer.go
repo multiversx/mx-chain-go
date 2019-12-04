@@ -75,14 +75,33 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	return adb
 }
 
-func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) []byte {
-	address, _ := addrConv.CreateAddressFromPublicKeyBytes(pubKey)
-	account, _ := accnts.GetAccountWithJournal(address)
-	_ = account.(*state.Account).SetNonceWithJournal(nonce)
-	_ = account.(*state.Account).SetBalanceWithJournal(balance)
+func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) ([]byte, error) {
+	address, err := addrConv.CreateAddressFromPublicKeyBytes(pubKey)
+	if err != nil {
+		return nil, err
+	}
 
-	hashCreated, _ := accnts.Commit()
-	return hashCreated
+	account, err := accnts.GetAccountWithJournal(address)
+	if err != nil {
+		return nil, err
+	}
+
+	err = account.(*state.Account).SetNonceWithJournal(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	err = account.(*state.Account).SetBalanceWithJournal(balance)
+	if err != nil {
+		return nil, err
+	}
+
+	hashCreated, err := accnts.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return hashCreated, nil
 }
 
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
@@ -295,7 +314,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 ) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
 
 	accnts := CreateInMemoryShardAccountsDB()
-	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, nil)
 
@@ -314,7 +333,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 ) (process.TransactionProcessor, state.AccountsAdapter, vmcommon.BlockchainHook) {
 
 	accnts := CreateInMemoryShardAccountsDB()
-	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule)
 	txProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accnts, vmContainer, blockChainHook)
@@ -332,7 +351,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 ) (process.TransactionProcessor, state.AccountsAdapter) {
 
 	accnts := CreateInMemoryShardAccountsDB()
-	_ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
+	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
 	txProcessor := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas)
 	assert.NotNil(t, txProcessor)
