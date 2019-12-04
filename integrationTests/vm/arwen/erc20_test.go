@@ -14,7 +14,7 @@ func Test_SOL_002(t *testing.T) {
 	bob := &context.Bob
 	carol := &context.Carol
 
-	context.deploySC("./testdata/erc20sol002/0-0-2.wasm", "")
+	context.deploySC("./testdata/erc20/0-0-2.wasm", "")
 
 	// Initial tokens and allowances
 	context.executeSC(owner, "transfer(address,uint256)@"+alice.AddressHex()+"@"+formatHexNumber(1000))
@@ -49,7 +49,7 @@ func Test_SOL_003(t *testing.T) {
 	alice := &context.Alice
 	bob := &context.Bob
 
-	context.deploySC("./testdata/erc20sol003/0-0-3.wasm", "")
+	context.deploySC("./testdata/erc20/0-0-3.wasm", "")
 
 	// Minting
 	context.executeSC(owner, "transfer(address,uint256)@"+alice.AddressHex()+"@"+formatHexNumber(1000))
@@ -76,7 +76,7 @@ func Test_C_001(t *testing.T) {
 	bob := &context.Bob
 	carol := &context.Carol
 
-	context.deploySC("./testdata/erc20c/wrc20_arwen.wasm", formatHexNumber(42000))
+	context.deploySC("./testdata/erc20/wrc20_arwen_03.wasm", formatHexNumber(42000))
 
 	// Assertion
 	assert.Equal(t, uint64(42000), context.querySCInt("totalSupply", [][]byte{}))

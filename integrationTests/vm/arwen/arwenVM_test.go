@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"path"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, err := ioutil.ReadFile("./testdata/misc/fib_arwen.wasm")
+	scCode, err := getBytecode("misc/fib_arwen.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -72,7 +73,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode, err := ioutil.ReadFile("./testdata/misc/fib_arwen.wasm")
+	scCode, err := getBytecode("misc/fib_arwen.wasm")
 	assert.Nil(t, err)
 	scCodeString := hex.EncodeToString(scCode)
 
@@ -131,15 +132,15 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 }
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./testdata/misc/fib_arwen.wasm", b.N, 32, nil)
+	runWASMVMBenchmark(b, "misc/fib_arwen.wasm", b.N, 32, nil)
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./testdata/misc/cpucalculate_arwen.wasm", b.N, 8000, nil)
+	runWASMVMBenchmark(b, "misc/cpucalculate_arwen.wasm", b.N, 8000, nil)
 }
 
 func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "./testdata/misc/stringconcat_arwen.wasm", b.N, 10000, nil)
+	runWASMVMBenchmark(b, "misc/stringconcat_arwen.wasm", b.N, 10000, nil)
 }
 
 func runWASMVMBenchmark(
@@ -158,7 +159,7 @@ func runWASMVMBenchmark(
 	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
-	scCode, err := ioutil.ReadFile(fileSC)
+	scCode, err := getBytecode(fileSC)
 	assert.Nil(tb, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -222,11 +223,11 @@ func TestGasModel(t *testing.T) {
 	}
 	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
 	fmt.Println("FIBONNACI 32 ")
-	runWASMVMBenchmark(t, "./testdata/misc/fib_arwen.wasm", 1, 32, gasSchedule)
+	runWASMVMBenchmark(t, "misc/fib_arwen.wasm", 1, 32, gasSchedule)
 	fmt.Println("CPUCALCULATE 8000 ")
-	runWASMVMBenchmark(t, "./testdata/misc/cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
+	runWASMVMBenchmark(t, "misc/cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
 	fmt.Println("STRINGCONCAT 1000 ")
-	runWASMVMBenchmark(t, "./testdata/misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
+	runWASMVMBenchmark(t, "misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
 	fmt.Println("ERC20 ")
 	deployWithTransferAndExecuteERC20(t, 2, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
@@ -248,7 +249,7 @@ func deployWithTransferAndExecuteERC20(t *testing.T, numRun int, gasSchedule map
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := ioutil.ReadFile("./testdata/erc20c-v1/wrc20_arwen.wasm")
+	scCode, err := getBytecode("erc20/wrc20_arwen_01.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -322,8 +323,7 @@ func TestWASMNamespacing(t *testing.T) {
 	// the namespace 'env' to 'ethereum'. If WASM namespacing is done correctly
 	// by Arwen, then this SC should have no problem to call imported functions
 	// (as if it were run by Ethereuem).
-	fileSC := "./testdata/misc/fib_ewasmified.wasm"
-	scCode, err := ioutil.ReadFile(fileSC)
+	scCode, err := getBytecode("misc/fib_ewasmified.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -384,8 +384,7 @@ func TestWASMMetering(t *testing.T) {
 	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
-	fileSC := "./testdata/misc/cpucalculate_arwen.wasm"
-	scCode, err := ioutil.ReadFile(fileSC)
+	scCode, err := getBytecode("misc/cpucalculate_arwen.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -467,7 +466,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := ioutil.ReadFile("./testdata/erc20c-v1/wrc20_arwen_c.wasm")
+	scCode, err := getBytecode("erc20/wrc20_arwen_02.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -556,7 +555,7 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode, err := ioutil.ReadFile("./testdata/erc20c-v1/wrc20_arwen_c.wasm")
+	scCode, err := getBytecode("erc20/wrc20_arwen_02.wasm")
 	assert.Nil(t, err)
 
 	scCodeString := hex.EncodeToString(scCode)
@@ -636,4 +635,8 @@ func TestJurnalizingAndTimeToProcessChange(t *testing.T) {
 
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
+}
+
+func getBytecode(relativePath string) ([]byte, error) {
+	return ioutil.ReadFile(path.Join(".", "testdata", relativePath))
 }
