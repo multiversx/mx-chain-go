@@ -822,6 +822,16 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes)
 	if err != nil {
 		log.Debug("RequestDataFromHashArray", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	for _, hash := range hashes {
+		err = boot.requestedItemsHandler.Add(string(hash))
+		if err != nil {
+			log.Trace("add requested item with error", "error", err.Error())
+		}
 	}
 
 	log.Debug("requested mini blocks from network",
