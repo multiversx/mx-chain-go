@@ -17,7 +17,7 @@ import (
 var val1 = big.NewInt(10)
 var val2 = big.NewInt(20)
 var rootHash = []byte("root hash")
-var validatorStatsRootHash = []byte("validator stas root hash")
+var validatorStatsRootHash = []byte("validator stats root hash")
 
 func createAccountStub(sndAddr, rcvAddr []byte,
 	acntSrc, acntDst *state.Account,

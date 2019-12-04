@@ -613,6 +613,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if err != nil {
 			return err
 		}
+		prevHeaderHash := currHeader.GetPrevHash()
 		prevHeader, err := boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
 		if err != nil {
 			return err
@@ -634,6 +635,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			currHeaderHash,
 			currHeader,
 			currBlockBody,
+			prevHeaderHash,
 			prevHeader,
 			prevBlockBody)
 
@@ -667,6 +669,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
 	currBlockBody data.BodyHandler,
+	prevHeaderHash []byte,
 	prevHeader data.HeaderHandler,
 	prevBlockBody data.BodyHandler,
 ) error {
@@ -679,23 +682,17 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}()
 
-	var prevHeaderHash []byte
-
 	if currHeader.GetNonce() > 1 {
-		prevHeaderHash = currHeader.GetPrevHash()
+		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader, prevBlockBody)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = boot.setCurrentBlockInfo(nil, nil, nil)
+		if err != nil {
+			return err
+		}
 	}
-
-	err = boot.blkc.SetCurrentBlockHeader(prevHeader)
-	if err != nil {
-		return err
-	}
-
-	err = boot.blkc.SetCurrentBlockBody(prevBlockBody)
-	if err != nil {
-		return err
-	}
-
-	boot.blkc.SetCurrentBlockHeaderHash(prevHeaderHash)
 
 	err = boot.blkExecutor.RevertStateToBlock(prevHeader)
 	if err != nil {
@@ -785,4 +782,25 @@ func (boot *baseBootstrap) restoreState(
 	if err != nil {
 		log.Debug("RevertStateToBlock", "error", err.Error())
 	}
+}
+
+func (boot *baseBootstrap) setCurrentBlockInfo(
+	headerHash []byte,
+	header data.HeaderHandler,
+	body data.BodyHandler,
+) error {
+
+	err := boot.blkc.SetCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = boot.blkc.SetCurrentBlockBody(body)
+	if err != nil {
+		return err
+	}
+
+	boot.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	return nil
 }

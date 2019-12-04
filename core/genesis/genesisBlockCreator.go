@@ -169,13 +169,14 @@ func CreateMetaGenesisBlock(
 	}
 
 	header := &block.MetaBlock{
-		RootHash:               rootHash,
-		PrevHash:               rootHash,
-		RandSeed:               rootHash,
-		PrevRandSeed:           rootHash,
-		ValidatorStatsRootHash: args.ValidatorStatsRootHash,
+		RootHash:     rootHash,
+		PrevHash:     rootHash,
+		RandSeed:     rootHash,
+		PrevRandSeed: rootHash,
 	}
+
 	header.SetTimeStamp(args.GenesisTime)
+	header.SetValidatorStatsRootHash(args.ValidatorStatsRootHash)
 
 	return header, nil
 }

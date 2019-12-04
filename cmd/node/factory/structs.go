@@ -554,8 +554,9 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
-	validatorStatisticsRootHash, _ := validatorStatisticsProcessor.RootHash()
-	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatisticsRootHash)
+
+	validatorStatsRootHash, _ := validatorStatisticsProcessor.RootHash()
+	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
 		args.core,
@@ -1548,10 +1549,12 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	// the genesis of each of the shards (this is actually the same thing that would happen at new epoch start)."
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
+
 	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
 	if err != nil {
 		return nil, err
 	}
+
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		isCurrentShard := shardId == shardCoordinator.SelfId()
 		if isCurrentShard {
@@ -1643,6 +1646,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		"roothash", genesisBlock.GetRootHash(),
 		"validatorStatsRootHash", genesisBlock.GetValidatorStatsRootHash(),
 	)
+
 	genesisBlocks[sharding.MetachainShardId] = genesisBlock
 
 	return genesisBlocks, nil
