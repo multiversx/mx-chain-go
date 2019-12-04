@@ -295,6 +295,7 @@ func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 }
 
 func emptyTrie(root []byte) bool {
+
 	if bytes.Equal(root, make([]byte, 0)) {
 		return true
 	}
@@ -302,4 +303,19 @@ func emptyTrie(root []byte) bool {
 		return true
 	}
 	return false
+}
+
+// GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
+func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
+	if tr.root == nil {
+		return map[string][]byte{}, nil
+	}
+
+	leafs := make(map[string][]byte)
+	err := tr.root.getAllLeaves(leafs, []byte{}, tr.db, tr.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	return leafs, nil
 }

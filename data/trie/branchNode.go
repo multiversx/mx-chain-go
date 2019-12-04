@@ -537,3 +537,29 @@ func (bn *branchNode) deepClone() node {
 
 	return clonedNode
 }
+
+func (bn *branchNode) getAllLeaves(leafs map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db, marshalizer)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		childKey := append(key, byte(i))
+		err = bn.children[i].getAllLeaves(leafs, childKey, db, marshalizer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

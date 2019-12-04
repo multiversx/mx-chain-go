@@ -272,3 +272,19 @@ func (ln *leafNode) deepClone() node {
 
 	return clonedNode
 }
+
+func (ln *leafNode) getAllLeaves(leafs map[string][]byte, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+
+	nodeKey := append(key, ln.Key...)
+	nodeKey, err = hexToKeyBytes(nodeKey)
+	if err != nil {
+		return err
+	}
+
+	leafs[string(nodeKey)] = ln.Value
+	return nil
+}
