@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
+	"github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"

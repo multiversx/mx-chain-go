@@ -51,6 +51,8 @@ func newEmptyTrie(marsh marshal.Marshalizer, hsh hashing.Hasher) *patriciaMerkle
 	evictionWaitListSize := 100
 	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), marsh)
 
+	// TODO change this initialization of the persister  (and everywhere in this package)
+	// by using a persister factory
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,

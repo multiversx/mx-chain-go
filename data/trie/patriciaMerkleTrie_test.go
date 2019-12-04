@@ -544,7 +544,7 @@ func TestPatriciaMerkleTrie_SnapshotDirtyTrie(t *testing.T) {
 	tr := initTrie()
 
 	err := tr.Snapshot()
-	assert.Equal(t, trie.ErrTrieNotCommited, err)
+	assert.Equal(t, trie.ErrTrieNotCommitted, err)
 }
 
 func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {

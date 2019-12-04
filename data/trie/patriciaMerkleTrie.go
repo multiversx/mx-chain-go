@@ -452,29 +452,28 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 // Checkpoint adds the current state of the trie to the snapshot database
 func (tr *patriciaMerkleTrie) Checkpoint() error {
 	tr.mutOperation.Lock()
+
+	if len(tr.snapshots) == 0 {
+		tr.mutOperation.Unlock()
+		return tr.Snapshot()
+	}
 	defer tr.mutOperation.Unlock()
 
 	if tr.root.isDirty() {
-		return ErrTrieNotCommited
+		return ErrTrieNotCommitted
 	}
 
 	if tr.snapshotInProgress {
 		return ErrSnapshotInProgress
 	}
 	tr.snapshotInProgress = true
-
-	if len(tr.snapshots) == 0 {
-		_, err := tr.newSnapshotDb()
-		if err != nil {
-			tr.snapshotInProgress = false
-			return err
-		}
-	}
+	defer func() {
+		tr.snapshotInProgress = false
+	}()
 
 	lastSnapshotId := len(tr.snapshots) - 1
 	err := tr.root.commit(true, 0, tr.db, tr.snapshots[lastSnapshotId])
 	if err != nil {
-		tr.snapshotInProgress = false
 		return err
 	}
 
@@ -499,7 +498,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	defer tr.mutOperation.Unlock()
 
 	if tr.root.isDirty() {
-		return ErrTrieNotCommited
+		return ErrTrieNotCommitted
 	}
 
 	if tr.snapshotInProgress {
@@ -557,9 +556,17 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 }
 
 func (tr *patriciaMerkleTrie) newSnapshotDb() (data.DBWriteCacher, error) {
+	snapshotPath := path.Join(tr.snapshotDbCfg.FilePath, strconv.Itoa(tr.snapshotId))
+	_, err := os.Stat(snapshotPath)
+	for err == nil {
+		tr.snapshotId++
+		snapshotPath = path.Join(tr.snapshotDbCfg.FilePath, strconv.Itoa(tr.snapshotId))
+		_, err = os.Stat(snapshotPath)
+	}
+
 	db, err := storageUnit.NewDB(
 		storageUnit.DBType(tr.snapshotDbCfg.Type),
-		path.Join(tr.snapshotDbCfg.FilePath, strconv.Itoa(tr.snapshotId)),
+		snapshotPath,
 		tr.snapshotDbCfg.BatchDelaySeconds,
 		tr.snapshotDbCfg.MaxBatchSize,
 		tr.snapshotDbCfg.MaxOpenFiles,
@@ -719,7 +726,7 @@ func (tr *patriciaMerkleTrie) getDbThatContainsHash(rootHash []byte) data.DBWrit
 	}
 
 	for i := range tr.snapshots {
-		_, err := tr.snapshots[i].Get(rootHash)
+		_, err = tr.snapshots[i].Get(rootHash)
 
 		hashPresent = err == nil
 		if hashPresent {
