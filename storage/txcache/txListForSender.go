@@ -19,6 +19,8 @@ func (list *TxListForSender) addTransaction(tx data.TransactionHandler) {
 	list.IsSorted = false
 }
 
+// todo: optimize this, don't use append perhaps()
+// todo: implement delete without memory leak: https://github.com/golang/go/wiki/SliceTricks
 func (list *TxListForSender) removeTransaction(tx data.TransactionHandler) {
 	index := list.findTx(tx)
 	list.Items = append(list.Items[:index], list.Items[index+1:]...)

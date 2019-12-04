@@ -1,8 +1,6 @@
 package txcache
 
 import (
-	"fmt"
-
 	cmap "github.com/ElrondNetwork/concurrent-map"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -15,7 +13,7 @@ type TxCache struct {
 
 // NewTxCache creates
 func NewTxCache(size int, shards int) *TxCache {
-	// todo: size and shards given differently.
+	// todo-fix: size and shards do not have to be the same (that's an arbitrary constraint)
 	txBySender := cmap.New(size, shards)
 	txByHash := cmap.New(size, shards)
 
@@ -40,6 +38,10 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) {
 	}
 
 	listForSender.addTransaction(tx)
+
+	// todo: implement eviction
+	// option 1: catch eviction event of cache.txByHash and remove the tx from the other collection as well
+	// option 2:
 }
 
 func (cache *TxCache) getListForSender(sender string) (*TxListForSender, bool) {
@@ -68,16 +70,23 @@ func (cache *TxCache) getTx(txHash string) (data.TransactionHandler, bool) {
 }
 
 // GetSorted gets
-// We do multiple passes in order to fill the result with sorted transactions
-// batchSizePerSender specifies how many transactions to copy for a sender in a pass
+//
+// We do multiple passes in order to fill the result with sorted transactions.
+// "batchSizePerSender" specifies how many transactions to copy for a sender in a pass.
+//
+// Sorting could be more efficiently implemented to sort up to "count" items (~15000),
+// by greedily yield transactions in a single pass, until "count" items are yielded.
+// But that would be unfair with respect to senders who won't get their transactions in the result.
+// todo: add a variant of GetSorted() which implements this efficient but unfair logic.
+// todo: also, for the second variant, add extra option to prioritize senders with higher total fees (this reduces spamming).
+// (keep sum of total fee per sender, increment on AddTx, decrement on remove & evict).
+// The second variant should be a fallback, if the first one isn't efficient enough.
 func (cache *TxCache) GetSorted(count int, batchSizePerSender int) []data.TransactionHandler {
 	result := make([]data.TransactionHandler, count)
 	resultFillIndex := 0
 	resultIsFull := false
 
 	for pass := 0; ; pass++ {
-		fmt.Println("Pass", pass, "fill index", resultFillIndex)
-
 		copiedInThisPass := 0
 
 		cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
@@ -102,6 +111,7 @@ func (cache *TxCache) GetSorted(count int, batchSizePerSender int) []data.Transa
 
 		nothingCopiedThisPass := copiedInThisPass == 0
 
+		// No more passes needed
 		if nothingCopiedThisPass || resultIsFull {
 			break
 		}
@@ -125,4 +135,5 @@ func (cache *TxCache) RemoveByTxHash(txHash []byte) {
 	}
 
 	listForSender.removeTransaction(tx)
+	// todo: also, if list becomes empty, remove it from the map.
 }
