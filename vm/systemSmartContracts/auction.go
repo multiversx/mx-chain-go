@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/big"
+	"math/rand"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -191,7 +192,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, args.CallValue)
-	if registrationData.TotalStakeValue.Cmp(config.MinStakeValue) != 0 || args.CallValue.Sign() <= 0 {
+	if registrationData.TotalStakeValue.Cmp(config.MinStakeValue) < 0 || args.CallValue.Sign() <= 0 {
 		return vmcommon.UserError
 	}
 
@@ -231,7 +232,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	registrationData.RewardAddress = args.CallerAddr
-	registrationData.MaxStakePerNode = registrationData.TotalStakeValue
+	registrationData.MaxStakePerNode = big.NewInt(0).Set(registrationData.TotalStakeValue)
 	registrationData.Epoch = s.eei.BlockChainHook().CurrentEpoch()
 
 	// do the optionals - rewardAddress and maxStakePerNode
@@ -548,6 +549,7 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 
 	totalQualifyingStake := big.NewFloat(0).SetInt(calcTotalQualifyingStake(nodePrice, bids))
 
+	toBeSelectedRandom := make(map[string]float64)
 	finalSelectedNodes := make([][]byte, 0)
 	for _, validator := range bids {
 		if validator.MaxStakePerNode.Cmp(nodePrice) < 0 {
@@ -563,18 +565,68 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 			qualifiedNodes = uint64(len(validator.BlsPubKeys))
 		}
 
-		proportionOfTotalStake := big.NewFloat(0).Quo(totalQualifyingStake, validatorQualifyingStake)
+		proportionOfTotalStake := big.NewFloat(0).Quo(validatorQualifyingStake, totalQualifyingStake)
 		proportion, _ := proportionOfTotalStake.Float64()
 		allocatedNodes := float64(qualifiedNodes) * proportion
 		numAllocatedNodes := uint64(allocatedNodes)
 		if allocatedNodes-float64(numAllocatedNodes) > 0.99 {
 			numAllocatedNodes += 1
+		} else {
+			selectorProp := allocatedNodes - float64(numAllocatedNodes)
+			toBeSelectedRandom[string(validator.BlsPubKeys[numAllocatedNodes])] = selectorProp
 		}
 
-		finalSelectedNodes = append(finalSelectedNodes, validator.BlsPubKeys[:numAllocatedNodes]...)
+		if numAllocatedNodes > 0 {
+			finalSelectedNodes = append(finalSelectedNodes, validator.BlsPubKeys[:numAllocatedNodes]...)
+		}
 	}
 
+	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
+	stillNeeded := uint32(0)
+	if config.NumNodes > uint32(len(finalSelectedNodes)) {
+		stillNeeded = config.NumNodes - uint32(len(finalSelectedNodes))
+	}
+
+	randomlySelected := s.selectRandomly(toBeSelectedRandom, stillNeeded)
+	finalSelectedNodes = append(finalSelectedNodes, randomlySelected...)
+
 	return finalSelectedNodes
+}
+
+func (s *stakingAuctionSC) selectRandomly(selectable map[string]float64, numNeeded uint32) [][]byte {
+	randomlySelected := make([][]byte, 0)
+	if numNeeded == 0 {
+		return randomlySelected
+	}
+
+	expandedList := make([]string, 0)
+	for key, proportion := range selectable {
+		expandVal := uint8(proportion)*10 + 1
+		for i := uint8(0); i < expandVal; i++ {
+			expandedList = append(expandedList, key)
+		}
+	}
+
+	random := s.eei.BlockChainHook().CurrentRandomSeed()
+	randomSeed := big.NewInt(0).SetBytes(random[:8])
+	rand.Seed(randomSeed.Int64())
+
+	rand.Shuffle(len(expandedList), func(i, j int) { expandedList[i], expandedList[j] = expandedList[j], expandedList[i] })
+
+	selectedKeys := make(map[string]struct{})
+	selected := uint32(0)
+	for i := 0; selected < numNeeded || i < len(expandedList); i++ {
+		if _, ok := selectedKeys[expandedList[i]]; !ok {
+			selected++
+			selectedKeys[expandedList[i]] = struct{}{}
+		}
+	}
+
+	for key := range selectedKeys {
+		randomlySelected = append(randomlySelected, []byte(key))
+	}
+
+	return randomlySelected
 }
 
 func calcTotalQualifyingStake(nodePrice *big.Int, bids []AuctionData) *big.Int {
