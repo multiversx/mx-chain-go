@@ -9,70 +9,89 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type testContext struct {
+	T     *testing.T
+	B     *testing.B
+	Cache *TxCache
+}
+
 func Test_AddTx(t *testing.T) {
-	cache := NewTxCache(1000, 16)
+	context := setupTestContext(t, nil)
+
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
 
-	cache.AddTx(txHash, tx)
-	foundTx, ok := cache.GetByTxHash(txHash)
+	context.Cache.AddTx(txHash, tx)
+	foundTx, ok := context.Cache.GetByTxHash(txHash)
 
 	assert.True(t, ok)
 	assert.Equal(t, tx, foundTx)
 }
 
 func Test_RemoveByTxHash(t *testing.T) {
-	cache := NewTxCache(1000, 16)
+	context := setupTestContext(t, nil)
+
 	txHash := []byte("hash-1")
 	tx := createTx("alice", 1)
 
-	cache.AddTx(txHash, tx)
-	cache.RemoveByTxHash(txHash)
-	foundTx, ok := cache.GetByTxHash(txHash)
+	context.Cache.AddTx(txHash, tx)
+	context.Cache.RemoveByTxHash(txHash)
+	foundTx, ok := context.Cache.GetByTxHash(txHash)
 
 	assert.False(t, ok)
 	assert.Nil(t, foundTx)
 }
 
 func Test_GetSorted(t *testing.T) {
-	cache := NewTxCache(1000, 16)
+	context := setupTestContext(t, nil)
 
 	tx1 := createTx("alice", 1)
 	tx2 := createTx("alice", 2)
 	tx3 := createTx("alice", 3)
 
-	cache.AddTx([]byte("hash-3"), tx3)
-	cache.AddTx([]byte("hash-2"), tx2)
-	cache.AddTx([]byte("hash-1"), tx1)
+	context.Cache.AddTx([]byte("hash-3"), tx3)
+	context.Cache.AddTx([]byte("hash-2"), tx2)
+	context.Cache.AddTx([]byte("hash-1"), tx1)
 
-	sorted := cache.GetSorted(math.MaxInt16, 2)
+	sorted := context.Cache.GetSorted(math.MaxInt16, 2)
 	assert.Len(t, sorted, 3)
 }
 
 func Benchmark_Add_Get_Remove_Many(b *testing.B) {
-	size := 250000
-	noTransactions := 10000
+	context := setupTestContext(nil, b)
 
-	cache := NewTxCache(size, 16)
+	noTransactions := 10000
 
 	for index := 0; index < noTransactions; index++ {
 		hash := fmt.Sprintf("hash%d", index)
 		tx := createTx("alice", uint64(index))
-		cache.AddTx([]byte(hash), tx)
+		context.Cache.AddTx([]byte(hash), tx)
 
-		foundTx, ok := cache.GetByTxHash([]byte(hash))
+		foundTx, ok := context.Cache.GetByTxHash([]byte(hash))
 		assert.True(b, ok)
 		assert.Equal(b, tx, foundTx)
 	}
 
 	for index := 0; index < noTransactions; index++ {
 		hash := fmt.Sprintf("hash%d", index)
-		cache.RemoveByTxHash([]byte(hash))
+		context.Cache.RemoveByTxHash([]byte(hash))
 
-		foundTx, ok := cache.GetByTxHash([]byte(hash))
+		foundTx, ok := context.Cache.GetByTxHash([]byte(hash))
 		assert.False(b, ok)
 		assert.Nil(b, foundTx)
 	}
+}
+
+func setupTestContext(t *testing.T, b *testing.B) *testContext {
+	cache := NewTxCache(250000, 16)
+
+	context := &testContext{
+		T:     t,
+		B:     b,
+		Cache: cache,
+	}
+
+	return context
 }
 
 func createTx(sender string, nonce uint64) *transaction.Transaction {
