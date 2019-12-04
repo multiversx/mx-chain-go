@@ -14,8 +14,8 @@ type ForkDetectorMock struct {
 	ResetProbableHighestNonceCalled       func()
 	ResetForkCalled                       func()
 	GetNotarizedHeaderHashCalled          func(nonce uint64) []byte
-	AddFinalHeadersCalled                 func(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte)
 	RestoreFinalCheckPointToGenesisCalled func()
+	AddFinalHeadersCalled                 func(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte)
 }
 
 func (fdm *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {

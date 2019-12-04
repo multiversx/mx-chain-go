@@ -13,7 +13,11 @@ import (
 func TestNewMetaForkDetector_NilRounderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	sfd, err := sync.NewMetaForkDetector(nil, &mock.BlackListHandlerStub{})
+	sfd, err := sync.NewMetaForkDetector(
+		nil,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerStub{},
+	)
 	assert.Nil(t, sfd)
 	assert.Equal(t, process.ErrNilRounder, err)
 }
@@ -21,15 +25,35 @@ func TestNewMetaForkDetector_NilRounderShouldErr(t *testing.T) {
 func TestNewMetaForkDetector_NilBlackListShouldErr(t *testing.T) {
 	t.Parallel()
 
-	sfd, err := sync.NewMetaForkDetector(&mock.RounderMock{}, nil)
+	sfd, err := sync.NewMetaForkDetector(
+		&mock.RounderMock{},
+		nil,
+		&mock.BlockTrackerStub{},
+	)
 	assert.Nil(t, sfd)
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
+}
+
+func TestNewMetaForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sfd, err := sync.NewMetaForkDetector(
+		&mock.RounderMock{},
+		&mock.BlackListHandlerStub{},
+		nil,
+	)
+	assert.Nil(t, sfd)
+	assert.Equal(t, process.ErrNilBlockTracker, err)
 }
 
 func TestNewMetaForkDetector_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	sfd, err := sync.NewMetaForkDetector(&mock.RounderMock{}, &mock.BlackListHandlerStub{})
+	sfd, err := sync.NewMetaForkDetector(
+		&mock.RounderMock{},
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerStub{},
+	)
 	assert.Nil(t, err)
 	assert.NotNil(t, sfd)
 
@@ -43,8 +67,8 @@ func TestMetaForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
-	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil, false)
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{})
+	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHeader, err)
 }
 
@@ -52,24 +76,9 @@ func TestMetaForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
-	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil, false)
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{})
+	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHash, err)
-}
-
-func TestMetaForkDetector_AddHeaderUnsignedBlockShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rounderMock := &mock.RounderMock{RoundIndex: 1}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
-	err := bfd.AddHeader(
-		&block.Header{Nonce: 1, Round: 1},
-		make([]byte, 0),
-		process.BHProcessed,
-		nil,
-		nil,
-		false)
-	assert.Equal(t, sync.ErrBlockIsNotSigned, err)
 }
 
 func TestMetaForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
@@ -78,9 +87,9 @@ func TestMetaForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 	hdr := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash := make([]byte, 0)
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{})
 
-	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil, false)
+	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(1)
@@ -96,10 +105,10 @@ func TestMetaForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 	hdr2 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	hash2 := []byte("hash2")
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{})
 
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil, false)
-	err := bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil, false)
+	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	err := bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(1)
@@ -114,8 +123,8 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *test
 	hdr1 := &block.Header{Nonce: 69, Round: 72, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
 	rounderMock := &mock.RounderMock{RoundIndex: 73}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
-	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil, false)
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{})
+	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
 }
 
@@ -126,10 +135,10 @@ func TestMetaForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 	hash := []byte("hash1")
 	hdr2 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
 	rounderMock := &mock.RounderMock{RoundIndex: 1}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{})
 
-	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil, false)
-	err := bfd.AddHeader(hdr2, hash, process.BHProcessed, nil, nil, false)
+	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
+	err := bfd.AddHeader(hdr2, hash, process.BHProcessed, nil, nil)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(1)
@@ -143,14 +152,13 @@ func TestMetaForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
-	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{})
+	bfd, _ := sync.NewMetaForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerStub{})
 	err := bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")},
 		[]byte("hash1"),
 		process.BHProcessed,
 		nil,
 		nil,
-		false,
 	)
 	assert.Equal(t, sync.ErrHigherNonceInBlock, err)
 }

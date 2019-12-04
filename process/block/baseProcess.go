@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -855,16 +856,6 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	return missingFinalityAttestingHeaders
-}
-
-func (bp *baseProcessor) isShardStuck(shardId uint32) bool {
-	header := bp.lastHdrForShard(shardId)
-	if check.IfNil(header) {
-		return false
-	}
-
-	isShardStuck := bp.rounder.Index()-int64(header.GetRound()) > process.MaxRoundsWithoutCommittedBlock
-	return isShardStuck
 }
 
 func (bp *baseProcessor) cleanupPools(

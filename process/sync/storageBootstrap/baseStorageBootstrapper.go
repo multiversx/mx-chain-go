@@ -289,7 +289,7 @@ func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, finalH
 		log.Debug("added final header", "nonce", finalHeader.GetNonce())
 	}
 
-	err = st.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes, false)
+	err = st.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
 	if err != nil {
 		return err
 	}
