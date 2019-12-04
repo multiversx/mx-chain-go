@@ -19,7 +19,7 @@ const (
 )
 
 func createDefaultRatingsData() *economics.RatingsData {
-	ratingValues := make(map[string]int32, 0)
+	ratingValues := make(map[string]int32)
 	ratingValues[validatorIncreaseRatingStep] = 1
 	ratingValues[validatorDecreaseRatingStep] = -2
 	ratingValues[proposerIncreaseRatingStepKey] = 3

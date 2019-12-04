@@ -416,7 +416,7 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 		}
 
 		if isBlockSigningRater {
-			newRating := uint32(1)
+			var newRating uint32
 			if isLeader {
 				newRating = blocksigningRater.ComputeIncreaseProposer(peerAcc.GetTempRating())
 			} else {
