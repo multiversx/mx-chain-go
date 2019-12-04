@@ -2294,10 +2294,19 @@ func newValidatorStatisticsProcessor(
 		peerDataPool = processComponents.data.Datapool
 	}
 
+	blsPublickKeyConfig := processComponents.coreComponents.config.BLSPublicKey
+	blsKeyedAddressConverter, err := addressConverters.NewPlainAddressConverter(
+		blsPublickKeyConfig.Length,
+		blsPublickKeyConfig.Prefix,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		InitialNodes:     initialNodes,
 		PeerAdapter:      processComponents.state.PeerAccounts,
-		AdrConv:          processComponents.state.AddressConverter,
+		AdrConv:          blsKeyedAddressConverter,
 		NodesCoordinator: processComponents.nodesCoordinator,
 		ShardCoordinator: processComponents.shardCoordinator,
 		DataPool:         peerDataPool,

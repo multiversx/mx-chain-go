@@ -194,7 +194,7 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		leaderPeerAcc, err := p.getPeerAccount(consensusGroup[0].Address())
+		leaderPeerAcc, err := p.getPeerAccount(consensusGroup[0].PubKey())
 		if err != nil {
 			return err
 		}
@@ -291,7 +291,7 @@ func (p *validatorStatistics) initializeNode(node *sharding.InitialNode, stakeVa
 }
 
 func (p *validatorStatistics) generatePeerAccount(node *sharding.InitialNode) (*state.PeerAccount, error) {
-	address, err := p.adrConv.CreateAddressFromHex(node.Address)
+	address, err := p.adrConv.CreateAddressFromHex(node.PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +340,7 @@ func (p *validatorStatistics) savePeerAccountData(
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, shardId uint32) error {
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := p.getPeerAccount(validatorList[i].Address())
+		peerAcc, err := p.getPeerAccount(validatorList[i].PubKey())
 		if err != nil {
 			return err
 		}
