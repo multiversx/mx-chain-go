@@ -1,0 +1,7 @@
+init
+totalSupply
+balanceOf
+allowance
+transferToken
+approve
+transferFrom
