@@ -137,8 +137,6 @@ type TestProcessorNode struct {
 	ResolverFinder        dataRetriever.ResolversFinder
 	RequestHandler        process.RequestHandler
 
-	BlockProcessorInitializer
-
 	InterimProcContainer   process.IntermediateProcessorContainer
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
@@ -153,7 +151,7 @@ type TestProcessorNode struct {
 	GasHandler             process.GasHandler
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	Rater                        sharding.Rater
+	Rater                        sharding.RaterHandler
 
 	ForkDetector        process.ForkDetector
 	BlockProcessor      process.BlockProcessor
@@ -206,8 +204,6 @@ func NewTestProcessorNode(
 		NodesCoordinator: nodesCoordinator,
 	}
 
-	tpn.BlockProcessorInitializer = &blockProcessorInitializer{InitBlockProcessorCalled: tpn.initBlockProcessor}
-
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
 		Pk: pk,
@@ -238,8 +234,6 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		Messenger:        messenger,
 		NodesCoordinator: nodesCoordinator,
 	}
-
-	tpn.BlockProcessorInitializer = &blockProcessorInitializer{InitBlockProcessorCalled: tpn.initBlockProcessor}
 
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
@@ -285,7 +279,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.MetaDataPool,
 		tpn.EconomicsData.EconomicsData,
 	)
-	tpn.BlockProcessorInitializer.InitBlockProcessor()
+	tpn.initBlockProcessor()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		tpn.Messenger,

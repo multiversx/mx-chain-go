@@ -13,12 +13,14 @@ type RatingsData struct {
 	ratingOptions map[string]int32
 }
 
+// NewRatingsData creates a new RatingsData instance
 func NewRatingsData(
 	startRating uint32,
 	minRating uint32,
 	maxRating uint32,
 	ratingType string,
-	ratingValues map[string]int32) (*RatingsData, error) {
+	ratingValues map[string]int32,
+) (*RatingsData, error) {
 	if minRating > maxRating {
 		return nil, process.ErrMaxRatingIsSmallerThanMinRating
 	}

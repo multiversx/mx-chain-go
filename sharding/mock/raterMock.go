@@ -21,6 +21,10 @@ func (rm *RaterMock) GetRatings([]string) map[string]uint32 {
 	return make(map[string]uint32)
 }
 
+func (rm *RaterMock) IsInterfaceNil() bool {
+	return false
+}
+
 func (rm *RaterMock) GetRatingOptionKeys() []string {
 	if rm.GetRatingOptionKeyCalled != nil {
 		return rm.GetRatingOptionKeyCalled()

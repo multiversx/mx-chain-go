@@ -38,8 +38,6 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		NodesCoordinator: nodesCoordinator,
 	}
 
-	tpn.BlockProcessorInitializer = &blockProcessorInitializer{InitBlockProcessorCalled: tpn.initBlockProcessor}
-
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	llsig := &kmultisig.KyberMultiSignerBLS{}
 	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}

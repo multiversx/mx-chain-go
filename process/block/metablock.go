@@ -279,8 +279,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	log.Debug("Validator stats root hash ", "validatorStatsRH", validatorStatsRH)
-
 	if !bytes.Equal(validatorStatsRH, header.GetValidatorStatsRootHash()) {
 		log.Debug("Validator stats root hash does not match", "validatorStatsRH", validatorStatsRH,
 			"headerValidatorStatsRH", header.GetValidatorStatsRootHash())
@@ -1467,8 +1465,6 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	if err != nil {
 		return err
 	}
-
-	log.Debug("Computed PeerStateRootHash ", "rootHash", core.ToHex(rootHash))
 
 	metaHdr.ValidatorStatsRootHash = rootHash
 

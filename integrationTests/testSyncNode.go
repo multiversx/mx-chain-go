@@ -45,8 +45,6 @@ func NewTestSyncNode(
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 	}
 
-	tpn.BlockProcessorInitializer = &blockProcessorInitializer{InitBlockProcessorCalled: tpn.initBlockProcessor}
-
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 	tpn.NodeKeys = &TestKeyPair{

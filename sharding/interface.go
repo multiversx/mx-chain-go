@@ -47,7 +47,7 @@ type PublicKeysSelector interface {
 	GetOwnPublicKey() []byte
 }
 
-type Rater interface {
+type RaterHandler interface {
 	RatingReader
 	//ComputeRating computes the current rating
 	ComputeRating(string, uint32) uint32
@@ -62,9 +62,13 @@ type RatingReader interface {
 	GetRating(string) uint32
 	//GetRatings gets all the ratings as a map[pk] ratingValue
 	GetRatings([]string) map[string]uint32
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
 }
 
 type RatingReaderSetter interface {
 	//GetRating gets the rating for the public key
 	SetRatingReader(RatingReader)
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
 }

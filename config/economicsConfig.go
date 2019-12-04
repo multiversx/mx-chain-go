@@ -37,6 +37,7 @@ type RatingSettings struct {
 	RatingValue []RatingValue
 }
 
+//RatingValue will hold different rating options with increase and decresea steps
 type RatingValue struct {
 	Name  string
 	Value int32

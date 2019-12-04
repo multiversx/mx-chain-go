@@ -3,6 +3,7 @@ package sharding
 import (
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 type indexHashedNodesCoordinatorWithRater struct {
@@ -11,7 +12,10 @@ type indexHashedNodesCoordinatorWithRater struct {
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
-func NewIndexHashedNodesCoordinatorWithRater(arguments ArgNodesCoordinator, rater RatingReader) (*indexHashedNodesCoordinatorWithRater,
+func NewIndexHashedNodesCoordinatorWithRater(
+	arguments ArgNodesCoordinator,
+	rater RatingReader,
+) (*indexHashedNodesCoordinatorWithRater,
 	error) {
 	indexNodesCoordinator, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -19,7 +23,7 @@ func NewIndexHashedNodesCoordinatorWithRater(arguments ArgNodesCoordinator, rate
 		return nil, err
 	}
 
-	if rater == nil {
+	if check.IfNil(rater) {
 		return nil, ErrNilRater
 	}
 
@@ -139,4 +143,8 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) GetValidatorsRewardsAddresses(
 	}
 
 	return addresses, nil
+}
+
+func (ihgs *indexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
+	return ihgs == nil
 }

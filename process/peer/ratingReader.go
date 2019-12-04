@@ -23,3 +23,7 @@ func (bsr *RatingReader) GetRatings(addresses []string) map[string]uint32 {
 	bsr.mutReader.Unlock()
 	return ratings
 }
+
+func (bsr *RatingReader) IsInterfaceNil() bool {
+	return bsr == nil
+}

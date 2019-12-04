@@ -7,6 +7,26 @@ type RaterMock struct {
 	RatingReader             RatingReader
 }
 
+func GetNewMockRater() *RaterMock {
+	return &RaterMock{
+		ComputeRatingCalled: func(s string, u uint32) uint32 {
+			return 1
+		},
+		GetRatingCalled: func(s string) uint32 {
+			return 1
+		},
+		GetRatingOptionKeyCalled: func() []string {
+			options := make([]string, 0)
+			options = append(options, "a")
+			options = append(options, "b")
+			options = append(options, "c")
+			options = append(options, "d")
+			return options
+		},
+		RatingReader: nil,
+	}
+}
+
 func (rm *RaterMock) ComputeRating(ratingOptionKey string, previousValue uint32) uint32 {
 	if rm.ComputeRatingCalled != nil {
 		return rm.ComputeRatingCalled(ratingOptionKey, previousValue)
@@ -36,6 +56,11 @@ func (rm *RaterMock) GetStartRating() uint32 {
 //SetRatingReader sets the Reader that can read ratings
 func (rm *RaterMock) SetRatingReader(reader RatingReader) {
 
+}
+
+//SetRatingReader sets the Reader that can read ratings
+func (rm *RaterMock) IsInterfaceNil() bool {
+	return false
 }
 
 type RatingReader interface {

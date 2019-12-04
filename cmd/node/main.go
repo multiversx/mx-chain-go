@@ -1008,7 +1008,7 @@ func createNodesCoordinator(
 	settingsConfig config.GeneralSettingsConfig,
 	pubKey crypto.PublicKey,
 	hasher hashing.Hasher,
-	rater sharding.Rater,
+	rater sharding.RaterHandler,
 ) (sharding.NodesCoordinator, error) {
 
 	shardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
@@ -1052,8 +1052,8 @@ func createNodesCoordinator(
 		Nodes:                   initValidators,
 		SelfPublicKey:           pubKeyBytes,
 	}
+
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(argumentsNodesCoordinator, rater)
-	//nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
 		return nil, err
 	}

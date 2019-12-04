@@ -2,7 +2,6 @@ package peer
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"math/big"
 	"sync"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -29,7 +29,7 @@ type ArgValidatorStatisticsProcessor struct {
 	StorageService   dataRetriever.StorageService
 	AdrConv          state.AddressConverter
 	PeerAdapter      state.AccountsAdapter
-	Rater            sharding.Rater
+	Rater            sharding.RaterHandler
 }
 
 type validatorStatistics struct {
@@ -43,7 +43,7 @@ type validatorStatistics struct {
 	prevShardInfo    map[string]block.ShardData
 	mutPrevShardInfo sync.RWMutex
 	mediator         shardMetaMediator
-	rater            sharding.Rater
+	rater            sharding.RaterHandler
 	initialNodes     []*sharding.InitialNode
 }
 
@@ -74,9 +74,6 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.StakeValue == nil {
 		return nil, process.ErrNilEconomicsData
 	}
-	//if arguments.Rater == nil {
-	//	return nil, process.ErrNilRater
-	//}
 
 	vs := &validatorStatistics{
 		peerAdapter:      arguments.PeerAdapter,
@@ -119,8 +116,11 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 }
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
-func (p *validatorStatistics) saveInitialState(in []*sharding.InitialNode, stakeValue *big.Int,
-	startRating uint32) error {
+func (p *validatorStatistics) saveInitialState(
+	in []*sharding.InitialNode,
+	stakeValue *big.Int,
+	startRating uint32,
+) error {
 	for _, node := range in {
 		err := p.initializeNode(node, stakeValue, startRating)
 		if err != nil {
@@ -133,7 +133,7 @@ func (p *validatorStatistics) saveInitialState(in []*sharding.InitialNode, stake
 		return err
 	}
 
-	log.Debug("Committed peer adapter", "Root hash", core.ToHex(hash))
+	log.Trace("Committed peer adapter", "Root hash", core.ToHex(hash))
 
 	return nil
 }
@@ -196,7 +196,7 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 
 	for _, node := range p.initialNodes {
 		address, _ := p.adrConv.CreateAddressFromHex(node.Address)
-		log.Debug("Ratings", "pk", node.Address, "tempRating", p.getTempRating(string(address.Bytes())))
+		log.Trace("Ratings", "pk", node.Address, "tempRating", p.getTempRating(string(address.Bytes())))
 	}
 
 	return p.peerAdapter.RootHash()
@@ -222,7 +222,8 @@ func (p *validatorStatistics) checkForMissedBlocks(
 		return nil
 	}
 
-	proposerDecreaseOption := p.rater.GetRatingOptionKeys()[2]
+	blocksigningRater, isBlockSigningRater := p.rater.(BlockSigningRaterHandler)
+
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
 		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
 		if err != nil {
@@ -239,13 +240,13 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		newRating := p.rater.ComputeRating(proposerDecreaseOption, leaderPeerAcc.GetTempRating())
-		err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
-
-		if err != nil {
-			return err
+		if isBlockSigningRater {
+			newRating := blocksigningRater.ComputeDecreaseProposer(leaderPeerAcc.GetTempRating())
+			err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
+			if err != nil {
+				return err
+			}
 		}
-
 	}
 
 	return nil
@@ -394,6 +395,7 @@ func (p *validatorStatistics) savePeerAccountData(
 
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator) error {
 	lenValidators := len(validatorList)
+	blocksigningRater, isBlockSigningRater := p.rater.(BlockSigningRaterHandler)
 	for i := 0; i < lenValidators; i++ {
 		address := validatorList[i].Address()
 		peerAcc, err := p.getPeerAccount(address)
@@ -402,24 +404,28 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 		}
 
 		isLeader := i == 0
-		ratingOption := ""
 		if isLeader {
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
-			ratingOption = p.rater.GetRatingOptionKeys()[0]
+
 		} else {
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
-			ratingOption = p.rater.GetRatingOptionKeys()[1]
 		}
 
 		if err != nil {
 			return err
 		}
 
-		newRating := p.rater.ComputeRating(ratingOption, peerAcc.GetTempRating())
-		err = peerAcc.SetTempRatingWithJournal(newRating)
-
-		if err != nil {
-			return err
+		if isBlockSigningRater {
+			newRating := uint32(1)
+			if isLeader {
+				newRating = blocksigningRater.ComputeIncreaseProposer(peerAcc.GetTempRating())
+			} else {
+				newRating = blocksigningRater.ComputeIncreaseValidator(peerAcc.GetTempRating())
+			}
+			err = peerAcc.SetTempRatingWithJournal(newRating)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -593,14 +599,12 @@ func (p *validatorStatistics) IsInterfaceNil() bool {
 }
 
 func (vs *validatorStatistics) getRating(s string) uint32 {
-	//log.Debug("Asked for rating for peer", "pk:", core.ToHex([]byte(s)))
 	peer, err := vs.getPeerAccount([]byte(s))
 
 	if err != nil {
 		log.Debug("Error getting peer account", "error", err)
 	}
 
-	//log.Debug("Got rating for peer", "pk:", core.ToHex([]byte(s)), "rating: ", peer.GetRating())
 	return peer.GetRating()
 }
 

@@ -466,7 +466,7 @@ type processComponentsFactoryArgs struct {
 	state                *State
 	network              *Network
 	coreServiceContainer serviceContainer.Core
-	rater                sharding.Rater
+	rater                sharding.RaterHandler
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -485,7 +485,7 @@ func NewProcessComponentsFactoryArgs(
 	state *State,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
-	rater sharding.Rater,
+	rater sharding.RaterHandler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:       coreComponents,
@@ -2507,10 +2507,10 @@ func getSk(
 	return decodeAddress(string(encodedSk))
 }
 
-func GetRater(ratingsData *economics.RatingsData) (sharding.Rater, error) {
+func GetRater(ratingsData *economics.RatingsData) (sharding.RaterHandler, error) {
 	switch ratingsData.RatingType() {
 	case "BlockSigningRater":
 		return rating.NewBlockSigningRater(ratingsData)
 	}
-	return nil, errors.New("Rater type not supported")
+	return nil, errors.New("RaterHandler type not supported")
 }
