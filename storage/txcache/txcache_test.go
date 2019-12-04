@@ -45,7 +45,7 @@ func Test_GetSorted(t *testing.T) {
 	cache.AddTx([]byte("hash-2"), tx2)
 	cache.AddTx([]byte("hash-1"), tx1)
 
-	sorted := cache.GetSorted(math.MaxInt16)
+	sorted := cache.GetSorted(math.MaxInt16, 2)
 	assert.Len(t, sorted, 3)
 }
 

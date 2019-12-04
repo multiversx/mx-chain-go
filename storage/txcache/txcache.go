@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"fmt"
 	"sort"
 
 	cmap "github.com/ElrondNetwork/concurrent-map"
@@ -58,7 +59,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (data.TransactionHandler, bool)
 }
 
 func (cache *TxCache) getTx(txHash string) (data.TransactionHandler, bool) {
-	txUntyped, ok := cache.txByHash.Get(string(txHash))
+	txUntyped, ok := cache.txByHash.Get(txHash)
 	if !ok {
 		return nil, false
 	}
@@ -68,26 +69,44 @@ func (cache *TxCache) getTx(txHash string) (data.TransactionHandler, bool) {
 }
 
 // GetSorted gets
-func (cache *TxCache) GetSorted(count int) []data.TransactionHandler {
+// We do multiple passes in order to fill the result with sorted transactions
+// batchSizePerSender specifies how many transactions to copy for a sender in a pass
+func (cache *TxCache) GetSorted(count int, batchSizePerSender int) []data.TransactionHandler {
 	result := make([]data.TransactionHandler, count)
 	resultFillIndex := 0
 	resultIsFull := false
 
-	cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
-		if resultIsFull {
-			return
-		}
+	for pass := 0; ; pass++ {
+		fmt.Println("Pass", pass, "fill index", resultFillIndex)
 
-		txList := txListUntyped.(*TxListForSender)
-		txList.sortTransactions()
+		copiedInThisPass := 0
 
-		copied := copy(result[resultFillIndex:], txList.Items[:])
-		if copied == 0 {
-			resultIsFull = true
-		} else {
+		cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
+			if resultIsFull {
+				return
+			}
+
+			txList := txListUntyped.(*TxListForSender)
+
+			// Do this on first pass only
+			if pass == 0 {
+				txList.sortTransactions()
+				txList.restartBatchCopying(batchSizePerSender)
+			}
+
+			copied := txList.copyBatchTo(result[resultFillIndex:])
+
 			resultFillIndex += copied
+			copiedInThisPass += copied
+			resultIsFull = resultFillIndex == count
+		})
+
+		nothingCopiedThisPass := copiedInThisPass == 0
+
+		if nothingCopiedThisPass || resultIsFull {
+			break
 		}
-	})
+	}
 
 	return result[:resultFillIndex]
 }
@@ -111,11 +130,15 @@ func (cache *TxCache) RemoveByTxHash(txHash []byte) {
 
 // TxListForSender is
 type TxListForSender struct {
-	Items []data.TransactionHandler
+	IsSorted       bool
+	CopyBatchIndex int
+	CopyBatchSize  int
+	Items          []data.TransactionHandler
 }
 
 func (list *TxListForSender) addTransaction(tx data.TransactionHandler) {
 	list.Items = append(list.Items, tx)
+	list.IsSorted = false
 }
 
 func (list *TxListForSender) removeTransaction(tx data.TransactionHandler) {
@@ -134,9 +157,39 @@ func (list *TxListForSender) findTx(tx data.TransactionHandler) int {
 }
 
 func (list *TxListForSender) sortTransactions() {
+	if list.IsSorted {
+		return
+	}
+
 	items := list.Items
 
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].GetNonce() < items[j].GetNonce()
 	})
+
+	list.IsSorted = true
+}
+
+func (list *TxListForSender) restartBatchCopying(batchSize int) {
+	list.CopyBatchIndex = 0
+	list.CopyBatchSize = batchSize
+}
+
+func (list *TxListForSender) copyBatchTo(destination []data.TransactionHandler) int {
+	length := len(list.Items)
+	index := list.CopyBatchIndex
+
+	if index == length {
+		return 0
+	}
+
+	batchEnd := index + list.CopyBatchSize
+
+	if batchEnd > length {
+		batchEnd = length
+	}
+
+	copied := copy(destination, list.Items[index:batchEnd])
+	list.CopyBatchIndex += copied
+	return copied
 }
