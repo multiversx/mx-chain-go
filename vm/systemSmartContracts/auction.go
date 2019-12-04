@@ -42,16 +42,15 @@ type AuctionConfig struct {
 
 type stakingAuctionSC struct {
 	eei           vm.SystemEI
-	minStakeValue *big.Int
-	totalSupply   *big.Int
 	unBoundPeriod uint64
-	numNodes      uint32
 	kg            crypto.KeyGenerator
+	baseConfig    AuctionConfig
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
 func NewStakingAuctionSmartContract(
 	minStakeValue *big.Int,
+	minStepValue *big.Int,
 	totalSupply *big.Int,
 	unBoundPeriod uint64,
 	numNodes uint32,
@@ -68,13 +67,19 @@ func NewStakingAuctionSmartContract(
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
 
+	baseConfig := AuctionConfig{
+		MinStakeValue: minStakeValue,
+		NumNodes:      numNodes,
+		TotalSupply:   totalSupply,
+		MinStep:       minStepValue,
+		NodePrice:     big.NewInt(0).Set(minStakeValue),
+	}
+
 	reg := &stakingAuctionSC{
-		minStakeValue: big.NewInt(0).Set(minStakeValue),
 		eei:           eei,
 		unBoundPeriod: unBoundPeriod,
-		numNodes:      numNodes,
 		kg:            kg,
-		totalSupply:   big.NewInt(0).Set(totalSupply),
+		baseConfig:    baseConfig,
 	}
 	return reg, nil
 }
@@ -117,18 +122,63 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 }
 
 func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
+	if !bytes.Equal(ownerAddress, args.CallerAddr) {
+		log.Debug("setConfig function called by not the owners address")
+		return vmcommon.UserError
+	}
+
+	if len(args.Arguments) != 6 {
+		log.Debug("setConfig function called with wrong number of arguments")
+		return vmcommon.UserError
+	}
+
+	config := AuctionConfig{
+		MinStakeValue: big.NewInt(0).SetBytes(args.Arguments[0]),
+		NumNodes:      uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()),
+		TotalSupply:   big.NewInt(0).SetBytes(args.Arguments[2]),
+		MinStep:       big.NewInt(0).SetBytes(args.Arguments[3]),
+		NodePrice:     big.NewInt(0).SetBytes(args.Arguments[4]),
+	}
+
+	configData, err := json.Marshal(config)
+	if err != nil {
+		log.Debug("setConfig marshall config error")
+		return vmcommon.UserError
+	}
+
+	s.eei.SetStorage(args.Arguments[5], configData)
+
 	return vmcommon.Ok
 }
 
 func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
-	return AuctionConfig{
-		MinStakeValue: s.minStakeValue,
-		NumNodes:      s.numNodes,
-		TotalSupply:   s.totalSupply,
+	epochKey := big.NewInt(int64(epoch)).Bytes()
+	configData := s.eei.GetStorage(epochKey)
+	if len(configData) == 0 {
+		return s.baseConfig
 	}
+
+	config := AuctionConfig{}
+	err := json.Unmarshal(configData, &config)
+	if err != nil {
+		log.Debug("unmarshal error on staking SC stake function",
+			"error", err.Error(),
+		)
+		return s.baseConfig
+	}
+
+	return config
 }
 
 func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
+	if ownerAddress != nil {
+		log.Error("smart contract was already initialized")
+		return vmcommon.UserError
+	}
+
+	s.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	return vmcommon.Ok
 }
 
