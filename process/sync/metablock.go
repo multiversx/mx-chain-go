@@ -95,7 +95,7 @@ func NewMetaBootstrap(
 		bootStorer:            bootStorer,
 		storageBootstrapper:   storageBootstrapper,
 		requestedItemsHandler: requestedItemsHandler,
-		miniBlocks:          poolsHolder.MiniBlocks(),
+		miniBlocks:            poolsHolder.MiniBlocks(),
 	}
 
 	boot := MetaBootstrap{
@@ -405,6 +405,8 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint3
 		return
 	}
 
+	boot.requestedItemsHandler.Sweep()
+
 	hashes := make([][]byte, len(header.MiniBlockHeaders))
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
 		hashes[i] = header.MiniBlockHeaders[i].Hash
@@ -416,6 +418,13 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint3
 		if err != nil {
 			log.Debug("RequestDataFromHashArray", "error", err.Error())
 			return
+		}
+
+		for _, hash := range missingMiniBlocksHashes {
+			err = boot.requestedItemsHandler.Add(string(hash))
+			if err != nil {
+				log.Trace("add requested item with error", "error", err.Error())
+			}
 		}
 
 		log.Trace("requested in advance mini blocks",
