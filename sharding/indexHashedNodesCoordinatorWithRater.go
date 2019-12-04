@@ -5,7 +5,7 @@ import (
 )
 
 type indexHashedNodesCoordinatorWithRater struct {
-	indexHashedNodesCoordinator
+	*indexHashedNodesCoordinator
 	RatingReader
 }
 
@@ -26,7 +26,7 @@ func NewIndexHashedNodesCoordinatorWithRater(
 	}
 
 	ihncr := &indexHashedNodesCoordinatorWithRater{
-		indexHashedNodesCoordinator: *indexNodesCoordinator,
+		indexHashedNodesCoordinator: indexNodesCoordinator,
 		RatingReader:                rater,
 	}
 
