@@ -22,7 +22,7 @@ func (am *AuthMessage) Save(w io.Writer) error {
 	return err
 }
 
-// Load loads the data from the stream into a log line message object through Capnp protocol
+// Load loads the data from the stream into an authentication message object through Capnp protocol
 func (am *AuthMessage) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {

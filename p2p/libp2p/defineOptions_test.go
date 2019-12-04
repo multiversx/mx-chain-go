@@ -48,14 +48,14 @@ func createStubMessengerForDefineOptions(notifeeCalled func(), setStreamHandlerC
 }
 
 func createStubMessengerFailingIfTriggered(t *testing.T) *networkMessenger {
-	return createStubMessengerForDefineOptions(
-		func() {
-			assert.Fail(t, "should have not called Notify")
-		},
-		func() {
-			assert.Fail(t, "should have not called SetStreamHandler")
-		},
-	)
+	notifeeCalled := func() {
+		assert.Fail(t, "should have not called Notify")
+	}
+	setStreamHandlerCalled := func() {
+		assert.Fail(t, "should have not called SetStreamHandler")
+	}
+
+	return createStubMessengerForDefineOptions(notifeeCalled, setStreamHandlerCalled)
 }
 
 //------- WithAuthentication

@@ -27,14 +27,14 @@ type identityProvider struct {
 // NewIdentityProvider creates a wrapper over libp2p's network.Notifiee implementation
 // that is able to do a supplemental authentication against each peer connected
 func NewIdentityProvider(
-	h host.Host,
+	host host.Host,
 	networkShardingCollector p2p.NetworkShardingCollector,
 	signerVerifier p2p.SignerVerifier,
 	marshalizer p2p.Marshalizer,
 	receiveTimeout time.Duration,
 ) (*identityProvider, error) {
 
-	if h == nil {
+	if host == nil {
 		return nil, p2p.ErrNilHost
 	}
 	if check.IfNil(networkShardingCollector) {
@@ -48,7 +48,7 @@ func NewIdentityProvider(
 	}
 
 	ip := &identityProvider{
-		host:                     h,
+		host:                     host,
 		networkShardingCollector: networkShardingCollector,
 		signerVerifier:           signerVerifier,
 		marshalizer:              marshalizer,
