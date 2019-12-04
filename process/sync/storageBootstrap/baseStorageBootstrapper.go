@@ -48,7 +48,7 @@ type storageBootstrapper struct {
 
 func (st *storageBootstrapper) loadBlocks() error {
 	var err error
-	var headerInfo bootstrapStorage.BootstrapData
+	var lastHeader bootstrapStorage.BootstrapData
 
 	round := st.bootStorer.GetHighestRound()
 	storageHeadersInfo := make([]bootstrapStorage.BootstrapData, 0)
@@ -56,32 +56,32 @@ func (st *storageBootstrapper) loadBlocks() error {
 	log.Debug("Load blocks started...")
 
 	for {
-		headerInfo, err = st.bootStorer.Get(round)
+		lastHeader, err = st.bootStorer.Get(round)
 		if err != nil {
 			break
 		}
-		storageHeadersInfo = append(storageHeadersInfo, headerInfo)
+		storageHeadersInfo = append(storageHeadersInfo, lastHeader)
 
 		if uint64(round) > st.bootstrapRoundIndex {
-			round = headerInfo.LastRound
+			round = lastHeader.LastRound
 			continue
 		}
 
-		err = st.applyHeaderInfo(headerInfo)
+		err = st.applyHeaderInfo(lastHeader)
 		if err != nil {
-			round = headerInfo.LastRound
+			round = lastHeader.LastRound
 			continue
 		}
 
-		bootInfos, err := st.getBootInfos(headerInfo)
+		bootInfos, err := st.getBootInfos(lastHeader)
 		if err != nil {
-			round = headerInfo.LastRound
+			round = lastHeader.LastRound
 			continue
 		}
 
 		err = st.applyBootInfos(bootInfos)
 		if err != nil {
-			round = headerInfo.LastRound
+			round = lastHeader.LastRound
 			continue
 		}
 
@@ -93,7 +93,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
-	processedMiniBlocks := process.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
+	processedMiniBlocks := process.ConvertSliceToProcessedMiniBlocksMap(lastHeader.ProcessedMiniBlocks)
 	st.displayProcessedMiniBlocks(processedMiniBlocks)
 
 	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
@@ -108,7 +108,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
-	st.highestNonce = headerInfo.HeaderInfo.Nonce
+	st.highestNonce = lastHeader.HeaderInfo.Nonce
 
 	return nil
 }

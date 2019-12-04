@@ -126,7 +126,7 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 		return
 	}
 
-	valueFromMap := getUint64(valueFromMapI)
+	valueFromMap := GetUint64(valueFromMapI)
 	if value < valueFromMap {
 		return
 	}
@@ -193,8 +193,5 @@ func (psh *PersistentStatusHandler) Close() {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (psh *PersistentStatusHandler) IsInterfaceNil() bool {
-	if psh == nil {
-		return true
-	}
-	return false
+	return psh == nil
 }

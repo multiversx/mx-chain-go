@@ -30,7 +30,7 @@ type ArgStatusHandlers struct {
 	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 }
 
-// StatusHandlersInfo is a struct
+// StatusHandlersInfo is struct that store all components that are returned when status handlers are created
 type statusHandlersInfo struct {
 	PrometheusJoinUrl        string
 	UsePrometheus            bool
@@ -77,7 +77,6 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 
 	useTermui := !arguments.Ctx.GlobalBool(arguments.LogViewName)
 	if useTermui {
-
 		views, err = createViews(presenterStatusHandler)
 		if err != nil {
 			return nil, err
@@ -147,9 +146,9 @@ func getPrometheusJoinURLIfAvailable(ctx *cli.Context, serversConfigurationFileN
 	if err != nil || prometheusJoinUrl == "" {
 		prometheusURLAvailable = false
 	}
-	usePrometheusBool := ctx.GlobalBool(userPrometheusName) && prometheusURLAvailable
+	usePrometheus := ctx.GlobalBool(userPrometheusName) && prometheusURLAvailable
 
-	return prometheusJoinUrl, usePrometheusBool
+	return prometheusJoinUrl, usePrometheus
 }
 
 func getPrometheusJoinURL(serversConfigurationFileName string) (string, error) {

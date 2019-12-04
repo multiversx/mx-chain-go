@@ -126,7 +126,7 @@
 
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
-        Size = 10000
+        Size = 1000
         Type = "LRU"
     [StatusMetricsStorage.DB]
         FilePath = "StatusMetricsStorageDB"

@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 )
 
 func updateMetricsFromStorage(
@@ -81,21 +82,12 @@ func prepareMetricMaps(metricsMap map[string]interface{}) (map[string]uint64, ma
 	uint64Map := make(map[string]uint64)
 	stringMap := make(map[string]string)
 
-	uint64Map[core.MetricCountConsensus] = getUint64(metricsMap[core.MetricCountConsensus])
-	uint64Map[core.MetricCountConsensusAcceptedBlocks] = getUint64(metricsMap[core.MetricCountConsensusAcceptedBlocks])
-	uint64Map[core.MetricCountAcceptedBlocks] = getUint64(metricsMap[core.MetricCountAcceptedBlocks])
-	uint64Map[core.MetricCountLeader] = getUint64(metricsMap[core.MetricCountLeader])
-	uint64Map[core.MetricNumProcessedTxs] = getUint64(metricsMap[core.MetricNumProcessedTxs])
-	uint64Map[core.MetricNumShardHeadersProcessed] = getUint64(metricsMap[core.MetricNumShardHeadersProcessed])
+	uint64Map[core.MetricCountConsensus] = persister.GetUint64(metricsMap[core.MetricCountConsensus])
+	uint64Map[core.MetricCountConsensusAcceptedBlocks] = persister.GetUint64(metricsMap[core.MetricCountConsensusAcceptedBlocks])
+	uint64Map[core.MetricCountAcceptedBlocks] = persister.GetUint64(metricsMap[core.MetricCountAcceptedBlocks])
+	uint64Map[core.MetricCountLeader] = persister.GetUint64(metricsMap[core.MetricCountLeader])
+	uint64Map[core.MetricNumProcessedTxs] = persister.GetUint64(metricsMap[core.MetricNumProcessedTxs])
+	uint64Map[core.MetricNumShardHeadersProcessed] = persister.GetUint64(metricsMap[core.MetricNumShardHeadersProcessed])
 
 	return uint64Map, stringMap
-}
-
-func getUint64(data interface{}) uint64 {
-	value, ok := data.(float64)
-	if !ok {
-		return 0
-	}
-
-	return uint64(value)
 }

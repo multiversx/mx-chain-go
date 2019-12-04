@@ -32,8 +32,5 @@ func (ns *nilStorer) DestroyUnit() error {
 }
 
 func (ns *nilStorer) IsInterfaceNil() bool {
-	if ns == nil {
-		return true
-	}
-	return false
+	return ns == nil
 }
