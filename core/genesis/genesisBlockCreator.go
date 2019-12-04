@@ -36,6 +36,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 	addrConv state.AddressConverter,
 	initialBalances map[string]*big.Int,
 	genesisTime uint64,
+	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
 	if accounts == nil || accounts.IsInterfaceNil() {
@@ -62,14 +63,15 @@ func CreateShardGenesisBlockFromInitialBalances(
 	}
 
 	header := &block.Header{
-		Nonce:         0,
-		ShardId:       shardCoordinator.SelfId(),
-		BlockBodyType: block.StateBlock,
-		Signature:     rootHash,
-		RootHash:      rootHash,
-		PrevRandSeed:  rootHash,
-		RandSeed:      rootHash,
-		TimeStamp:     genesisTime,
+		Nonce:                  0,
+		ShardId:                shardCoordinator.SelfId(),
+		BlockBodyType:          block.StateBlock,
+		Signature:              rootHash,
+		RootHash:               rootHash,
+		PrevRandSeed:           rootHash,
+		RandSeed:               rootHash,
+		TimeStamp:              genesisTime,
+		ValidatorStatsRootHash: validatorStatsRootHash,
 	}
 
 	return header, err
@@ -89,6 +91,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	MetaDatapool             dataRetriever.MetaPoolsHolder
+	ValidatorStatsRootHash   []byte
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -166,10 +169,11 @@ func CreateMetaGenesisBlock(
 	}
 
 	header := &block.MetaBlock{
-		RootHash:     rootHash,
-		PrevHash:     rootHash,
-		RandSeed:     rootHash,
-		PrevRandSeed: rootHash,
+		RootHash:               rootHash,
+		PrevHash:               rootHash,
+		RandSeed:               rootHash,
+		PrevRandSeed:           rootHash,
+		ValidatorStatsRootHash: args.ValidatorStatsRootHash,
 	}
 	header.SetTimeStamp(args.GenesisTime)
 

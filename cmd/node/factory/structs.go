@@ -550,6 +550,13 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
+	if err != nil {
+		return nil, err
+	}
+	validatorStatisticsRootHash, _ := validatorStatisticsProcessor.RootHash()
+	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatisticsRootHash)
+
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
 		args.core,
 		args.state,
@@ -581,6 +588,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		genesisBlocks,
 		rounder,
 		bootStorer,
+		validatorStatisticsProcessor,
 	)
 	if err != nil {
 		return nil, err
@@ -1540,7 +1548,10 @@ func generateGenesisHeadersAndApplyInitialBalances(
 	// the genesis of each of the shards (this is actually the same thing that would happen at new epoch start)."
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
-
+	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
+	if err != nil {
+		return nil, err
+	}
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		isCurrentShard := shardId == shardCoordinator.SelfId()
 		if isCurrentShard {
@@ -1562,11 +1573,11 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			stateComponents.AddressConverter,
 			genesisConfig,
 			uint64(nodesSetup.StartTime),
+			validatorStatsRootHash,
 		)
 		if err != nil {
 			return nil, err
 		}
-
 		genesisBlocks[shardId] = genesisBlock
 	}
 
@@ -1577,6 +1588,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 			stateComponents.AddressConverter,
 			genesisConfig,
 			uint64(nodesSetup.StartTime),
+			validatorStatsRootHash,
 		)
 		if err != nil {
 			return nil, err
@@ -1598,6 +1610,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		MetaDatapool:             dataComponents.MetaDatapool,
 		Economics:                economics,
+		ValidatorStatsRootHash:   validatorStatsRootHash,
 	}
 
 	if shardCoordinator.SelfId() != sharding.MetachainShardId {
@@ -1628,6 +1641,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 
 	log.Debug("MetaGenesisBlock created",
 		"roothash", genesisBlock.GetRootHash(),
+		"validatorStatsRootHash", genesisBlock.GetValidatorStatsRootHash(),
 	)
 	genesisBlocks[sharding.MetachainShardId] = genesisBlock
 
@@ -1673,6 +1687,7 @@ func createGenesisBlockAndApplyInitialBalances(
 	addressConverter state.AddressConverter,
 	genesisConfig *sharding.Genesis,
 	startTime uint64,
+	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
 	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
@@ -1686,6 +1701,7 @@ func createGenesisBlockAndApplyInitialBalances(
 		addressConverter,
 		initialBalances,
 		startTime,
+		validatorStatsRootHash,
 	)
 }
 
@@ -1739,6 +1755,7 @@ func newBlockProcessor(
 	genesisBlocks map[uint32]data.HeaderHandler,
 	rounder consensus.Rounder,
 	bootStorer process.BootStorer,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1767,11 +1784,6 @@ func newBlockProcessor(
 		shardCoordinator,
 		nodesCoordinator,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(processArgs)
 	if err != nil {
 		return nil, err
 	}
