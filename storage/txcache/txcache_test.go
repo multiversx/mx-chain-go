@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
@@ -46,6 +47,32 @@ func Test_GetSorted(t *testing.T) {
 
 	sorted := cache.GetSorted(math.MaxInt16)
 	assert.Len(t, sorted, 3)
+}
+
+func Benchmark_Add_Get_Remove_Many(b *testing.B) {
+	size := 250000
+	noTransactions := 10000
+
+	cache := NewTxCache(size, 16)
+
+	for index := 0; index < noTransactions; index++ {
+		hash := fmt.Sprintf("hash%d", index)
+		tx := createTx("alice", uint64(index))
+		cache.AddTx([]byte(hash), tx)
+
+		foundTx, ok := cache.GetByTxHash([]byte(hash))
+		assert.True(b, ok)
+		assert.Equal(b, tx, foundTx)
+	}
+
+	for index := 0; index < noTransactions; index++ {
+		hash := fmt.Sprintf("hash%d", index)
+		cache.RemoveByTxHash([]byte(hash))
+
+		foundTx, ok := cache.GetByTxHash([]byte(hash))
+		assert.False(b, ok)
+		assert.Nil(b, foundTx)
+	}
 }
 
 func createTx(sender string, nonce uint64) *transaction.Transaction {
