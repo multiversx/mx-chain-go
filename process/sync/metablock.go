@@ -407,9 +407,13 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(_ uint3
 
 	boot.requestedItemsHandler.Sweep()
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	hashes := make([][]byte, 0)
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
+		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
+			continue
+		}
+
+		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
