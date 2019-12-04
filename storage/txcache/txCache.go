@@ -81,8 +81,8 @@ func (cache *TxCache) getTx(txHash string) (data.TransactionHandler, bool) {
 // todo: also, for the second variant, add extra option to prioritize senders with higher total fees (this reduces spamming).
 // (keep sum of total fee per sender, increment on AddTx, decrement on remove & evict).
 // The second variant should be a fallback, if the first one isn't efficient enough.
-func (cache *TxCache) GetSorted(count int, batchSizePerSender int) []data.TransactionHandler {
-	result := make([]data.TransactionHandler, count)
+func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []data.TransactionHandler {
+	result := make([]data.TransactionHandler, noRequested)
 	resultFillIndex := 0
 	resultIsFull := false
 
@@ -106,7 +106,7 @@ func (cache *TxCache) GetSorted(count int, batchSizePerSender int) []data.Transa
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
-			resultIsFull = resultFillIndex == count
+			resultIsFull = resultFillIndex == noRequested
 		})
 
 		nothingCopiedThisPass := copiedInThisPass == 0
@@ -136,4 +136,16 @@ func (cache *TxCache) RemoveByTxHash(txHash []byte) {
 
 	listForSender.removeTransaction(tx)
 	// todo: also, if list becomes empty, remove it from the map.
+}
+
+// CountTx counts
+func (cache *TxCache) CountTx() int {
+	count := 0
+
+	cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
+		txList := txListUntyped.(*TxListForSender)
+		count += len(txList.Items)
+	})
+
+	return count
 }

@@ -45,16 +45,41 @@ func Test_RemoveByTxHash(t *testing.T) {
 func Test_GetSorted(t *testing.T) {
 	context := setupTestContext(t, nil)
 
-	tx1 := createTx("alice", 1)
-	tx2 := createTx("alice", 2)
-	tx3 := createTx("alice", 3)
+	// For "noSenders" senders, add "noTransactions" transactions,
+	// in reversed-nonce order.
+	// Total of "noSenders" * "noTransactions" transactions in the cache.
+	noSenders := 1000
+	noTransactionsPerSender := 1000
+	noTotalTransactions := noSenders * noTransactionsPerSender
+	noRequestedTransactions := math.MaxInt16
 
-	context.Cache.AddTx([]byte("hash-3"), tx3)
-	context.Cache.AddTx([]byte("hash-2"), tx2)
-	context.Cache.AddTx([]byte("hash-1"), tx1)
+	// todo: measure AddTx()
+	for senderTag := 0; senderTag < noSenders; senderTag++ {
+		sender := fmt.Sprintf("sender%d", senderTag)
 
-	sorted := context.Cache.GetSorted(math.MaxInt16, 2)
-	assert.Len(t, sorted, 3)
+		for txNonce := noTransactionsPerSender; txNonce > 0; txNonce-- {
+			txHash := fmt.Sprintf("hash%d%d", senderTag, txNonce)
+			tx := createTx(sender, uint64(txNonce))
+			context.Cache.AddTx([]byte(txHash), tx)
+		}
+	}
+
+	assert.Equal(t, noTotalTransactions, context.Cache.CountTx())
+
+	sorted := context.Cache.GetSorted(noRequestedTransactions, 2)
+
+	assert.Len(t, sorted, min(noRequestedTransactions, noTotalTransactions))
+
+	// Check order
+	nonces := make(map[string]uint64, noSenders)
+	for _, tx := range sorted {
+		nonce := tx.GetNonce()
+		sender := string(tx.GetSndAddress())
+		previousNonce := nonces[sender]
+
+		assert.LessOrEqual(t, previousNonce, nonce)
+		nonces[sender] = nonce
+	}
 }
 
 func Benchmark_Add_Get_Remove_Many(b *testing.B) {
@@ -99,4 +124,12 @@ func createTx(sender string, nonce uint64) *transaction.Transaction {
 		SndAddr: []byte(sender),
 		Nonce:   nonce,
 	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
 }
