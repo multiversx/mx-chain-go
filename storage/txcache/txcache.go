@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"sort"
+
 	cmap "github.com/ElrondNetwork/concurrent-map"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -66,7 +68,16 @@ func (cache *TxCache) getTx(txHash string) (data.TransactionHandler, bool) {
 }
 
 // GetSorted gets
-func (cache *TxCache) GetSorted(count int) {
+func (cache *TxCache) GetSorted(count int) []data.TransactionHandler {
+	result := make([]data.TransactionHandler, 0)
+
+	cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
+		txList := txListUntyped.(*TxListForSender)
+		txList.sortTransactions()
+		result = append(result, txList.Items...)
+	})
+
+	return result
 }
 
 // RemoveByTxHash removes
@@ -108,4 +119,12 @@ func (list *TxListForSender) findTx(tx data.TransactionHandler) int {
 	}
 
 	return -1
+}
+
+func (list *TxListForSender) sortTransactions() {
+	items := list.Items
+
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].GetNonce() < items[j].GetNonce()
+	})
 }
