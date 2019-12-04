@@ -79,7 +79,7 @@ func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
-		&mock.ScDataGetterStub{},
+		&mock.SCQueryServiceStub{},
 		&mock.StatusMetricsStub{
 			StatusP2pMetricsMapCalled: func() map[string]interface{} {
 				wasCalled = true
@@ -96,7 +96,7 @@ func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) 
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
-		&mock.ScDataGetterStub{},
+		&mock.SCQueryServiceStub{},
 		&mock.StatusMetricsStub{
 			StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
 				wasCalled = true
@@ -113,7 +113,7 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
-		&mock.ScDataGetterStub{},
+		&mock.SCQueryServiceStub{},
 		&mock.StatusMetricsStub{
 			StatusP2pMetricsMapCalled: func() map[string]interface{} {
 				wasCalled = true
