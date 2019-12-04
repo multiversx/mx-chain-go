@@ -38,7 +38,7 @@ type patriciaMerkleTrie struct {
 	hasher       hashing.Hasher
 	mutOperation sync.RWMutex
 
-	snapshots             []data.DBWriteCacher
+	snapshots             []storage.Persister
 	snapshotId            int
 	snapshotDbCfg         config.DBConfig
 	snapshotInProgress    bool
@@ -83,7 +83,7 @@ func NewTrie(
 		dbEvictionWaitingList: evictionWaitList,
 		oldHashes:             make([][]byte, 0),
 		oldRoot:               make([]byte, 0),
-		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshots:             make([]storage.Persister, 0),
 		snapshotId:            0,
 		snapshotDbCfg:         snapshotDbCfg,
 		marshalizer:           msh,
@@ -516,6 +516,12 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 
 	if len(tr.snapshots) > maxSnapshots {
 		dbUniqueId := strconv.Itoa(tr.snapshotId - len(tr.snapshots))
+
+		err = tr.snapshots[0].Close()
+		if err != nil {
+			tr.snapshotInProgress = false
+			return err
+		}
 		tr.snapshots = tr.snapshots[1:]
 
 		removePath := path.Join(tr.snapshotDbCfg.FilePath, dbUniqueId)
@@ -555,7 +561,7 @@ func (tr *patriciaMerkleTrie) Snapshot() error {
 	return nil
 }
 
-func (tr *patriciaMerkleTrie) newSnapshotDb() (data.DBWriteCacher, error) {
+func (tr *patriciaMerkleTrie) newSnapshotDb() (storage.Persister, error) {
 	snapshotPath := path.Join(tr.snapshotDbCfg.FilePath, strconv.Itoa(tr.snapshotId))
 	_, err := os.Stat(snapshotPath)
 	for err == nil {

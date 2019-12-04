@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -64,7 +66,7 @@ func newEmptyTrie(marsh marshal.Marshalizer, hsh hashing.Hasher) *patriciaMerkle
 
 	return &patriciaMerkleTrie{
 		db:                    db,
-		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshots:             make([]storage.Persister, 0),
 		snapshotDbCfg:         cfg,
 		dbEvictionWaitingList: evictionWaitList,
 		marshalizer:           marsh,

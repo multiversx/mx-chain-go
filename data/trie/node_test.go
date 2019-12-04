@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -704,7 +706,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 
 	tr := &patriciaMerkleTrie{
 		db:                    db,
-		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshots:             make([]storage.Persister, 0),
 		snapshotId:            0,
 		snapshotDbCfg:         cfg,
 		dbEvictionWaitingList: evictionWaitList,
@@ -758,7 +760,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 
 	tr := &patriciaMerkleTrie{
 		db:                    db,
-		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshots:             make([]storage.Persister, 0),
 		snapshotId:            0,
 		snapshotDbCfg:         cfg,
 		dbEvictionWaitingList: evictionWaitList,
@@ -914,7 +916,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 
 	tr := &patriciaMerkleTrie{
 		db:                    db,
-		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshots:             make([]storage.Persister, 0),
 		snapshotDbCfg:         cfg,
 		dbEvictionWaitingList: evictionWaitList,
 		marshalizer:           msh,
