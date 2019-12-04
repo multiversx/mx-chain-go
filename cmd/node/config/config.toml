@@ -22,8 +22,9 @@
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
    NumOfEpochsToKeep = 3
 
-   # NumOfActivePersisters - if the FullArchive flag is set to false, this will set the number of persisters to keep
-   # active at a moment. This has to be smaller or equal to the NumOfEpochsToKeep flag
+   # NumOfActivePersisters - this will set the number of persisters to keep active at a moment. This works for both
+   # full archive or not nodes. In case of a node which doesn't have a full archive, it has to be smaller or equal
+   # to the NumOfEpochsToKeep flag
    NumOfActivePersisters = 2
 
 [Explorer]

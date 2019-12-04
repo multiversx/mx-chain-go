@@ -2,14 +2,13 @@ package pruning_test
 
 import (
 	"encoding/json"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
-	"io"
 	"os"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -284,18 +283,4 @@ func TestDirectories(t *testing.T) {
 	}
 
 	_ = os.RemoveAll("user-directory")
-}
-
-func isDirectoryEmpty(name string) (bool, error) {
-	f, err := os.Open(name)
-	if err != nil {
-		return false, err
-	}
-	defer f.Close()
-
-	_, err = f.Readdirnames(1) // Or f.Readdir(1)
-	if err == io.EOF {
-		return true, nil
-	}
-	return false, err // Either not empty or error, suits both cases
 }

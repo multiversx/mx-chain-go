@@ -4,11 +4,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"reflect"
 	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -24,6 +21,7 @@ var log = logger.GetOrCreate("storage/pruning")
 // DefaultEpochDirectoryName represents the naming pattern for epoch directories
 const DefaultEpochDirectoryName = "Epoch"
 
+// persisterData structure is used so the persister and it's path can be kept in the same place
 type persisterData struct {
 	persister storage.Persister
 	path      string
@@ -193,8 +191,6 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 				v, err = ps.persisters[idx].persister.Get(key)
 
 				if err != nil {
-					log.Debug(ps.identifier+" pruning db - get",
-						"error", err.Error())
 					continue
 				}
 
@@ -214,7 +210,8 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 			}
 		}
 		if !found {
-			return nil, errors.New(fmt.Sprintf("%s: key %s not found", ps.identifier, base64.StdEncoding.EncodeToString(key)))
+			return nil, errors.New(fmt.Sprintf("key %s not found in %s",
+				base64.StdEncoding.EncodeToString(key), ps.identifier))
 		}
 	}
 
@@ -245,8 +242,6 @@ func (ps *PruningStorer) getFromClosedPersisters(key []byte) ([]byte, error) {
 		if errToRet == nil {
 			return res, nil
 		}
-
-		log.Debug("get from old persister", "error", errToRet.Error())
 	}
 
 	return nil, errors.New("key not found")
@@ -360,22 +355,31 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 		return err
 	}
 
+	err = ps.closeAndDestroyPersisters()
+	if err != nil {
+		log.Debug("closing and destroying old persister", "error", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (ps *PruningStorer) closeAndDestroyPersisters() error {
 	// recent persisters have to he closed for both scenarios: full archive or not
 	if ps.numOfActivePersisters < uint32(len(ps.persisters)) {
-		err = ps.persisters[ps.numOfActivePersisters].persister.Close()
+		err := ps.persisters[ps.numOfActivePersisters].persister.Close()
 		if err != nil {
-			log.Error("error closing pers", "error", err.Error(), "id", ps.identifier)
+			log.Error("error closing persister", "error", err.Error(), "id", ps.identifier)
 			return err
 		}
 		ps.closedPersistersPaths = append(ps.closedPersistersPaths, ps.persisters[ps.numOfActivePersisters].path)
 	}
 
-	// if not is not full archive, destroy old persisters
 	if !ps.fullArchive {
 		if ps.numOfEpochsToKeep < uint32(len(ps.persisters)) {
-			err = ps.persisters[ps.numOfEpochsToKeep].persister.DestroyClosed()
+			err := ps.persisters[ps.numOfEpochsToKeep].persister.DestroyClosed()
 			if err != nil {
-				log.Error("error destroy", "error", err.Error(), "id", ps.identifier)
+				log.Error("error destroying db", "error", err.Error(), "id", ps.identifier)
 				return err
 			}
 			removeDirectoryIfEmpty(ps.persisters[ps.numOfEpochsToKeep].path)
@@ -387,39 +391,6 @@ func (ps *PruningStorer) changeEpoch(epoch uint32) error {
 	return nil
 }
 
-// getNewFilePath will return the file path for the new epoch. It uses regex to change the default path
-func (ps *PruningStorer) getNewFilePath(epoch uint32) string {
-	// using a regex to match the epoch directory name as placeholder followed by at least one digit
-	rg := regexp.MustCompile("Epoch_\\d+")
-	newEpochDirectoryName := fmt.Sprintf("%s_%d", DefaultEpochDirectoryName, epoch)
-	return rg.ReplaceAllString(ps.dbPath, newEpochDirectoryName)
-}
-
-func removeDirectoryIfEmpty(path string) {
-	elementsSplitBySeparator := strings.Split(path, string(os.PathSeparator))
-	// the structure is this way :
-	// workspace/db/Epoch_X/Shard_Y/DbName
-	// we need to remove the last 3 if everything is empty
-
-	epochDirectory := ""
-	for idx := 0; idx < len(elementsSplitBySeparator)-2; idx++ {
-		epochDirectory += elementsSplitBySeparator[idx] + string(os.PathSeparator)
-	}
-
-	shardDirectory := epochDirectory + elementsSplitBySeparator[len(elementsSplitBySeparator)-2]
-	if isDirectoryEmpty(shardDirectory) {
-		err := os.RemoveAll(shardDirectory)
-		if err != nil {
-			log.Debug("delete old db directory", "error", err.Error())
-		}
-
-		err = os.RemoveAll(epochDirectory)
-		if err != nil {
-			log.Debug("delete old db directory", "error", err.Error())
-		}
-	}
-}
-
 func (ps *PruningStorer) cleanClosedPersisters(path string) {
 	for idx, persPath := range ps.closedPersistersPaths {
 		if persPath == path {
@@ -428,22 +399,17 @@ func (ps *PruningStorer) cleanClosedPersisters(path string) {
 	}
 }
 
-func isDirectoryEmpty(name string) bool {
-	f, err := os.Open(name)
-	if err != nil {
-		return false
-	}
-	defer f.Close()
-
-	_, err = f.Readdirnames(1) // Or f.Readdir(1)
-	if err == io.EOF {
-		return true
-	}
-
-	return false // Either not empty or error, suits both cases
+// getNewFilePath will return the file path for the new epoch. It uses regex to change the default path
+func (ps *PruningStorer) getNewFilePath(epoch uint32) string {
+	// TODO: the path will be provided by a path naming component
+	// using a regex to match the epoch directory name as placeholder followed by at least one digit
+	// in a string which contains Epoch_X it will replace X with the given epoch number
+	rg := regexp.MustCompile("Epoch_\\d+")
+	newEpochDirectoryName := fmt.Sprintf("%s_%d", DefaultEpochDirectoryName, epoch)
+	return rg.ReplaceAllString(ps.dbPath, newEpochDirectoryName)
 }
 
-// IsInterfaceNil -
+// IsInterfaceNil returns true if there is no value under the interface
 func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil
 }

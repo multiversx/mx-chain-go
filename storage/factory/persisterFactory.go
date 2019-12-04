@@ -58,7 +58,7 @@ func (df *PersisterFactory) Create(path string) (storage.Persister, error) {
 	return db, nil
 }
 
-// IsInterfaceNil -
+// IsInterfaceNil returns true if there is no value under the interface
 func (pf *PersisterFactory) IsInterfaceNil() bool {
 	return pf == nil
 }

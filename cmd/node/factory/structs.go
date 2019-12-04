@@ -865,6 +865,7 @@ func getTrie(
 	uniqueID string,
 ) (data.Trie, error) {
 
+	// TODO: the path will be fetched from a path naming component
 	uniqueID = strings.Replace(uniqueID, "Epoch_0", "Static", 1)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(cfg.Cache),
@@ -1138,17 +1139,7 @@ func createShardDataStoreFromConfig(
 		return nil, err
 	}
 
-	//heartbeatStorageUnitArgs := &pruning.PruningStorerArgs{
-	//	Identifier:            "heartbeatStorageUnit",
-	//	FullArchive:           fullArchiveMode,
-	//	CacheConf:             getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
-	//	DbPath:                filepath.Join(uniqueID, config.Heartbeat.HeartbeatStorage.DB.FilePath),
-	//	PersisterFactory:      storageFactory.NewPersisterFactory(config.Heartbeat.HeartbeatStorage.DB),
-	//	BloomFilterConf:       getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom),
-	//	NumOfEpochsToKeep:     numOfEpochsToKeep,
-	//	NumOfActivePersisters: numOfActivePersisters,
-	//	Notifier:              epochStartNotifier,
-	//}
+	// TODO: the path will be fetched from a path naming component
 	heartbeatUniqueID := strings.Replace(uniqueID, "Epoch_0", "Static", 1)
 	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
@@ -1355,22 +1346,7 @@ func createMetaChainDataStoreFromConfig(
 		}
 	}
 
-	//heartbeatStorageUnitArgs := &pruning.PruningStorerArgs{
-	//	Identifier:            "heartbeatStorageUnit",
-	//	FullArchive:           fullArchiveMode,
-	//	CacheConf:             getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
-	//	DbPath:                filepath.Join(uniqueID, config.Heartbeat.HeartbeatStorage.DB.FilePath),
-	//	PersisterFactory:      storageFactory.NewPersisterFactory(config.Heartbeat.HeartbeatStorage.DB),
-	//	BloomFilterConf:       getBloomFromConfig(config.Heartbeat.HeartbeatStorage.Bloom),
-	//	NumOfEpochsToKeep:     numOfEpochsToKeep,
-	//	NumOfActivePersisters: numOfActivePersisters,
-	//	Notifier:              epochStartNotifier,
-	//}
-	//heartbeatStorageUnit, err = pruning.NewPruningStorer(heartbeatStorageUnitArgs)
-	//if err != nil {
-	//	return nil, err
-	//}
-
+	// TODO: the path will be fetched from a path naming component
 	heartbeatUniqueID := strings.Replace(uniqueID, "Epoch_0", "Static", 1)
 	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		getCacherFromConfig(config.Heartbeat.HeartbeatStorage.Cache),
