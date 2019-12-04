@@ -231,6 +231,9 @@ func TestAccountsDB_SaveDataTrieShouldWork(t *testing.T) {
 				RootCalled: func() (i []byte, e error) {
 					return make([]byte, 0), nil
 				},
+				GetCalled: func(key []byte) (i []byte, err error) {
+					return []byte{}, nil
+				},
 			}
 
 			return &dataTrie, nil
@@ -244,20 +247,12 @@ func TestAccountsDB_SaveDataTrieShouldWork(t *testing.T) {
 	}
 	_, _, adb := generateAddressAccountAccountsDB(ts)
 
-	wasCalled := true
-
 	account := generateAccount()
-	account.SetRootHashWithJournalCalled = func(bytes []byte) error {
-		wasCalled = true
-		account.SetRootHash(bytes)
-		return nil
-	}
 	account.DataTrieTracker().SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
 
 	err := adb.SaveDataTrie(account)
 
 	assert.Nil(t, err)
-	assert.True(t, wasCalled)
 }
 
 //------- HasAccount
@@ -668,9 +663,9 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 	t.Parallel()
 
-	account := generateAccount()
 	commitCalled := 0
-
+	marsh := &mock.MarshalizerMock{}
+	serializedAccount, err := marsh.Marshal(mock.AccountWrapMock{})
 	trieStub := mock.TrieStub{
 		CommitCalled: func() error {
 			commitCalled++
@@ -680,14 +675,33 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 		RootCalled: func() (i []byte, e error) {
 			return nil, nil
 		},
+		GetCalled: func(key []byte) (i []byte, err error) {
+			return serializedAccount, nil
+		},
+		RecreateCalled: func(root []byte) (trie data.Trie, err error) {
+			return &mock.TrieStub{
+				GetCalled: func(key []byte) (i []byte, err error) {
+					return []byte("doge"), nil
+				},
+				UpdateCalled: func(key, value []byte) error {
+					return nil
+				},
+				CommitCalled: func() error {
+					commitCalled++
+
+					return nil
+				},
+			}, nil
+		},
 	}
 
 	adb := generateAccountDBFromTrie(&trieStub)
 
-	entry, _ := state.NewBaseJournalEntryData(account, &trieStub)
-	adb.Journalize(entry)
+	state2, _ := adb.GetAccountWithJournal(mock.NewAddressMock())
+	state2.DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
+	_ = adb.SaveDataTrie(state2)
 
-	_, err := adb.Commit()
+	_, err = adb.Commit()
 	assert.Nil(t, err)
 	//one commit for the JournalEntryData and one commit for the main trie
 	assert.Equal(t, 2, commitCalled)
