@@ -20,6 +20,8 @@ github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHu
 github.com/ElrondNetwork/concurrent-map v0.1.2/go.mod h1:3XwSwn4JHI0lrKxWLZvtp53Emr8BXYTmNQGwcukHJEE=
 github.com/ElrondNetwork/elrond-vm v0.0.23 h1:ylwmNQMeRRJoJ8ujamvf9XAsmLAqcpMgqqNuV90J8eY=
 github.com/ElrondNetwork/elrond-vm v0.0.23/go.mod h1:GfPeaG0Rp6K5wNiIiS54xQ547QxOAOgylUktZKTBA8E=
+github.com/ElrondNetwork/elrond-vm v0.0.24 h1:AbR35H7w0wZQt+607cqMmxTiyHNq/cr07d1Ty7vG+d8=
+github.com/ElrondNetwork/elrond-vm v0.0.24/go.mod h1:cqYk2wq8yndnrgOjB81R/QCruaC+F+hMf8R6C6Y0ewA=
 github.com/ElrondNetwork/elrond-vm-common v0.0.0-20191203115206-691b00a6e76a h1:/hGeyqQxE0E92BkMDs/1E6vRqJMA4nVhwSFol1dNopk=
 github.com/ElrondNetwork/elrond-vm-common v0.0.0-20191203115206-691b00a6e76a/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-common v0.0.9 h1:Ff8vEJSKChRfmp+TVo7AgciRkMXjL4+TbNin6LQ7xKw=
