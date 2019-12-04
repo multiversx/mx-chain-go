@@ -17,7 +17,6 @@ const (
 type hostDecorator struct {
 	host.Host
 	acceptedChan chan struct{}
-	resumeChan   chan struct{}
 	timeout      time.Duration
 }
 
@@ -47,7 +46,6 @@ func NewHostDecorator(h host.Host, ctx context.Context, cps uint32, timeout time
 	ret := &hostDecorator{
 		Host:         h,
 		acceptedChan: make(chan struct{}, cps),
-		resumeChan:   make(chan struct{}),
 		timeout:      timeout,
 	}
 
@@ -61,26 +59,16 @@ func (hd *hostDecorator) generate(ctx context.Context) {
 	defer close(hd.acceptedChan)
 	newTockenWait := time.Second / time.Duration(cap(hd.acceptedChan))
 	for {
-		running := true
 		select {
 		case hd.acceptedChan <- struct{}{}:
-		default:
-			running = false
+		case <-ctx.Done():
+			return
 		}
 
-		if running {
-			select {
-			case <-time.After(newTockenWait):
-			case <-ctx.Done():
-				return
-			}
-		} else {
-			select {
-			case <-hd.resumeChan:
-			case <-ctx.Done():
-				return
-			}
-
+		select {
+		case <-time.After(newTockenWait):
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -92,10 +80,6 @@ func (hd *hostDecorator) Connect(ctx context.Context, pi peer.AddrInfo) error {
 	select {
 	case _, ok := <-hd.acceptedChan:
 		if ok {
-			select {
-			case hd.resumeChan <- struct{}{}:
-			default:
-			}
 			return hd.Host.Connect(ctx, pi)
 		}
 		return p2p.ErrContextDone
