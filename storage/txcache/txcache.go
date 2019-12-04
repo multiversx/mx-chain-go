@@ -69,15 +69,27 @@ func (cache *TxCache) getTx(txHash string) (data.TransactionHandler, bool) {
 
 // GetSorted gets
 func (cache *TxCache) GetSorted(count int) []data.TransactionHandler {
-	result := make([]data.TransactionHandler, 0)
+	result := make([]data.TransactionHandler, count)
+	resultFillIndex := 0
+	resultIsFull := false
 
 	cache.txListBySender.IterCb(func(key string, txListUntyped interface{}) {
+		if resultIsFull {
+			return
+		}
+
 		txList := txListUntyped.(*TxListForSender)
 		txList.sortTransactions()
-		result = append(result, txList.Items...)
+
+		copied := copy(result[resultFillIndex:], txList.Items[:])
+		if copied == 0 {
+			resultIsFull = true
+		} else {
+			resultFillIndex += copied
+		}
 	})
 
-	return result
+	return result[:resultFillIndex]
 }
 
 // RemoveByTxHash removes
