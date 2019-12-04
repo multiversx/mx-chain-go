@@ -87,7 +87,7 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 		return true
 	})
 
-	statusMetricsBytes, err := psh.marshalizer.Marshal(&metricsMap)
+	statusMetricsBytes, err := psh.marshalizer.Marshal(metricsMap)
 	if err != nil {
 		log.Debug("cannot marshal metrics map",
 			"error", err)
