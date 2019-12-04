@@ -1581,6 +1581,7 @@ func generateGenesisHeadersAndApplyInitialBalances(
 		if err != nil {
 			return nil, err
 		}
+
 		genesisBlocks[shardId] = genesisBlock
 	}
 
