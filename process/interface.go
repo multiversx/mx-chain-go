@@ -477,6 +477,7 @@ type MiniBlocksCompacter interface {
 type BlackListHandler interface {
 	Add(key string) error
 	Has(key string) bool
+	Sweep()
 	IsInterfaceNil() bool
 }
 
@@ -510,7 +511,6 @@ type GasHandler interface {
 	IsInterfaceNil() bool
 }
 
-
 // BootStorer is the interface needed by bootstrapper to read/write data in storage
 type BootStorer interface {
 	SaveLastRound(round int64) error
@@ -524,4 +524,9 @@ type BootStorer interface {
 type BootstrapperFromStorage interface {
 	LoadFromStorage() error
 	IsInterfaceNil() bool
+}
+
+// RequestBlockBodyHandler is the interface needed by process block
+type RequestBlockBodyHandler interface {
+	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
