@@ -43,7 +43,7 @@ func TestTimeCache_DoubleAddShouldErrAndRetainTheKey(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func TestTimeCache_DoubleAddShouldAfterExpirationShouldWork(t *testing.T) {
+func TestTimeCache_DoubleAddAfterExpirationAndSweepShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Millisecond)
@@ -51,6 +51,7 @@ func TestTimeCache_DoubleAddShouldAfterExpirationShouldWork(t *testing.T) {
 
 	_ = tc.Add(key)
 	time.Sleep(time.Second)
+	tc.Sweep()
 	err := tc.Add(key)
 
 	keys := tc.Keys()
@@ -94,6 +95,7 @@ func TestTimeCache_HasCheckEvictionIsDoneProperly(t *testing.T) {
 	_ = tc.Add(key1)
 	_ = tc.Add(key2)
 	time.Sleep(time.Second)
+	tc.Sweep()
 
 	exists1 := tc.Has(key1)
 	exists2 := tc.Has(key2)
@@ -110,6 +112,7 @@ func TestTimeCache_HasCheckHandlingInconsistency(t *testing.T) {
 	key := "key1"
 	_ = tc.Add(key)
 	tc.ClearMap()
+	tc.Sweep()
 
 	exists := tc.Has(key)
 

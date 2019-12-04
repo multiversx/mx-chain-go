@@ -260,3 +260,11 @@ type DataPacker interface {
 	PackDataInChunks(data [][]byte, limit int) ([][]byte, error)
 	IsInterfaceNil() bool
 }
+
+// RequestedItemsHandler can determine if a certain key has or not been requested
+type RequestedItemsHandler interface {
+	Add(key string) error
+	Has(key string) bool
+	Sweep()
+	IsInterfaceNil() bool
+}

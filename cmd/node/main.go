@@ -48,6 +48,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	factoryViews "github.com/ElrondNetwork/elrond-go/statusHandler/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -717,6 +718,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Trace("creating time cache for requested items components")
+	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesConfig.RoundDuration))
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
@@ -733,6 +738,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents,
 		networkComponents,
 		coreServiceContainer,
+		requestedItemsHandler,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -767,6 +773,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return err
@@ -1130,6 +1137,7 @@ func createNode(
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*node.Node, error) {
 	consensusGroupSize, err := getConsensusGroupSize(nodesConfig, shardCoordinator)
 	if err != nil {
@@ -1174,6 +1182,7 @@ func createNode(
 		node.WithIndexer(indexer),
 		node.WithBlackListHandler(process.BlackListHandler),
 		node.WithBootStorer(process.BootStorer),
+		node.WithRequestedItemsHandler(requestedItemsHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
