@@ -305,7 +305,7 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 		for _, n := range nodes {
 			buffPk, _ := n.NodeKeys.Pk.ToByteArray()
 
-			peerCounts := n.Messenger.GetPeerCounts()
+			peerInfo := n.Messenger.GetConnectedPeersInfo()
 
 			lineData := display.NewLineData(
 				false,
@@ -317,9 +317,9 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 					fmt.Sprintf("%d", n.CountCrossShardMessages()),
 					fmt.Sprintf("%d/%d/%d/%d",
 						len(n.Messenger.ConnectedPeers()),
-						peerCounts.IntraShardPeers,
-						peerCounts.CrossShardPeers,
-						peerCounts.UnknownPeers,
+						len(peerInfo.IntraShardPeers),
+						len(peerInfo.CrossShardPeers),
+						len(peerInfo.UnknownPeers),
 					),
 				},
 			)
