@@ -271,14 +271,16 @@ func TestRegex(t *testing.T) {
 }
 
 func TestDirectories(t *testing.T) {
-	path := "user-directory/go/src/workspace/db/Epoch_2/Shard_27/MiniBlock"
+	pathToCreate := "user-directory/go/src/workspace/db/Epoch_2/Shard_27"
+	pathParameter := pathToCreate + "/MiniBlock"
 	// should become user-directory/go/src/workspace/db
-	err := os.MkdirAll(path, os.ModePerm)
+
+	err := os.MkdirAll(pathToCreate, os.ModePerm)
 	assert.Nil(t, err)
 
-	pruning.RemoveDirectoryIfEmpty(path)
+	pruning.RemoveDirectoryIfEmpty(pathParameter)
 
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
+	if _, err := os.Stat(pathParameter); !os.IsNotExist(err) {
 		assert.Fail(t, "directory should have been removed")
 	}
 
