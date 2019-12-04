@@ -31,7 +31,6 @@ type persisterData struct {
 type PruningStorer struct {
 	lock                  sync.RWMutex
 	fullArchive           bool
-	batcher               storage.Batcher
 	persisters            []*persisterData
 	closedPersistersPaths []string
 	cacher                storage.Cacher
@@ -187,7 +186,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		// search it in second persistence medium
 		found := false
 		for idx := uint32(0); (idx < ps.numOfActivePersisters) && (idx < uint32(len(ps.persisters))); idx++ {
-			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) == true {
+			if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
 				v, err = ps.persisters[idx].persister.Get(key)
 
 				if err != nil {
@@ -210,8 +209,8 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 			}
 		}
 		if !found {
-			return nil, errors.New(fmt.Sprintf("key %s not found in %s",
-				base64.StdEncoding.EncodeToString(key), ps.identifier))
+			return nil, fmt.Errorf("key %s not found in %s",
+				base64.StdEncoding.EncodeToString(key), ps.identifier)
 		}
 	}
 
@@ -259,7 +258,7 @@ func (ps *PruningStorer) Has(key []byte) error {
 		return nil
 	}
 
-	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) == true {
+	if ps.bloomFilter == nil || ps.bloomFilter.MayContain(key) {
 		for _, persister := range ps.persisters {
 			if persister.persister.Has(key) != nil {
 				continue
@@ -311,10 +310,10 @@ func (ps *PruningStorer) DestroyUnit() error {
 	}
 
 	if numOfPersistersRemoved != totalNumOfPersisters {
-		return errors.New(fmt.Sprintf("couldn't destroy all persisters. %d/%d destroyed",
+		return fmt.Errorf("couldn't destroy all persisters. %d/%d destroyed",
 			numOfPersistersRemoved,
 			totalNumOfPersisters,
-		))
+		)
 	}
 	return ps.persisters[0].persister.Destroy()
 }
@@ -404,7 +403,7 @@ func (ps *PruningStorer) getNewFilePath(epoch uint32) string {
 	// TODO: the path will be provided by a path naming component
 	// using a regex to match the epoch directory name as placeholder followed by at least one digit
 	// in a string which contains Epoch_X it will replace X with the given epoch number
-	rg := regexp.MustCompile("Epoch_\\d+")
+	rg := regexp.MustCompile(`Epoch_\d+`)
 	newEpochDirectoryName := fmt.Sprintf("%s_%d", DefaultEpochDirectoryName, epoch)
 	return rg.ReplaceAllString(ps.dbPath, newEpochDirectoryName)
 }

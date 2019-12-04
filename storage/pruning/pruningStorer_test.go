@@ -263,7 +263,7 @@ func TestRegex(t *testing.T) {
 	testPaths = append(testPaths, "db/Epoch_02/Shard_2")
 	testPaths = append(testPaths, "db/Epoch_99999999999999999999999999999999999999999999/Shard_2")
 
-	rg := regexp.MustCompile("Epoch_\\d+")
+	rg := regexp.MustCompile(`Epoch_\d+`)
 
 	for _, path := range testPaths {
 		assert.Equal(t, expectedRes, rg.ReplaceAllString(path, replacementEpoch))
