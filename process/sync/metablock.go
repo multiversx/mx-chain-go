@@ -24,8 +24,6 @@ import (
 // MetaBootstrap implements the bootstrap mechanism
 type MetaBootstrap struct {
 	*baseBootstrap
-
-	resolversFinder dataRetriever.ResolversFinder
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -112,7 +110,7 @@ func NewMetaBootstrap(
 	}
 
 	//sync should request the missing block body on the intrashard topic
-	miniBlocksResolver, err := resolversFinder.MetaChainResolver(factory.MiniBlocksTopic)
+	miniBlocksResolver, err := resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
 		return nil, err
 	}

@@ -24,8 +24,6 @@ import (
 // ShardBootstrap implements the bootstrap mechanism
 type ShardBootstrap struct {
 	*baseBootstrap
-
-	resolversFinder dataRetriever.ResolversFinder
 }
 
 // NewShardBootstrap creates a new Bootstrap object

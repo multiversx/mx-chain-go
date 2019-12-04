@@ -61,9 +61,7 @@ func createMockMetaPools() *mock.MetaPoolsHolderStub {
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			RemoveCalled: func(key []byte) {
-				return
-			},
+			RemoveCalled: func(key []byte) {},
 		}
 		return sds
 	}
@@ -83,6 +81,10 @@ func createMockResolversFinderMeta() *mock.ResolversFinderStub {
 					},
 				}, nil
 			}
+
+			return nil, nil
+		},
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
 			if strings.Contains(baseTopic, factory.MiniBlocksTopic) {
 				return &mock.MiniBlocksResolverMock{
 					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
@@ -1099,7 +1101,6 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 				return nil, false
 			},
 			RemoveCalled: func(key []byte) {
-				return
 			},
 		}
 		return sds

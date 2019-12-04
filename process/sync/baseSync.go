@@ -188,9 +188,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 		log.Debug("addReceivedHeaderToForkDetector", "error", err.Error())
 	}
 
-	if boot.requestMiniBlocks != nil {
-		go boot.requestMiniBlocks(shardId, nonce)
-	}
+	go boot.requestMiniBlocks(shardId, nonce)
 
 	boot.mutRcvHdrNonce.Lock()
 	n := boot.requestedHeaderNonce()
@@ -780,7 +778,7 @@ func (boot *baseBootstrap) setRequestedMiniBlocks(hashes [][]byte) {
 	boot.requestedHashes.SetHashes(hashes)
 }
 
-// receivedBody method is a call back function which is called when a new body is added
+// receivedBodyHash method is a call back function which is called when a new body is added
 // in the block bodies pool
 func (boot *baseBootstrap) receivedBodyHash(hash []byte) {
 	boot.mutRcvMiniBlocks.Lock()
@@ -800,7 +798,7 @@ func (boot *baseBootstrap) receivedBodyHash(hash []byte) {
 	}
 }
 
-// requestMiniBlocks method requests a block body from network when it is not found in the pool
+// requestMiniBlocksByHashes method requests a block body from network when it is not found in the pool
 func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 	boot.setRequestedMiniBlocks(hashes)
 	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes)
