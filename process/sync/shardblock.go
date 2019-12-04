@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -53,6 +54,7 @@ func NewShardBootstrap(
 	networkWatcher process.NetworkConnectionWatcher,
 	bootStorer process.BootStorer,
 	storageBootstrapper process.BootstrapperFromStorage,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 ) (*ShardBootstrap, error) {
 
 	if check.IfNil(poolsHolder) {
@@ -81,28 +83,30 @@ func NewShardBootstrap(
 		store,
 		blackListHandler,
 		networkWatcher,
+		requestedItemsHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base := &baseBootstrap{
-		blkc:                blkc,
-		blkExecutor:         blkExecutor,
-		store:               store,
-		headers:             poolsHolder.Headers(),
-		headersNonces:       poolsHolder.HeadersNonces(),
-		rounder:             rounder,
-		waitTime:            waitTime,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		forkDetector:        forkDetector,
-		shardCoordinator:    shardCoordinator,
-		accounts:            accounts,
-		blackListHandler:    blackListHandler,
-		networkWatcher:      networkWatcher,
-		bootStorer:          bootStorer,
-		storageBootstrapper: storageBootstrapper,
+		blkc:                  blkc,
+		blkExecutor:           blkExecutor,
+		store:                 store,
+		headers:               poolsHolder.Headers(),
+		headersNonces:         poolsHolder.HeadersNonces(),
+		rounder:               rounder,
+		waitTime:              waitTime,
+		hasher:                hasher,
+		marshalizer:           marshalizer,
+		forkDetector:          forkDetector,
+		shardCoordinator:      shardCoordinator,
+		accounts:              accounts,
+		blackListHandler:      blackListHandler,
+		networkWatcher:        networkWatcher,
+		bootStorer:            bootStorer,
+		storageBootstrapper:   storageBootstrapper,
+		requestedItemsHandler: requestedItemsHandler,
 	}
 
 	boot := ShardBootstrap{
@@ -114,6 +118,9 @@ func NewShardBootstrap(
 	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.syncStarter = &boot
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
+
+	//TODO: ResolversFinder should be replaced with RequestHandler after it would be refactored and RequestedItemsHandler
+	//should be then removed from ShardBootstrap
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
@@ -255,14 +262,17 @@ func (boot *ShardBootstrap) SyncBlock() error {
 func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
-
-	log.Debug("requested header from network",
-		"nonce", nonce,
-		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
-	)
-
 	if err != nil {
 		log.Debug("RequestDataFromNonce", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	key := fmt.Sprintf("%d-%d", boot.shardCoordinator.SelfId(), nonce)
+	err = boot.requestedItemsHandler.Add(key)
+	if err != nil {
+		log.Trace("add requested item with error", "error", err.Error())
 	}
 
 	log.Debug("requested header from network",
@@ -279,6 +289,14 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 	err := boot.hdrRes.RequestDataFromHash(hash)
 	if err != nil {
 		log.Debug("RequestDataFromHash", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	err = boot.requestedItemsHandler.Add(string(hash))
+	if err != nil {
+		log.Trace("add requested item with error", "error", err.Error())
 	}
 
 	log.Debug("requested header from network",
@@ -342,6 +360,16 @@ func (boot *ShardBootstrap) requestMiniBlocks(hashes [][]byte) {
 	err := boot.miniBlocksResolver.RequestDataFromHashArray(hashes)
 	if err != nil {
 		log.Debug("RequestDataFromHashArray", "error", err.Error())
+		return
+	}
+
+	boot.requestedItemsHandler.Sweep()
+
+	for _, hash := range hashes {
+		err = boot.requestedItemsHandler.Add(string(hash))
+		if err != nil {
+			log.Trace("add requested item with error", "error", err.Error())
+		}
 	}
 
 	log.Debug("requested mini blocks from network",
@@ -459,9 +487,15 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		return
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
+	boot.requestedItemsHandler.Sweep()
+
+	hashes := make([][]byte, 0)
 	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
+		if boot.requestedItemsHandler.Has(string(header.MiniBlockHeaders[i].Hash)) {
+			continue
+		}
+
+		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
@@ -470,6 +504,13 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(shardI
 		if err != nil {
 			log.Debug("RequestDataFromHashArray", "error", err.Error())
 			return
+		}
+
+		for _, hash := range missingMiniBlocksHashes {
+			err = boot.requestedItemsHandler.Add(string(hash))
+			if err != nil {
+				log.Trace("add requested item with error", "error", err.Error())
+			}
 		}
 
 		log.Trace("requested in advance mini blocks",

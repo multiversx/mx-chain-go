@@ -101,9 +101,10 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		scToProtocol:   arguments.SCToProtocol,
 	}
 
+	mp.baseProcessor.requestBlockBodyHandler = &mp
+
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
-	mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 
 	headerPool := mp.dataPool.ShardHeaders()
 	headerPool.RegisterHandler(mp.receivedShardHeader)
@@ -1674,4 +1675,33 @@ func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
 		mp.dataPool.HeadersNonces())
 
 	return shardHeader, shardHeaderHash, err
+}
+
+func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	miniBlockPool := mp.dataPool.MiniBlocks()
+	if miniBlockPool == nil {
+		return nil, process.ErrNilMiniBlockPool
+	}
+
+	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	for i := 0; i < len(metaBlock.MiniBlockHeaders); i++ {
+		obj, ok := miniBlockPool.Get(metaBlock.MiniBlockHeaders[i].Hash)
+		if !ok {
+			continue
+		}
+
+		miniBlock, ok := obj.(*block.MiniBlock)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return block.Body(miniBlocks), nil
 }
