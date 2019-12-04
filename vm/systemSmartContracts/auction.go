@@ -43,6 +43,7 @@ type AuctionConfig struct {
 type stakingAuctionSC struct {
 	eei           vm.SystemEI
 	minStakeValue *big.Int
+	totalSupply   *big.Int
 	unBoundPeriod uint64
 	numNodes      uint32
 	kg            crypto.KeyGenerator
@@ -51,6 +52,7 @@ type stakingAuctionSC struct {
 // NewStakingAuctionSmartContract creates an auction smart contract
 func NewStakingAuctionSmartContract(
 	minStakeValue *big.Int,
+	totalSupply *big.Int,
 	unBoundPeriod uint64,
 	numNodes uint32,
 	eei vm.SystemEI,
@@ -72,6 +74,7 @@ func NewStakingAuctionSmartContract(
 		unBoundPeriod: unBoundPeriod,
 		numNodes:      numNodes,
 		kg:            kg,
+		totalSupply:   big.NewInt(0).Set(totalSupply),
 	}
 	return reg, nil
 }
@@ -121,6 +124,7 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 	return AuctionConfig{
 		MinStakeValue: s.minStakeValue,
 		NumNodes:      s.numNodes,
+		TotalSupply:   s.totalSupply,
 	}
 }
 
