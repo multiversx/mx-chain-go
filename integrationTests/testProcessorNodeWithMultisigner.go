@@ -79,7 +79,11 @@ func CreateNodesWithNodesCoordinator(
 	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
-	waitingMap := make(map[uint32][]sharding.Validator)
+
+	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
+	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
+
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	nodeShuffler := &mock.NodeShufflerMock{}
@@ -206,13 +210,11 @@ func DoConsensusSigningOnBlock(
 func AllShardsProposeBlock(
 	round uint64,
 	nonce uint64,
-	prevRandomness map[uint32][]byte,
 	nodesMap map[uint32][]*TestProcessorNode,
 ) (
 	map[uint32]data.BodyHandler,
 	map[uint32]data.HeaderHandler,
 	map[uint32][]*TestProcessorNode,
-	map[uint32][]byte,
 ) {
 
 	body := make(map[uint32]data.BodyHandler)
@@ -222,7 +224,13 @@ func AllShardsProposeBlock(
 
 	// propose blocks
 	for i := range nodesMap {
-		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(i, nodesMap, round, nonce, prevRandomness[i])
+		currentBlockHeader := nodesMap[i][0].BlockChain.GetCurrentBlockHeader()
+		if currentBlockHeader == nil {
+			currentBlockHeader = nodesMap[i][0].BlockChain.GetGenesisHeader()
+		}
+
+		prevRandomness := currentBlockHeader.GetRandSeed()
+		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(i, nodesMap, round, nonce, prevRandomness)
 		newRandomness[i] = header[i].GetRandSeed()
 	}
 
@@ -234,7 +242,7 @@ func AllShardsProposeBlock(
 
 	time.Sleep(2 * time.Second)
 
-	return body, header, consensusNodes, newRandomness
+	return body, header, consensusNodes
 }
 
 // SyncAllShardsWithRoundBlock enforces all nodes in each shard synchronizing the block for the given round

@@ -174,13 +174,28 @@ func testShuffledOut(
 	assert.True(t, contains(newNodes, allEligible))
 }
 
-func createDefaultXorShuffler() *randXORShuffler {
-	return NewXorValidatorsShuffler(
+func createXorShufflerInter() *randXORShuffler {
+	shuffler := NewXorValidatorsShuffler(
 		100,
 		100,
 		0.2,
 		false,
 	)
+
+	shuffler.shuffleBetweenShards = true
+
+	return shuffler
+}
+
+func createXorShufflerIntraShards() *randXORShuffler {
+	shuffler := NewXorValidatorsShuffler(
+		100,
+		100,
+		0.2,
+		false,
+	)
+
+	return shuffler
 }
 
 func getValidatorsInMap(valMap map[uint32][]Validator) []Validator {
@@ -280,7 +295,7 @@ func Test_promoteWaitingToEligible(t *testing.T) {
 	eligibleMapCopy := copyValidatorMap(eligibleMap)
 	waitingMapCopy := copyValidatorMap(waitingMap)
 
-	promoteWaitingToEligible(eligibleMap, waitingMap)
+	moveNodesToMap(eligibleMap, waitingMap)
 
 	for k := range eligibleMap {
 		assert.Equal(t, eligibleMap[k], append(eligibleMapCopy[k], waitingMapCopy[k]...))
@@ -676,7 +691,7 @@ func TestRandXORShuffler_computeNewShardsNotChanging(t *testing.T) {
 	t.Parallel()
 
 	currentNbShards := uint32(3)
-	shuffler := createDefaultXorShuffler()
+	shuffler := createXorShufflerInter()
 	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
 	nbShards := currentNbShards + 1 // account for meta
 	maxNodesNoSplit := (nbShards + 1) * (shuffler.nodesShard + shuffler.shardHysteresis)
@@ -693,7 +708,7 @@ func TestRandXORShuffler_computeNewShardsWithSplit(t *testing.T) {
 	t.Parallel()
 
 	currentNbShards := uint32(3)
-	shuffler := createDefaultXorShuffler()
+	shuffler := createXorShufflerInter()
 	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
 	nbShards := currentNbShards + 1 // account for meta
 	maxNodesNoSplit := (nbShards + 1) * (shuffler.nodesShard + shuffler.shardHysteresis)
@@ -710,7 +725,7 @@ func TestRandXORShuffler_computeNewShardsWithMerge(t *testing.T) {
 	t.Parallel()
 
 	currentNbShards := uint32(3)
-	shuffler := createDefaultXorShuffler()
+	shuffler := createXorShufflerInter()
 	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
 	nbWaitingPerShard := 0
 	waiting := generateValidatorMap(nbWaitingPerShard, currentNbShards)
@@ -724,13 +739,14 @@ func TestRandXORShuffler_computeNewShardsWithMerge(t *testing.T) {
 func TestRandXORShuffler_UpdateParams(t *testing.T) {
 	t.Parallel()
 
-	shuffler := createDefaultXorShuffler()
+	shuffler := createXorShufflerInter()
 	shuffler2 := &randXORShuffler{
-		nodesShard:      200,
-		nodesMeta:       200,
-		shardHysteresis: 0,
-		metaHysteresis:  0,
-		adaptivity:      true,
+		nodesShard:           200,
+		nodesMeta:            200,
+		shardHysteresis:      0,
+		metaHysteresis:       0,
+		adaptivity:           true,
+		shuffleBetweenShards: true,
 	}
 
 	shuffler.UpdateParams(
@@ -746,7 +762,41 @@ func TestRandXORShuffler_UpdateParams(t *testing.T) {
 func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	t.Parallel()
 
-	shuffler := createDefaultXorShuffler()
+	shuffler := createXorShufflerInter()
+
+	eligiblePerShard := int(shuffler.nodesShard)
+	waitingPerShard := 30
+	nbShards := uint32(3)
+	randomness := generateRandomByteArray(32)
+
+	leavingNodes := make([]Validator, 0)
+	newNodes := make([]Validator, 0)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	args := ArgsUpdateNodes{
+		Eligible: eligibleMap,
+		Waiting:  waitingMap,
+		NewNodes: newNodes,
+		Leaving:  leavingNodes,
+		Rand:     randomness,
+	}
+
+	eligible, waiting, _ := shuffler.UpdateNodeLists(args)
+
+	allPrevEligible := getValidatorsInMap(eligibleMap)
+	allNewEligible := getValidatorsInMap(eligible)
+	allPrevWaiting := getValidatorsInMap(waitingMap)
+	allNewWaiting := getValidatorsInMap(waiting)
+
+	assert.Equal(t, len(allPrevEligible)+len(allPrevWaiting), len(allNewEligible)+len(allNewWaiting))
+}
+
+func TestRandXORShuffler_UpdateNodeListsNoReShardingIntraShardShuffling(t *testing.T) {
+	t.Parallel()
+
+	shuffler := createXorShufflerIntraShards()
 
 	eligiblePerShard := int(shuffler.nodesShard)
 	waitingPerShard := 30

@@ -91,6 +91,10 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 ) error {
+
+	ihgs.mutNodesMaps.Lock()
+	defer ihgs.mutNodesMaps.Unlock()
+
 	if eligible == nil || waiting == nil {
 		return ErrNilInputNodesMap
 	}
@@ -107,10 +111,8 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 		}
 	}
 
-	ihgs.mutNodesMaps.Lock()
 	ihgs.eligibleMap = eligible
 	ihgs.waitingMap = waiting
-	ihgs.mutNodesMaps.Unlock()
 
 	return nil
 }
@@ -152,6 +154,9 @@ func (ihgs *indexHashedNodesCoordinator) ComputeValidatorsGroup(
 	tempList := make([]Validator, 0)
 	consensusSize := ihgs.consensusGroupSize(shardId)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, core.ToB64(randomness)))
+
+	ihgs.mutNodesMaps.RLock()
+	defer ihgs.mutNodesMaps.RUnlock()
 
 	// TODO: pre-compute eligible list and update only on rating change.
 	expandedList := ihgs.expandEligibleList(shardId)
@@ -326,9 +331,6 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 
 func (ihgs *indexHashedNodesCoordinator) expandEligibleList(shardId uint32) []Validator {
 	//TODO implement an expand eligible list variant
-	ihgs.mutNodesMaps.RLock()
-	defer ihgs.mutNodesMaps.RUnlock()
-
 	return ihgs.eligibleMap[shardId]
 }
 

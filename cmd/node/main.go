@@ -20,8 +20,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -36,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -305,13 +304,6 @@ var appVersion = core.UnVersionedAppString
 type EpochStartSubscriber interface {
 	RegisterHandler(handler epochStart.EpochStartHandler)
 	UnregisterHandler(handler epochStart.EpochStartHandler)
-}
-
-// EpochStartNotifier defines which actions should be done for handling new epoch's events
-type EpochStartNotifier interface {
-	EpochStartSubscriber
-	NotifyAll(hdr data.HeaderHandler)
-	IsInterfaceNil() bool
 }
 
 func main() {
