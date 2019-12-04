@@ -6,15 +6,20 @@ import (
 )
 
 type ForkDetectorMock struct {
-	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
-	RemoveHeadersCalled             func(nonce uint64, hash []byte)
-	CheckForkCalled                 func() *process.ForkInfo
-	GetHighestFinalBlockNonceCalled func() uint64
-	ProbableHighestNonceCalled      func() uint64
-	ResetProbableHighestNonceCalled func()
-	ResetForkCalled                 func()
-	GetNotarizedHeaderHashCalled    func(nonce uint64) []byte
-	AddFinalHeadersCalled           func(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte)
+	AddHeaderCalled                       func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
+	RemoveHeadersCalled                   func(nonce uint64, hash []byte)
+	CheckForkCalled                       func() *process.ForkInfo
+	GetHighestFinalBlockNonceCalled       func() uint64
+	ProbableHighestNonceCalled            func() uint64
+	ResetProbableHighestNonceCalled       func()
+	ResetForkCalled                       func()
+	GetNotarizedHeaderHashCalled          func(nonce uint64) []byte
+	AddFinalHeadersCalled                 func(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte)
+	RestoreFinalCheckPointToGenesisCalled func()
+}
+
+func (fdm *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {
+	fdm.RestoreFinalCheckPointToGenesisCalled()
 }
 
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {

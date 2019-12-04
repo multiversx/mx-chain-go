@@ -31,6 +31,8 @@ type ArgBaseProcessor struct {
 	BlockChainHook               process.BlockChainHookHandler
 	TxCoordinator                process.TransactionCoordinator
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	Rounder                      consensus.Rounder
+	BootStorer                   process.BootStorer
 	BlockTracker                 process.BlockTracker
 	HeaderPoolsCleaner           process.HeaderPoolsCleaner
 }
@@ -48,7 +50,7 @@ type ArgShardProcessor struct {
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
 	DataPool           dataRetriever.MetaPoolsHolder
-	SCDataGetter       external.ScDataGetter
+	SCDataGetter       external.SCQueryService
 	PeerChangesHandler process.PeerChangesHandler
 	SCToProtocol       process.SmartContractToProtocolHandler
 }

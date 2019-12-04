@@ -18,6 +18,10 @@ type ForkDetectorMock struct {
 	AddFinalHeadersCalled           func(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte)
 }
 
+func (f *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {
+
+}
+
 // AddHeader is a mock implementation for AddHeader
 func (f *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
 	return f.AddHeaderCalled(header, hash, state, finalHeaders, finalHeadersHashes)

@@ -62,10 +62,18 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
 	nextRound := bfd.rounder.Index() + 1
 
+	bfd.blackListHandler.Sweep()
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
 		//TODO: Should be done some tests to reconsider adding here to the black list also this received header,
 		// which is bound to a previous black listed header.
-		bfd.blackListHandler.Add(string(headerHash))
+		err := bfd.blackListHandler.Add(string(headerHash))
+		if err != nil {
+			log.Trace("add requested item with error",
+				"error", err.Error(),
+				"key", headerHash)
+
+		}
+
 		return process.ErrHeaderIsBlackListed
 	}
 	if roundDif < 0 {
@@ -278,6 +286,13 @@ func (bfd *baseForkDetector) lastCheckpoint() *checkpointInfo {
 func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo) {
 	bfd.mutFork.Lock()
 	bfd.fork.finalCheckpoint = finalCheckpoint
+	bfd.mutFork.Unlock()
+}
+
+// RestoreFinalCheckPointToGenesis will set final checkpoint to genesis
+func (bfd *baseForkDetector) RestoreFinalCheckPointToGenesis() {
+	bfd.mutFork.Lock()
+	bfd.fork.finalCheckpoint = &checkpointInfo{round: 0, nonce: 0}
 	bfd.mutFork.Unlock()
 }
 

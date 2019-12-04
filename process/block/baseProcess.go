@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -40,12 +41,11 @@ type hdrInfo struct {
 }
 
 type hdrForBlock struct {
-	missingHdrs                    uint32
-	missingFinalityAttestingHdrs   uint32
-	requestedFinalityAttestingHdrs map[uint32][]uint64
-	highestHdrNonce                map[uint32]uint64
-	mutHdrsForBlock                sync.RWMutex
-	hdrHashAndInfo                 map[string]*hdrInfo
+	missingHdrs                  uint32
+	missingFinalityAttestingHdrs uint32
+	highestHdrNonce              map[uint32]uint64
+	mutHdrsForBlock              sync.RWMutex
+	hdrHashAndInfo               map[string]*hdrInfo
 }
 
 type mapHeaders map[uint32][]data.HeaderHandler
@@ -64,6 +64,9 @@ type baseProcessor struct {
 	blockChainHook               process.BlockChainHookHandler
 	txCoordinator                process.TransactionCoordinator
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	rounder                      consensus.Rounder
+	bootStorer                   process.BootStorer
+	requestBlockBodyHandler      process.RequestBlockBodyHandler
 	blockTracker                 process.BlockTracker
 	headerPoolsCleaner           process.HeaderPoolsCleaner
 
@@ -111,6 +114,56 @@ func (bp *baseProcessor) AddLastNotarizedHdr(shardId uint32, processedHdr data.H
 	bp.mutNotarizedHdrs.Lock()
 	bp.notarizedHdrs[shardId] = append(bp.notarizedHdrs[shardId], processedHdr)
 	bp.mutNotarizedHdrs.Unlock()
+}
+
+// RestoreLastNotarizedHrdsToGenesis will restore notarized header slice to genesis
+func (bp *baseProcessor) RestoreLastNotarizedHrdsToGenesis() {
+	bp.mutNotarizedHdrs.Lock()
+	for shardId := range bp.notarizedHdrs {
+		notarizedHdrsCount := len(bp.notarizedHdrs[shardId])
+		if notarizedHdrsCount > 1 {
+			bp.notarizedHdrs[shardId] = bp.notarizedHdrs[shardId][:1]
+		}
+	}
+	bp.mutNotarizedHdrs.Unlock()
+}
+
+// RevertAccountState reverts the account state for cleanup failed process
+func (bp *baseProcessor) RevertAccountState() {
+	err := bp.accounts.RevertToSnapshot(0)
+	if err != nil {
+		log.Debug("RevertToSnapshot", "error", err.Error())
+	}
+
+	err = bp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
+	if err != nil {
+		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
+	}
+}
+
+// RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
+func (bp *baseProcessor) RevertStateToBlock(header data.HeaderHandler) error {
+	err := bp.accounts.RecreateTrie(header.GetRootHash())
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", header.GetNonce(),
+			"hash", header.GetRootHash(),
+		)
+
+		return err
+	}
+
+	err = bp.validatorStatisticsProcessor.RevertPeerState(header)
+	if err != nil {
+		log.Debug("revert peer state with error for header",
+			"nonce", header.GetNonce(),
+			"validators root hash", header.GetValidatorStatsRootHash(),
+		)
+
+		return err
+	}
+
+	return nil
 }
 
 // checkBlockValidity method checks if the given block is valid
@@ -258,7 +311,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevHash(), prevHeaderHash) {
-		log.Debug("block hash does not match",
+		log.Trace("block hash does not match",
 			"shard", currHdr.GetShardID(),
 			"local prev hash", prevHeaderHash,
 			"received block with prev hash", currHdr.GetPrevHash(),
@@ -267,7 +320,7 @@ func (bp *baseProcessor) isHdrConstructionValid(currHdr, prevHdr data.HeaderHand
 	}
 
 	if !bytes.Equal(currHdr.GetPrevRandSeed(), prevHdr.GetRandSeed()) {
-		log.Debug("random seed does not match",
+		log.Trace("random seed does not match",
 			"shard", currHdr.GetShardID(),
 			"local rand seed", prevHdr.GetRandSeed(),
 			"received block with rand seed", currHdr.GetPrevRandSeed(),
@@ -450,7 +503,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	lastNotarizedHdrNonce := prevHdr.GetNonce()
-	highestHdr := prevHdr
 
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
@@ -471,21 +523,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {
 			for j := prevHdr.GetNonce() + 1; j < currHdr.GetNonce(); j++ {
 				missingNonces = append(missingNonces, j)
-			}
-		}
-
-		highestHdr = currHdr
-	}
-
-	// ask for headers, if there most probably should be
-	roundDiff := int64(maxRound) - int64(highestHdr.GetRound())
-	if roundDiff > 0 {
-		nonceDiff := int64(lastNotarizedHdrNonce) + process.MaxHeadersToRequestInAdvance - int64(highestHdr.GetNonce())
-		if nonceDiff > 0 {
-			nbHeadersToRequestInAdvance := core.MinUint64(uint64(roundDiff), uint64(nonceDiff))
-			startNonce := highestHdr.GetNonce() + 1
-			for nonce := startNonce; nonce < startNonce+nbHeadersToRequestInAdvance; nonce++ {
-				missingNonces = append(missingNonces, nonce)
 			}
 		}
 	}
@@ -552,6 +589,10 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		"",
 		"Signature",
 		display.DisplayByteSlice(headerHandler.GetSignature())}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Leader's Signature",
+		display.DisplayByteSlice(headerHandler.GetLeaderSignature())}))
 	lines = append(lines, display.NewLineData(true, []string{
 		"",
 		"Root hash",
@@ -592,6 +633,12 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
+	if check.IfNil(arguments.Rounder) {
+		return process.ErrNilRounder
+	}
+	if check.IfNil(arguments.BootStorer) {
+		return process.ErrNilStorage
+	}
 	if check.IfNil(arguments.BlockChainHook) {
 		return process.ErrNilBlockChainHook
 	}
@@ -613,7 +660,6 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	bp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	bp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
-	bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	bp.txCoordinator.CreateBlockStarted()
 }
@@ -769,21 +815,6 @@ func (bp *baseProcessor) isHeaderOutOfRange(header data.HeaderHandler, cacher st
 	return isHeaderOutOfRange
 }
 
-func (bp *baseProcessor) wasHeaderRequested(shardId uint32, nonce uint64) bool {
-	requestedNonces, ok := bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId]
-	if !ok {
-		return false
-	}
-
-	for _, requestedNonce := range requestedNonces {
-		if requestedNonce == nonce {
-			return true
-		}
-	}
-
-	return false
-}
-
 // requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for
 // processing the current block. It requests the finality headers greater than the highest header, for given shard,
 // related to the block which should be processed
@@ -807,13 +838,8 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 
 		if len(headers) == 0 {
 			missingFinalityAttestingHeaders++
-			wasHeaderRequested := bp.wasHeaderRequested(shardId, i)
-			if !wasHeaderRequested {
-				requestedHeaders++
-				bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId] = append(bp.hdrsForCurrBlock.requestedFinalityAttestingHdrs[shardId], i)
-				go bp.onRequestHeaderHandlerByNonce(shardId, i)
-			}
-
+			requestedHeaders++
+			go bp.onRequestHeaderHandlerByNonce(shardId, i)
 			continue
 		}
 
@@ -829,6 +855,112 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	return missingFinalityAttestingHeaders
+}
+
+func (bp *baseProcessor) isShardStuck(shardId uint32) bool {
+	header := bp.lastHdrForShard(shardId)
+	if check.IfNil(header) {
+		return false
+	}
+
+	isShardStuck := bp.rounder.Index()-int64(header.GetRound()) > process.MaxRoundsWithoutCommittedBlock
+	return isShardStuck
+}
+
+func (bp *baseProcessor) cleanupPools(
+	headersNoncesPool dataRetriever.Uint64SyncMapCacher,
+	headersPool storage.Cacher,
+	notarizedHeadersPool storage.Cacher,
+) {
+	bp.removeHeadersBehindNonceFromPools(
+		true,
+		headersPool,
+		headersNoncesPool,
+		bp.shardCoordinator.SelfId(),
+		bp.forkDetector.GetHighestFinalBlockNonce())
+
+	for shardId := range bp.notarizedHdrs {
+		lastNotarizedHdr := bp.lastNotarizedHdrForShard(shardId)
+		if check.IfNil(lastNotarizedHdr) {
+			continue
+		}
+
+		bp.removeHeadersBehindNonceFromPools(
+			false,
+			notarizedHeadersPool,
+			headersNoncesPool,
+			shardId,
+			lastNotarizedHdr.GetNonce())
+	}
+
+	return
+}
+
+func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
+	shouldRemoveBlockBody bool,
+	cacher storage.Cacher,
+	uint64SyncMapCacher dataRetriever.Uint64SyncMapCacher,
+	shardId uint32,
+	nonce uint64,
+) {
+
+	if nonce <= 1 {
+		return
+	}
+
+	if check.IfNil(cacher) {
+		return
+	}
+
+	for _, key := range cacher.Keys() {
+		val, _ := cacher.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(data.HeaderHandler)
+		if !ok {
+			continue
+		}
+
+		if hdr.GetShardID() != shardId || hdr.GetNonce() >= nonce {
+			continue
+		}
+
+		if shouldRemoveBlockBody {
+			errNotCritical := bp.removeBlockBodyOfHeader(hdr)
+			if errNotCritical != nil {
+				log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
+			}
+		}
+
+		cacher.Remove(key)
+
+		if check.IfNil(uint64SyncMapCacher) {
+			continue
+		}
+
+		uint64SyncMapCacher.Remove(hdr.GetNonce(), hdr.GetShardID())
+	}
+}
+
+func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandler) error {
+	bodyHandler, err := bp.requestBlockBodyHandler.GetBlockBodyFromPool(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	body, ok := bodyHandler.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = bp.txCoordinator.RemoveBlockDataFromPool(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) removeHeaderFromPools(
@@ -877,6 +1009,7 @@ func (bp *baseProcessor) getHeadersFromPools(
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
+	//TODO: This for could be deleted when the implementation of the new cache will be done
 	for _, headerHash := range cacher.Keys() {
 		val, _ := cacher.Peek(headerHash)
 		if val == nil {
@@ -903,4 +1036,88 @@ func (bp *baseProcessor) getHeadersFromPools(
 	headersHashes = append(headersHashes, headerHash)
 
 	return headers, headersHashes
+}
+
+func (bp *baseProcessor) prepareDataForBootStorer(
+	headerInfo bootstrapStorage.BootstrapHeaderInfo,
+	round uint64,
+	lastFinalHdrs []data.HeaderHandler,
+	lastFinalHashes [][]byte,
+	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
+) {
+	lastFinals := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+
+	//TODO add end of epoch stuff
+
+	lastNotarizedHdrs := bp.getLastNotarizedHdrs()
+	highestFinalNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+
+	for i := range lastFinalHdrs {
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: lastFinalHdrs[i].GetShardID(),
+			Nonce:   lastFinalHdrs[i].GetNonce(),
+			Hash:    lastFinalHashes[i],
+		}
+
+		lastFinals = append(lastFinals, headerInfo)
+	}
+
+	bootData := bootstrapStorage.BootstrapData{
+		HeaderInfo:           headerInfo,
+		LastNotarizedHeaders: lastNotarizedHdrs,
+		LastFinals:           lastFinals,
+		HighestFinalNonce:    highestFinalNonce,
+		ProcessedMiniBlocks:  processedMiniBlocks,
+	}
+
+	go func() {
+		err := bp.bootStorer.Put(int64(round), bootData)
+		if err != nil {
+			log.Warn("cannot save boot data in storage",
+				"error", err.Error())
+		}
+	}()
+}
+
+func (bp *baseProcessor) getLastNotarizedHdrs() []bootstrapStorage.BootstrapHeaderInfo {
+	lastNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+
+	bp.mutNotarizedHdrs.RLock()
+	for shardId := range bp.notarizedHdrs {
+		hdr := bp.lastNotarizedHdrForShard(shardId)
+
+		hdrNonce := hdr.GetNonce()
+		if hdrNonce == 0 {
+			continue
+		}
+
+		hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
+		if err != nil {
+			continue
+		}
+
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: hdr.GetShardID(),
+			Nonce:   hdrNonce,
+			Hash:    hash,
+		}
+		lastNotarizedHdrs = append(lastNotarizedHdrs, headerInfo)
+	}
+	bp.mutNotarizedHdrs.RUnlock()
+
+	return lastNotarizedHdrs
+}
+
+func (bp *baseProcessor) commitAll() error {
+	_, err := bp.accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	_, err = bp.validatorStatisticsProcessor.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

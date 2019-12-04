@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -26,7 +27,7 @@ type metaProcessor struct {
 	*baseProcessor
 	core         serviceContainer.Core
 	dataPool     dataRetriever.MetaPoolsHolder
-	scDataGetter external.ScDataGetter
+	scDataGetter external.SCQueryService
 	scToProtocol process.SmartContractToProtocolHandler
 	peerChanges  process.PeerChangesHandler
 
@@ -81,6 +82,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockChainHook:                arguments.BlockChainHook,
 		txCoordinator:                 arguments.TxCoordinator,
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
+		rounder:                       arguments.Rounder,
+		bootStorer:                    arguments.BootStorer,
 		blockTracker:                  arguments.BlockTracker,
 		headerPoolsCleaner:            arguments.HeaderPoolsCleaner,
 	}
@@ -100,9 +103,10 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		scToProtocol:   arguments.SCToProtocol,
 	}
 
+	mp.baseProcessor.requestBlockBodyHandler = &mp
+
 	mp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	mp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
-	mp.hdrsForCurrBlock.requestedFinalityAttestingHdrs = make(map[uint32][]uint64)
 
 	headerPool := mp.dataPool.ShardHeaders()
 	headerPool.RegisterHandler(mp.receivedShardHeader)
@@ -485,8 +489,10 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		syncMap.Store(shardHeader.GetShardID(), hdrHash)
 		headerNoncesPool.Merge(shardHeader.GetNonce(), syncMap)
 
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(shardHeader.GetShardID())
+		storer := mp.store.GetStorer(hdrNonceHashDataUnit)
 		nonceToByteSlice := mp.uint64Converter.ToByteSlice(shardHeader.GetNonce())
-		errNotCritical = mp.store.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit).Remove(nonceToByteSlice)
+		errNotCritical = storer.Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Debug("ShardHdrNonceHashDataUnit.Remove", "error", errNotCritical.Error())
 		}
@@ -934,6 +940,13 @@ func (mp *metaProcessor) CommitBlock(
 		mp.dataPool.ShardHeaders().Len(),
 	)
 
+	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: header.GetShardID(),
+		Nonce:   header.GetNonce(),
+		Hash:    headerHash,
+	}
+	mp.prepareDataForBootStorer(headerInfo, header.Round, nil, nil, nil)
+
 	mp.blockSizeThrottler.Succeed(header.Round)
 
 	log.Debug("pools info",
@@ -948,42 +961,8 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-// RevertStateToBlock recreates thee state tries to the root hashes indicated by the provided header
-func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
-	err := mp.accounts.RecreateTrie(header.GetRootHash())
-	if err != nil {
-		log.Debug("recreate trie with error for header",
-			"nonce", header.GetNonce(),
-			"hash", header.GetRootHash(),
-		)
-
-		return err
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerState(header)
-	if err != nil {
-		log.Debug("revert peer state with error for header",
-			"nonce", header.GetNonce(),
-			"validators root hash", header.GetValidatorStatsRootHash(),
-		)
-
-		return err
-	}
-
-	return nil
-}
-
-// RevertAccountState reverts the account state for cleanup failed process
-func (mp *metaProcessor) RevertAccountState() {
-	err := mp.accounts.RevertToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertToSnapshot", "error", err.Error())
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerStateToSnapshot(0)
-	if err != nil {
-		log.Debug("RevertPeerStateToSnapshot", "error", err.Error())
-	}
+// ApplyProcessedMiniBlocks will do nothing on meta processor
+func (mp *metaProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks map[string]map[string]struct{}) {
 }
 
 func (mp *metaProcessor) getPrevHeader(header *block.MetaBlock) (*block.MetaBlock, error) {
@@ -1018,20 +997,6 @@ func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
 	if valueStored < value {
 		mp.shardsHeadersNonce.Store(key, value)
 	}
-}
-
-func (mp *metaProcessor) commitAll() error {
-	_, err := mp.accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	_, err = mp.validatorStatisticsProcessor.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (mp *metaProcessor) saveMetricCrossCheckBlockHeight() {
@@ -1399,6 +1364,10 @@ func (mp *metaProcessor) createShardInfo(
 		shardData.TxCount = shardHdr.TxCount
 		shardData.ShardID = shardHdr.ShardId
 		shardData.HeaderHash = []byte(hdrHash)
+		shardData.Round = shardHdr.Round
+		shardData.PrevHash = shardHdr.PrevHash
+		shardData.Nonce = shardHdr.Nonce
+		shardData.PrevRandSeed = shardHdr.PrevRandSeed
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
 			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
@@ -1701,4 +1670,33 @@ func (mp *metaProcessor) getShardHeaderFromPoolWithNonce(
 		mp.dataPool.HeadersNonces())
 
 	return shardHeader, shardHeaderHash, err
+}
+
+func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	miniBlockPool := mp.dataPool.MiniBlocks()
+	if miniBlockPool == nil {
+		return nil, process.ErrNilMiniBlockPool
+	}
+
+	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	for i := 0; i < len(metaBlock.MiniBlockHeaders); i++ {
+		obj, ok := miniBlockPool.Get(metaBlock.MiniBlockHeaders[i].Hash)
+		if !ok {
+			continue
+		}
+
+		miniBlock, ok := obj.(*block.MiniBlock)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return block.Body(miniBlocks), nil
 }

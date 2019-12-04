@@ -28,7 +28,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	round := uint64(0)
 	nonce := uint64(0)
 
-	valMinting := big.NewInt(100)
+	valMinting := big.NewInt(100000)
 	valToTransferPerTx := big.NewInt(2)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
