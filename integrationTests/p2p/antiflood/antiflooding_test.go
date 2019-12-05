@@ -15,7 +15,8 @@ import (
 
 var durationBootstrapingTime = 2 * time.Second
 
-// TestAntifloodWithMessagesFromTheSamePeer tests what happens if a peer decide to send a large number of transactions
+// TestAntifloodWithMessagesFromTheSamePeer tests what happens if a peer decide to send a large number of messages
+// all originating from its peer ID
 // All directed peers should prevent the flooding to the rest of the network and process only a limited number of messages
 func TestAntifloodWithMessagesFromTheSamePeer(t *testing.T) {
 	if testing.Short() {
@@ -64,14 +65,71 @@ func TestAntifloodWithMessagesFromTheSamePeer(t *testing.T) {
 
 	isFlooding.Store(false)
 
+	checkMessagesOnPeers(t, peers, interceptors, uint64(maxMumProcessMessages), floodedIdxes, protectedIdexes)
+}
+
+// TestAntifloodWithMessagesFromOtherPeers tests what happens if a peer decide to send a number of messages
+// originating form other peer IDs. Since this is exceptionally hard to accomplish in integration tests because it needs
+// 3-rd party library tweaking, the test is reduced to 10 peers generating 1 message through one peer that acts as a flooder
+// All directed peers should prevent the flooding to the rest of the network and process only a limited number of messages
+func TestAntifloodWithMessagesFromOtherPeers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	peers, err := integrationTests.CreateFixedNetworkOf14Peers()
+	assert.Nil(t, err)
+
+	defer func() {
+		integrationTests.ClosePeers(peers)
+	}()
+
+	//peer 2 acts as a flooder that propagates 10 messages from 10 different peers. Peer 1 should prevent flooding to peer 0
+	// (check integrationTests.CreateFixedNetworkOf14Peers function)
+	topic := "test_topic"
+	broadcastMessageDuration := time.Second * 2
+	maxMumProcessMessages := 5
+	interceptors, err := createTopicsAndMockInterceptors(peers, topic, maxMumProcessMessages)
+	assert.Nil(t, err)
+
+	fmt.Println("bootstrapping nodes")
+	time.Sleep(durationBootstrapingTime)
+
+	flooderIdxes := []int{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}
+	floodedIdxes := []int{1}
+	protectedIdexes := []int{0}
+
+	//flooders will deactivate their flooding mechanism as to be able to flood the network
+	for _, idx := range flooderIdxes {
+		interceptors[idx].CountersMap = nil
+	}
+
+	//generate a message from connected peers of the main flooder (peer 2)
+	fmt.Println("flooding the network")
+	for i := 3; i <= 13; i++ {
+		peers[i].Broadcast(topic, []byte("floodMessage"))
+	}
+	time.Sleep(broadcastMessageDuration)
+
+	checkMessagesOnPeers(t, peers, interceptors, uint64(maxMumProcessMessages), floodedIdxes, protectedIdexes)
+}
+
+func checkMessagesOnPeers(
+	t *testing.T,
+	peers []p2p.Messenger,
+	interceptors []*messageProcessor,
+	maxMumProcessMessages uint64,
+	floodedIdxes []int,
+	protectedIdexes []int,
+) {
 	checkFunctionForFloodedPeers := func(interceptor *messageProcessor) {
-		assert.Equal(t, uint64(maxMumProcessMessages), interceptor.MessagesProcessed())
+		assert.Equal(t, maxMumProcessMessages, interceptor.MessagesProcessed())
 		//can not precisely determine how many message have been received
-		assert.True(t, uint64(maxMumProcessMessages) < interceptor.MessagesReceived())
+		assert.True(t, maxMumProcessMessages < interceptor.MessagesReceived())
 	}
 	checkFunctionForProtectedPeers := func(interceptor *messageProcessor) {
-		assert.Equal(t, uint64(maxMumProcessMessages), interceptor.MessagesProcessed())
-		assert.Equal(t, uint64(maxMumProcessMessages), interceptor.MessagesReceived())
+		assert.Equal(t, maxMumProcessMessages, interceptor.MessagesProcessed())
+		assert.Equal(t, maxMumProcessMessages, interceptor.MessagesReceived())
 	}
 
 	fmt.Println("checking flooded peers")

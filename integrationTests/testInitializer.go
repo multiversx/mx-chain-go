@@ -139,6 +139,37 @@ func CreateFixedNetworkOf7Peers() ([]p2p.Messenger, error) {
 	return peers, nil
 }
 
+// CreateFixedNetworkOf14Peers assembles a network as following:
+//
+//                 0
+//                 |
+//                 1
+//                 |
+//  +--+--+--+--+--2--+--+--+--+--+
+//  |  |  |  |  |  |  |  |  |  |  |
+//  3  4  5  6  7  8  9  10 11 12 13
+func CreateFixedNetworkOf14Peers() ([]p2p.Messenger, error) {
+	numPeers := 13
+	peers := make([]p2p.Messenger, numPeers+1)
+
+	for i := 0; i <= numPeers; i++ {
+		peers[i] = CreateMessengerWithNoDiscovery(context.Background())
+	}
+
+	connections := map[int][]int{
+		0: {1},
+		1: {2},
+		2: {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
+	}
+
+	err := createConnections(peers, connections)
+	if err != nil {
+		return nil, err
+	}
+
+	return peers, nil
+}
+
 func createConnections(peers []p2p.Messenger, connections map[int][]int) error {
 	for pid, connectTo := range connections {
 		err := connectPeerToOthers(peers, pid, connectTo)
