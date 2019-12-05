@@ -456,7 +456,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message), broadcastHandler)
+		err := handler.ProcessReceivedMessage(NewMessage(message), p2p.PeerID(pid), broadcastHandler)
 		if err != nil {
 			log.Trace("p2p validator", "error", err.Error(), "topics", message.TopicIDs)
 		}
@@ -499,7 +499,7 @@ func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, p
 	return netMes.ds.Send(topic, buff, peerID)
 }
 
-func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) error {
+func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	var processor p2p.MessageProcessor
 
 	netMes.mutTopics.RLock()
@@ -511,7 +511,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}
 
 	go func(msg p2p.MessageP2P) {
-		err := processor.ProcessReceivedMessage(msg, nil)
+		err := processor.ProcessReceivedMessage(msg, fromConnectedPeer, nil)
 		if err != nil {
 			log.Trace("p2p validator", "error", err.Error(), "topics", msg.TopicIDs())
 		}

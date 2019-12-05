@@ -31,6 +31,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+
 func logError(err error) {
 	if err != nil {
 		fmt.Println(err.Error())
@@ -1435,7 +1437,7 @@ func TestNode_StartHeartbeatShouldWorkAndCanCallProcessMessage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, registeredHandler)
 
-	err = registeredHandler.ProcessReceivedMessage(nil, nil)
+	err = registeredHandler.ProcessReceivedMessage(nil, fromConnectedPeerId, nil)
 	assert.NotNil(t, err)
 	assert.Contains(t, "nil message", err.Error())
 }

@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+
 //------- NewHeaderResolver
 
 func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
@@ -166,7 +168,7 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), nil)
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, nil), fromConnectedPeerId, nil)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
 }
 
@@ -183,7 +185,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)), nil)
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)), fromConnectedPeerId, nil)
 	assert.Equal(t, dataRetriever.ErrResolveTypeUnknown, err)
 
 }
@@ -223,7 +225,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), nil)
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), fromConnectedPeerId, nil)
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
 	assert.True(t, sendWasCalled)
@@ -270,7 +272,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), nil)
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), fromConnectedPeerId, nil)
 	assert.Equal(t, errExpected, err)
 }
 
@@ -315,7 +317,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), nil)
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, requestedData), fromConnectedPeerId, nil)
 	assert.Nil(t, err)
 	assert.True(t, wasGotFromStorage)
 	assert.True(t, wasSent)
@@ -338,7 +340,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte("aaa")), nil)
+	err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte("aaa")), fromConnectedPeerId, nil)
 	assert.Equal(t, dataRetriever.ErrInvalidNonceByteSlice, err)
 }
 
@@ -377,6 +379,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 
 	err := hdrRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
+		fromConnectedPeerId,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -441,6 +444,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	err := hdrRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
+		fromConnectedPeerId,
 		nil,
 	)
 
@@ -512,6 +516,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	err := hdrRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
+		fromConnectedPeerId,
 		nil,
 	)
 
@@ -580,6 +585,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	err := hdrRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.NonceType, nonceConverter.ToByteSlice(requestedNonce)),
+		fromConnectedPeerId,
 		nil,
 	)
 

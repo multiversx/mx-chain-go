@@ -14,7 +14,7 @@ func (hrm *HeaderResolverMock) RequestDataFromHash(hash []byte) error {
 	return hrm.RequestDataFromHashCalled(hash)
 }
 
-func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID, _ func(buffToSend []byte)) error {
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 

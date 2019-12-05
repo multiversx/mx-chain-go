@@ -346,7 +346,7 @@ type BlockChainHookHandler interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, broadcastHandler func(buffToSend []byte)) error
 	IsInterfaceNil() bool
 }
 
@@ -529,4 +529,12 @@ type BootstrapperFromStorage interface {
 // RequestBlockBodyHandler is the interface needed by process block
 type RequestBlockBodyHandler interface {
 	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+}
+
+// AntifloodProtector defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls
+type AntifloodProtector interface {
+	TryIncrement(identifier string) bool
+	Reset()
+	IsInterfaceNil() bool
 }

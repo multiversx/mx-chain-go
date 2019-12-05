@@ -16,6 +16,7 @@ type streamMock struct {
 	pid          protocol.ID
 	streamClosed bool
 	canRead      bool
+	conn         network.Conn
 }
 
 func NewStreamMock() *streamMock {
@@ -104,5 +105,9 @@ func (sm *streamMock) Stat() network.Stat {
 }
 
 func (sm *streamMock) Conn() network.Conn {
-	panic("implement me")
+	return sm.conn
+}
+
+func (sm *streamMock) SetConn(conn network.Conn) {
+	sm.conn = conn
 }

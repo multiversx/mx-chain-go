@@ -201,7 +201,7 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
-func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID, _ func(buffToSend []byte)) error {
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2pMessage(message)
 	if err != nil {
 		return err

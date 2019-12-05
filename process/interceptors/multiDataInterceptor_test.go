@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
 
 func TestNewMultiDataInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
@@ -96,7 +99,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testi
 		&mock.InterceptorThrottlerStub{},
 	)
 
-	err := mdi.ProcessReceivedMessage(nil, nil)
+	err := mdi.ProcessReceivedMessage(nil, fromConnectedPeerId, nil)
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -119,7 +122,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := mdi.ProcessReceivedMessage(msg, nil)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, nil)
 
 	assert.Equal(t, errExpeced, err)
 }
@@ -141,7 +144,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := mdi.ProcessReceivedMessage(msg, nil)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, nil)
 
 	assert.Equal(t, process.ErrNoDataInMessage, err)
 }
@@ -175,7 +178,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldNotResend(t *testi
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, bradcastCallback)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, bradcastCallback)
 
 	time.Sleep(time.Second)
 
@@ -242,7 +245,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldSendOnlyC
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, bradcastCallback)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, bradcastCallback)
 
 	time.Sleep(time.Second)
 
@@ -287,7 +290,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, nil)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, nil)
 
 	time.Sleep(time.Second)
 
@@ -330,7 +333,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShoul
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, nil)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, nil)
 
 	time.Sleep(time.Second)
 
@@ -373,7 +376,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
 	}
-	err := mdi.ProcessReceivedMessage(msg, nil)
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, nil)
 
 	time.Sleep(time.Second)
 
