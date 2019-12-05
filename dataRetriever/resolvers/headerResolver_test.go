@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
-
 //------- NewHeaderResolver
 
 func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
