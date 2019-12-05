@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/complexStructures"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -30,7 +30,7 @@ type shardProcessor struct {
 	dataPool            dataRetriever.PoolsHolder
 	metaBlockFinality   uint32
 	chRcvAllMetaHdrs    chan bool
-	processedMiniBlocks *complexStructures.ProcessedMiniBlocks
+	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
 	txCounter           *transactionCounter
 	txsPoolsCleaner     process.PoolsCleaner
@@ -100,7 +100,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	sp.hdrsForCurrBlock.hdrHashAndInfo = make(map[string]*hdrInfo)
 	sp.hdrsForCurrBlock.highestHdrNonce = make(map[uint32]uint64)
-	sp.processedMiniBlocks = complexStructures.NewProcessedMiniBlocks()
+	sp.processedMiniBlocks = processedMb.NewProcessedMiniBlocks()
 
 	metaBlockPool := sp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
@@ -544,12 +544,12 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(mapMiniBlockHashes map[string
 
 	for metaBlockHash, miniBlockHashes := range mapMetaHashMiniBlockHashes {
 		for _, miniBlockHash := range miniBlockHashes {
-			sp.processedMiniBlocks.AddMiniBlockHash([]byte(metaBlockHash), miniBlockHash)
+			sp.processedMiniBlocks.AddMiniBlockHash(metaBlockHash, string(miniBlockHash))
 		}
 	}
 
 	for miniBlockHash := range mapMiniBlockHashes {
-		sp.processedMiniBlocks.RemoveMiniBlockHash([]byte(miniBlockHash))
+		sp.processedMiniBlocks.RemoveMiniBlockHash(miniBlockHash)
 	}
 
 	return nil
@@ -797,7 +797,7 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 // ApplyProcessedMiniBlocks will apply processed mini blocks
-func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks *complexStructures.ProcessedMiniBlocks) {
+func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker) {
 	sp.processedMiniBlocks = processedMiniBlocks
 }
 
@@ -937,7 +937,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header *block.He
 				continue
 			}
 
-			sp.processedMiniBlocks.AddMiniBlockHash(metaBlockHash, miniBlockHash)
+			sp.processedMiniBlocks.AddMiniBlockHash(string(metaBlockHash), string(miniBlockHash))
 
 			delete(miniBlockHashes, key)
 		}
@@ -1000,7 +1000,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		for hash := range crossMiniBlockHashes {
-			processedCrossMiniBlocksHashes[hash] = sp.processedMiniBlocks.IsMiniBlockProcessed([]byte(metaBlockHash), []byte(hash))
+			processedCrossMiniBlocksHashes[hash] = sp.processedMiniBlocks.IsMiniBlockProcessed(metaBlockHash, hash)
 		}
 
 		for key, miniBlockHash := range miniBlockHashes {
@@ -1076,7 +1076,7 @@ func (sp *shardProcessor) removeProcessedMetaBlocksFromPool(processedMetaHdrs []
 
 		sp.dataPool.MetaBlocks().Remove(headerHash)
 		sp.dataPool.HeadersNonces().Remove(hdr.GetNonce(), sharding.MetachainShardId)
-		sp.processedMiniBlocks.RemoveMetaBlockHash(headerHash)
+		sp.processedMiniBlocks.RemoveMetaBlockHash(string(headerHash))
 
 		log.Trace("metaBlock has been processed completely and removed from pool",
 			"round", hdr.GetRound(),
@@ -1468,7 +1468,7 @@ func (sp *shardProcessor) createAndProcessCrossMiniBlocksDstMe(
 			uint32(len(miniBlocks)))
 
 		if maxTxSpaceRemained > 0 && maxMbSpaceRemained > 0 {
-			processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(orderedMetaBlocks[i].hash)
+			processedMiniBlocksHashes := sp.processedMiniBlocks.GetProcessedMiniBlocksHashes(string(orderedMetaBlocks[i].hash))
 			currMBProcessed, currTxsAdded, hdrProcessFinished := sp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
 				hdr,
 				processedMiniBlocksHashes,

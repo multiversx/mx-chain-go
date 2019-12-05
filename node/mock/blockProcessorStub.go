@@ -1,11 +1,11 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/complexStructures"
 	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // BlockProcessorStub mocks the implementation for a blockProcessor
@@ -96,7 +96,7 @@ func (blProcMock BlockProcessorStub) CreateNewHeader() data.HeaderHandler {
 	return blProcMock.CreateNewHeaderCalled()
 }
 
-func (blProcMock *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *complexStructures.ProcessedMiniBlocks) {
+func (blProcMock *BlockProcessorStub) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }
 

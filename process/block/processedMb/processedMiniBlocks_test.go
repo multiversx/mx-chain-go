@@ -1,4 +1,4 @@
-package complexStructures
+package processedMb
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -11,10 +11,10 @@ func TestProcessedMiniBlocks_AddMiniBlockHashShouldWork(t *testing.T) {
 
 	pmb := NewProcessedMiniBlocks()
 
-	mbHash1 := []byte("hash1")
-	mbHash2 := []byte("hash2")
-	mtbHash1 := []byte("meta1")
-	mtbHash2 := []byte("meta2")
+	mbHash1 := "hash1"
+	mbHash2 := "hash2"
+	mtbHash1 := "meta1"
+	mtbHash2 := "meta2"
 
 	pmb.AddMiniBlockHash(mtbHash1, mbHash1)
 	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash1))
@@ -40,21 +40,21 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlocksHashes(t *testing.T) {
 
 	pmb := NewProcessedMiniBlocks()
 
-	mbHash1 := []byte("hash1")
-	mbHash2 := []byte("hash2")
-	mtbHash1 := []byte("meta1")
-	mtbHash2 := []byte("meta2")
+	mbHash1 := "hash1"
+	mbHash2 := "hash2"
+	mtbHash1 := "meta1"
+	mtbHash2 := "meta2"
 
 	pmb.AddMiniBlockHash(mtbHash1, mbHash1)
 	pmb.AddMiniBlockHash(mtbHash1, mbHash2)
 	pmb.AddMiniBlockHash(mtbHash2, mbHash2)
 
 	mapData := pmb.GetProcessedMiniBlocksHashes(mtbHash1)
-	assert.NotNil(t, mapData[string(mbHash1)])
-	assert.NotNil(t, mapData[string(mbHash2)])
+	assert.NotNil(t, mapData[mbHash1])
+	assert.NotNil(t, mapData[mbHash2])
 
 	mapData = pmb.GetProcessedMiniBlocksHashes(mtbHash2)
-	assert.NotNil(t, mapData[string(mbHash1)])
+	assert.NotNil(t, mapData[mbHash1])
 }
 
 func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) {
@@ -62,27 +62,17 @@ func TestProcessedMiniBlocks_ConvertSliceToProcessedMiniBlocksMap(t *testing.T) 
 
 	pmb := NewProcessedMiniBlocks()
 
-	mbHash1 := []byte("hash1")
-	mbHash2 := []byte("hash2")
-	mtbHash1 := []byte("meta1")
-	mtbHash2 := []byte("meta2")
+	mbHash1 := "hash1"
+	mtbHash1 := "meta1"
 
 	data1 := bootstrapStorage.MiniBlocksInMeta{
-		MetaHash:         mtbHash1,
-		MiniBlocksHashes: [][]byte{mbHash1, mbHash2},
+		MetaHash:         []byte(mtbHash1),
+		MiniBlocksHashes: [][]byte{[]byte(mbHash1)},
 	}
 
-	data2 := bootstrapStorage.MiniBlocksInMeta{
-		MetaHash:         mtbHash2,
-		MiniBlocksHashes: [][]byte{mbHash1, mbHash2},
-	}
-
-	miniBlocksInMeta := []bootstrapStorage.MiniBlocksInMeta{data1, data2}
+	miniBlocksInMeta := []bootstrapStorage.MiniBlocksInMeta{data1}
 	pmb.ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMeta)
 	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash1))
-	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash1, mbHash2))
-	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash2, mbHash1))
-	assert.True(t, pmb.IsMiniBlockProcessed(mtbHash2, mbHash2))
 
 	convertedData := pmb.ConvertProcessedMiniBlocksMapToSlice()
 	assert.Equal(t, miniBlocksInMeta, convertedData)

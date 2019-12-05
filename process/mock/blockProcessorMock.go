@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/complexStructures"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"math/big"
 	"time"
 
@@ -26,7 +26,7 @@ type BlockProcessorMock struct {
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 }
 
-func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(*complexStructures.ProcessedMiniBlocks) {
+func (bpm *BlockProcessorMock) ApplyProcessedMiniBlocks(*processedMb.ProcessedMiniBlockTracker) {
 
 }
 

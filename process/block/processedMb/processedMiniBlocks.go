@@ -1,4 +1,4 @@
-package complexStructures
+package processedMb
 
 import (
 	"sync"
@@ -7,52 +7,52 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
-var log = logger.GetOrCreate("core/complexStructures")
+var log = logger.GetOrCreate("core/processedMb")
 
-// ProcessedMiniBlocks is used to store all processed min blocks hashes for e meta block hash
-type ProcessedMiniBlocks struct {
+// ProcessedMiniBlockTracker is used to store all processed min blocks hashes for e meta block hash
+type ProcessedMiniBlockTracker struct {
 	processedMiniBlocks    map[string]map[string]struct{}
 	mutProcessedMiniBlocks sync.RWMutex
 }
 
-// NewProcessedMiniBlocks will create a complex type of processedMiniBlocks
-func NewProcessedMiniBlocks() *ProcessedMiniBlocks {
-	return &ProcessedMiniBlocks{
+// NewProcessedMiniBlocks will create a complex type of processedMb
+func NewProcessedMiniBlocks() *ProcessedMiniBlockTracker {
+	return &ProcessedMiniBlockTracker{
 		processedMiniBlocks: make(map[string]map[string]struct{}),
 	}
 }
 
 // AddMiniBlockHash will add a miniblock hash
-func (pmb *ProcessedMiniBlocks) AddMiniBlockHash(metaBlockHash []byte, miniBlockHash []byte) {
+func (pmb *ProcessedMiniBlockTracker) AddMiniBlockHash(metaBlockHash string, miniBlockHash string) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	defer pmb.mutProcessedMiniBlocks.Unlock()
 
-	miniBlocksProcessed, ok := pmb.processedMiniBlocks[string(metaBlockHash)]
+	miniBlocksProcessed, ok := pmb.processedMiniBlocks[metaBlockHash]
 	if !ok {
 		miniBlocksProcessed := make(map[string]struct{})
-		miniBlocksProcessed[string(miniBlockHash)] = struct{}{}
-		pmb.processedMiniBlocks[string(metaBlockHash)] = miniBlocksProcessed
+		miniBlocksProcessed[miniBlockHash] = struct{}{}
+		pmb.processedMiniBlocks[metaBlockHash] = miniBlocksProcessed
 
 		return
 	}
 
-	miniBlocksProcessed[string(miniBlockHash)] = struct{}{}
+	miniBlocksProcessed[miniBlockHash] = struct{}{}
 }
 
 // RemoveMetaBlockHash will remove a meta block hash
-func (pmb *ProcessedMiniBlocks) RemoveMetaBlockHash(metaBlockHash []byte) {
+func (pmb *ProcessedMiniBlockTracker) RemoveMetaBlockHash(metaBlockHash string) {
 	pmb.mutProcessedMiniBlocks.Lock()
-	delete(pmb.processedMiniBlocks, string(metaBlockHash))
+	delete(pmb.processedMiniBlocks, metaBlockHash)
 	pmb.mutProcessedMiniBlocks.Unlock()
 }
 
 // RemoveMiniBlockHash will remove a mini block hash
-func (pmb *ProcessedMiniBlocks) RemoveMiniBlockHash(miniBlockHash []byte) {
+func (pmb *ProcessedMiniBlockTracker) RemoveMiniBlockHash(miniBlockHash string) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	for metaHash, miniBlocksProcessed := range pmb.processedMiniBlocks {
-		_, isProcessed := miniBlocksProcessed[string(miniBlockHash)]
+		_, isProcessed := miniBlocksProcessed[miniBlockHash]
 		if isProcessed {
-			delete(miniBlocksProcessed, string(miniBlockHash))
+			delete(miniBlocksProcessed, miniBlockHash)
 		}
 
 		if len(miniBlocksProcessed) == 0 {
@@ -63,30 +63,30 @@ func (pmb *ProcessedMiniBlocks) RemoveMiniBlockHash(miniBlockHash []byte) {
 }
 
 // GetProcessedMiniBlocksHashes will return all processed miniblocks for a metablock
-func (pmb *ProcessedMiniBlocks) GetProcessedMiniBlocksHashes(metaBlockHash []byte) map[string]struct{} {
+func (pmb *ProcessedMiniBlockTracker) GetProcessedMiniBlocksHashes(metaBlockHash string) map[string]struct{} {
 	pmb.mutProcessedMiniBlocks.RLock()
-	processedMiniBlocksHashes := pmb.processedMiniBlocks[string(metaBlockHash)]
+	processedMiniBlocksHashes := pmb.processedMiniBlocks[metaBlockHash]
 	pmb.mutProcessedMiniBlocks.RUnlock()
 
 	return processedMiniBlocksHashes
 }
 
 // IsMiniBlockProcessed will return true if a mini block is processed
-func (pmb *ProcessedMiniBlocks) IsMiniBlockProcessed(metaBlockHash []byte, miniBlockHash []byte) bool {
+func (pmb *ProcessedMiniBlockTracker) IsMiniBlockProcessed(metaBlockHash string, miniBlockHash string) bool {
 	pmb.mutProcessedMiniBlocks.RLock()
 	defer pmb.mutProcessedMiniBlocks.RUnlock()
 
-	miniBlocksProcessed, ok := pmb.processedMiniBlocks[string(metaBlockHash)]
+	miniBlocksProcessed, ok := pmb.processedMiniBlocks[metaBlockHash]
 	if !ok {
 		return false
 	}
 
-	_, isProcessed := miniBlocksProcessed[string(miniBlockHash)]
+	_, isProcessed := miniBlocksProcessed[miniBlockHash]
 	return isProcessed
 }
 
 // ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta
-func (pmb *ProcessedMiniBlocks) ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta {
+func (pmb *ProcessedMiniBlockTracker) ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta {
 	miniBlocksInMetaBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 
 	pmb.mutProcessedMiniBlocks.RLock()
@@ -103,7 +103,7 @@ func (pmb *ProcessedMiniBlocks) ConvertProcessedMiniBlocksMapToSlice() []bootstr
 }
 
 // ConvertSliceToProcessedMiniBlocksMap will convert a slice of MiniBlocksInMeta in an map[string]map[string]struct{}
-func (pmb *ProcessedMiniBlocks) ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) {
+func (pmb *ProcessedMiniBlockTracker) ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta) {
 	pmb.mutProcessedMiniBlocks.Lock()
 	for _, miniBlocksInMeta := range miniBlocksInMetaBlocks {
 		miniBlocksHashes := make(map[string]struct{})
@@ -116,7 +116,7 @@ func (pmb *ProcessedMiniBlocks) ConvertSliceToProcessedMiniBlocksMap(miniBlocksI
 }
 
 // DisplayProcessedMiniBlocks will display all miniblocks hashes and meta block hash from the map
-func (pmb *ProcessedMiniBlocks) DisplayProcessedMiniBlocks() {
+func (pmb *ProcessedMiniBlockTracker) DisplayProcessedMiniBlocks() {
 	log.Debug("processed mini blocks applied")
 
 	pmb.mutProcessedMiniBlocks.RLock()

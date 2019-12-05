@@ -3,10 +3,10 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/complexStructures"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 )
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
@@ -40,7 +40,7 @@ func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler,
 	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
-func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks *complexStructures.ProcessedMiniBlocks) {
+func (blProcMock *BlockProcessorMock) ApplyProcessedMiniBlocks(miniBlocks *processedMb.ProcessedMiniBlockTracker) {
 
 }
 
