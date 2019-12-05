@@ -311,11 +311,11 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 		return map[string][]byte{}, nil
 	}
 
-	leafs := make(map[string][]byte)
-	err := tr.root.getAllLeaves(leafs, []byte{}, tr.db, tr.marshalizer)
+	leaves := make(map[string][]byte)
+	err := tr.root.getAllLeaves(leaves, []byte{}, tr.db, tr.marshalizer)
 	if err != nil {
 		return nil, err
 	}
 
-	return leafs, nil
+	return leaves, nil
 }

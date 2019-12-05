@@ -273,7 +273,7 @@ func (ln *leafNode) deepClone() node {
 	return clonedNode
 }
 
-func (ln *leafNode) getAllLeaves(leafs map[string][]byte, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
+func (ln *leafNode) getAllLeaves(leaves map[string][]byte, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -285,6 +285,6 @@ func (ln *leafNode) getAllLeaves(leafs map[string][]byte, key []byte, _ data.DBW
 		return err
 	}
 
-	leafs[string(nodeKey)] = ln.Value
+	leaves[string(nodeKey)] = ln.Value
 	return nil
 }

@@ -418,7 +418,7 @@ func (en *extensionNode) deepClone() node {
 	return clonedNode
 }
 
-func (en *extensionNode) getAllLeaves(leafs map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -430,7 +430,7 @@ func (en *extensionNode) getAllLeaves(leafs map[string][]byte, key []byte, db da
 	}
 
 	childKey := append(key, en.Key...)
-	err = en.child.getAllLeaves(leafs, childKey, db, marshalizer)
+	err = en.child.getAllLeaves(leaves, childKey, db, marshalizer)
 	if err != nil {
 		return err
 	}

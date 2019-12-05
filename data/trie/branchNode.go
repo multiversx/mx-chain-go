@@ -538,7 +538,7 @@ func (bn *branchNode) deepClone() node {
 	return clonedNode
 }
 
-func (bn *branchNode) getAllLeaves(leafs map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -555,7 +555,7 @@ func (bn *branchNode) getAllLeaves(leafs map[string][]byte, key []byte, db data.
 		}
 
 		childKey := append(key, byte(i))
-		err = bn.children[i].getAllLeaves(leafs, childKey, db, marshalizer)
+		err = bn.children[i].getAllLeaves(leaves, childKey, db, marshalizer)
 		if err != nil {
 			return err
 		}
