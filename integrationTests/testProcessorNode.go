@@ -187,7 +187,7 @@ func NewTestProcessorNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr, nodeShardId)
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,
@@ -213,7 +213,7 @@ func NewTestProcessorNode(
 func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr, nodeShardId)
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}

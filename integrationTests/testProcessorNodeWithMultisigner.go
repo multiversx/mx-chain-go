@@ -31,7 +31,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr, nodeShardId)
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
 		Messenger:        messenger,

@@ -31,7 +31,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr, nodeShardId)
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
