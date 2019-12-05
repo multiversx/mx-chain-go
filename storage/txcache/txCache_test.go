@@ -42,6 +42,22 @@ func Test_RemoveByTxHash(t *testing.T) {
 	assert.Nil(t, foundTx)
 }
 
+func Test_GetSorted_Dummy(t *testing.T) {
+	context := setupTestContext(t, nil)
+
+	context.Cache.AddTx([]byte("hash-alice-4"), createTx("alice", 4))
+	context.Cache.AddTx([]byte("hash-alice-3"), createTx("alice", 3))
+	context.Cache.AddTx([]byte("hash-alice-2"), createTx("alice", 2))
+	context.Cache.AddTx([]byte("hash-alice-1"), createTx("alice", 1))
+	context.Cache.AddTx([]byte("hash-bob-7"), createTx("bob", 7))
+	context.Cache.AddTx([]byte("hash-bob-6"), createTx("bob", 6))
+	context.Cache.AddTx([]byte("hash-bob-5"), createTx("bob", 5))
+	context.Cache.AddTx([]byte("hash-carol-1"), createTx("carol", 1))
+
+	sorted := context.Cache.GetSorted(10, 2)
+	assert.Len(t, sorted, 8)
+}
+
 func Test_GetSorted(t *testing.T) {
 	context := setupTestContext(t, nil)
 

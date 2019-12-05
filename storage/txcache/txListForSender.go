@@ -1,76 +1,91 @@
 package txcache
 
 import (
-	"sort"
+	linkedList "container/list"
 
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
 // TxListForSender is
 type TxListForSender struct {
-	// Optimization - list won't be sorted again in another set of passes if it's already sorted (it didn't change after lastest sorting)
-	IsSorted       bool
-	CopyBatchIndex int
+	CopyBatchIndex *linkedList.Element
 	CopyBatchSize  int
-	Items          []data.TransactionHandler
+	Items          *linkedList.List
 }
 
-func (list *TxListForSender) addTransaction(tx data.TransactionHandler) {
-	list.Items = append(list.Items, tx)
-	list.IsSorted = false
+// addTransaction is an inserted sort
+func (list *TxListForSender) addTransaction(tx *transaction.Transaction) {
+	if list.Items == nil {
+		list.Items = linkedList.New()
+	}
+
+	nonce := tx.Nonce
+	mark := list.findTransactionWithLargerNonce(nonce)
+	if mark == nil {
+		list.Items.PushBack(tx)
+	} else {
+		list.Items.InsertBefore(tx, mark)
+	}
 }
 
-// todo: optimize this, don't use append perhaps()
-// todo: implement delete without memory leak: https://github.com/golang/go/wiki/SliceTricks
-func (list *TxListForSender) removeTransaction(tx data.TransactionHandler) {
-	index := list.findTx(tx)
-	list.Items = append(list.Items[:index], list.Items[index+1:]...)
-}
-
-func (list *TxListForSender) findTx(tx data.TransactionHandler) int {
-	for i, item := range list.Items {
-		if item == tx {
-			return i
+func (list *TxListForSender) findTransactionWithLargerNonce(nonce uint64) *linkedList.Element {
+	for element := list.Items.Front(); element != nil; element = element.Next() {
+		tx := element.Value.(*transaction.Transaction)
+		if tx.Nonce > nonce {
+			return element
 		}
 	}
 
-	return -1
+	return nil
 }
 
-func (list *TxListForSender) sortTransactions() {
-	if list.IsSorted {
-		return
+func (list *TxListForSender) removeTransaction(tx *transaction.Transaction) {
+	marker := list.findTransaction(tx)
+	list.Items.Remove(marker)
+}
+
+func (list *TxListForSender) findTransaction(txToFind *transaction.Transaction) *linkedList.Element {
+	for element := list.Items.Front(); element != nil; element = element.Next() {
+		tx := element.Value.(*transaction.Transaction)
+		if tx == txToFind {
+			return element
+		}
 	}
 
-	items := list.Items
+	return nil
+}
 
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].GetNonce() < items[j].GetNonce()
-	})
-
-	list.IsSorted = true
+func (list *TxListForSender) isEmpty() bool {
+	return list.Items.Len() == 0
 }
 
 func (list *TxListForSender) restartBatchCopying(batchSize int) {
-	list.CopyBatchIndex = 0
+	list.CopyBatchIndex = list.Items.Front()
 	list.CopyBatchSize = batchSize
 }
 
-func (list *TxListForSender) copyBatchTo(destination []data.TransactionHandler) int {
-	length := len(list.Items)
-	index := list.CopyBatchIndex
+func (list *TxListForSender) copyBatchTo(destination []*transaction.Transaction) int {
+	element := list.CopyBatchIndex
+	batchSize := list.CopyBatchSize
+	availableLength := len(destination)
 
-	if index == length {
+	if element == nil {
 		return 0
 	}
 
-	batchEnd := index + list.CopyBatchSize
+	// todo rewrite loop, make it more readable
+	copied := 0
+	for true {
+		if element == nil || copied == batchSize || availableLength == copied {
+			break
+		}
 
-	if batchEnd > length {
-		batchEnd = length
+		tx := element.Value.(*transaction.Transaction)
+		destination[copied] = tx
+		copied++
+		element = element.Next()
 	}
 
-	copied := copy(destination, list.Items[index:batchEnd])
-	list.CopyBatchIndex += copied
+	list.CopyBatchIndex = element
 	return copied
 }
