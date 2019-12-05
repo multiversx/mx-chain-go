@@ -2,7 +2,7 @@ package txcache
 
 import (
 	"container/list"
-	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"testing"
 
@@ -60,8 +60,10 @@ func Test_TxCache(t *testing.T) {
 	watch := stopWatch{}
 
 	for index := 0; index < iterationsToRun; index++ {
+		printMemUsage("before populate")
 		transactions := createUniformlyDistributedTransactions(1000, 1000, true)
 		cache := prepareTxCache(16, transactions)
+		printMemUsage("after populate")
 		watch.start()
 		_ = cache.GetSorted(neededTransactions, passBatchSize)
 		watch.pause()
@@ -95,7 +97,7 @@ func createUniformlyDistributedTransactions(noSenders int, noTxPerSender int, go
 	result := list.New()
 
 	for senderTag := 0; senderTag < noSenders; senderTag++ {
-		sender := createRandom32()
+		sender := createFakeSenderAddress(senderTag)
 
 		if goodNoncesOrder {
 			for txNonce := 0; txNonce < noTxPerSender; txNonce++ {
@@ -117,7 +119,7 @@ type txWithHash struct {
 }
 
 func createTxWithHash(sender []byte, nonce int) *txWithHash {
-	txHash := createRandom32()
+	txHash := createFakeTxHash(sender, nonce)
 
 	tx := &txWithHash{
 		Transaction: &transaction.Transaction{
@@ -131,8 +133,17 @@ func createTxWithHash(sender []byte, nonce int) *txWithHash {
 	return tx
 }
 
-func createRandom32() []byte {
+func createFakeSenderAddress(senderTag int) []byte {
 	bytes := make([]byte, 32)
-	_, _ = rand.Reader.Read(bytes)
+	binary.LittleEndian.PutUint64(bytes, uint64(senderTag))
+	binary.LittleEndian.PutUint64(bytes[24:], uint64(senderTag))
+	return bytes
+}
+
+func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
+	bytes := make([]byte, 32)
+	copy(bytes, fakeSenderAddress)
+	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
+	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
 	return bytes
 }
