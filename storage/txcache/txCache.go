@@ -11,13 +11,16 @@ type TxCache struct {
 	txByHash       *cmap.ConcurrentMap
 }
 
-// NewTxCache creates
-func NewTxCache(size int, shards int) *TxCache {
-	// todo - comment, implications of size value, shards value
+// NewTxCache creates a new transaction cache
+// "size" dictates the maximum number of transactions to hold in this cache at a given time
+// "shardsHint" is used to configure the internal concurrent maps on which the implementation relies
+func NewTxCache(size int, shardsHint int) *TxCache {
+	// Note: for simplicity, we use the same "shardsHint" for both internal concurrent maps
 
-	// todo-fix: size and shards do not have to be the same (that's an arbitrary constraint)
-	txBySender := cmap.New(size, shards)
-	txByHash := cmap.New(size, shards)
+	// We'll hold at most "size" lists of 1 transaction
+	txBySender := cmap.New(size, shardsHint)
+	// We'll hold at most "size" transactions
+	txByHash := cmap.New(size, shardsHint)
 
 	txCache := &TxCache{
 		txListBySender: txBySender,
@@ -27,7 +30,8 @@ func NewTxCache(size int, shards int) *TxCache {
 	return txCache
 }
 
-// AddTx adds
+// AddTx adds a transaction in the cache
+// Eviction happens if maximum capacity is reached
 func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 	sender := string(tx.SndAddr)
 
@@ -39,8 +43,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 		cache.txListBySender.Set(sender, listForSender)
 	}
 
-	// todo protect / mutex
-	listForSender.addTransaction(tx)
+	listForSender.AddTransaction(tx)
 
 	// todo: implement eviction
 	// option 1: catch eviction event of cache.txByHash and remove the tx from the other collection as well
@@ -90,10 +93,10 @@ func (cache *TxCache) GetSorted(noRequested int, batchSizePerSender int) []*tran
 
 			// Do this on first pass only
 			if pass == 0 {
-				txList.restartBatchCopying(batchSizePerSender)
+				txList.RestartBatchCopying(batchSizePerSender)
 			}
 
-			copied := txList.copyBatchTo(result[resultFillIndex:])
+			copied := txList.CopyBatchTo(result[resultFillIndex:])
 
 			resultFillIndex += copied
 			copiedInThisPass += copied
@@ -125,9 +128,8 @@ func (cache *TxCache) RemoveByTxHash(txHash []byte) {
 		return
 	}
 
-	// todo protect / mutex
-	listForSender.removeTransaction(tx)
-	if listForSender.isEmpty() {
+	listForSender.RemoveTransaction(tx)
+	if listForSender.IsEmpty() {
 		cache.txListBySender.Remove(sender)
 	}
 }
