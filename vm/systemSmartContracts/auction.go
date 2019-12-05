@@ -183,6 +183,32 @@ func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
+func (s *stakingAuctionSC) verifyIfKeysExist(registeredKeys [][]byte, arguments [][]byte, maxNumNodes uint64) ([][]byte, error) {
+	registeredKeysMap := make(map[string]struct{})
+
+	for _, blsKey := range registeredKeys {
+		registeredKeysMap[string(blsKey)] = struct{}{}
+	}
+
+	newKeys := make([][]byte, 0)
+	for i := uint64(1); i < maxNumNodes+1; i++ {
+		if _, ok := registeredKeysMap[string(arguments[i])]; ok {
+			continue
+		}
+
+		newKeys = append(newKeys, arguments[i])
+	}
+
+	for _, newKey := range newKeys {
+		data := s.eei.GetStorage(newKey)
+		if len(data) > 0 {
+			return nil, vm.ErrKeyAlreadyRegistered
+		}
+	}
+
+	return newKeys, nil
+}
+
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 
@@ -217,14 +243,20 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	for i := uint64(1); i < maxNodesToRun+1; i++ {
-		_, err := s.kg.PublicKeyFromByteArray(args.Arguments[i])
+	newKeys, err := s.verifyIfKeysExist(registrationData.BlsPubKeys, args.Arguments, maxNodesToRun)
+	if err != nil {
+		log.Debug("Staking with already existing key is not allowed")
+		return vmcommon.UserError
+	}
+
+	for _, blsKey := range newKeys {
+		_, err := s.kg.PublicKeyFromByteArray(blsKey)
 		if err != nil {
 			log.Debug("bls key is not valid")
 			return vmcommon.UserError
 		}
 
-		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, args.Arguments[i])
+		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, blsKey)
 	}
 
 	registrationData.RewardAddress = args.CallerAddr
