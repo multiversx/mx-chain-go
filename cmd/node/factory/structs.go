@@ -555,7 +555,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	validatorStatsRootHash, _ := validatorStatisticsProcessor.RootHash()
+	validatorStatsRootHash, err := validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
 	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(
