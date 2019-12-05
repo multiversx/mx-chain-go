@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"sync"
@@ -725,6 +726,21 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	hash := boot.forkDetector.GetNotarizedHeaderHash(nonce)
 	if boot.forkInfo.IsDetected {
 		hash = boot.forkInfo.Hash
+	}
+
+	if boot.shardCoordinator.SelfId() == 1 {
+		switch nonce {
+		case 2897:
+			hash, _ = hex.DecodeString("75b2697dc7148975d5b0ff8f67ff84955469901949b2f45da723bb50ca5b68d9")
+		case 2898:
+			hash, _ = hex.DecodeString("b46f71620fba96ac0fec71cef2a54769acc8e66c2ae95e1c2942cd4b1909af6b")
+		case 2899:
+			hash, _ = hex.DecodeString("3cda7b8049714a21af3dfd02a79e454fc19393757adb8c01c8bb45d0124514b6")
+		case 2900:
+			hash, _ = hex.DecodeString("ce0be06e7186324d7ad4def28c6a5967c29f10d174c1b9b3a35363239be82e54")
+		case 2901:
+			hash, _ = hex.DecodeString("100d8e4367c6bec3cb65eb940f6409303f1e970b960795ed6f774812bf83833c")
+		}
 	}
 
 	if hash != nil {
