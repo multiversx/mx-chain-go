@@ -237,6 +237,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.verifyEpochStartDataForMetablock(header)
+	if err != nil {
+		return err
+	}
+
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
 		return err
@@ -1628,6 +1633,33 @@ func (mp *metaProcessor) ApplyBodyToHeader(hdr data.HeaderHandler, bodyHandler d
 	return nil
 }
 
+func (mp *metaProcessor) verifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error {
+	if !metaBlock.IsStartOfEpochBlock() {
+		return nil
+	}
+
+	epochStart, err := mp.createEpochStartForMetablock(metaBlock)
+	if err != nil {
+		return err
+	}
+
+	receivedEpochStartHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaBlock.EpochStart)
+	if err != nil {
+		return err
+	}
+
+	createEpochStartHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, *epochStart)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(receivedEpochStartHash, createEpochStartHash) {
+		return process.ErrEpochStartDataDoesNotMatch
+	}
+
+	return nil
+}
+
 func (mp *metaProcessor) createEpochStartForMetablock(metaBlock *block.MetaBlock) (*block.EpochStart, error) {
 	if !mp.epochStartTrigger.IsEpochStart() {
 		return &block.EpochStart{}, nil
@@ -1740,7 +1772,8 @@ func (mp *metaProcessor) getLastFinalizedMetaHashForShard(shardHdr *block.Header
 		currentHdr = prevShardHdr
 	}
 
-	return nil, nil, process.ErrLastFinalizedMetaHashForShardNotFound
+	//TODO: get header hash from last epoch start metablock
+	return nil, nil, nil
 }
 
 func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {

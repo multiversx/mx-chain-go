@@ -2690,7 +2690,7 @@ func TestShardProcessor_getLastFinalizedMetaHashForShardMetaHashNotFoundShouldEr
 	last, lastFinal, err := mp.GetLastFinalizedMetaHashForShard(shardHdr)
 	assert.Nil(t, last)
 	assert.Nil(t, lastFinal)
-	assert.Equal(t, process.ErrLastFinalizedMetaHashForShardNotFound, err)
+	assert.Equal(t, nil, err)
 }
 
 func TestShardProcessor_getLastFinalizedMetaHashForShardShouldWork(t *testing.T) {
