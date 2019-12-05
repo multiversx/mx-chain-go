@@ -45,10 +45,10 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			StartRating:                 50,
 			MaxRating:                   100,
 			MinRating:                   1,
-			ProposerDecreaseRatingStep:  4,
-			ProposerIncreaseRatingStep:  2,
-			ValidatorDecreaseRatingStep: 2,
-			ValidatorIncreaseRatingStep: 1,
+			ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
+			ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
+			ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
+			ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
 		},
 	}
 }
