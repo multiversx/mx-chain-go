@@ -95,16 +95,16 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	}
 	sr.Header.SetLeaderSignature(leaderSignature)
 
-	timeBefore := time.Now()
-	// Commit the block (commits also the account state)
+	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to commit block",
+		"time [s]", elapsedTime,
+	)
 	if err != nil {
-		debugError("commit block", err)
+		debugError("CommitBlock", err)
 		return false
 	}
-	timeAfter := time.Now()
-
-	log.Debug("commit block", "type", "spos/bls", "time elapsed [s]", timeAfter.Sub(timeBefore).Seconds())
 
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
