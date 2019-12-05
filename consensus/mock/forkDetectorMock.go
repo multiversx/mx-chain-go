@@ -6,7 +6,7 @@ import (
 )
 
 type ForkDetectorMock struct {
-	AddHeaderCalled                       func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error
+	AddHeaderCalled                       func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) error
 	RemoveHeadersCalled                   func(nonce uint64, hash []byte)
 	CheckForkCalled                       func() *process.ForkInfo
 	GetHighestFinalBlockNonceCalled       func() uint64
@@ -15,15 +15,15 @@ type ForkDetectorMock struct {
 	ResetForkCalled                       func()
 	GetNotarizedHeaderHashCalled          func(nonce uint64) []byte
 	RestoreFinalCheckPointToGenesisCalled func()
-	AddFinalHeadersCalled                 func(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte)
+	AddNotarizedHeadersCalled             func(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte)
 }
 
 func (fdm *ForkDetectorMock) RestoreFinalCheckPointToGenesis() {
 	fdm.RestoreFinalCheckPointToGenesisCalled()
 }
 
-func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) error {
-	return fdm.AddHeaderCalled(header, hash, state, finalHeaders, finalHeadersHashes)
+func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) error {
+	return fdm.AddHeaderCalled(header, hash, state, notarizedHeaders, notarizedHeadersHashes)
 }
 
 func (fdm *ForkDetectorMock) RemoveHeaders(nonce uint64, hash []byte) {
@@ -54,8 +54,8 @@ func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
 	return fdm.GetNotarizedHeaderHashCalled(nonce)
 }
 
-func (fdm *ForkDetectorMock) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
-	fdm.AddFinalHeadersCalled(finalHeaders, finalHeadersHashes)
+func (fdm *ForkDetectorMock) AddNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
+	fdm.AddNotarizedHeadersCalled(notarizedHeaders, notarizedHeadersHashes)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

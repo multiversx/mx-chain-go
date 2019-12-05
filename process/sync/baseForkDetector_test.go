@@ -379,16 +379,16 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	hdr3 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
 	hash3 := []byte("hash3")
 
-	finalHeaders2 := []data.HeaderHandler{
+	notarizedHeaders2 := []data.HeaderHandler{
 		hdr2,
 	}
-	finalHeadersHashes2 := [][]byte{
+	notarizedHeadersHashes2 := [][]byte{
 		hash2,
 	}
-	finalHeaders3 := []data.HeaderHandler{
+	notarizedHeaders3 := []data.HeaderHandler{
 		hdr3,
 	}
-	finalHeadersHashes3 := [][]byte{
+	notarizedHeadersHashes3 := [][]byte{
 		hash3,
 	}
 
@@ -403,14 +403,14 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 		hdr2,
 		hash2,
 		process.BHNotarized,
-		finalHeaders2,
-		finalHeadersHashes2)
+		notarizedHeaders2,
+		notarizedHeadersHashes2)
 	_ = bfd.AddHeader(
 		hdr3,
 		hash3,
 		process.BHNotarized,
-		finalHeaders3,
-		finalHeadersHashes3)
+		notarizedHeaders3,
+		notarizedHeadersHashes3)
 
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
@@ -483,16 +483,16 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 	hdr3 := &block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}
 	hash3 := []byte("hash3")
 
-	finalHeaders1 := []data.HeaderHandler{
+	notarizedHeaders1 := []data.HeaderHandler{
 		hdr1,
 	}
-	finalHeadersHashes1 := [][]byte{
+	notarizedHeadersHashes1 := [][]byte{
 		hash1,
 	}
-	finalHeaders3 := []data.HeaderHandler{
+	notarizedHeaders3 := []data.HeaderHandler{
 		hdr3,
 	}
-	finalHeadersHashes3 := [][]byte{
+	notarizedHeadersHashes3 := [][]byte{
 		hash3,
 	}
 
@@ -507,14 +507,14 @@ func TestBasicForkDetector_CheckForkShardHeaderProcessedShouldReturnTrueWhenEqua
 		hdr3,
 		hash3,
 		process.BHNotarized,
-		finalHeaders3,
-		finalHeadersHashes3)
+		notarizedHeaders3,
+		notarizedHeadersHashes3)
 	_ = bfd.AddHeader(
 		hdr1,
 		hash1,
 		process.BHNotarized,
-		finalHeaders1,
-		finalHeadersHashes1)
+		notarizedHeaders1,
+		notarizedHeadersHashes1)
 
 	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
@@ -838,7 +838,7 @@ func TestMetaForkDetector_ShouldAddBlockInForkDetectorShouldErrLowerRoundInBlock
 	assert.True(t, receivedTooLate)
 }
 
-func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
+func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(t *testing.T) {
 	t.Parallel()
 
 	rounderMock := &mock.RounderMock{RoundIndex: 10}
@@ -859,7 +859,7 @@ func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *t
 	hdrs = append(hdrs, hdr1)
 	hashes = append(hashes, hash1)
 
-	sfd.AddFinalHeaders(hdrs, hashes)
+	sfd.AddNotarizedHeaders(hdrs, hashes)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
 	sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
@@ -870,7 +870,7 @@ func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *t
 	hdrs = append(hdrs, hdr2)
 	hashes = append(hashes, hash2)
 
-	sfd.AddFinalHeaders(hdrs, hashes)
+	sfd.AddNotarizedHeaders(hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
@@ -881,7 +881,7 @@ func TestShardForkDetector_AddFinalHeadersShouldNotChangeTheFinalCheckpoint(t *t
 	hdrs = append(hdrs, hdr3)
 	hashes = append(hashes, hash3)
 
-	sfd.AddFinalHeaders(hdrs, hashes)
+	sfd.AddNotarizedHeaders(hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)

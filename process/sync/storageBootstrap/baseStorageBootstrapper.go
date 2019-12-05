@@ -181,19 +181,19 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			"nonce", bootInfos[i].HeaderInfo.Nonce,
 			"shardId", bootInfos[i].HeaderInfo.ShardId)
 
-		lastNotarized := make(map[uint32]*sync.HdrInfo)
+		lastCrossNotarized := make(map[uint32]*sync.HdrInfo)
 		for _, lastNotarizedHeader := range bootInfos[i].LastNotarizedHeaders {
 			log.Debug("added notarized header",
 				"nonce", lastNotarizedHeader.Nonce,
 				"shardId", lastNotarizedHeader.ShardId)
 
-			lastNotarized[lastNotarizedHeader.ShardId] = &sync.HdrInfo{
+			lastCrossNotarized[lastNotarizedHeader.ShardId] = &sync.HdrInfo{
 				Nonce: lastNotarizedHeader.Nonce,
 				Hash:  lastNotarizedHeader.Hash,
 			}
 		}
 
-		err = st.bootstrapper.applyNotarizedBlocks(lastNotarized)
+		err = st.bootstrapper.applyNotarizedBlocks(lastCrossNotarized)
 		if err != nil {
 			log.Debug("cannot apply notarized block", "error", err.Error())
 
@@ -269,7 +269,7 @@ func (st *storageBootstrapper) applyBlock(header data.HeaderHandler, headerHash 
 	return nil
 }
 
-func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, finalHeadersHashes [][]byte) error {
+func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, notarizedHeadersHashes [][]byte) error {
 	header, err := st.bootstrapper.getHeader(headerHash)
 	if err != nil {
 		return err
@@ -279,17 +279,17 @@ func (st *storageBootstrapper) addHeaderToForkDetector(headerHash []byte, finalH
 		"nonce", header.GetNonce(),
 		"shardId", header.GetShardID())
 
-	finalHeaders := make([]data.HeaderHandler, 0)
-	for _, hash := range finalHeadersHashes {
-		finalHeader, err := st.bootstrapper.getHeader(hash)
+	notarizedHeaders := make([]data.HeaderHandler, 0)
+	for _, hash := range notarizedHeadersHashes {
+		notarizedHeader, err := st.bootstrapper.getHeader(hash)
 		if err != nil {
 			return err
 		}
-		finalHeaders = append(finalHeaders, finalHeader)
-		log.Debug("added final header", "nonce", finalHeader.GetNonce())
+		notarizedHeaders = append(notarizedHeaders, notarizedHeader)
+		log.Debug("added notarized header", "nonce", notarizedHeader.GetNonce())
 	}
 
-	err = st.forkDetector.AddHeader(header, headerHash, process.BHProcessed, finalHeaders, finalHeadersHashes)
+	err = st.forkDetector.AddHeader(header, headerHash, process.BHProcessed, notarizedHeaders, notarizedHeadersHashes)
 	if err != nil {
 		return err
 	}

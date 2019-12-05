@@ -52,8 +52,8 @@ func (mfd *metaForkDetector) AddHeader(
 	header data.HeaderHandler,
 	headerHash []byte,
 	state process.BlockHeaderState,
-	finalHeaders []data.HeaderHandler,
-	finalHeadersHashes [][]byte,
+	notarizedHeaders []data.HeaderHandler,
+	notarizedHeadersHashes [][]byte,
 ) error {
 
 	if check.IfNil(header) {
@@ -95,6 +95,6 @@ func (mfd *metaForkDetector) AddHeader(
 	return nil
 }
 
-// AddFinalHeaders method adds new final headers to headers map
-func (mfd *metaForkDetector) AddFinalHeaders(finalHeaders []data.HeaderHandler, finalHeadersHashes [][]byte) {
+// AddNotarizedHeaders method adds new notarized headers to headers map
+func (mfd *metaForkDetector) AddNotarizedHeaders(notarizedHeaders []data.HeaderHandler, notarizedHeadersHashes [][]byte) {
 }
