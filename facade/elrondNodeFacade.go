@@ -159,10 +159,9 @@ func (ef *ElrondNodeFacade) CreateTransaction(
 	gasLimit uint64,
 	data string,
 	signatureHex string,
-	challenge string,
 ) (*transaction.Transaction, error) {
 
-	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, challenge)
+	return ef.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
 }
 
 // SendTransaction will send a new transaction on the topic channel

@@ -107,7 +107,7 @@ func TestAddress_FailsWithInvalidUrlString(t *testing.T) {
 
 	addressRsp := AddressResponse{}
 	loadResponse(resp.Body, &addressRsp)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, resp.Code, http.StatusBadRequest)
 	assert.Equal(t, addressRsp.Error, errors.ErrCouldNotParsePubKey.Error())
 }
 
