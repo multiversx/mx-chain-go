@@ -15,7 +15,7 @@ func NewIndexHashedNodesCoordinatorWithRater(
 	rater RatingReader,
 ) (*indexHashedNodesCoordinatorWithRater,
 	error) {
-	if indexNodesCoordinator == nil || indexNodesCoordinator.IsInterfaceNil() {
+	if check.IfNil(indexNodesCoordinator) {
 		return nil, ErrNilNodesCoordinator
 	}
 
