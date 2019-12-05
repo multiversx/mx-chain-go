@@ -87,7 +87,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		dataPool:         arguments.DataPool,
 		storageService:   arguments.StorageService,
 		marshalizer:      arguments.Marshalizer,
-		prevShardInfo:    make(map[string]block.ShardData, 0),
+		prevShardInfo:    make(map[string]block.ShardData),
 		rater:            arguments.Rater,
 	}
 	vs.mediator = vs.createMediator()
@@ -199,7 +199,7 @@ func (p *validatorStatistics) UpdatePeerState(header data.HeaderHandler) ([]byte
 
 	for _, node := range p.initialNodes {
 		address, _ := p.adrConv.CreateAddressFromHex(node.Address)
-		log.Trace("Ratings", "pk", node.Address, "tempRating", p.getTempRating(string(address.Bytes())))
+		log.Trace("ratings", "pk", node.Address, "tempRating", p.getTempRating(string(address.Bytes())))
 	}
 
 	return p.peerAdapter.RootHash()

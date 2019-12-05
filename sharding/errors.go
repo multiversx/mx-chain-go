@@ -87,3 +87,6 @@ var ErrNilAddress = errors.New("nil address")
 
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
+
+// ErrNotImplemented signals a call of a non implemented functionality
+var ErrNotImplemented = errors.New("feature not implemented")
