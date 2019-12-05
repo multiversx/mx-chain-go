@@ -168,6 +168,37 @@ func TestAuctionSC_selection_Case1(t *testing.T) {
 	assert.Equal(t, int(numNodes), len(data))
 }
 
+func TestAuctionSC_selection_Case2(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1)
+	totalSupply := big.NewInt(100000000000)
+	minStep := big.NewInt(100000)
+	unBoundPeriod := uint64(100000)
+	numNodes := uint32(10)
+	eei := &mock.SystemEIStub{}
+	kg := &mock.KeyGenMock{}
+
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(minStakeValue, minStep, totalSupply, unBoundPeriod, numNodes, eei, kg)
+
+	bids := []AuctionData{
+		createABid(10000000, 10, 10000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+		createABid(1000000, 1, 1000000),
+	}
+
+	data := stakingAuctionSC.selection(bids)
+	assert.Equal(t, int(numNodes), len(data))
+}
+
 func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 	t.Parallel()
 

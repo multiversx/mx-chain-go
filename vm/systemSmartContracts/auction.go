@@ -545,6 +545,7 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 
 	totalQualifyingStake := big.NewFloat(0).SetInt(calcTotalQualifyingStake(nodePrice, bids))
 
+	reservePool := make(map[string]float64)
 	toBeSelectedRandom := make(map[string]float64)
 	finalSelectedNodes := make([][]byte, 0)
 	for _, validator := range bids {
@@ -570,6 +571,10 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 		} else {
 			selectorProp := allocatedNodes - float64(numAllocatedNodes)
 			toBeSelectedRandom[string(validator.BlsPubKeys[numAllocatedNodes])] = selectorProp
+
+			for i := numAllocatedNodes + 1; i < uint64(len(validator.BlsPubKeys)); i++ {
+				reservePool[string(validator.BlsPubKeys[numAllocatedNodes])] = selectorProp
+			}
 		}
 
 		if numAllocatedNodes > 0 {
@@ -585,6 +590,12 @@ func (s *stakingAuctionSC) selection(bids []AuctionData) [][]byte {
 
 	randomlySelected := s.selectRandomly(toBeSelectedRandom, stillNeeded)
 	finalSelectedNodes = append(finalSelectedNodes, randomlySelected...)
+
+	if config.NumNodes > uint32(len(finalSelectedNodes)) {
+		stillNeeded = config.NumNodes - uint32(len(finalSelectedNodes))
+		randomlySelected := s.selectRandomly(reservePool, stillNeeded)
+		finalSelectedNodes = append(finalSelectedNodes, randomlySelected...)
+	}
 
 	return finalSelectedNodes
 }
