@@ -80,49 +80,6 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	assert.Equal(t, nodesMap[0], ihgs.EligibleList())
 }
 
-//------- ComputeValidatorsGroup
-
-func TestIndexHashedGroupSelectorWithRater_NewCoordinatorGroup0SizeShouldErr(t *testing.T) {
-	t.Parallel()
-	nc, _ := sharding.NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, err := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-
-	assert.Nil(t, ihgs)
-	assert.Equal(t, sharding.ErrInvalidConsensusGroupSize, err)
-}
-
-func TestIndexHashedGroupSelectorWithRater_NewCoordinatorTooFewNodesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	nc, _ := sharding.NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, err := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-
-	assert.Nil(t, ihgs)
-	assert.Equal(t, sharding.ErrSmallShardEligibleListSize, err)
-}
-
-func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroupNilRandomnessShouldErr(t *testing.T) {
-	t.Parallel()
-
-	nc, _ := sharding.NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	list2, err := ihgs.ComputeValidatorsGroup(nil, 0, 0)
-
-	assert.Nil(t, list2)
-	assert.Equal(t, sharding.ErrNilRandomness, err)
-}
-
-func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroupInvalidShardIdShouldErr(t *testing.T) {
-	t.Parallel()
-
-	nc, _ := sharding.NewIndexHashedNodesCoordinator(createArguments())
-	ihgs, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("radomness"), 0, 5)
-
-	assert.Nil(t, list2)
-	assert.Equal(t, sharding.ErrInvalidShardId, err)
-}
-
 //------- functionality tests
 
 func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShouldCallGetRating(t *testing.T) {
