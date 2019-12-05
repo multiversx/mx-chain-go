@@ -27,7 +27,7 @@ type metaProcessor struct {
 	*baseProcessor
 	core              serviceContainer.Core
 	dataPool          dataRetriever.MetaPoolsHolder
-	scDataGetter external.SCQueryService
+	scDataGetter      external.SCQueryService
 	scToProtocol      process.SmartContractToProtocolHandler
 	peerChanges       process.PeerChangesHandler
 	pendingMiniBlocks process.PendingMiniBlocksHandler
@@ -1380,7 +1380,15 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 	mp.setLastHdrForShard(shardHeader.GetShardID(), shardHeader)
 
 	isShardHeaderWithOldEpochAndBadRound := shardHeader.Epoch < mp.epochStartTrigger.Epoch() &&
-		shardHeader.Round > mp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod
+		shardHeader.Round > mp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
+		mp.epochStartTrigger.EpochStartRound() < mp.epochStartTrigger.EpochFinalityAttestingRound()
+	if isShardHeaderWithOldEpochAndBadRound {
+		log.Debug("shard header with old epoch and bad round",
+			"shardEpoch", shardHeader.Epoch,
+			"metaEpoch", mp.epochStartTrigger.Epoch(),
+			"shardRound", shardHeader.Round,
+			"metaFinalityAttestingRound", mp.epochStartTrigger.EpochFinalityAttestingRound())
+	}
 
 	if mp.isHeaderOutOfRange(shardHeader, shardHeaderPool) || isShardHeaderWithOldEpochAndBadRound {
 		shardHeaderPool.Remove(shardHeaderHash)
