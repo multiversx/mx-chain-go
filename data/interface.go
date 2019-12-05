@@ -18,6 +18,7 @@ type HeaderHandler interface {
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
 	GetLeaderSignature() []byte
+	GetChainID() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 
@@ -33,6 +34,7 @@ type HeaderHandler interface {
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
 	SetLeaderSignature(sg []byte)
+	SetChainID(chainID []byte)
 	SetTxCount(txCount uint32)
 
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32

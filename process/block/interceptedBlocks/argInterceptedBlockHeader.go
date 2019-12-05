@@ -17,4 +17,5 @@ type ArgInterceptedBlockHeader struct {
 	NodesCoordinator  sharding.NodesCoordinator
 	ShardCoordinator  sharding.Coordinator
 	KeyGen            crypto.KeyGenerator
+	ChainID           []byte
 }

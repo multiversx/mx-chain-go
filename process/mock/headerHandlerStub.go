@@ -13,6 +13,7 @@ type HeaderHandlerStub struct {
 	GetPrevRandSeedCalled            func() []byte
 	GetPrevHashCalled                func() []byte
 	CloneCalled                      func() data.HeaderHandler
+	GetChainIDCalled                 func() []byte
 }
 
 func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
@@ -67,6 +68,10 @@ func (hhs *HeaderHandlerStub) GetLeaderSignature() []byte {
 	return hhs.GetSignatureCalled()
 }
 
+func (hhs *HeaderHandlerStub) GetChainID() []byte {
+	return hhs.GetChainIDCalled()
+}
+
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
 	panic("implement me")
 }
@@ -112,6 +117,10 @@ func (hhs *HeaderHandlerStub) SetSignature(sg []byte) {
 }
 
 func (hhs *HeaderHandlerStub) SetLeaderSignature(sg []byte) {
+	panic("implement me")
+}
+
+func (hhs *HeaderHandlerStub) SetChainID(chainID []byte) {
 	panic("implement me")
 }
 

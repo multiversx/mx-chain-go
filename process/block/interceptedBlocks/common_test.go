@@ -24,6 +24,7 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 			},
 		},
 		SingleSigVerifier: &mock.SignerMock{},
+		ChainID:           []byte("chain ID"),
 	}
 
 	return arg

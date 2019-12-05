@@ -42,6 +42,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		MetaBlockHashes:  make([][]byte, 0),
 		TxCount:          uint32(10),
 		LeaderSignature:  []byte("leader_sig"),
+		ChainID:          []byte("chain ID"),
 	}
 
 	var b bytes.Buffer

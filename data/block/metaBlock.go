@@ -97,6 +97,7 @@ type MetaBlock struct {
 	ValidatorStatsRootHash []byte            `capid:"13"`
 	TxCount                uint32            `capid:"14"`
 	MiniBlockHeaders       []MiniBlockHeader `capid:"15"`
+	ChainID                []byte            `capid:"16"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -309,6 +310,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetValidatorStatsRootHash(src.ValidatorStatsRootHash)
 	dest.SetTxCount(src.TxCount)
 	dest.SetLeaderSignature(src.LeaderSignature)
+	dest.SetChainid(src.ChainID)
 
 	return dest
 }
@@ -349,6 +351,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.ValidatorStatsRootHash = src.ValidatorStatsRootHash()
 	dest.TxCount = src.TxCount()
 	dest.LeaderSignature = src.LeaderSignature()
+	dest.ChainID = src.Chainid()
 
 	return dest
 }
@@ -418,6 +421,11 @@ func (m *MetaBlock) GetLeaderSignature() []byte {
 	return m.LeaderSignature
 }
 
+// GetChainID gets the chain ID on which this block is valid on
+func (m *MetaBlock) GetChainID() []byte {
+	return m.ChainID
+}
+
 // GetTxCount returns transaction count in the current meta block
 func (m *MetaBlock) GetTxCount() uint32 {
 	return m.TxCount
@@ -476,6 +484,11 @@ func (m *MetaBlock) SetSignature(sg []byte) {
 // SetLeaderSignature will set the leader's signature
 func (m *MetaBlock) SetLeaderSignature(sg []byte) {
 	m.LeaderSignature = sg
+}
+
+// SetChainID sets the chain ID on which this block is valid on
+func (m *MetaBlock) SetChainID(chainID []byte) {
+	m.ChainID = chainID
 }
 
 // SetTimeStamp sets header timestamp

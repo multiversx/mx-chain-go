@@ -105,6 +105,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		ValidatorStatsRootHash: []byte("rootHash"),
 		MiniBlockHeaders:       []block.MiniBlockHeader{mbHdr},
 		LeaderSignature:        []byte("leader_sign"),
+		ChainID:                []byte("chain ID"),
 	}
 	var b bytes.Buffer
 	err := mb.Save(&b)

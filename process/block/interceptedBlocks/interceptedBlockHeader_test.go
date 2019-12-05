@@ -45,6 +45,7 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 				return nil, nil
 			},
 		},
+		ChainID: []byte("chain ID"),
 	}
 
 	hdr := createMockShardHeader()
@@ -71,6 +72,7 @@ func createMockShardHeader() *dataBlock.Header {
 		RootHash:         []byte("root hash"),
 		MetaBlockHashes:  nil,
 		TxCount:          0,
+		ChainID:          []byte("chain ID"),
 	}
 }
 

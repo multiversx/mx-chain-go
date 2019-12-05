@@ -1,6 +1,10 @@
 package interceptedBlocks
 
 import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -147,6 +151,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.SingleSigVerifier) {
 		return process.ErrNilSingleSigner
 	}
+	if len(arg.ChainID) == 0 {
+		return process.ErrInvalidChainID
+	}
 
 	return nil
 }
@@ -234,6 +241,19 @@ func checkMiniblocks(miniblocks []block.MiniBlockHeader, coordinator sharding.Co
 		if isWrongShardId {
 			return process.ErrInvalidShardId
 		}
+	}
+
+	return nil
+}
+
+func checkChainID(header data.HeaderHandler, chainID []byte) error {
+	if !bytes.Equal(chainID, header.GetChainID()) {
+		return fmt.Errorf(
+			"%w, expected: %s, got %s",
+			process.ErrInvalidChainID,
+			hex.EncodeToString(chainID),
+			hex.EncodeToString(header.GetChainID()),
+		)
 	}
 
 	return nil

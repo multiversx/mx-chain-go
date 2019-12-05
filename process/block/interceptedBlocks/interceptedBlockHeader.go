@@ -17,6 +17,7 @@ type InterceptedHeader struct {
 	shardCoordinator  sharding.Coordinator
 	hash              []byte
 	isForCurrentShard bool
+	chainID           []byte
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -45,6 +46,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		hasher:           arg.Hasher,
 		sigVerifier:      sigVerifier,
 		shardCoordinator: arg.ShardCoordinator,
+		chainID:          arg.ChainID,
 	}
 	//wire-up the "virtual" function
 	inHdr.sigVerifier.copyHeaderWithoutSig = inHdr.copyHeaderWithoutSig
@@ -109,7 +111,12 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	return inHdr.sigVerifier.verifySig(inHdr.hdr)
+	err = inHdr.sigVerifier.verifySig(inHdr.hdr)
+	if err != nil {
+		return err
+	}
+
+	return checkChainID(inHdr.hdr, inHdr.chainID)
 }
 
 // integrity checks the integrity of the header block wrapper
