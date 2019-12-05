@@ -10,4 +10,3 @@ There are 2 ways to send data to the other peers:
 The first type is used to send messages that has to reach every node 
 (from corresponding shard, metachain, consensus group, etc.) and the second type is
 used to resolve requests comming from directly connected peers. 
-
