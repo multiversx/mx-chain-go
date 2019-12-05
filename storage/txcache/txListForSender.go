@@ -8,6 +8,7 @@ import (
 
 // TxListForSender is
 type TxListForSender struct {
+	// Optimization - list won't be sorted again in another set of passes if it's already sorted (it didn't change after lastest sorting)
 	IsSorted       bool
 	CopyBatchIndex int
 	CopyBatchSize  int

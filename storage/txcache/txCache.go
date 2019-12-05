@@ -13,6 +13,8 @@ type TxCache struct {
 
 // NewTxCache creates
 func NewTxCache(size int, shards int) *TxCache {
+	// todo - comment, implications of size value, shards value
+
 	// todo-fix: size and shards do not have to be the same (that's an arbitrary constraint)
 	txBySender := cmap.New(size, shards)
 	txByHash := cmap.New(size, shards)
@@ -37,6 +39,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx data.TransactionHandler) {
 		cache.txListBySender.Set(sender, listForSender)
 	}
 
+	// todo protect / mutex
 	listForSender.addTransaction(tx)
 
 	// todo: implement eviction
@@ -134,6 +137,7 @@ func (cache *TxCache) RemoveByTxHash(txHash []byte) {
 		return
 	}
 
+	// todo protect / mutex
 	listForSender.removeTransaction(tx)
 	// todo: also, if list becomes empty, remove it from the map.
 }
