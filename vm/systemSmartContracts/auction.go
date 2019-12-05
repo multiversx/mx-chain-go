@@ -198,21 +198,17 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	lenArgs := len(args.Arguments)
 	if lenArgs == 0 {
-		if len(registrationData.BlsPubKeys) > 0 {
-			err := s.saveRegistrationData(args.CallerAddr, registrationData)
-			if err != nil {
-				return vmcommon.UserError
-			}
-
-			return vmcommon.Ok
+		if len(registrationData.BlsPubKeys) == 0 {
+			log.Debug("not enough arguments to process stake function")
+			return vmcommon.UserError
 		}
 
-		return vmcommon.UserError
-	}
+		err := s.saveRegistrationData(args.CallerAddr, registrationData)
+		if err != nil {
+			return vmcommon.UserError
+		}
 
-	if lenArgs < 1 {
-		log.Debug("not enough arguments to process stake function")
-		return vmcommon.UserError
+		return vmcommon.Ok
 	}
 
 	maxNodesToRun := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
@@ -615,7 +611,7 @@ func (s *stakingAuctionSC) selectRandomly(selectable map[string]float64, numNeed
 
 	selectedKeys := make(map[string]struct{})
 	selected := uint32(0)
-	for i := 0; selected < numNeeded || i < len(expandedList); i++ {
+	for i := 0; selected < numNeeded && i < len(expandedList); i++ {
 		if _, ok := selectedKeys[expandedList[i]]; !ok {
 			selected++
 			selectedKeys[expandedList[i]] = struct{}{}
