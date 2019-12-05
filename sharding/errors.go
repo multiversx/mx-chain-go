@@ -16,6 +16,9 @@ var ErrShardIdOutOfRange = errors.New("shard id out of range")
 // ErrNilPubKey signals that the public key is nil
 var ErrNilPubKey = errors.New("nil public key")
 
+// ErrNilNodesCoordinator signals that the nodesCoordinator is nil
+var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
+
 // ErrNilRater signals that the rater is nil
 var ErrNilRater = errors.New("nil rater")
 

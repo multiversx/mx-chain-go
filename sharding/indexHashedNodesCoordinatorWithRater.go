@@ -11,14 +11,12 @@ type indexHashedNodesCoordinatorWithRater struct {
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
 func NewIndexHashedNodesCoordinatorWithRater(
-	arguments ArgNodesCoordinator,
+	indexNodesCoordinator *indexHashedNodesCoordinator,
 	rater RatingReader,
 ) (*indexHashedNodesCoordinatorWithRater,
 	error) {
-	indexNodesCoordinator, err := NewIndexHashedNodesCoordinator(arguments)
-
-	if err != nil {
-		return nil, err
+	if indexNodesCoordinator == nil || indexNodesCoordinator.IsInterfaceNil() {
+		return nil, ErrNilNodesCoordinator
 	}
 
 	if check.IfNil(rater) {

@@ -1054,7 +1054,12 @@ func createNodesCoordinator(
 		SelfPublicKey:           pubKeyBytes,
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(argumentsNodesCoordinator, rater)
+	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
 	if err != nil {
 		return nil, err
 	}

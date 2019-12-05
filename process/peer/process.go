@@ -18,6 +18,10 @@ import (
 
 var log = logger.GetOrCreate("process/peer")
 
+const (
+	defaultRatingValue = uint32(1)
+)
+
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
 	InitialNodes     []*sharding.InitialNode
@@ -87,27 +91,26 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		rater:            arguments.Rater,
 	}
 	vs.mediator = vs.createMediator()
-	defaultRatingValue := uint32(1)
 
 	rater := arguments.Rater
 	ratingReaderSetter, ok := rater.(sharding.RatingReaderSetter)
-
+	startRatingValue := defaultRatingValue
 	if ok {
-		log.Debug("Setting ratingReader")
+		log.Debug("setting ratingReader")
 
 		rr := &RatingReader{
 			getRating: vs.getRating,
 		}
 
 		ratingReaderSetter.SetRatingReader(rr)
-		defaultRatingValue = rater.GetStartRating()
+		startRatingValue = rater.GetStartRating()
 	} else {
-		log.Warn("No ratingReader has been set!!!")
+		log.Warn("no ratingReader has been set")
 	}
 
 	vs.initialNodes = arguments.InitialNodes
 
-	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, defaultRatingValue)
+	err := vs.saveInitialState(vs.initialNodes, arguments.StakeValue, startRatingValue)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +136,7 @@ func (p *validatorStatistics) saveInitialState(
 		return err
 	}
 
-	log.Trace("Committed peer adapter", "Root hash", core.ToHex(hash))
+	log.Trace("committed peer adapter", "root hash", core.ToHex(hash))
 
 	return nil
 }

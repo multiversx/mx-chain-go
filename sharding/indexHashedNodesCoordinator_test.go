@@ -524,7 +524,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		Nodes:                   nodesMap,
 		SelfPublicKey:           []byte("key"),
 	}
-	ihgs, _ := sharding.NewIndexHashedNodesCoordinatorWithRater(arguments, &mock.RaterMock{})
+	ihgs, _ := sharding.NewIndexHashedNodesCoordinator(arguments)
 
 	b.ResetTimer()
 
