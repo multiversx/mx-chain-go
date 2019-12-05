@@ -9,7 +9,3 @@ type TestBootstrapper interface {
 	RollBack(revertUsingForkNonce bool) error
 	SetProbableHighestNonce(nonce uint64)
 }
-
-type BlockProcessorInitializer interface {
-	InitBlockProcessor()
-}

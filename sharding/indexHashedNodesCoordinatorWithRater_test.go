@@ -29,7 +29,7 @@ func createArguments() sharding.ArgNodesCoordinator {
 }
 
 func TestNewIndexHashedNodesCoordinatorWithRater_NilRaterShouldErr(t *testing.T) {
-	nc, err := sharding.NewIndexHashedNodesCoordinator(createArguments())
+	nc, _ := sharding.NewIndexHashedNodesCoordinator(createArguments())
 	ihgs, err := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, nil)
 
 	assert.Nil(t, ihgs)
@@ -46,7 +46,7 @@ func TestNewIndexHashedNodesCoordinatorWithRater_NilNodesCoordinatorShouldErr(t 
 func TestNewIndexHashedGroupSelectorWithRater_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nc, err := sharding.NewIndexHashedNodesCoordinator(createArguments())
+	nc, _ := sharding.NewIndexHashedNodesCoordinator(createArguments())
 	ihgs, err := sharding.NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 	assert.NotNil(t, ihgs)
 	assert.Nil(t, err)
