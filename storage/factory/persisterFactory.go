@@ -35,27 +35,18 @@ func (df *PersisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, errors.New("invalid file path")
 	}
 
-	var db storage.Persister
-	var err error
-
 	switch storageUnit.DBType(df.dbType) {
 	case storageUnit.LvlDB:
-		db, err = leveldb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize, df.maxOpenFiles)
+		return leveldb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize, df.maxOpenFiles)
 	case storageUnit.LvlDbSerial:
-		db, err = leveldb.NewSerialDB(path, df.batchDelaySeconds, df.maxBatchSize, df.maxOpenFiles)
+		return leveldb.NewSerialDB(path, df.batchDelaySeconds, df.maxBatchSize, df.maxOpenFiles)
 	case storageUnit.BadgerDB:
-		db, err = badgerdb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize)
+		return badgerdb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize)
 	case storageUnit.BoltDB:
-		db, err = boltdb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize)
+		return boltdb.NewDB(path, df.batchDelaySeconds, df.maxBatchSize)
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -2,9 +2,7 @@ package pruning
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"reflect"
 	"regexp"
 	"sync"
 
@@ -99,34 +97,6 @@ func initPruningStorer(
 		path:      filePath,
 	})
 
-	if reflect.DeepEqual(args.BloomFilterConf, storageUnit.BloomConfig{}) {
-		pdb := &PruningStorer{
-			identifier:            args.Identifier,
-			fullArchive:           args.FullArchive,
-			persisters:            persisters,
-			persisterFactory:      args.PersisterFactory,
-			closedPersistersPaths: make([]string, 0),
-			cacher:                cache,
-			bloomFilter:           nil,
-			dbPath:                filePath,
-			numOfEpochsToKeep:     args.NumOfEpochsToKeep,
-			numOfActivePersisters: args.NumOfActivePersisters,
-		}
-		err = pdb.persisters[0].persister.Init()
-		if err != nil {
-			return nil, err
-		}
-
-		pdb.registerHandler(args.Notifier)
-
-		return pdb, nil
-	}
-
-	bf, err = storageUnit.NewBloomFilter(args.BloomFilterConf)
-	if err != nil {
-		return nil, err
-	}
-
 	pdb := &PruningStorer{
 		identifier:            args.Identifier,
 		fullArchive:           args.FullArchive,
@@ -134,10 +104,19 @@ func initPruningStorer(
 		persisterFactory:      args.PersisterFactory,
 		closedPersistersPaths: make([]string, 0),
 		cacher:                cache,
-		bloomFilter:           bf,
+		bloomFilter:           nil,
 		dbPath:                filePath,
 		numOfEpochsToKeep:     args.NumOfEpochsToKeep,
 		numOfActivePersisters: args.NumOfActivePersisters,
+	}
+
+	if args.BloomFilterConf.Size != 0 { // if size is 0, that means an empty config was used so bloom filter will be nil
+		bf, err = storageUnit.NewBloomFilter(args.BloomFilterConf)
+		if err != nil {
+			return nil, err
+		}
+
+		pdb.bloomFilter = bf
 	}
 
 	err = pdb.persisters[0].persister.Init()
@@ -243,7 +222,7 @@ func (ps *PruningStorer) getFromClosedPersisters(key []byte) ([]byte, error) {
 		}
 	}
 
-	return nil, errors.New("key not found")
+	return nil, fmt.Errorf("key %s not found in %s", base64.StdEncoding.EncodeToString(key), ps.identifier)
 }
 
 // Has checks if the key is in the Unit.
@@ -310,10 +289,11 @@ func (ps *PruningStorer) DestroyUnit() error {
 	}
 
 	if numOfPersistersRemoved != totalNumOfPersisters {
-		return fmt.Errorf("couldn't destroy all persisters. %d/%d destroyed",
-			numOfPersistersRemoved,
-			totalNumOfPersisters,
-		)
+		log.Debug("error destroying pruning db",
+			"identifier", ps.identifier,
+			"destroyed", numOfPersistersRemoved,
+			"total", totalNumOfPersisters)
+		return storage.ErrDestroyingUnit
 	}
 	return ps.persisters[0].persister.Destroy()
 }

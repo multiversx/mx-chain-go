@@ -564,8 +564,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(isNodefullArchive.Name)
 	}
 	if ctx.IsSet(numEpochsToSave.Name) {
-		generalConfig.StoragePruning.NumOfEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
-		generalConfig.StoragePruning.NumOfActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+	}
+	if ctx.IsSet(numActivePersisters.Name) {
+		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+	}
+
+	if generalConfig.StoragePruning.NumEpochsToKeep < uint64(2) && !generalConfig.StoragePruning.FullArchive {
+		return errors.New("invalid number of epochs to save")
+	}
+	if generalConfig.StoragePruning.NumActivePersisters < uint64(1) {
+		return errors.New("invalid number of active persisters")
 	}
 
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()

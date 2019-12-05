@@ -211,9 +211,7 @@ func (s *DB) Destroy() error {
 // DestroyClosed removes the already closed storage medium stored data
 func (s *DB) DestroyClosed() error {
 	s.dbClosed <- struct{}{}
-	err := os.RemoveAll(s.path)
-
-	return err
+	return os.RemoveAll(s.path)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
