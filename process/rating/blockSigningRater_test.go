@@ -1,6 +1,7 @@
 package rating_test
 
 import (
+	config2 "github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
@@ -10,22 +11,27 @@ import (
 )
 
 const (
-	validatorIncreaseRatingStep   = "validatorIncreaseRatingStep"
-	validatorDecreaseRatingStep   = "validatorDecreaseRatingStep"
-	proposerIncreaseRatingStepKey = "proposerIncreaseRatingStep"
-	proposerDecreaseRatingStepKey = "proposerDecreaseRatingStep"
-	minRating                     = uint32(1)
-	maxRating                     = uint32(10)
+	validatorIncreaseRatingStep = uint32(1)
+	validatorDecreaseRatingStep = uint32(2)
+	proposerIncreaseRatingStep  = uint32(2)
+	proposerDecreaseRatingStep  = uint32(4)
+	minRating                   = uint32(1)
+	maxRating                   = uint32(10)
+	startRating                 = uint32(5)
 )
 
 func createDefaultRatingsData() *economics.RatingsData {
-	ratingValues := make(map[string]int32)
-	ratingValues[validatorIncreaseRatingStep] = 1
-	ratingValues[validatorDecreaseRatingStep] = -2
-	ratingValues[proposerIncreaseRatingStepKey] = 3
-	ratingValues[proposerDecreaseRatingStepKey] = -4
+	config := config2.RatingSettings{
+		StartRating:                 startRating,
+		MaxRating:                   maxRating,
+		MinRating:                   minRating,
+		ProposerIncreaseRatingStep:  proposerIncreaseRatingStep,
+		ProposerDecreaseRatingStep:  proposerDecreaseRatingStep,
+		ValidatorIncreaseRatingStep: validatorIncreaseRatingStep,
+		ValidatorDecreaseRatingStep: validatorDecreaseRatingStep,
+	}
 
-	ratingsData, _ := economics.NewRatingsData(uint32(5), uint32(1), uint32(10), "mockRater", ratingValues)
+	ratingsData, _ := economics.NewRatingsData(config)
 	return ratingsData
 }
 
@@ -159,9 +165,9 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testin
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	computedRating := bsr.ComputeRating(proposerIncreaseRatingStepKey, initialRatingValue)
+	computedRating := bsr.ComputeIncreaseProposer(initialRatingValue)
 
-	expectedValue := uint32(int32(initialRatingValue) + rd.RatingOptions()[proposerIncreaseRatingStepKey])
+	expectedValue := initialRatingValue + proposerIncreaseRatingStep
 
 	assert.Equal(t, expectedValue, computedRating)
 }
@@ -173,9 +179,9 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidator(t *testi
 
 	bsr := setupRater(rd, pk, initialRatingValue)
 
-	computedRating := bsr.ComputeRating(validatorIncreaseRatingStep, initialRatingValue)
+	computedRating := bsr.ComputeIncreaseValidator(initialRatingValue)
 
-	expectedValue := uint32(int32(initialRatingValue) + rd.RatingOptions()[validatorIncreaseRatingStep])
+	expectedValue := initialRatingValue + validatorIncreaseRatingStep
 
 	assert.Equal(t, expectedValue, computedRating)
 }
@@ -187,9 +193,9 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidatorButNotAcc
 
 	bsr := setupRater(rd, pk, initialRatingValue)
 
-	computedRating := bsr.ComputeRating(validatorDecreaseRatingStep, initialRatingValue)
+	computedRating := bsr.ComputeDecreaseValidator(initialRatingValue)
 
-	expectedValue := uint32(int32(initialRatingValue) + rd.RatingOptions()[validatorDecreaseRatingStep])
+	expectedValue := initialRatingValue - validatorDecreaseRatingStep
 
 	assert.Equal(t, expectedValue, computedRating)
 }
@@ -201,9 +207,9 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposerButNotAcce
 
 	bsr := setupRater(rd, pk, initialRatingValue)
 
-	computedRating := bsr.ComputeRating(proposerDecreaseRatingStepKey, initialRatingValue)
+	computedRating := bsr.ComputeDecreaseProposer(initialRatingValue)
 
-	expectedValue := uint32(int32(initialRatingValue) + rd.RatingOptions()[proposerDecreaseRatingStepKey])
+	expectedValue := initialRatingValue - proposerDecreaseRatingStep
 
 	assert.Equal(t, expectedValue, computedRating)
 }
@@ -214,7 +220,7 @@ func TestBlockSigningRater_UpdateRatingsShouldNotIncreaseAboveMaxRating(t *testi
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	computedRating := bsr.ComputeRating(proposerIncreaseRatingStepKey, initialRatingValue)
+	computedRating := bsr.ComputeIncreaseProposer(initialRatingValue)
 
 	expectedValue := maxRating
 
@@ -227,29 +233,11 @@ func TestBlockSigningRater_UpdateRatingsShouldNotDecreaseBelowMinRating(t *testi
 	rd := createDefaultRatingsData()
 
 	bsr := setupRater(rd, pk, initialRatingValue)
-	computedRating := bsr.ComputeRating(proposerDecreaseRatingStepKey, initialRatingValue)
+	computedRating := bsr.ComputeDecreaseProposer(initialRatingValue)
 
 	expectedValue := minRating
 
 	assert.Equal(t, expectedValue, computedRating)
-}
-
-func TestBlockSigningRater_GetAllRatingKeysShouldReturnAllRatingKeys(t *testing.T) {
-	pk := "test"
-	initialRatingValue := minRating + 1
-	rd := createDefaultRatingsData()
-
-	bsr := setupRater(rd, pk, initialRatingValue)
-
-	optionKeys := bsr.GetRatingOptionKeys()
-
-	expectedLength := len(rd.RatingOptions())
-
-	assert.Equal(t, expectedLength, len(optionKeys))
-	for _, value := range optionKeys {
-		ratingOption := rd.RatingOptions()[value]
-		assert.NotNil(t, ratingOption)
-	}
 }
 
 func TestBlockSigningRater_UpdateRatingsWithMultiplePeersShouldReturnRatings(t *testing.T) {
@@ -275,15 +263,15 @@ func TestBlockSigningRater_UpdateRatingsWithMultiplePeersShouldReturnRatings(t *
 	rrm := createDefaultRatingReader(ratingsMap)
 	bsr.SetRatingReader(rrm)
 
-	pk1ComputedRating := bsr.ComputeRating(proposerIncreaseRatingStepKey, ratingsMap[pk1])
-	pk2ComputedRating := bsr.ComputeRating(proposerDecreaseRatingStepKey, ratingsMap[pk2])
-	pk3ComputedRating := bsr.ComputeRating(validatorIncreaseRatingStep, ratingsMap[pk3])
-	pk4ComputedRating := bsr.ComputeRating(validatorDecreaseRatingStep, ratingsMap[pk4])
+	pk1ComputedRating := bsr.ComputeIncreaseProposer(ratingsMap[pk1])
+	pk2ComputedRating := bsr.ComputeDecreaseProposer(ratingsMap[pk2])
+	pk3ComputedRating := bsr.ComputeIncreaseValidator(ratingsMap[pk3])
+	pk4ComputedRating := bsr.ComputeDecreaseValidator(ratingsMap[pk4])
 
-	expectedPk1 := uint32(int32(ratingsMap[pk1]) + rd.RatingOptions()[proposerIncreaseRatingStepKey])
-	expectedPk2 := uint32(int32(ratingsMap[pk2]) + rd.RatingOptions()[proposerDecreaseRatingStepKey])
-	expectedPk3 := uint32(int32(ratingsMap[pk3]) + rd.RatingOptions()[validatorIncreaseRatingStep])
-	expectedPk4 := uint32(int32(ratingsMap[pk4]) + rd.RatingOptions()[validatorDecreaseRatingStep])
+	expectedPk1 := ratingsMap[pk1] + proposerIncreaseRatingStep
+	expectedPk2 := ratingsMap[pk2] - proposerDecreaseRatingStep
+	expectedPk3 := ratingsMap[pk3] + validatorIncreaseRatingStep
+	expectedPk4 := ratingsMap[pk4] - validatorDecreaseRatingStep
 
 	assert.Equal(t, expectedPk1, pk1ComputedRating)
 	assert.Equal(t, expectedPk2, pk2ComputedRating)

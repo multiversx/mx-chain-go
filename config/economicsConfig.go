@@ -30,11 +30,13 @@ type ValidatorSettings struct {
 
 // RatingSettings will hold rating settings
 type RatingSettings struct {
-	StartRating uint32
-	MaxRating   uint32
-	MinRating   uint32
-	RatingType  string
-	RatingValue []RatingValue
+	StartRating                 uint32
+	MaxRating                   uint32
+	MinRating                   uint32
+	ProposerIncreaseRatingStep  uint32
+	ProposerDecreaseRatingStep  uint32
+	ValidatorIncreaseRatingStep uint32
+	ValidatorDecreaseRatingStep uint32
 }
 
 //RatingValue will hold different rating options with increase and decresea steps

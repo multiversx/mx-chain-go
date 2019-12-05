@@ -1,39 +1,40 @@
 package economics
 
 import (
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // RatingsData will store information about ratingsComputation
 type RatingsData struct {
-	startRating   uint32
-	maxRating     uint32
-	minRating     uint32
-	ratingType    string
-	ratingOptions map[string]int32
+	startRating                 uint32
+	maxRating                   uint32
+	minRating                   uint32
+	proposerIncreaseRatingStep  uint32
+	proposerDecreaseRatingStep  uint32
+	validatorIncreaseRatingStep uint32
+	validatorDecreaseRatingStep uint32
 }
 
 // NewRatingsData creates a new RatingsData instance
 func NewRatingsData(
-	startRating uint32,
-	minRating uint32,
-	maxRating uint32,
-	ratingType string,
-	ratingValues map[string]int32,
+	settings config.RatingSettings,
 ) (*RatingsData, error) {
-	if minRating > maxRating {
+	if settings.MinRating > settings.MaxRating {
 		return nil, process.ErrMaxRatingIsSmallerThanMinRating
 	}
-	if maxRating < startRating || minRating > startRating {
+	if settings.MaxRating < settings.StartRating || settings.MinRating > settings.StartRating {
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
 
 	return &RatingsData{
-		startRating:   startRating,
-		maxRating:     maxRating,
-		minRating:     minRating,
-		ratingOptions: ratingValues,
-		ratingType:    ratingType,
+		startRating:                 settings.StartRating,
+		maxRating:                   settings.MaxRating,
+		minRating:                   settings.MinRating,
+		proposerIncreaseRatingStep:  settings.ProposerIncreaseRatingStep,
+		proposerDecreaseRatingStep:  settings.ProposerDecreaseRatingStep,
+		validatorIncreaseRatingStep: settings.ValidatorIncreaseRatingStep,
+		validatorDecreaseRatingStep: settings.ValidatorDecreaseRatingStep,
 	}, nil
 }
 
@@ -52,12 +53,22 @@ func (rd *RatingsData) MinRating() uint32 {
 	return rd.minRating
 }
 
-// RatingOptions will return the options for rating
-func (rd *RatingsData) RatingOptions() map[string]int32 {
-	return rd.ratingOptions
+// ProposerIncreaseRatingStep will return the rating step increase for validator
+func (rd *RatingsData) ProposerIncreaseRatingStep() uint32 {
+	return rd.proposerIncreaseRatingStep
 }
 
-// RatingType will return the type for rating
-func (rd *RatingsData) RatingType() string {
-	return rd.ratingType
+// ProposerDecreaseRatingStep will return the rating step decrease for proposer
+func (rd *RatingsData) ProposerDecreaseRatingStep() uint32 {
+	return rd.proposerDecreaseRatingStep
+}
+
+// ValidatorIncreaseRatingStep will return the rating step increase for validator
+func (rd *RatingsData) ValidatorIncreaseRatingStep() uint32 {
+	return rd.validatorIncreaseRatingStep
+}
+
+// ValidatorDecreaseRatingStep will return the rating step decrease for validator
+func (rd *RatingsData) ValidatorDecreaseRatingStep() uint32 {
+	return rd.validatorDecreaseRatingStep
 }

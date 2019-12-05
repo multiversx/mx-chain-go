@@ -64,7 +64,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -2505,12 +2504,4 @@ func getSk(
 	}
 
 	return decodeAddress(string(encodedSk))
-}
-
-func GetRater(ratingsData *economics.RatingsData) (sharding.RaterHandler, error) {
-	switch ratingsData.RatingType() {
-	case "BlockSigningRater":
-		return rating.NewBlockSigningRater(ratingsData)
-	}
-	return nil, errors.New("RaterHandler type not supported")
 }

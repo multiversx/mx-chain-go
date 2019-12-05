@@ -23,17 +23,3 @@ type shardMetaMediated interface {
 	loadPreviousShardHeaders(header, previousHeader *block.MetaBlock) error
 	loadPreviousShardHeadersMeta(header *block.MetaBlock) error
 }
-
-type BlockSigningRaterHandler interface {
-	//ComputeIncreaseProposer computes the new rating for the increaseLeader
-	ComputeIncreaseProposer(val uint32) uint32
-
-	//ComputeDecreaseProposer computes the new rating for the decreaseLeader
-	ComputeDecreaseProposer(val uint32) uint32
-
-	//ComputeIncreaseValidator computes the new rating for the increaseValidator
-	ComputeIncreaseValidator(val uint32) uint32
-
-	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
-	ComputeDecreaseValidator(val uint32) uint32
-}

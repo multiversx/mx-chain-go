@@ -222,8 +222,6 @@ func (p *validatorStatistics) checkForMissedBlocks(
 		return nil
 	}
 
-	blocksigningRater, isBlockSigningRater := p.rater.(BlockSigningRaterHandler)
-
 	for i := previousHeaderRound + 1; i < currentHeaderRound; i++ {
 		consensusGroup, err := p.nodesCoordinator.ComputeValidatorsGroup(prevRandSeed, i, shardId)
 		if err != nil {
@@ -240,12 +238,10 @@ func (p *validatorStatistics) checkForMissedBlocks(
 			return err
 		}
 
-		if isBlockSigningRater {
-			newRating := blocksigningRater.ComputeDecreaseProposer(leaderPeerAcc.GetTempRating())
-			err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
-			if err != nil {
-				return err
-			}
+		newRating := p.rater.ComputeDecreaseProposer(leaderPeerAcc.GetTempRating())
+		err = leaderPeerAcc.SetTempRatingWithJournal(newRating)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -395,7 +391,6 @@ func (p *validatorStatistics) savePeerAccountData(
 
 func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator) error {
 	lenValidators := len(validatorList)
-	blocksigningRater, isBlockSigningRater := p.rater.(BlockSigningRaterHandler)
 	for i := 0; i < lenValidators; i++ {
 		address := validatorList[i].Address()
 		peerAcc, err := p.getPeerAccount(address)
@@ -403,29 +398,19 @@ func (p *validatorStatistics) updateValidatorInfo(validatorList []sharding.Valid
 			return err
 		}
 
+		var newRating uint32
 		isLeader := i == 0
 		if isLeader {
 			err = peerAcc.IncreaseLeaderSuccessRateWithJournal()
-
+			newRating = p.rater.ComputeIncreaseProposer(peerAcc.GetTempRating())
 		} else {
 			err = peerAcc.IncreaseValidatorSuccessRateWithJournal()
+			newRating = p.rater.ComputeIncreaseValidator(peerAcc.GetTempRating())
 		}
 
+		err = peerAcc.SetTempRatingWithJournal(newRating)
 		if err != nil {
 			return err
-		}
-
-		if isBlockSigningRater {
-			var newRating uint32
-			if isLeader {
-				newRating = blocksigningRater.ComputeIncreaseProposer(peerAcc.GetTempRating())
-			} else {
-				newRating = blocksigningRater.ComputeIncreaseValidator(peerAcc.GetTempRating())
-			}
-			err = peerAcc.SetTempRatingWithJournal(newRating)
-			if err != nil {
-				return err
-			}
 		}
 	}
 

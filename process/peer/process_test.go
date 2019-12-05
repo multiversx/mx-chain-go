@@ -60,29 +60,7 @@ func CreateMockArguments() peer.ArgValidatorStatisticsProcessor {
 }
 
 func createMockRater() *mock.RaterMock {
-	increaseLeader := "increaseLeader"
-	decreaseLeader := "decreaseLeader"
-	increaseValidator := "increaseValidator"
-	decreaseValidator := "decreaseValidator"
-
-	optionList := make(map[string]int32)
-	optionList[increaseLeader] = 2
-	optionList[decreaseLeader] = -4
-	optionList[increaseValidator] = 1
-	optionList[decreaseValidator] = -2
-
-	rater := &mock.RaterMock{
-		ComputeRatingCalled: func(option string, previousValue uint32) uint32 {
-			return 1
-		},
-		GetRatingCalled: func(s string) uint32 {
-			return 1
-		},
-		GetRatingOptionKeyCalled: func() []string {
-			return []string{increaseLeader, increaseValidator, decreaseLeader, decreaseValidator}
-		},
-	}
-
+	rater := mock.GetNewMockRater()
 	return rater
 }
 

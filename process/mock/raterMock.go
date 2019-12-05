@@ -1,37 +1,58 @@
 package mock
 
 type RaterMock struct {
-	ComputeRatingCalled      func(string, uint32) uint32
-	GetRatingCalled          func(string) uint32
-	GetRatingOptionKeyCalled func() []string
-	RatingReader             RatingReader
+	StartRating       uint32
+	MinRating         uint32
+	MaxRating         uint32
+	IncreaseProposer  uint32
+	DecreaseProposer  uint32
+	IncreaseValidator uint32
+	DecreaseValidator uint32
+
+	GetRatingCalled                func(string) uint32
+	GetStartRatingCalled           func() uint32
+	ComputeIncreaseProposerCalled  func(val uint32) uint32
+	ComputeDecreaseProposerCalled  func(val uint32) uint32
+	ComputeIncreaseValidatorCalled func(val uint32) uint32
+	ComputeDecreaseValidatorCalled func(val uint32) uint32
+	RatingReader                   RatingReader
 }
 
 func GetNewMockRater() *RaterMock {
-	return &RaterMock{
-		ComputeRatingCalled: func(s string, u uint32) uint32 {
-			return 1
-		},
-		GetRatingCalled: func(s string) uint32 {
-			return 1
-		},
-		GetRatingOptionKeyCalled: func() []string {
-			options := make([]string, 0)
-			options = append(options, "a")
-			options = append(options, "b")
-			options = append(options, "c")
-			options = append(options, "d")
-			return options
-		},
-		RatingReader: nil,
+	raterMock := &RaterMock{}
+	raterMock.GetRatingCalled = func(s string) uint32 {
+		return raterMock.StartRating
 	}
+
+	raterMock.GetStartRatingCalled = func() uint32 {
+		return raterMock.StartRating
+	}
+	raterMock.ComputeIncreaseProposerCalled = func(val uint32) uint32 {
+		return raterMock.computeRating(val, int32(raterMock.IncreaseProposer))
+	}
+	raterMock.ComputeDecreaseProposerCalled = func(val uint32) uint32 {
+		return raterMock.computeRating(val, int32(0-raterMock.DecreaseProposer))
+	}
+	raterMock.ComputeIncreaseValidatorCalled = func(val uint32) uint32 {
+		return raterMock.computeRating(val, int32(raterMock.IncreaseValidator))
+	}
+	raterMock.ComputeDecreaseValidatorCalled = func(val uint32) uint32 {
+		return raterMock.computeRating(val, int32(0-raterMock.DecreaseValidator))
+	}
+
+	return raterMock
 }
 
-func (rm *RaterMock) ComputeRating(ratingOptionKey string, previousValue uint32) uint32 {
-	if rm.ComputeRatingCalled != nil {
-		return rm.ComputeRatingCalled(ratingOptionKey, previousValue)
+func (rm *RaterMock) computeRating(val uint32, ratingStep int32) uint32 {
+	newVal := int64(val) + int64(ratingStep)
+	if newVal < int64(rm.MinRating) {
+		return rm.MinRating
 	}
-	return 1
+	if newVal > int64(rm.MaxRating) {
+		return rm.MaxRating
+	}
+
+	return uint32(newVal)
 }
 
 func (rm *RaterMock) GetRating(pk string) uint32 {
@@ -42,15 +63,24 @@ func (rm *RaterMock) GetRatings([]string) map[string]uint32 {
 	return make(map[string]uint32)
 }
 
-func (rm *RaterMock) GetRatingOptionKeys() []string {
-	if rm.GetRatingOptionKeyCalled != nil {
-		return rm.GetRatingOptionKeyCalled()
-	}
-	return make([]string, 0)
+func (rm *RaterMock) GetStartRating() uint32 {
+	return rm.GetStartRatingCalled()
 }
 
-func (rm *RaterMock) GetStartRating() uint32 {
-	return 5
+func (rm *RaterMock) ComputeIncreaseProposer(val uint32) uint32 {
+	return rm.ComputeIncreaseProposerCalled(val)
+}
+
+func (rm *RaterMock) ComputeDecreaseProposer(val uint32) uint32 {
+	return rm.ComputeDecreaseProposerCalled(val)
+}
+
+func (rm *RaterMock) ComputeIncreaseValidator(val uint32) uint32 {
+	return rm.ComputeIncreaseValidatorCalled(val)
+}
+
+func (rm *RaterMock) ComputeDecreaseValidator(val uint32) uint32 {
+	return rm.ComputeDecreaseValidatorCalled(val)
 }
 
 //SetRatingReader sets the Reader that can read ratings

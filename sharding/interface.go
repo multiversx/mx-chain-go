@@ -49,12 +49,16 @@ type PublicKeysSelector interface {
 
 type RaterHandler interface {
 	RatingReader
-	//ComputeRating computes the current rating
-	ComputeRating(string, uint32) uint32
-	//GetRatingOptionKeys gets all the ratings option keys
-	GetRatingOptionKeys() []string
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
+	//ComputeIncreaseProposer computes the new rating for the increaseLeader
+	ComputeIncreaseProposer(val uint32) uint32
+	//ComputeDecreaseProposer computes the new rating for the decreaseLeader
+	ComputeDecreaseProposer(val uint32) uint32
+	//ComputeIncreaseValidator computes the new rating for the increaseValidator
+	ComputeIncreaseValidator(val uint32) uint32
+	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
+	ComputeDecreaseValidator(val uint32) uint32
 }
 
 type RatingReader interface {

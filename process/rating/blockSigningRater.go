@@ -4,25 +4,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"sort"
 )
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
 type BlockSigningRater struct {
 	sharding.RatingReader
-	startRating      uint32
-	maxRating        uint32
-	minRating        uint32
-	ratingOptions    map[string]int32
-	ratingOptionKeys []string
+	startRating                 uint32
+	maxRating                   uint32
+	minRating                   uint32
+	proposerIncreaseRatingStep  int32
+	proposerDecreaseRatingStep  int32
+	validatorIncreaseRatingStep int32
+	validatorDecreaseRatingStep int32
 }
-
-const (
-	proposerIncrease  = "PoposerIncreaseRatingStep"
-	proposerDecrease  = "ProposerDecreaseRatingStep"
-	validatorIncrease = "ValidatorIncreaseRatingStep"
-	validatorDecrease = "ValidatorDecreaseRatingStep"
-)
 
 //NewBlockSigningRater creates a new RaterHandler of Type BlockSigningRater
 func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRater, error) {
@@ -33,24 +27,19 @@ func NewBlockSigningRater(ratingsData *economics.RatingsData) (*BlockSigningRate
 		return nil, process.ErrStartRatingNotBetweenMinAndMax
 	}
 
-	ratingOptionKeys := make([]string, 0)
-	for key := range ratingsData.RatingOptions() {
-		ratingOptionKeys = append(ratingOptionKeys, key)
-	}
-
-	sort.Strings(ratingOptionKeys)
-
 	return &BlockSigningRater{
-		ratingOptions:    ratingsData.RatingOptions(),
-		startRating:      ratingsData.StartRating(),
-		minRating:        ratingsData.MinRating(),
-		maxRating:        ratingsData.MaxRating(),
-		ratingOptionKeys: ratingOptionKeys,
+		startRating:                 ratingsData.StartRating(),
+		minRating:                   ratingsData.MinRating(),
+		maxRating:                   ratingsData.MaxRating(),
+		proposerIncreaseRatingStep:  int32(ratingsData.ProposerIncreaseRatingStep()),
+		proposerDecreaseRatingStep:  int32(0 - ratingsData.ProposerDecreaseRatingStep()),
+		validatorIncreaseRatingStep: int32(ratingsData.ValidatorIncreaseRatingStep()),
+		validatorDecreaseRatingStep: int32(0 - ratingsData.ValidatorDecreaseRatingStep()),
 	}, nil
 }
 
-func (bsr *BlockSigningRater) ComputeRating(ratingKey string, val uint32) uint32 {
-	newVal := int64(val) + int64(bsr.ratingOptions[ratingKey])
+func (bsr *BlockSigningRater) computeRating(ratingStep int32, val uint32) uint32 {
+	newVal := int64(val) + int64(ratingStep)
 	if newVal < int64(bsr.minRating) {
 		return bsr.minRating
 	}
@@ -59,11 +48,6 @@ func (bsr *BlockSigningRater) ComputeRating(ratingKey string, val uint32) uint32
 	}
 
 	return uint32(newVal)
-}
-
-//GetRatingOptionKeys gets all the ratings  keys for the options
-func (bsr *BlockSigningRater) GetRatingOptionKeys() []string {
-	return bsr.ratingOptionKeys
 }
 
 //GetRating returns the Rating for the specified public key
@@ -103,20 +87,20 @@ func (bsr *BlockSigningRater) GetStartRating() uint32 {
 
 //ComputeIncreaseProposer computes the new rating for the increaseLeader
 func (bsr *BlockSigningRater) ComputeIncreaseProposer(val uint32) uint32 {
-	return bsr.ComputeRating(proposerIncrease, val)
+	return bsr.computeRating(bsr.proposerIncreaseRatingStep, val)
 }
 
 //ComputeDecreaseProposer computes the new rating for the decreaseLeader
 func (bsr *BlockSigningRater) ComputeDecreaseProposer(val uint32) uint32 {
-	return bsr.ComputeRating(proposerDecrease, val)
+	return bsr.computeRating(bsr.proposerDecreaseRatingStep, val)
 }
 
 //ComputeIncreaseValidator computes the new rating for the increaseValidator
 func (bsr *BlockSigningRater) ComputeIncreaseValidator(val uint32) uint32 {
-	return bsr.ComputeRating(validatorIncrease, val)
+	return bsr.computeRating(bsr.validatorIncreaseRatingStep, val)
 }
 
 //ComputeDecreaseValidator computes the new rating for the decreaseValidator
 func (bsr *BlockSigningRater) ComputeDecreaseValidator(val uint32) uint32 {
-	return bsr.ComputeRating(validatorDecrease, val)
+	return bsr.computeRating(bsr.validatorDecreaseRatingStep, val)
 }

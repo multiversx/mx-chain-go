@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"io"
 	"io/ioutil"
 	"math"
@@ -544,7 +545,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	rater, err := factory.GetRater(economicsData.RatingsData())
+	rater, err := rating.NewBlockSigningRater(economicsData.RatingsData())
 	if err != nil {
 		return err
 	}

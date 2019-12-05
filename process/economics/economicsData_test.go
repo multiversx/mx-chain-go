@@ -14,32 +14,13 @@ import (
 )
 
 const (
-	validatorIncreaseRatingStep    = "validatorIncreaseRatingStep"
-	validatorDecreaseRatingStepKey = "validatorDecreaseRatingStep"
-	proposerIncreaseRatingStepKey  = "proposerIncreaseRatingStep"
-	proposerDecreaseRatingStepKey  = "proposerDecreaseRatingStep"
+	validatorIncreaseRatingStep = uint32(2)
+	validatorDecreaseRatingStep = uint32(4)
+	proposerIncreaseRatingStep  = uint32(1)
+	proposerDecreaseRatingStep  = uint32(2)
 )
 
 func createDummyEconomicsConfig() *config.ConfigEconomics {
-
-	ratingValues := make([]config.RatingValue, 0)
-	ratingValues = append(ratingValues, config.RatingValue{
-		Name:  validatorIncreaseRatingStep,
-		Value: 1,
-	})
-	ratingValues = append(ratingValues, config.RatingValue{
-		Name:  validatorDecreaseRatingStepKey,
-		Value: 2,
-	})
-	ratingValues = append(ratingValues, config.RatingValue{
-		Name:  proposerIncreaseRatingStepKey,
-		Value: 3,
-	})
-	ratingValues = append(ratingValues, config.RatingValue{
-		Name:  proposerDecreaseRatingStepKey,
-		Value: 4,
-	})
-
 	return &config.ConfigEconomics{
 		EconomicsAddresses: config.EconomicsAddresses{
 			CommunityAddress: "addr1",
@@ -61,10 +42,13 @@ func createDummyEconomicsConfig() *config.ConfigEconomics {
 			UnBoundPeriod: "100000",
 		},
 		RatingSettings: config.RatingSettings{
-			StartRating: 50,
-			MaxRating:   100,
-			MinRating:   1,
-			RatingValue: ratingValues,
+			StartRating:                 50,
+			MaxRating:                   100,
+			MinRating:                   1,
+			ProposerDecreaseRatingStep:  4,
+			ProposerIncreaseRatingStep:  2,
+			ValidatorDecreaseRatingStep: 2,
+			ValidatorIncreaseRatingStep: 1,
 		},
 	}
 }
@@ -490,13 +474,15 @@ func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	minRating := uint32(10)
 	maxRating := uint32(100)
 	startRating := uint32(50)
-	ratingValues := createDummyEconomicsConfig().RatingSettings.RatingValue
 
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.RatingSettings.MinRating = minRating
 	economicsConfig.RatingSettings.MaxRating = maxRating
 	economicsConfig.RatingSettings.StartRating = startRating
-	economicsConfig.RatingSettings.RatingValue = ratingValues
+	economicsConfig.RatingSettings.ProposerDecreaseRatingStep = proposerDecreaseRatingStep
+	economicsConfig.RatingSettings.ProposerIncreaseRatingStep = proposerIncreaseRatingStep
+	economicsConfig.RatingSettings.ValidatorIncreaseRatingStep = validatorIncreaseRatingStep
+	economicsConfig.RatingSettings.ValidatorDecreaseRatingStep = validatorDecreaseRatingStep
 
 	economicsData, err := economics.NewEconomicsData(economicsConfig)
 
@@ -505,9 +491,8 @@ func TestEconomicsData_RatingsCorrectValues(t *testing.T) {
 	assert.Equal(t, startRating, economicsData.RatingsData().StartRating())
 	assert.Equal(t, minRating, economicsData.RatingsData().MinRating())
 	assert.Equal(t, maxRating, economicsData.RatingsData().MaxRating())
-	assert.Equal(t, ratingValues[0].Value, economicsData.RatingsData().RatingOptions()[validatorIncreaseRatingStep])
-	assert.Equal(t, ratingValues[1].Value, economicsData.RatingsData().RatingOptions()[validatorDecreaseRatingStepKey])
-	assert.Equal(t, ratingValues[2].Value, economicsData.RatingsData().RatingOptions()[proposerIncreaseRatingStepKey])
-	assert.Equal(t, ratingValues[3].Value, economicsData.RatingsData().RatingOptions()[proposerDecreaseRatingStepKey])
-
+	assert.Equal(t, validatorIncreaseRatingStep, economicsData.RatingsData().ValidatorIncreaseRatingStep())
+	assert.Equal(t, validatorDecreaseRatingStep, economicsData.RatingsData().ValidatorDecreaseRatingStep())
+	assert.Equal(t, proposerIncreaseRatingStep, economicsData.RatingsData().ProposerIncreaseRatingStep())
+	assert.Equal(t, proposerDecreaseRatingStep, economicsData.RatingsData().ProposerDecreaseRatingStep())
 }
