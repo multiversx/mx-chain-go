@@ -709,6 +709,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		&generalConfig.EpochStartConfig,
 		0,
 		rater,
+		generalConfig.Marshalizer.SizeCheckDelta,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
