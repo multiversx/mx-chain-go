@@ -61,8 +61,6 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 	}
 	ts.interceptedNodes.RegisterHandler(ts.trieNodeIntercepted)
 
-	nextNodes := make([]node, 0)
-
 	currentNode, err := ts.getNode(rootHash)
 	if err != nil {
 		return err
@@ -74,7 +72,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
 		return err
 	}
 
-	nextNodes, err = ts.trie.root.getChildren(ts.trie.Database())
+	nextNodes, err := ts.trie.root.getChildren(ts.trie.Database())
 	if err != nil {
 		return err
 	}

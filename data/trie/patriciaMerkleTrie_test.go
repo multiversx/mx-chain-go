@@ -2,7 +2,6 @@ package trie_test
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -490,7 +489,7 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 
 	tr.CancelPrune(rootHash, data.OldRoot)
 
-	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot)))))
+	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot))))
 	err := tr.Prune(rootHash, data.OldRoot)
 	assert.Equal(t, expectedErr, err)
 }
@@ -512,7 +511,7 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 
 	_ = tr.Prune(rootHash, data.OldRoot)
 
-	expectedErr := errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash)))
+	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
 	val, err := db.Get(rootHash)
 	assert.Nil(t, val)
 	assert.Equal(t, expectedErr, err)
@@ -523,6 +522,7 @@ func TestPatriciaMerkleTrie_Snapshot(t *testing.T) {
 
 	tr := initTrie()
 
+	_ = tr.Commit()
 	err := tr.Snapshot()
 	assert.Nil(t, err)
 }
@@ -532,9 +532,19 @@ func TestPatriciaMerkleTrie_SnapshotWhileSnapshotShouldFail(t *testing.T) {
 
 	tr, _ := initTrieMultipleValues(1000)
 
+	_ = tr.Commit()
 	_ = tr.Snapshot()
 	err := tr.Snapshot()
 	assert.Equal(t, trie.ErrSnapshotInProgress, err)
+}
+
+func TestPatriciaMerkleTrie_SnapshotDirtyTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	err := tr.Snapshot()
+	assert.Equal(t, trie.ErrTrieNotCommitted, err)
 }
 
 func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {

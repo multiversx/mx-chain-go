@@ -58,8 +58,5 @@ func (tnip *TrieNodeInterceptorProcessor) SignalEndOfProcessing(data []process.I
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tnip *TrieNodeInterceptorProcessor) IsInterfaceNil() bool {
-	if tnip == nil {
-		return true
-	}
-	return false
+	return tnip == nil
 }

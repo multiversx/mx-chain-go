@@ -11,8 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
+	"github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -653,61 +654,27 @@ func TestTrieAddHashesToOldHashes(t *testing.T) {
 func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 	t.Parallel()
 
-	testVals := []struct {
-		key   []byte
-		value []byte
-	}{
-		{[]byte("doe"), []byte("reindeer")},
-		{[]byte("dog"), []byte("puppy")},
-		{[]byte("dogglesworth"), []byte("cat")},
-	}
+	tr := initTrie()
 
-	db := mock.NewMemDbMock()
-	msh, hsh := getTestMarshAndHasher()
-	evictionWaitListSize := 100
-	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), msh)
-
-	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
-	cfg := config.DBConfig{
-		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
-		BatchDelaySeconds: 1,
-		MaxBatchSize:      1,
-		MaxOpenFiles:      10,
-	}
-
-	tr := &patriciaMerkleTrie{
-		db:                    db,
-		snapshots:             make([]data.DBWriteCacher, 0),
-		snapshotDbCfg:         cfg,
-		dbEvictionWaitingList: evictionWaitList,
-		marshalizer:           msh,
-		hasher:                hsh,
-	}
-
-	for _, testVal := range testVals {
-		_ = tr.Update(testVal.key, testVal.value)
-	}
-
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
 	_ = tr.Snapshot()
-	collapsedRoot, _ := tr.root.getCollapsed()
-
-	snapshotTrie := &patriciaMerkleTrie{
-		root:        collapsedRoot,
-		db:          tr.snapshots[0],
-		marshalizer: msh,
-		hasher:      hsh,
-	}
 
 	for tr.isSnapshotInProgress() {
 		time.Sleep(snapshotDelay)
 	}
 
-	for _, testVal := range testVals {
-		val, err := snapshotTrie.Get(testVal.key)
-		assert.Nil(t, err)
-		assert.Equal(t, testVal.value, val)
-	}
+	_ = tr.Update([]byte("doge"), []byte("doge"))
+	_ = tr.Commit()
+	_ = tr.Prune(rootHash, data.OldRoot)
+
+	val, err := tr.db.Get(rootHash)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+
+	newTrie, err := tr.Recreate(rootHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, newTrie)
 }
 
 func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
@@ -738,7 +705,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 
 	tr := &patriciaMerkleTrie{
 		db:                    db,
-		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshots:             make([]storage.Persister, 0),
 		snapshotId:            0,
 		snapshotDbCfg:         cfg,
 		dbEvictionWaitingList: evictionWaitList,
@@ -748,6 +715,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 
 	for _, testVal := range testVals {
 		_ = tr.Update(testVal.key, testVal.value)
+		_ = tr.Commit()
 		_ = tr.Snapshot()
 		for tr.isSnapshotInProgress() {
 			time.Sleep(snapshotDelay)
@@ -791,7 +759,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 
 	tr := &patriciaMerkleTrie{
 		db:                    db,
-		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshots:             make([]storage.Persister, 0),
 		snapshotId:            0,
 		snapshotDbCfg:         cfg,
 		dbEvictionWaitingList: evictionWaitList,
@@ -801,6 +769,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 
 	for _, testVal := range testVals {
 		_ = tr.Update(testVal.key, testVal.value)
+		_ = tr.Commit()
 		_ = tr.Snapshot()
 		for tr.isSnapshotInProgress() {
 			time.Sleep(snapshotDelay)
@@ -885,7 +854,6 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 	}
 
 	rootHashes := make([][]byte, 0)
-	rootHashes = append(rootHashes)
 	for _, testVal := range testVals {
 		_ = tr.Update(testVal.key, testVal.value)
 		_ = tr.Commit()
@@ -947,7 +915,7 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 
 	tr := &patriciaMerkleTrie{
 		db:                    db,
-		snapshots:             make([]data.DBWriteCacher, 0),
+		snapshots:             make([]storage.Persister, 0),
 		snapshotDbCfg:         cfg,
 		dbEvictionWaitingList: evictionWaitList,
 		marshalizer:           msh,
@@ -990,8 +958,8 @@ func TestPruningIsBufferedWhileSnapshoting(t *testing.T) {
 	time.Sleep(snapshotDelay)
 
 	for i := range rootHashes {
-		trie, err := tr.Recreate(rootHashes[i])
-		assert.Nil(t, trie)
+		val, err := tr.db.Get(rootHashes[i])
+		assert.Nil(t, val)
 		assert.NotNil(t, err)
 	}
 
@@ -1013,4 +981,64 @@ func (tr *patriciaMerkleTrie) pruningBufferLength() int {
 	defer tr.mutOperation.Unlock()
 
 	return len(tr.pruningBuffer)
+}
+
+func TestTrieCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	_ = tr.Commit()
+	_ = tr.Snapshot()
+
+	for tr.isSnapshotInProgress() {
+		time.Sleep(snapshotDelay)
+	}
+
+	_ = tr.Update([]byte("doge"), []byte("reindeer"))
+	_ = tr.Commit()
+
+	val, err := tr.Get([]byte("doge"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("reindeer"), val)
+
+	collapsedRoot, _ := tr.root.getCollapsed()
+	snapshotTrie := &patriciaMerkleTrie{
+		root:        collapsedRoot,
+		db:          tr.snapshots[0],
+		marshalizer: tr.marshalizer,
+		hasher:      tr.hasher,
+	}
+
+	val, err = snapshotTrie.Get([]byte("doge"))
+	assert.NotNil(t, err)
+	assert.Nil(t, val)
+
+	err = tr.Checkpoint()
+	assert.Nil(t, err)
+
+	for tr.isSnapshotInProgress() {
+		time.Sleep(snapshotDelay)
+	}
+
+	val, err = snapshotTrie.Get([]byte("doge"))
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("reindeer"), val)
+}
+
+func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	assert.Equal(t, 0, len(tr.snapshots))
+
+	_ = tr.Commit()
+	err := tr.Checkpoint()
+	assert.Nil(t, err)
+	for tr.isSnapshotInProgress() {
+		time.Sleep(snapshotDelay)
+	}
+
+	assert.Equal(t, 1, len(tr.snapshots))
 }

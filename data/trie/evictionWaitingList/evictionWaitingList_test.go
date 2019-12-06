@@ -98,6 +98,8 @@ func TestEvictionWaitingList_PutMultiple(t *testing.T) {
 	for i := cacheSize; i < len(roots); i++ {
 		val := make([][]byte, 0)
 		encVal, err := ec.db.Get(roots[i])
+		assert.Nil(t, err)
+
 		err = ec.marshalizer.Unmarshal(&val, encVal)
 
 		assert.Nil(t, err)

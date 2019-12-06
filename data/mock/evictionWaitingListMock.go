@@ -84,10 +84,7 @@ func (ewl *EvictionWaitingList) Evict(rootHash []byte) ([][]byte, error) {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ewl *EvictionWaitingList) IsInterfaceNil() bool {
-	if ewl == nil {
-		return true
-	}
-	return false
+	return ewl == nil
 }
 
 // GetSize returns the size of the cache

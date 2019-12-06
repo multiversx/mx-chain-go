@@ -72,7 +72,7 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	}
 
 	rootHash, _ := syncTrie.Root()
-	sync, _ := trie.NewTrieSyncer(resolver, interceptedNodesCacher, tr, time.Second)
+	sync, _ := trie.NewTrieSyncer(resolver, interceptedNodesCacher, tr, 10*time.Second)
 
 	_ = sync.StartSyncing(rootHash)
 	newTrieRootHash, _ := tr.Root()
