@@ -250,6 +250,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 	}
 
 	updatePubKeyWasCalled := false
+	updatePidShardIdCalled := false
 	mon, _ := heartbeat.NewMessageProcessor(
 		singleSigner,
 		keyGen,
@@ -257,6 +258,9 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
 				updatePubKeyWasCalled = true
+			},
+			UpdatePeerIdShardIdCalled: func(pid p2p.PeerID, shardId uint32) {
+				updatePidShardIdCalled = true
 			},
 		},
 	)
@@ -276,6 +280,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
 	assert.True(t, updatePubKeyWasCalled)
+	assert.True(t, updatePidShardIdCalled)
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {
