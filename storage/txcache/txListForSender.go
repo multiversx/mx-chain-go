@@ -15,6 +15,12 @@ type TxListForSender struct {
 	mutex          sync.Mutex
 }
 
+// TxListForSenderNode is a node of the linked list
+type TxListForSenderNode struct {
+	TxHash []byte
+	Tx     *transaction.Transaction
+}
+
 // NewTxListForSender creates a new (sorted) list of transactions
 func NewTxListForSender() *TxListForSender {
 	return &TxListForSender{
@@ -24,16 +30,18 @@ func NewTxListForSender() *TxListForSender {
 
 // AddTransaction adds a transaction in sender's list
 // This is a "sorted" insert
-func (list *TxListForSender) AddTransaction(tx *transaction.Transaction) {
+func (list *TxListForSender) AddTransaction(txHash []byte, tx *transaction.Transaction) {
 	// We don't allow concurent interceptor goroutines to mutate a given sender's list
 	list.mutex.Lock()
 
 	nonce := tx.Nonce
 	mark := list.findTransactionWithLargerNonce(nonce)
+	newNode := TxListForSenderNode{txHash, tx}
+
 	if mark == nil {
-		list.Items.PushBack(tx)
+		list.Items.PushBack(newNode)
 	} else {
-		list.Items.InsertBefore(tx, mark)
+		list.Items.InsertBefore(newNode, mark)
 	}
 
 	list.mutex.Unlock()
@@ -41,8 +49,8 @@ func (list *TxListForSender) AddTransaction(tx *transaction.Transaction) {
 
 func (list *TxListForSender) findTransactionWithLargerNonce(nonce uint64) *linkedList.Element {
 	for element := list.Items.Front(); element != nil; element = element.Next() {
-		tx := element.Value.(*transaction.Transaction)
-		if tx.Nonce > nonce {
+		value := element.Value.(TxListForSenderNode)
+		if value.Tx.Nonce > nonce {
 			return element
 		}
 	}
@@ -78,8 +86,8 @@ func (list *TxListForSender) RemoveHighNonceTransactions(count int) {
 
 func (list *TxListForSender) findTransaction(txToFind *transaction.Transaction) *linkedList.Element {
 	for element := list.Items.Front(); element != nil; element = element.Next() {
-		tx := element.Value.(*transaction.Transaction)
-		if tx == txToFind {
+		value := element.Value.(TxListForSenderNode)
+		if value.Tx == txToFind {
 			return element
 		}
 	}
@@ -129,8 +137,8 @@ func (list *TxListForSender) CopyBatchTo(destination []*transaction.Transaction)
 			break
 		}
 
-		tx := element.Value.(*transaction.Transaction)
-		destination[copied] = tx
+		value := element.Value.(TxListForSenderNode)
+		destination[copied] = value.Tx
 		element = element.Next()
 	}
 

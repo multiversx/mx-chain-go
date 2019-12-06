@@ -50,7 +50,7 @@ func (cache *TxCache) AddTx(txHash []byte, tx *transaction.Transaction) {
 		cache.evictionStrategy.DoEvictionIfNecessary(tx)
 	}
 
-	listForSender.AddTransaction(tx)
+	listForSender.AddTransaction(txHash, tx)
 	cache.txCount.Increment()
 }
 
