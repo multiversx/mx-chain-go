@@ -14,6 +14,7 @@ import (
 )
 
 var durationBootstrapingTime = 2 * time.Second
+var maxSize = 1 << 20 //1MB
 
 // TestAntifloodWithMessagesFromTheSamePeer tests what happens if a peer decide to send a large number of messages
 // all originating from its peer ID
@@ -151,7 +152,7 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string, maxNum
 		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 
 		interceptors[idx] = newMessageProcessor()
-		interceptors[idx].CountersMap, _ = antiflood.NewCountersMap(antifloodPool, maxNumMessages)
+		interceptors[idx].CountersMap, _ = antiflood.NewQuotaFloodPreventer(antifloodPool, uint32(maxNumMessages), uint64(maxSize))
 		err = p.RegisterMessageProcessor(topic, interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())

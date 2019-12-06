@@ -531,10 +531,10 @@ type RequestBlockBodyHandler interface {
 	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
 
-// AntifloodProtector defines the behavior of a component that is able to signal that too many events occurred
+// FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
 // on a provided identifier between Reset calls
-type AntifloodProtector interface {
-	TryIncrement(identifier string) bool
+type FloodPreventer interface {
+	TryIncrement(identifier string, size uint64) bool
 	Reset()
 	IsInterfaceNil() bool
 }

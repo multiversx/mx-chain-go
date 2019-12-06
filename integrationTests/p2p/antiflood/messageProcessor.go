@@ -13,7 +13,7 @@ type messageProcessor struct {
 	numMessagesReceived uint64
 	mutMessages         sync.Mutex
 	messages            map[p2p.PeerID][]p2p.MessageP2P
-	CountersMap         process.AntifloodProtector
+	CountersMap         process.FloodPreventer
 }
 
 func newMessageProcessor() *messageProcessor {
@@ -27,14 +27,14 @@ func (mp *messageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromC
 
 	if mp.CountersMap != nil {
 		//protect from directly connected peer
-		ok := mp.CountersMap.TryIncrement(string(fromConnectedPeer))
+		ok := mp.CountersMap.TryIncrement(string(fromConnectedPeer), uint64(len(message.Data())))
 		if !ok {
 			return fmt.Errorf("system flooded")
 		}
 
 		if fromConnectedPeer != message.Peer() {
 			//protect from the flooding messages that originate from the same source but come from different peers
-			ok = mp.CountersMap.TryIncrement(string(message.Peer()))
+			ok = mp.CountersMap.TryIncrement(string(message.Peer()), uint64(len(message.Data())))
 			if !ok {
 				return fmt.Errorf("system flooded")
 			}
