@@ -1133,12 +1133,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 		}
 
 		if nextBlocksVerified < mp.shardBlockFinality {
-			for nonce := lastVerifiedHdr.GetNonce(); nonce <= lastVerifiedHdr.GetNonce()+1; nonce++ {
-				go func(requestedNonce uint64) {
-					mp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), requestedNonce)
-				}(nonce)
-			}
-
+			go mp.onRequestHeaderHandlerByNonce(lastVerifiedHdr.GetShardID(), lastVerifiedHdr.GetNonce()+1)
 			errFinal = process.ErrHeaderNotFinal
 		}
 	}
@@ -1211,8 +1206,6 @@ func (mp *metaProcessor) receivedShardHeader(shardHeaderHash []byte) {
 	}
 
 	log.Debug("received shard block from network",
-		"shard", shardHeader.ShardId,
-		"round", shardHeader.Round,
 		"nonce", shardHeader.Nonce,
 		"hash", shardHeaderHash,
 	)
