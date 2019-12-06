@@ -137,6 +137,8 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	log.Trace("received header from network",
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash,
 	)
@@ -155,6 +157,8 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 
 	if bytes.Equal(hash, headerHash) {
 		log.Debug("received requested header from network",
+			"shard", headerHandler.GetShardID(),
+			"round", headerHandler.GetRound(),
 			"nonce", headerHandler.GetNonce(),
 			"hash", hash,
 		)
@@ -174,6 +178,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 	}
 
 	log.Trace("received header from network",
+		"shard", shardId,
 		"nonce", nonce,
 		"hash", hash,
 	)
@@ -196,6 +201,7 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64, shardId uint32, has
 
 	if *n == nonce {
 		log.Debug("received requested header from network",
+			"shard", shardId,
 			"nonce", nonce,
 			"hash", hash,
 		)
